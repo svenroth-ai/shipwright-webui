@@ -1,7 +1,7 @@
 /*
  * triage-store.ts — TS port of `triage.read_all_items` from
  * `shared/scripts/triage.py`. Pure read path; status flips go through
- * `triage-write.ts`.
+ * `triage-write.ts`. Raw JSONL line reading lives in `triage-raw.ts`.
  *
  * UNION read (campaign 2026-06-08-triage-outbox-delivery / D1): the
  * resolved view sources the tracked `triage.jsonl` AND the per-tree,
@@ -12,16 +12,6 @@
  * (file order); resolution is by id, so a line present in both (post-sweep,
  * pre-GC) collapses to one item.
  *
- * Tolerance contract (matches Python):
- *   - RECOVERS concatenated records — a line holding several records (an
- *     unterminated predecessor) yields ALL of them, not none. Skipping such a
- *     line whole discarded every record on it; on an append-only log corruption
- *     must never read as absence. Rules: `jsonl-records.ts`.
- *   - undecodable text goes to the optional `onCorrupt` side channel — never
- *     thrown, never logged here (reporting belongs at the command boundary)
- *   - skips non-object lines + lines without an "event" key (header)
- *   - status events with unknown id (out-of-order corruption) skipped
- *
  * Two-pass status resolution (matches Python read_all_items):
  *   - Pass 1 applies ALL `append` events (base records, union of both files)
  *   - Pass 2 applies ALL `status` events ordered by (ts, file-order): ts is
@@ -30,22 +20,40 @@
  *     preserving the single-file "later valid line wins by file order"
  *     contract. The append-first split stops an outbox append (status:triage)
  *     from clobbering a tracked status flip.
- *   - status overlay sets: status, ts, statusBy, statusReason
+ *   - status overlay sets: status, ts, statusBy, statusReason, revisitAt
  *   - promotedTaskId only set when the status event carries a non-null value
+ *
+ * Park-expiry overlay (monorepo P2.03, iterate-2026-08-05-triage-deferred-
+ * envelope): `applyDeferOverlay` (triage-defer.ts) runs exactly ONCE, right
+ * after the two-pass resolution, mirroring where Python's `read_all_items`
+ * applies `_defer.apply_revisit_expiry` — never re-applied to its own output
+ * (see triage-defer.ts's module header for why that matters).
  *
  * Cache (5 s soft TTL) keyed by the tracked path, keyed on BOTH the tracked
  * AND outbox mtimes — a change to either file invalidates. Forced eviction
  * via invalidateCacheForPath() (called from triage-write.ts).
+ *
+ * The overlay result depends on wall-clock time, not just file bytes, so a
+ * cache hit alone cannot answer "is this still correct" — a park's due day
+ * can turn over WITHIN the 5 s TTL with neither file touched (doubt review,
+ * iterate-2026-08-05-triage-deferred-envelope). Each entry therefore also
+ * remembers `overlayDay` (the UTC calendar day `items` was computed for): a
+ * cache hit on the SAME day returns `items` unchanged (identical array
+ * reference — the pre-overlay `rawItems` are never re-mapped); a hit whose
+ * day has turned over re-applies `applyDeferOverlay` to the SAME `rawItems`
+ * (no re-read, no re-parse) and remembers the new day. This keeps the
+ * common case free (one .map() at most once per calendar day per path)
+ * while never serving a stale-by-more-than-nothing due-state.
  */
 
-import {
-  readFileSync,
-  statSync,
-} from "node:fs";
+import { statSync } from "node:fs";
 
 import type { TriageItem, TriageStatus } from "../types/triage.js";
-import { type CorruptFragment, parseJsonlRecords } from "./jsonl-records.js";
+import { applyDeferOverlay, utcToday } from "./triage-defer.js";
+import { readRawLines } from "./triage-raw.js";
 import { outboxPathFor } from "./triage-paths.js";
+
+export { parseRawLines, readLocalRawLinesSplit } from "./triage-raw.js";
 
 const STATUSES: ReadonlySet<TriageStatus> = new Set([
   "triage",
@@ -60,6 +68,10 @@ interface CacheEntry {
   /** mtime of the per-tree `triage.outbox.jsonl`, or null when absent. */
   outboxMtimeMs: number | null;
   filledAt: number;
+  /** Pre-overlay `resolveUnion` output — a pure function of file bytes. */
+  rawItems: TriageItem[];
+  /** UTC calendar day (`YYYY-MM-DD`) the current `items` was overlaid for. */
+  overlayDay: string;
   items: TriageItem[];
 }
 
@@ -83,68 +95,6 @@ function mtimeOrNull(p: string): number | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Tolerant string→objects parser — splits a raw JSONL blob into plain objects,
- * RECOVERING concatenated records and skipping blank lines (mirrors Python
- * `_iter_raw_lines_at`). Boundary rules live in `jsonl-records.ts`.
- *
- * `onCorrupt` is the optional side channel for undecodable text. The array
- * return type is load-bearing: it flows through `readRawLines` to five call
- * sites, one (`appendIdsInFile`) on the WRITE hot path driving residence
- * routing — a shape change here would alter WRITES, not just reads. Python's
- * reader likewise returns a plain list and reports corruption separately.
- *
- * Exported so the delivered-origin composer (`triage-compose.ts`) can parse a
- * `git show origin/…:…` blob through the SAME contract as on-disk reads.
- */
-export function parseRawLines(
-  raw: string,
-  onCorrupt?: (fragment: CorruptFragment) => void,
-): Record<string, unknown>[] {
-  const { records, corrupt } = parseJsonlRecords(raw);
-  if (onCorrupt) for (const fragment of corrupt) onCorrupt(fragment);
-  return records;
-}
-
-/**
- * Tolerant per-file reader — parses one JSONL file into plain objects.
- * Returns [] when the file is missing/unreadable.
- */
-function readRawLines(
-  p: string,
-  onCorrupt?: (fragment: CorruptFragment) => void,
-): Record<string, unknown>[] {
-  let raw: string;
-  try {
-    raw = readFileSync(p, "utf-8");
-  } catch {
-    return [];
-  }
-  return parseRawLines(raw, onCorrupt);
-}
-
-/**
- * Raw JSONL lines for the LOCAL union, kept SPLIT as `{ tracked, outbox }`
- * (each in file order). `readAllItems` resolves the concatenation
- * `[...tracked, ...outbox]`; the delivered-origin composer instead splices the
- * origin source between them (`[...tracked, ...origin, ...outbox]`) so the
- * outbox stays LAST — preserving the existing "freshest local intent wins an
- * equal-ts tie" file-order contract. `readAllItems` itself is unchanged.
- */
-export function readLocalRawLinesSplit(
-  trackedPath: string,
-  onCorrupt?: (fragment: CorruptFragment, source: "tracked" | "outbox") => void,
-): {
-  tracked: Record<string, unknown>[];
-  outbox: Record<string, unknown>[];
-} {
-  const outboxPath = outboxPathFor(trackedPath);
-  return {
-    tracked: readRawLines(trackedPath, onCorrupt && ((f) => onCorrupt(f, "tracked"))),
-    outbox: readRawLines(outboxPath, onCorrupt && ((f) => onCorrupt(f, "outbox"))),
-  };
 }
 
 /** ISO-8601-Z string sort key; non-string/missing ts sorts EARLIEST (""). */
@@ -180,6 +130,9 @@ export function resolveUnion(rawLines: Record<string, unknown>[]): TriageItem[] 
     item.statusBy = null;
     item.statusReason = null;
     item.promotedTaskId = null;
+    // Revisit semantics belong only to a valid `snoozed` status event — a
+    // hand-edited append must not acquire park semantics (mirrors Python).
+    item.revisitAt = null;
     resolved.set(id, item);
   }
 
@@ -219,6 +172,12 @@ export function resolveUnion(rawLines: Record<string, unknown>[]): TriageItem[] 
     }
     item.statusBy = (raw.by as string | null | undefined) ?? null;
     item.statusReason = (raw.reason as string | null | undefined) ?? null;
+    // A valid `snoozed` flip takes its supplied revisit date; any other flip
+    // (un-park/dismiss/promote) clears it, even if a hand-edited event
+    // illegally carries park semantics on a non-snoozed status.
+    const revisit = raw.revisitAt;
+    item.revisitAt =
+      newStatus === "snoozed" && typeof revisit === "string" ? revisit : null;
     const promoted = raw.promotedTaskId;
     // Only a non-null promotedTaskId overrides (null/absent keep the prior
     // value); non-strings are coerced to preserve the string|null contract.
@@ -249,6 +208,9 @@ export function readAllItems(trackedPath: string): TriageItem[] {
   // Neither file present — no triage store at all.
   if (trackedMtimeMs === null && outboxMtimeMs === null) return [];
 
+  const now = new Date();
+  const today = utcToday(now);
+
   // Dual-mtime cache lookup (keyed by the tracked path).
   const cached = cache.get(trackedPath);
   if (
@@ -257,17 +219,27 @@ export function readAllItems(trackedPath: string): TriageItem[] {
     cached.outboxMtimeMs === outboxMtimeMs &&
     Date.now() - cached.filledAt < CACHE_TTL_MS
   ) {
+    if (cached.overlayDay === today) return cached.items;
+    // Same bytes, but the UTC day turned over since the cache filled — the
+    // overlay is a pure function of (rawItems, today), so re-apply it to
+    // the ALREADY-PARSED rawItems (no re-read, no re-parse) rather than
+    // serving a due-state that's stale by more than nothing.
+    cached.items = applyDeferOverlay(cached.rawItems, now);
+    cached.overlayDay = today;
     return cached.items;
   }
 
   // Tolerant union read: tracked lines THEN outbox lines (file order).
   const rawLines = [...readRawLines(trackedPath), ...readRawLines(outboxPath)];
-  const items = resolveUnion(rawLines);
+  const rawItems = resolveUnion(rawLines);
+  const items = applyDeferOverlay(rawItems, now);
 
   cache.set(trackedPath, {
     trackedMtimeMs,
     outboxMtimeMs,
     filledAt: Date.now(),
+    rawItems,
+    overlayDay: today,
     items,
   });
   return items;

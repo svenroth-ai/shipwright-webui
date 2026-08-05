@@ -32,6 +32,8 @@ const item: TriageItem = {
   statusBy: null,
   statusReason: null,
   promotedTaskId: null,
+  revisitAt: null,
+  revisitDue: false,
 };
 
 describe("TriageItemCard styling", () => {

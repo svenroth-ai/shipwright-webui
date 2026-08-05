@@ -35,6 +35,7 @@
 
 import type { TriageItem } from "../types/triage.js";
 import type { CorruptFragment } from "./jsonl-records.js";
+import { applyDeferOverlay } from "./triage-defer.js";
 import {
   readLocalRawLinesSplit,
   resolveUnion,
@@ -79,5 +80,6 @@ export function readAllItemsWithDeliveredOrigin(
   // [tracked, origin, outbox] — outbox last (freshest local intent wins ties);
   // origin between (beats stale tracked, loses to pending outbox). When origin
   // is null/empty this is exactly `[...tracked, ...outbox]` = the local union.
-  return resolveUnion([...tracked, ...origin, ...outbox]);
+  // Overlay applied exactly once, same as readAllItems — see triage-store.ts.
+  return applyDeferOverlay(resolveUnion([...tracked, ...origin, ...outbox]), new Date());
 }

@@ -44,6 +44,7 @@ const TOUCHED = [
   "pages/inbox/InboxProjectSection.tsx",
   "pages/InboxPage.tsx",
   "pages/TriagePage.tsx",
+  "components/triage/PerProjectTriageSection.tsx",
 ];
 
 describe("on-photo legibility — AC1 flipping-token fence", () => {
@@ -63,7 +64,10 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
   });
 
   it("triage group + project headers use --ink / --muted, not the legacy text aliases", () => {
-    const src = read("pages/TriagePage.tsx");
+    // Moved to PerProjectTriageSection.tsx (iterate-2026-08-05-triage-
+    // deferred-envelope extraction) — TriagePage.tsx itself no longer
+    // renders these headers directly.
+    const src = read("components/triage/PerProjectTriageSection.tsx");
     expect(src).toMatch(/text-\[var\(--ink\)\]/);
     expect(src).toMatch(/text-\[var\(--muted\)\]/);
     expect(src).not.toMatch(/text-\[var\(--color-text\)\]/);

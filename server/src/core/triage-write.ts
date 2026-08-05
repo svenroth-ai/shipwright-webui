@@ -67,6 +67,13 @@ export interface AppendStatusEventArgs {
   by: string;
   reason: string | null;
   promotedTaskId: string | null;
+  /**
+   * Park semantics (monorepo P2.03) — the caller passes this ONLY on a
+   * `newStatus: "snoozed"` flip (route-layer validation enforces it); the
+   * key is omitted from the emitted line entirely when absent, matching the
+   * monorepo wire format where the field doesn't exist on other statuses.
+   */
+  revisitAt?: string;
   /** Caller's now provider — injectable so tests can pin the timestamp. */
   now?: () => string;
 }
@@ -102,6 +109,7 @@ export function appendStatusEvent(args: AppendStatusEventArgs): void {
     by: args.by,
     reason: args.reason,
     promotedTaskId: args.promotedTaskId,
+    ...(args.revisitAt !== undefined ? { revisitAt: args.revisitAt } : {}),
   };
   const line = JSON.stringify(event) + "\n";
 

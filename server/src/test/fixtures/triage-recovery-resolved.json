@@ -19,7 +19,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-bbbb2222",
@@ -39,7 +41,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-cccc3333",
@@ -59,7 +63,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-eeee5555",
@@ -79,7 +85,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-ffff6666",
@@ -99,7 +107,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-hhhh8888",
@@ -119,7 +129,9 @@
       "suggestedDomain": "engineering",
       "statusBy": "webui",
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-iiii9999",
@@ -139,7 +151,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-jjjj0000",
@@ -159,7 +173,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     }
   ]
 }

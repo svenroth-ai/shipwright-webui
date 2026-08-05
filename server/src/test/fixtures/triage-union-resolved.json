@@ -19,7 +19,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-cross002",
@@ -39,7 +41,9 @@
       "suggestedDomain": "compliance",
       "statusBy": "webui",
       "statusReason": "outbox status flips a tracked append",
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-dup003",
@@ -59,7 +63,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-race005",
@@ -79,7 +85,9 @@
       "suggestedDomain": "engineering",
       "statusBy": "webui",
       "statusReason": "later outbox status wins",
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-tie007",
@@ -99,7 +107,75 @@
       "suggestedDomain": "engineering",
       "statusBy": "webui",
       "statusReason": "outbox status wins equal-ts tiebreak",
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
+    },
+    {
+      "id": "trg-park-due",
+      "ts": "2026-06-01T09:05:00Z",
+      "originalTs": "2026-06-01T08:05:00Z",
+      "source": "phaseQuality",
+      "severity": "high",
+      "kind": "bug",
+      "title": "Parked entry whose revisit date has passed (auto-reopens)",
+      "detail": "revisitAt is far in the past; must resolve back to status:triage with revisitDue:true",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "phaseQuality:park-due",
+      "status": "triage",
+      "suggestedPriority": "P2",
+      "suggestedDomain": "engineering",
+      "statusBy": "webui",
+      "statusReason": "parked with a date",
+      "promotedTaskId": null,
+      "revisitAt": "2020-01-01",
+      "revisitDue": true
+    },
+    {
+      "id": "trg-park-future",
+      "ts": "2026-06-01T09:06:00Z",
+      "originalTs": "2026-06-01T08:06:00Z",
+      "source": "compliance",
+      "severity": "medium",
+      "kind": "compliance",
+      "title": "Parked entry with a future revisit date",
+      "detail": "revisitAt is far in the future; stays snoozed with revisitDue:false",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "compliance:park-future",
+      "status": "snoozed",
+      "suggestedPriority": "P2",
+      "suggestedDomain": "compliance",
+      "statusBy": "webui",
+      "statusReason": "parked with a future date",
+      "promotedTaskId": null,
+      "revisitAt": "2099-01-01",
+      "revisitDue": false
+    },
+    {
+      "id": "trg-park-undated",
+      "ts": "2026-06-01T09:07:00Z",
+      "originalTs": "2026-06-01T08:07:00Z",
+      "source": "drift",
+      "severity": "low",
+      "kind": "maintenance",
+      "title": "Parked entry with no revisit date (parked-not-due)",
+      "detail": "No revisitAt set at all — the WebUI's plain Snooze action; stays snoozed forever",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "drift:park-undated",
+      "status": "snoozed",
+      "suggestedPriority": "P3",
+      "suggestedDomain": "engineering",
+      "statusBy": "webui",
+      "statusReason": "parked with no date",
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-out200",
@@ -119,7 +195,9 @@
       "suggestedDomain": "engineering",
       "statusBy": "webui",
       "statusReason": "webuiPromote",
-      "promotedTaskId": "EXT:task-xyz"
+      "promotedTaskId": "EXT:task-xyz",
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-out201",
@@ -139,7 +217,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-out199",
@@ -159,7 +239,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     }
   ]
 }

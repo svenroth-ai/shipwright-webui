@@ -31,6 +31,7 @@ import { PendingDeliveryBadge, SeverityBadge, SourceBadge, StatusBadge } from ".
 import { CampaignStartCta } from "./CampaignStartCta";
 import { LaunchPayloadBlock } from "./LaunchPayloadBlock";
 import { PromoteModal } from "./PromoteModal";
+import { SnoozeRevisitField } from "./SnoozeRevisitField";
 import { buildFixNowIntent, type FixNowIntent } from "./fixNowIntent";
 
 interface TriageDetailModalProps {
@@ -58,6 +59,11 @@ interface TriageDetailModalProps {
   onNavigateToBoard?: () => void;
 }
 
+function flipErrorMessage(result: { status: number; body: unknown }, action: string): string {
+  const body = result.body as { error?: string; message?: string };
+  return body.message || `${action} failed (${result.status}): ${body.error}`;
+}
+
 export function TriageDetailModal({
   open,
   onOpenChange,
@@ -72,6 +78,7 @@ export function TriageDetailModal({
   const startCampaignMut = useStartCampaign(projectId);
   const projectActions = useProjectActions(projectId);
   const [reason, setReason] = useState("");
+  const [revisitAt, setRevisitAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
@@ -96,6 +103,9 @@ export function TriageDetailModal({
   // for primary attention (draft/active/legacy-null) — but NOT when the
   // campaign is complete (no CTA shown, so Fix-now keeps its primary style).
   const showCampaignCta = isCampaignItem && campaignStatus !== "complete";
+  const fixNowButtonClass = showCampaignCta
+    ? "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+    : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5";
 
   const onStartCampaign = async () => {
     if (!campaignSlug) return;
@@ -103,10 +113,7 @@ export function TriageDetailModal({
     try {
       const result = await startCampaignMut.mutateAsync(campaignSlug);
       if (!result.ok) {
-        setStartError(
-          result.message ||
-            `Start campaign failed (${result.status}): ${result.error}`,
-        );
+        setStartError(result.message || `Start campaign failed (${result.status}): ${result.error}`);
         return;
       }
       onNavigateToBoard?.();
@@ -152,10 +159,7 @@ export function TriageDetailModal({
       reason: reason.trim() || null,
     });
     if (!result.ok) {
-      const body = result.body as { error?: string; message?: string };
-      setError(
-        body.message || `Dismiss failed (${result.status}): ${body.error}`,
-      );
+      setError(flipErrorMessage(result, "Dismiss"));
       return;
     }
     onActionComplete?.("dismissed");
@@ -167,12 +171,10 @@ export function TriageDetailModal({
     const result = await snooze.mutateAsync({
       triageId: item.id,
       reason: reason.trim() || null,
+      revisitAt: revisitAt.trim() || undefined,
     });
     if (!result.ok) {
-      const body = result.body as { error?: string; message?: string };
-      setError(
-        body.message || `Snooze failed (${result.status}): ${body.error}`,
-      );
+      setError(flipErrorMessage(result, "Snooze"));
       return;
     }
     onActionComplete?.("snoozed");
@@ -288,6 +290,7 @@ export function TriageDetailModal({
                       data-testid="triage-action-reason"
                     />
                   </label>
+                  <SnoozeRevisitField value={revisitAt} onChange={setRevisitAt} disabled={dismiss.isPending || snooze.isPending} />
                   {error && (
                     <div
                       className="mt-3 p-2 text-xs text-err bg-err-tint border border-[var(--err-line)] rounded"
@@ -309,11 +312,7 @@ export function TriageDetailModal({
                       type="button"
                       onClick={onFixNowClick}
                       disabled={projectActions.isLoading}
-                      className={
-                        showCampaignCta
-                          ? "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-                          : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-                      }
+                      className={fixNowButtonClass}
                       data-testid="triage-fix-now"
                     >
                       {projectActions.isLoading && (

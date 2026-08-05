@@ -1,0 +1,1 @@
+Triage tab: the Snooze action gained an optional revisit-date field — set a date and the item returns to Open on its own when it arrives; leaving it blank keeps the existing park-indefinitely behavior

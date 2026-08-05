@@ -80,6 +80,8 @@ const baseItem: TriageItem = {
   statusBy: null,
   statusReason: null,
   promotedTaskId: null,
+  revisitAt: null,
+  revisitDue: false,
 };
 
 // Resolved catalog stub — both new-task + new-iterate present so the
@@ -190,9 +192,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(intent.initialTitle).toBe(
       "Fix for GitHub security: 35 shipwright-security finding(s) (high)",
     );
-    expect(intent.initialDescription).toBe(
-      "Repo svenroth-ai/shipwright | scan output…",
-    );
+    expect(intent.initialDescription).toBe("Repo svenroth-ai/shipwright | scan output…");
     expect(intent.initialPriority).toBe("P1");
     expect(intent.initialDomain).toBe("engineering");
     // AC-10: modal closes after handing off.
@@ -218,9 +218,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(intent.initialTitle).toBe(
       "Fix for Serve the WebUI over HTTPS so terminal Ctrl+V paste works over Tailscale",
     );
-    expect(intent.initialDescription).toBe(
-      "Follow-up to iterate-2026-05-18-terminal-copy-paste…",
-    );
+    expect(intent.initialDescription).toBe("Follow-up to iterate-2026-05-18-terminal-copy-paste…");
     expect(intent.initialPriority).toBe("P2");
     expect(intent.initialDomain).toBe("engineering");
     expect(onOpenChange).toHaveBeenCalledWith(false);

@@ -1,0 +1,152 @@
+{
+  "last_updated": "2026-07-28",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-05-triage-deferred-envelope",
+    "date": "2026-08-05",
+    "unit": {
+      "status": "passed",
+      "passed": 6461,
+      "total": 6462
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "BASE_URL=http://127.0.0.1:3850 node node_modules/@playwright/test/cli.js test --config=playwright.config.ts e2e/flows/triage-deferred-envelope.spec.ts --project=chromium --reporter=list",
+      "exit_code": 0,
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-08-05-triage-deferred-envelope/surface_verification_evidence.txt",
+      "timestamp": "2026-08-05T14:38:00Z",
+      "attempts": 1
+    },
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Every resolved item gains revisitAt/revisitDue, matching upstream read_all_items field-for-field",
+          "disposition": "tested",
+          "evidence": "triage-defer.test.ts (18 cases) + triage-store.test.ts/.union.test.ts/.recovery.test.ts parity gates vs regenerated fixtures"
+        },
+        {
+          "behavior": "A due park (revisitAt in the past) auto-resolves to status:triage, revisitDue:true",
+          "disposition": "tested",
+          "evidence": "triage-defer.test.ts exact-boundary injected-clock case; triage.revisit.test.ts AC11 route-level"
+        },
+        {
+          "behavior": "An undated park stays snoozed forever, revisitDue always false",
+          "disposition": "tested",
+          "evidence": "triage-defer.test.ts undated-park case; CLI-parity fixture trg-park-undated"
+        },
+        {
+          "behavior": "buildTriageListing splits open (status:triage) from deferred (status:snoozed)",
+          "disposition": "tested",
+          "evidence": "triage-contract.test.ts unit behavior tests"
+        },
+        {
+          "behavior": "buildTriageListing matches the REAL triage_cli.py list --json envelope byte-for-byte",
+          "disposition": "tested",
+          "evidence": "triage-contract.test.ts CLI PARITY GATE vs fixture regenerated from the real monorepo CLI"
+        },
+        {
+          "behavior": "Deferred section renders per-item revisit date/state, hidden when empty",
+          "disposition": "tested",
+          "evidence": "DeferredTriageSection.test.tsx (6 cases)"
+        },
+        {
+          "behavior": "Deferred entries sort soonest-dated-first, then undated, then severity, then id",
+          "disposition": "tested",
+          "evidence": "sortDeferred.test.ts (client) + triage-defer.test.ts (server)"
+        },
+        {
+          "behavior": "Snooze accepts a valid future revisitAt and persists it",
+          "disposition": "tested",
+          "evidence": "triage.revisit.test.ts AC7"
+        },
+        {
+          "behavior": "Snooze rejects a malformed or non-future revisitAt with distinct 400 codes",
+          "disposition": "tested",
+          "evidence": "triage.revisit.test.ts AC7 (invalid_revisitAt, revisitAt_not_future)"
+        },
+        {
+          "behavior": "Snooze with no revisitAt behaves exactly as before (backward compat)",
+          "disposition": "tested",
+          "evidence": "triage.revisit.test.ts AC7"
+        },
+        {
+          "behavior": "Dismiss rejects any revisitAt, item left untouched",
+          "disposition": "tested",
+          "evidence": "triage.revisit.test.ts AC8"
+        },
+        {
+          "behavior": "GET /api/triage/counts separates open total from deferredTotal (parked items never read as nothing-pending)",
+          "disposition": "tested",
+          "evidence": "triage.revisit.test.ts AC11 + deferredTotal test; TriagePage.test.tsx empty-state gating test"
+        },
+        {
+          "behavior": "appendStatusEvent omits revisitAt key when absent, includes it verbatim when supplied",
+          "disposition": "tested",
+          "evidence": "triage-write.revisit.test.ts wire-byte assertions"
+        },
+        {
+          "behavior": "Server/client TriageItem field sets stay identical after the two new fields",
+          "disposition": "tested",
+          "evidence": "triage-schema-sync.test.ts (pre-existing, re-run green)"
+        },
+        {
+          "behavior": "The read-through cache re-derives the overlay when the UTC day turns over within its TTL (doubt review fix)",
+          "disposition": "tested",
+          "evidence": "triage-store.test.ts day-boundary fake-timer tests (2 cases)"
+        },
+        {
+          "behavior": "End-to-end: expired park auto-reopens, future/undated parks render in Deferred, Snooze date field moves an item into Deferred",
+          "disposition": "tested",
+          "evidence": "e2e/flows/triage-deferred-envelope.spec.ts \u2014 2/2 passed against a real built stack"
+        },
+        {
+          "behavior": "No touched file exceeds its recorded bloat-baseline ceiling",
+          "disposition": "tested",
+          "evidence": "measured directly against shipwright_bloat_baseline.json for all 8 entries; re-verified by the pre-commit anti-ratchet hook at F6"
+        }
+      ],
+      "counts": {
+        "testable": 17,
+        "tested": 17,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 11,
+        "covered_acs": 11
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-05-triage-deferred-envelope",
+    "commit": "85cf0cd341c8d0de365aa35d07951b5ece5d902d",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
