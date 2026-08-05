@@ -2,18 +2,21 @@
 
 **This is the one function the ADR-117 port ADAPTED rather than vendored.**
 Canonical keeps it in `pr_review_render` and pins its alphabet by enumeration in
-`tests/test_pr_review_sanitiser.py`; this repo has never vendored that module, so
-the function was re-declared in `pr_review_dismiss` — and its own comment claimed
-to be "pinned by enumeration in the tests", which was true upstream and false
-here. Stage-3 review measured the gap: narrowing `_CONTROL_AND_INVISIBLE` to
-`\\x00-\\x1f` left the whole C1 / bidi / zero-width / BOM half dead with the
-entire suite still green, because the only assertions touching it used `chr(27)`,
-a single C0 character.
+`tests/test_pr_review_sanitiser.py`; this repo re-declared it in `pr_review_dismiss`
+instead — and its own comment claimed to be "pinned by enumeration in the tests",
+which was true upstream and false here. Stage-3 review measured the gap: narrowing
+`_CONTROL_AND_INVISIBLE` to `\\x00-\\x1f` left the whole C1 / bidi / zero-width / BOM
+half dead with the entire suite still green, because the only assertions touching
+it used `chr(27)`, a single C0 character.
 
-Ported from canonical, minus the cases about `safe_path` (a Markdown/prompt sink
-this repo does not have). The alphabet test is rewritten to pin `_CONTROL_ONLY`
-against an explicit codepoint set rather than against its absent sibling — the
-same guarantee, expressed without the module that is missing.
+Ported from canonical, minus the cases about `safe_path` — a Markdown/prompt sink
+this repo now ALSO has (`pr_review_safe_path`, merged forward from
+iterate-2026-07-28-pr-review-parity), but the two stay genuinely separate rather
+than merged into one function: `safe_path` additionally blanks backtick/brace for
+Markdown/template safety, which would corrupt a `gh` JSON error's readability if
+applied here. The alphabet test is rewritten to pin `_CONTROL_ONLY` against an
+explicit codepoint set rather than against `safe_path`'s (wider, differently-scoped)
+one — the same guarantee for THIS sink, expressed independently.
 
 Why it matters here specifically: this sanitiser is the ONE choke point for every
 line the stale-verdict cleanup prints, and those lines carry `gh` stderr, which

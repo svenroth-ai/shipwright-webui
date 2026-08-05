@@ -1,16 +1,20 @@
-"""Tests for scripts/ci/pr_review_openrouter.py — the OpenRouter HTTP boundary.
+"""Tests for scripts/ci/pr_review_openrouter.py — the HTTP boundary.
 
-Moved here unchanged from ``test_pr_review_script.py`` when the ADR-117 port
-split the boundary out of the tool script (one module per external boundary,
-mirroring ``pr_review_gh``). Only the module under test changed; every
-assertion is the one that guarded these two functions before the move, which is
-the point — a refactor must not be able to quietly relax them.
+Request shape (URL, auth header, strict-JSON response format), content
+extraction, and the error wrapping that maps every transport failure to a
+RuntimeError the caller turns into EXIT_ERROR. `urllib` is monkeypatched, so
+the suite runs fully offline.
+
+Vendored from the canonical monorepo (plugins/shipwright-security/tests/
+test_pr_review_openrouter.py); paths + attribution headers re-pointed to the
+WebUI.
 """
 
 from __future__ import annotations
 
 import json
 import sys
+import urllib.error
 from pathlib import Path
 
 import pytest
@@ -18,14 +22,29 @@ import pytest
 CI_DIR = Path(__file__).resolve().parent.parent  # scripts/ci
 sys.path.insert(0, str(CI_DIR))
 
-import pr_review_openrouter as ORT  # noqa: E402
+import pr_review_openrouter as O  # noqa: E402
 
+# Deliberately NOT in any real credential format (no `sk-`/`ghp_`/`xox` prefix) so the
+# repo's secret-scan hooks don't flag this synthetic fixture.
 FAKE_KEY = "ORTESTKEY-not-a-real-credential-0123456789"
 
 
-# ---------------------------------------------------------------------------
-# _post_openrouter — HTTP boundary (urllib monkeypatched)
-# ---------------------------------------------------------------------------
+class TestDefaults:
+
+    def test_default_model_is_sonnet(self):
+        assert O.DEFAULT_MODEL == "anthropic/claude-sonnet-4.6"
+
+    def test_the_timeout_default_is_shared_with_the_cli(self):
+        # Two defaults for one knob is how a raise gets half-applied. The CLI
+        # flag reads this constant; nothing hardcodes a second number.
+        assert O.DEFAULT_TIMEOUT == 600
+        src = (CI_DIR / "pr_review.py").read_text(encoding="utf-8")
+        assert "default=DEFAULT_TIMEOUT" in src
+
+    def test_the_endpoint_is_a_fixed_https_constant(self):
+        # No dynamic input may reach the request URL (the SSRF/`file://` class).
+        assert O.OPENROUTER_URL.startswith("https://openrouter.ai/")
+
 
 class TestPostOpenRouter:
 
@@ -48,46 +67,79 @@ class TestPostOpenRouter:
             captured["url"] = req.full_url
             captured["headers"] = {k.lower(): v for k, v in req.header_items()}
             captured["body"] = json.loads(req.data.decode("utf-8"))
+            captured["timeout"] = timeout
             return _FakeResp()
 
-        monkeypatch.setattr(ORT.urllib.request, "urlopen", fake_urlopen)
-        data = ORT._post_openrouter(FAKE_KEY, "some/model", [{"role": "user", "content": "hi"}], 30)
+        monkeypatch.setattr(O.urllib.request, "urlopen", fake_urlopen)
+        data = O._post_openrouter(FAKE_KEY, "some/model", [{"role": "user", "content": "hi"}], 30)
 
-        assert captured["url"] == ORT.OPENROUTER_URL
+        assert captured["url"] == O.OPENROUTER_URL
         assert captured["headers"]["authorization"] == f"Bearer {FAKE_KEY}"
         assert captured["body"]["model"] == "some/model"
         assert captured["body"]["response_format"] == {"type": "json_object"}
+        assert captured["timeout"] == 30
         assert data["choices"][0]["message"]["content"] == '{"decision":"approve"}'
 
+    def test_the_attribution_headers_name_this_repo(self, monkeypatch):
+        # A declared vendoring adaptation: canonical attributes to the monorepo.
+        # If a re-vendor overwrites it, OpenRouter usage lands under the wrong
+        # project — visible only in a dashboard nobody reads on a schedule.
+        captured = {}
 
-# ---------------------------------------------------------------------------
-# call_openrouter — content extraction + error wrapping (_post_openrouter mocked)
-# ---------------------------------------------------------------------------
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'{"choices":[{"message":{"content":"{}"}}]}'
+
+        monkeypatch.setattr(
+            O.urllib.request, "urlopen",
+            lambda req, timeout=None: (
+                captured.update({k.lower(): v for k, v in req.header_items()}), _FakeResp())[1])
+        O._post_openrouter(FAKE_KEY, "m", [], 1)
+        assert captured["Http-referer".lower()].endswith("/shipwright-webui")
+        assert "WebUI" in captured["X-title".lower()]
+
 
 class TestCallOpenRouter:
 
     def test_success_extracts_content(self, monkeypatch):
         monkeypatch.setattr(
-            ORT, "_post_openrouter",
+            O, "_post_openrouter",
             lambda k, m, msgs, t: {"choices": [{"message": {"content": "OK"}}]},
         )
-        assert ORT.call_openrouter("k", "m", [], 1) == "OK"
+        assert O.call_openrouter("k", "m", [], 1) == "OK"
+
+    def test_the_default_timeout_is_passed_through(self, monkeypatch):
+        seen = {}
+
+        def capture(k, m, msgs, t):
+            seen["timeout"] = t
+            return {"choices": [{"message": {"content": "OK"}}]}
+
+        monkeypatch.setattr(O, "_post_openrouter", capture)
+        O.call_openrouter("k", "m", [])
+        assert seen["timeout"] == O.DEFAULT_TIMEOUT
 
     def test_bad_shape_raises_runtime(self, monkeypatch):
-        monkeypatch.setattr(ORT, "_post_openrouter", lambda *a: {"unexpected": 1})
+        monkeypatch.setattr(O, "_post_openrouter", lambda *a: {"unexpected": 1})
         with pytest.raises(RuntimeError):
-            ORT.call_openrouter("k", "m", [], 1)
+            O.call_openrouter("k", "m", [], 1)
 
     def test_http_error_wrapped(self, monkeypatch):
         def boom(*a):
-            raise ORT.urllib.error.HTTPError("u", 429, "rate limit", {}, None)
-        monkeypatch.setattr(ORT, "_post_openrouter", boom)
+            raise urllib.error.HTTPError("u", 429, "rate limit", {}, None)
+        monkeypatch.setattr(O, "_post_openrouter", boom)
         with pytest.raises(RuntimeError):
-            ORT.call_openrouter("k", "m", [], 1)
+            O.call_openrouter("k", "m", [], 1)
 
     def test_url_error_wrapped(self, monkeypatch):
         def boom(*a):
-            raise ORT.urllib.error.URLError("connection refused")
-        monkeypatch.setattr(ORT, "_post_openrouter", boom)
+            raise urllib.error.URLError("connection refused")
+        monkeypatch.setattr(O, "_post_openrouter", boom)
         with pytest.raises(RuntimeError):
-            ORT.call_openrouter("k", "m", [], 1)
+            O.call_openrouter("k", "m", [], 1)

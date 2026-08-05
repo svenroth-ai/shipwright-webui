@@ -15,6 +15,8 @@ The rules about WHICH review may be dismissed are policy and live in
 # canonical-source-paths:
 #   plugins/shipwright-security/scripts/lib/pr_review_gh.py
 # canonical-source-version: iterate-2026-07-31-it7a-pr-review-stale-verdict (ADR-117)
+#   + iterate-2026-07-27-pr-review-forged-boundary (fetch_pr_diff, post_pr_comment,
+#   post_pr_review_state)
 # adaptation: PARTIAL VENDOR — deliberately NOT byte-identical, so it carries no
 #   canonical-source-hash line (spelled without the leading marker on purpose:
 #   `tests/test_accepted_risks_vendored.py` scans for that literal string, so
@@ -28,17 +30,16 @@ The rules about WHICH review may be dismissed are policy and live in
 #   `pr_review_dismiss_select.py` and `pr_review_dismiss.py` — are pinned in
 #   `tests/test_pr_review_vendor_pins.py`.
 #
-#   TWO behaviours of canonical's version are deliberately NOT here, both from
-#   a LATER canonical iterate (the forged-diff-boundary fix) this repo has not
-#   vendored. Porting either under an ADR-117 heading would smuggle in an
-#   unrelated behaviour change; both are filed as follow-up.
-#     (a) canonical's `fetch_pr_diff` reads BYTES, defeating CPython's
-#         universal-newline pass — which is how a PR forges a `diff --git`
-#         boundary from a lone CR inside a hunk.
-#     (b) canonical applies `_TEXT` (`encoding="utf-8", errors="replace"`) to
-#         `post_pr_comment` and `post_pr_review_state` too; this copy keeps
-#         their original `text=True`. The NEW wrappers below do use `_TEXT`,
-#         because they are new code rather than moved code — see the note there.
+#   The two forged-diff-boundary behaviours the ADR-117 port had left as
+#   follow-up are CLOSED here (iterate-2026-07-28-pr-review-parity, merged
+#   forward past the ADR-117 port):
+#     (a) `fetch_pr_diff` now reads BYTES and decodes without the universal-
+#         newline pass, so a lone CR inside a diff hunk can no longer forge a
+#         `diff --git` boundary at column 0 and split one file section into two.
+#     (b) `post_pr_comment` / `post_pr_review_state` now use `_TEXT`
+#         (`encoding="utf-8", errors="replace"`) instead of `text=True`, for the
+#         same locale-independence reason the ADR-117 additions below already
+#         used it — one `_TEXT` dict now covers every call that carries a body.
 """
 
 from __future__ import annotations
@@ -50,21 +51,34 @@ __all__ = ["dismiss_pr_review", "fetch_pr_diff", "fetch_pr_head_sha",
            "list_pr_reviews", "post_pr_comment", "post_pr_review_state"]
 
 
-# ---------------------------------------------------------------------------
-# Moved verbatim out of `pr_review.py` — behaviour unchanged by the ADR-117 port
-# ---------------------------------------------------------------------------
+# `encoding=` rather than `text=True` on every call that carries a body: a
+# review body is model output and always carries non-ASCII (the decision
+# badges), and `text=True` decodes with the locale's preferred encoding. On a
+# runner whose LC_CTYPE is not UTF-8 that raises, and the caller would then
+# report a failure that has nothing to do with the pull request itself.
+_TEXT = {"encoding": "utf-8", "errors": "replace"}
+
 
 def fetch_pr_diff(pr_number: int, repo: str) -> str:
-    """Fetch the unified diff for a PR via the `gh` CLI."""
+    """Fetch the unified diff for a PR via the `gh` CLI.
+
+    Read as BYTES and decode without newline translation. `text=True` would run
+    CPython's universal-newline pass, which rewrites a lone CR to LF **before any
+    parser sees it** — and git ends a diff line at LF only. A PR whose own
+    content carries a CR could therefore manufacture a line break, and with it a
+    counterfeit `diff --git` header at column 0, splitting one real file section
+    into two. Everything downstream — the generated-artifact filter, the size
+    cap, the file lists shown to the model and to humans — trusts that boundary.
+    """
     proc = subprocess.run(
         ["gh", "pr", "diff", str(pr_number), "--repo", repo],
         capture_output=True,
-        text=True,
         timeout=120,
     )
     if proc.returncode != 0:
-        raise RuntimeError(f"`gh pr diff` failed ({proc.returncode}): {proc.stderr.strip()}")
-    return proc.stdout
+        err = proc.stderr.decode("utf-8", "replace").strip()
+        raise RuntimeError(f"`gh pr diff` failed ({proc.returncode}): {err}")
+    return proc.stdout.decode("utf-8", "replace")
 
 
 def post_pr_comment(pr_number: int, repo: str, body: str) -> None:
@@ -73,8 +87,8 @@ def post_pr_comment(pr_number: int, repo: str, body: str) -> None:
         ["gh", "pr", "comment", str(pr_number), "--repo", repo, "--body-file", "-"],
         input=body,
         capture_output=True,
-        text=True,
         timeout=60,
+        **_TEXT,
     )
     if proc.returncode != 0:
         raise RuntimeError(f"`gh pr comment` failed ({proc.returncode}): {proc.stderr.strip()}")
@@ -89,16 +103,15 @@ def post_pr_review_state(pr_number: int, repo: str, decision: str, summary: str)
     than optional: an approval WOULD retract an earlier change-request for free,
     and ADR-117 rejected buying the unblock that way.
 
-    THE ONE BEHAVIOUR CHANGE IN THE MOVE, and it is load-bearing. This wrapper
-    used to discard the `CompletedProcess` entirely, so it could not fail — which
-    left the caller's `except` clause around it dead, and a rate-limited or
-    forbidden post looked exactly like a successful one. ADR-117 gates the
-    cleanup on whether this reviewer's own review actually LANDED (it is the
-    anchor the whole ownership rule is read from), so silence here would make
-    that gate a lie: the run would go looking for an anchor it never posted.
-    Raising is what lets the caller record `state_posted = False` and decline to
-    clear anything. Canonical made the identical change for the identical
-    reason.
+    THE ONE BEHAVIOUR CHANGE IN THE ADR-117 MOVE, and it is load-bearing. This
+    wrapper used to discard the `CompletedProcess` entirely, so it could not
+    fail — which left the caller's `except` clause around it dead, and a
+    rate-limited or forbidden post looked exactly like a successful one.
+    ADR-117 gates the stale-verdict cleanup on whether this reviewer's own
+    review actually LANDED (it is the anchor the whole ownership rule is read
+    from), so silence here would make that gate a lie: the run would go looking
+    for an anchor it never posted. Raising is what lets the caller record
+    `state_posted = False` and decline to clear anything.
     """
     norm = (decision or "").strip().lower()
     flag = "--request-changes" if norm == "block" else "--comment"
@@ -106,8 +119,8 @@ def post_pr_review_state(pr_number: int, repo: str, decision: str, summary: str)
     proc = subprocess.run(
         ["gh", "pr", "review", str(pr_number), "--repo", repo, flag, "--body", body],
         capture_output=True,
-        text=True,
         timeout=60,
+        **_TEXT,
     )
     if proc.returncode != 0:
         raise RuntimeError(f"`gh pr review` failed ({proc.returncode}): {proc.stderr.strip()}")
@@ -116,14 +129,6 @@ def post_pr_review_state(pr_number: int, repo: str, decision: str, summary: str)
 # ---------------------------------------------------------------------------
 # Added by the ADR-117 port — the stale-verdict cleanup's three calls
 # ---------------------------------------------------------------------------
-
-# `encoding=` rather than `text=True` on the new calls: a review body is model
-# output and always carries non-ASCII (the decision badges), and `text=True`
-# decodes with the locale's preferred encoding. On a runner whose LC_CTYPE is not
-# UTF-8 that raises, and the cleanup would then report "could not read this pull
-# request's reviews" for a reason that has nothing to do with the pull request.
-_TEXT = {"encoding": "utf-8", "errors": "replace"}
-
 
 def _decode_pages(raw: str) -> list[dict]:
     """Read `gh api --paginate` output, whichever shape it arrives in.

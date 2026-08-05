@@ -87,13 +87,20 @@ def test_every_pinned_module_states_its_provenance() -> None:
             assert marker in text, f"{name} is missing `{marker}`"
 
 
-#: Excused from the manifest guard AND pinned nowhere. Both predate this module
-#: (vendored 2026-06-12, header-only provenance) and both are named in
-#: `_NOT_HASH_PINNED` for exactly that reason. Listing them HERE as well is what
-#: lets the reverse direction below be a real assertion instead of a comment:
-#: the set is closed, so a NEW unpinned entry fails rather than joining a
-#: silent backlog.
-_KNOWINGLY_UNPINNED = {"pr_review.py", "pr_review_lib.py"}
+#: Excused from the manifest guard AND pinned nowhere. `pr_review.py` /
+#: `pr_review_lib.py` predate this module (vendored 2026-06-12, header-only
+#: provenance); the four `pr_review_{diff_filter,generated,render,safe_path}.py`
+#: modules are the canonical-parity iterate's split (vendored 2026-07-28,
+#: header-only provenance, merged forward past this ADR-117 port on 2026-08-05).
+#: All six are named in `_NOT_HASH_PINNED` for exactly that reason. Listing them
+#: HERE as well is what lets the reverse direction below be a real assertion
+#: instead of a comment: the set is closed, so a NEW unpinned entry fails rather
+#: than joining a silent backlog.
+_KNOWINGLY_UNPINNED = {
+    "pr_review.py", "pr_review_lib.py",
+    "pr_review_diff_filter.py", "pr_review_generated.py",
+    "pr_review_render.py", "pr_review_safe_path.py",
+}
 
 
 def test_the_not_hash_pinned_allowlist_and_this_module_agree() -> None:

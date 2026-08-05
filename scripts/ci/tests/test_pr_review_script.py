@@ -1,21 +1,16 @@
-"""Tests for scripts/ci/pr_review.py — the Tier-3 PR reviewer (I/O + orchestration).
+"""Tests for scripts/ci/pr_review.py — the file/shebang/re-export contract.
 
-The script is the OpenRouter-backed reviewer invoked by stage 2
-(`.github/workflows/pr-review-run.yml`) for Tier-3 PRs (external contributors,
-sensitive paths, or `needs-review` label). It must:
-
-- fetch the PR diff, call OpenRouter, parse a strict-JSON decision, post a PR comment
-- map the decision to an exit code: 0 = approve/comment, 1 = block, 2 = error
-- dump the raw response (redacted) on a JSON-parse failure and exit 2
-- truncate a > 200k-char diff and FAIL CLOSED on a (partial) truncated review (needs human)
-- never write the OpenRouter API key to logs
-
-The pure helpers (parse/truncate/render/redact/decision-mapping) live in
-pr_review_lib.py and are covered by test_pr_review_lib.py. All network (`urllib`)
-and `gh`-subprocess boundaries are monkeypatched so the suite runs fully offline.
+The `main()` orchestration tests live in `test_pr_review_orchestration.py`
+(split out 2026-08-05 to stay inside the 300-line source guideline — merging
+the canonical-parity and ADR-117 iterates' test suites for this module pushed
+it to 343 lines). This module keeps the checks that are about the FILE itself
+rather than about running it: the shebang, the credential-provider guard, the
+`pr_review.<symbol>` re-export surface every monkeypatching test relies on, and
+the reviewer family's own 300-line guideline.
 
 Vendored from the canonical monorepo (plugins/shipwright-security/tests/
-test_pr_review_script.py); paths re-pointed to the WebUI's flat `scripts/ci/` layout.
+test_pr_review_script.py); paths re-pointed to the WebUI's flat `scripts/ci/`
+layout.
 """
 
 from __future__ import annotations
@@ -24,18 +19,10 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 CI_DIR = Path(__file__).resolve().parent.parent  # scripts/ci
 sys.path.insert(0, str(CI_DIR))
 
 import pr_review  # noqa: E402
-
-from _pr_review_offline import no_real_gh  # noqa: E402,F401
-
-# Deliberately NOT in any real credential format (no `sk-`/`ghp_`/`xox` prefix) so the
-# repo's secret-scan hooks don't flag this synthetic fixture. Redaction is format-agnostic.
-FAKE_KEY = "ORTESTKEY-not-a-real-credential-0123456789"
 
 SCRIPT_PATH = CI_DIR / "pr_review.py"
 
@@ -62,6 +49,13 @@ class TestFileContract:
 
     def test_default_model_is_sonnet(self):
         assert pr_review.DEFAULT_MODEL == "anthropic/claude-sonnet-4.6"
+
+    def test_every_re_exported_name_resolves(self):
+        # The lib modules are reachable through `pr_review.<symbol>` — that is
+        # the contract the workflow and every monkeypatching test rely on, and
+        # a module split is exactly what silently breaks it.
+        for name in pr_review.__all__:
+            assert hasattr(pr_review, name), f"__all__ names {name}, which does not resolve"
 
     def test_no_reviewer_module_silently_crosses_the_size_guideline(self):
         """The reviewer family stays inside the 300-line source guideline.
@@ -92,110 +86,3 @@ class TestFileContract:
             "Split at a real seam (one module per external boundary is the one "
             "this family uses) or record a baseline exception with a reason."
         )
-
-
-# ---------------------------------------------------------------------------
-# main() orchestration — boundaries monkeypatched
-# ---------------------------------------------------------------------------
-
-def _wire(monkeypatch, *, review_json=None, diff="diff --git a b\n+x\n", raise_call=None):
-    """Patch every external boundary; capture posted comment/review state."""
-    posted = {}
-    monkeypatch.setenv("OPENROUTER_API_KEY", FAKE_KEY)
-    # Isolate orchestration from the filesystem prompt files (cwd-dependent).
-    monkeypatch.setattr(pr_review, "load_prompts", lambda d: ("SYSTEM", "USER\n{PR_META}\n{DIFF}"))
-    monkeypatch.setattr(pr_review, "fetch_pr_diff", lambda pr, repo: diff)
-
-    def fake_call(api_key, model, messages, timeout=120):
-        if raise_call is not None:
-            raise raise_call
-        return review_json
-
-    monkeypatch.setattr(pr_review, "call_openrouter", fake_call)
-    monkeypatch.setattr(
-        pr_review, "post_pr_comment",
-        lambda pr, repo, body: posted.update(comment=body),
-    )
-    monkeypatch.setattr(
-        pr_review, "post_pr_review_state",
-        lambda pr, repo, decision, summary: posted.update(state=decision),
-    )
-    # ADR-117 added two more `gh` boundaries to main(): the pre-diff head read
-    # and the stale-verdict cleanup. Patch BOTH — this module's docstring
-    # promises the suite runs fully offline, and `.github/workflows/pr-review.yml`
-    # labels the job that runs it "Offline, no credentials".
-    #
-    # Without these two lines every TestMainOrchestration case spawned a real
-    # `gh api repos/owner/repo/pulls/42`, and the two passing-verdict cases went
-    # on to run the REAL cleanup against a repo slug that is not ours. Nothing
-    # could be dismissed (the fresh nonce is never posted, so no anchor is found
-    # and the selector refuses), which is exactly why it was invisible: green,
-    # and quietly making authenticated network calls from an offline suite.
-    monkeypatch.setattr(pr_review, "read_reviewed_head", lambda pr, repo: "headsha")
-    monkeypatch.setattr(pr_review, "dismiss_own_stale_verdicts",
-                        lambda pr, repo, *, nonce, reviewed_sha: None)
-    return posted
-
-
-ARGV = ["--pr-number", "42", "--repo", "owner/repo", "--prompt-dir", "scripts/ci/pr_reviewer"]
-
-
-@pytest.mark.usefixtures("no_real_gh")
-class TestMainOrchestration:
-
-    def test_missing_api_key_exits_2(self, monkeypatch):
-        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-        assert pr_review.main(ARGV) == 2
-
-    def test_block_exits_1(self, monkeypatch):
-        _wire(monkeypatch, review_json=json.dumps(
-            {"decision": "block", "summary": "no", "blocking": ["b"], "comments": []}))
-        assert pr_review.main(ARGV) == 1
-
-    def test_approve_exits_0(self, monkeypatch):
-        posted = _wire(monkeypatch, review_json=json.dumps(
-            {"decision": "approve", "summary": "lgtm", "blocking": [], "comments": []}))
-        assert pr_review.main(ARGV) == 0
-        assert "lgtm" in posted["comment"]
-
-    def test_comment_exits_0(self, monkeypatch):
-        _wire(monkeypatch, review_json=json.dumps(
-            {"decision": "comment", "summary": "nit", "blocking": [], "comments": ["c"]}))
-        assert pr_review.main(ARGV) == 0
-
-    def test_openrouter_error_exits_2(self, monkeypatch):
-        _wire(monkeypatch, raise_call=RuntimeError("502 Bad Gateway"))
-        assert pr_review.main(ARGV) == 2
-
-    def test_json_parse_fail_exits_2_and_dumps_raw(self, monkeypatch, capsys):
-        _wire(monkeypatch, review_json="<html>rate limited</html>")
-        assert pr_review.main(ARGV) == 2
-        err = capsys.readouterr().err
-        assert "rate limited" in err  # raw response dumped to logs
-
-    def test_truncation_fails_closed_needs_human(self, monkeypatch):
-        # A truncated (partial) diff means we did NOT see the whole change. For a
-        # required gate on an untrusted PR, a large diff must not bypass review by
-        # size — fail CLOSED (non-zero) even on a partial APPROVE, forcing a
-        # request-changes review state so a human must look. The red required
-        # check is also what lets the gh-pr-ci triage producer surface the PR.
-        posted = _wire(
-            monkeypatch,
-            diff="z" * (pr_review.MAX_DIFF_CHARS + 1000),
-            review_json=json.dumps(
-                {"decision": "approve", "summary": "huge", "blocking": [], "comments": []}),
-        )
-        rc = pr_review.main(ARGV)
-        assert rc == pr_review.EXIT_BLOCK
-        assert rc != pr_review.EXIT_OK  # the size-bypass is closed
-        assert "truncat" in posted["comment"].lower()
-        assert posted["state"] == "block"  # forced request-changes on truncation
-
-    def test_api_key_never_logged(self, monkeypatch, capsys):
-        # Force the worst path (error message embeds the key) and assert it is
-        # never present in any captured output.
-        _wire(monkeypatch, raise_call=RuntimeError(f"boom with {FAKE_KEY} in message"))
-        pr_review.main(ARGV)
-        captured = capsys.readouterr()
-        assert FAKE_KEY not in captured.out
-        assert FAKE_KEY not in captured.err

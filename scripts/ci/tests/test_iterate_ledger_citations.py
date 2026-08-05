@@ -46,6 +46,11 @@ _ALIASES = {
     "openrouter": "test_pr_review_openrouter.py",
     "pins": "test_pr_review_vendor_pins.py",
     "script": "test_pr_review_script.py",
+    # test_pr_review_script.py crossed 300 lines once the canonical-parity and
+    # ADR-117 test suites for pr_review.py's main() were both present in one
+    # file; split 2026-08-05 into the file-contract half (kept "script") and
+    # the orchestration half (this alias).
+    "orchestration": "test_pr_review_orchestration.py",
 }
 
 _CITATION = re.compile(r"`([A-Za-z0-9_.]+)::(test_[A-Za-z0-9_]+)")

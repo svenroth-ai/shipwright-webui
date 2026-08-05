@@ -1,0 +1,1 @@
+A pull request can no longer hide a file from review by naming it after one the reviewer skips. Three places quietly trimmed spaces from file names, so a file called "<a-generated-file> " (with a trailing space) was dropped from the review AND reported under the innocent file's name. Names are now compared exactly as they arrive.

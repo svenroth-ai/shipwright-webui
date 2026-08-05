@@ -679,6 +679,14 @@
       "state": "exception",
       "adr": "iterate-2026-07-31-revendor-accepted-risk-gate",
       "note": "VENDORED from shipwright shared/scripts/tools/accepted_risks_cli.py at commit 987e49c6; byte-identity to upstream below the vendor header is the contract that scripts/ci/accepted_risks_vendor.json enforces, so this file CANNOT be split without breaking the drift guard and diverging webui's CI gate from its own compliance dashboard (accepted_risk_scan is a shared leaf the dashboard also consumes). Frozen at the re-vendored size: a future re-vendor that grows it must bump this entry in the same commit as the manifest, which is the conscious step this exception exists to force. This copy is ADAPTED (no `converge`, wrapped sibling imports, yaml-scoped missing-dependency handler), so its divergence is deliberate and enumerated in its header."
+    },
+    {
+      "path": "scripts/ci/pr_review.py",
+      "limit": 300,
+      "current": 365,
+      "state": "exception",
+      "adr": "iterate-2026-07-28-pr-review-parity",
+      "note": "Two independently-complete iterates converged on this file at once: the canonical-parity hardening (this run, 274 lines standalone before the merge) and ADR-117's stale-verdict retraction (iterate-2026-08-01-pr-review-stale-verdict, 297 lines standalone before the merge) both wire most of main()'s body. A safe split (e.g. moving _post_verdict into its own module) would have to thread the `pr_review.<name>` monkeypatch surface every existing test in test_pr_review_script.py relies on through a second module without breaking it -- not something to rush inside a merge of a security-sensitive required CI gate. Filed as a follow-up split, not attempted here."
     }
   ]
 }

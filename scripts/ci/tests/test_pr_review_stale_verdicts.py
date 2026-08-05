@@ -12,10 +12,13 @@ what reached the model.
 
 Vendored from the canonical monorepo (plugins/shipwright-security/tests/
 test_pr_review_stale_verdicts.py, ADR-117); paths re-pointed to the WebUI's flat
-`scripts/ci/` layout. One canonical case is deliberately ABSENT:
-`test_an_unreviewable_diff_clears_nothing` asserts that an EMPTY diff blocks,
-which is behaviour of canonical's generated-artifact diff filter — a module this
-repo has not vendored. Asserting it here would pin a promise nothing implements.
+`scripts/ci/` layout. Canonical's `test_an_unreviewable_diff_clears_nothing` was
+absent here for as long as this repo had no generated-artifact diff filter to
+give it meaning; `test_a_fully_filtered_diff_clears_nothing` below is that case,
+added once `pr_review_diff_filter` / `pr_review_generated` landed (merged
+forward from iterate-2026-07-28-pr-review-parity) and made it constructible —
+without it, the interaction between THIS module's fail-closed branch (nothing
+left to review) and ADR-117's cleanup gate had no regression coverage at all.
 """
 
 from __future__ import annotations
@@ -137,6 +140,20 @@ class TestItClearsOnlyAfterPassing:
         seen = _wire(monkeypatch, diff=big)
         assert pr_review.main(ARGV) == pr_review.EXIT_BLOCK
         assert seen["state"] == "block"
+        assert "cleanup_nonce" not in seen
+
+    def test_a_fully_filtered_diff_clears_nothing(self, monkeypatch):
+        # The OTHER way a run can fail closed before ever calling OpenRouter:
+        # `count_sections(diff) == 0` (empty fetch, or nothing left after the
+        # generated-artifact filter). That branch returns EXIT_BLOCK, so the
+        # `exit_code == EXIT_OK` gate below it must never be reached — but
+        # nothing pinned that until now. Doubt review (2026-08-05) found this
+        # exact interaction untested: the two branches merged from separate
+        # iterates (this fail-closed check from the canonical-parity iterate,
+        # the cleanup gate from ADR-117) and no case here ever drove a diff
+        # shaped to trip the first one.
+        seen = _wire(monkeypatch, diff="")
+        assert pr_review.main(ARGV) == pr_review.EXIT_BLOCK
         assert "cleanup_nonce" not in seen
 
     def test_an_unknown_decision_clears_nothing(self, monkeypatch):

@@ -36,12 +36,13 @@ _CLI = _CI_DIR / "accepted_risks_cli.py"
 
 #: Vendored modules NOT covered by THIS manifest, each with a one-line reason.
 #: Listing them explicitly keeps the situation VISIBLE rather than silently
-#: outside a name glob. Two distinct reasons live here, and they are not equally
-#: comfortable: the 2026-06-12 pair is a real gap (header-only, pinned nowhere),
-#: while the ADR-117 pair is pinned in `test_pr_review_vendor_pins.py` because
-#: this manifest carries ONE top-level `canonical_commit` and they come from a
-#: different upstream commit than the accepted-risk batch does. Recording them
-#: here would make that field wrong for half the entries.
+#: outside a name glob. Three distinct reasons live here, and they are not
+#: equally comfortable: the 2026-06-12 and 2026-07-28 groups are a real gap
+#: (header-only, pinned nowhere), while the ADR-117 pair IS pinned — in
+#: `test_pr_review_vendor_pins.py`, because this manifest carries ONE
+#: top-level `canonical_commit` and they come from a different upstream commit
+#: than the accepted-risk batch does. Recording them here would make that
+#: field wrong for half the entries.
 _NOT_HASH_PINNED = {
     "pr_review.py": "vendored 2026-06-12 with header-only provenance",
     "pr_review_lib.py": "vendored 2026-06-12 with header-only provenance",
@@ -49,6 +50,14 @@ _NOT_HASH_PINNED = {
         "ADR-117 port, upstream commit 4146a610 — pinned in test_pr_review_vendor_pins.py",
     "pr_review_dismiss.py":
         "ADR-117 port, upstream commit 4146a610 — pinned in test_pr_review_vendor_pins.py",
+    "pr_review_diff_filter.py":
+        "vendored 2026-07-28 (canonical-parity iterate) with header-only provenance",
+    "pr_review_generated.py":
+        "vendored 2026-07-28 (canonical-parity iterate) with header-only provenance",
+    "pr_review_render.py":
+        "vendored 2026-07-28 (canonical-parity iterate) with header-only provenance",
+    "pr_review_safe_path.py":
+        "vendored 2026-07-28 (canonical-parity iterate) with header-only provenance",
 }
 
 #: A vendored module is one that CARRIES a provenance header - a property, not

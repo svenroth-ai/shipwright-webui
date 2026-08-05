@@ -5,40 +5,47 @@ Vendored from the canonical shipwright monorepo — the WebUI has no Python
 ``shared/``/``plugins/`` tree on the CI runner (same convention as
 ``scripts/hooks/anti_ratchet_check.py``).
 
-# canonical-source-hash: f45d991470093e504323caea4a670f2310b482913dbea829264ad0dcbc38c915
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-paths:
 #   plugins/shipwright-security/scripts/tools/pr_review.py
-# canonical-source-version: iterate-2026-06-17-pr-review-truncation-failclosed
+# canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
+#   + iterate-2026-08-01-pr-review-stale-verdict (ADR-117)
 #
-# THE HASH ABOVE PINS THE 2026-06-12 VENDOR POINT AND NO LONGER DESCRIBES THIS
-# FILE. This is a PARTIAL vendor in both directions and the header says so
-# rather than letting a reader infer byte-identity that is not there:
-#   (1) sibling import — `pr_review_lib` lives next to this file in `scripts/ci/`,
-#       so the sys.path insert points at SCRIPT_DIR (canonical: PLUGIN_ROOT/scripts/lib).
+# THIS FILE MERGES TWO INDEPENDENT CANONICAL PORTS and is not byte-identical to
+# either, so no canonical-source-hash line is claimed (see the same discipline
+# in `pr_review_gh.py` / `pr_review_openrouter.py`). Adaptations from both:
+#   (1) sibling imports — every `pr_review_*` module lives next to this file in
+#       `scripts/ci/`, so the sys.path insert points at SCRIPT_DIR (canonical:
+#       PLUGIN_ROOT/scripts/lib).
 #   (2) default --prompt-dir → `scripts/ci/pr_reviewer`.
 #   (3) OpenRouter attribution headers (HTTP-Referer / X-Title) → the webui repo.
-#   (4) one docstring sentence ("uv run" → "the CI runner's Python").
-#   (5) ADR-117 PORTED (iterate-2026-08-01-pr-review-stale-verdict): a passing
-#       verdict retracts its own superseded change-requests. The ownership rule
-#       is vendored verbatim into `pr_review_dismiss_select`; what lives HERE is
+#   (4) ADR-117 (iterate-2026-08-01-pr-review-stale-verdict): a passing verdict
+#       retracts its own superseded change-requests. The ownership rule is
+#       vendored verbatim into `pr_review_dismiss_select`; what lives HERE is
 #       only what no other module can know — the nonce this run stamped and the
 #       head it actually read.
-#   (6) the `gh` + OpenRouter boundaries were split out to buy room for (5)
-#       under the 300-line guideline; canonical keeps OpenRouter inline.
-#   NOT ported, deliberately: canonical's diff filter, `pr_review_render`, the
-#   byte-level diff read, `nothing_reviewed_summary`. Full divergence table and
-#   rationale: the iterate spec §3/§4, which is the authority.
+#   (5) the canonical-parity hardening (iterate-2026-07-28-pr-review-parity):
+#       one-pass template fill, bytes-safe diff fetch, LF-anchored section
+#       splitting, the generated-artifact filter + `safe_path` sanitiser, and
+#       the 200k→1M cap cut at a file boundary. `pr_review_diff_filter` /
+#       `pr_review_render` / `pr_review_safe_path` carry the logic; this file
+#       only wires it into `main()`.
+#   Both ports split OpenRouter and `gh` each into their own boundary module —
+#   independently, for the same source-size-guideline reason — so this file
+#   holds orchestration only.
 
 Invoked by `.github/workflows/pr-review-run.yml` (stage 2) for Tier-3 PRs only
 (external contributors, sensitive paths, `needs-review`). The tier filter lives
-in stage 2's `tier` step — default-branch code over API data, moved there by
-iterate-2026-07-31-two-stage-pr-review; Step 8 covers Tier 1/2 locally.
+in stage 2's `tier` step — default-branch code over API data
+(iterate-2026-07-31-two-stage-pr-review); Step 8 covers Tier 1/2 locally.
 
 Steps: read the PR head (BEFORE the diff — a review's own `commit_id` is stamped
-at submission, so it cannot say what was reviewed) → fetch the diff → load
-prompts → POST to OpenRouter (strict JSON) → parse the decision → post a comment
-+ (best-effort) review state stamped with this run's nonce → on a passing
+at submission, so it cannot say what was reviewed) → fetch the diff (as bytes,
+so a lone CR cannot forge a `diff --git` boundary) → drop producer-generated
+sections → refuse to proceed if nothing reviewable is left → truncate at a file
+boundary if still oversize → load prompts → build messages (one-pass template
+fill) → POST to OpenRouter (strict JSON) → parse the decision → post a comment +
+(best-effort) review state stamped with this run's nonce → on a passing
 verdict, retract its own superseded change-requests → exit per decision.
 
 Usage:
@@ -53,9 +60,9 @@ Environment:
 
 Exit codes:
     0  decision approve | comment
-    1  decision block  (also: a truncated/partial review fails closed — needs human)
+    1  block — also when nothing/not everything was reviewed (fails closed)
     2  error (no key, OpenRouter down/rate-limited, JSON parse failure, unknown
-       decision, prompt/diff fetch failure)
+       decision, prompt/diff fetch failure, a template missing a placeholder)
 """
 
 from __future__ import annotations
@@ -79,23 +86,30 @@ from pr_review_lib import (  # noqa: E402
     MAX_DIFF_CHARS,
     _redact,
     build_messages,
+    build_pr_meta,
     decision_to_exit,
+    filter_generated_paths,
     load_prompts,
+    nothing_reviewed_summary,
     parse_review_response,
     render_comment,
+    safe_path,
     truncate_diff,
 )
-# Every `gh` call lives behind one module, so the subprocess surface is
-# reviewable on its own and this tool stays inside the source-size guideline.
-from pr_review_openrouter import (  # noqa: E402
-    DEFAULT_MODEL,
-    OPENROUTER_URL,
-    call_openrouter,
-)
+from pr_review_diff_filter import count_sections  # noqa: E402
+# The two I/O boundaries each own a module — `gh` subprocess and OpenRouter HTTP.
+# Re-exported here so existing call sites and their monkeypatch targets
+# (`pr_review.fetch_pr_diff`, `pr_review.call_openrouter`, ...) are unchanged.
 from pr_review_gh import (  # noqa: E402
     fetch_pr_diff,
     post_pr_comment,
     post_pr_review_state,
+)
+from pr_review_openrouter import (  # noqa: E402
+    DEFAULT_MODEL,
+    DEFAULT_TIMEOUT,
+    OPENROUTER_URL,
+    call_openrouter,
 )
 # Retracting this reviewer's OWN superseded change-requests (ADR-117). The
 # ownership rule is `pr_review_dismiss_select`; this tool only supplies the two
@@ -108,13 +122,18 @@ from pr_review_dismiss import (  # noqa: E402
     strip_display_unsafe,
 )
 
+# The re-export surface: every name a caller or test is entitled to reach
+# through `pr_review.<symbol>`. Kept complete on purpose — a name that is
+# imported above but missing here reads as private while tests patch it.
 __all__ = [
     "EXIT_BLOCK", "EXIT_ERROR", "EXIT_OK", "MAX_DIFF_CHARS", "_redact",
-    "build_messages", "decision_to_exit", "load_prompts", "parse_review_response",
-    "render_comment", "truncate_diff", "DEFAULT_MODEL", "OPENROUTER_URL",
-    "dismiss_own_stale_verdicts", "fetch_pr_diff", "new_nonce", "post_pr_comment",
-    "post_pr_review_state", "read_reviewed_head", "stamp_review_body",
-    "strip_display_unsafe",
+    "build_messages", "build_pr_meta", "count_sections", "decision_to_exit",
+    "dismiss_own_stale_verdicts", "fetch_pr_diff", "filter_generated_paths",
+    "load_prompts", "new_nonce", "nothing_reviewed_summary",
+    "parse_review_response", "post_pr_comment", "post_pr_review_state",
+    "read_reviewed_head", "render_comment", "safe_path", "stamp_review_body",
+    "strip_display_unsafe", "truncate_diff", "call_openrouter", "DEFAULT_MODEL",
+    "DEFAULT_TIMEOUT", "OPENROUTER_URL",
 ]
 
 
@@ -125,10 +144,6 @@ def _fix_windows_encoding() -> None:
             sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
         except (AttributeError, ValueError):
             pass
-
-
-def _build_pr_meta(pr_number: int, repo: str, truncated: bool) -> str:
-    return f"Repository: {repo}\nPR number: {pr_number}\nDiff truncated: {truncated}\n"
 
 
 def _post_verdict(args, api_key: str, body: str, decision: str, summary: str,
@@ -177,7 +192,9 @@ def main(argv: list[str] | None = None) -> int:
         default="scripts/ci/pr_reviewer",
         help="Directory holding the `system` and `user` prompt files",
     )
-    parser.add_argument("--timeout", type=int, default=120, help="OpenRouter timeout (seconds)")
+    # One default, defined with the transport it belongs to (pr_review_openrouter).
+    parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT,
+                        help="OpenRouter timeout (seconds)")
     args = parser.parse_args(argv)
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -205,14 +222,60 @@ def main(argv: list[str] | None = None) -> int:
         print(_redact(f"[pr_review] failed to fetch PR diff: {e}", api_key), file=sys.stderr)
         return EXIT_ERROR
 
-    diff, truncated = truncate_diff(diff)
-    pr_meta = _build_pr_meta(args.pr_number, args.repo, truncated)
-    messages = build_messages(system_prompt, user_prompt, diff, pr_meta)
+    # Drop producer-generated artifacts (compliance MDs, agent-docs, changelog
+    # drops, state logs, prior review records — NOT dependency lockfiles, which
+    # left this set in iterate-2026-07-27-pr-review-forged-boundary: on an
+    # untrusted PR the lockfile is the supply-chain surface) BEFORE the
+    # truncation check: they dominate a shipwright PR diff but carry no
+    # reviewable logic, so keeping them would trip the size cap and fail the
+    # review closed on ordinary medium+ iterates. The excluded list is surfaced
+    # to the model (pr_meta) + humans (comment) — transparent, never silent.
+    diff, excluded = filter_generated_paths(diff)
+
+    # ...but "everything was generated" is not a review. This script runs ONLY
+    # when the tier step decided the PR needs one (needs-review label, sensitive
+    # path, or external contributor — an ordinary internal churn PR takes the
+    # `decide false "internal PR"` branch and never reaches here). So a filtered
+    # diff that came back empty means a PR that had to be reviewed was handed to
+    # the model as nothing at all — and the system prompt answers an empty diff
+    # with `approve` plainly: a green required check over an unread change. The
+    # invariant is "the reviewer saw at least one file section" — NOT the
+    # narrower "everything was filtered". An empty fetch, a `gh` body with no
+    # `diff --git` header at all, and a fully-filtered PR are the same failure
+    # from the model's side.
+    if not count_sections(diff):
+        summary = nothing_reviewed_summary(excluded)
+        # `model=` names who reviewed. On this branch nobody did — we return
+        # before call_openrouter — so the footer must not attribute the verdict
+        # to a model that was never sent anything.
+        _post_verdict(args, api_key,
+                      render_comment({"decision": "block", "summary": summary},
+                                     model="no model — nothing was sent",
+                                     truncated=False,
+                                     excluded_generated=excluded),
+                      "block", summary, nonce)
+        print(f"[pr_review] {summary}", file=sys.stderr)
+        return EXIT_BLOCK
+
+    reviewed = truncate_diff(diff)
+    diff, truncated = reviewed.text, reviewed.incomplete
+    missing = {"omitted": reviewed.omitted, "partial": reviewed.partial,
+               "unidentified": reviewed.unidentified}
+    pr_meta = build_pr_meta(args.pr_number, args.repo, truncated, excluded, **missing)
+    try:
+        messages = build_messages(system_prompt, user_prompt, diff, pr_meta)
+    except ValueError as e:
+        # A template that lost a placeholder. Mapped like every other boundary
+        # in main() — redacted, EXIT_ERROR — rather than escaping as a raw
+        # traceback that happens to exit non-zero.
+        print(_redact(f"[pr_review] {e}", api_key), file=sys.stderr)
+        return EXIT_ERROR
 
     est_tokens = (len(system_prompt) + len(user_prompt) + len(diff)) // 4
     print(
         f"[pr_review] reviewing PR #{args.pr_number} with {model} "
-        f"(~{est_tokens} input tokens, truncated={truncated})",
+        f"(~{est_tokens} input tokens, truncated={truncated}, "
+        f"generated-excluded={len(excluded)})",
         file=sys.stderr,
     )
 
@@ -241,21 +304,26 @@ def main(argv: list[str] | None = None) -> int:
     # (Until iterate-2026-06-17-pr-review-truncation-failclosed this returned
     # EXIT_OK — a silent size-bypass.)
     effective_decision = "block" if truncated else decision
-    body = render_comment(review, model=model, truncated=truncated)
+    body = render_comment(
+        review, model=model, truncated=truncated, excluded_generated=excluded, **missing)
 
     state_posted = _post_verdict(args, api_key, body, effective_decision,
                                  str(review.get("summary", "")), nonce)
 
     if truncated:
-        # Partial review fails closed — needs human (see comment above).
-        # `skip-pr-review` is no longer a general override (stage 2's tier step
-        # ignores it on a sensitive path, which an oversize diff often touches).
+        # Partial review fails closed — needs human. `skip-pr-review` is no
+        # longer a general override: stage 2's tier step ignores it on a
+        # sensitive path, which an oversize diff often touches, so it needs an
+        # admin merge there instead. Sanitised like every sink: a raw Git path
+        # can carry terminal escapes.
+        unseen = ", ".join(safe_path(p) for p in reviewed.omitted + reviewed.partial)
+        extra = f" (+{reviewed.unidentified} unnamed)" if reviewed.unidentified else ""
         print(
-            "[pr_review] diff was truncated — failing closed (needs human review). "
-            "Split it below the size cap; `skip-pr-review` overrides this only on "
-            "a NON-sensitive-path PR, else it needs an admin merge.",
-            file=sys.stderr,
-        )
+            "[pr_review] diff exceeded the review limit — failing closed (needs human "
+            f"review). Not reviewed in full: {unseen or 'unidentifiable'}{extra}. Apply "
+            "`skip-pr-review` after a manual review to override — on a sensitive path "
+            "that label is ignored and needs an admin merge instead.",
+            file=sys.stderr)
         return EXIT_BLOCK
 
     exit_code = decision_to_exit(decision)

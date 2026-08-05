@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-28-pr-review-parity",
+  "date": "2026-07-28T11:55:45.844654Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/pr-review-parity",
+  "spec": ".shipwright/planning/iterate/2026-07-28-pr-review-parity.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-28-pr-review-parity"
+}

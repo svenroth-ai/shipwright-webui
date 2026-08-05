@@ -1,29 +1,27 @@
 """The OpenRouter HTTP boundary for the Tier-3 PR reviewer.
 
-Split out of ``pr_review.py`` by the ADR-117 port for the same reason as
-``pr_review_gh``: one module per external boundary, so the tool script is pure
-orchestration and stays inside the source-size guideline. That guideline was
-already the binding constraint here — the previous iterate
-(iterate-2026-07-31-two-stage-pr-review) recorded "pr_review.py had grown to 299
-with one line of headroom" as a finding, and ADR-117's wiring is what spent it.
+Split out of ``pr_review.py`` — one module per external boundary
+(``pr_review_gh`` owns the subprocess one), so the tool script is pure
+orchestration and stays inside the source-size guideline, and each boundary
+(with its timeout, its error mapping and, here, its Semgrep suppression) is
+reviewable on its own.
 
-Divergence from canonical, stated rather than discovered: canonical keeps these
-two functions in the tool. It can afford to, because it carries no vendor
-provenance header; this copy does, and a header is not something a vendored file
-may trade away for line budget.
+Stdlib urllib only: the script carries no third-party HTTP dependency and runs
+under whatever environment the CI runner's Python resolves.
 
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-commit: 4146a610295e900d01af3865228a0ec9af028918
 # canonical-source-paths:
-#   plugins/shipwright-security/scripts/tools/pr_review.py  (these four symbols)
-# canonical-source-version: iterate-2026-07-31-it7a-pr-review-stale-verdict (ADR-117)
-# adaptation: EXTRACTION, not a copy of any upstream file — upstream keeps these
-#   four symbols inside the tool. No canonical-source-hash line is claimed (spelled
-#   without the marker on purpose; `tests/test_accepted_risks_vendored.py` scans for
-#   that literal string), because there is no upstream blob with these bounds to
-#   compare against. Recorded here anyway so a future re-vendor of `pr_review.py`
-#   can DISCOVER that these symbols moved out — prose in the other file's header
-#   is not something a tool can find (Stage-3 review).
+#   plugins/shipwright-security/scripts/lib/pr_review_openrouter.py
+#   plugins/shipwright-security/scripts/tools/pr_review.py  (the ADR-117 extraction)
+# canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
+#   + iterate-2026-07-31-it7a-pr-review-stale-verdict (ADR-117, extraction wording)
+# adaptation: NOT byte-identical, so no canonical-source-hash line is claimed
+#   (spelled without the leading marker on purpose; `tests/test_accepted_risks_vendored.py`
+#   scans for that literal string). Two independent divergences from any single
+#   upstream blob: (1) OpenRouter attribution headers (HTTP-Referer / X-Title)
+#   name the webui repo; (2) `DEFAULT_TIMEOUT` is 600s, not upstream's 120s — see
+#   the comment at its definition for why the size-cap increase requires it.
 """
 
 from __future__ import annotations
@@ -32,19 +30,22 @@ import json
 import urllib.error
 import urllib.request
 
-__all__ = ["DEFAULT_MODEL", "OPENROUTER_URL", "call_openrouter"]
-
+__all__ = ["DEFAULT_MODEL", "DEFAULT_TIMEOUT", "OPENROUTER_URL", "call_openrouter"]
 
 DEFAULT_MODEL = "anthropic/claude-sonnet-4.6"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# ONE default for the whole tool — the CLI flag and the direct call share it.
+# 120s was sized for a 200k-char cap. The cap is now 1M chars (~250k input
+# tokens) and the request is non-streaming, so a single blocking read must cover
+# prompt processing AND generation. A socket timeout maps to EXIT_ERROR — still
+# fail-closed, but it lands on exactly the large PRs the raise exists to
+# unblock, and it returns before any comment is posted.
+DEFAULT_TIMEOUT = 600
+
 
 def _post_openrouter(api_key: str, model: str, messages: list[dict], timeout: int) -> dict:
-    """POST the chat-completion request to OpenRouter and return the parsed JSON body.
-
-    Uses stdlib urllib so the script carries no third-party HTTP dependency — it
-    runs under whatever environment the CI runner's Python resolves.
-    """
+    """POST the chat-completion request and return the parsed JSON body."""
     payload = {
         "model": model,
         "messages": messages,
@@ -71,7 +72,8 @@ def _post_openrouter(api_key: str, model: str, messages: list[dict], timeout: in
     return json.loads(body)
 
 
-def call_openrouter(api_key: str, model: str, messages: list[dict], timeout: int = 120) -> str:
+def call_openrouter(api_key: str, model: str, messages: list[dict],
+                    timeout: int = DEFAULT_TIMEOUT) -> str:
     """Call OpenRouter and return the assistant message content string.
 
     Raises RuntimeError on transport failure (HTTP error, timeout) or an
