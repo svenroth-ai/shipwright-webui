@@ -130,12 +130,22 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": null,
+          "category": "resolved",
+          "file": "client/src/components/triage/TriageDetailModal.tsx, TriageDetailModal.test.tsx",
+          "line": null,
+          "finding": "Round 1 REJECT: TriageDetailModal.tsx and TriageDetailModal.test.tsx stayed at their exact bloat-baseline ceiling (375/432) by merging unrelated statements onto shared lines (two useState declarations on one line, a 4-line mutateAsync call collapsed to one line, two fixture fields joined with a comma) rather than by the extraction mechanism the spec names — inconsistent with every other file in the diff. Round 2 (this recording): fully reverted to one-statement/one-field-per-line; headroom recovered via a genuine flipErrorMessage dedup (of logic already duplicated between onDismiss/onSnooze pre-iterate) and a fixNowButtonClass hoist, verified byte-for-byte identical to the pre-fix ternary content. Both files now sit genuinely under ceiling (374/375, 430/432). RESOLVED, verdict PASS. — spec: .shipwright/planning/iterate/iterate-2026-08-05-triage-deferred-envelope.md AC10 (bloat-baseline discipline) + Technical Approach ('keeps TriageDetailModal.tsx at its 375-line ceiling')",
+          "suggestion": ".shipwright/planning/iterate/iterate-2026-08-05-triage-deferred-envelope.md AC10 (bloat-baseline discipline) + Technical Approach ('keeps TriageDetailModal.tsx at its 375-line ceiling')",
+          "source": "spec-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-08-05T12:10:50.617924+00:00",
+      "completed_at": "2026-08-05T12:54:35.375018+00:00",
       "disposition": null,
-      "recorded_by": "self",
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null
     }
