@@ -1,6 +1,7 @@
 {
-  "_comment": "Generated from triage-union.{tracked,outbox}.jsonl by the REAL `triage_cli.py list --json` (shared/scripts/tools/triage_cli.py) — the canonical WebUI live-view contract: open items only, each with pendingDelivery (TRACKED-PREFERRED residence). The TS GET-route projection (enrichPendingDelivery over filterTriage(readAllItems())) must match this byte-for-byte (deep-equal) per the parity test in src/core/triage-enrich.test.ts. Regenerate via server/scripts/regen-triage-fixtures.py.",
-  "items": [
+  "_comment": "Generated from triage-union.{tracked,outbox}.jsonl by the REAL `triage_cli.py list --json` (shared/scripts/tools/triage_cli.py) — the canonical cross-repo CLI contract: {contractVersion, open, deferred}, each item enriched with pendingDelivery (TRACKED-PREFERRED residence). The TS projection (buildTriageListing in src/core/triage-contract.ts) must match this byte-for-byte (deep-equal) per the parity test in src/core/triage-contract.test.ts. Regenerate via server/scripts/regen-triage-fixtures.py.",
+  "contractVersion": 2,
+  "open": [
     {
       "id": "trg-track001",
       "ts": "2026-06-01T08:00:00Z",
@@ -20,6 +21,8 @@
       "statusBy": null,
       "statusReason": null,
       "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false,
       "pendingDelivery": false
     },
     {
@@ -41,6 +44,31 @@
       "statusBy": null,
       "statusReason": null,
       "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false,
+      "pendingDelivery": false
+    },
+    {
+      "id": "trg-park-due",
+      "ts": "2026-06-01T09:05:00Z",
+      "originalTs": "2026-06-01T08:05:00Z",
+      "source": "phaseQuality",
+      "severity": "high",
+      "kind": "bug",
+      "title": "Parked entry whose revisit date has passed (auto-reopens)",
+      "detail": "revisitAt is far in the past; must resolve back to status:triage with revisitDue:true",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "phaseQuality:park-due",
+      "status": "triage",
+      "suggestedPriority": "P2",
+      "suggestedDomain": "engineering",
+      "statusBy": "webui",
+      "statusReason": "parked with a date",
+      "promotedTaskId": null,
+      "revisitAt": "2020-01-01",
+      "revisitDue": true,
       "pendingDelivery": false
     },
     {
@@ -62,6 +90,8 @@
       "statusBy": null,
       "statusReason": null,
       "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false,
       "pendingDelivery": true
     },
     {
@@ -83,7 +113,57 @@
       "statusBy": null,
       "statusReason": null,
       "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false,
       "pendingDelivery": true
+    }
+  ],
+  "deferred": [
+    {
+      "id": "trg-park-future",
+      "ts": "2026-06-01T09:06:00Z",
+      "originalTs": "2026-06-01T08:06:00Z",
+      "source": "compliance",
+      "severity": "medium",
+      "kind": "compliance",
+      "title": "Parked entry with a future revisit date",
+      "detail": "revisitAt is far in the future; stays snoozed with revisitDue:false",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "compliance:park-future",
+      "status": "snoozed",
+      "suggestedPriority": "P2",
+      "suggestedDomain": "compliance",
+      "statusBy": "webui",
+      "statusReason": "parked with a future date",
+      "promotedTaskId": null,
+      "revisitAt": "2099-01-01",
+      "revisitDue": false,
+      "pendingDelivery": false
+    },
+    {
+      "id": "trg-park-undated",
+      "ts": "2026-06-01T09:07:00Z",
+      "originalTs": "2026-06-01T08:07:00Z",
+      "source": "drift",
+      "severity": "low",
+      "kind": "maintenance",
+      "title": "Parked entry with no revisit date (parked-not-due)",
+      "detail": "No revisitAt set at all — the WebUI's plain Snooze action; stays snoozed forever",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "drift:park-undated",
+      "status": "snoozed",
+      "suggestedPriority": "P3",
+      "suggestedDomain": "engineering",
+      "statusBy": "webui",
+      "statusReason": "parked with no date",
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false,
+      "pendingDelivery": false
     }
   ]
 }

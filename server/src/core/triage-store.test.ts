@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -147,6 +147,60 @@ describe("triage-store: readAllItems", () => {
     const first = readAllItems(jsonlPath);
     const second = readAllItems(jsonlPath);
     expect(second).toBe(first); // same reference => cache hit
+  });
+
+  // @covers FR-01.30 (doubt review, iterate-2026-08-05-triage-deferred-envelope)
+  it("re-derives the overlay when the UTC day turns over WITHIN the cache TTL, even with no file change", () => {
+    writeFileSync(
+      jsonlPath,
+      [
+        `{"v":1,"schema":"triage","created":"2026-05-13T08:00:00Z"}`,
+        `{"event":"append","id":"trg-park","ts":"2026-05-13T08:01:00Z","originalTs":"2026-05-13T08:01:00Z","source":"phaseQuality","severity":"high","kind":"bug","title":"X","detail":"Y","evidencePath":null,"runId":null,"commit":null,"dedupKey":null,"status":"triage","suggestedPriority":"P1","suggestedDomain":"engineering"}`,
+        `{"event":"status","id":"trg-park","ts":"2026-05-13T09:00:00Z","newStatus":"snoozed","by":"webui","reason":"parked","promotedTaskId":null,"revisitAt":"2026-08-05"}`,
+      ].join("\n") + "\n",
+    );
+    try {
+      vi.useFakeTimers();
+      // Fill the cache 2s before the park's due day arrives.
+      vi.setSystemTime(new Date("2026-08-04T23:59:58.000Z"));
+      const before = readAllItems(jsonlPath);
+      expect(before.find((i) => i.id === "trg-park")?.status).toBe("snoozed");
+
+      // Cross the UTC-day boundary 4s later — still inside the 5s TTL, no
+      // file touched. Without the day-check fix this would keep serving the
+      // stale pre-boundary array (see triage-store.ts CacheEntry.overlayDay).
+      vi.setSystemTime(new Date("2026-08-05T00:00:02.000Z"));
+      const after = readAllItems(jsonlPath);
+      const item = after.find((i) => i.id === "trg-park");
+      expect(item?.status).toBe("triage");
+      expect(item?.revisitDue).toBe(true);
+      // Reference changes (new overlay computed) but this is the SAME call
+      // path a mutation route's pre-check uses — freshness, not identity,
+      // is the property under test here.
+      expect(after).not.toBe(before);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns the SAME reference across two reads on the same UTC day (no needless re-overlay)", () => {
+    writeFileSync(
+      jsonlPath,
+      [
+        `{"v":1,"schema":"triage","created":"2026-05-13T08:00:00Z"}`,
+        `{"event":"append","id":"trg-same","ts":"2026-05-13T08:01:00Z","originalTs":"2026-05-13T08:01:00Z","source":"phaseQuality","severity":"high","kind":"bug","title":"X","detail":"Y","evidencePath":null,"runId":null,"commit":null,"dedupKey":null,"status":"triage","suggestedPriority":"P1","suggestedDomain":"engineering"}`,
+      ].join("\n") + "\n",
+    );
+    try {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date("2026-08-05T12:00:00.000Z"));
+      const first = readAllItems(jsonlPath);
+      vi.setSystemTime(new Date("2026-08-05T12:00:02.000Z"));
+      const second = readAllItems(jsonlPath);
+      expect(second).toBe(first);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

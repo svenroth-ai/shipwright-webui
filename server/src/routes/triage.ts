@@ -19,10 +19,7 @@ import type { Context } from "hono";
 
 import type { ExternalTask } from "../core/sdk-sessions-store.js";
 import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
-import type {
-  TriagePriority,
-  TriagePromoteResponse,
-} from "../types/triage.js";
+import type { TriagePromoteResponse } from "../types/triage.js";
 
 import { resolveTriagePath } from "../core/triage-paths.js";
 import {
@@ -32,27 +29,12 @@ import {
 } from "../core/triage-enrich.js";
 import { readAllItems, findItemById, filterTriage } from "../core/triage-store.js";
 import { readBoardItems } from "../core/triage-board-read.js";
+import { parsePromoteBody, parseDismissSnoozeBody } from "../core/triage-validation.js";
 import {
   appendStatusEvent,
   TriageWriteError,
 } from "../core/triage-write.js";
 
-const TRIAGE_ID_RE = /^trg-[0-9a-fA-F]{8}$/;
-const PRIORITY_VALUES: ReadonlySet<TriagePriority> = new Set([
-  "P0",
-  "P1",
-  "P2",
-  "P3",
-]);
-const COMPLEXITY_VALUES: ReadonlySet<string> = new Set([
-  "small",
-  "medium",
-  "large",
-]);
-const MAX_TAG_LEN = 100;
-const MAX_TAGS = 32;
-const MAX_DOMAIN_LEN = 200;
-const MAX_REASON_LEN = 500;
 /**
  * Hard cap on the promoted task's description. Verbatim mirror of the
  * identically-named `DESCRIPTION_MAX_LENGTH` in `external/routes.ts` (the
@@ -122,7 +104,10 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
   const append = deps.appendStatusEventOverride ?? appendStatusEvent;
 
   // ----------------------------------------------------------------------
-  // GET /api/triage/counts — aggregate (status==triage) per project + total
+  // GET /api/triage/counts — aggregate (status==triage) per project + total,
+  // plus a cross-project deferredTotal (status==snoozed) so the client can
+  // tell "genuinely nothing to look at" apart from "nothing OPEN, but items
+  // are parked" (iterate-2026-08-05-triage-deferred-envelope, code review).
   //
   // MUST be registered BEFORE the parametric `:projectId` route below,
   // otherwise Hono matches "counts" as projectId="counts" → 404.
@@ -135,10 +120,14 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           path: p.path,
           synthesized: p.synthesized,
         });
-        if (!pathRes.ok) return { id: p.id, count: 0 };
+        if (!pathRes.ok) return { id: p.id, count: 0, deferred: 0 };
         try {
           const items = readAllItems(pathRes.absolute);
-          return { id: p.id, count: filterTriage(items).length };
+          return {
+            id: p.id,
+            count: filterTriage(items).length,
+            deferred: items.filter((it) => it.status === "snoozed").length,
+          };
         } catch (err) {
           console.warn(
             JSON.stringify({
@@ -148,19 +137,21 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
               error: String(err).slice(0, 200),
             }),
           );
-          return { id: p.id, count: 0 };
+          return { id: p.id, count: 0, deferred: 0 };
         }
       }),
     );
     const counts: Record<string, number> = {};
     let total = 0;
+    let deferredTotal = 0;
     for (const r of settled) {
       if (r.status === "fulfilled") {
         counts[r.value.id] = r.value.count;
         total += r.value.count;
+        deferredTotal += r.value.deferred;
       }
     }
-    return c.json({ counts, total });
+    return c.json({ counts, total, deferredTotal });
   });
 
   // ----------------------------------------------------------------------
@@ -410,7 +401,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
     } catch {
       return c.json({ error: "invalid_json" }, 400);
     }
-    const parsed = parseDismissSnoozeBody(body);
+    const parsed = parseDismissSnoozeBody(body, newStatus);
     if (!parsed.ok) return c.json(parsed.error, 400);
 
     const pathRes = resolveTriagePath({
@@ -484,6 +475,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           by: "webui",
           reason: parsed.value.reason,
           promotedTaskId: null,
+          revisitAt: parsed.value.revisitAt,
           now: deps.now,
         });
       } catch (err) {
@@ -504,126 +496,13 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
   return app;
 }
 
-// ----------------------------------------------------------------------
-// Body validators (kept inline so they're easy to audit)
-// ----------------------------------------------------------------------
-
-interface PromoteBody {
-  triageId: string;
-  priority: TriagePriority;
-  domain: string;
-  complexityHint?: "small" | "medium" | "large";
-  tags: string[];
-}
-
-interface DismissSnoozeBody {
-  triageId: string;
-  reason: string | null;
-}
-
-type Validated<T> = { ok: true; value: T } | { ok: false; error: { error: string; field?: string } };
-
-function parsePromoteBody(body: unknown): Validated<PromoteBody> {
-  if (!isPlainObject(body)) return { ok: false, error: { error: "body_not_object" } };
-  const triageId = body.triageId;
-  if (typeof triageId !== "string" || !TRIAGE_ID_RE.test(triageId)) {
-    return { ok: false, error: { error: "invalid_triageId", field: "triageId" } };
-  }
-  const priority = body.priority;
-  if (typeof priority !== "string" || !PRIORITY_VALUES.has(priority as TriagePriority)) {
-    return { ok: false, error: { error: "invalid_priority", field: "priority" } };
-  }
-  const domainRaw = body.domain;
-  if (typeof domainRaw !== "string") {
-    return { ok: false, error: { error: "invalid_domain", field: "domain" } };
-  }
-  const domain = domainRaw.trim();
-  if (!domain) return { ok: false, error: { error: "domain_empty", field: "domain" } };
-  if (domain.length > MAX_DOMAIN_LEN) {
-    return { ok: false, error: { error: "domain_too_long", field: "domain" } };
-  }
-  let complexityHint: "small" | "medium" | "large" | undefined;
-  if (body.complexityHint !== undefined) {
-    if (
-      typeof body.complexityHint !== "string" ||
-      !COMPLEXITY_VALUES.has(body.complexityHint)
-    ) {
-      return {
-        ok: false,
-        error: { error: "invalid_complexityHint", field: "complexityHint" },
-      };
-    }
-    complexityHint = body.complexityHint as "small" | "medium" | "large";
-  }
-  const tagsRaw = body.tags;
-  if (!Array.isArray(tagsRaw)) {
-    return { ok: false, error: { error: "invalid_tags", field: "tags" } };
-  }
-  const tagsValidated: string[] = [];
-  const seen = new Set<string>();
-  for (const t of tagsRaw) {
-    if (typeof t !== "string") {
-      return { ok: false, error: { error: "invalid_tag_type", field: "tags" } };
-    }
-    if (containsControlChar(t)) {
-      return { ok: false, error: { error: "tag_control_char", field: "tags" } };
-    }
-    const trimmed = t.trim();
-    if (!trimmed) continue;
-    if (trimmed.length > MAX_TAG_LEN) {
-      return { ok: false, error: { error: "tag_too_long", field: "tags" } };
-    }
-    if (!seen.has(trimmed)) {
-      seen.add(trimmed);
-      tagsValidated.push(trimmed);
-    }
-  }
-  if (tagsValidated.length > MAX_TAGS) {
-    return { ok: false, error: { error: "tags_too_many", field: "tags" } };
-  }
-  return {
-    ok: true,
-    value: { triageId, priority: priority as TriagePriority, domain, complexityHint, tags: tagsValidated },
-  };
-}
-
-function parseDismissSnoozeBody(body: unknown): Validated<DismissSnoozeBody> {
-  if (!isPlainObject(body)) return { ok: false, error: { error: "body_not_object" } };
-  const triageId = body.triageId;
-  if (typeof triageId !== "string" || !TRIAGE_ID_RE.test(triageId)) {
-    return { ok: false, error: { error: "invalid_triageId", field: "triageId" } };
-  }
-  let reason: string | null = null;
-  if (body.reason !== undefined && body.reason !== null) {
-    if (typeof body.reason !== "string") {
-      return { ok: false, error: { error: "invalid_reason", field: "reason" } };
-    }
-    if (containsControlChar(body.reason)) {
-      return { ok: false, error: { error: "reason_control_char", field: "reason" } };
-    }
-    const trimmed = body.reason.trim();
-    if (trimmed.length > MAX_REASON_LEN) {
-      return { ok: false, error: { error: "reason_too_long", field: "reason" } };
-    }
-    reason = trimmed || null;
-  }
-  return { ok: true, value: { triageId, reason } };
-}
+// Body validators (parsePromoteBody, parseDismissSnoozeBody + shared
+// helpers) live in core/triage-validation.ts — extracted
+// iterate-2026-08-05-triage-deferred-envelope to keep this already-
+// baselined file from ratcheting.
 
 // enrichWithCampaignRefs (FR-01.33) moved verbatim to core/triage-enrich.ts
 // (anti-ratchet extraction, iterate-2026-06-10-triage-pending-delivery-badge).
-
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
-function containsControlChar(s: string): boolean {
-  for (let i = 0; i < s.length; i++) {
-    const c = s.charCodeAt(i);
-    if (c < 0x20 || c === 0x7f) return true;
-  }
-  return false;
-}
 
 function mergeTags(defaults: string[], userTags: string[]): string[] {
   const seen = new Set<string>(defaults);

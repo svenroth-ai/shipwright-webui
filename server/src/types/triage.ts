@@ -74,6 +74,26 @@ export interface TriageItem {
    * emits a concrete boolean.
    */
   pendingDelivery?: boolean;
+  /**
+   * Monorepo P2.03 (iterate-2026-08-01-triage-defer-lifecycle,
+   * CONTRACT_VERSION 2) parked-entry lifecycle — mirrors upstream
+   * `read_all_items`'s `revisitAt`/`revisitDue` overlay, which every item
+   * gains (not just `snoozed` ones): the day a parked entry returns
+   * (`YYYY-MM-DD`), or `null` when the item isn't parked, or is parked with
+   * no date set (the WebUI's own Snooze action leaves this unset unless the
+   * operator fills in the optional Revisit-date field — "parked-not-due").
+   */
+  revisitAt: string | null;
+  /**
+   * Computed, never stored: has this entry's park come due? Always `false`
+   * for a non-`snoozed` item. A `snoozed` item whose date has arrived is
+   * ALREADY resolved back to `status: "triage"` by the time this is set
+   * (see `core/triage-defer.ts`), so within an actually-parked
+   * (`status === "snoozed"`) view this reads `false` by construction — it
+   * exists so a consumer never has to parse the date itself to answer
+   * "did this just return?".
+   */
+  revisitDue: boolean;
 }
 
 /** On-disk status event line shape. */
@@ -85,6 +105,12 @@ export interface TriageStatusEvent {
   by: string;
   reason: string | null;
   promotedTaskId: string | null;
+  /**
+   * Park semantics (monorepo P2.03) — present ONLY on a `newStatus:
+   * "snoozed"` event; absent (never `null`) on every other status, mirroring
+   * the monorepo wire format where the field simply doesn't exist there.
+   */
+  revisitAt?: string;
 }
 
 /** Wire shape for promote/dismiss/snooze response bodies. */

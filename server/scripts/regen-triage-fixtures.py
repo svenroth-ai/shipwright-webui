@@ -259,7 +259,22 @@ def main() -> int:
             f"{run.stderr}\n"
         )
         return 1
-    cli_items = json.loads(run.stdout)
+    # CONTRACT_VERSION 2 (monorepo P2.03, iterate-2026-08-01-triage-defer-
+    # lifecycle): the payload is now an envelope `{contractVersion, open,
+    # deferred}`, not a bare list — see lib/triage_contract.py. Every fixture
+    # date feeding this run is permanently past/future (never "today"), so
+    # this output is stable across regen days — see the webui iterate spec
+    # iterate-2026-08-05-triage-deferred-envelope, "Plan review corrections"
+    # M3 for why a "due today" case must NEVER be baked in here.
+    cli_listing = json.loads(run.stdout)
+    if not isinstance(cli_listing, dict) or "contractVersion" not in cli_listing:
+        sys.stderr.write(
+            "error: triage_cli list --json did not return a "
+            "{contractVersion, open, deferred} envelope — upstream contract "
+            "shape changed again; update this script before trusting the "
+            f"fixture. Got: {cli_listing!r}\n"
+        )
+        return 1
 
     UNION_CLI_LIST.write_text(
         json.dumps(
@@ -267,15 +282,16 @@ def main() -> int:
                 "_comment": (
                     "Generated from triage-union.{tracked,outbox}.jsonl by the "
                     "REAL `triage_cli.py list --json` (shared/scripts/tools/"
-                    "triage_cli.py) — the canonical WebUI live-view contract: "
-                    "open items only, each with pendingDelivery (TRACKED-"
-                    "PREFERRED residence). The TS GET-route projection "
-                    "(enrichPendingDelivery over filterTriage(readAllItems())) "
-                    "must match this byte-for-byte (deep-equal) per the parity "
-                    "test in src/core/triage-enrich.test.ts. Regenerate via "
+                    "triage_cli.py) — the canonical cross-repo CLI contract: "
+                    "{contractVersion, open, deferred}, each item enriched with "
+                    "pendingDelivery (TRACKED-PREFERRED residence). The TS "
+                    "projection (buildTriageListing in "
+                    "src/core/triage-contract.ts) must match this byte-for-byte "
+                    "(deep-equal) per the parity test in "
+                    "src/core/triage-contract.test.ts. Regenerate via "
                     "server/scripts/regen-triage-fixtures.py."
                 ),
-                "items": cli_items,
+                **cli_listing,
             },
             indent=2,
             ensure_ascii=False,
@@ -283,7 +299,10 @@ def main() -> int:
         + "\n",
         encoding="utf-8",
     )
-    sys.stderr.write(f"wrote {UNION_CLI_LIST} ({len(cli_items)} items)\n")
+    sys.stderr.write(
+        f"wrote {UNION_CLI_LIST} (open={len(cli_listing.get('open', []))} "
+        f"deferred={len(cli_listing.get('deferred', []))})\n"
+    )
     return 0
 
 

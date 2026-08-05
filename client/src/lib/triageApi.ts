@@ -60,6 +60,14 @@ export interface TriageItem {
    * concrete boolean; optional here so un-enriched fixtures stay valid.
    */
   pendingDelivery?: boolean;
+  /**
+   * Monorepo P2.03 parked-entry lifecycle (see server/src/types/triage.ts):
+   * the day a parked entry returns (`YYYY-MM-DD`), or `null` when not
+   * parked, or parked with no date set ("parked-not-due").
+   */
+  revisitAt: string | null;
+  /** Computed: has this entry's park come due? Always `false` when not parked. */
+  revisitDue: boolean;
 }
 
 /**
@@ -83,6 +91,13 @@ const DEGRADED_ORIGIN: TriageOrigin = { available: false, behind: null };
 export interface TriageCountsResponse {
   counts: Record<string, number>;
   total: number;
+  /**
+   * Cross-project count of parked (status:snoozed) items — additive,
+   * optional so an older server response stays valid. Lets the page tell
+   * "nothing to look at" apart from "nothing OPEN, but items are parked"
+   * (iterate-2026-08-05-triage-deferred-envelope).
+   */
+  deferredTotal?: number;
 }
 
 export interface PromoteBody {
@@ -116,6 +131,12 @@ export type PromoteResult =
 export interface StatusFlipBody {
   triageId: string;
   reason?: string | null;
+  /**
+   * Snooze-only (monorepo P2.03 parity): an optional `YYYY-MM-DD` the item
+   * should return on. `dismissTriageItem` never sends this — the server
+   * rejects it there with `400 revisitAt_not_permitted`.
+   */
+  revisitAt?: string | null;
 }
 
 export async function fetchTriage(projectId: string): Promise<TriageListResponse> {

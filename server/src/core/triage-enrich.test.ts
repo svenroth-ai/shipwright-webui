@@ -18,7 +18,6 @@ import {
   mkdtempSync,
   rmSync,
   writeFileSync,
-  readFileSync,
   utimesSync,
 } from "node:fs";
 import path from "node:path";
@@ -29,22 +28,9 @@ import {
   enrichWithCampaignRefs,
   _clearEnrichCache_TEST_ONLY,
 } from "./triage-enrich.js";
-import { readAllItems, filterTriage, _clearCache_TEST_ONLY } from "./triage-store.js";
+import { readAllItems, _clearCache_TEST_ONLY } from "./triage-store.js";
 import { outboxPathFor } from "./triage-paths.js";
 import type { TriageItem } from "../types/triage.js";
-
-const FIXTURE_UNION_TRACKED = path.resolve(
-  __dirname,
-  "../test/fixtures/triage-union.tracked.jsonl",
-);
-const FIXTURE_UNION_OUTBOX = path.resolve(
-  __dirname,
-  "../test/fixtures/triage-union.outbox.jsonl",
-);
-const FIXTURE_UNION_CLI_LIST = path.resolve(
-  __dirname,
-  "../test/fixtures/triage-union-cli-list.json",
-);
 
 const HEADER = `{"v":1,"schema":"triage","created":"2026-06-01T00:00:00Z"}`;
 
@@ -154,18 +140,11 @@ describe("triage-enrich: enrichPendingDelivery", () => {
     expect(items[0].pendingDelivery).toBe(false);
   });
 
-  it("matches the REAL `triage_cli.py list --json` contract on the union fixtures (CLI PARITY GATE)", () => {
-    // The exact CLI projection: open items only, plus pendingDelivery —
-    // campaign enrichment deliberately NOT applied (external review OAI5).
-    writeFileSync(trackedPath, readFileSync(FIXTURE_UNION_TRACKED, "utf-8"));
-    writeFileSync(outboxPath, readFileSync(FIXTURE_UNION_OUTBOX, "utf-8"));
-    const open = filterTriage(readAllItems(trackedPath)).map((it) => ({ ...it }));
-    enrichPendingDelivery(open, trackedPath);
-    const expected = JSON.parse(readFileSync(FIXTURE_UNION_CLI_LIST, "utf-8")) as {
-      items: unknown[];
-    };
-    expect(open).toEqual(expected.items);
-  });
+  // The CLI PARITY GATE (full {contractVersion, open, deferred} envelope,
+  // built by `buildTriageListing`) moved to triage-contract.test.ts as of
+  // iterate-2026-08-05-triage-deferred-envelope (monorepo P2.03 /
+  // CONTRACT_VERSION 2) — `enrichPendingDelivery` alone no longer describes
+  // the CLI's output shape.
 
   it("memoizes residence sets by both mtimes and invalidates when the TRACKED file changes", () => {
     writeFileSync(trackedPath, `${HEADER}\n${appendLine("trg-t1", "2026-06-01T08:00:00Z")}\n`);

@@ -87,6 +87,8 @@ const mockItem = (id: string, status = "triage"): TriageItem => ({
   statusBy: null,
   statusReason: null,
   promotedTaskId: null,
+  revisitAt: null,
+  revisitDue: false,
 });
 
 describe("TriagePage", () => {
@@ -128,6 +130,19 @@ describe("TriagePage", () => {
     mockUseTriageCounts.mockReturnValue({ data: { counts: { "proj-a": 1 }, total: 1 } });
     renderPage();
     expect(await screen.findByTestId("triage-item-trg-aaaa1111")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-empty-state")).not.toBeInTheDocument();
+  });
+
+  it("hides empty state when there are zero OPEN items but deferredTotal > 0 (code review fix)", async () => {
+    mockUseTriageItems.mockReturnValue({
+      data: [mockItem("trg-parked01", "snoozed")],
+      isLoading: false,
+    });
+    mockUseTriageCounts.mockReturnValue({
+      data: { counts: { "proj-a": 0 }, total: 0, deferredTotal: 1 },
+    });
+    renderPage();
+    expect(await screen.findByTestId("triage-deferred-section")).toBeInTheDocument();
     expect(screen.queryByTestId("triage-empty-state")).not.toBeInTheDocument();
   });
 

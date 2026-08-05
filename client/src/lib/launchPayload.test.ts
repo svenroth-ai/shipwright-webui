@@ -51,6 +51,8 @@ function makeItem(partial: Partial<TriageItem> = {}): TriageItem {
     statusBy: null,
     statusReason: null,
     promotedTaskId: null,
+    revisitAt: null,
+    revisitDue: false,
     ...partial,
   };
 }

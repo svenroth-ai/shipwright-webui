@@ -1,13 +1,17 @@
 /*
- * TriagePage — read-only list of `<project>/.shipwright/triage.jsonl`
- * items aggregated across registered projects (status==triage filter).
+ * TriagePage — list of `<project>/.shipwright/triage.jsonl` items
+ * aggregated across registered projects, per-project section owned by
+ * PerProjectTriageSection: open items (status==triage) plus a Deferred
+ * section (status==snoozed, monorepo P2.03 parity,
+ * iterate-2026-08-05-triage-deferred-envelope).
  *
  * Layout: project-grouped (color-coded sidebar dot mirrors InboxPage)
  * → source-grouped (alphabetical, mirrors aggregate_triage.py)
- * → severity-rank-sorted within each source group.
+ * → severity-rank-sorted within each source group → Deferred section.
  *
  * Click → opens TriageDetailModal with Promote / Dismiss / Snooze /
- * Fix-now actions.
+ * Fix-now actions (open items only — Deferred is read-only, see the
+ * iterate spec's Out of Scope).
  *
  * iterate-2026-05-21-triage-fix-now-and-phase-slash — TriagePage now
  * owns the NewIssueModal mount. TriageDetailModal hands up a FixNowIntent
@@ -20,30 +24,18 @@
  * Empty-state copy: verbatim from `aggregate_triage.py` line 170.
  */
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useProjects } from "../hooks/useProjects";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useProjectFilter } from "../hooks/useProjectFilter";
-import { useTriageCounts, useTriageDrift, useTriageItems } from "../hooks/useTriage";
-import { TriageItemCard } from "../components/triage/TriageItemCard";
-import { TriageDetailModal } from "../components/triage/TriageDetailModal";
+import { useTriageCounts } from "../hooks/useTriage";
+import { PerProjectTriageSection } from "../components/triage/PerProjectTriageSection";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
 import type { FixNowIntent } from "../components/triage/fixNowIntent";
-import type { TriageItem, TriageSeverity } from "../lib/triageApi";
-import { filterTriage } from "../lib/triageApi";
-import type { Project } from "../types";
-
-const SEVERITY_RANK: Record<TriageSeverity, number> = {
-  critical: 0,
-  high: 1,
-  medium: 2,
-  low: 3,
-  info: 4,
-};
 
 interface FixNowModalState {
   open: boolean;
@@ -56,122 +48,6 @@ const FIX_NOW_INITIAL: FixNowModalState = {
   projectId: null,
   intent: null,
 };
-
-function PerProjectSection({
-  project,
-  onFixNow,
-  onNavigateToBoard,
-}: {
-  project: Project;
-  onFixNow: (projectId: string, intent: FixNowIntent) => void;
-  onNavigateToBoard: (projectId: string) => void;
-}) {
-  const { data: items = [], isLoading } = useTriageItems(project.id);
-  const { data: drift } = useTriageDrift(project.id);
-  const [selected, setSelected] = useState<TriageItem | null>(null);
-
-  const triageItems = useMemo(() => filterTriage(items), [items]);
-
-  const itemsBySource = useMemo(() => {
-    const map = new Map<string, TriageItem[]>();
-    for (const it of triageItems) {
-      const arr = map.get(it.source) ?? [];
-      arr.push(it);
-      map.set(it.source, arr);
-    }
-    for (const arr of map.values()) {
-      arr.sort((a, b) => {
-        const sevDiff =
-          SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
-        if (sevDiff !== 0) return sevDiff;
-        // Newest-first within stable severity rank
-        return b.originalTs.localeCompare(a.originalTs);
-      });
-    }
-    return map;
-  }, [triageItems]);
-
-  const sortedSources = useMemo(
-    () => [...itemsBySource.keys()].sort(),
-    [itemsBySource],
-  );
-
-  if (isLoading) {
-    return (
-      <section className="mb-8" data-testid={`triage-project-${project.id}`}>
-        <h2 className="text-base font-semibold mb-2 text-[var(--ink)]">{project.name}</h2>
-        <p className="text-sm text-[var(--muted)]">Loading…</p>
-      </section>
-    );
-  }
-
-  if (triageItems.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="mb-8" data-testid={`triage-project-${project.id}`}>
-      {/* on-photo-legibility fix: the project name + its (count) subtitle and
-          the per-source group headers (below) ride bare on the deck-golden
-          photo, so they use the flipping Weather-Deck `--ink` / `--muted`
-          tokens (white under `.on-photo`), NOT the legacy `--color-text` /
-          `--color-muted` aliases (computed at :root → stay dark, invisible). */}
-      <h2 className="text-base font-semibold mb-3 flex items-center gap-2 text-[var(--ink)]">
-        <span
-          className="inline-block w-2 h-2 rounded-full"
-          style={{
-            backgroundColor: project.settings?.color ?? "var(--color-muted)",
-          }}
-        />
-        <span>{project.name}</span>
-        <span className="text-xs text-[var(--muted)] font-normal">
-          ({triageItems.length})
-        </span>
-      </h2>
-      {drift?.behind != null && drift.behind > 0 && (
-        <div
-          role="status"
-          data-testid={`triage-stale-banner-${project.id}`}
-          className="mb-3 rounded-md border border-[var(--warn-line)] bg-warn-tint px-3 py-2 text-xs text-warn dark:border-[var(--warn-line)] dark:bg-warn-tint dark:text-warn"
-        >
-          Local checkout is {drift.behind} commit{drift.behind === 1 ? "" : "s"} behind
-          origin — <code>git pull</code> to sync.
-          {drift.available === false
-            ? " Origin is unavailable, so already-dismissed items may still appear here."
-            : ""}
-        </div>
-      )}
-      {sortedSources.map((source) => (
-        <div key={source} className="mb-4">
-          <h3 className="text-xs font-semibold text-[var(--ink)] uppercase mb-2">
-            {source} ({itemsBySource.get(source)!.length})
-          </h3>
-          <div className="space-y-2">
-            {itemsBySource.get(source)!.map((item) => (
-              <TriageItemCard
-                key={item.id}
-                item={item}
-                onClick={() => setSelected(item)}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-      {selected && (
-        <TriageDetailModal
-          open={Boolean(selected)}
-          onOpenChange={(open) => {
-            if (!open) setSelected(null);
-          }}
-          projectId={project.id}
-          item={selected}
-          onFixNow={(intent) => onFixNow(project.id, intent)}
-          onNavigateToBoard={() => onNavigateToBoard(project.id)}
-        />
-      )}
-    </section>
-  );
-}
 
 export default function TriagePage() {
   const { data: projects = [] } = useProjects();
@@ -188,10 +64,15 @@ export default function TriagePage() {
   };
 
   const totalTriage = counts?.total ?? 0;
+  // A project can have zero OPEN items yet still show a Deferred section
+  // (PerProjectTriageSection renders whenever either is non-empty) — the
+  // empty-state banner must stay silent whenever there's anything to look
+  // at, parked or not (iterate-2026-08-05-triage-deferred-envelope, code review).
+  const totalDeferred = counts?.deferredTotal ?? 0;
 
   // iterate-2026-05-21 — page-scoped NewIssueModal state. Survives the
   // unmount-on-close of TriageDetailModal (which the `{selected && …}`
-  // guard in PerProjectSection performs). The projectId is captured at
+  // guard in PerProjectTriageSection performs). The projectId is captured at
   // intent-time so the spawned modal renders in the right project
   // context even if the user later opens a different project's items.
   const [fixNowModal, setFixNowModal] = useState<FixNowModalState>(FIX_NOW_INITIAL);
@@ -237,14 +118,14 @@ export default function TriagePage() {
           ) : (
             <>
               {realProjects.map((project) => (
-                <PerProjectSection
+                <PerProjectTriageSection
                   key={project.id}
                   project={project}
                   onFixNow={onFixNow}
                   onNavigateToBoard={onNavigateToBoard}
                 />
               ))}
-              {counts !== undefined && totalTriage === 0 && (
+              {counts !== undefined && totalTriage === 0 && totalDeferred === 0 && (
                 <p
                   className="text-center text-sm text-[var(--muted)] py-8"
                   data-testid="triage-empty-state"

@@ -19,7 +19,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-bbbb2222",
@@ -39,7 +41,9 @@
       "suggestedDomain": "compliance",
       "statusBy": "manualReview",
       "statusReason": "out of scope this sprint",
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-cccc3333",
@@ -59,7 +63,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-dddd4444",
@@ -80,7 +86,9 @@
       "suggestedDomain": "security",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-eeee5555",
@@ -101,7 +109,9 @@
       "suggestedDomain": "engineering",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     },
     {
       "id": "trg-ffff6666",
@@ -121,7 +131,9 @@
       "suggestedDomain": "security",
       "statusBy": null,
       "statusReason": null,
-      "promotedTaskId": null
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "revisitDue": false
     }
   ]
 }
