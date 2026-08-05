@@ -55,3 +55,5 @@ bootstrapper/bin/shipwright.mjs text eol=lf
 scripts/ci/**/*.py text eol=lf
 scripts/ci/*.py text eol=lf
 scripts/ci/accepted_risks_vendor.json text eol=lf
+
+/.shipwright/agent_docs/iterates/*.test-results.json -text -diff
