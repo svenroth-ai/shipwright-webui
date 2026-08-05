@@ -1,0 +1,1 @@
+Embedded terminal: restoring a saved screen no longer lands one row off. xterm's reset() does not reset its escape-sequence parser, so a stream cut mid-sequence swallowed the restore's first character — which also affected every reconnect replay (FR-01.28).

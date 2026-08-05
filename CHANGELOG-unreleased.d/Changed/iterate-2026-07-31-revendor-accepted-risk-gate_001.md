@@ -1,0 +1,1 @@
+`.trivyignore.yaml` is now checked for the shapes that make Trivy discard the whole file (duplicate mapping keys, a non-list `vulnerabilities`, non-mapping or id-less entries, and an `expired_at` outside Trivy's `YYYY-MM-DD` layout), so the gate can no longer certify suppressions the scanner never applies.

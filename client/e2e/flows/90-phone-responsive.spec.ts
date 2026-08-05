@@ -200,9 +200,8 @@ test.describe("Phone responsive (<768px, touch)", () => {
     try {
       await page.goto(`/tasks/${taskId}`);
       await expect(page.getByTestId("task-detail-page")).toBeVisible();
-      // Compact detail: open the Session pane, then the inner Terminal tab.
-      await page.getByTestId("pane-tab-center").click();
-      await page.getByTestId("task-detail-tab-terminal").click();
+      // Compact detail flattens the former Session + inner-tab hierarchy.
+      await page.getByTestId("pane-tab-terminal").click();
       await expect(page.getByTestId("terminal-key-bar")).toBeVisible();
       for (const id of ["esc", "tab", "ctrlc", "up", "down", "left", "right", "enter"]) {
         await expect(page.getByTestId(`terminal-key-${id}`)).toBeVisible();

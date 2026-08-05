@@ -186,6 +186,11 @@ const REQUIRED_TOKENS = [
   // the scenario-gated derivation that reads it.
   'stage-markers',
   'stage-derivation',
+  // iterate-2026-07-31-win32-shell-spawn-remediation — the shell-free Windows
+  // .cmd/PATHEXT resolution that replaced four `shell: true` branches, plus the
+  // cli-compat split forced by the anti-ratchet gate.
+  'claude-bin-resolver',
+  'win32-spawn',
 ] as const;
 
 let claudeMd = '';

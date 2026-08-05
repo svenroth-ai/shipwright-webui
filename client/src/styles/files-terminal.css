@@ -57,6 +57,14 @@
 .ft-maximize:hover { color: var(--ink); background: rgba(0, 0, 0, .05); }
 .ft-maximize:focus-visible { outline: none; box-shadow: var(--focus); }
 
+@media (max-width: 1023px) {
+  .ft-maximize {
+    margin-left: 0; width: 44px; height: 44px; color: var(--ink);
+    background: var(--g100); border: 1px solid var(--line);
+  }
+  .ft-maximize:hover { background: var(--card); }
+}
+
 /* ── on-photo: Files + Smart Preview = glass; ONLY the middle card is SOLID beige
       (client: "nur die mitte beige, links und rechts wie vorher") ───────────── */
 .on-photo .ft-card {
@@ -71,6 +79,12 @@
 }
 .on-photo .ft-head {
   background: rgba(41, 37, 34, .17); border-bottom-color: rgba(41, 37, 34, .16);
+}
+
+@media (max-width: 767px) {
+  .on-photo .ft-term {
+    border-right: 0; border-left: 0; border-radius: 0;
+  }
 }
 .on-photo .mc-tabs.ft-seg {
   background: transparent; border-color: transparent;

@@ -1,0 +1,1 @@
+For maintainers, two visible changes to how the PR Review check behaves: a pull request whose branch is force-pushed while the review is running now reports `PR Review = failure` with a re-run prompt rather than inheriting a verdict for code that is no longer there, and removing a `skip-pr-review` label now re-runs the decision instead of leaving the waiver's green in place.

@@ -118,6 +118,12 @@ describe("useTerminalResize hook — resize + tab activation", () => {
     vi.clearAllMocks();
   });
 
+  function setupActiveForResize() {
+    const result = h.setup(true);
+    vi.clearAllMocks();
+    return result;
+  }
+
   it("ResizeObserver observes the container on mount, disconnects on unmount", () => {
     const { unmount } = h.setup(false);
     expect(h.getROObserve()).toHaveBeenCalledTimes(1);
@@ -126,7 +132,7 @@ describe("useTerminalResize hook — resize + tab activation", () => {
   });
 
   it("first RO callback fires fit + sends resize frame", () => {
-    const { socketSend, fit } = h.setup(false);
+    const { socketSend, fit } = setupActiveForResize();
     act(() => {
       h.triggerRO();
     });
@@ -135,7 +141,7 @@ describe("useTerminalResize hook — resize + tab activation", () => {
   });
 
   it("dedupes no-op resize sends (cols/rows unchanged on second fire)", () => {
-    const { socketSend } = h.setup(false);
+    const { socketSend } = setupActiveForResize();
     act(() => {
       h.triggerRO();
     });
@@ -152,7 +158,9 @@ describe("useTerminalResize hook — resize + tab activation", () => {
   });
 
   it("two RO fires inside the 250 ms throttle window produce ONE trailing-edge fit", () => {
-    const { fit } = h.setup(false);
+    const { fit } = h.setup(true);
+    act(() => vi.advanceTimersByTime(32));
+    vi.clearAllMocks();
     act(() => {
       h.triggerRO();
     });
@@ -170,7 +178,7 @@ describe("useTerminalResize hook — resize + tab activation", () => {
   });
 
   it("trailing-edge fire after disposed=true is a no-op (Plan-review openai #6)", () => {
-    const { socketSend, fit, disposed, rerender } = h.setup(false);
+    const { socketSend, fit, disposed, rerender } = setupActiveForResize();
     act(() => {
       h.triggerRO();
     });
@@ -189,7 +197,7 @@ describe("useTerminalResize hook — resize + tab activation", () => {
     expect(socketSend).toHaveBeenCalledTimes(1);
   });
 
-  it("tab activation (active false→true) triggers refit AND term.refresh + a resize frame", () => {
+  it("tab activation (active false→true) schedules a post-paint refit + resize", () => {
     const { socketSend, term, fit, rerender } = h.setup(false);
     // active=false initially — no refit yet.
     expect((fit.fit as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
@@ -200,6 +208,10 @@ describe("useTerminalResize hook — resize + tab activation", () => {
       0,
       term.rows - 1,
     );
+    expect(socketSend).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(32);
+    });
     expect(socketSend).toHaveBeenCalledWith({
       type: "resize",
       cols: 80,
@@ -207,8 +219,39 @@ describe("useTerminalResize hook — resize + tab activation", () => {
     });
   });
 
+  it("responsive layout revision refits even while the terminal stays active", () => {
+    const { fit, rerender } = h.setup(true);
+    act(() => vi.advanceTimersByTime(32));
+    vi.clearAllMocks();
+
+    rerender(true, "compact");
+
+    expect((fit.fit as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+  });
+
+  it("never forwards an intermediate grid smaller than 5x2", () => {
+    const { socketSend, term } = setupActiveForResize();
+    Object.assign(term, { cols: 2, rows: 1 });
+    act(() => h.triggerRO());
+    expect(socketSend).not.toHaveBeenCalled();
+  });
+
+  it("inactive or zero-sized notifications never fit or resize the terminal", () => {
+    const inactive = h.setup(false);
+    inactive.setContainerSize(0, 0);
+    act(() => {
+      h.triggerRO();
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect((inactive.fit.fit as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(inactive.socketSend).not.toHaveBeenCalled();
+  });
+
   it("tab stays active across re-renders with unchanged dims: no duplicate resize frames", () => {
     const { socketSend, rerender } = h.setup(true);
+    act(() => {
+      vi.advanceTimersByTime(32);
+    });
     expect(socketSend).toHaveBeenCalledTimes(1);
     rerender(true);
     rerender(true);

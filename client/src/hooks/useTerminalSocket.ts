@@ -11,12 +11,14 @@
  *     is always derived from the page protocol, never a hardcoded insecure one.)
  *   - Inbound JSON envelope:  {type:"ready",role,shellKind,cwd}
  *                              {type:"data",payload}
- *                              {type:"backpressure",droppedBytes}
+ *                              {type:"backpressure",droppedBytes,droppedChunks,
+ *                               totalDroppedBytes,episode,episodeEnded}
  *                              {type:"read_only"}
  *                              {type:"replay_snapshot",data,cols,rows,terminalVersion} [ADR-087/089]
  *                              {type:"scrollback-meta",scrollbackBytes}
  *                              {type:"writer-promoted"} | {type:"second-attach"}
- *   - Outbound JSON envelope: {type:"data",payload}  | {type:"resize",cols,rows}
+ *   - Outbound JSON envelope: {type:"data",payload} | {type:"resize",cols,rows}
+ *                              | {type:"redraw"} | {type:"resync"}
  *   - The `ready` envelope additionally carries `terminalReset` (ADR-104)
  *     and `ptyReused` (fix-resume-guard-survives-reload) — both default
  *     to `false` when an older server omits them.
@@ -42,7 +44,9 @@ import {
 import { parseReadyEnvelope } from "./wsReadyEnvelope";
 
 import type { TerminalRole, TerminalReadyInfo } from "./wsReadyEnvelope";
+import type { BackpressureInfo, TerminalOutbound } from "./terminalWsContract";
 export type { TerminalRole, TerminalReadyInfo };
+export type { BackpressureInfo, TerminalOutbound };
 
 export interface UseTerminalSocketOptions {
   taskId: string | null;
@@ -53,7 +57,7 @@ export interface UseTerminalSocketOptions {
   /** Called on every inbound `data` envelope; mounted-once expected. */
   onData?: (chunk: string) => void;
   /** Called on inbound `backpressure` envelope. */
-  onBackpressure?: (info: { droppedBytes: number }) => void;
+  onBackpressure?: (info: BackpressureInfo) => void;
   /** Called on inbound `read_only` envelope. */
   onReadOnly?: () => void;
   /**
@@ -132,15 +136,8 @@ export interface UseTerminalSocketResult {
   reconnecting: boolean;
   /** Outage outlived the prompt window → slow tail; softens the banner copy. */
   reconnectStalled: boolean;
-  /** Send a typed envelope. No-op if socket is not OPEN. `redraw` asks the
-   *  server to re-apply the pty's current size so a fullscreen TUI repaints
-   *  from scratch — see `useTerminalSizeSync` (iterate-2026-07-27). */
-  send: (
-    msg:
-      | { type: "data"; payload: string }
-      | { type: "resize"; cols: number; rows: number }
-      | { type: "redraw" },
-  ) => void;
+  /** Send a typed envelope. No-op if socket is not OPEN. */
+  send: (msg: TerminalOutbound) => void;
   /** True while socket.readyState === OPEN. */
   open: boolean;
 }
@@ -232,12 +229,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   }, []);
 
   const send = useCallback(
-    (
-      msg:
-        | { type: "data"; payload: string }
-        | { type: "resize"; cols: number; rows: number }
-        | { type: "redraw" },
-    ) => {
+    (msg: TerminalOutbound) => {
       const ws = socketRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       try {
@@ -350,8 +342,16 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           return;
         }
         if (env.type === "backpressure") {
-          const dropped = typeof env.droppedBytes === "number" ? env.droppedBytes : 0;
-          onBackpressureRef.current?.({ droppedBytes: dropped });
+          // Additive fields (iterate-2026-07-30) — an older server sends only
+          // `droppedBytes`, so each one falls back rather than dropping the notice.
+          const num = (v: unknown): number => (typeof v === "number" ? v : 0);
+          onBackpressureRef.current?.({
+            droppedBytes: num(env.droppedBytes),
+            droppedChunks: num(env.droppedChunks),
+            totalDroppedBytes: num(env.totalDroppedBytes),
+            episode: num(env.episode),
+            episodeEnded: env.episodeEnded === true,
+          });
           return;
         }
         if (env.type === "read_only") {

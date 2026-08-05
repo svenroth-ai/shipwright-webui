@@ -14,7 +14,6 @@
  * Hard invariants (CLAUDE.md rules 17-22): convertEol:false; no windowsMode;
  * CLAUDE_CODE_NO_FLICKER default ON; client-side WS auto-execute; no chunked replay.
  */
-
 import {
   forwardRef,
   useCallback,
@@ -24,10 +23,9 @@ import {
 } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
-
 import {
   useTerminalSocket,
-  type TerminalRole,
+  type TerminalOutbound,
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import {
@@ -40,12 +38,12 @@ import { attachTouchScroll } from "./touch-scroll";
 import { attachScrollRepaint } from "./scroll-repaint";
 import { attachSettleRepaint } from "./repaint-on-settle";
 import { copyText } from "../../lib/clipboard";
-
 import { createEmbeddedXterm } from "./xtermAddons";
 import { useTerminalAppearance, resolveAppearanceNow } from "./useTerminalAppearance";
 import { usePasteImage } from "./usePasteImage";
 import { useTerminalResize } from "./useTerminalResize";
 import { useReplayDrainGate } from "./useReplayDrainGate";
+import { useBackpressureResync } from "./useBackpressureResync";
 import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
 import { useTerminalClipboard } from "./useTerminalClipboard";
@@ -53,6 +51,14 @@ import { useTerminalShellEffects } from "./useTerminalShellEffects";
 import { useTerminalBannerState } from "./useTerminalBannerState";
 import { TerminalBanners } from "./TerminalBanners";
 import { TerminalKeyBar, terminalKeySequence } from "./TerminalKeyBar";
+import type {
+  EmbeddedTerminalHandle,
+  EmbeddedTerminalProps,
+} from "./EmbeddedTerminal.types";
+export type {
+  EmbeddedTerminalHandle,
+  EmbeddedTerminalProps,
+} from "./EmbeddedTerminal.types";
 
 // Re-export gate constants so the existing EmbeddedTerminal.test.tsx imports
 // keep working without churn.
@@ -61,29 +67,6 @@ export {
   REPLAY_DRAIN_MAX_BYTES,
 } from "./useReplayDrainGate";
 
-export interface EmbeddedTerminalHandle {
-  focus(): void;
-  ready: boolean;
-  role: TerminalRole | null;
-}
-
-export interface EmbeddedTerminalProps {
-  taskId: string;
-  active: boolean;
-  socketUrlOverride?: string;
-  socketEnabled?: boolean;
-  onGitignoreSuggestion?: () => void;
-  onBackpressure?: (info: { droppedBytes: number }) => void;
-  onReadyChange?: (ready: boolean, role: TerminalRole | null) => void;
-  onPasteImageError?: (detail: string) => void;
-  onTerminalMeta?: (meta: {
-    replayOnly: boolean | null;
-    scrollbackBytes: number | null;
-    retentionDays: number | null;
-    scrollbackDir: string | null;
-  }) => void;
-}
-
 export const EmbeddedTerminal = forwardRef<
   EmbeddedTerminalHandle,
   EmbeddedTerminalProps
@@ -91,6 +74,7 @@ export const EmbeddedTerminal = forwardRef<
   {
     taskId,
     active,
+    layoutRevision,
     socketUrlOverride,
     socketEnabled = true,
     onGitignoreSuggestion,
@@ -105,35 +89,36 @@ export const EmbeddedTerminal = forwardRef<
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const disposedRef = useRef(false);
-  // Arm-fn for the data-driven settle-repaint (AC-4); set in the mount-effect.
   const settleArmRef = useRef<(() => void) | null>(null);
-  // WebGL glyph-atlas heal (FR-01.28) — see activation-repaint.ts "ATLAS HEAL".
   const atlasHealRef = useRef<(() => void) | null>(null);
-
   // Shell-owned banner state (+ per-task reset) and the transient
   // clipboard-notice state (paste hints + OSC 52 copy-failed).
   const banners = useTerminalBannerState(taskId);
   const { readOnlyArmed, resetBannerDismissed, setResetBannerDismissed } = banners;
   const clip = useTerminalClipboard();
 
-  // ── Hook chain (lifecycle-ordered) ──
   const coord = useLaunchCoordinator();
-  // Size-sync seam (iterate-2026-07-01-terminal-title-wrap-smear): gate created pre-socket → calls through syncSizeRef, populated post-socket by useTerminalSizeSync.
+  // Size-sync seam: gate is created pre-socket and populated post-socket.
   const syncSizeRef = useRef<(() => void) | null>(null);
   const gateOnReplaySettled = useCallback(() => syncSizeRef.current?.(), []);
-  const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled);
+  // Resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the only
+  // repair is a fresh full-grid snapshot. Pre-socket → sends via ref, set post-socket.
+  const resyncSendRef = useRef<((m: TerminalOutbound) => void) | null>(null);
+  const resync = useBackpressureResync({ send: (m) => resyncSendRef.current?.(m), onBackpressure });
+  const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled, resync.requestResync);
   const socket = useTerminalSocket({
     taskId,
     urlOverride: socketUrlOverride,
     enabled: socketEnabled,
     onData: gate.onDataChunk,
     onReplaySnapshot: gate.onReplaySnapshot,
-    onBackpressure: (info) => onBackpressure?.(info),
+    onBackpressure: resync.onBackpressure,
   });
-  const { syncSizeNow, onReplaySettled } = useTerminalSizeSync({ termRef, fitAddonRef, disposedRef, socketSend: socket.send, role: socket.role });
+  resyncSendRef.current = socket.send;
+  const { syncSizeNow, onReplaySettled } = useTerminalSizeSync({ containerRef, termRef, fitAddonRef, disposedRef, socketSend: socket.send, role: socket.role, active });
   syncSizeRef.current = onReplaySettled;
   const { manualSendCommand, previewCommand, handleManualSend, dismissManualSend } =
-    useAutoLaunch({ taskId, socket, coord, gate, onBeforeDispatch: syncSizeNow });
+    useAutoLaunch({ taskId, socket, coord, gate, onBeforeDispatch: syncSizeNow, dispatchReady: active });
 
   usePasteImage({
     taskId,
@@ -150,6 +135,7 @@ export const EmbeddedTerminal = forwardRef<
     disposedRef,
     socketSend: socket.send,
     active,
+    layoutRevision,
     settleArmRef,
     atlasHealRef,
   });

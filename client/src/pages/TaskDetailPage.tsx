@@ -1,24 +1,7 @@
-/*
- * TaskDetailPage — thin composition shell for the 3-pane task detail
- * surface (iterate 3 section 04, AD-03.06 + FR-03.30..36; visual rebuild
- * in iterate 3.7b-3 / Phase B3).
- *
- * Multi-file viewer: `selectedPaths` is the tab list (dedup order
- * preserving). `activePath` is the currently-rendered file in the right
- * pane. Clicking a folder-tree row adds the path to the array (if new)
- * and activates it; closing a tab from the ViewerTabBar removes it, then
- * falls back to the last-remaining path or `null` when the array empties.
- *
- * Transcript pane header: derives user-facing counts (events, tool uses,
- * pending AskUserQuestion) from the parsed transcript — the debug
- * status/fingerprint/size display moved behind the header's "Show
- * session details" toggle.
- *
- * Regression guards:
- *   - No chat composer (DO-NOT #3).
- *   - No webui-initiated `claude --resume` (DO-NOT #5).
- */
-
+/* Task-detail composition shell. selectedPaths owns viewer tabs; activePath
+ * owns the rendered file. Transcript counts come from the parsed read-only
+ * session. Regression guards: no chat composer (DO-NOT #3) and no webui-side
+ * `claude --resume` (DO-NOT #5). */
 import {
   Suspense,
   lazy,
@@ -49,6 +32,8 @@ import {
 } from "../contexts/LaunchCoordinatorContext";
 import { parseTerminalFocusIntent } from "../lib/taskDeepLink";
 import { useTerminalFocusHotkey } from "../hooks/useTerminalFocusHotkey";
+import { useIsCompactViewport } from "../hooks/useIsCompactViewport";
+import type { PaneId } from "../components/external/PaneTabBar";
 
 // Lazy-load the xterm bundle so the ~120 KB gz only ships when a TaskDetail
 // actually opens (external review F6).
@@ -85,7 +70,6 @@ export default function TaskDetailPage() {
     </LaunchCoordinatorProvider>
   );
 }
-
 function TaskDetailPageBody() {
   const { taskId } = useParams<{ taskId: string }>();
   const location = useLocation();
@@ -95,7 +79,8 @@ function TaskDetailPageBody() {
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
   const coord = useLaunchCoordinator();
-
+  const compact = useIsCompactViewport();
+  const [activeCompactPane, setActiveCompactPane] = useState<PaneId>("center");
   // Center-pane Toggle-Tab (ADR-067). Persisted globally per user
   // preference — once a user picks Terminal, every TaskDetail they
   // open lands on Terminal until they pick Transcript again.
@@ -111,7 +96,6 @@ function TaskDetailPageBody() {
     "files",
   );
   const terminalRef = useRef<EmbeddedTerminalHandle | null>(null);
-
   // Iterate v0.8.2 AC-7/8/9 — terminal ready-envelope metadata surfaced
   // by EmbeddedTerminal via onTerminalMeta. Drives the conditional
   // disclosure footer (AC-8) + retention copy interpolation (AC-9).
@@ -140,6 +124,7 @@ function TaskDetailPageBody() {
     // Terminal tab so the pty is visible (a no-op unless the user is on Mission).
     setMissionTab("files");
     setCenterTab("terminal");
+    setActiveCompactPane("center");
     setPendingFocus(true);
   }, [coord.pendingLaunch, setCenterTab, setMissionTab]);
 
@@ -160,6 +145,7 @@ function TaskDetailPageBody() {
     inboxFocusConsumedRef.current = true;
     setMissionTab("files");
     setCenterTab("terminal");
+    setActiveCompactPane("center");
     setPendingFocus(true);
     navigate(`${location.pathname}${location.search}`, { replace: true });
   }, [
@@ -258,7 +244,6 @@ function TaskDetailPageBody() {
     // effect handles the rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
-
   // Drives the readiness handshake: when the terminal reports ready=true
   // and a focus is pending, focus xterm. Single retry on next ready
   // transition keeps it simple — no busy loop. Reader-role tabs cancel
@@ -366,15 +351,21 @@ function TaskDetailPageBody() {
   const focusTerminal = useCallback(() => {
     setMissionTab("files");
     setCenterTab("terminal");
-    terminalRef.current?.focus();
+    setActiveCompactPane("center");
+    requestAnimationFrame(() => terminalRef.current?.focus());
   }, [setMissionTab, setCenterTab]);
   useTerminalFocusHotkey({ focusTerminal });
-
+  const terminalActive = missionTab === "files" && centerTab === "terminal" &&
+    (!compact || activeCompactPane === "center");
   const handleSelect = useCallback((path: string) => {
     setSelectedPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
     setActivePath(path);
-  }, []);
-
+    setActiveCompactPane("right");
+    if (compact) {
+      requestAnimationFrame(() =>
+        document.getElementById("workspace-tab-right")?.focus({ preventScroll: true }));
+    }
+  }, [compact]);
   const handleCloseTab = useCallback((path: string) => {
     setSelectedPaths((prev) => {
       const next = prev.filter((p) => p !== path);
@@ -387,7 +378,6 @@ function TaskDetailPageBody() {
       return next;
     });
   }, []);
-
   // Derived transcript stats for the center-pane header. Parsed incrementally
   // so a streaming poll re-parses only the appended bytes, not the whole
   // accumulated transcript (iterate-2026-07-23-transcript-incremental-render).
@@ -436,17 +426,19 @@ function TaskDetailPageBody() {
           button (A13, MissionTabRow). Files & Terminal stays the mount-default so
           the terminal / auto-launch / CI smoke gate stay byte-stable. */}
       <MissionTabRow value={missionTab} onChange={setMissionTab} taskId={task?.taskId} />
-
       {/* Mission tab — the three equal-height glass cards (A13, MissionBody).
           Mount-only when selected (no persistent resource to preserve). */}
       {missionTab === "mission" ? (
         <MissionBody task={task} transcriptContent={transcript.content} onOpenDocument={() => setMissionTab("files")} />
       ) : null}
-
       {/* Files & Terminal — always mounted (hidden) so the terminal WS survives a
           tab flip. Inset to line up with the tab control + Mission body (2026-07-17). */}
-      <div className={missionTab === "files" ? "min-h-0 flex-1 px-4 pt-3 pb-4 md:px-8 md:pt-4 md:pb-[22px]" : "hidden"}>
+      <div className={missionTab === "files" ? "min-h-0 flex-1 px-0 pt-1 pb-0 md:px-4 md:pt-3 md:pb-4 lg:px-8 lg:pt-4 lg:pb-[22px]" : "hidden"}>
         <TaskDetailThreePane
+          centerTab={centerTab}
+          activePane={activeCompactPane}
+          onCenterTabChange={setCenterTab}
+          onActivePaneChange={setActiveCompactPane}
           left={
             <FolderTree
               projectId={task.projectId}
@@ -464,7 +456,7 @@ function TaskDetailPageBody() {
                 onValueChange={(v) => setCenterTab(v as CenterTab)}
                 className="flex h-full min-h-0 flex-col"
               >
-                <div
+                {!compact && <div
                   className="ft-head text-[11px]"
                   data-testid="task-detail-center-header"
                 >
@@ -527,7 +519,7 @@ function TaskDetailPageBody() {
                   {/* Maximize terminal (A18): collapses both side cards via the
                       existing useThreePaneLayout collapse→resize path. */}
                   <FocusModeToggle />
-                </div>
+                </div>}
                 {/*
                  * forceMount on BOTH tabs — Radix's default unmounts inactive
                  * content, which would tear down xterm + the WS every toggle
@@ -537,6 +529,8 @@ function TaskDetailPageBody() {
                 <Tabs.Content
                   value="transcript"
                   forceMount
+                  id="task-center-panel-transcript"
+                  aria-labelledby={compact ? "workspace-tab-transcript" : undefined}
                   className="min-h-0 flex-1 data-[state=inactive]:hidden"
                   data-testid="task-detail-transcript"
                 >
@@ -545,9 +539,14 @@ function TaskDetailPageBody() {
                 <Tabs.Content
                   value="terminal"
                   forceMount
+                  id="task-center-panel-terminal"
+                  aria-labelledby={compact ? "workspace-tab-terminal" : undefined}
                   className="relative min-h-0 flex-1 data-[state=inactive]:hidden"
                   data-testid="task-detail-terminal"
                 >
+                  {compact && <div className="absolute right-2 top-2 z-20 rounded-lg bg-[var(--g100)] shadow-md">
+                    <FocusModeToggle />
+                  </div>}
                   <Suspense
                     fallback={
                       <div className="p-4 text-xs text-[var(--color-muted,#6b7280)]">
@@ -559,7 +558,8 @@ function TaskDetailPageBody() {
                       <EmbeddedTerminal
                         ref={terminalRef}
                         taskId={taskId}
-                        active={missionTab === "files" && centerTab === "terminal"}
+                        active={terminalActive}
+                        layoutRevision={compact ? "compact" : "desktop"}
                         onReadyChange={handleTerminalReady}
                         onGitignoreSuggestion={handleGitignoreSuggestion}
                         onPasteImageError={handlePasteImageError}

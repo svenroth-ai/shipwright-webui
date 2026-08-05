@@ -61,6 +61,13 @@ beforeEach(() => {
 });
 
 describe("ResumeCTA — label is ALWAYS 'Resume' (regression guard)", () => {
+  it("uses a 44px phone target and restores the prior desktop minimum", () => {
+    renderCTA(makeTask());
+    expect(screen.getByTestId("cta-copy-resume-command")).toHaveClass(
+      "min-h-11", "md:min-h-0",
+    );
+  });
+
   it("default label is 'Resume', not 'Recover' (project memory feedback_resume_label_singular)", () => {
     renderCTA(makeTask());
     const btn = screen.getByTestId("cta-copy-resume-command");

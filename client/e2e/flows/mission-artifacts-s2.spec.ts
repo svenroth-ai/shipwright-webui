@@ -31,6 +31,7 @@ import {
   reviewMarker,
   reviewRecord,
   seedRepoWithTestChanges,
+  specGatePass,
   traceability,
 } from "../helpers/mission-s2-fixtures";
 
@@ -174,6 +175,57 @@ test.describe("S2 — Tests · Review · Decisions artifacts", () => {
     const ext = page.locator('[data-review-type="external_code"]');
     await expect(ext.getByTestId("artifact-review-unitemized")).toBeVisible();
     await expect(ext.getByTestId("artifact-review-count")).toHaveCount(0);
+  });
+
+  test("Review renders a pass this build never heard of, on a NEWER record (AC1/AC3/AC7)", async ({
+    page,
+    request,
+  }) => {
+    // The shape the shipwright monorepo ships once it promotes its Stage-1
+    // spec-compliance gate out of the sibling `gates` workaround: a sixth key in
+    // `reviews`, and `schema_version` bumped past the one this build pins. Before
+    // this iterate BOTH of those made the reader call the record corrupt and
+    // render all five rows as a data-integrity fault, which is exactly why the
+    // producer could not promote it. Seeded here as the real file, read by the
+    // real server, rendered by the real browser.
+    const { sessionUuid, commit } = await seed(request, "MissionS2Unknown", "sw-s2-unknown");
+
+    await writeFiles(project.path, {
+      [`.shipwright/iterate_active/${sessionUuid}.json`]: pointer(sessionUuid, project.path),
+      [MINI_PLAN]: "# S2",
+      [REVIEW_RECORD]: reviewRecord({ spec: specGatePass() }, 2),
+      "shipwright_events.jsonl": eventsJsonl(commit),
+    });
+
+    await setActiveProject(page, project.projectId);
+    await page.goto(`/tasks/${taskId}`);
+    await page.getByTestId("mission-tab-mission").click();
+    await page.getByTestId("artifact-link-review").click();
+
+    // Six rows, not five — and NOT five integrity faults.
+    await expect(page.getByTestId("artifact-review-row")).toHaveCount(6);
+    const spec = page.locator('[data-review-type="spec"]');
+    // The RAW key in the visible label, not just a prefix of it: two unknown
+    // passes whose names prettify alike are only distinguishable because of it,
+    // so the browser has to prove the shipped label carries it.
+    await expect(spec).toContainText("Spec review (spec)");
+    await expect(spec.getByTestId("artifact-review-status")).toHaveText("ran");
+    await expect(spec).toContainText("AC2 has no acceptance test");
+    await expect(spec.getByTestId("artifact-review-location")).toContainText(
+      "server/src/core/y.ts:9",
+    );
+
+    // …and the card SAYS it read a format newer than it knows: `toRow` ignores
+    // fields it does not name, so a v2 entry carrying its real answer in a new
+    // one would otherwise be drawn as a clean run.
+    await expect(page.getByTestId("artifact-summary")).toContainText("newer Shipwright");
+
+    // The pinned five still read normally on the same record — the stranger is
+    // ADDITIVE, it did not replace anything.
+    await expect(page.locator('[data-review-type="self"]')).toContainText("Self-review");
+    await expect(
+      page.locator('[data-review-type="code"]').getByTestId("artifact-review-status"),
+    ).toHaveText("ran");
   });
 
   test("Review shows the five passes, with unrecorded ones explicit (AC4)", async ({

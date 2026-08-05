@@ -8,7 +8,8 @@
  * horizontally with the artifact open, the three cards render at identical height,
  * the rail collapses, the Files & Terminal tab still mounts the REAL terminal
  * (byte-path untouched), and below the compact breakpoint the artifact becomes the
- * scrimmed slide-over. It also proves the demo "Preview state" toggle does NOT ship.
+ * three-destination compact switch. It also proves the demo "Preview state"
+ * toggle does NOT ship.
  */
 
 import { test, expect } from "@playwright/test";
@@ -103,7 +104,7 @@ test.describe("A13 — Mission three-card shell", () => {
     await expect(page.getByRole("tab", { name: /terminal/i })).toHaveCount(1);
   });
 
-  test("below the compact breakpoint the artifact falls back to the scrimmed slide-over", async ({ page }) => {
+  test("below the compact breakpoint the artifact auto-selects contextual Detail", async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
@@ -111,8 +112,11 @@ test.describe("A13 — Mission three-card shell", () => {
 
     const panel = page.getByTestId("artifact-panel");
     await expect(panel).toBeVisible();
-    const scrim = page.getByTestId("artifact-scrim");
-    await expect(scrim).toBeVisible();
+    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByTestId("artifact-scrim")).not.toBeVisible();
     const box = await panel.boundingBox();
     expect(box!.width).toBeLessThanOrEqual(800);
   });

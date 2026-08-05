@@ -1,18 +1,21 @@
 """Tests for scripts/ci/pr_review.py — the Tier-3 PR reviewer (orchestration).
 
-The OpenRouter-backed reviewer `.github/workflows/pr-review.yml` runs on Tier-3
-PRs (external contributors, sensitive paths, `needs-review` label). It must fetch
-the diff, drop producer-generated sections, REFUSE to proceed when nothing is
-left, call OpenRouter, parse a strict-JSON decision, post a comment, and map that
-decision to an exit code (0 approve/comment, 1 block, 2 error); dump the raw
-response redacted and exit 2 on a parse failure; cut an over-cap diff at a FILE
-BOUNDARY and FAIL CLOSED on the partial review that leaves, naming what went
-unreviewed; and never log the API key.
+The script is the OpenRouter-backed reviewer invoked by stage 2
+(`.github/workflows/pr-review-run.yml`) for Tier-3 PRs (external contributors,
+sensitive paths, or `needs-review` label). It must fetch the diff, drop
+producer-generated sections, REFUSE to proceed when nothing is left, call
+OpenRouter, parse a strict-JSON decision, post a comment, and map that decision
+to an exit code (0 approve/comment, 1 block, 2 error); dump the raw response
+redacted and exit 2 on a parse failure; cut an over-cap diff at a FILE BOUNDARY
+and FAIL CLOSED on the partial review that leaves, naming what went unreviewed;
+retract its own superseded change-requests on a passing verdict (ADR-117); and
+never log the API key.
 
 The pure helpers live in `pr_review_lib` / `pr_review_diff_filter` /
-`pr_review_render` and the two I/O boundaries in `pr_review_gh` /
-`pr_review_openrouter`, each with its own test module. Every network and `gh`
-boundary is monkeypatched here, so the suite runs fully offline.
+`pr_review_render` and the three I/O boundaries in `pr_review_gh` /
+`pr_review_openrouter` / `pr_review_dismiss`, each with its own test module.
+Every network and `gh` boundary is monkeypatched here, so the suite runs fully
+offline.
 
 Vendored from the canonical monorepo (plugins/shipwright-security/tests/
 test_pr_review_script.py); paths re-pointed to the WebUI's flat `scripts/ci/`
@@ -25,10 +28,14 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 CI_DIR = Path(__file__).resolve().parent.parent  # scripts/ci
 sys.path.insert(0, str(CI_DIR))
 
 import pr_review  # noqa: E402
+
+from _pr_review_offline import no_real_gh  # noqa: E402,F401
 
 # Deliberately NOT in any real credential format (no `sk-`/`ghp_`/`xox` prefix) so the
 # repo's secret-scan hooks don't flag this synthetic fixture. Redaction is format-agnostic.
@@ -67,6 +74,36 @@ class TestFileContract:
         for name in pr_review.__all__:
             assert hasattr(pr_review, name), f"__all__ names {name}, which does not resolve"
 
+    def test_no_reviewer_module_silently_crosses_the_size_guideline(self):
+        """The reviewer family stays inside the 300-line source guideline.
+
+        This is a CI-visible ratchet because nothing else here is one. The
+        pre-commit hook blocks a RATCHET of a file already in
+        `shipwright_bloat_baseline.json`; a brand-new crossing is only advisory
+        there, and the detective audit that would catch it runs in the
+        shipwright dev repo, not in webui. So `pr_review.py` drifting over 300
+        again would reach `main` unremarked — and it has been pushed to the
+        ceiling in three consecutive iterates now (299 after the truncation
+        fix, 299 again after the two-stage split, which recorded the missing
+        headroom as a finding, and it was ADR-117's wiring that finally spent
+        it). A baseline entry still wins, so a DELIBERATE exception is a
+        one-line record rather than a fight with this test.
+        """
+        baseline = json.loads(
+            (CI_DIR.parent.parent / "shipwright_bloat_baseline.json").read_text(encoding="utf-8"))
+        excepted = {e["path"] for e in baseline["entries"]}
+        oversize = {
+            path.name: len(path.read_text(encoding="utf-8").splitlines())
+            for path in sorted(CI_DIR.glob("pr_review*.py"))
+            if f"scripts/ci/{path.name}" not in excepted
+            and len(path.read_text(encoding="utf-8").splitlines()) > 300
+        }
+        assert not oversize, (
+            f"over the 300-line guideline with no baseline entry: {oversize}. "
+            "Split at a real seam (one module per external boundary is the one "
+            "this family uses) or record a baseline exception with a reason."
+        )
+
 
 # ---------------------------------------------------------------------------
 # main() orchestration — boundaries monkeypatched
@@ -98,12 +135,27 @@ def _wire(monkeypatch, *, review_json=None, diff="diff --git a b\n+x\n", raise_c
         pr_review, "post_pr_review_state",
         lambda pr, repo, decision, summary: posted.update(state=decision),
     )
+    # ADR-117 added two more `gh` boundaries to main(): the pre-diff head read
+    # and the stale-verdict cleanup. Patch BOTH — this module's docstring
+    # promises the suite runs fully offline, and `.github/workflows/pr-review.yml`
+    # labels the job that runs it "Offline, no credentials".
+    #
+    # Without these two lines every TestMainOrchestration case spawned a real
+    # `gh api repos/owner/repo/pulls/42`, and the two passing-verdict cases went
+    # on to run the REAL cleanup against a repo slug that is not ours. Nothing
+    # could be dismissed (the fresh nonce is never posted, so no anchor is found
+    # and the selector refuses), which is exactly why it was invisible: green,
+    # and quietly making authenticated network calls from an offline suite.
+    monkeypatch.setattr(pr_review, "read_reviewed_head", lambda pr, repo: "headsha")
+    monkeypatch.setattr(pr_review, "dismiss_own_stale_verdicts",
+                        lambda pr, repo, *, nonce, reviewed_sha: None)
     return posted
 
 
 ARGV = ["--pr-number", "42", "--repo", "owner/repo", "--prompt-dir", "scripts/ci/pr_reviewer"]
 
 
+@pytest.mark.usefixtures("no_real_gh")
 class TestMainOrchestration:
 
     def test_missing_api_key_exits_2(self, monkeypatch):

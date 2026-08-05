@@ -115,6 +115,24 @@ describe("WS envelope Boundary Probe — server→client", () => {
     expect(roundTrip(env)).toEqual(env);
   });
 
+  /*
+   * iterate-2026-07-30: the notice gained the cumulative fields that make a loss
+   * COUNTABLE. The server used to destructure `droppedBytes` alone, so they never
+   * crossed the wire and the client's tolerant parsing read them back as zeroes —
+   * silently. This pins the full envelope so a re-narrowing fails here too.
+   */
+  it("`backpressure` envelope round-trips with the full cumulative payload", () => {
+    const env = {
+      type: "backpressure",
+      droppedBytes: 12_288,
+      droppedChunks: 7,
+      totalDroppedBytes: 40_960,
+      episode: 3,
+      episodeEnded: true,
+    };
+    expect(roundTrip(env)).toEqual(env);
+  });
+
   it("`scrollback-meta` envelope round-trips with scrollbackBytes (AC-8 follow-up)", () => {
     const env = { type: "scrollback-meta", scrollbackBytes: 98765 };
     expect(roundTrip(env)).toEqual(env);
@@ -122,6 +140,15 @@ describe("WS envelope Boundary Probe — server→client", () => {
 });
 
 describe("WS envelope Boundary Probe — client→server", () => {
+  /* Dimension-less full-grid resync request (iterate-2026-07-30). Carries no
+   * payload on purpose: a caller able to pick dimensions could reflow the very
+   * grid the resync is repairing. */
+  it("`resync` envelope (outbound) round-trips and stays dimension-less", () => {
+    const env = { type: "resync" };
+    expect(roundTrip(env)).toEqual(env);
+    expect(Object.keys(env)).toEqual(["type"]);
+  });
+
   it("`data` envelope (outbound) round-trips for ASCII + CRLF + special chars", () => {
     const env = { type: "data", payload: "claude --resume xyz\r" };
     expect(roundTrip(env)).toEqual(env);

@@ -1,0 +1,1 @@
+Narrowed the `server/scripts/` scan-scope exclusion to the three genuinely non-shipped files. `copy-assets.mjs` is wired into `npm run build` and decides what lands in `dist/`, so it was production code being excluded from the security scan; it is back in scope, and a new file added to that directory is scanned by default.

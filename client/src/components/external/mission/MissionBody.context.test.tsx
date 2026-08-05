@@ -10,8 +10,8 @@
  * @covers FR-01.66
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { afterEach, describe, it, expect, vi, beforeEach } from "vitest";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { MissionContext } from "../../../lib/missionContextApi";
@@ -47,6 +47,7 @@ vi.mock("../../../hooks/useMissionContext", () => ({
 
 import { MissionBody } from "./MissionBody";
 
+const originalMatchMedia = window.matchMedia;
 const TASK = {
   taskId: "task-1",
   projectId: "p1",
@@ -100,6 +101,46 @@ beforeEach(() => {
   contextMock.mockReturnValue({ data: undefined });
 });
 
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
+});
+
+function setCompact() {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query === "(max-width: 1023px)",
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
+function setResponsiveCompact(initial: boolean) {
+  let matches = initial;
+  const listeners = new Set<(event: MediaQueryListEvent) => void>();
+  const query = "(max-width: 1023px)";
+  window.matchMedia = vi.fn(() => ({
+    get matches() { return matches; },
+    media: query,
+    onchange: null,
+    addEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) =>
+      listeners.add(listener),
+    removeEventListener: (_: string, listener: (event: MediaQueryListEvent) => void) =>
+      listeners.delete(listener),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+  return (next: boolean) => {
+    matches = next;
+    act(() => listeners.forEach((listener) =>
+      listener({ matches: next, media: query } as MediaQueryListEvent)));
+  };
+}
+
 function setup() {
   render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
 }
@@ -146,6 +187,56 @@ describe("context-driven artifact rail", () => {
     expect(screen.getByTestId("doc-markdown")).toHaveTextContent("# Plan");
     fireEvent.click(screen.getByTestId("artifact-link-spec"));
     expect(screen.queryByTestId("mission-artifact-panel")).not.toBeInTheDocument();
+  });
+
+  it("disables Detail and returns to Overview when a live artifact disappears", async () => {
+    setCompact();
+    const initial = context();
+    contextMock.mockReturnValue({ data: initial });
+    const view = render(
+      <MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByTestId("artifact-link-spec"));
+    expect(screen.getByTestId("mission-compact-tab-detail")).toBeEnabled();
+
+    contextMock.mockReturnValue({
+      data: context({ artifacts: [initial.artifacts[1]] }),
+    });
+    view.rerender(
+      <MissionBody task={TASK} transcriptContent="updated" onOpenDocument={vi.fn()} />,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled());
+    expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute(
+      "aria-selected", "true",
+    );
+    expect(screen.queryByTestId("mission-artifact-panel")).not.toBeInTheDocument();
+  });
+
+  it("restores Overview when the selected artifact disappears on desktop", async () => {
+    const switchViewport = setResponsiveCompact(true);
+    const initial = context();
+    contextMock.mockReturnValue({ data: initial });
+    const view = render(
+      <MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />,
+    );
+    fireEvent.click(screen.getByTestId("artifact-link-spec"));
+    switchViewport(false);
+
+    contextMock.mockReturnValue({
+      data: context({ artifacts: [initial.artifacts[1]] }),
+    });
+    view.rerender(
+      <MissionBody task={TASK} transcriptContent="updated" onOpenDocument={vi.fn()} />,
+    );
+    switchViewport(true);
+
+    await waitFor(() => expect(
+      screen.getByTestId("mission-compact-tab-overview"),
+    ).toHaveAttribute("aria-selected", "true"));
+    expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
+    expect(screen.getByTestId("mission-panel-overview")).toBeVisible();
   });
 });
 

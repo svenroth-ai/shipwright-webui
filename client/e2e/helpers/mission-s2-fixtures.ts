@@ -150,6 +150,37 @@ export function decisionLog(): string {
 }
 
 /**
+ * The Stage-1 spec-compliance pass — a review type the webui build does NOT know
+ * by name. This is the shape the shipwright monorepo will write once it promotes
+ * the row out of the sibling `gates` object it is parked in today
+ * (`shared/scripts/lib/review_record_schema.py:GATE_TYPES`).
+ */
+export function specGatePass(): Record<string, unknown> {
+  return {
+    review_type: "spec",
+    status: "completed",
+    findings_count: 1,
+    findings: [
+      {
+        severity: "high",
+        category: "spec",
+        file: "server/src/core/y.ts",
+        line: 9,
+        finding: "AC2 has no acceptance test",
+        suggestion: null,
+        source: "spec-reviewer",
+      },
+    ],
+    provider: null,
+    completed_at: "2026-07-31T09:00:00+00:00",
+    disposition: null,
+    recorded_by: "spec-reviewer",
+    parse_status: null,
+    raw_excerpt: null,
+  };
+}
+
+/**
  * A per-run review record, in the shape the shipwright monorepo producer writes
  * (`shared/scripts/lib/review_record*.py`, PR #428). Kept minimal but SHAPE-EXACT;
  * the byte-verbatim copy of real producer output lives in the server unit tests
@@ -157,6 +188,7 @@ export function decisionLog(): string {
  */
 export function reviewRecord(
   over: Partial<Record<string, Record<string, unknown>>> = {},
+  schemaVersion = 1,
 ): string {
   const base = (reviewType: string, extra: Record<string, unknown> = {}) => ({
     review_type: reviewType,
@@ -173,7 +205,7 @@ export function reviewRecord(
   });
   return JSON.stringify(
     {
-      schema_version: 1,
+      schema_version: schemaVersion,
       run_id: RUN_ID,
       reviews: {
         self: base("self", {

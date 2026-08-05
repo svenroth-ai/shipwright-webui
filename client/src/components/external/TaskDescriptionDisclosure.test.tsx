@@ -2,7 +2,7 @@
  * TaskDescriptionDisclosure — unit coverage.
  * iterate-2026-05-18-edit-task-dialog (AC-5).
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -26,6 +26,26 @@ function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
 
 beforeEach(() => {
   localStorage.clear();
+});
+
+const originalMatchMedia = window.matchMedia;
+
+function setPhone(phone: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query === "(max-width: 767px)" ? phone : false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
+  vi.restoreAllMocks();
 });
 
 describe("TaskDescriptionDisclosure", () => {
@@ -86,5 +106,20 @@ describe("TaskDescriptionDisclosure", () => {
     expect(body).toHaveTextContent(evil);
     expect(body.querySelector("script")).toBeNull();
     expect(body.querySelector("img")).toBeNull();
+  });
+});
+
+describe("TaskDescriptionDisclosure — phone overlay", () => {
+  it("opens escaped long content in a portalled, internally scrollable overlay", async () => {
+    setPhone(true);
+    const user = userEvent.setup();
+    const evil = "<script>alert(1)</script>\n" + "Long brief. ".repeat(80);
+    render(<TaskDescriptionDisclosure task={baseTask({ description: evil })} />);
+    await user.click(screen.getByTestId("task-description-toggle"));
+    const body = await screen.findByTestId("task-description-body");
+    expect(body).toHaveTextContent("<script>alert(1)</script>");
+    expect(body.querySelector("script")).toBeNull();
+    expect(body.className).toContain("overflow-y-auto");
+    expect(screen.getByTestId("task-description-disclosure")).toHaveClass("inline-flex");
   });
 });

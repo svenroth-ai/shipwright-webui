@@ -1,0 +1,33 @@
+{
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "gemini": {
+      "feedback": ");\n  ```\n  If `compact` is false, it does not update `setCompactPanel(\"detail\")`. So if you switch to mobile later, the tabs will show `overview` as selected, but the detail panel won't be active. The spec says: \"Crossing 1024px preserves the values, so desktop immediately shows the selected inline artifact and returning to compact returns to the user's last compact panel.\" So this behaves correctly.\n\nLet's look at `closeDetail`:\n```tsx\n  const closeDetail = useCallback(() => {\n    setActiveNode(null);\n    const target = detailReturnPanelRef.current;\n    if (compactPanel === \"detail\") setCompactPanel(target);\n    if (compact",
+      "via": "openrouter",
+      "status": "degraded",
+      "reason": "provider reported the reply was cut off (finish_reason=length)"
+    },
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: high\n- File: `client/src/components/external/EditableTaskTitle.tsx:37-142`\n- Finding: The compact-header implementation adds only the title Popover. This diff contains no corresponding phone-only `Description` trigger or portalled, viewport-bounded read-only Description Popover implementation. AC2 requires a Description control beside the state badge only when description is non-empty, with escaped text, modal focus/Escape/outside behavior, and no header reflow; none of that behavior is implemented in the changed header code.\n- Suggestion: Implement the Description control in the compact task-header composition using the same modal Radix Popover Portal pattern, conditionally rendered for non-empty descriptions, while retaining the existing inline disclosure at `>=768px`.\n\n- Category: regression\n- Severity: medium\n- File: `client/src/components/external/TaskDetailThreePane.tsx:34-54`\n- Finding: `TaskDetailThreePane` previously owned its compact active-tab state. It now defaults `activePane` to `\"center\"` and makes `onActivePaneChange` optional, but `selectPane` only invokes that callback and does not update any internal fallback state. Existing callers using the old prop contract (`left`, `center`, `right`, optional `containerWidth`) still compile but their compact Files/Transcript/Terminal/Viewer controls no longer switch panes; `onCenterTabChange` likewise defaults to a no-op.\n- Suggestion: Preserve a local active-pane/center-tab fallback when controlled callbacks are not supplied, or make the new controlled props required and update every caller. Add a direct `TaskDetailThreePane` compatibility test using the former prop set.\n\n- Category: test\n- Severity: medium\n- File: `client/e2e/flows/mobile-work-mode.spec.ts:29-274`\n- Finding: The new end-to-end coverage does not validate several required compact-header behaviors. It does not test Rename closing the overlay and focusing the existing editor, outside-interaction focus restoration, escaped markup-like title/description input, a task with no description, or any resumable task/Resume action geometry. The test also merely checks that the Description body appears; it cannot establish that the Description control is portalled, modal, viewport-bounded, or that it avoids inline header expansion under a long description.\n- Suggestion: Add RTL coverage for the Popover trigger/focus/escape/outside/Rename paths and escaped input, plus browser coverage with a long description and resumable task. Assert overlay placement and unchanged header/workspace geometry, rather than only text presence.\n\n- Category: test\n- Severity: low\n- File: `client/e2e/flows/mobile-work-mode.spec.ts:318-325`\n- Finding: Shiplog acceptance coverage only checks the size of `mission-open-ships-log`; it does not verify that Shiplog is an anchor/link to the existing Ship’s Log route rather than a tab or button. This would pass if routing semantics were broken or the control were converted into a non-link interactive element.\n- Suggestion: Assert the element is a link with the existing Ship’s Log route `href`, and assert it does not have `role=\"tab\"` or belong to either tablist.\n\nOverall assessment: ship-with-fixes. The core controlled-pane change introduces a concrete backward-compatibility regression, and the required compact Description behavior is not implemented by this diff; the added tests also leave important acceptance paths unverified.  \nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "gemini": "unavailable",
+    "openai": "revise"
+  },
+  "statuses": {
+    "gemini": "degraded",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered — gemini did not (gemini=unavailable, openai=revise)"
+  }
+}

@@ -39,9 +39,10 @@
     {
       "path": "client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts",
       "limit": 300,
-      "current": 556,
+      "current": 563,
       "state": "grandfathered",
-      "adr": null
+      "adr": null,
+      "note": "AC-2 now asserts the served payload carries the parser-resync preamble (iterate-2026-07-30); the extra lines are the control-byte constant plus why it exists"
     },
     {
       "path": "client/e2e/flows/v0-9-5-task-type-matrix.spec.ts",
@@ -207,16 +208,17 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
-      "current": 1746,
+      "current": 1756,
       "state": "grandfathered",
       "adr": "iterate-2026-06-30-terminal-paste-single-sink"
     },
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
       "limit": 300,
-      "current": 313,
+      "current": 321,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-01-terminal-title-wrap-smear"
+      "adr": "iterate-2026-07-01-terminal-title-wrap-smear",
+      "note": "backpressure-resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the shell wires useBackpressureResync + the drain-queue overflow hook. Wire types moved OUT to hooks/terminalWsContract.ts to keep this bump to the seam itself"
     },
     {
       "path": "client/src/components/terminal/xtermAddons.atlas.test.ts",
@@ -376,7 +378,7 @@
     {
       "path": "server/src/core/cli-compat.ts",
       "limit": 300,
-      "current": 334,
+      "current": 93,
       "state": "grandfathered",
       "adr": null
     },
@@ -650,10 +652,10 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 565,
+      "current": 663,
       "state": "exception",
       "adr": "ADR-103",
-      "note": "WSMessageRedraw + its writer-gated route (iterate-2026-07-27) — belongs to the WS body alone per ADR-103"
+      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out"
     },
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",
@@ -661,6 +663,30 @@
       "current": 302,
       "state": "grandfathered",
       "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+    },
+    {
+      "path": "scripts/ci/accepted_risks.py",
+      "limit": 300,
+      "current": 310,
+      "state": "exception",
+      "adr": "iterate-2026-07-31-revendor-accepted-risk-gate",
+      "note": "VENDORED from shipwright shared/scripts/accepted_risks.py at commit 987e49c6; byte-identity to upstream below the vendor header is the contract that scripts/ci/accepted_risks_vendor.json enforces, so this file CANNOT be split without breaking the drift guard and diverging webui's CI gate from its own compliance dashboard (accepted_risk_scan is a shared leaf the dashboard also consumes). Frozen at the re-vendored size: a future re-vendor that grows it must bump this entry in the same commit as the manifest, which is the conscious step this exception exists to force."
+    },
+    {
+      "path": "scripts/ci/accepted_risks_cli.py",
+      "limit": 300,
+      "current": 349,
+      "state": "exception",
+      "adr": "iterate-2026-07-31-revendor-accepted-risk-gate",
+      "note": "VENDORED from shipwright shared/scripts/tools/accepted_risks_cli.py at commit 987e49c6; byte-identity to upstream below the vendor header is the contract that scripts/ci/accepted_risks_vendor.json enforces, so this file CANNOT be split without breaking the drift guard and diverging webui's CI gate from its own compliance dashboard (accepted_risk_scan is a shared leaf the dashboard also consumes). Frozen at the re-vendored size: a future re-vendor that grows it must bump this entry in the same commit as the manifest, which is the conscious step this exception exists to force. This copy is ADAPTED (no `converge`, wrapped sibling imports, yaml-scoped missing-dependency handler), so its divergence is deliberate and enumerated in its header."
+    },
+    {
+      "path": "scripts/ci/pr_review.py",
+      "limit": 300,
+      "current": 365,
+      "state": "exception",
+      "adr": "iterate-2026-07-28-pr-review-parity",
+      "note": "Two independently-complete iterates converged on this file at once: the canonical-parity hardening (this run, 274 lines standalone before the merge) and ADR-117's stale-verdict retraction (iterate-2026-08-01-pr-review-stale-verdict, 297 lines standalone before the merge) both wire most of main()'s body. A safe split (e.g. moving _post_verdict into its own module) would have to thread the `pr_review.<name>` monkeypatch surface every existing test in test_pr_review_script.py relies on through a second module without breaking it -- not something to rush inside a merge of a security-sensitive required CI gate. Filed as a follow-up split, not attempted here."
     }
   ]
 }

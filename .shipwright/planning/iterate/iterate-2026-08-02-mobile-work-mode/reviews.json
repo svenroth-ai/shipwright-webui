@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-02-mobile-work-mode",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "codex",
+      "completed_at": "2026-08-02T22:10:41.548329+00:00",
+      "disposition": null,
+      "recorded_by": "codex",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-08-02T21:18:33.742684+00:00",
+      "disposition": null,
+      "recorded_by": "codex",
+      "parse_status": "unstructured",
+      "raw_excerpt": "External Iterate Plan Review — OpenRouter — 2026-08-02\n\nStatus: completed\nProvider: openrouter\nRounds: 3\nFinal reviewer verdict: revise (findings integrated before build)\n\nMaterial findings and dispositions:\n\n1. Terminal mount identity alone does not prove usable dimensions after a\n   zero-width compact pane is revealed. ACCEPTED. The spec now requires outer\n   pane visibility to participate in EmbeddedTerminal.active, a cancellable\n   post-paint fit through the existing resize hook, a >=5x2 send gate, socket\n   identity/count evidence, and rapid Terminal→Viewer→Terminal coverage.\n2. Non-portalled/non-modal disclosure could clip or mishandle focus. ACCEPTED.\n   Both phone disclosures use the installed Radix Popover Portal with modal\n   semantics, Escape/outside close, focus return, viewport-bounded scrolling,\n   the existing overlay layer, and plain React text nodes only.\n3. Mission needs independent artifact and compact-panel state plus a complete\n   transition table. ACCEPTED. activeNode remains the artifact SSoT;\n   activeCompactMissionPanel/detailReturnPanel own navigation. Close restores\n   the actual Overview/Activity source and focus.\n4. Inactive Mission controls must leave the accessibility tree without losing\n   scroll state. ACCEPTED. Panels remain mounted with native hidden; a test\n   proves CSS does not override it. This is explicitly separate from the\n   force-mounted zero-sized terminal panes.\n5. Mobile Rename must complete the overlay→existing-input handoff. ACCEPTED.\n   Close Popover, schedule the existing imperative edit on the next frame, then\n   reuse the existing focused input and mutation/error UI.\n6. Centre preference readiness. RESOLVED BY CODE FACT: useLocalStorage reads\n   synchronously in useState's lazy initializer, so no asynchronous hydration or\n   fallback paint exists. Breakpoint projection is specified read-only.\n7. Artifact stale-resolution token. NOT APPLICABLE BY CODE FACT: MissionBody\n   selection and artifact lookup are synchronous in-memory operations; adding a\n   request token would be speculative machinery with no producer to guard.\n8. Floating terminal expand button could obscure content. ACCEPTED. It receives\n   one opaque 44px hit area and no larger pointer-catching wrapper.\n9. Tablet header/workspace interaction, keyboard tabs, semantic disabled Detail,\n   saved preferences, markup-like text, Detail close focus, and native-hidden\n   behavior were added to the test ledger.\n\nNo review finding changed the approved product direction: light Shipwright tab\nsurfaces, dark top chrome/terminal, compact title/Description overlays, Shiplog\nas a link, one four-way workspace row, and three-way Mission navigation.\n"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness/responsive-state",
+          "file": "client/src/pages/TaskDetailPage.tsx",
+          "line": 369,
+          "finding": "Compact pane selection has two independent sources of truth, so programmatic Viewer or Terminal selection can disagree with panel sizing.",
+          "suggestion": "Control TaskDetailThreePane from TaskDetailPage and cover file-to-Viewer and hotkey-to-Terminal in a real browser.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "terminal-lifecycle",
+          "file": "client/src/components/terminal/useTerminalResize.ts",
+          "line": 151,
+          "finding": "ResizeObserver and window repaint paths can call safeFit while the compact terminal pane is inactive and zero-sized.",
+          "suggestion": "Gate fitting on active and measurable state, retaining delayed activation fit after reveal.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "mission-navigation",
+          "file": "client/src/components/external/mission/MissionBody.tsx",
+          "line": 144,
+          "finding": "Manually returning from Activity to Detail does not update the Detail close return destination.",
+          "suggestion": "Record the current Overview or Activity panel before manually entering Detail.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "responsive-state",
+          "file": "client/src/components/external/mission/MissionBody.tsx",
+          "line": 136,
+          "finding": "Desktop artifact selection overwrites the preserved compact destination.",
+          "suggestion": "Only change compact navigation state when the compact layout is active.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "accessibility/touch",
+          "file": "client/src/components/external/mission/MissionTabRow.tsx",
+          "line": 72,
+          "finding": "Shiplog falls back to a 36px target at the md breakpoint inside the compact tablet range.",
+          "suggestion": "Retain 44px through 1023px and shrink only at lg.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "accessibility/tabs",
+          "file": "client/src/components/external/PaneTabBar.tsx",
+          "line": 75,
+          "finding": "The workspace tabs lack tab-to-panel relationships and inactive compact panels remain keyboard-reachable.",
+          "suggestion": "Add ids and aria-controls, tabpanel labelling, and inert on inactive mounted panes.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "keyboard-focus",
+          "file": "client/src/pages/TaskDetailPage.tsx",
+          "line": 360,
+          "finding": "The t shortcut reveals Terminal but synchronously focuses xterm before React removes inert from the centre pane.",
+          "suggestion": "Defer focus until the controlled centre pane has committed and assert the real active element in Playwright.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "launch-ordering",
+          "file": "client/src/components/terminal/useAutoLaunch.ts",
+          "line": 160,
+          "finding": "A hidden-terminal size-sync guard could let auto-launch continue without the pre-dispatch width correction.",
+          "suggestion": "Block dispatch until the pane is active and size-sync succeeds; cover hidden-to-visible launch ordering.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "maintainability",
+          "file": "client/e2e/flows/mobile-work-mode.spec.ts",
+          "line": 1,
+          "finding": "The mobile browser spec crossed the repository's 300-line limit.",
+          "suggestion": "Extract cohesive geometry assertions into the E2E helper.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-completeness",
+          "file": "client/e2e/flows/mobile-work-mode.spec.ts",
+          "line": 95,
+          "finding": "The initial resize assertion ran too early to prove that every later frame on the socket remained usable.",
+          "suggestion": "Re-assert all resize frames since socket open at the end of the terminal scenario.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": "codex-subagent",
+      "completed_at": "2026-08-02T23:56:51.683660+00:00",
+      "disposition": "All findings resolved; final code re-review CLEAN.",
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "test isolation / CI",
+          "file": "client/playwright.config.ts",
+          "line": 86,
+          "finding": "Claim under doubt: The new phone-only Playwright flow can run in the normal suite without desktop regressions. — The desktop Chromium project also collected the phone-only spec.",
+          "suggestion": "Exclude the spec from desktop collection and prove both project lists.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "desktop non-regression",
+          "file": "client/src/components/external/TaskDetailHeader/ResumeCTA.tsx",
+          "line": 102,
+          "finding": "Claim under doubt: Compact Resume/Launch geometry leaves the desktop header unchanged. — The base min-h-11 was not reset at the desktop breakpoint.",
+          "suggestion": "Restore the prior desktop minimum height at md.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "branding contract",
+          "file": "client/src/styles/mission-record.css",
+          "line": 143,
+          "finding": "Claim under doubt: The mobile top segmented control uses the agreed light surface with a deep-teal active state. — The on-photo active rule remained white.",
+          "suggestion": "Add a compact-only teal active treatment and browser coverage.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "touch accessibility",
+          "file": "client/src/styles/mission-record.css",
+          "line": 106,
+          "finding": "Claim under doubt: No essential compact Mission interaction is below 44px. — The Detail close button remained 30x30px.",
+          "suggestion": "Use at least a 44x44px hit area and browser geometry coverage.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "keyboard focus continuity",
+          "file": "client/src/pages/TaskDetailPage.tsx",
+          "line": 365,
+          "finding": "Claim under doubt: Automatically selecting Viewer after compact file activation remains accessible to keyboard users. — The focused file-row ancestor became inert without moving focus.",
+          "suggestion": "Move focus to the Viewer tab after compact auto-selection and test keyboard activation.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "hidden terminal resize",
+          "file": "client/src/components/terminal/useTerminalSizeSync.ts",
+          "line": 60,
+          "finding": "Claim under doubt: Every terminal resize producer rejects unusable hidden-pane geometry. — useTerminalSizeSync still fitted a hidden force-mounted terminal and could emit FitAddon's 2x1 clamp.",
+          "suggestion": "Reuse active, measurable-container and >=5x2 guards here and test hidden replay/prelaunch.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "touch accessibility",
+          "file": "client/src/components/external/mission/MissionTopRow.tsx",
+          "line": 119,
+          "finding": "Claim under doubt: Every required compact header action meets the 44px touch minimum. — The Back link exposed a 16px glyph-sized target.",
+          "suggestion": "Give the phone Back link a 44x44px hit area with a desktop reset.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "touch accessibility",
+          "file": "client/src/components/external/TaskDetailHeader/HeaderMenu.tsx",
+          "line": 178,
+          "finding": "Claim under doubt: Every required compact header action meets the 44px touch minimum. — The overflow-menu trigger remained 32x32px.",
+          "suggestion": "Use a 44x44px phone trigger, retain the 32px desktop geometry, and measure both controls in-browser.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": "codex-subagent",
+      "completed_at": "2026-08-02T23:56:59.982454+00:00",
+      "disposition": "All findings resolved; final adversarial re-review CLEAN.",
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "client/src/components/external/EditableTaskTitle.tsx:37-142",
+          "line": null,
+          "finding": "The compact-header implementation adds only the title Popover. This diff contains no corresponding phone-only `Description` trigger or portalled, viewport-bounded read-only Description Popover implementation. AC2 requires a Description control beside the state badge only when description is non-empty, with escaped text, modal focus/Escape/outside behavior, and no header reflow; none of that behavior is implemented in the changed header code.",
+          "suggestion": "Implement the Description control in the compact task-header composition using the same modal Radix Popover Portal pattern, conditionally rendered for non-empty descriptions, while retaining the existing inline disclosure at `>=768px`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/external/TaskDetailThreePane.tsx:34-54",
+          "line": null,
+          "finding": "TaskDetailThreePane` previously owned its compact active-tab state. It now defaults `activePane` to `\"center\"` and makes `onActivePaneChange` optional, but `selectPane` only invokes that callback and does not update any internal fallback state. Existing callers using the old prop contract (`left`, `center`, `right`, optional `containerWidth`) still compile but their compact Files/Transcript/Terminal/Viewer controls no longer switch panes; `onCenterTabChange` likewise defaults to a no-op.",
+          "suggestion": "Preserve a local active-pane/center-tab fallback when controlled callbacks are not supplied, or make the new controlled props required and update every caller. Add a direct `TaskDetailThreePane` compatibility test using the former prop set.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/mobile-work-mode.spec.ts:29-274",
+          "line": null,
+          "finding": "The new end-to-end coverage does not validate several required compact-header behaviors. It does not test Rename closing the overlay and focusing the existing editor, outside-interaction focus restoration, escaped markup-like title/description input, a task with no description, or any resumable task/Resume action geometry. The test also merely checks that the Description body appears; it cannot establish that the Description control is portalled, modal, viewport-bounded, or that it avoids inline header expansion under a long description.",
+          "suggestion": "Add RTL coverage for the Popover trigger/focus/escape/outside/Rename paths and escaped input, plus browser coverage with a long description and resumable task. Assert overlay placement and unchanged header/workspace geometry, rather than only text presence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/mobile-work-mode.spec.ts:318-325",
+          "line": null,
+          "finding": "Shiplog acceptance coverage only checks the size of `mission-open-ships-log`; it does not verify that Shiplog is an anchor/link to the existing Ship’s Log route rather than a tab or button. This would pass if routing semantics were broken or the control were converted into a non-link interactive element.",
+          "suggestion": "Assert the element is a link with the existing Ship’s Log route `href`, and assert it does not have `role=\"tab\"` or belong to either tablist.  Overall assessment: ship-with-fixes. The core controlled-pane change introduces a concrete backward-compatibility regression, and the required compact Description behavior is not implemented by this diff; the added tests also leave important acceptance paths unverified. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-02T23:57:07.718688+00:00",
+      "disposition": "Successful OpenAI leg recorded verbatim; all actionable findings resolved; later retries degraded by provider truncation.",
+      "recorded_by": "codex",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] );\n  ```\n  If `compact` is false, it does not update `setCompactPanel(\"detail\")`. So if you switch to mobile later, the tabs will show `overview` as selected, but the detail panel won't be active. The spec says: \"Crossing 1024px preserves the values, so desktop immediately shows the selected inline artifact and returning to compact returns to the user's last compact panel.\" So this behaves correctly.\n\nLet's look at `closeDetail`:\n```tsx\n  const closeDetail = useCallback(() => {\n    setActiveNode(null);\n    const target = detailReturnPanelRef.current;\n    if (compactPanel === \"detail\") setCompactPanel(target);\n    if (compact\n\n[openai] - Category: spec\n- Severity: high\n- File: `client/src/components/external/EditableTaskTitle.tsx:37-142`\n- Finding: The compact-header implementation adds only the title Popover. This diff contains no corresponding phone-only `Description` trigger or portalled, viewport-bounded read-only Description Popover implementation. AC2 requires a Description control beside the state badge only when description is non-empty, with escaped text, modal focus/Escape/outside behavior, and no header reflow; none of that behavior is implemented in the changed header code.\n- Suggestion: Implement the Description control in the compact task-header composition using the same modal Radix Popover Portal pattern, conditionally rendered for non-empty descriptions, while retaining the existing inline disclosure at `>=768px`.\n\n- Category: regression\n- Severity: medium\n- File: `client/src/components/external/TaskDetailThreePane.tsx:34-54`\n- Finding: `TaskDetailThreePane` previously owned its compact active-tab state. It now defaults `activePane` to `\"center\"` and makes `onActivePaneChange` optional, but `selectPane` only invokes that callback and does not update any internal fallback state. Existing callers using the old prop contract (`left`, `center`, `right`, optional `containerWidth`) still compile but their compact Files/Transcript/Terminal/Viewer controls no longer switch panes; `onCenterTabChange` likewise defaults to a no-op.\n- Suggestion: Preserve a local active-pane/center-tab fallback when controlled callbacks are not supplied, or make the new controlled props required and update every caller. Add a direct `TaskDetailThreePane` compatibility test using the former prop set.\n\n- Category: test\n- Severity: medium\n- File: `client/e2e/flows/mobile-work-mode.spec.ts:29-274`\n- Finding: The new end-to-end coverage does not validate several required compact-header behaviors. It does not test Rename closing the overlay and focusing the existing editor, outside-interaction focus re […truncated]"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "codex-subagent",
+      "completed_at": "2026-08-02T22:04:05.838810+00:00",
+      "disposition": null,
+      "recorded_by": "codex",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

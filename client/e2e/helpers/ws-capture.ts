@@ -215,10 +215,31 @@ export function outboundDataFrames(
  *            differentially (CUF cell-skips) against a restored snapshot it
  *            never drew. `useTerminalSizeSync` sends it once per settled replay.
  *
+ *   resync — dimension-less full-grid resync request (iterate-2026-07-30). Sent
+ *            after the server reports dropped bytes: `deliverWithBackpressure`
+ *            discards a saturated connection's chunk and NEVER resends it, so
+ *            Claude's differential repaints keep painting onto the hole and leave
+ *            stale characters that never heal. Answered with a fresh
+ *            `replay_snapshot`. Pokes no pty, so it is served to readers too.
+ *            `useBackpressureResync` sends it, debounced and server-throttled.
+ *
+ *   ping   — app-level liveness probe (iterate-2026-06-18, `wsLiveness.ts`). Sent
+ *            every WS_HEARTBEAT_INTERVAL_MS on this same socket and answered with
+ *            `pong` BEFORE the writer gate, so it reaches no pty door at all. It was
+ *            missing from this list, which made every fence over an observation
+ *            window longer than the heartbeat interval quietly flaky rather than
+ *            wrong — a cold pty spawn is enough to slip one in.
+ *
  * Anything else appearing on the wire means the client grew a NEW way to talk to
  * the pty that no guard covers.
  */
-export const ALLOWED_OUTBOUND_TYPES = ["data", "resize", "redraw"] as const;
+export const ALLOWED_OUTBOUND_TYPES = [
+  "data",
+  "resize",
+  "redraw",
+  "resync",
+  "ping",
+] as const;
 
 /**
  * Outbound frames whose `type` is outside `allowed`. Asserting this is empty is

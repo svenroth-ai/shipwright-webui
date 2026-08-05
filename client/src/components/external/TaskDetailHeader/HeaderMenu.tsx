@@ -175,7 +175,7 @@ export function HeaderMenu({
           <button
             type="button"
             aria-label="More actions"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] text-[var(--color-muted,#6b7280)] transition hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] text-[var(--color-muted,#6b7280)] transition hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)] md:h-8 md:w-8"
             data-testid="task-detail-menu-trigger"
           >
             <MoreVertical size={16} />

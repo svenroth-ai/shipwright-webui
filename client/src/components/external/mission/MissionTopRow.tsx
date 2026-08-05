@@ -116,7 +116,7 @@ export function MissionTopRow({ task, modelName }: Props) {
       data-testid="task-detail-header"
     >
       <style>{STATE_BADGE_KEYFRAMES}</style>
-      <Link to="/" className="text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]" aria-label="Back to board" data-testid="task-detail-back">
+      <Link to="/" className="inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)] md:min-h-0 md:min-w-0" aria-label="Back to board" data-testid="task-detail-back">
         <ArrowLeft size={16} />
       </Link>
 
@@ -129,23 +129,33 @@ export function MissionTopRow({ task, modelName }: Props) {
           </nav>
         )}
 
-        <div className="relative flex flex-wrap items-center gap-2.5" data-testid="task-detail-title-row">
+        <div className="relative flex min-w-0 items-center gap-2.5" data-testid="task-detail-title-row">
           <TitleEdit ref={titleRef} task={task} />
-          <StateBadge state={task.state} />
-          {missionState === "designgate" && (
+          {!isPhone && <StateBadge state={task.state} />}
+          {!isPhone && missionState === "designgate" && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-0.5 text-[11px] font-semibold text-warn" data-testid="mission-awaiting-approval">
               <span className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[var(--warn-solid)]" style={{ animation: "taskDetailPulseDot 1.5s infinite" }} />
               Awaiting approval
             </span>
           )}
-          <ProjectChipMenu task={task} open={projectPickerOpen} onOpenChange={setProjectPickerOpen} />
+          {!isPhone && <ProjectChipMenu task={task} open={projectPickerOpen} onOpenChange={setProjectPickerOpen} />}
         </div>
+
+        {isPhone && (
+          <div className="flex min-w-0 items-center gap-2" data-testid="task-detail-mobile-status-row">
+            <StateBadge state={task.state} />
+            {missionState === "designgate" && (
+              <span className="truncate rounded-full bg-warn-tint px-2 py-0.5 text-[11px] font-semibold text-warn">Awaiting approval</span>
+            )}
+            <TaskDescriptionDisclosure task={task} />
+          </div>
+        )}
 
         {!isPhone && (
           <MissionMetaLine task={task} startedAt={startedAt} lastEventAt={lastEventAt} modelName={modelName} />
         )}
 
-        <TaskDescriptionDisclosure task={task} />
+        {!isPhone && <TaskDescriptionDisclosure task={task} />}
       </div>
 
       <div className="flex items-center gap-2" data-testid="task-detail-actions">

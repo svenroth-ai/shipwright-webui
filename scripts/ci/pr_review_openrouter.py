@@ -1,26 +1,27 @@
 """The OpenRouter HTTP boundary for the Tier-3 PR reviewer.
 
-Vendored from the canonical shipwright monorepo. The WebUI has no Python
-``shared/``/``plugins/`` tree on the CI runner, so the reviewer lives in-repo
-(same convention as ``scripts/hooks/anti_ratchet_check.py``).
-
-# canonical-source-hash: 09877c0ea17cb11a1d6b0c3cd8901b06b5f0dd2ffc69bca9ce403d6997bacb02
-# canonical-source-repo: https://github.com/svenroth-ai/shipwright
-# canonical-source-paths:
-#   plugins/shipwright-security/scripts/lib/pr_review_openrouter.py
-# canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
-# canonical-source-hash = sha256(the canonical file's bytes at the version above)
-# adaptation (non-logic only):
-#   OpenRouter attribution headers (HTTP-Referer / X-Title) name the webui repo.
-
-The second of the tool's two I/O boundaries — ``pr_review_gh`` owns the
-subprocess one. Both are split out of ``pr_review.py`` so it holds orchestration
-only and stays under the source-size guideline, and so each boundary (with its
-timeout, its error mapping and, here, its Semgrep suppression) is reviewable on
-its own.
+Split out of ``pr_review.py`` — one module per external boundary
+(``pr_review_gh`` owns the subprocess one), so the tool script is pure
+orchestration and stays inside the source-size guideline, and each boundary
+(with its timeout, its error mapping and, here, its Semgrep suppression) is
+reviewable on its own.
 
 Stdlib urllib only: the script carries no third-party HTTP dependency and runs
 under whatever environment the CI runner's Python resolves.
+
+# canonical-source-repo: https://github.com/svenroth-ai/shipwright
+# canonical-source-commit: 4146a610295e900d01af3865228a0ec9af028918
+# canonical-source-paths:
+#   plugins/shipwright-security/scripts/lib/pr_review_openrouter.py
+#   plugins/shipwright-security/scripts/tools/pr_review.py  (the ADR-117 extraction)
+# canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
+#   + iterate-2026-07-31-it7a-pr-review-stale-verdict (ADR-117, extraction wording)
+# adaptation: NOT byte-identical, so no canonical-source-hash line is claimed
+#   (spelled without the leading marker on purpose; `tests/test_accepted_risks_vendored.py`
+#   scans for that literal string). Two independent divergences from any single
+#   upstream blob: (1) OpenRouter attribution headers (HTTP-Referer / X-Title)
+#   name the webui repo; (2) `DEFAULT_TIMEOUT` is 600s, not upstream's 120s — see
+#   the comment at its definition for why the size-cap increase requires it.
 """
 
 from __future__ import annotations

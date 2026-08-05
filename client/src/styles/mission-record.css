@@ -25,6 +25,15 @@
 .mc-tab.active { color: var(--ink); background: var(--card); box-shadow: var(--sh-xs); }
 .mc-tab:hover:not(.active) { color: var(--ink); }
 .mc-tab:focus-visible { outline: none; box-shadow: var(--focus); }
+@media (max-width: 1023px) {
+  .mc-tabrow .mc-tab { min-height: 44px; padding: 6px 10px; }
+}
+.btn-glass.mobile-light-link {
+  background: var(--card); border-color: var(--line); color: var(--body);
+}
+.btn-glass.mobile-light-link:hover {
+  background: var(--g50); border-color: var(--accent-line); color: var(--accent);
+}
 
 /* ── breadcrumb (Board › Project — both segments clickable, A13) ─────────── */
 .mc-crumb { min-width: 0; }
@@ -34,6 +43,8 @@
 
 /* ── Mission body — the flex row the cards float in ─────────────────────── */
 .mc-body { flex: 1; min-height: 0; display: flex; position: relative; }
+.mission-panel { display: contents; }
+.mission-panel[hidden] { display: none !important; }
 
 /* ── The Record rail ────────────────────────────────────────────────────── */
 .record { width: 248px; flex-shrink: 0; border-right: 1px solid var(--line); background: var(--card); overflow-y: auto; padding: 16px 14px; transition: width .2s; }
@@ -133,12 +144,26 @@
 
 /* ── compact fallback: the inline card reverts to the 420px slide-over ───── */
 @media (max-width: 1023px) {
-  .on-photo .mc-body { padding: 12px; gap: 12px; }
-  .on-photo .a-scrim { display: block; }
-  .on-photo .artifact { position: absolute; top: 0; right: 0; bottom: 0; width: min(420px, 92vw); flex-shrink: 0; border-radius: 12px 0 0 12px; }
-  @media (prefers-reduced-motion: no-preference) {
-    .on-photo .artifact { animation: motion-slide-in var(--motion-base) var(--ease-entrance); }
+  .on-photo .mc-tab.active {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: inset 0 -3px 0 var(--accent), var(--sh-xs);
   }
+  .on-photo .mc-body { padding: 8px; gap: 0; }
+  .on-photo .a-scrim { display: none; }
+  .on-photo .mission-panel:not([hidden]) { display: flex; min-width: 0; flex: 1; }
+  .on-photo .mission-panel > .record,
+  .on-photo .mission-panel > .artifact,
+  .on-photo .mission-panel > .mc-op,
+  .on-photo .mission-panel > .mc-op-stack { width: 100%; min-width: 0; flex: 1; }
+  .on-photo .mission-panel > .artifact {
+    position: static; inset: auto; border-radius: 16px; animation: none;
+  }
+  .on-photo .artifact .a-close { top: 8px; right: 8px; width: 44px; height: 44px; }
+  .on-photo .artifact .a-tools { top: 8px; right: 8px; }
+  .on-photo .artifact .a-tools .a-close { width: 44px; height: 44px; }
+  .on-photo .artifact .a-popout,
+  .on-photo .artifact .a-open { min-height: 44px; }
 }
 
 /* ── S3 typography refinement (CONTRACT §8, Slice 3) ──────────────────────

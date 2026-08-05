@@ -6,8 +6,12 @@
 # SHIPWRIGHT_SEMGREP_* policy toggles live in `.claude/settings.json`. A
 # both-directions drift gate keeps record and reality in lockstep:
 #
-#     uv run <shared>/scripts/tools/accepted_risks_cli.py check  --project-root .
-#     uv run <shared>/scripts/tools/accepted_risks_cli.py expire --project-root .
+#     python scripts/ci/accepted_risks_cli.py check  --project-root .
+#     python scripts/ci/accepted_risks_cli.py expire --project-root .
+#
+# (the vendored copy under `scripts/ci/` is what CI runs; the plugin's
+# `uv run <shared>/scripts/tools/accepted_risks_cli.py` is the same gate plus
+# `converge`, which is deliberately absent from the CI copy)
 #
 # `check` fails when a suppression has no entry here (UNRECORDED — nobody can
 # tell why it is silenced or when to revisit it) AND when an entry here has no
@@ -22,12 +26,18 @@
 # as DRIFT, not as an accepted risk. Being suppressed is not the same as being
 # accepted, and the dashboard is right to refuse to conflate them.
 #
-# NOT YET WIRED INTO CI. `check` / `expire` are not yet part of this repo's
-# workflow gates, so today they are run on demand. Wiring them is tracked as
-# explicit follow-up (see iterate-2026-07-28-security-accepted-risk-register);
-# until then an expired entry still self-heals on the Trivy side, because
-# `expired_at` in `.trivyignore.yaml` makes the scanner stop ignoring and the
-# alert returns on its own.
+# WIRED INTO CI since 2026-07-29 (iterate-2026-07-29-accepted-risk-ci-gate).
+# `.github/workflows/security.yml` job `Accepted-risk register (gate)` runs both
+# subcommands on every PR AND on the existing weekly schedule. The schedule is
+# the load-bearing half for `expire`: expiry is TIME-based, not diff-based, so a
+# PR-only gate would never fire on an entry that lapses while nobody happens to
+# open a PR. The gate is vendored under `scripts/ci/` (this repo has no Python
+# `shared/` tree and CI has no plugin cache) with a drift guard over
+# `scripts/ci/accepted_risks_vendor.json`.
+#
+# The Trivy-side `expired_at` backstop remains: once the date passes, Trivy stops
+# ignoring and the alert returns on its own. That self-heals but does not GATE,
+# and it covers only the Trivy channel — which is why the register gate exists.
 #
 # Fields (all required unless noted):
 #   id             stable, human-readable, unique
@@ -75,6 +85,17 @@ acceptances:
       RE-REVIEW TRIGGER: @hono/node-ws shipping a node-server-2.x-compatible
       release, at which point this is a real fix rather than an acceptance. The
       short 3-month window is chosen for exactly that reason.
+      VERIFIED 2026-07-30 (re-confirmed against both lockfiles 2026-07-31,
+      iterate-2026-07-31-win32-shell-spawn-remediation): @hono/node-ws is STILL
+      1.3.1 and STILL peer-requires "@hono/node-server": "^1.19.11" — a 1.x
+      caret, so 2.0.5 remains out of range; installed node-server is 1.19.13
+      (server) / 1.19.14 (bootstrapper), both < 2.0.5; and the advisory is
+      patched ONLY in 2.0.5 with no 1.x backport. The blocker is therefore
+      unchanged and there is nothing to fix before the re-review date — so the
+      October reviewer starts from evidence, not from a fresh investigation.
+      What that check does NOT settle: whether 1.3.1 is still the LATEST
+      @hono/node-ws (an npm-registry fact, not a lockfile one). That is the one
+      thing to look up in October — a newer adapter release IS the trigger above.
 
   - id: ar-2026-07-28-react-router-rsc-csrf
     target: trivy-ignore
@@ -113,12 +134,51 @@ acceptances:
       server/src/test/ci-action-pinning-posture.test.ts; see DO-NOT #25 in
       CLAUDE.md and reverted PR #285 for the history. RE-REVIEW TRIGGER: revisit
       if an open-source, self-hostable updater makes SHA-pinning viable without a
-      hosted dependency. FILING NOTE: the id is synthetic and inert to Trivy, and
-      target is `trivy-ignore` because `.trivyignore.yaml` is where this
-      suppression physically lives today — the register records reality, not the
-      shape reality ought to have. The semantically correct home is a
-      `semgrep-policy-toggle` keyed to SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS,
-      which the drift gate discovers only from .github/workflows/security.yml
-      while this repo carries it in .claude/settings.json. Relocating it means
-      moving the toggle into the workflow, which is a CI-supply-chain change with
-      its own review posture — deliberately NOT bundled into this iterate.
+      hosted dependency.
+
+      FILING NOTE (settled 2026-07-29, iterate-2026-07-29-accepted-risk-ci-gate).
+      The id is synthetic and inert to Trivy, and `target: trivy-ignore` records
+      where the entry physically lives — the register records reality, not the
+      shape reality ought to have. The previous note said the semantically
+      correct home was a `semgrep-policy-toggle` keyed to
+      SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS, and that relocating it was
+      merely a CI-supply-chain change deferred to a later pass. That was
+      INVESTIGATED AND IS WRONG, so it is corrected here rather than carried
+      forward: relocating the toggle into security.yml is not merely pointless,
+      it is BREAKING.
+
+      WHY RELOCATING BREAKS (empirically reproduced, not reasoned):
+      security.yml's semgrep step would still ignore the variable, so it buys
+      NO suppression — but `accepted_risk_scan.read_workflow_env` parses
+      SHIPWRIGHT_* assignments OUT of security.yml and maps this one to a
+      `semgrep-policy-toggle` suppression. This entry is filed `trivy-ignore`,
+      so the newly-wired `check` finds a suppression with no register entry and
+      fails the build: "UNRECORDED semgrep-policy-toggle:
+      SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS", exit 1. Relocating would
+      therefore require flipping this entry's `target` in the SAME commit, for
+      zero operational gain.
+
+      WHAT ACTUALLY HOLDS THIS FINDING QUIET, VERIFIED:
+        * NOT this file. The `semgrep:` id matches no advisory, so Trivy never
+          emits it and never ignores it.
+        * NOT any CI suppression. `security.yml` runs a bare
+          `semgrep scan --config auto` and contains ZERO `SHIPWRIGHT_SEMGREP_*`
+          references (grep -c = 0). The env var is consumed by
+          `semgrep_tailoring.normalize_tailored`, whose ONLY caller is the
+          shipwright-security plugin's `oss_backend.py` — the LOCAL
+          `/shipwright-security` scan path. So putting the variable in the
+          workflow buys NO suppression there. It does NOT follow that putting it
+          there is harmless — see "WHY RELOCATING BREAKS" above; a second
+          consumer reads the workflow.
+        * In CI the finding IS produced and lands in `sarif/semgrep.sarif`. It
+          simply never BLOCKS, because the critical-findings gate fires only on
+          `security-severity >= 9.0` or a Gitleaks secret, and Semgrep
+          `--config auto` emits no `security-severity` at all.
+        * `.claude/settings.json` is therefore the CORRECT home, load-bearing for
+          the local scan: it is what keeps this accepted finding out of
+          `findings.json` and the triage inbox week after week.
+
+      So this entry's job is not to suppress anything — it is to make the
+      acceptance VISIBLE to the drift gate and the compliance dashboard, which
+      would otherwise render the `.trivyignore.yaml` line as unexplained DRIFT.
+      DO NOT "fix" the target by moving the toggle into the workflow.

@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-07-29-mermaid-real-render-e2e",
+  "date": "2026-07-29T06:26:47.970164Z",
+  "event_at": "2026-07-29T06:26:21.320381+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/mermaid-real-render-e2e",
+  "spec": ".shipwright/planning/iterate/2026-07-29-mermaid-real-render-e2e.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-29-mermaid-real-render-e2e"
+}

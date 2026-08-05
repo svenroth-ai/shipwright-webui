@@ -18,7 +18,8 @@ proves nothing, so the CLI default and the workflow argument must name it.
 
 Vendored from the canonical monorepo (plugins/shipwright-security/tests/
 test_pr_review_prompt_template.py); paths re-pointed to the WebUI's flat
-`scripts/ci/` layout and its single-stage `pr-review.yml`.
+`scripts/ci/` layout and its two-stage `pr-review-run.yml` (stage 2 — the
+only stage that actually invokes `pr_review.py`).
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ import pr_review_lib as L  # noqa: E402
 
 PROMPT_DIR_ARG = "scripts/ci/pr_reviewer"
 PROMPT_DIR = CI_DIR / "pr_reviewer"
-WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pr-review.yml"
+WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pr-review-run.yml"
 TOOL = CI_DIR / "pr_review.py"
 
 # `{PR_META}` / `{DIFF}` — not `{"decision"...}` (JSON literal), which is

@@ -62,7 +62,8 @@ export interface SetupResult {
   term: Terminal;
   fit: FitAddon;
   disposed: { current: boolean };
-  rerender: (active: boolean) => void;
+  setContainerSize: (width: number, height: number) => void;
+  rerender: (active: boolean, layoutRevision?: string) => void;
   unmount: () => void;
 }
 
@@ -100,9 +101,20 @@ export function installResizeHarness(): ResizeHarness {
     const fit = makeFit();
     const disposed = { current: false };
     const container = document.createElement("div");
+    let containerSize = { width: 820, height: 600 };
+    container.getBoundingClientRect = vi.fn(() => ({
+      ...containerSize,
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: containerSize.width,
+      bottom: containerSize.height,
+      toJSON: () => ({}),
+    }));
 
     const { rerender, unmount } = renderHook(
-      (props: { active: boolean }) => {
+      (props: { active: boolean; layoutRevision: string }) => {
         const containerRef = useRef<HTMLDivElement | null>(container);
         const termRef = useRef<Terminal | null>(term);
         const fitAddonRef = useRef<FitAddon | null>(fit);
@@ -118,11 +130,12 @@ export function installResizeHarness(): ResizeHarness {
           disposedRef,
           socketSend,
           active: props.active,
+          layoutRevision: props.layoutRevision,
           settleArmRef,
           atlasHealRef,
         });
       },
-      { initialProps: { active: initialActive } },
+      { initialProps: { active: initialActive, layoutRevision: "desktop" } },
     );
 
     return {
@@ -132,7 +145,11 @@ export function installResizeHarness(): ResizeHarness {
       term,
       fit,
       disposed,
-      rerender: (active: boolean) => rerender({ active }),
+      setContainerSize: (width: number, height: number) => {
+        containerSize = { width, height };
+      },
+      rerender: (active: boolean, layoutRevision = "desktop") =>
+        rerender({ active, layoutRevision }),
       unmount,
     };
   };

@@ -1,0 +1,395 @@
+name: PR Review Run
+
+# Stage 2 of the two-stage Tier-3 PR review. Ported from the shipwright
+# monorepo (shipwright#437, iterate-2026-07-27-review-gate-failclosed-fork).
+#
+# Triggered by stage 1 (`pr-review.yml`) completing. Because `workflow_run` runs
+# in the BASE repository's context, this stage has the credentials that a fork's
+# `pull_request` run is denied — which is the whole reason fork PRs previously
+# got no review at all.
+#
+# THE TRUST RULE, and why it is absolute:
+# `pull_request` runs the workflow file FROM THE PR HEAD. A contributor — fork or
+# branch — therefore controls stage 1 completely: its metadata and the diff it
+# uploads. Nothing stage 1 produces may be treated as authoritative here. An
+# earlier upstream draft read `needs_review` from stage 1's artifact and skipped
+# the review when it said `false`; that let a PR declare itself exempt and
+# collect a green `PR Review` status — the exact self-exemption the gate exists
+# to forbid. Caught in external review before merge.
+#
+# So stage 2 derives EVERYTHING it acts on from trusted sources:
+#   1. Identity — PR number resolved from `github.event.workflow_run.head_sha`
+#      (trusted event field) via the API. `workflow_run.pull_requests` is empty
+#      for fork PRs, so it is not used.
+#   2. Authorisation — labels, author and changed paths read from the API, and
+#      the tier rules applied HERE, in default-branch code the contributor
+#      cannot edit.
+#   3. Content — the diff fetched from the API at the trusted head SHA, never
+#      taken from the artifact.
+# The contributor's code is never checked out and never executed: on a
+# `workflow_run` event GitHub sets GITHUB_REF/GITHUB_SHA to the BASE repo's
+# default branch, so the bare checkout below is trusted code, and the diff is
+# only ever read as text.
+#
+# This workflow is the SOLE producer of the required `PR Review` status context.
+# If it never posts — crash, cancellation, missing credential — the context
+# stays absent, and an absent required context is `pending`, which blocks the
+# merge. Silence counts as not passing, not as passing.
+#
+# Verified empirically before this landed, because the point is easy to doubt:
+# on shipwright#503 `PR Review` exists as a commit STATUS with zero check runs
+# of that name, and that PR merged under a ruleset entry of
+# `{"context": "PR Review", "integration_id": 15368}` — the same app-bound
+# shape this repo's `main-protection` ruleset uses. A status posted with the
+# Actions token is attributed to the Actions app, so it satisfies the context.
+# No ruleset change is needed for this switchover.
+
+on:
+  workflow_run:
+    workflows: ["PR Review Prepare"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-review-run-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: Review and post verdict
+    runs-on: ubuntu-latest
+    # Only this job widens, and only to what posting the verdict needs:
+    # statuses:write for the required context, pull-requests:write for the
+    # comment carrying the reasons.
+    permissions:
+      contents: read
+      statuses: write
+      pull-requests: write
+      # Read-only, and only to police the context: stage 1 runs from the PR
+      # head, so a contributor can rename a job to `PR Review` and manufacture
+      # a passing CHECK RUN under the required name. We must be able to see it.
+      checks: read
+    steps:
+      # Base repo only. No `ref:`, so this is the default branch of the base
+      # repository — the PR head is never checked out.
+      #
+      # `persist-credentials: false` because nothing here uses the git
+      # credential helper: `gh` authenticates from GH_TOKEN and the reviewer
+      # shells out to `gh`. This job holds an LLM key and a writable token, so
+      # the checkout has no business leaving a third credential in .git/config.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        # The vendored reviewer imports only the standard library (urllib,
+        # subprocess, json) and shells out to `gh`, which is preinstalled on the
+        # runner — so no package install and, deliberately, no third-party
+        # action. Upstream needs `astral-sh/setup-uv` because its copy runs
+        # under `uv run`; adding that here would introduce a SHA pin to
+        # maintain for nothing.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Resolve pull request from the trusted event
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # A commit can be associated with SEVERAL open PRs. Taking the first
+          # would let us review one PR's diff and post a green status onto a SHA
+          # that satisfies a DIFFERENT PR's gate. Require exactly one open PR
+          # whose CURRENT head is this exact SHA, and fail closed otherwise —
+          # ambiguity here is indistinguishable from an attack.
+          #
+          # We LIST THE BASE REPO'S OPEN PRS and match on head SHA. Upstream
+          # asks `commits/{sha}/pulls`, and that endpoint returns an EMPTY LIST
+          # for a pull request raised from a FORK — the commit lives in the
+          # fork's object store. Probed against three real fork PRs on cli/cli:
+          # all three resolve through this query and none through
+          # `commits/{sha}/pulls`. Using the latter would have left every fork
+          # PR unresolvable and permanently red WITHOUT EVER BEING REVIEWED,
+          # turning the one case this change exists to fix into an availability
+          # regression that no same-repo PR would ever reveal.
+          #
+          # `--paginate --slurp` (pages flattened by `.[][]`): a match beyond
+          # page 1 must not read as absent, and a SECOND match beyond it must
+          # not collapse a two-match ambiguity into an apparent unique one.
+          matches=$(gh api --paginate --slurp "repos/$REPO/pulls?state=open&per_page=100" \
+            | jq --arg sha "$HEAD_SHA" \
+                '[.[][] | select(.state == "open") | select(.head.sha == $sha) | .number]')
+          count=$(printf '%s' "$matches" | jq 'length')
+          if [ "$count" -ne 1 ]; then
+            echo "::error::expected exactly one open PR whose head is $HEAD_SHA, found $count — refusing to post a verdict"
+            exit 1
+          fi
+          # Assigned first, then echoed. A command substitution used as an
+          # ARGUMENT does not trip `set -e` — only the enclosing `echo`'s status
+          # counts — so the inline form would write `number=` and exit 0 if jq
+          # ever failed. Unreachable today, but this is the step whose whole job
+          # is to fail closed.
+          number=$(printf '%s' "$matches" | jq -r '.[0]')
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+      # The tier decision lives HERE, not in stage 1, and reads only API data.
+      # Stage 1's copy of these rules would be attacker-editable.
+      - name: Decide the tier from trusted API data
+        id: tier
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          set -euo pipefail
+          pr_json=$(gh api "repos/$REPO/pulls/$PR_NUMBER")
+          author=$(printf '%s' "$pr_json" | jq -r '.user.login')
+          labels=$(printf '%s' "$pr_json" | jq -c '[.labels[].name]')
+          # BOTH sides of a rename. The API emits one entry per renamed file
+          # carrying the NEW path in `filename` and the old one in
+          # `previous_filename`, so reading `filename` alone makes a rename OUT
+          # of a sensitive directory invisible: `scripts/hooks/pre-commit` ->
+          # `tools/pre-commit` would classify Tier 1/2 and skip the review.
+          changed=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" \
+            --jq '.[] | .filename, (.previous_filename // empty)')
+
+          # Tier 3a: sensitive paths — anything that changes what CI enforces or
+          # what it is allowed to stay quiet about. CI workflows, composite
+          # actions, the executed git hooks, the vendored reviewer + gate
+          # scripts, AND the suppression channels: the accepted-risk register
+          # and its `.trivyignore.yaml` switch (DO-NOT #25 requires the two to
+          # agree, so either half is a policy edit), `.semgrepignore`, the
+          # load-bearing toggle in `.claude/settings.json`, the hook installers
+          # (they set `core.hooksPath`), and the bloat baseline.
+          #
+          # `.github/actions/` is listed although the directory does not exist
+          # yet: creating a composite action requires a workflow edit (already
+          # caught), but EDITING an existing one later would not be. The same
+          # argument applies with more force to the suppression channels, which
+          # exist already — a `skip-pr-review` label must not waive a PR that
+          # adds a Trivy suppression.
+          #
+          # A here-string, NOT `printf | grep -q`: `grep -q` exits at the first
+          # match, and on a list larger than the 64 KiB pipe buffer the writer
+          # then takes SIGPIPE — under `pipefail` the pipeline reports non-zero
+          # even though grep MATCHED, and the `if` takes the else branch.
+          # Fail-open, in the one direction a gate must never fail.
+          sensitive=false
+          if grep -qE '^(\.github/workflows/|\.github/actions/|scripts/ci/|scripts/hooks/|scripts/install-hooks\.|\.trivyignore\.yaml|shipwright_accepted_risks\.yaml|\.semgrepignore|\.claude/settings\.json|shipwright_bloat_baseline\.json|\.gitattributes)' <<<"$changed"; then
+            sensitive=true
+          fi
+          # `pulls/{n}/files` caps at 3000 entries however it is paginated. At
+          # the cap the list is TRUNCATED, so "no sensitive path found" only
+          # means "none in the part we were shown". Unknown is sensitive.
+          if [ "$(wc -l <<<"$changed")" -ge 3000 ]; then
+            echo "::notice::changed-file list is at the API cap — treating as sensitive"
+            sensitive=true
+          fi
+
+          # The SOLE writer of this gate's decision. `reason` goes through the
+          # heredoc form rather than a bare `echo`: every call site passes a
+          # hardcoded single-line literal today, but one future edit passing an
+          # API-derived value (a label, a branch name, an author login — all
+          # contributor-influenced) would let an embedded newline append its own
+          # `needs_review=false` line and flip the verdict. Not a channel to
+          # leave open in the one function that decides.
+          decide() {
+            echo "needs_review=$1" >> "$GITHUB_OUTPUT"
+            {
+              echo "reason<<__SW_EOF__"
+              printf '%s\n' "$2"
+              echo "__SW_EOF__"
+            } >> "$GITHUB_OUTPUT"
+            echo "tier: $1 ($2)"
+          }
+
+          # A change that alters the checks themselves cannot exempt itself:
+          # "whoever unlocks a door is not the one who decides it may be
+          # unlocked." Only users with triage/write+ can apply a label, so a
+          # contributor cannot self-waive; this additionally stops a
+          # maintainer's waiver from covering a change to the gate itself.
+          if printf '%s' "$labels" | jq -e 'index("skip-pr-review")' >/dev/null; then
+            if [ "$sensitive" = "true" ]; then
+              echo "::notice::skip-pr-review ignored — this change edits the checks themselves."
+            else
+              decide false "skip-pr-review label set"; exit 0
+            fi
+          fi
+          if printf '%s' "$labels" | jq -e 'index("needs-review")' >/dev/null; then
+            decide true "needs-review label set"; exit 0
+          fi
+          if [ "$sensitive" = "true" ]; then
+            decide true "sensitive path touched"; exit 0
+          fi
+          # Tier 3b: external contributor (anyone except the maintainer + dependabot).
+          # The exemption keys on the PULL REQUEST AUTHOR, not on who wrote or
+          # pushed the commits, so anyone with push access to a maintainer's
+          # branch inherits it. Sound here (one maintainer, no other writers);
+          # an adopter with several committers must key on the commit authors.
+          # The dependabot clause comes from the upstream template and is INERT
+          # here by DO-NOT #25 (no hosted updater); it is also unforgeable,
+          # since `[` and `]` are illegal in a GitHub username.
+          if [ "$author" != "svroch" ] && [ "$author" != "dependabot[bot]" ]; then
+            decide true "external contributor"; exit 0
+          fi
+          decide false "internal PR — Step 8 already reviewed"
+
+      - name: Run Tier-3 PR review
+        id: review
+        if: >-
+          github.event.workflow_run.conclusion == 'success' &&
+          steps.tier.outputs.needs_review == 'true'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHIPWRIGHT_PR_REVIEW_MODEL: anthropic/claude-sonnet-4.6
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # The diff comes from the API at the trusted head SHA. pr_review.py
+          # fetches it itself via `gh pr diff`; the artifact stage 1 uploaded is
+          # an audit record only and is deliberately not read here. An oversize
+          # diff is reviewed truncated and then FAILS CLOSED (EXIT_BLOCK) inside
+          # the script — it is never skipped, and the exit code is never
+          # discarded here.
+          python scripts/ci/pr_review.py \
+            --pr-number "$PR_NUMBER" \
+            --repo "$REPO" \
+            --prompt-dir scripts/ci/pr_reviewer
+
+      # The verdict is the gate. It runs even when an earlier step failed, so a
+      # failed review posts `failure` rather than leaving the context absent for
+      # an ambiguous reason — though an absent context still blocks, so a crash
+      # before this step is safe too. Deliberately NOT a job-level `if:` on the
+      # stage-1 conclusion: a skipped job posts nothing, and the human is then
+      # left with a context that never arrives instead of a failure saying why.
+      #
+      # `!cancelled()`, NOT `always()`, and the difference is load-bearing:
+      # `always()` is true even for a CANCELLED job, so a run superseded by the
+      # concurrency group above would still post — its verdict landing after the
+      # newer run's and overwriting it. That is exactly how a revoked waiver
+      # could keep its green: run A decides "skip-pr-review", run B cancels A on
+      # the same SHA, and A's `always()` step posts success anyway. Under
+      # `!cancelled()` the superseded run stays silent and only the live one
+      # speaks; a stage 1 that merely FAILED does not cancel this job, so every
+      # diagnostic branch below still reports.
+      - name: Post the PR Review verdict
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
+          STAGE1_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          NEEDS_REVIEW: ${{ steps.tier.outputs.needs_review }}
+          TIER_REASON: ${{ steps.tier.outputs.reason }}
+          TIER_OUTCOME: ${{ steps.tier.outcome }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+        run: |
+          set -euo pipefail
+          # An EMPTY lower bound is not a soft failure: `created_at >= ""` is
+          # true for EVERY timeline entry, so every PR that was ever
+          # force-pushed would report a mid-run force-push and go red forever.
+          # Fail loudly on the missing input rather than quietly on every PR.
+          : "${RUN_STARTED_AT:?workflow_run.run_started_at is required}"
+          # The reviewer fetched the diff by PR NUMBER, which tracks the moving
+          # head; the verdict lands on the immutable event SHA. If the branch was
+          # force-pushed mid-run we reviewed different content than we are about
+          # to bless — and a later restore of this SHA would inherit the green.
+          # Re-check before blessing anything, and fail closed if it moved.
+          #
+          # Comparing the head to the event SHA is NECESSARY BUT NOT
+          # SUFFICIENT, and upstream stops there. A force-push A -> B -> A
+          # passes it: the reviewer fetches by PR number and sees B, the head
+          # is back at A by the time we look, and we would bless A having
+          # reviewed B. So also ask whether the branch was force-pushed AT ALL
+          # since stage 1 began — where the head ENDED UP says nothing about
+          # what the reviewer was served in between.
+          # Declared OUTSIDE the block below: the impostor check that follows
+          # reads it even when no PR was resolved, and `set -u` would abort on
+          # an unset variable.
+          stale=""
+          if [ -n "${PR_NUMBER:-}" ]; then
+            # "could not read the head" and "the head moved" are different
+            # facts, and collapsing them sends the maintainer hunting a
+            # force-push that never happened. Both still fail closed.
+            if ! now=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.head.sha'); then
+              stale="could not verify head — re-run required"
+            elif ! forced=$(gh api --paginate --slurp "repos/$REPO/issues/$PR_NUMBER/timeline" \
+              | jq --arg t "$RUN_STARTED_AT" \
+                  '[.[][] | select(.event == "head_ref_force_pushed")
+                          | select(.created_at >= $t)] | length'); then
+              stale="could not verify branch history — re-run required"
+            # String comparison, not `-ne`: `[ "" -ne 0 ]` exits 2 with
+            # "integer expression expected", and inside `A || B` that reads as
+            # FALSE and falls through to bless the commit. This was the one
+            # comparison left whose error direction pointed the wrong way.
+            elif [ "$now" != "$HEAD_SHA" ] || [ "$forced" != "0" ]; then
+              stale="head moved during review — re-run required"
+              echo "::error::head moved during the run ($HEAD_SHA -> ${now:-unknown}, $forced force-push(es) since stage 1 began); the review does not describe this commit"
+            fi
+          fi
+          # This workflow is the SOLE producer of the context, and that has to be
+          # ENFORCED, not merely intended. Stage 1 runs from the PR head, so a
+          # contributor can rename one of its jobs to `PR Review` and mint a
+          # passing CHECK RUN under the required name — a second producer whose
+          # result they control, racing ours. (They would also have to defeat
+          # `test_stage1_owns_no_pr_review_context`, which likewise runs from
+          # their head, so that guard cannot be the last line.) Whether branch
+          # protection would prefer their check run or our status is exactly the
+          # ambiguity not to depend on: if anything else is claiming this name,
+          # refuse. The vendored guard keeps an HONEST contributor from doing it
+          # by accident; this keeps a dishonest one from doing it on purpose.
+          if [ -z "$stale" ]; then
+            impostors=$(gh api --paginate --slurp "repos/$REPO/commits/$HEAD_SHA/check-runs" \
+              | jq '[.[].check_runs[] | select(.name == "PR Review")] | length')
+            if [ "$impostors" -ne 0 ]; then
+              echo "::error::$impostors check run(s) named 'PR Review' exist on $HEAD_SHA; this workflow is the only permitted producer of that context"
+              stale="a second producer is claiming this context — re-run required"
+            fi
+          fi
+          if [ -n "$stale" ]; then
+            gh api "repos/$REPO/statuses/$HEAD_SHA" -f state=failure \
+              -f context="PR Review" \
+              -f description="$stale" \
+              -f target_url="$RUN_URL" >/dev/null
+            exit 1
+          fi
+          # A CANCELLED stage 1 means this run was SUPERSEDED, and its successor
+          # owns the verdict. `cancel-in-progress` only cancels OVERLAPPING
+          # runs, so a superseded run whose `workflow_run` event is delivered
+          # after its successor already finished is never cancelled — and would
+          # post `failure` over the live `success` on the same SHA. Say nothing
+          # instead: an absent context still blocks, and the successor is
+          # already speaking. Same reasoning as `!cancelled()` on this step, one
+          # level out.
+          if [ "$STAGE1_CONCLUSION" = "cancelled" ]; then
+            echo "stage 1 was cancelled (superseded) — leaving the verdict to the newer run"
+            exit 0
+          fi
+          if [ "$STAGE1_CONCLUSION" != "success" ]; then
+            state=failure; desc="stage 1 did not succeed — nothing was reviewed"
+          elif [ "$TIER_OUTCOME" != "success" ]; then
+            state=failure; desc="could not determine whether a review was required"
+          elif [ "$NEEDS_REVIEW" != "true" ]; then
+            state=success; desc="$TIER_REASON"
+          elif [ "$REVIEW_OUTCOME" = "success" ]; then
+            state=success; desc="reviewed — no blocking findings"
+          else
+            state=failure; desc="review blocked or did not complete"
+          fi
+          gh api "repos/$REPO/statuses/$HEAD_SHA" \
+            -f state="$state" \
+            -f context="PR Review" \
+            -f description="${desc:0:139}" \
+            -f target_url="$RUN_URL" >/dev/null
+          echo "posted PR Review=$state ($desc)"
+          [ "$state" = "success" ]

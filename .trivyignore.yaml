@@ -7,7 +7,11 @@
 #
 # The split is enforced in both directions by the drift gate:
 #
-#     uv run <shared>/scripts/tools/accepted_risks_cli.py check --project-root .
+#     python scripts/ci/accepted_risks_cli.py check --project-root .
+#
+# (that vendored copy under `scripts/ci/` is what CI runs; the plugin's
+# `uv run <shared>/scripts/tools/accepted_risks_cli.py` is the same gate plus the
+# `converge` subcommand, which is deliberately absent from the CI copy)
 #
 # A suppression here with no register entry is UNRECORDED — the compliance
 # dashboard renders it as DRIFT, not as an accepted risk, because being
@@ -16,24 +20,63 @@
 #
 # ENTRIES HAVE TWO DIFFERENT NATURES — do not infer one from the other:
 #
-#   REAL advisory ids (CVE-* / GHSA-*) are honoured natively by Trivy. Trivy
-#   auto-discovers this file from the scan root and `.github/workflows/
-#   security.yml` runs `trivy fs ... .` there, so these genuinely suppress.
-#   Their `expired_at` is LOAD-BEARING, not decorative: once the date passes,
-#   Trivy stops ignoring the finding and the alert comes back on its own. That
-#   is the built-in tripwire — such an acceptance cannot rot silently even while
-#   the register's own `expire` gate is not yet wired into CI.
+#   REAL advisory ids (CVE-* / GHSA-*) are honoured by Trivy — but ONLY because
+#   `.github/workflows/security.yml` passes `--ignorefile .trivyignore.yaml`
+#   explicitly. Trivy auto-discovers only the FLAT `.trivyignore`; the YAML form
+#   is still experimental and its docs require the flag. Without it this file is
+#   not read at all. That is not hypothetical: the first version of this header
+#   claimed auto-discovery, and the accepted risks stayed OPEN on the Security
+#   tab until the flag was added (iterate-2026-07-28-security-trivy-ignorefile).
+#   With the flag, `expired_at` is LOAD-BEARING: once the date passes Trivy stops
+#   ignoring the finding and the alert returns on its own — the built-in
+#   tripwire. Since 2026-07-29 it is no longer the ONLY one: the register's own
+#   `check` + `expire` gate runs in CI (`.github/workflows/security.yml`, job
+#   `Accepted-risk register (gate)`). Drop the flag and you silently lose BOTH
+#   the suppression and the tripwire.
+#
+#   THE TWO DATES LAPSE A DAY APART, AND THE GATE GOES RED ON THE EARLIER ONE.
+#   `expired_at` here lapses ON its date (Trivy parses it as midnight, so any
+#   real "now" on that day is already past it); the register's `expires` lapses
+#   the day AFTER. Every entry below pairs the two on the SAME day, so on each
+#   `expired_at` there is a one-day window in which `check` fails with
+#   "STALE trivy-ignore: <id> ... its own expiry has passed" while `expire` is
+#   still green. That is correct — Trivy has stopped suppressing while the
+#   register still claims the acceptance — but it reports as DRIFT, not as the
+#   EXPIRED you would expect from the register's own "the date itself is still
+#   active" rule. Renew BOTH dates, or offset `expired_at` one day later than
+#   `expires` so the actionable expiry fires first. Verified against the
+#   re-vendored gate (iterate-2026-07-31-revendor-accepted-risk-gate): before
+#   that re-vendor a lapsed entry was silently counted as an active suppression,
+#   so this day used to pass — the red is new, and it is the fix working.
 #
 #   SYNTHETIC ids (the `semgrep:` entry below) match no real advisory and are
-#   therefore INERT to Trivy; they exist only so the compliance dashboard can
-#   render the acceptance, and their `expired_at` is a dashboard signal rather
-#   than a scanner behaviour. Historically this file was the only channel
-#   carrying a due date at all, which is why a Semgrep / CI-posture decision
-#   ended up filed in a Trivy SCA ignore file. `shipwright_accepted_risks.yaml`
-#   supersedes that role; the synthetic entry stays here for now because
-#   relocating it means moving SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS out
-#   of `.claude/settings.json` and into the workflow — a CI-supply-chain change
-#   with its own review posture, deliberately not bundled into this change.
+#   therefore INERT to Trivy; they exist only so the drift gate and the
+#   compliance dashboard can SEE the acceptance, and their `expired_at` is a
+#   dashboard signal rather than a scanner behaviour. Historically this file was
+#   the only channel carrying a due date at all, which is why a Semgrep /
+#   CI-posture decision ended up filed in a Trivy SCA ignore file.
+#
+#   The synthetic entry STAYS, and the reason changed on 2026-07-29
+#   (iterate-2026-07-29-accepted-risk-ci-gate). This header used to say it stayed
+#   only because relocating the toggle was a CI-supply-chain change deferred to a
+#   later pass. Investigated: relocating it is not merely pointless, it is
+#   BREAKING — DO NOT DO IT. Two independent reasons.
+#
+#   (a) It suppresses NOTHING there. `security.yml` runs a bare
+#       `semgrep scan --config auto`, which reads no `SHIPWRIGHT_SEMGREP_*`
+#       variable; only the shipwright-security plugin's LOCAL scan backend does.
+#       So `.claude/settings.json` is the variable's correct home.
+#   (b) The accepted-risk gate WOULD see it. `accepted_risk_scan.read_workflow_env`
+#       parses `SHIPWRIGHT_*` assignments OUT of `security.yml` and maps this one
+#       to a `semgrep-policy-toggle` suppression. This entry is filed
+#       `trivy-ignore`, so `check` would find a suppression with no register
+#       entry and FAIL the build ("UNRECORDED semgrep-policy-toggle: …", exit 1).
+#       Reproduced empirically. Relocating would require flipping this entry's
+#       `target` in the SAME commit, for zero operational gain.
+#
+#   In CI the finding IS emitted into the SARIF and simply never blocks, because
+#   the critical gate fires only on `security-severity >= 9.0` or a Gitleaks
+#   secret. Full reasoning: `shipwright_accepted_risks.yaml`, the FILING NOTE.
 #
 # SCOPING NOTE: the two advisory entries are id-level, not `paths`-scoped. Trivy
 # is not installed on the authoring machine, so a narrower path match could not

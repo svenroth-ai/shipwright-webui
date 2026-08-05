@@ -1,0 +1,104 @@
+{
+  "run_id": "iterate-2026-08-02-mobile-work-mode",
+  "date": "2026-08-03T00:11:39.936840Z",
+  "event_at": "2026-08-03T00:10:10.919279+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/mobile-work-mode",
+  "spec": ".shipwright/planning/iterate/2026-08-02-mobile-work-mode.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-02-mobile-work-mode",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Phone title overlay and Rename focus handoff avoid header reflow.",
+        "disposition": "tested",
+        "evidence": "EditableTaskTitle.mobile.test.tsx and mobile-work-mode.spec.ts passed."
+      },
+      {
+        "behavior": "Conditional Description overlay is escaped, bounded and focus-safe.",
+        "disposition": "tested",
+        "evidence": "TaskDescriptionDisclosure.test.tsx and mobile-work-mode.spec.ts passed."
+      },
+      {
+        "behavior": "Light four-way workspace controls, Shiplog link semantics and 44px touch geometry.",
+        "disposition": "tested",
+        "evidence": "Pane/Mission/Header RTL suites and mobile-work-mode.spec.ts passed."
+      },
+      {
+        "behavior": "File, Viewer and Terminal navigation preserves focus, DOM and socket identity.",
+        "disposition": "tested",
+        "category": "integration",
+        "evidence": "TaskDetailThreePane tests and mobile-work-mode.spec.ts passed."
+      },
+      {
+        "behavior": "All resize producers and launch ordering reject hidden or below-5x2 grids.",
+        "disposition": "tested",
+        "category": "integration",
+        "evidence": "Terminal resize/size-sync/auto-launch tests and whole-socket Playwright audit passed."
+      },
+      {
+        "behavior": "Floating expand, symmetric keybar and greater-than-45-percent terminal height.",
+        "disposition": "tested",
+        "evidence": "TerminalKeyBar tests and mobile-work-mode.spec.ts passed."
+      },
+      {
+        "behavior": "Mission Detail availability, auto-selection and source-return state machine survive breakpoints.",
+        "disposition": "tested",
+        "category": "integration",
+        "evidence": "MissionBody suites and real-browser Mission scenario passed."
+      },
+      {
+        "behavior": "Desktop/tablet layout and persisted centre preference remain stable.",
+        "disposition": "tested",
+        "evidence": "Desktop Mission tests plus 390px-to-1100px browser round-trips passed."
+      },
+      {
+        "behavior": "Complete client/server regression, type, lint and production-build health.",
+        "disposition": "tested",
+        "evidence": "6400 unit tests passed with 1 skip; both typechecks, linters and builds exited 0; hygiene findings_count=0."
+      },
+      {
+        "behavior": "Exact aesthetic quality on every physical phone.",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "Real-browser screenshots were manually inspected; computed styling and geometry are automated."
+      }
+    ],
+    "counts": {
+      "testable": 9,
+      "tested": 9,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e -- e2e/flows/mobile-work-mode.spec.ts",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mobile-work-mode\\.shipwright\\runs\\iterate-2026-08-02-mobile-work-mode\\surface_verification.log",
+    "timestamp": "2026-08-03T00:06:05.058Z",
+    "attempts": 1
+  },
+  "declared_removals": [
+    {
+      "path": ".shipwright/agent_docs/iterates/iterate-2026-07-15-e2e-pty-harness.json",
+      "reason": "Evicted by the canonical 50-entry iterate retention window."
+    },
+    {
+      "path": ".shipwright/agent_docs/iterates/iterate-2026-07-17-pin-actions-sha.json",
+      "reason": "Evicted by the canonical 50-entry iterate retention window."
+    },
+    {
+      "path": ".shipwright/agent_docs/iterates/iterate-2026-07-17-ui-polish-forms-shiplog.json",
+      "reason": "Evicted by the canonical 50-entry iterate retention window."
+    }
+  ]
+}

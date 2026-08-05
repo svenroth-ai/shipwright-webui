@@ -1,0 +1,77 @@
+{
+  "stage": "doubt-review",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "test isolation / CI",
+      "claim_under_doubt": "The new phone-only Playwright flow can run in the normal suite without desktop regressions.",
+      "disproof_attempt": "The desktop Chromium project also collected the phone-only spec.",
+      "file": "client/playwright.config.ts",
+      "line": 86,
+      "what_would_resolve_it": "Exclude the spec from desktop collection and prove both project lists."
+    },
+    {
+      "severity": "medium",
+      "lens": "desktop non-regression",
+      "claim_under_doubt": "Compact Resume/Launch geometry leaves the desktop header unchanged.",
+      "disproof_attempt": "The base min-h-11 was not reset at the desktop breakpoint.",
+      "file": "client/src/components/external/TaskDetailHeader/ResumeCTA.tsx",
+      "line": 102,
+      "what_would_resolve_it": "Restore the prior desktop minimum height at md."
+    },
+    {
+      "severity": "medium",
+      "lens": "branding contract",
+      "claim_under_doubt": "The mobile top segmented control uses the agreed light surface with a deep-teal active state.",
+      "disproof_attempt": "The on-photo active rule remained white.",
+      "file": "client/src/styles/mission-record.css",
+      "line": 143,
+      "what_would_resolve_it": "Add a compact-only teal active treatment and browser coverage."
+    },
+    {
+      "severity": "medium",
+      "lens": "touch accessibility",
+      "claim_under_doubt": "No essential compact Mission interaction is below 44px.",
+      "disproof_attempt": "The Detail close button remained 30x30px.",
+      "file": "client/src/styles/mission-record.css",
+      "line": 106,
+      "what_would_resolve_it": "Use at least a 44x44px hit area and browser geometry coverage."
+    },
+    {
+      "severity": "medium",
+      "lens": "keyboard focus continuity",
+      "claim_under_doubt": "Automatically selecting Viewer after compact file activation remains accessible to keyboard users.",
+      "disproof_attempt": "The focused file-row ancestor became inert without moving focus.",
+      "file": "client/src/pages/TaskDetailPage.tsx",
+      "line": 365,
+      "what_would_resolve_it": "Move focus to the Viewer tab after compact auto-selection and test keyboard activation."
+    },
+    {
+      "severity": "high",
+      "lens": "hidden terminal resize",
+      "claim_under_doubt": "Every terminal resize producer rejects unusable hidden-pane geometry.",
+      "disproof_attempt": "useTerminalSizeSync still fitted a hidden force-mounted terminal and could emit FitAddon's 2x1 clamp.",
+      "file": "client/src/components/terminal/useTerminalSizeSync.ts",
+      "line": 60,
+      "what_would_resolve_it": "Reuse active, measurable-container and >=5x2 guards here and test hidden replay/prelaunch."
+    },
+    {
+      "severity": "medium",
+      "lens": "touch accessibility",
+      "claim_under_doubt": "Every required compact header action meets the 44px touch minimum.",
+      "disproof_attempt": "The Back link exposed a 16px glyph-sized target.",
+      "file": "client/src/components/external/mission/MissionTopRow.tsx",
+      "line": 119,
+      "what_would_resolve_it": "Give the phone Back link a 44x44px hit area with a desktop reset."
+    },
+    {
+      "severity": "medium",
+      "lens": "touch accessibility",
+      "claim_under_doubt": "Every required compact header action meets the 44px touch minimum.",
+      "disproof_attempt": "The overflow-menu trigger remained 32x32px.",
+      "file": "client/src/components/external/TaskDetailHeader/HeaderMenu.tsx",
+      "line": 178,
+      "what_would_resolve_it": "Use a 44x44px phone trigger, retain the 32px desktop geometry, and measure both controls in-browser."
+    }
+  ]
+}

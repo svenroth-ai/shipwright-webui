@@ -5,6 +5,23 @@ on:
     branches: [main]
   push:
     branches: [main]
+  # WEEKLY (iterate-2026-08-01-bootstrapper-ci-contract). Only `bootstrapper-checks`
+  # runs on this trigger — every other job in this file is gated below with
+  # `if: github.event_name != 'schedule'`, and `diff-coverage` is already
+  # PR-only. The schedule exists for ONE reason: the bootstrapper's contract
+  # test reads the LIVE marketplace manifest out of the svenroth-ai/shipwright
+  # monorepo, and that document drifts WITHOUT any pull request here. A PR-only
+  # gate would surface the breakage whenever someone happened to open the next
+  # PR, which is exactly when it is most expensive to discover. Offset one hour
+  # from security.yml's Monday 06:00 so the two do not contend for runners.
+  #
+  # CAVEAT worth knowing before trusting the silence: GitHub DISABLES scheduled
+  # workflows after 60 days with no repository activity — i.e. exactly the quiet
+  # state in which this probe is the only thing still watching. A silent cron is
+  # therefore not evidence of a green manifest. `workflow_dispatch` above is the
+  # manual re-probe, and re-enabling the schedule is a button in the Actions tab.
+  schedule:
+    - cron: '0 7 * * 1'  # Monday 07:00 UTC
   workflow_dispatch:
 
 # Least-privilege GITHUB_TOKEN (OpenSSF Scorecard Token-Permissions): this
@@ -14,12 +31,30 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # `github.event_name` is part of the key (iterate-2026-08-01-bootstrapper-ci-contract).
+  # Without it, the weekly `schedule` run and a `push` to main share one group —
+  # both resolve `github.ref` to `refs/heads/main` — so with cancel-in-progress
+  # they cancel EACH OTHER: a Monday cron could kill an in-flight push-to-main
+  # CI run, or be killed by one and silently skip the manifest probe for a week.
+  # Per-PR cancellation is unchanged; `refs/pull/N/merge` was already unique per
+  # PR and merely gains a constant prefix.
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   client-checks:
     name: Client (type + lint + test)
+    # SCHEDULE GUARD (iterate-2026-08-01-bootstrapper-ci-contract). The weekly
+    # cron above exists only to re-probe the live marketplace manifest, so every
+    # job EXCEPT `bootstrapper-checks` opts out of it. This expression only ever
+    # NARROWS: on `pull_request`, `push` and `workflow_dispatch` it is true, so
+    # PR behaviour is provably unchanged. Deliberately not applied to
+    # `diff-coverage`, which is already `== 'pull_request'` and would be
+    # weakened, not helped, by a second condition. No job here uses `needs:`, so
+    # there is no skip-cascade to reason about. Both directions are ratcheted by
+    # scripts/ci/tests/test_bootstrapper_ci_job.py — a job added later without a
+    # guard fails that test rather than quietly widening the weekly run.
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -121,6 +156,7 @@ jobs:
   #   "E2E smoke (gate)"  and  "Visual regression (gate)"
   e2e-smoke:
     name: E2E smoke (gate)
+    if: github.event_name != 'schedule'  # see client-checks
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
@@ -157,6 +193,7 @@ jobs:
 
   visual:
     name: Visual regression (gate)
+    if: github.event_name != 'schedule'  # see client-checks
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
@@ -200,6 +237,7 @@ jobs:
 
   server-checks:
     name: Server (type + lint + test)
+    if: github.event_name != 'schedule'  # see client-checks
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -232,3 +270,75 @@ jobs:
 
       - name: Run tests
         run: npm test -- --run
+
+  # ── iterate-2026-08-01-bootstrapper-ci-contract ─────────────────────────────
+  # `bootstrapper/` is the published npm package @svenroth-ai/shipwright — the
+  # WIDEST blast radius in this repo, since every `npx @svenroth-ai/shipwright`
+  # runs it. Until this job, its 153 tests across 11 files ran in CI NEVER: this
+  # workflow gated `client` and `server` only. Two existing server tests
+  # (`no-shell-true-spawn.test.ts`, `win32-spawn-mirror-parity.test.ts`) were
+  # written into the SERVER package specifically to work around that hole; their
+  # headers say so. They stay — they guard cross-package parity, which a
+  # bootstrapper-side test cannot see — but the hole itself is closed here.
+  #
+  # This job also carries the CONSUMER-DRIVEN CONTRACT TEST
+  # (`bootstrapper/test/marketplace-contract.test.mjs`), which fetches the LIVE
+  # `.claude-plugin/marketplace.json` from the svenroth-ai/shipwright monorepo
+  # and holds it to `parseManifest()`. That is why this is the one job on the
+  # weekly `schedule`: the monorepo can change the manifest's shape with no pull
+  # request here at all. A retrieved-but-non-conforming response FAILS; an
+  # unreachable network SKIPS loudly on a PR (a GitHub outage must never block a
+  # contributor) but FAILS on the `schedule` event — because there a skip leaves
+  # the run green and GitHub only mails on a FAILED scheduled run, so fifty-two
+  # skipped weeks would be indistinguishable from fifty-two verified ones. See
+  # `verificationIsMandatory` in bootstrapper/test/helpers/network-verdict.mjs.
+  #
+  # NOTE (the arming step): this job is ADVISORY on arrival, by decision
+  # (2026-08-01) — prove first, then arm, mirroring the diff-coverage rollout in
+  # #205. A failing job only BLOCKS a merge once this exact name is listed in the
+  # `main-protection` ruleset's required_status_checks. The name is the contract:
+  #   "Bootstrapper (type + lint + test)"
+  # Until it is armed, the workflow SHAPE is what covers this job, via
+  # scripts/ci/tests/test_bootstrapper_ci_{job,schedule}.py under the required
+  # "Reviewer Selftest" check. Read that precisely: it catches an ACCIDENTAL
+  # regression from day one, NOT a deliberate removal — stage 1 of the PR review
+  # runs from the PR head, so a PR deleting this job and those guards together
+  # passes every deterministic check and is caught only by the Tier-3 review.
+  bootstrapper-checks:
+    name: Bootstrapper (type + lint + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bootstrapper
+    steps:
+      # FULL checkout, deliberately: this suite is NOT self-contained.
+      # `test/guards.test.mjs` asserts version parity by reading
+      # `../server/package.json`, so a `sparse-checkout:` narrowing this to
+      # `bootstrapper/` would fail that test with a confusing ENOENT. Found
+      # empirically at F0.5 by running these steps against a bootstrapper-only
+      # tree; ratcheted by test_bootstrapper_ci_job.py.
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          # package.json pins `engines.node >=20.12.0`; 20 is the floor a real
+          # `npx` user is most likely to be on, so test the floor, not the top.
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: bootstrapper/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      # No `-- --run`: unlike client/ and server/, this package's `test` script
+      # is already `vitest run` (non-watch). Appending --run would pass an
+      # unknown flag to the `run` subcommand.
+      - name: Run tests
+        run: npm test

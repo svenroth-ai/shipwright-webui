@@ -30,6 +30,15 @@ import {
 
 const VALID = "11111111-2222-3333-4444-555555555555";
 
+/*
+ * Serve-time parser-resync preamble (iterate-2026-07-30-terminal-ws-drop-resync).
+ * CAN aborts a sequence the previous stream left truncated — `Terminal.reset()`
+ * does not reset the parser — then CUP homes the cursor the payload assumes.
+ * Asserted explicitly here so a silent change to the wire payload fails loudly;
+ * the mechanism itself is pinned in `snapshot-parser-resync.test.ts`.
+ */
+const PREAMBLE = String.fromCharCode(24) + "\x1b[H";
+
 describe("buildReplaySnapshotEnvelope", () => {
   it("produces the wire-shape envelope", () => {
     const env = buildReplaySnapshotEnvelope({
@@ -41,7 +50,7 @@ describe("buildReplaySnapshotEnvelope", () => {
     });
     expect(env).toEqual({
       type: "replay_snapshot",
-      data: "\x1b[2J\x1b[Hhello",
+      data: PREAMBLE + "\x1b[2J\x1b[Hhello",
       cols: 120,
       rows: 30,
       terminalVersion: "6.0.0",
@@ -57,7 +66,7 @@ describe("buildReplaySnapshotEnvelope", () => {
       rows: 24,
       data: payload,
     });
-    expect(env.data).toBe(payload);
+    expect(env.data).toBe(PREAMBLE + payload);
   });
 
   /*
@@ -78,7 +87,7 @@ describe("buildReplaySnapshotEnvelope", () => {
       rows: 30,
       data,
     });
-    expect(env.data).toBe(data + "\x1b[?1006h");
+    expect(env.data).toBe(PREAMBLE + data + "\x1b[?1006h");
   });
 
   it("appends ?1006h for ?1002h (btn-event) and ?1003h (any-event) mouse modes", () => {
@@ -91,7 +100,7 @@ describe("buildReplaySnapshotEnvelope", () => {
         rows: 24,
         data,
       });
-      expect(env.data).toBe(data + "\x1b[?1006h");
+      expect(env.data).toBe(PREAMBLE + data + "\x1b[?1006h");
     }
   });
 
@@ -104,7 +113,7 @@ describe("buildReplaySnapshotEnvelope", () => {
       rows: 24,
       data,
     });
-    expect(env.data).toBe(data);
+    expect(env.data).toBe(PREAMBLE + data);
     expect(env.data).not.toContain("\x1b[?1006h");
   });
 
@@ -118,7 +127,7 @@ describe("buildReplaySnapshotEnvelope", () => {
       data,
     });
     // Augmentation guard prevents duplication.
-    expect(env.data).toBe(data);
+    expect(env.data).toBe(PREAMBLE + data);
     expect((env.data.match(/\x1b\[\?1006h/g) || []).length).toBe(1);
   });
 });
