@@ -69,7 +69,7 @@ describe("The Record node captions", () => {
     affectedFrs: ["FR-01.28"],
     specImpact: "modify",
     tests: { passed: 2041, total: 2041 },
-    gates: { review: "pass" },
+    gates: { test: "pass", review: "pass" },
     commit: "ac845a1f9c",
   };
 
@@ -92,6 +92,17 @@ describe("The Record node captions", () => {
       "Spec · changelog · decision log moved in lockstep.",
     );
     expect(byKey.commit.receipt).toBe("ac845a1");
+  });
+
+  // @covers FR-01.66
+  it("a post-reversal host-gated skip says 'Suite 9/10 green', not 'passing' (gate drives the verb, not passed===total; iterate-2026-08-08-tests-total-skip-contract discriminating case)", () => {
+    const byKey = Object.fromEntries(
+      narrateRecord({ ...facts, tests: { passed: 9, total: 10 }, gates: { test: "pass", review: "pass" } }).map(
+        (n) => [n.key, n],
+      ),
+    );
+    expect(byKey.tests.caption).toBe("Suite 9/10 green.");
+    expect(byKey.tests.receipt).toBe("9/10");
   });
 });
 

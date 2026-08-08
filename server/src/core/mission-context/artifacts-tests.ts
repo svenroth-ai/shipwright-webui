@@ -26,6 +26,7 @@
  */
 
 import type { RunTests } from "../event-log-reader.js";
+import { deriveTestsGate } from "../tests-gate.js";
 import type { EventLookup } from "./iterate-record.js";
 import type { TestsDiff } from "./tests-diff.js";
 import { inferLayer } from "./tests-diff.js";
@@ -64,18 +65,65 @@ function unavailableTests(note: string): TestsArtifact {
  * counts. `{passed:null,total:null}` AND `{passed:0,total:0}` are both treated
  * as absent: an empty tests object carries nothing citable, and a genuine
  * zero-of-zero must not render the success-sounding "All 0 tests passing" the
- * file header warns against (internal code review, LOW).
+ * file header warns against (internal code review, LOW). `gate` is resolved
+ * ONCE here via `tests-gate.ts` — callers must not re-derive pass/fail.
+ *
+ * The SOLE `RunTests` -> `MissionTests` constructor — `resolver.ts`'s own
+ * `context.tests` also calls this (rather than rebuilding the shape inline)
+ * so the two never diverge on the `{0,0}` edge case (code review, LOW-MEDIUM:
+ * they previously did — the inline build in `resolver.ts` did not null it out).
  */
-function normalizeResults(t: RunTests | null | undefined): MissionTests | null {
+export function toMissionTests(t: RunTests | null | undefined, ts: string | null): MissionTests | null {
   if (!t) return null;
   if ((t.passed ?? 0) === 0 && (t.total ?? 0) === 0) return null;
-  return { passed: t.passed, total: t.total };
+  return { passed: t.passed, total: t.total, skipped: t.skipped, gate: deriveTestsGate(t, ts) };
 }
 
-/** "All 42 tests passing" / "40 of 42 tests passing" / "42 tests recorded". */
+/** Non-negative-integer guard, mirroring `tests-gate.ts`'s own `normalizedCount`
+ *  — a MissionTests field is raw producer data, not yet validated, so an
+ *  "all skipped" claim must re-check it rather than trust a truthy `skipped`
+ *  (external code review, MEDIUM: `{passed:-1,total:5,skipped:1}` and
+ *  `{passed:0,total:5,skipped:9}` both reach `gate:"unknown"` without every
+ *  collected test having genuinely been skipped — the FIRST wording fix
+ *  asserted "All 5 were skipped" for both, a claim the raw counts disprove). */
+function isNonNegInt(n: number | null | undefined): n is number {
+  return typeof n === "number" && Number.isInteger(n) && n >= 0;
+}
+
+/** True only when the raw counts PROVE every collected test was skipped —
+ *  `passed` genuinely 0, `total` a positive integer, `skipped` exactly equal
+ *  to it. Anything else reaching `gate:"unknown"` is a malformed/partial
+ *  record, not a provable all-skipped run. */
+function isGenuinelyAllSkipped(r: MissionTests): boolean {
+  return (
+    isNonNegInt(r.passed) && r.passed === 0 && isNonNegInt(r.total) && r.total > 0 &&
+    isNonNegInt(r.skipped) && r.skipped === r.total
+  );
+}
+
+/** "All 42 tests passing" / "9 of 10 tests passing (1 skipped)" / "42 tests
+ *  recorded" / "All 5 collected tests were skipped — none ran.". */
 function resultsSentence(r: MissionTests): string {
   if (r.passed != null && r.total != null) {
-    return r.passed === r.total
+    // `unknown` with BOTH fields present means nothing citable happened
+    // despite having full data — never phrased as pass- or fail-shaped
+    // "passing" text (doubt review, MEDIUM: an all-skipped post-reversal run
+    // otherwise read as "0 of N passing" — indistinguishable from N real
+    // failures — or, when `passed` happened to equal `total` too, as a full
+    // green). A partial record (only ONE field present) is a DIFFERENT
+    // "unknown" — handled by the total-only / passed-only fallbacks below,
+    // unchanged.
+    if (r.gate === "unknown") {
+      return isGenuinelyAllSkipped(r)
+        ? `All ${plural(r.total, "collected test", "collected tests")} were skipped — none ran.`
+        : "No test result recorded.";
+    }
+    // A skipped-carrying pass is disclosed, not rounded up to "All N passing"
+    // — that overstates what ran (code review, MEDIUM).
+    if (r.gate === "pass" && (r.skipped ?? 0) > 0) {
+      return `${r.passed} of ${plural(r.total, "test", "tests")} passing (${r.skipped} skipped).`;
+    }
+    return r.gate === "pass"
       ? `All ${plural(r.total, "test", "tests")} passing.`
       : `${r.passed} of ${plural(r.total, "test", "tests")} passing.`;
   }
@@ -85,6 +133,9 @@ function resultsSentence(r: MissionTests): string {
 
 /** The compact rail receipt for a counts result. */
 function resultsReceipt(r: MissionTests): string {
+  if (r.gate === "unknown" && isGenuinelyAllSkipped(r)) {
+    return `${r.skipped}/${r.total} skipped`;
+  }
   if (r.passed != null && r.total != null) return `${r.passed}/${r.total} passing`;
   if (r.total != null) return `${plural(r.total, "test", "tests")}`;
   return `${r.passed} passing`;
@@ -158,7 +209,7 @@ export function buildTestsArtifact(input: TestsInput): TestsArtifact {
   // The run has not finished: nothing recorded yet. Genuinely later.
   if (events.status !== "found") return hiddenTests("not_yet_created");
 
-  const results = normalizeResults(events.run.tests);
+  const results = toMissionTests(events.run.tests, events.run.ts);
   const files = diff.status === "ok" ? summarizeFiles(diff, index) : null;
   const hasFiles = files != null && files.rows.length > 0;
 

@@ -40,7 +40,12 @@ export type GateState = "pass" | "fail" | "unknown";
  */
 export interface RunGates {
   derived: true;
-  /** From the run's own tests: `pass` when total>0 && passed===total. */
+  /**
+   * From the run's own tests, via the epoch-aware `tests-gate.ts` predicate:
+   * pre-reversal `pass` means `passed===total`; post-reversal (>= `REVERSAL_EPOCH_MS`,
+   * 2026-08-08) it means `passed+skipped===total` — the event's own `ts`
+   * decides which convention applies, never both.
+   */
   test: GateState;
   /** No per-run review signal in the event log → `"unknown"` today. */
   review: GateState;

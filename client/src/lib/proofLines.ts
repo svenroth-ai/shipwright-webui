@@ -65,14 +65,11 @@ const MAX_PROOF_LINES = 8;
  *  produced a row (trg-eb989815), so a value is never synthesized (AC4). */
 export const DURATION_NA = NA;
 
-function testsGreen(tests?: ProofFacts["tests"]): boolean {
-  return (
-    tests != null &&
-    tests.passed != null &&
-    tests.total != null &&
-    tests.total > 0 &&
-    tests.passed === tests.total
-  );
+/** `gate` is the pre-resolved verdict (server `tests-gate.ts`) — never
+ *  re-derived from `passed === total` here (a post-reversal run can carry a
+ *  `skipped` count that makes a genuine pass read numerically unequal). */
+function testsGreen(tests: ProofFacts["tests"], gate?: GateState): boolean {
+  return tests != null && tests.passed != null && tests.total != null && gate === "pass";
 }
 
 /**
@@ -100,7 +97,7 @@ export function deriveVerdict(input: { facts: ProofFacts | null }): OperationVer
   const gates = facts.gates ?? {};
   if (gates.security === "fail") return { outcome: "hold", heldGate: "security" };
 
-  if (testsGreen(facts.tests) && gates.review === "pass" && gates.security === "pass") {
+  if (testsGreen(facts.tests, gates.test) && gates.review === "pass" && gates.security === "pass") {
     return { outcome: "clear", heldGate: null };
   }
   return { outcome: "neutral", heldGate: null };
@@ -148,7 +145,7 @@ function promptLine(facts: ProofFacts): ProofLine | null {
 
 function suiteLine(facts: ProofFacts): ProofLine | null {
   const t = facts.tests;
-  if (!testsGreen(t)) return null;
+  if (!testsGreen(t, facts.gates?.test)) return null;
   return {
     id: "suite",
     spans: [
@@ -163,8 +160,8 @@ function suiteLine(facts: ProofFacts): ProofLine | null {
  *  flip the verdict to GATE HOLD, but the failure is still shown). */
 function suiteFailLine(facts: ProofFacts): ProofLine | null {
   const t = facts.tests;
-  if (!t || t.passed == null || t.total == null || t.total <= 0) return null;
-  if (t.passed === t.total) return null; // green — handled by suiteLine
+  if (!t || t.passed == null || t.total == null) return null;
+  if (facts.gates?.test !== "fail") return null; // green/unknown — handled elsewhere
   return {
     id: "suite-fail",
     spans: [

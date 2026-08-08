@@ -41,6 +41,7 @@ import {
   specHintCandidate,
 } from "./spec-candidates.js";
 import { recoverRunIdFromTranscript } from "./run-id-recovery.js";
+import { toMissionTests } from "./artifacts-tests.js";
 import { chooseRoot, readAllowedRootsCached, resolveFirstDoc } from "./worktree-roots.js";
 import {
   MISSION_CONTEXT_SCHEMA_VERSION,
@@ -273,7 +274,9 @@ export async function resolveMissionContext(
     // (`chosen.root` + the event log's mtime), so neither can freeze in cache.
     runLive: chosen.isWorktree && events.status !== "found",
     artifacts,
-    tests: run?.tests ?? null,
+    // Shares artifacts-tests.ts's constructor so this never diverges from
+    // the Tests artifact's own `detail.results` on the `{0,0}` edge case.
+    tests: run ? toMissionTests(run.tests, run.ts) : null,
     servesFrId,
     sourceRev: rev,
   };

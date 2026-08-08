@@ -13,10 +13,20 @@
 /** Per-tree, version-controlled event log (parity with events_log.EVENT_FILE). */
 export const EVENT_FILE = "shipwright_events.jsonl";
 
-/** Test counts from a `work_completed` event; either mark may be absent. */
+/**
+ * Test counts from a `work_completed` event; either mark may be absent.
+ * `total`'s meaning depends on when the event was recorded — see
+ * `tests-gate.ts`'s header (iterate-2026-08-08-tests-total-skip-contract):
+ * pre-reversal, tests that EXECUTED only; post-reversal, tests COLLECTED
+ * (passed + failed + skipped). `skipped` is read through raw for either
+ * convention; `deriveTestsGate`/`RunDataJoin.gates.test` is the resolved
+ * verdict — do not re-derive pass/fail from `passed`/`total` directly.
+ */
 export interface RunTests {
   passed: number | null;
   total: number | null;
+  /** Host-gated skip count, when the event recorded one; `null` when absent. */
+  skipped: number | null;
 }
 
 /**
@@ -50,7 +60,7 @@ export interface RunProjection {
   affectedFrs: string[];
   /** `new_frs`, string members only; `[]` when absent. */
   newFrs: string[];
-  /** `tests{passed,total}` or null when the event carried none. */
+  /** `tests{passed,total,skipped}` or null when the event carried none. */
   tests: RunTests | null;
   /**
    * `phase_timings` read THROUGH untouched (an iterate flat mark-list when

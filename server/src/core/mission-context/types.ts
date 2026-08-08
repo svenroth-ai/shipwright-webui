@@ -16,11 +16,7 @@
  */
 
 import { isSafeRunId } from "./pointer.js";
-import type {
-  DecisionsArtifact,
-  ReviewArtifact,
-  TestsArtifact,
-} from "./types-slice2.js";
+import type { DecisionsArtifact, ReviewArtifact, TestsArtifact } from "./types-slice2.js";
 import type {
   CampaignProgressArtifact,
   CampaignRunbookArtifact,
@@ -201,9 +197,17 @@ export type {
   SubIterateSelection,
 } from "./types-slice3.js";
 
+/** Mirrors `../tests-gate.js`'s `GateState` locally, not by import — same
+ *  self-contained-mirror pattern as `run-data-types.ts`/`narrator-record.ts`. */
+export type GateState = "pass" | "fail" | "unknown";
+
 export interface MissionTests {
   passed: number | null;
   total: number | null;
+  /** Host-gated skip count, when the run recorded one; `null` when absent. */
+  skipped: number | null;
+  /** Pre-resolved verdict (`tests-gate.ts`) — consumers must not re-derive pass/fail. */
+  gate: GateState;
 }
 
 /**

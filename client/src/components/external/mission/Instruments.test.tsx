@@ -104,7 +104,7 @@ describe("Instruments — fed by the mission-context resolver (AC8)", () => {
       runId: "iterate-2026-07-18-demo",
     runLive: false,
       artifacts: [],
-      tests: { passed: 4940, total: 4941 },
+      tests: { passed: 4940, total: 4941, skipped: null, gate: "fail" },
       servesFrId: "FR-01.66",
       sourceRev: "rev",
       ...over,
@@ -135,7 +135,9 @@ describe("Instruments — fed by the mission-context resolver (AC8)", () => {
   it("never fabricates a denominator from a partial tests record", () => {
     complianceMock.mockReturnValue({ data: { status: "missing" } });
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } });
-    missionContextMock.mockReturnValue({ data: ctx({ tests: { passed: 12, total: null } }) });
+    missionContextMock.mockReturnValue({
+      data: ctx({ tests: { passed: 12, total: null, skipped: null, gate: "unknown" } }),
+    });
     render(<Instruments task={ITERATE_TASK} />);
     expect(chipValue("instr-tests")).toBe("—");
   });

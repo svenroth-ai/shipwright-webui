@@ -21,6 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { recordsFromLines } from "./jsonl-records.js";
 import { pathGuard } from "./path-guard.js";
+import { deriveTestsGate } from "./tests-gate.js";
 import {
   EVENT_FILE,
   projectEventLog,
@@ -63,12 +64,13 @@ function normalizeSpecImpact(raw: string | null): string | null {
   return t.length > 0 ? t : null;
 }
 
-/** The test gate from a run's own tests: pass when total>0 && passed===total. */
-export function deriveTestGate(tests: RunTests | null): GateState {
-  if (!tests) return "unknown";
-  const { passed, total } = tests;
-  if (total === null || total <= 0 || passed === null) return "unknown";
-  return passed === total ? "pass" : "fail";
+/**
+ * The test gate from a run's own tests, delegating to the single epoch-aware
+ * predicate (`tests-gate.ts`, iterate-2026-08-08-tests-total-skip-contract) —
+ * `ts` resolves which convention (`total` = executed vs. collected) applies.
+ */
+export function deriveTestGate(tests: RunTests | null, ts: string | null): GateState {
+  return deriveTestsGate(tests, ts);
 }
 
 /**
@@ -80,7 +82,7 @@ export function deriveGates(run: RunProjection): RunGates | null {
   if (!run.tests) return null;
   return {
     derived: true,
-    test: deriveTestGate(run.tests),
+    test: deriveTestGate(run.tests, run.ts),
     review: "unknown",
     security: "unknown",
   };

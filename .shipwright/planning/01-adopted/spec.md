@@ -805,6 +805,17 @@ write surface; gated, path-guarded, and concurrency-safe.
   the iterate's `run_id`) and fall back to the run-detail join for pipeline runs, so
   they show live values on a standalone iterate instead of a permanent "—"; a partial
   record still renders "—" rather than a fabricated denominator. Grade is unchanged.
+- (P) **(iterate-2026-08-08-tests-total-skip-contract)** A recorded `tests` block's
+  `passed`/`total`/`skipped` are resolved into ONE `GateState` (`pass|fail|unknown`)
+  server-side, gated by the event's own `ts` against `REVERSAL_EPOCH_MS`: pre-reversal
+  events read `passed === total`, post-reversal events read
+  `passed + skipped === total` — never both, and never re-derived by a consumer. A
+  post-reversal host-gated skip renders "N of M tests passing (K skipped)", never a
+  bare "N of M" indistinguishable from a real failure. A post-reversal run where every
+  collected test was skipped renders "All N collected tests were skipped — none ran",
+  never fail-shaped text and never "All N passing"; a malformed record (skipped
+  exceeding total, negative passed) falls back to "No test result recorded" rather
+  than asserting a claim the raw counts don't support.
 - Scenarios 1/3/4/5 keep today's behaviour verbatim (this is additive for the iterate
   scenario); the embedded terminal is byte-identical. Added by
   `iterate-2026-07-18-mission-s1-resolver-core-artifacts`.

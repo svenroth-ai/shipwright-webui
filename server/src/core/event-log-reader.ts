@@ -82,13 +82,14 @@ function asFiniteNumberOrNull(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
-/** Extract `tests{passed,total}`; null when the event carried no tests object. */
+/** Extract `tests{passed,total,skipped}`; null when the event carried no tests object. */
 function projectTests(v: unknown): RunTests | null {
   if (typeof v !== "object" || v === null || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   return {
     passed: asFiniteNumberOrNull(o.passed),
     total: asFiniteNumberOrNull(o.total),
+    skipped: asFiniteNumberOrNull(o.skipped),
   };
 }
 

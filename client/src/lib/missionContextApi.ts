@@ -236,9 +236,15 @@ export type ArtifactDescriptor =
   | CampaignProgressArtifact
   | SubIterateArtifact;
 
+export type GateState = "pass" | "fail" | "unknown";
+
 export interface MissionTests {
   passed: number | null;
   total: number | null;
+  /** Host-gated skip count, when the run recorded one; `null` when absent. */
+  skipped: number | null;
+  /** Pre-resolved verdict (server `tests-gate.ts`) — do not re-derive pass/fail. */
+  gate: GateState;
 }
 
 export interface MissionContext {
