@@ -230,9 +230,9 @@
     {
       "path": "client/src/components/triage/TriageDetailModal.test.tsx",
       "limit": 300,
-      "current": 432,
+      "current": 438,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-17-test-traceability-retrofit"
+      "adr": "iterate-2026-08-08-triage-amend-reader"
     },
     {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
@@ -476,9 +476,9 @@
     {
       "path": "server/src/core/triage-store.ts",
       "limit": 300,
-      "current": 305,
+      "current": 298,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
+      "adr": "iterate-2026-08-08-triage-amend-reader"
     },
     {
       "path": "server/src/core/triage-write.test.ts",
@@ -560,9 +560,9 @@
     {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 715,
+      "current": 692,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
+      "adr": "iterate-2026-08-08-triage-amend-reader"
     },
     {
       "path": "server/src/terminal/headless-mirror.ts",

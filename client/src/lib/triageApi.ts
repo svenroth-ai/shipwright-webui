@@ -68,6 +68,14 @@ export interface TriageItem {
   revisitAt: string | null;
   /** Computed: has this entry's park come due? Always `false` when not parked. */
   revisitDue: boolean;
+  /**
+   * Amend-event overlay (see server/src/types/triage.ts): who/when this
+   * item was last corrected in place via an `amend` event. `null` until a
+   * valid amend lands. `ts` is NOT touched by an amend — it still means
+   * "time of the last status decision".
+   */
+  amendedBy: string | null;
+  amendedAt: string | null;
 }
 
 /**
@@ -79,6 +87,14 @@ export interface TriageItem {
 export interface TriageOrigin {
   available: boolean;
   behind: number | null;
+  /**
+   * iterate-2026-08-08-triage-amend-reader (AC9): true when a status/amend
+   * write right now would route to the per-tree outbox (idle main). False
+   * means the write lands on the TRACKED store instead — the Edit UI uses
+   * this to disclose that BEFORE the operator submits. Optional/absent-safe
+   * (older server, or a degraded read) — treat as unknown, not as `false`.
+   */
+  writesRouteToOutbox?: boolean;
 }
 
 export interface TriageListResponse {
@@ -213,6 +229,32 @@ export async function snoozeTriageItem(
 ): Promise<{ ok: true } | { ok: false; status: number; body: unknown }> {
   const res = await fetch(
     `${TRIAGE_API}/${encodeURIComponent(projectId)}/snooze`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) {
+    const b = await res.json().catch(() => ({ error: "unknown_error" }));
+    return { ok: false, status: res.status, body: b };
+  }
+  return { ok: true };
+}
+
+export interface AmendBody {
+  triageId: string;
+  title?: string;
+  detail?: string;
+  severity?: TriageSeverity;
+}
+
+export async function amendTriageItem(
+  projectId: string,
+  body: AmendBody,
+): Promise<{ ok: true } | { ok: false; status: number; body: unknown }> {
+  const res = await fetch(
+    `${TRIAGE_API}/${encodeURIComponent(projectId)}/amend`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },

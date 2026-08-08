@@ -60,6 +60,8 @@ function makeItem(over: Partial<TriageItem> = {}): TriageItem {
     promotedTaskId: null,
     revisitAt: null,
     revisitDue: false,
+    amendedBy: null,
+    amendedAt: null,
     ...over,
   };
 }

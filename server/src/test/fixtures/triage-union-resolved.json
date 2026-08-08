@@ -21,6 +21,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -43,6 +45,8 @@
       "statusReason": "outbox status flips a tracked append",
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -65,6 +69,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -87,6 +93,8 @@
       "statusReason": "later outbox status wins",
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -109,6 +117,8 @@
       "statusReason": "outbox status wins equal-ts tiebreak",
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -131,6 +141,8 @@
       "statusReason": "parked with a date",
       "promotedTaskId": null,
       "revisitAt": "2020-01-01",
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": true
     },
     {
@@ -153,6 +165,8 @@
       "statusReason": "parked with a future date",
       "promotedTaskId": null,
       "revisitAt": "2099-01-01",
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -175,6 +189,8 @@
       "statusReason": "parked with no date",
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -197,6 +213,8 @@
       "statusReason": "webuiPromote",
       "promotedTaskId": "EXT:task-xyz",
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -219,6 +237,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -241,6 +261,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     }
   ]

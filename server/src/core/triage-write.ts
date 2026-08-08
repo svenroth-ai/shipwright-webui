@@ -41,7 +41,12 @@ import { spawnSync } from "node:child_process";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
-import type { TriageStatus, TriageStatusEvent } from "../types/triage.js";
+import type {
+  TriageAmendEvent,
+  TriageSeverity,
+  TriageStatus,
+  TriageStatusEvent,
+} from "../types/triage.js";
 import { endsWithoutNewline } from "./jsonl-records.js";
 import { appendIdsInFile, invalidateCacheForPath } from "./triage-store.js";
 import { outboxPathFor } from "./triage-paths.js";
@@ -111,13 +116,66 @@ export function appendStatusEvent(args: AppendStatusEventArgs): void {
     promotedTaskId: args.promotedTaskId,
     ...(args.revisitAt !== undefined ? { revisitAt: args.revisitAt } : {}),
   };
-  const line = JSON.stringify(event) + "\n";
+  appendTriageEventLine(args.jsonlPath, args.triageId, JSON.stringify(event) + "\n", ts);
+}
 
-  const trackedPath = args.jsonlPath;
+export interface AppendAmendEventArgs {
+  jsonlPath: string;
+  triageId: string;
+  by: string;
+  title?: string;
+  detail?: string;
+  severity?: TriageSeverity;
+  /** Caller's now provider — injectable so tests can pin the timestamp. */
+  now?: () => string;
+}
+
+/**
+ * Append an `amend` event line to triage.jsonl — a DELTA, never a rewrite;
+ * only the fields the caller supplies are carried on the event. Wire format
+ * mirrors `triage.py amend_triage_item` / `lib/triage_amend.build_amend_event`:
+ *   {"event":"amend","id":...,"ts":...,"by":...,"title"?:...,"detail"?:...,"severity"?:...}
+ *
+ * Same residence-derived (tracked-preferred), lock/newline/header/cache
+ * mechanics as `appendStatusEvent` — see `appendTriageEventLine`. Caller
+ * (the route layer, via `parseAmendBody`) has already rejected a contentless
+ * call before this is reached.
+ */
+export function appendAmendEvent(args: AppendAmendEventArgs): void {
+  const ts = args.now ? args.now() : nowIsoZ();
+  const event: TriageAmendEvent = {
+    event: "amend",
+    id: args.triageId,
+    ts,
+    by: args.by,
+    ...(args.title !== undefined ? { title: args.title } : {}),
+    ...(args.detail !== undefined ? { detail: args.detail } : {}),
+    ...(args.severity !== undefined ? { severity: args.severity } : {}),
+  };
+  appendTriageEventLine(args.jsonlPath, args.triageId, JSON.stringify(event) + "\n", ts);
+}
+
+/**
+ * Shared low-level append: residence derivation, directory/header
+ * bootstrap, the not-terminated-by-newline guard, and cache invalidation —
+ * identical for every event type. Only the pre-built `line` differs between
+ * callers (`appendStatusEvent` / `appendAmendEvent`); the residence
+ * derivation itself stays duplicated in spirit (not parameterized away)
+ * because it mirrors `triage.py`'s own choice to keep `mark_status` and
+ * `resolve_amend_residence` as separate, identically-shaped expressions
+ * rather than a shared function — "a deliberately deferred dedup, not an
+ * oversight" (`lib/triage_amend.py`).
+ */
+function appendTriageEventLine(
+  trackedPath: string,
+  triageId: string,
+  line: string,
+  ts: string,
+): void {
   const outboxPath = outboxPathFor(trackedPath);
 
-  const inOutbox = appendIdsInFile(outboxPath).has(args.triageId);
-  const inTracked = appendIdsInFile(trackedPath).has(args.triageId);
+  const inOutbox = appendIdsInFile(outboxPath).has(triageId);
+  const inTracked = appendIdsInFile(trackedPath).has(triageId);
   // Idle main (origin + HEAD==default) → outbox, symmetric with background
   // appends; else residence-derived (TRACKED-PREFERRED): outbox iff the append
   // lives ONLY in the outbox; tracked when it is in tracked (or both) or in

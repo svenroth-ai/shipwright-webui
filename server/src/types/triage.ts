@@ -94,6 +94,15 @@ export interface TriageItem {
    * "did this just return?".
    */
   revisitDue: boolean;
+  /**
+   * Amend-event overlay (iterate-2026-08-08-triage-amend-reader, mirrors
+   * `lib/triage_amend.AMENDED_BY_FIELD`/`AMENDED_AT_FIELD`): who/when this
+   * item was last corrected in place via an `amend` event. `null` until a
+   * valid amend lands. Unlike `status`/`statusBy`, `ts` itself is NOT
+   * touched by an amend — it still means "time of the last status decision".
+   */
+  amendedBy: string | null;
+  amendedAt: string | null;
 }
 
 /** On-disk status event line shape. */
@@ -111,6 +120,24 @@ export interface TriageStatusEvent {
    * the monorepo wire format where the field simply doesn't exist there.
    */
   revisitAt?: string;
+}
+
+/**
+ * On-disk amend event line shape (iterate-2026-08-08-triage-amend-reader,
+ * mirrors `lib/triage_amend.build_amend_event`). Every amendable field is
+ * OPTIONAL — a real event always carries at least one (writer-enforced;
+ * `has_amend_content` on the Python side), but the wire type itself does not
+ * encode that constraint.
+ */
+export interface TriageAmendEvent {
+  event: "amend";
+  id: string;
+  ts: string;
+  by: string;
+  title?: string;
+  detail?: string;
+  severity?: TriageSeverity;
+  kind?: TriageKind;
 }
 
 /** Wire shape for promote/dismiss/snooze response bodies. */

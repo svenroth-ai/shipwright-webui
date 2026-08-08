@@ -1,12 +1,13 @@
 /*
  * triage.ts — webui Triage Tab routes (FR-01.30, ADR-101).
  *
- * Five endpoints:
+ * Six endpoints:
  *   GET  /api/triage/:projectId           — resolved view (status==triage filter applied client-side)
  *   GET  /api/triage/counts               — { counts: Record<projectId, number>, total }
  *   POST /api/triage/:projectId/promote   — cross-store transaction → 201 / 207 partial / 409 / 400 / 404
  *   POST /api/triage/:projectId/dismiss   — single-file write → 200
  *   POST /api/triage/:projectId/snooze    — single-file write → 200
+ *   POST /api/triage/:projectId/amend     — single-file DELTA write (edit-in-place) → 200
  *
  * Lock-order convention (global): triage.jsonl FIRST, then sdk-sessions.json.
  * See conventions.md "Lock acquisition order".
@@ -29,8 +30,13 @@ import {
 } from "../core/triage-enrich.js";
 import { readAllItems, findItemById, filterTriage } from "../core/triage-store.js";
 import { readBoardItems } from "../core/triage-board-read.js";
-import { parsePromoteBody, parseDismissSnoozeBody } from "../core/triage-validation.js";
 import {
+  parsePromoteBody,
+  parseDismissSnoozeBody,
+  parseAmendBody,
+} from "../core/triage-validation.js";
+import {
+  appendAmendEvent,
   appendStatusEvent,
   TriageWriteError,
 } from "../core/triage-write.js";
@@ -87,6 +93,8 @@ export interface TriageRoutesDeps {
   lock: (path: string) => Promise<() => Promise<void>>;
   /** Failure injection for tests — when set, replaces appendStatusEvent. */
   appendStatusEventOverride?: typeof appendStatusEvent;
+  /** Failure injection for tests — when set, replaces appendAmendEvent. */
+  appendAmendEventOverride?: typeof appendAmendEvent;
   /** Pinnable now-provider for tests. */
   now?: () => string;
   /**
@@ -102,6 +110,7 @@ export interface TriageRoutesDeps {
 export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
   const app = new Hono();
   const append = deps.appendStatusEventOverride ?? appendStatusEvent;
+  const amend = deps.appendAmendEventOverride ?? appendAmendEvent;
 
   // ----------------------------------------------------------------------
   // GET /api/triage/counts — aggregate (status==triage) per project + total,
@@ -157,7 +166,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
   // ----------------------------------------------------------------------
   // GET /api/triage/:projectId — list items (caller filters status if needed)
   // ----------------------------------------------------------------------
-  app.get("/api/triage/:projectId", (c) => {
+  app.get("/api/triage/:projectId", async (c) => {
     const projectId = c.req.param("projectId");
     const project = deps.getProjectById(projectId);
     if (!project || project.synthesized) {
@@ -178,7 +187,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
     // `origin` drift metadata for the staleness banner (additive; older clients
     // ignore it). Read errors + git failures degrade inside readBoardItems. See
     // core/triage-board-read.ts.
-    const board = readBoardItems(pathRes.absolute, projectId);
+    const board = await readBoardItems(pathRes.absolute, projectId);
     const items = board.items;
     enrichWithCampaignRefs(items, projectId, deps.listCampaignRefs);
     enrichPendingDelivery(items, pathRes.absolute);
@@ -384,6 +393,95 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
   // ----------------------------------------------------------------------
   app.post("/api/triage/:projectId/snooze", async (c) => {
     return statusFlipRoute(c, "snoozed");
+  });
+
+  // ----------------------------------------------------------------------
+  // POST /api/triage/:projectId/amend — single-file DELTA write, edit-in-
+  // place (iterate-2026-08-08-triage-amend-reader AC7). `triageId` is in
+  // the JSON body, matching /dismiss + /snooze — not a URL path param.
+  // ----------------------------------------------------------------------
+  app.post("/api/triage/:projectId/amend", async (c) => {
+    const projectId = c.req.param("projectId") ?? "";
+    const project = deps.getProjectById(projectId);
+    if (!project || project.synthesized) {
+      return c.json({ error: "project_not_found", projectId }, 404);
+    }
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_json" }, 400);
+    }
+    const parsed = parseAmendBody(body);
+    if (!parsed.ok) return c.json(parsed.error, 400);
+
+    const pathRes = resolveTriagePath({
+      path: project.path,
+      synthesized: project.synthesized,
+    });
+    if (!pathRes.ok) {
+      if (pathRes.error.reason === "path_traversal") {
+        return c.json({ error: "path_traversal_rejected", projectId }, 403);
+      }
+      return c.json({ error: "project_path_invalid", projectId }, 404);
+    }
+
+    if (!existsSync(pathRes.absolute)) {
+      return c.json(
+        { error: "triage_item_not_found", triageId: parsed.value.triageId },
+        404,
+      );
+    }
+
+    let release: () => Promise<void>;
+    try {
+      release = await deps.lock(pathRes.absolute);
+    } catch (err) {
+      if (isElockedError(err)) return lockUnavailable(c);
+      throw err;
+    }
+    try {
+      const items = readAllItems(pathRes.absolute);
+      const item = findItemById(items, parsed.value.triageId);
+      if (!item) {
+        return c.json({ error: "triage_item_not_found", triageId: parsed.value.triageId }, 404);
+      }
+
+      // Edit is in-scope only for an open triage card (AC8) — an amend on
+      // a dismissed/snoozed/promoted item would correct a record whose
+      // status transition has already been decided on the old content.
+      if (item.status !== "triage") {
+        return c.json(
+          {
+            error: "triage_item_not_in_triage_state",
+            actualStatus: item.status,
+          },
+          409,
+        );
+      }
+      try {
+        amend({
+          jsonlPath: pathRes.absolute,
+          triageId: parsed.value.triageId,
+          by: "webui",
+          title: parsed.value.title,
+          detail: parsed.value.detail,
+          severity: parsed.value.severity,
+          now: deps.now,
+        });
+      } catch (err) {
+        if (err instanceof TriageWriteError) {
+          return c.json(
+            { error: err.code, message: err.message },
+            500,
+          );
+        }
+        throw err;
+      }
+      return c.json({ triageId: parsed.value.triageId, amended: true });
+    } finally {
+      await releaseQuietly(release);
+    }
   });
 
   async function statusFlipRoute(

@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-08-triage-amend-reader",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T22:47:46.131395+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T22:48:34.548176+00:00",
+      "disposition": "mini-plan is Advisory/freely-skippable per Override Classes; the mini-plan was authored (see 2026-08-08-triage-amend-reader-miniplan.md) but no external LLM plan-review cascade (Branch A/B/C) was run this session",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "performance",
+          "file": "server/src/core/triage-board-read.ts",
+          "line": null,
+          "finding": "writesRouteToOutbox called shouldRouteToOutbox() (up to 3 synchronous git spawnSync calls, 5s timeout each) on EVERY GET /api/triage/:projectId, which the client polls every 30s per registered project — an uncached, event-loop-blocking cost that scales with project count.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "shipwright_bloat_baseline.json",
+          "line": null,
+          "finding": "current line counts for server/src/core/triage-store.ts (recorded 305, actual 298) and server/src/routes/triage.ts (recorded 715, actual 692) were stale/inflated, silently hiding headroom from the anti-ratchet hook.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/triage-store.union.test.ts",
+          "line": null,
+          "finding": "The tracked/outbox union test file had cross-file coverage for status events but none for amend events specifically, even though Pass 2 dispatches both event types through the same shared sort mechanism.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-08T23:07:02.246386+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": null,
+          "category": "concurrency",
+          "file": "server/src/core/triage-board-read.ts",
+          "line": null,
+          "finding": "Claim under doubt: The 5s TTL cache on writesRouteToOutbox is read-path-only and never affects the actual write decision. — Could not disprove. Verified appendTriageEventLine calls the uncached shouldRouteToOutbox export for the real write; cachedShouldRouteToOutbox has no other caller anywhere in server/src (confirmed by grep); the cache key (projectRoot) cannot collide across distinct registered projects since each has a distinct path. Claim holds.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "concurrency",
+          "file": "server/src/routes/triage.ts",
+          "line": null,
+          "finding": "Claim under doubt: POST /amend's lock->existence->status->write ordering is race-free under concurrent requests for the same item. — Could not disprove the ordering claim. Sequence matches the pre-existing dismiss/snooze routes; the lock genuinely serializes same-id requests, no torn read. Two serialized amend requests CAN both pass the status===triage check and both write, but that is intentional (amend never touches status) and resolves correctly via resolveUnion's later-ts-wins-per-field ordering — not a race bug at the storage layer.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "correctness",
+          "file": "client/src/hooks/useTriage.ts",
+          "line": null,
+          "finding": "Claim under doubt: useTriageDisplayItem can never display item A's data under item B's identity, or crash. — Confirmed, holds literally. Every TriageDetailModal mount is scoped 1:1 to its owning project (PerProjectTriageSection always passes item and projectId from the same project's query) — no code path lets item and projectId come from different projects. No crash path found for undefined/empty live data or a transient empty projectId; the ?? item fallback resolves safely in every case tried.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageAmendForm.tsx",
+          "line": null,
+          "finding": "Claim under doubt: The ?? item fallback in useTriageDisplayItem is safe everywhere it is threaded through, including into TriageAmendForm. — Disproved — found a real, concrete lost-update bug the fallback pattern masks (not one of the three seeded claims). TriageAmendForm's local field state (title/detail/severity) was seeded once at mount via useState(item.title) etc, but buildDelta diffed that stale local state against the LIVE item prop, which useTriageDisplayItem keeps refreshing via a 30s poll while the form stays open. Sequence: operator A opens item X (severity=high) and starts editing; a second amend elsewhere changes severity to critical; A's background poll refreshes the item prop to severity=critical while A's own severity field is still visibly high (untouched); A edits only the title and saves; buildDelta compares local severity=high against the now-fresh item.severity=critical, sees a difference, and silently includes severity:high in the delta — reverting the intervening critical amend with no warning.",
+          "suggestion": "Freeze the comparison base: buildDelta must diff against the item snapshot the form was initialized with, not the live prop.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-08T23:16:22.995195+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/triage-amend.ts:98-103 (and via `tryApplyAmend`)",
+          "line": null,
+          "finding": "applyAmend` unconditionally overwrites `amendedBy`/`amendedAt` with `null` when the raw event’s `by`/`ts` are not strings. A valid amend with a non‑string or missing `by` can erase provenance from a previous valid amend, contradicting the pattern that a damaged event should be skipped whole. (Status events have a similar lack of validation, but this is a new code path and can silently lose `amendedBy`/`amendedAt`.)",
+          "suggestion": "Extend `validateAmendEvent` to require `typeof raw.by === \"string\"` and `typeof raw.ts === \"string\"`, so an event with invalid provenance fields is skipped entirely, preserving earlier values. Alternatively, in `applyAmend` only set the fields when the values are strings.  No other defects found. The implementation fulfills all acceptance criteria, the tests are comprehensive, and the performance concern from the review was addressed.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-08T23:43:58.070001+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] - Category: bug\n- Severity: medium\n- File: server/src/core/triage-amend.ts:98-103 (and via `tryApplyAmend`)\n- Finding: `applyAmend` unconditionally overwrites `amendedBy`/`amendedAt` with `null` when the raw event’s `by`/`ts` are not strings. A valid amend with a non‑string or missing `by` can erase provenance from a previous valid amend, contradicting the pattern that a damaged event should be skipped whole. (Status events have a similar lack of validation, but this is a new code path and can silently lose `amendedBy`/`amendedAt`.)\n- Suggestion: Extend `validateAmendEvent` to require `typeof raw.by === \"string\"` and `typeof raw.ts === \"string\"`, so an event with invalid provenance fields is skipped entirely, preserving earlier values. Alternatively, in `applyAmend` only set the fields when the values are strings.\n\nNo other defects found. The implementation fulfills all acceptance criteria, the tests are comprehensive, and the performance concern from the review was addressed.\n\nSHIPWRIGHT_VERDICT: revise\n\n[openai] No concrete defects found in the implementation. The reader applies `amend` events in the combined chronological pass, the route/UI enforce the open-triage and delta-only constraints, tracked-store disclosure fails toward visibility, and the open-modal cache-refresh and concurrent-edit snapshot issues are covered by both implementation and tests.\n\nOverall assessment: ship-as-is. The change appears to satisfy the stated acceptance criteria without introducing a visible correctness or security regression.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "deepseek": "revise"
+      },
+      "model_tier": "inherit"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T22:51:42.398748+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T22:48:34.700912+00:00",
+      "disposition": "opus-plan-reviewer internal plan-review sub-step was not invoked before build this session; the mini-plan proceeded straight to build after the operator's approval-gate response",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

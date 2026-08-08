@@ -217,32 +217,32 @@ describe("triage-board-read: corruption reporting", () => {
     vi.restoreAllMocks();
   });
 
-  it("emits no warning for a clean log", () => {
+  it("emits no warning for a clean log", async () => {
     writeFileSync(jsonlPath, HEADER + LF + appendLine("trg-clean001") + LF);
-    const board = readBoardItems(jsonlPath, "proj-1");
+    const board = await readBoardItems(jsonlPath, "proj-1");
     expect(board.items).toHaveLength(1);
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("emits no warning when a concatenation is fully recovered", () => {
+  it("emits no warning when a concatenation is fully recovered", async () => {
     // Nothing was lost, so there is nothing to report.
     writeFileSync(
       jsonlPath,
       HEADER + LF + appendLine("trg-cat00001") + appendLine("trg-cat00002") + LF,
     );
-    const board = readBoardItems(jsonlPath, "proj-1");
+    const board = await readBoardItems(jsonlPath, "proj-1");
     expect(board.items).toHaveLength(2);
     expect(warn).not.toHaveBeenCalled();
   });
 
-  it("emits exactly one structured warning carrying bounded metadata only", () => {
+  it("emits exactly one structured warning carrying bounded metadata only", async () => {
     const sentinel = "UNRECOVERABLE-SENTINEL-VALUE";
     writeFileSync(
       jsonlPath,
       HEADER + LF + appendLine("trg-part0001") + sentinel + LF,
     );
 
-    const board = readBoardItems(jsonlPath, "proj-42");
+    const board = await readBoardItems(jsonlPath, "proj-42");
 
     // Partial recovery still happened.
     expect(board.items.map((it) => it.id)).toEqual(["trg-part0001"]);
@@ -265,14 +265,14 @@ describe("triage-board-read: corruption reporting", () => {
     expect(warn.mock.calls[0][0]).not.toContain(sentinel);
   });
 
-  it("reports the true fragment count while capping the sample", () => {
+  it("reports the true fragment count while capping the sample", async () => {
     const lines = [HEADER];
     for (let i = 0; i < 9; i += 1) {
       lines.push(appendLine(`trg-many000${i}`) + "garbage");
     }
     writeFileSync(jsonlPath, lines.join(LF) + LF);
 
-    readBoardItems(jsonlPath, "proj-7");
+    await readBoardItems(jsonlPath, "proj-7");
 
     const payload = JSON.parse(warn.mock.calls[0][0] as string);
     // True total is reported in full; the sample is bounded so one log event

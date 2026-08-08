@@ -51,6 +51,7 @@ vi.mock("../hooks/useTriage", () => ({
     mutateAsync: vi.fn(),
     isPending: false,
   }),
+  useTriageDisplayItem: (_projectId: string, item: unknown) => item,
 }));
 
 function makeWrapper() {
@@ -94,6 +95,8 @@ const mockItem = (id: string, status = "triage"): TriageItem => ({
   promotedTaskId: null,
   revisitAt: null,
   revisitDue: false,
+  amendedBy: null,
+  amendedAt: null,
 });
 
 describe("TriagePage", () => {

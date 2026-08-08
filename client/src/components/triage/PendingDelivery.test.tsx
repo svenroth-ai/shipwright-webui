@@ -26,6 +26,9 @@ vi.mock("../../hooks/useTriage", () => ({
   useDismissTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSnoozeTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePromoteTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useTriageDrift: () => ({ data: { available: false, behind: null } }),
+  useAmendTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useTriageDisplayItem: (_projectId: string, item: unknown) => item,
 }));
 vi.mock("../../hooks/useProjectActions", () => ({
   useProjectActions: () => ({
@@ -71,6 +74,8 @@ const baseItem: TriageItem = {
   promotedTaskId: null,
   revisitAt: null,
   revisitDue: false,
+  amendedBy: null,
+  amendedAt: null,
 };
 
 describe("PendingDeliveryBadge", () => {
