@@ -1,42 +1,31 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-07-28-security-accepted-risk-register"
-phase: "iterate"
-reason: "iterate: security triage — fix two reachable CVEs, register three unreachable ones"
-timestamp: "2026-07-28T11:34:31.069404+00:00"
+run_id: "changelog-v0.24.0-20260808-1500"
+phase: "changelog"
+reason: "release v0.24.0"
+timestamp: "2026-08-08T20:38:36.160644+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-07-28 11:34:31 UTC
+> Auto-generated 2026-08-08 20:38:36 UTC
 
 ## Session Info
 
-- **Session ID**: 0dc6357a-6597-47d3-a868-6843aefe4ec8
-- **Timestamp**: 2026-07-28 11:34:31 UTC
-- **Reason**: iterate: security triage — fix two reachable CVEs, register three unreachable ones
+- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
+- **Timestamp**: 2026-08-08 20:38:36 UTC
+- **Reason**: release v0.24.0
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-28-security-accepted-risk-register
-- **Date**: 2026-07-28T11:34:24.986308Z
+- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
+- **Date**: 2026-08-08T10:36:25.721563Z
 - **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/security-accepted-risk-register
-- **ADR**: iterate-2026-07-28-security-accepted-risk-register
+- **Branch**: iterate/tests-total-skip-contract
+- **ADR**: iterate-2026-08-08-tests-total-skip-contract
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-07-28-security-accepted-risk-register.md
-
-## Current Iterate Progress
-
-- **Branch**: iterate/security-accepted-risk-register
-- **Spec**: .shipwright/planning/iterate/iterate-2026-07-28-security-accepted-risk-register.md
-- **External Review Marker**: stale (predates spec (2026-07-23T14:23:38))
-
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Finalization (F0–F11) after all mandatory phases pass
+- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
 
 ## Legacy build state
 
@@ -49,8 +38,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/security-accepted-risk-register
-- **Last Commit**: 7bdfd411 chore(triage): sweep 1 outbox append(s) into branch
+- **Branch**: feat/track-model-config-allowlist
+- **Last Commit**: e76e3fc1 chore(release): v0.24.0
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -66,17 +55,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-21f562ff | grade_snapshot | — | 2026-07-28 |
-| evt-742d79a1 | work_completed | iterate (iterate: security triage — fix two reachable CVEs, register three unreachable ones) | 2026-07-28 |
-| evt-e02ce62d | work_completed | iterate (iterate: Mac terminal freeze — revive the dead socket on user interaction + a faster heartbeat) | 2026-07-27 |
-| evt-888b32ba | work_completed | iterate (iterate: post-replay redraw nudge so a restored terminal snapshot is repainted, not patched over) | 2026-07-27 |
-| evt-9e299f3c | work_completed | iterate (iterate: terminal renders via DOM by default; GPU acceleration becomes an opt-in Settings toggle) | 2026-07-24 |
+| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
+| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
+| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
+| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
+| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 381
-- **Last iterate**: change — iterate: security triage — fix two reachable CVEs, register three unreachable ones (2026-07-28)
+- **Total work events**: 398
+- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

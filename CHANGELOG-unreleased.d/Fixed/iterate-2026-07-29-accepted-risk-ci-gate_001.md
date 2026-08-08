@@ -1,1 +1,0 @@
-The accepted-risk gate no longer reports a missing PyYAML as drift. It previously died on an unhandled traceback with the same exit code as a real finding, so "the gate could not run" was indistinguishable from "the gate ran and found something"; it now exits with the fail-closed code and names the fix.

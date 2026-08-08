@@ -1,1 +1,0 @@
-Triage status writes no longer risk truncating the tracked backlog on its first write: the schema-header bootstrap now uses an atomic exclusive-create instead of a check-then-write, closing a file-system race (CodeQL js/file-system-race, alert 292).

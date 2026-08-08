@@ -1,1 +1,0 @@
-The manifest's recorded upstream hashes were CRLF working-tree hashes that matched no upstream git object — a Windows `core.autocrlf` artifact in a field nothing verified. They now record the upstream git blob (LF) alongside a new `canonical_commit`, reproducible on any platform with `git show <commit>:<path> | sha256sum`.

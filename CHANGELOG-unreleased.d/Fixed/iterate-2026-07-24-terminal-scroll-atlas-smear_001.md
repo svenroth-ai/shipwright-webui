@@ -1,1 +1,0 @@
-Embedded terminal: wrong or smeared letters after resizing the terminal and then scrolling. The terminal now draws without GPU acceleration by default, which removes the corrupting glyph cache entirely instead of patching one more trigger.

@@ -1,1 +1,0 @@
-Windows command resolution now lives in `server/src/core/win32-spawn.ts`; `preview-win32-spawn.ts` is a thin wrapper that adds the preview error type, so the boot-time Claude CLI version probe no longer pulls the preview subsystem into its import graph.
