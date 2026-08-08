@@ -106,6 +106,9 @@ client/e2e/.poc-screenshots/
 /.shipwright/agent_docs/iterates/*.test-results.json.*.tmp
 /.shipwright/compliance/context-cost/
 /.shipwright/agent_docs/*.tmp
+/.shipwright/agent_docs/decision-drops/INDEX.md
+/.shipwright/agent_docs/decision-drops/*.tmp
+/.shipwright/agent_docs/decision-drops-legacy-pending-scan/
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)
