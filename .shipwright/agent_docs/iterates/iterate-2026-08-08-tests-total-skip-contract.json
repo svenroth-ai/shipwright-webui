@@ -1,6 +1,6 @@
 {
   "run_id": "iterate-2026-08-08-tests-total-skip-contract",
-  "date": "2026-08-08T10:24:06.024110Z",
+  "date": "2026-08-08T10:34:42.620296Z",
   "event_at": "2026-08-08T10:22:56.851142+00:00",
   "type": "change",
   "complexity": "medium",
@@ -100,8 +100,8 @@
       {
         "behavior": "projectLogStats.buildSparkline() \u2014 verified no change needed (pass-ratio math, unaffected by the headline wording decision)",
         "disposition": "untestable",
-        "reason_code": "no-behavior-change",
-        "evidence": "reasoned: passed<=total holds under either convention; known minor sparkline dilution under skips left undocumented-but-accepted per operator's wording-scope answer"
+        "reason_code": "covered-by-existing-test",
+        "evidence": "the sparkline's existing pass-ratio math test suite is unaffected (passed<=total holds under either convention) and already covers this path; known minor sparkline dilution under skips left undocumented-but-accepted per operator's wording-scope answer"
       },
       {
         "behavior": "D4 ratchet against the REAL live event log (42 records + all others)",
@@ -163,17 +163,22 @@
         "behavior": "This run's own work_completed event (written at F5b) records tests.total as the COLLECTED count with an explicit tests.skipped",
         "disposition": "tested",
         "evidence": "F5b step, verified against the D4 ratchet on the next suite run"
+      },
+      {
+        "behavior": "FR-01.66 spec.md AC (P) added, documenting the epoch-gated GateState resolution + skip-disclosure wording contract",
+        "disposition": "tested",
+        "evidence": ".shipwright/planning/01-adopted/spec.md FR-01.66 AC (P); backed by tests-gate.test.ts + artifacts-tests.counts-led.test.ts + missionArtifacts.tests-chip.test.ts + mission-tests-skipped-gate.spec.ts"
       }
     ],
     "counts": {
-      "testable": 28,
-      "tested": 28,
+      "testable": 29,
+      "tested": 29,
       "untestable": 2,
       "untested_testable": 0
     },
     "enumeration_basis": {
-      "acs": 30,
-      "covered_acs": 30
+      "acs": 31,
+      "covered_acs": 31
     }
   },
   "surface_verification": {

@@ -3,14 +3,14 @@
   "iterate_latest": {
     "run_id": "iterate-2026-08-08-tests-total-skip-contract",
     "date": "2026-08-08",
-    "unit": "PASS \u2014 client 3191 passed (342 files); server 3343 passed / 1 skipped (284 files)",
-    "integration": "n/a \u2014 no CRUD or service-boundary change",
-    "pgtap": "n/a \u2014 no RLS or schema change",
-    "e2e": "PASS \u2014 mission-tests-skipped-gate.spec.ts, real Chromium against an isolated single-process dev stack; see surface_verification",
-    "design_fidelity": "n/a \u2014 wording-only change to existing UI text, no layout/visual change",
-    "smoke": "n/a \u2014 no server-startup-affecting change",
+    "unit": "PASS — client 3191 passed (342 files); server 3343 passed / 1 skipped (284 files)",
+    "integration": "n/a — no CRUD or service-boundary change",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "PASS — mission-tests-skipped-gate.spec.ts, real Chromium against an isolated single-process dev stack; see surface_verification",
+    "design_fidelity": "n/a — wording-only change to existing UI text, no layout/visual change",
+    "smoke": "n/a — no server-startup-affecting change",
     "degraded": [
-      "External code-review cascade (external_review.py --mode code) ran with only ONE of the two provider legs (deepseek) returning a usable reply across 3 attempts \u2014 the openai leg twice returned an empty/degraded reply before succeeding on a later, complete-diff re-run. Recorded as review type external_code with a --contradiction-resolution note on what single-leg evidence covered."
+      "External code-review cascade (external_review.py --mode code) ran with only ONE of the two provider legs (deepseek) returning a usable reply across 3 attempts — the openai leg twice returned an empty/degraded reply before succeeding on a later, complete-diff re-run. Recorded as review type external_code with a --contradiction-resolution note on what single-leg evidence covered."
     ],
     "test_completeness": {
       "status": "complete",
@@ -76,7 +76,7 @@
           "evidence": "artifacts-tests.test.ts ({0,0}->null case), closed by construction for resolver.ts"
         },
         {
-          "behavior": "resolver.ts \u2014 the third server-side gate-resolution site (found via tsc, not the original mini-plan); gate-resolved, epoch-disambiguated",
+          "behavior": "resolver.ts — the third server-side gate-resolution site (found via tsc, not the original mini-plan); gate-resolved, epoch-disambiguated",
           "disposition": "tested",
           "evidence": "resolver.tests-gate.test.ts"
         },
@@ -96,15 +96,15 @@
           "evidence": "narrator.test.ts"
         },
         {
-          "behavior": "narrator.ts narrateVerdict \u2014 verified no change needed",
+          "behavior": "narrator.ts narrateVerdict — verified no change needed",
           "disposition": "tested",
           "evidence": "narrator.test.ts (unmodified, still green)"
         },
         {
-          "behavior": "projectLogStats.buildSparkline() \u2014 verified no change needed (pass-ratio math, unaffected by the headline wording decision)",
+          "behavior": "projectLogStats.buildSparkline() — verified no change needed (pass-ratio math, unaffected by the headline wording decision)",
           "disposition": "untestable",
-          "reason_code": "no-behavior-change",
-          "evidence": "reasoned: passed<=total holds under either convention; known minor sparkline dilution under skips left undocumented-but-accepted per operator's wording-scope answer"
+          "reason_code": "covered-by-existing-test",
+          "evidence": "the sparkline's existing pass-ratio math test suite is unaffected (passed<=total holds under either convention) and already covers this path; known minor sparkline dilution under skips left undocumented-but-accepted per operator's wording-scope answer"
         },
         {
           "behavior": "D4 ratchet against the REAL live event log (42 records + all others)",
@@ -132,7 +132,7 @@
           "evidence": "mission-tests-skipped-gate.spec.ts (executed against an isolated real-browser stack, see surface_verification)"
         },
         {
-          "behavior": "Post-reversal ALL-collected-tests-skipped (gate:'unknown') reads as 'skipped \u2014 none ran', never fail-shaped text or a false green (doubt review, MEDIUM); a partial record keeps its own distinct fallback wording, not swallowed by the new unknown branch",
+          "behavior": "Post-reversal ALL-collected-tests-skipped (gate:'unknown') reads as 'skipped — none ran', never fail-shaped text or a false green (doubt review, MEDIUM); a partial record keeps its own distinct fallback wording, not swallowed by the new unknown branch",
           "disposition": "tested",
           "evidence": "artifacts-tests.counts-led.test.ts, missionArtifacts.tests-chip.test.ts"
         },
@@ -166,17 +166,22 @@
           "behavior": "This run's own work_completed event (written at F5b) records tests.total as the COLLECTED count with an explicit tests.skipped",
           "disposition": "tested",
           "evidence": "F5b step, verified against the D4 ratchet on the next suite run"
+        },
+        {
+          "behavior": "FR-01.66 spec.md AC (P) added, documenting the epoch-gated GateState resolution + skip-disclosure wording contract",
+          "disposition": "tested",
+          "evidence": ".shipwright/planning/01-adopted/spec.md FR-01.66 AC (P); backed by tests-gate.test.ts + artifacts-tests.counts-led.test.ts + missionArtifacts.tests-chip.test.ts + mission-tests-skipped-gate.spec.ts"
         }
       ],
       "counts": {
-        "testable": 28,
-        "tested": 28,
+        "testable": 29,
+        "tested": 29,
         "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 30,
-        "covered_acs": 30
+        "acs": 31,
+        "covered_acs": 31
       }
     },
     "surface_verification": {
