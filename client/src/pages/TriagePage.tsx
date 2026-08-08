@@ -24,17 +24,24 @@
  * Empty-state copy: verbatim from `aggregate_triage.py` line 170.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useProjects } from "../hooks/useProjects";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useProjectFilter } from "../hooks/useProjectFilter";
-import { useTriageCounts } from "../hooks/useTriage";
+import { useAllTriageItems, useTriageCounts } from "../hooks/useTriage";
+import { useTriageViewState } from "../hooks/useTriageViewState";
 import { PerProjectTriageSection } from "../components/triage/PerProjectTriageSection";
+import { TriageFilterSortBar } from "../components/triage/TriageFilterSortBar";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
+import {
+  selectVisibleDeferredItems,
+  selectVisibleOpenItems,
+} from "../lib/triageFilterSort";
+import { filterTriage } from "../lib/triageApi";
 import type { FixNowIntent } from "../components/triage/fixNowIntent";
 
 interface FixNowModalState {
@@ -54,7 +61,70 @@ export default function TriagePage() {
   const { data: counts } = useTriageCounts();
   const navigate = useNavigate();
   const { setActiveProjectId } = useProjectFilter();
-  const realProjects = projects.filter((p) => !p.synthesized);
+  // Memoized so `projectIds` below stabilizes across renders when
+  // `projects` itself hasn't changed — `projects.filter(...)` alone is a
+  // fresh array identity every render (code-reviewer finding). This does
+  // NOT make the allItems/availableDomains/aggregate chain skip
+  // recomputation on every render — `useAllTriageItems` returns a fresh
+  // array of query-observer results each render (no `combine`), so those
+  // stay cheap-but-unmemoized derivations; only `projectIds` itself is
+  // stable here.
+  const realProjects = useMemo(() => projects.filter((p) => !p.synthesized), [projects]);
+
+  // iterate-2026-08-08-triage-filters-sort-parked — view-only filter/sort
+  // state (in-memory, no persistence, no store write). `useAllTriageItems`
+  // shares its cache entries with each section's own `useTriageItems`
+  // (same queryKey — see useTriage.ts) so this costs no extra network
+  // calls; it exists only to compute the live Domain filter options and
+  // the page-level aggregate hidden-count below.
+  const view = useTriageViewState();
+  const projectIds = useMemo(() => realProjects.map((p) => p.id), [realProjects]);
+  const allItemsQueries = useAllTriageItems(projectIds);
+  const allItems = useMemo(
+    () => allItemsQueries.flatMap((q) => q.data ?? []),
+    [allItemsQueries],
+  );
+  const availableDomains = useMemo(
+    () => [...new Set(allItems.map((it) => it.suggestedDomain))].sort(),
+    [allItems],
+  );
+  // Denominator is openItems+deferredItems (what this tab ever renders),
+  // NOT allItems.length — promoted/dismissed items are excluded from
+  // both selectors and must not count toward "everything is filtered
+  // out", or a project with only promoted/dismissed items would
+  // misreport as filtered rather than genuinely empty.
+  //
+  // hiddenCount counts ONLY attribute-filter-caused hiding (Priority/
+  // Domain/Complexity), not Parked's own default-hidden state — deferred
+  // items are re-selected with `showParked` forced true so a dated,
+  // not-due park (hidden by design, not by an active filter) never counts
+  // toward this banner. `view.clearFilters()` resets filters to
+  // DEFAULT_FILTER_STATE, whose `showParked` is `false` — it does NOT
+  // reveal Parked items, so counting Parked-hidden items here would show
+  // "clear filters to see them" copy over a button that does nothing for
+  // them (code-reviewer re-review finding NEW-1). The Parked-hidden case
+  // already has its own affordance: DeferredTriageSection's own AC7 hint
+  // + the Parked filter chip, both per-project and independent of this
+  // page-level banner.
+  const { hiddenCount: aggregateHiddenCount, relevantCount: aggregateRelevantCount } = useMemo(() => {
+    const openItems = filterTriage(allItems);
+    const deferredItems = allItems.filter((it) => it.status === "snoozed");
+    const openSelection = selectVisibleOpenItems(openItems, view.filters);
+    const deferredAttributeOnly = selectVisibleDeferredItems(deferredItems, {
+      ...view.filters,
+      showParked: true,
+    });
+    return {
+      hiddenCount: openSelection.hiddenCount + deferredAttributeOnly.hiddenCount,
+      relevantCount: openItems.length + deferredItems.length,
+    };
+  }, [allItems, view.filters]);
+  // Every relevant item filtered out, but relevant items DO exist — the
+  // distinct state from "genuinely nothing is open" (which stays keyed
+  // off the unfiltered server counts below, never off what's currently
+  // visible — AC5's page-scope correction from plan review).
+  const allFilteredOut =
+    aggregateRelevantCount > 0 && aggregateHiddenCount === aggregateRelevantCount;
 
   // FR-01.33 — after Start Campaign / Go to board, focus the board on the
   // campaign's project (so its lane is visible) and navigate to the board ("/").
@@ -117,20 +187,52 @@ export default function TriagePage() {
             </p>
           ) : (
             <>
+              <TriageFilterSortBar view={view} availableDomains={availableDomains} />
               {realProjects.map((project) => (
                 <PerProjectTriageSection
                   key={project.id}
                   project={project}
+                  filters={view.filters}
+                  sort={view.sort}
                   onFixNow={onFixNow}
                   onNavigateToBoard={onNavigateToBoard}
                 />
               ))}
+              {/* Genuinely nothing open or parked — stays keyed off the
+                  UNFILTERED server counts, never off what's currently
+                  visible (AC5's page-scope correction). Checked first: it
+                  and allFilteredOut are mutually exclusive by construction
+                  (allFilteredOut requires relevant items to exist). */}
               {counts !== undefined && totalTriage === 0 && totalDeferred === 0 && (
                 <p
                   className="text-center text-sm text-[var(--muted)] py-8"
                   data-testid="triage-empty-state"
                 >
                   No triage items pending. ✓
+                </p>
+              )}
+              {/* Items exist, but the active filters hide every one of
+                  them — distinct from the genuine-empty state above, so
+                  "nothing is open" and "nothing matches your filter" are
+                  never conflated (AC5). "clear filters" is a real button
+                  (view.clearFilters, resets filters only, leaves sort
+                  alone) — code-reviewer caught the copy promising an
+                  affordance the first draft never built. */}
+              {allFilteredOut && (
+                <p
+                  className="text-center text-sm text-[var(--muted)] py-8"
+                  data-testid="triage-all-filtered-out"
+                >
+                  {aggregateHiddenCount} hidden by the active filters —{" "}
+                  <button
+                    type="button"
+                    onClick={view.clearFilters}
+                    className="underline hover:text-[var(--ink)]"
+                    data-testid="triage-all-filtered-out-clear"
+                  >
+                    clear filters
+                  </button>{" "}
+                  to see them.
                 </p>
               )}
             </>

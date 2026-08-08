@@ -1,12 +1,19 @@
 /*
- * PerProjectTriageSection.tsx — one project's Triage tab section: open
- * items (source-grouped, severity-sorted) plus the Deferred section below.
+ * PerProjectTriageSection.tsx — one project's Triage tab section: a flat,
+ * filtered + sorted open-items list (iterate-2026-08-08-triage-filters-
+ * sort-parked replaced the old per-source grouped sections with this)
+ * plus the Deferred section below.
  *
  * Extracted out of TriagePage.tsx (iterate-2026-08-05-triage-deferred-
  * envelope) — that file is bloat-baselined at exactly 283 lines with zero
  * headroom, so mounting DeferredTriageSection required this move first.
- * Behavior for the open-items half is otherwise unchanged from the
- * pre-extraction `PerProjectSection`.
+ *
+ * The section's visibility gate is keyed off the RAW (pre-filter) item
+ * counts, never the filtered/visible counts — a project whose items are
+ * all filtered out must still render its heading + hidden-count line,
+ * never silently `null` (AC5; corrected during internal plan review,
+ * where the first draft gated on the filtered arrays and would have
+ * made a fully-filtered project vanish with no explanation).
  */
 
 import { useMemo, useState } from "react";
@@ -16,6 +23,14 @@ import { TriageItemCard } from "./TriageItemCard";
 import { TriageDetailModal } from "./TriageDetailModal";
 import { DeferredTriageSection } from "./DeferredTriageSection";
 import { sortDeferred } from "../../lib/sortDeferred";
+import {
+  formatCount,
+  selectVisibleDeferredItems,
+  selectVisibleOpenItems,
+  sortItems,
+  type TriageFilterState,
+  type TriageSortState,
+} from "../../lib/triageFilterSort";
 import type { FixNowIntent } from "./fixNowIntent";
 import type { TriageItem, TriageSeverity } from "../../lib/triageApi";
 import { filterTriage } from "../../lib/triageApi";
@@ -31,10 +46,14 @@ export const SEVERITY_RANK: Record<TriageSeverity, number> = {
 
 export function PerProjectTriageSection({
   project,
+  filters,
+  sort,
   onFixNow,
   onNavigateToBoard,
 }: {
   project: Project;
+  filters: TriageFilterState;
+  sort: TriageSortState;
   onFixNow: (projectId: string, intent: FixNowIntent) => void;
   onNavigateToBoard: (projectId: string) => void;
 }) {
@@ -42,34 +61,30 @@ export function PerProjectTriageSection({
   const { data: drift } = useTriageDrift(project.id);
   const [selected, setSelected] = useState<TriageItem | null>(null);
 
-  const triageItems = useMemo(() => filterTriage(items), [items]);
-  const deferredItems = useMemo(
-    () => sortDeferred(items.filter((it) => it.status === "snoozed"), SEVERITY_RANK),
+  // Raw (unfiltered) buckets — used both as selector input and, crucially,
+  // as the section's visibility gate (AC5 — never gate on the filtered result).
+  const openItems = useMemo(() => filterTriage(items), [items]);
+  const deferredItemsRaw = useMemo(
+    () => items.filter((it) => it.status === "snoozed"),
     [items],
   );
 
-  const itemsBySource = useMemo(() => {
-    const map = new Map<string, TriageItem[]>();
-    for (const it of triageItems) {
-      const arr = map.get(it.source) ?? [];
-      arr.push(it);
-      map.set(it.source, arr);
-    }
-    for (const arr of map.values()) {
-      arr.sort((a, b) => {
-        const sevDiff =
-          SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
-        if (sevDiff !== 0) return sevDiff;
-        // Newest-first within stable severity rank
-        return b.originalTs.localeCompare(a.originalTs);
-      });
-    }
-    return map;
-  }, [triageItems]);
+  const { visible: visibleOpen, hiddenCount: openHiddenCount } = useMemo(
+    () => selectVisibleOpenItems(openItems, filters),
+    [openItems, filters],
+  );
+  const sortedVisibleOpen = useMemo(
+    () => sortItems(visibleOpen, sort),
+    [visibleOpen, sort],
+  );
 
-  const sortedSources = useMemo(
-    () => [...itemsBySource.keys()].sort(),
-    [itemsBySource],
+  const { visible: visibleDeferred, hiddenCount: deferredHiddenCount } = useMemo(
+    () => selectVisibleDeferredItems(deferredItemsRaw, filters),
+    [deferredItemsRaw, filters],
+  );
+  const sortedVisibleDeferred = useMemo(
+    () => sortDeferred(visibleDeferred, SEVERITY_RANK),
+    [visibleDeferred],
   );
 
   if (isLoading) {
@@ -81,17 +96,17 @@ export function PerProjectTriageSection({
     );
   }
 
-  if (triageItems.length === 0 && deferredItems.length === 0) {
+  if (openItems.length === 0 && deferredItemsRaw.length === 0) {
     return null;
   }
 
   return (
     <section className="mb-8" data-testid={`triage-project-${project.id}`}>
-      {/* on-photo-legibility fix: the project name + its (count) subtitle and
-          the per-source group headers (below) ride bare on the deck-golden
-          photo, so they use the flipping Weather-Deck `--ink` / `--muted`
-          tokens (white under `.on-photo`), NOT the legacy `--color-text` /
-          `--color-muted` aliases (computed at :root → stay dark, invisible). */}
+      {/* on-photo-legibility fix: the project name + its (count) subtitle
+          ride bare on the deck-golden photo, so they use the flipping
+          Weather-Deck `--ink` / `--muted` tokens (white under
+          `.on-photo`), NOT the legacy `--color-text` / `--color-muted`
+          aliases (computed at :root → stay dark, invisible). */}
       <h2 className="text-base font-semibold mb-3 flex items-center gap-2 text-[var(--ink)]">
         <span
           className="inline-block w-2 h-2 rounded-full"
@@ -101,7 +116,7 @@ export function PerProjectTriageSection({
         />
         <span>{project.name}</span>
         <span className="text-xs text-[var(--muted)] font-normal">
-          ({triageItems.length})
+          ({formatCount(sortedVisibleOpen.length, openItems.length)})
         </span>
       </h2>
       {drift?.behind != null && drift.behind > 0 && (
@@ -117,23 +132,30 @@ export function PerProjectTriageSection({
             : ""}
         </div>
       )}
-      {sortedSources.map((source) => (
-        <div key={source} className="mb-4">
-          <h3 className="text-xs font-semibold text-[var(--ink)] uppercase mb-2">
-            {source} ({itemsBySource.get(source)!.length})
-          </h3>
-          <div className="space-y-2">
-            {itemsBySource.get(source)!.map((item) => (
-              <TriageItemCard
-                key={item.id}
-                item={item}
-                onClick={() => setSelected(item)}
-              />
-            ))}
-          </div>
+      {openHiddenCount > 0 && (
+        <p
+          className="text-xs text-[var(--muted)] mb-2"
+          data-testid={`triage-hidden-count-${project.id}`}
+        >
+          {openHiddenCount} hidden by filter.
+        </p>
+      )}
+      {sortedVisibleOpen.length > 0 && (
+        <div className="space-y-2 mb-4" data-testid={`triage-open-items-${project.id}`}>
+          {sortedVisibleOpen.map((item) => (
+            <TriageItemCard
+              key={item.id}
+              item={item}
+              onClick={() => setSelected(item)}
+            />
+          ))}
         </div>
-      ))}
-      <DeferredTriageSection items={deferredItems} onClick={setSelected} />
+      )}
+      <DeferredTriageSection
+        items={sortedVisibleDeferred}
+        hiddenCount={deferredHiddenCount}
+        onClick={setSelected}
+      />
       {selected && (
         <TriageDetailModal
           open={Boolean(selected)}

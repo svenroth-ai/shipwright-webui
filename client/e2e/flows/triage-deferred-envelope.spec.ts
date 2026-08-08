@@ -113,8 +113,14 @@ test.describe("Triage Deferred section", () => {
     await expect(page.getByTestId("triage-item-trg-past0002")).toBeVisible();
 
     // AC6 — the Deferred section carries exactly the two still-parked items.
+    // iterate-2026-08-08-triage-filters-sort-parked: the Parked filter
+    // defaults to HIDDEN, so the dated park (future003) starts hidden and
+    // the undated one (nodate004) stays visible via its own AC9 exception
+    // — "1 of 2", not "2", until Parked is switched on.
     const deferred = page.getByTestId("triage-deferred-section");
     await expect(deferred).toBeVisible();
+    await expect(deferred).toContainText("Deferred (1 of 2)");
+    await page.getByTestId("triage-filter-parked-parked").click();
     await expect(deferred).toContainText("Deferred (2)");
 
     const futureCard = page.getByTestId("triage-deferred-item-trg-future003");
@@ -178,6 +184,10 @@ test.describe("Triage Deferred section", () => {
     await modal.getByTestId("triage-snooze").click();
     await expect(modal).toBeHidden();
 
+    // iterate-2026-08-08-triage-filters-sort-parked: the newly-snoozed item
+    // is a DATED park, hidden by the Parked filter's own default (off) —
+    // switch it on to see it, same as any other dated park.
+    await page.getByTestId("triage-filter-parked-parked").click();
     const deferredCard = page.getByTestId("triage-deferred-item-trg-a0000001");
     await expect(deferredCard).toBeVisible({ timeout: 15000 });
     await expect(

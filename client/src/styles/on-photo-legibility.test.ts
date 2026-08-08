@@ -45,6 +45,7 @@ const TOUCHED = [
   "pages/InboxPage.tsx",
   "pages/TriagePage.tsx",
   "components/triage/PerProjectTriageSection.tsx",
+  "components/triage/DeferredTriageSection.tsx",
 ];
 
 describe("on-photo legibility — AC1 flipping-token fence", () => {
@@ -72,6 +73,32 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
     expect(src).toMatch(/text-\[var\(--muted\)\]/);
     expect(src).not.toMatch(/text-\[var\(--color-text\)\]/);
     expect(src).not.toMatch(/text-\[var\(--color-muted\)\]/);
+  });
+
+  it("Deferred section's heading + hidden-count hint (bare on-photo) use the flipping tokens — but its in-card item detail (opaque surface) may keep --color-muted (iterate-2026-08-08-triage-filters-sort-parked, AC7)", () => {
+    const src = read("components/triage/DeferredTriageSection.tsx");
+    // The <h3> and the AC7 hint ride bare on the photo, like the group/project
+    // headers above — must use the flipping tokens.
+    expect(src).toMatch(/text-\[var\(--ink\)\]/);
+    expect(src).toContain('data-testid="triage-deferred-hidden-count"');
+    // A real fence, not just a presence check (code-reviewer finding #7).
+    // No exact-string pin on the full className here (re-review finding
+    // NEW-7 — a harmless addition like `mt-1` would redden this for no
+    // legibility reason, and it's redundant with the regex fence below,
+    // which already fails closed on the load-bearing property):
+    // this file legitimately keeps --color-muted / --color-text for the id
+    // + revisit-date + title spans (they sit inside the opaque
+    // bg-[var(--color-surface)] item buttons), so a whole-file ban would be
+    // a false positive. Instead, isolate the specific hidden-count-hint
+    // element by its unique testid and assert THAT element's className
+    // never regresses to the legacy alias — a future edit that swaps
+    // `--muted` back to `--color-muted` on this one line goes RED even
+    // though the file still contains `--color-muted` elsewhere.
+    const hintElement = src.match(
+      /<p\s+className="([^"]*)"\s+data-testid="triage-deferred-hidden-count"/,
+    );
+    expect(hintElement).not.toBeNull();
+    expect(hintElement?.[1]).not.toMatch(/--color-muted/);
   });
 });
 
