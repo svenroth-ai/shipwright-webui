@@ -110,6 +110,8 @@ client/e2e/.poc-screenshots/
 /.shipwright/agent_docs/iterates/*.iterate_timings.jsonl
 /.shipwright/agent_docs/iterates/*.iterate_timings.jsonl.lock
 /.shipwright/agent_docs/iterates/*.test-results.json.*.tmp
+/.shipwright/compliance/context-cost/
+/.shipwright/agent_docs/*.tmp
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)
