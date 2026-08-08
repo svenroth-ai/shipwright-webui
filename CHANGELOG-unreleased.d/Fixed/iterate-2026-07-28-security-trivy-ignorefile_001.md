@@ -1,1 +1,0 @@
-The accepted-risk suppressions in `.trivyignore.yaml` now actually apply: the CI Trivy step passes `--ignorefile` explicitly, since Trivy auto-discovers only the flat `.trivyignore` and the YAML form is experimental — without it the file was never read at all.

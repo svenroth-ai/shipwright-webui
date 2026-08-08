@@ -1,1 +1,0 @@
-The installer no longer reports a working Python as missing on machines where it is installed from the Microsoft Store, and command paths containing characters like `&` (for example a `C:\R&D\` folder) no longer break Claude CLI detection or the prerequisite check.

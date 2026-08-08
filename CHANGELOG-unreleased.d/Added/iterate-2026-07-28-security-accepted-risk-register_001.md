@@ -1,1 +1,0 @@
-New accepted-risk register `shipwright_accepted_risks.yaml` recording why each consciously accepted security finding is accepted and when it must be revisited; `.trivyignore.yaml` keeps only the suppression itself and now points at the register.

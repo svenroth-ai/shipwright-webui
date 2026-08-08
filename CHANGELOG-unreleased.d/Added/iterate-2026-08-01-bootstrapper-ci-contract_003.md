@@ -1,1 +1,0 @@
-A weekly Monday check of that contract. The manifest can change without anyone opening a pull request here, so waiting for the next PR would find the breakage by coincidence. If the check cannot reach GitHub on a pull request it is skipped loudly rather than failing your build; on the weekly run it fails, because a silent green would be indistinguishable from a real pass.

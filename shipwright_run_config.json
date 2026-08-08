@@ -8,13 +8,14 @@
     "changelog",
     "deploy"
   ],
-  "status": "needs_validation",
-  "current_step": "changelog",
+  "status": "in_progress",
+  "current_step": "design",
   "completed_steps": [
     "project",
     "plan",
     "build",
-    "test"
+    "test",
+    "changelog"
   ],
   "profile": "vite-hono",
   "scope": "full_app",
@@ -99,6 +100,14 @@
         "date": "2026-05-31",
         "version": "v0.17.0",
         "outcome": "tagged"
+      },
+      {
+        "run_id": "changelog-v0.24.0-20260808-1500",
+        "at": "2026-08-08T20:38:58.075223+00:00",
+        "event_at": "2026-08-08T20:38:36.160644+00:00",
+        "date": "2026-08-08",
+        "version": "v0.24.0",
+        "outcome": "tagged"
       }
     ]
   },
@@ -107,12 +116,5 @@
   "_iterate_migration_ts": "2026-04-30T19:43:37.090192+00:00",
   "_iterate_migration_quarantined_count": 0,
   "created_at": "2026-04-30T19:43:37.090192+00:00",
-  "updated_at": "2026-05-31T20:12:18.374652+00:00",
-  "validation_issues": [
-    {
-      "step": "changelog",
-      "severity": "ask",
-      "message": "[canon] F2 ADR status values valid: invalid statuses: [\"ADR-063='reverted via merge revert'\", \"ADR-064='reverted'\"]"
-    }
-  ]
+  "updated_at": "2026-08-08T20:39:13.001973+00:00"
 }

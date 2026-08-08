@@ -1,1 +1,0 @@
-Accepted-risk CI gate re-vendored from upstream: deleting `shipwright_accepted_risks.yaml` no longer exempts the drift check (it now reconciles against an empty record), and a `.trivyignore.yaml` entry whose own `expired_at` has passed is no longer counted as an active suppression — it surfaces as STALE with renew-both-dates advice instead of reporting the register reconciled.

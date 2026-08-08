@@ -1,1 +1,0 @@
-A test run with skipped tests no longer reads as a failure in the Mission Tests view — `tests.total` is now interpreted as the collected count (matching the toolchain's own convention), with the interpretation resolved per-event by its own timestamp so historical runs keep reading exactly as before.

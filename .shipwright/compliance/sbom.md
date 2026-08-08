@@ -1,26 +1,30 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-07-15T14:43:22.135609+00:00
+Generated: 2026-08-08T10:22:56.851142+00:00
+Source-State: run=iterate-2026-08-08-tests-total-skip-contract base=a93a22c0b468 release=v0.24.0
+Consistency-audit: never run
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 43 (deduplicated) |
-| Dev dependencies | 24 |
-| Total packages | 67 |
-| Licenses resolved | 67 / 67 |
-| Unique licenses | 4 (Apache-2.0, BSD-3-Clause, ISC, MIT) |
+| Runtime dependencies | 45 (deduplicated) |
+| Dev dependencies | 25 |
+| Total packages | 70 |
+| Licenses resolved | 65 / 70 |
+| Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 67 packages)
-    "MIT" : 62
+pie title License Distribution (all 70 packages)
+    "MIT" : 58
     "Apache-2.0" : 3
+    "OFL-1.1" : 2
     "BSD-3-Clause" : 1
     "ISC" : 1
+    "unknown" : 5
 ```
 
 ## Runtime Dependencies
@@ -28,6 +32,8 @@ pie title License Distribution (all 67 packages)
 | Package | Version | License |
 |---------|---------|---------|
 | @dnd-kit/core | ^6.3.1 | MIT |
+| @fontsource-variable/geist-mono | ^5.2.8 | OFL-1.1 |
+| @fontsource-variable/inter | ^5.2.8 | OFL-1.1 |
 | @hono/node-server | ^1.14.0 | MIT |
 | @hono/node-ws | ^1.3.1 | MIT |
 | @lydell/node-pty | ^1.1.0 | MIT |
@@ -81,26 +87,27 @@ pie title License Distribution (all 67 packages)
 | @testing-library/react | ^16.0.0 | MIT |
 | @testing-library/user-event | ^14.0.0 | MIT |
 | @types/diff | ^7.0.2 | MIT |
+| @types/node | ^22.0.0 | - |
 | @types/node | ^25.6.2 | MIT |
-| @types/node | ^22.0.0 | MIT |
-| @types/proper-lockfile | ^4.1.4 | MIT |
+| @types/proper-lockfile | ^4.1.4 | - |
 | @types/react | ^19.0.0 | MIT |
 | @types/react-dom | ^19.0.0 | MIT |
-| @types/shell-quote | ^1.7.5 | MIT |
+| @types/shell-quote | ^1.7.5 | - |
 | @vitejs/plugin-react | ^4.0.0 | MIT |
-| @vitest/coverage-v8 | ^4.1.10 | MIT |
+| @vitest/coverage-v8 | ^4.1.10 | - |
+| esbuild | ^0.25.12 | MIT |
 | jsdom | ^25.0.0 | MIT |
 | msw | ^2.0.0 | MIT |
 | oxlint | ^1.66.0 | MIT |
 | tailwindcss | ^4.0.0 | MIT |
+| tsx | ^4.19.0 | - |
 | tsx | ^4.21.0 | MIT |
-| tsx | ^4.19.0 | MIT |
-| typescript | ^5.6.0 | Apache-2.0 |
 | typescript | ^5.7.0 | Apache-2.0 |
+| typescript | ^5.6.0 | Apache-2.0 |
 | vite | ^6.0.0 | MIT |
 | vitest | ^4.1.8 | MIT |
 
 ## License Compliance
 
-No license concerns: all 67 packages resolved (0 unknown, 0 copyleft).
+**5 dependency(ies) could not be resolved in this scan** - license unverified; verify before distribution.
 
