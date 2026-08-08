@@ -32,6 +32,11 @@ const mockUseTriageDrift = vi.fn();
 
 vi.mock("../hooks/useTriage", () => ({
   useTriageItems: (...args: unknown[]) => mockUseTriageItems(...args),
+  // Every test in this file registers exactly one project ("proj-a"), so
+  // re-invoking the same configured mock per requested id reproduces the
+  // same items array `useAllTriageItems` would read from the shared cache
+  // in the real hook — no per-test setup duplication needed.
+  useAllTriageItems: (ids: string[]) => ids.map(() => mockUseTriageItems()),
   useTriageCounts: (...args: unknown[]) => mockUseTriageCounts(...args),
   useTriageDrift: (...args: unknown[]) => mockUseTriageDrift(...args),
   usePromoteTriageItem: () => ({
@@ -109,7 +114,7 @@ describe("TriagePage", () => {
     );
   });
 
-  it("renders item cards grouped by source", async () => {
+  it("renders item cards as a flat list, with no source-derived group heading (AC6, iterate-2026-08-08-triage-filters-sort-parked)", async () => {
     mockUseTriageItems.mockReturnValue({
       data: [mockItem("trg-aaaa1111"), mockItem("trg-bbbb2222")],
       isLoading: false,
@@ -118,8 +123,10 @@ describe("TriagePage", () => {
     renderPage();
     expect(await screen.findByTestId("triage-item-trg-aaaa1111")).toBeInTheDocument();
     expect(await screen.findByTestId("triage-item-trg-bbbb2222")).toBeInTheDocument();
-    // The "phaseQuality" source group label
-    expect(screen.getByText(/phaseQuality \(2\)/i)).toBeInTheDocument();
+    // The old per-source group heading ("phaseQuality (2)") is gone —
+    // items render as one continuous list. Domain stays visible on each
+    // card via the existing suggestedPriority/suggestedDomain inline text.
+    expect(screen.queryByText(/phaseQuality \(2\)/i)).not.toBeInTheDocument();
   });
 
   it("hides empty state when items > 0", async () => {
@@ -209,5 +216,67 @@ describe("TriagePage", () => {
     renderPage();
     await screen.findByTestId("triage-item-trg-aaaa1111");
     expect(screen.queryByTestId("triage-stale-banner-proj-a")).not.toBeInTheDocument();
+  });
+
+  it("AC5: shows the all-filtered-out message (not the genuine-empty state) when items exist but the active filters hide all of them, and its Clear-filters button restores them (code-reviewer finding #3/#8)", async () => {
+    mockUseTriageItems.mockReturnValue({
+      data: [
+        mockItem("trg-aaaa1111"),
+        mockItem("trg-bbbb2222"),
+        // Re-review finding NEW-3: a promoted/dismissed item must NOT
+        // count toward the denominator (relevantCount is openItems +
+        // deferredItems, never allItems.length). Every other item here is
+        // status "triage", so without this fixture allItems.length ==
+        // openItems.length and a regression to the wrong denominator
+        // would stay invisible — with it, a wrong denominator makes
+        // hiddenCount(2) != relevantCount(3) and the assertions below go
+        // red instead of silently passing.
+        mockItem("trg-cccc3333", "dismissed"),
+      ],
+      isLoading: false,
+    });
+    mockUseTriageCounts.mockReturnValue({ data: { counts: { "proj-a": 2 }, total: 2 } });
+    renderPage();
+    expect(await screen.findByTestId("triage-item-trg-aaaa1111")).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    // Both open mock items are suggestedPriority "P1" — excluding it hides
+    // every relevant item while relevant items still exist, so this must
+    // render the distinct all-filtered-out message, not the genuine-empty
+    // state.
+    await user.click(await screen.findByTestId("triage-filter-priority-P1"));
+
+    const message = await screen.findByTestId("triage-all-filtered-out");
+    expect(message).toHaveTextContent("2 hidden by the active filters");
+    expect(message).toHaveTextContent("clear filters");
+    expect(screen.queryByTestId("triage-item-trg-aaaa1111")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("triage-empty-state")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("triage-all-filtered-out-clear"));
+
+    expect(await screen.findByTestId("triage-item-trg-aaaa1111")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-all-filtered-out")).not.toBeInTheDocument();
+  });
+
+  it("does NOT show the all-filtered-out message when the only hidden items are parked-and-not-due (Parked's own default-hidden state, not an active attribute filter) — the Clear-filters button can't reveal those anyway, since DEFAULT_FILTER_STATE.showParked is false (re-review finding NEW-1: the first cut of this banner double-counted Parked-suppressed items as 'hidden by the active filters', so the Clear button it just gained would have been a no-op in this exact state)", async () => {
+    mockUseTriageItems.mockReturnValue({
+      data: [
+        // Dated, not due — hidden by the Parked filter's own default
+        // (showParked: false), independent of Priority/Domain/Complexity.
+        { ...mockItem("trg-parked01", "snoozed"), revisitAt: "2026-09-01" },
+      ],
+      isLoading: false,
+    });
+    mockUseTriageCounts.mockReturnValue({
+      data: { counts: { "proj-a": 0 }, total: 0, deferredTotal: 1 },
+    });
+    renderPage();
+
+    // The Deferred section's own AC7 hint is the correct affordance for
+    // this state — visible, with its own path to reveal the item (the
+    // Parked filter chip) — not the page-level "active filters" banner.
+    expect(await screen.findByTestId("triage-deferred-section")).toBeInTheDocument();
+    expect(screen.queryByTestId("triage-all-filtered-out")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("triage-empty-state")).not.toBeInTheDocument();
   });
 });

@@ -19,7 +19,7 @@ import {
 import path from "node:path";
 import { tmpdir } from "node:os";
 
-import { readAllItems, _clearCache_TEST_ONLY } from "./triage-store.js";
+import { readAllItems, resolveUnion, _clearCache_TEST_ONLY } from "./triage-store.js";
 import { outboxPathFor } from "./triage-paths.js";
 
 const FIXTURE_UNION_TRACKED = path.resolve(
@@ -202,6 +202,38 @@ describe("triage-store: readAllItems — union (tracked ∪ outbox)", () => {
       items: unknown[];
     };
     expect(tsItems).toEqual(expected.items);
+  });
+
+  it("resolveUnion passes an unrecognized wire key through unchanged (iterate-2026-08-08-triage-filters-sort-parked, Design Notes)", () => {
+    // The client's Complexity forward-compat shim (client/src/lib/triageFilterSort.ts
+    // getComplexity()) reads `suggestedComplexity` defensively via a locally-scoped
+    // intersection type, on the premise that resolveUnion's Pass 1 copies every
+    // key off a raw `append` event verbatim except the few it deliberately
+    // overwrites (statusBy/statusReason/promotedTaskId/revisitAt). Neither
+    // `TriageItem` interface (server or client) declares the field — this test
+    // proves the passthrough the shim's premise rests on, at the actual
+    // resolver, not just the client-side shim reading a hand-built object.
+    const raw = {
+      event: "append",
+      id: "trg-complexity",
+      ts: "2026-06-01T08:00:00Z",
+      originalTs: "2026-06-01T08:00:00Z",
+      source: "phaseQuality",
+      severity: "high",
+      kind: "bug",
+      title: "title trg-complexity",
+      detail: "detail",
+      evidencePath: null,
+      runId: null,
+      commit: null,
+      dedupKey: null,
+      status: "triage",
+      suggestedPriority: "P1",
+      suggestedDomain: "engineering",
+      suggestedComplexity: "large",
+    };
+    const [item] = resolveUnion([raw]);
+    expect((item as unknown as { suggestedComplexity?: string }).suggestedComplexity).toBe("large");
   });
 
   it("caches the union by both mtimes: same reference within TTL, fresh read when the outbox changes", () => {

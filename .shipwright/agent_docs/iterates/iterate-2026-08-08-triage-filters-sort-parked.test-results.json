@@ -1,0 +1,125 @@
+{
+  "last_updated": "2026-08-08",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-08-triage-filters-sort-parked",
+    "date": "2026-08-08",
+    "unit": "PASS \u2014 client 3253 passed (348 files); server 3283 passed / 1 skipped (279 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 5 Playwright tests (3 new in triage-filters-sort-parked.spec.ts + 2 updated in triage-deferred-envelope.spec.ts) via F0.5 surface_verification, exit 0",
+    "design_fidelity": "PASS \u2014 token reuse only (--muted on-photo pair, bg-info-tint/text-info/--info-line for the Returned badge, bg-inset/--color-border for chips), no new tokens introduced; degraded: no chrome-definition.md exists in this repo (see degraded[])",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [
+      "No `.shipwright/designs/chrome-definition.md` exists in this repo, so the Design Check (Tier 2) read only `visual-guidelines.md`; token reuse was still verified against the existing component family (SourceBadge, DeferredTriageSection's Parked chip)."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Exclude-set filter semantics (Priority/Domain/Complexity: chip starts active, click excludes)",
+          "disposition": "tested",
+          "evidence": "triageFilterSort.test.ts, TriageFilterSortBar.test.tsx AC1/AC2/AC3"
+        },
+        {
+          "behavior": "Two-level sort, primary+secondary independently asc/desc, over Domain/Name/Modified",
+          "disposition": "tested",
+          "evidence": "triageFilterSort.test.ts AC4 (incl. secondary-reversed-independently case), TriageSortLevel.test.tsx"
+        },
+        {
+          "behavior": "Sort locale pinned to root/undetermined (\"und\"), not runtime-default ICU",
+          "disposition": "tested",
+          "evidence": "triageFilterSort.test.ts locale-spy test (external-review-driven)"
+        },
+        {
+          "behavior": "Modified-sort uses latest-status-event ts, never originalTs (AC10)",
+          "disposition": "tested",
+          "evidence": "triageFilterSort.test.ts, server/src/core/triage-store.union.test.ts (resolveUnion ts resolution)"
+        },
+        {
+          "behavior": "Source-derived group subtitle dropped; flat list with Domain heading; 2-line detail excerpt retained",
+          "disposition": "tested",
+          "evidence": "PerProjectTriageSection.test.tsx, TriagePage.test.tsx (\"no source-derived group heading\")"
+        },
+        {
+          "behavior": "Hidden-count indicator whenever filtering hides an item (per-project + page-level aggregate)",
+          "disposition": "tested",
+          "evidence": "PerProjectTriageSection.test.tsx, DeferredTriageSection.test.tsx AC7, TriagePage.test.tsx AC5"
+        },
+        {
+          "behavior": "Page-level all-filtered-out vs. genuine-empty distinction; denominator excludes promoted/dismissed items",
+          "disposition": "tested",
+          "evidence": "TriagePage.test.tsx AC5 (+ dismissed-item denominator fence)"
+        },
+        {
+          "behavior": "Clear-filters button resets filters only, never sort; does not affect Parked-suppressed items",
+          "disposition": "tested",
+          "evidence": "useTriageViewState.test.ts, TriagePage.test.tsx AC5 + NEW-1 regression"
+        },
+        {
+          "behavior": "Parked filter: own independent toggle, default hidden",
+          "disposition": "tested",
+          "evidence": "useTriageViewState.test.ts, TriageFilterSortBar.test.tsx"
+        },
+        {
+          "behavior": "AC8 \u2014 a due parked item survives every active filter and is not counted as hidden",
+          "disposition": "tested",
+          "evidence": "PerProjectTriageSection.test.tsx AC8; client/e2e/flows/triage-filters-sort-parked.spec.ts"
+        },
+        {
+          "behavior": "AC9 \u2014 a dateless park stays visible permanently, independent of the Parked toggle",
+          "disposition": "tested",
+          "evidence": "PerProjectTriageSection.test.tsx AC9; client/e2e/flows/triage-filters-sort-parked.spec.ts"
+        },
+        {
+          "behavior": "Complexity filter: forward-compat shim, unrecognized wire values normalize to \"unset\", unset is a first-class filterable value",
+          "disposition": "tested",
+          "evidence": "triageFilterSort.test.ts getComplexity, server/src/core/triage-store.union.test.ts resolveUnion passthrough"
+        },
+        {
+          "behavior": "On-photo legibility: Deferred heading + AC7 hint use flipping --ink/--muted, not the legacy alias",
+          "disposition": "tested",
+          "evidence": "on-photo-legibility.test.ts (regex-isolated fence, not a whole-file ban)"
+        },
+        {
+          "behavior": "Sort-level controls distinguishable to assistive tech (WCAG 2.5.3 Label in Name)",
+          "disposition": "tested",
+          "evidence": "TriageSortLevel.test.tsx, TriageFilterSortBar.test.tsx"
+        },
+        {
+          "behavior": "Selected-chip color token (--color-primary-on-tint, matching the Design Check)",
+          "disposition": "tested",
+          "evidence": "TriageFilterGroup.test.tsx"
+        },
+        {
+          "behavior": "Real-browser rendering: filter bar layout, chip/sort control interaction, on-photo contrast as actually painted",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "evidence": "Covered by client/e2e/flows/triage-filters-sort-parked.spec.ts (authored and run through the real stack, F0.5 surface_verification exit 0) + browser-verify, not a unit assertion"
+        }
+      ],
+      "counts": {
+        "testable": 15,
+        "tested": 15,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 5,
+      "exit_code": 0,
+      "justification": "n/a \u2014 surface=web, no justification required"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-08-triage-filters-sort-parked",
+    "commit": "4c50b0df3ea9dd4c1eb5b4bbd24671926a4b1d40",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
