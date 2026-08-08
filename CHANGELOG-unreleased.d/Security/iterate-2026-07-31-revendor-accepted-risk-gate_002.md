@@ -1,1 +1,0 @@
-The vendored gate's provenance is now machine-checked: each module's header must agree with the manifest (repo, path, commit, hash, and the embedded `git show` reproduction command), and the drift + provenance guards run on the weekly scheduled security job rather than on pull requests only.

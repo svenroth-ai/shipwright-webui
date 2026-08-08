@@ -1,1 +1,0 @@
-Mobile Task Detail now gives the terminal most of the viewport through compact title and Description overlays, one light four-way workspace control, a floating expand action, and guarded session-preserving pane switches.

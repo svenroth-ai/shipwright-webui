@@ -1,30 +1,65 @@
 # Commit Change Log
 
-Generated: 2026-07-15T14:43:22.135609+00:00
-Total commits: 680
+Generated: 2026-08-08T10:22:56.851142+00:00
+Source-State: run=iterate-2026-08-08-tests-total-skip-contract base=a93a22c0b468 release=v0.24.0
+Consistency-audit: never run
+Total commits: 776
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 261
-    "feat" : 155
-    "chore" : 131
-    "docs" : 66
-    "refactor" : 29
-    "test" : 26
-    "ci" : 7
+    "fix" : 293
+    "feat" : 193
+    "chore" : 139
+    "docs" : 71
+    "refactor" : 32
+    "test" : 30
+    "ci" : 8
+    "perf" : 5
     "other" : 4
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 261 commits
+### Fixes (fix) — 293 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-07-15 | terminal | handle pty spawn on a vanished cwd, not an uncaught 267 (FR-01.28) | 198ea324bed2 |
+| 2026-08-08 | mission | epoch-gate tests.total to the toolchain's collected-count convention (#351) | a1772974d8fa |
+| 2026-08-05 | ci | bump github/codeql-action from v3 to v4 (#349) | 76943483acb6 |
+| 2026-08-05 | ci | bring the vendored Tier-3 PR reviewer to canonical parity (security) (#329) | c57adb5dd601 |
+| 2026-08-01 | ci | a passing Tier-3 review retracts its own superseded verdicts (ports ADR-117) (#343) | 9d4e8a53d382 |
+| 2026-08-01 | security | re-vendor the accepted-risk gate and retire the backstops it makes redundant (#341) | 01b25b17eb39 |
+| 2026-07-31 | ci | split the Tier-3 PR review so a fork PR is reviewed instead of passing (#338) | 6e13aaf41d89 |
+| 2026-07-31 | mission | read review passes and record versions we do not know, and say when we did (#339) | ce21323ea023 |
+| 2026-07-31 | security | resolve Windows .cmd shims without a platform shell (FR-01.05, FR-01.49) (#340) | bcbe20e850c0 |
+| 2026-07-30 | terminal | resync after dropped WS bytes instead of repainting over the hole (FR-01.28) (#335) | 18de25b65b30 |
+| 2026-07-28 | ci | pass --ignorefile so .trivyignore.yaml is actually read (#330) | 1d04a035bfe3 |
+| 2026-07-28 | security | patch two reachable CVEs, register three unreachable ones (#328) | e901d8c42d3e |
+| 2026-07-27 | terminal | revive the dead socket on user interaction, and detect it faster (FR-01.28) (#327) | 91e7d5d1ff83 |
+| 2026-07-27 | terminal | repaint the pty after a snapshot replay instead of patching over it (FR-01.28) (#326) | 74d99e383949 |
+| 2026-07-24 | terminal | render via the DOM renderer by default; GPU acceleration becomes opt-in (FR-01.28) (#325) | e6d8e8eb78f8 |
+| 2026-07-24 | terminal | revive the socket on OS wake via clock drift, not browser events (FR-01.28) (#324) | fb6122283507 |
+| 2026-07-23 | mission | show a finished run's full record, not just Decisions (FR-01.66) (#323) | 48e6c4ef25eb |
+| 2026-07-22 | compliance | reconcile the audit at its causes, and keep C1 able to fail (#317) | 884dfeae38ce |
+| 2026-07-21 | ui | the title bar reaches the right edge on every route (FR-01.48) (#312) | 98c4181a62b5 |
+| 2026-07-21 | terminal | keep reconnecting after an OS sleep instead of going inert (FR-01.28) (#310) | cc5679ee7eff |
+| 2026-07-21 | mission | recover the run identity from the session's own commit footer (FR-01.66) (#309) | b3045652195f |
+| 2026-07-21 | ui | put the All-Projects "New" button on the one primary-button standard (FR-01.38) (#307) | 0da9b5a1f419 |
+| 2026-07-21 | mission | source the Spec artifact from the never-evicted event log (FR-01.66) (#305) | 10652b2eaf2f |
+| 2026-07-21 | triage | close a first-write file-system race in the triage.jsonl header bootstrap (#303) | 795785c025e3 |
+| 2026-07-20 | ui | stop the More-options divider colliding with the rounded corners, and lighten task-form field borders (#300) | d4163f68287f |
+| 2026-07-19 | mission | read the decision-drops, and stop calling a degraded campaign read "ok" (FR-01.66) (#299) | 4f64a7cc8063 |
+| 2026-07-19 | mission | derive "Where it stands" from the session's real phase (FR-01.66) (#297) | 421dcdbe6afb |
+| 2026-07-19 | ui | grey-beige task forms, readable form contrast, and one real title-bar button standard (#293) | 94093a6ff330 |
+| 2026-07-19 | events | recover concatenated records across all three event-log readers (#294) | a0d7be7a9dcc |
+| 2026-07-18 | triage | recover concatenated records on the append-only triage log (FR-01.30) (#291) | 7a27143198a2 |
+| 2026-07-17 | board | colored-glass column panels tinted per column (Sven feedback) (#279) | 429fff20dde8 |
+| 2026-07-17 | design | readable on-photo headers · visible column panels · prototype filter funnel (#276) | 870f02310ffd |
+| 2026-07-16 | appearance | stop the .on-photo text-shadow leaking onto solid-surface typography (FR-01.48) (#265) | e4e4beaddc6d |
+| 2026-07-15 | terminal | handle pty spawn on a vanished cwd, not an uncaught 267 (FR-01.28) (#254) | c7c90e7ca13a |
 | 2026-07-15 | e2e | align v0-9-5-task-type-matrix snapshot header to v2/6.0.0 (#253) | 1d57901f76b4 |
 | 2026-07-14 | create-dialog | stop the modal body squeezing "More options" shut (flex clip) (#250) | 6279f75bb0a4 |
 | 2026-07-14 | deploy | delegate kill+start to a detached swapper so the deploy can't kill itself (#249) | 4265a4333d55 |
@@ -286,10 +321,48 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 155 commits
+### Features (feat) — 193 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-08-08 | triage | view-only filters, two-level sort, and a Parked filter (#350) | 2b16b654e24a |
+| 2026-08-05 | triage | surface parked items in a Deferred section (monorepo P2.03 parity) (#348) | e4ca6cd7800c |
+| 2026-08-03 | mobile | prioritize terminal work mode (#346) | 92494953ddba |
+| 2026-08-02 | security | pin the Semgrep scan-scope and inline-suppression sets, and narrow the build-script exclusion (#344) | b452789da7e7 |
+| 2026-08-02 | ci | run the bootstrapper's checks in CI and pin the live marketplace contract (#345) | 15531d06c498 |
+| 2026-07-30 | security | make the accepted-risk register a build gate, vendored and drift-guarded (#332) | 47178d49378b |
+| 2026-07-23 | mission | scroll the artifact viewer in its card, with a Pop out to read it larger (FR-01.66) (#322) | d39c2bbaf241 |
+| 2026-07-23 | first-contact | dedicated First Contact hero at the empty-registry root (FR-01.51) (#321) | eb6e7c230100 |
+| 2026-07-23 | external | make the guided Intent Wizard the front door of every create surface (FR-01.51) (#320) | e830fa79b16d |
+| 2026-07-22 | mission | show what the reviews actually found (FR-01.66) (#316) | c84252694a0f |
+| 2026-07-22 | mission | tell the story in the middle card instead of tailing the log (FR-01.66) (#314) | 5059b47a9840 |
+| 2026-07-20 | mission | guard the traceability manifest reader against an unknown-newer schema_version (FR-01.66) (#301) | f2bffb7082d3 |
+| 2026-07-19 | mission | native pipeline + campaign artifacts, and a Mission tab that stops hiding itself (FR-01.66) (#296) | 909855ffa43a |
+| 2026-07-19 | mission | Tests · Review · Decisions artifacts for a standalone iterate (FR-01.66) (#295) | 0f9a9788ba4b |
+| 2026-07-19 | mission | context-aware artifacts for a standalone iterate — Spec · Requirement · Commit (FR-01.66) (#292) | 66e275ae3335 |
+| 2026-07-17 | ui | beige forms, one standard button, aligned Files pane, Ship's Log sessions (FR-01.59/60) (#284) | e3c7a1323f85 |
+| 2026-07-17 | mission | six lifecycle stages (Analyze…Merge) + autonomous-campaign progress (FR-01.67) (#283) | 55cd053088cd |
+| 2026-07-17 | mission | live plain-language Mission view from the JSONL — summary · stage · artifacts (FR-01.66) (#282) | 41f9f5920d10 |
+| 2026-07-17 | command | glass command palette + keyboard map + density + optimistic UI (A21, FR-01.65) (#281) | 4beaf596f6c9 |
+| 2026-07-17 | motion | motion primitives + prefers-reduced-motion final-state contract (A20, FR-01.64) (#280) | 7e8c97c56039 |
+| 2026-07-17 | inbox | honest terminal fallback — jump to the task's terminal to answer, no pty write-path (A19, FR-01.63) (#278) | 3ad83f920667 |
+| 2026-07-17 | files-terminal | three-card Files & Terminal — glass · beige · glass around a byte-identical pty (A18, FR-01.62) (#277) | 82f8eb7c3767 |
+| 2026-07-17 | board | launch state machine — visible + recoverable campaign/task launch failures (A17, FR-01.61) (#275) | 9f7910013bcb |
+| 2026-07-17 | shipslog | Ship's-Log project home — Captain's Drawer · logbook · scoped iterate (A16, FR-01.60) (#274) | cf7657ba4472 |
+| 2026-07-17 | projects | Ship's-Log gallery — grade · runs sparkline · last-proof (A15, FR-01.59) (#273) | a4564eb613f4 |
+| 2026-07-16 | design-gate | design gate as the Mission three-card view (FR-01.58, A14) (#272) | c3660d6f3f3a |
+| 2026-07-16 | mission | three-card Mission Control shell - top row, segmented tabs, equal-height glass cards, scrim removed (A13, FR-01.57) (#271) | 70b96d6d20d8 |
+| 2026-07-16 | mission | Operation card — derived verdict + narrator mission line + curated proof summary (A12, FR-01.56) (#270) | 080d993721f0 |
+| 2026-07-16 | mission | "The Record" rail + artifact panel + instruments (A11, FR-01.55) (#269) | 15a6047e1d2f |
+| 2026-07-16 | mission | deterministic event -> plain-language narrator library (A10, FR-01.54) (#268) | 9564223a7c82 |
+| 2026-07-16 | wizard | read-only Grade door server route + real render (FR-01.53) (A09b) (#267) | 6b03299b109e |
+| 2026-07-16 | wizard | wire New + Adopt doors to real create/launch + data contract (A09a, FR-01.52) (#266) | 8fbc0a4e234b |
+| 2026-07-16 | wizard | guided three-door Intent Wizard + real readiness gate + honest grade (A08, FR-01.51) (#264) | 360db05a95ed |
+| 2026-07-16 | ui | plain-language glossary + teaching empty states + JIT tooltips (A07, FR-01.50) (#263) | 0dd705c3df94 |
+| 2026-07-16 | bootstrapper | npx @svenroth-ai/shipwright — one install & update surface (A06, FR-01.49) (#262) | b00b9f5231d6 |
+| 2026-07-15 | design | Weather-Deck design system — tokens, scene layer, glass, AA contrast ladder (FR-01.48) (A03) (#259) | 84559169302f |
+| 2026-07-15 | runs | per-run data join + read-only /runs, /grade-trend endpoints (FR-01.47) (#258) | 51e447ebebc5 |
+| 2026-07-15 | events | tracked event-log reader + read-only /events endpoint (FR-01.46) (#257) | 40230470550d |
 | 2026-07-10 | design-gate | host emitted mockup viewer + write round feedback (FR-01.45) (#221) | 4fd7f10e2d62 |
 | 2026-07-09 | board | campaign-like single-session pipeline card (campaign W3) (#219) | 525bca8b2d8f |
 | 2026-07-09 | pipeline | single-session master-launch mechanism (campaign W2) (#218) | 8d69b7b94d4d |
@@ -446,11 +519,19 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 131 commits
+### Chores (chore) — 139 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-07-15 | triage | sweep 3 outbox append(s) into branch | c470fd4e716a |
+| 2026-08-08 | gitignore | track shipwright_model_config.json via root-anchored allowlist | a93a22c0b468 |
+| 2026-07-30 | adr | regenerate INDEX.md so it lists ADR-134 through ADR-138 (#334) | b0d9657365e0 |
+| 2026-07-30 | repo | keep Spec/ fully local, commit the iterate planning residue (#333) | e7922fecf7cd |
+| 2026-07-27 | triage | port the two-stage PR review from shipwright#437 | 6941dbe90f7a |
+| 2026-07-21 | compliance | fix the iterate ledger shape + trim the agent-doc entries to budget (#308) | a20ec59d14c2 |
+| 2026-07-21 | traceability | regenerate manifest + RTM to campaign schema 3, recognise it in the reader (FR-01.66) (#304) | f392abf0a241 |
+| 2026-07-19 | agent-docs | backfill missing iterate records for the mission-artifacts campaign (#298) | 5f620db3ca72 |
+| 2026-07-18 | ci | unpin GitHub-owned actions, drop the hosted updater (reverts #285) (#290) | a0785e45bbca |
+| 2026-07-17 | ci | pin GitHub Actions to commit SHAs + weekly Dependabot (#285) | 789dbec26130 |
 | 2026-07-12 | release | v0.23.0 (#247) | ac845a1eb7cf |
 | 2026-07-08 | ci | flip the diff-coverage gate to hard-block + SHA-pin the composite action (#215) | b0e24d11d325 |
 | 2026-07-08 | release | v0.22.0 (#212) | 69d7e83ff89b |
@@ -582,10 +663,15 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 66 commits
+### Documentation (docs) — 71 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-31 | claude-md | carry the review-subagent standing request into webui (#337) | ef57da35f10e |
+| 2026-07-22 | inbox | record the answer-in-place spike and the decision not to build it (#315) | b84d6b4fd87e |
+| 2026-07-21 | mission | state the upstream cross-repo contracts where the code is edited (#306) | 6aa8f6a354f5 |
+| 2026-07-18 | agent-docs | canonical run_id changelog anchor + shape/budget gate (#288) | 152152da73bb |
+| 2026-07-17 | spec | restructure adopted FR spec into 14 capability areas with plain-language descriptions (#287) | d800dfbb3a6d |
 | 2026-07-10 | claude-md | condense DO-NOT guards + architecture rules to one-line index (#222) | 5e4f9580e3ab |
 | 2026-07-09 | claude-md | guide plain-language phrasing for questions to the user | 3bc474110b69 |
 | 2026-07-06 | conventions | record create-dialog "More options" collapse convention (#199) | 79b475a5b7ef |
@@ -653,10 +739,13 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 29 commits
+### Refactoring (refactor) — 32 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-08-01 | spawn | extract core/win32-spawn.ts, drop the dead async probe, pin win32 path semantics (#342) | 8e6fec70c3a2 |
+| 2026-07-16 | chrome | anthracite sidebar + uniform 92px PageHead + closed type scale + self-hosted fonts (A05, FR-01.48) (#261) | 9eebd2a6f68f |
+| 2026-07-16 | theme | colour sweep onto Weather-Deck tokens (A04, FR-01.48) (#260) | 1fe0f595cbce |
 | 2026-07-14 | modals | give the bounded-scroll-container invariant one carrier + a ratchet (#251) | 95f005877705 |
 | 2026-07-07 | ci | consume the diff-coverage gate from the shipwright composite action (#210) | 1364e8290f1e |
 | 2026-07-06 | wizard | remove Add-Project Paste button; guide manual path paste (#196) | 00bc3ab81f37 |
@@ -687,10 +776,14 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 26 commits
+### Tests (test) — 30 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-30 | terminal | gate the drop-resync spec in CI and make its waits assertion-based (#336) | bedbb55f47db |
+| 2026-07-29 | mermaid | render real diagrams in a real browser so a dependency bump cannot pass green (#331) | fa475c1e6ae9 |
+| 2026-07-18 | traceability | webUI retrofit — @covers tags, manifest, RTM, D-orphan (reconciled to #287) (#289) | d19b6b9081fb |
+| 2026-07-15 | e2e | stop v0-9-5 replay-snapshot specs flaky-failing on Windows (harness half of #254) (#256) | daf1e386f8e8 |
 | 2026-07-15 | e2e | harness hardening — isolated suite, CI gate, visual regression, terminal byte-path guard (A00) (#252) | ed624369543a |
 | 2026-07-11 | e2e | repair the two ADR-038 schema E2E guards on an isolated store (D05/F19,F20) (#227) | 2bf31c211664 |
 | 2026-07-09 | e2e | single-session pipeline cross-surface capstone (campaign W4) (#220) | 032f170c0b65 |
@@ -718,10 +811,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### CI/CD (ci) — 7 commits
+### CI/CD (ci) — 8 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-15 | visual | add on-demand baseline regeneration for repaint sub-iterates (#255) | 6d5a325dadcc |
 | 2026-07-07 | — | add a warn-only diff-coverage gate (client + server) (#205) | b449fbedd025 |
 | 2026-07-01 | security | least-privilege GITHUB_TOKEN permissions per workflow (#191) | c864d63f9838 |
 | 2026-06-12 | review | migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125) | 8bace6de63e3 |
@@ -729,6 +823,16 @@ pie title Commit Types
 | 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | 0a42fb366386 |
 | 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | b11a7e5bb7c6 |
 | 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | 0d152274b995 |
+
+### Performance (perf) — 5 commits
+
+| Date | Scope | Description | Commit |
+|------|-------|-------------|--------|
+| 2026-07-23 | transcript | parse only the appended delta each poll, not the whole log (FR-01.66) (#319) | ccb515ecdc43 |
+| 2026-07-22 | transcript | the pane asks for the delta, and a poll walks the disk once (FR-01.02) (#318) | 9e31a1a9d590 |
+| 2026-07-22 | transcript | read only the byte range the caller asked for (FR-01.66) (#313) | e96274fe2478 |
+| 2026-07-21 | mission | pay the run-identity scan once per task, not once per poll (FR-01.66) (#311) | 835393c7a3cf |
+| 2026-07-21 | mission | run resolver git off the event loop + cache root-set/event-log reads (FR-01.66) (#302) | 20285143cda9 |
 
 ### Other (other) — 4 commits
 
@@ -749,7 +853,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 680 |
+| Total commits | 776 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 680 |
+| Human-authored commits | 776 |
 

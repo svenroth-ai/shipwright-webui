@@ -1,1 +1,0 @@
-The vendored Tier-3 PR reviewer (`scripts/ci/`) now fails closed when it reviewed nothing at all — an empty fetch, a diff with no file headers, or a pull request whose every file was filtered as a regenerated artifact. Previously the model was handed an empty diff and answered "approve", turning a required check green over a change nobody read.

@@ -1,1 +1,0 @@
-The accepted-risk register entry for the `@hono/node-server` advisory now carries dated evidence (verified 2026-07-30, re-confirmed against both lockfiles 2026-07-31) that the WebSocket adapter still pins the old major, so its October re-review starts from evidence instead of a fresh investigation.

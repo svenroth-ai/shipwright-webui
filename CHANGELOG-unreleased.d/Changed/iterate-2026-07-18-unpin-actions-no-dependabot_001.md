@@ -1,1 +1,0 @@
-CI action-pinning posture is now explicitly asymmetric — GitHub-owned actions (`actions/*`, `github/*`) use mutable version tags, third-party actions stay SHA-pinned. Reverts the `.github/` half of PR #285; a meta-test ratchets both directions.

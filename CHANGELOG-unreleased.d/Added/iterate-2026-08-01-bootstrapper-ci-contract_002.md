@@ -1,1 +1,0 @@
-A contract test that catches installer breakage before users do. It fetches the REAL plugin manifest from the Shipwright monorepo and checks the installer can still read it, so a change over there that would break `npx` for everyone turns this repo's build red instead of surfacing as a broken install.

@@ -1,1 +1,0 @@
-A review record that exists but cannot be read is now reported as a data problem instead of being quietly answered from the older, less detailed source. Runs recorded before this change keep exactly the behaviour they had.

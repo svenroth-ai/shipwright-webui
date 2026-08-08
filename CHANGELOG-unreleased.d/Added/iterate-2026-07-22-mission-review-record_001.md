@@ -1,1 +1,0 @@
-The Mission view's Review card now shows what each review actually found — the individual points raised, where in the code they were about, and what was suggested — instead of only how many there were. The author's own check appears too, as a fifth pass, which matters because on a small change it is the only review that runs.
