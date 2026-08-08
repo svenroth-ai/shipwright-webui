@@ -44,13 +44,7 @@ shipwright_*_config.json
 shipwright_test_results.json
 shipwright_events.jsonl
 shipwright_events.jsonl.lock
-!/shipwright_build_config.json
-!/shipwright_compliance_config.json
-!/shipwright_iterate_config.json
-!/shipwright_plan_config.json
-!/shipwright_project_config.json
-!/shipwright_run_config.json
-!/shipwright_sync_config.json
+!/shipwright_*_config.json
 !/shipwright_test_results.json
 !/shipwright_events.jsonl
 
