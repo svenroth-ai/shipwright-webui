@@ -80,3 +80,25 @@ export function PendingDeliveryBadge() {
     </span>
   );
 }
+
+/**
+ * iterate-2026-08-08-triage-filters-sort-parked, AC8: a park that just
+ * came due is auto-returned to the open list server-side and bypasses
+ * every active filter — this badge is what keeps it from blending into
+ * the flat list, so the operator can tell it returned from a park
+ * rather than assume it always matched. Same info-tint trio
+ * `DeferredTriageSection.tsx` uses for its "Parked" state chip, so a
+ * returned item reads as visually related to parking, not a new color.
+ * Stays shown for as long as the bypass is active (AC8 — no expiry).
+ */
+export function ReturnedBadge() {
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-info-tint text-info border border-[var(--info-line)]"
+      title="This item's park came due and returned to the open list — it stays visible regardless of active filters until you act on it"
+      data-testid="triage-returned-badge"
+    >
+      Returned
+    </span>
+  );
+}

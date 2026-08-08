@@ -51,3 +51,15 @@ describe("TriageItemCard styling", () => {
     expect(card).toHaveClass("hover:shadow-[var(--shadow-card-hover)]");
   });
 });
+
+describe("TriageItemCard — Returned badge (AC8, iterate-2026-08-08-triage-filters-sort-parked)", () => {
+  it("shows no Returned badge for an ordinary item", () => {
+    render(<TriageItemCard item={item} onClick={vi.fn()} />);
+    expect(screen.queryByTestId("triage-returned-badge")).not.toBeInTheDocument();
+  });
+
+  it("shows the Returned badge when the item's park just came due", () => {
+    render(<TriageItemCard item={{ ...item, revisitDue: true, revisitAt: "2026-08-01" }} onClick={vi.fn()} />);
+    expect(screen.getByTestId("triage-returned-badge")).toBeInTheDocument();
+  });
+});

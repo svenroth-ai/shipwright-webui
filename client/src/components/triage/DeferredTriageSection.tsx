@@ -13,24 +13,50 @@
  * entry is simply not due YET, an undated one never will be. The label
  * distinguishes the two: "Parked" (a return date is set) vs
  * "Parked — not due" (no date at all — the upstream-permitted no-date park).
+ *
+ * `hiddenCount` (iterate-2026-08-08-triage-filters-sort-parked, AC7):
+ * the number of parked items suppressed by the current view — either the
+ * Parked filter's default-hidden state, or the Priority/Domain/
+ * Complexity attribute filters, summed into one number (deliberately
+ * cause-agnostic — see the iterate spec's AC7 for why gating the hint on
+ * the Parked toggle's own state would be wrong). Rendered whenever it is
+ * greater than zero, INDEPENDENT of `items.length` — a project with some
+ * parked items visible (via the AC9 dateless exception) and others
+ * hidden must still show the hint for the hidden ones (plan-review fix).
  */
 
 import type { TriageItem } from "../../lib/triageApi";
+import { formatCount } from "../../lib/triageFilterSort";
 import { SeverityBadge, SourceBadge } from "./TriageBadgeUI";
 
 interface DeferredTriageSectionProps {
   items: TriageItem[];
+  hiddenCount: number;
   onClick: (item: TriageItem) => void;
 }
 
-export function DeferredTriageSection({ items, onClick }: DeferredTriageSectionProps) {
-  if (items.length === 0) return null;
+export function DeferredTriageSection({ items, hiddenCount, onClick }: DeferredTriageSectionProps) {
+  if (items.length === 0 && hiddenCount === 0) return null;
 
   return (
     <div className="mb-4" data-testid="triage-deferred-section">
       <h3 className="text-xs font-semibold text-[var(--ink)] uppercase mb-2">
-        Deferred ({items.length})
+        Deferred ({formatCount(items.length, items.length + hiddenCount)})
       </h3>
+      {hiddenCount > 0 && (
+        // on-photo-legibility (spec-reviewer Stage 1 finding): this line, like
+        // the `<h3>` above it, rides bare on the deck-golden photo — it must
+        // use the flipping `--muted` token, not the legacy `--color-muted`
+        // alias (computed at :root, stays dark → invisible on-photo). The
+        // item-detail spans below stay on `--color-muted` correctly: they sit
+        // inside the opaque `bg-[var(--color-surface)]` item buttons.
+        <p
+          className="text-[11px] text-[var(--muted)] mb-2"
+          data-testid="triage-deferred-hidden-count"
+        >
+          {hiddenCount} parked item{hiddenCount === 1 ? "" : "s"} hidden by the current view.
+        </p>
+      )}
       <div className="space-y-2">
         {items.map((item) => (
           <button

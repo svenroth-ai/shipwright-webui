@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-08-triage-filters-sort-parked",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T07:46:19.373990+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The Deferred section hint line (“N parked items hidden by the current view”) is rendered whenever `hiddenCount > 0`, with no guard for the Parked filter’s state. AC7 specifies this hint only when the Parked filter is in its default (off) state; showing it when Parked is on (e.g., because some parked items are excluded by attribute filters) would mislead the operator into thinking items are still hidden by the Parked toggle.",
+          "suggestion": "Condition the hint on `!showParked` (or make `hiddenCount` only meaningful when Parked is off), so the hint appears solely when Parked‑default suppression is active and disappears when the operator explicitly turns Parked on.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan relies on the existing `/api/triage/counts` endpoint to keep the genuine‑zero‑items empty state correct, but does not confirm that endpoint returns combined open+deferred totals. If it returns only open items, the all‑filtered‑out page state might fire incorrectly.",
+          "suggestion": "Verify (or document) that the endpoint includes both open and deferred counts (or that the page uses two separate counts and sums them) before the final build.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "When every item in every project is filtered out, the page renders “N hidden by the active filters — clear filters to see them.” The implementation calculates N as the sum of per‑project hidden counts. If a project has no items at all (zero raw count), its contribution to N would be zero, which is correct, but the page must also avoid showing the hidden‑by‑filters message when all projects genuinely have zero items. The plan says the gate uses unfiltered server counts—make sure the “N” displayed here is the total hidden count, not the raw item count, to avoid showing a confusing number.",
+          "suggestion": "In the all‑filtered‑out state, compute N from the aggregate `hiddenCount` (sum across projects), not from the unfiltered total, so the number matches what the operator would see after clearing filters.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The addition of `useQueries` in `TriagePage` to fetch all triage items for every registered project may trigger a large initial fetch if there are many projects. The plan’s reuse of query keys means data is shared with the per‑section queries, but the first paint of the filter bar will still wait for all projects’ data to resolve, which could feel slow on a cold cache.",
+          "suggestion": "Consider deferring the domain‑option aggregation behind a lightweight endpoint (e.g., a new `/api/triage/domains`) if the number of projects grows, but it’s acceptable for the current scale (~1‑3 projects) — no action needed now.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The Complexity filter’s forward‑compatibility shim uses a widened type `TriageItem & { suggestedComplexity?: TriageComplexityHint }`. If any existing code path (like a shared type‑guard) expects the bare `TriageItem` interface and rejects the intersection, there could be a type error. The plan’s local scoping likely avoids this, but worth a quick grep.",
+          "suggestion": "Run `npx tsc --noEmit` after introducing the intersection to ensure no unexpected breakage in other modules that import `TriageItem`.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-08T07:21:54.426887+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] **Findings**\n\n1. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The Deferred section hint line (“N parked items hidden by the current view”) is rendered whenever `hiddenCount > 0`, with no guard for the Parked filter’s state. AC7 specifies this hint only when the Parked filter is in its default (off) state; showing it when Parked is on (e.g., because some parked items are excluded by attribute filters) would mislead the operator into thinking items are still hidden by the Parked toggle.  \n   **Suggestion:** Condition the hint on `!showParked` (or make `hiddenCount` only meaningful when Parked is off), so the hint appears solely when Parked‑default suppression is active and disappears when the operator explicitly turns Parked on.\n\n2. **Category:** dependency  \n   **Severity:** low  \n   **Finding:** The plan relies on the existing `/api/triage/counts` endpoint to keep the genuine‑zero‑items empty state correct, but does not confirm that endpoint returns combined open+deferred totals. If it returns only open items, the all‑filtered‑out page state might fire incorrectly.  \n   **Suggestion:** Verify (or document) that the endpoint includes both open and deferred counts (or that the page uses two separate counts and sums them) before the final build.\n\n3. **Category:** edge-case  \n   **Severity:** low  \n   **Finding:** When every item in every project is filtered out, the page renders “N hidden by the active filters — clear filters to see them.” The implementation calculates N as the sum of per‑project hidden counts. If a project has no items at all (zero raw count), its contribution to N would be zero, which is correct, but the page must also avoid showing the hidden‑by‑filters message when all projects genuinely have zero items. The plan says the gate uses unfiltered server counts—make sure the “N” displayed here is the total hidden count, not the raw item count, to avoid showing a confusing number.  \n   **Suggestion:** In the all‑filter […truncated]\n\n[openai] <no review returned: provider returned an empty reply>",
+      "verdicts": {
+        "openai": "unavailable",
+        "deepseek": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/pages/TriagePage.tsx",
+          "line": 118,
+          "finding": "Non-blocking residual of the NEW-1 fix: a dated, not-due park that is ALSO excluded by an active attribute filter still counts toward aggregateHiddenCount, so in the state {1 open P1, 1 dated park P1, exclude P1} the banner reads '2 hidden by the active filters' while Clear-filters reveals only 1. Unlike NEW-1 the button is not a no-op, the banner clears on click, and DeferredTriageSection's own AC7 hint plus the Parked chip explain the remaining item.",
+          "suggestion": "Leave as-is (round-3 reviewer's explicit recommendation). Excluding deferred items from the numerator would break the legitimate all-dateless-parks-attribute-filtered case; if ever tightened, subtract deferred items that would still be Parked-suppressed after clearFilters() rather than dropping the bucket.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-08T08:58:30.082692+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T08:58:52.926581+00:00",
+      "disposition": "diff touches no migrations, no async/concurrency primitives (standard TanStack Query usage, no new async ops), no cross-plugin imports, and no irreversible operations — pure client-side view/filter/sort logic over already-fetched data; doubt pass is conditional on a non-trivial surface per iteration-reviews.md Stage 3",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/triageFilterSort.ts (lines where `localeCompare` is called for domain and name sorting — in the `rawCompare` function)",
+          "line": null,
+          "finding": "The `localeCompare` call passes `undefined` for the locales argument, so the sort order depends on the runtime’s default ICU locale. The spec (AC4) explicitly states that ordering must not vary by runtime ICU locale. Pinning the comparison options is not enough; the locale itself must be fixed to guarantee identical behaviour everywhere.",
+          "suggestion": "Pass `'und'` (the root locale) as the second argument to `localeCompare`, e.g. `a.title.localeCompare(b.title, 'und', LOCALE_COMPARE_OPTIONS)`. This locks the collation to a standard, locale‑independent result.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-08T09:06:13.924021+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] - Category: spec\n- Severity: medium\n- File: client/src/lib/triageFilterSort.ts (lines where `localeCompare` is called for domain and name sorting — in the `rawCompare` function)\n- Finding: The `localeCompare` call passes `undefined` for the locales argument, so the sort order depends on the runtime’s default ICU locale. The spec (AC4) explicitly states that ordering must not vary by runtime ICU locale. Pinning the comparison options is not enough; the locale itself must be fixed to guarantee identical behaviour everywhere.\n- Suggestion: Pass `'und'` (the root locale) as the second argument to `localeCompare`, e.g. `a.title.localeCompare(b.title, 'und', LOCALE_COMPARE_OPTIONS)`. This locks the collation to a standard, locale‑independent result.\n\nSHIPWRIGHT_VERDICT: revise\n\n[openai] <no review returned: provider returned an empty reply>",
+      "verdicts": {
+        "openai": "unavailable",
+        "deepseek": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T08:22:47.127116+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}
