@@ -56,7 +56,7 @@ describe("projectEventLog — present fields", () => {
     expect(run.specImpact).toBe("MODIFY"); // raw case preserved
     expect(run.affectedFrs).toEqual(["FR-01.28", "FR-01.29"]);
     expect(run.newFrs).toEqual(["FR-01.46"]);
-    expect(run.tests).toEqual({ passed: 1882, total: 1882 });
+    expect(run.tests).toEqual({ passed: 1882, total: 1882, skipped: null });
     expect(run.campaign).toBe("webui-wow-usability-2026-07-10");
     expect(run.subIterateId).toBe("A01");
     expect(proj.latestRun).toEqual(run);
@@ -108,7 +108,7 @@ describe("projectEventLog — honest degradation (AC2)", () => {
   // @covers FR-01.47
   it("tolerates a partial tests object (one mark absent)", () => {
     const proj = projectEventLog([j({ ...FULL_WC, tests: { passed: 5 } })]);
-    expect(proj.runs[0].tests).toEqual({ passed: 5, total: null });
+    expect(proj.runs[0].tests).toEqual({ passed: 5, total: null, skipped: null });
   });
 
   // @covers FR-01.47

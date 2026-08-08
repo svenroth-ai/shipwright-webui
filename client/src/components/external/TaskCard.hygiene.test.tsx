@@ -50,7 +50,7 @@ const RUN: RunDataJoin = {
   specImpactRaw: "add",
   affectedFrs: ["FR-01.60", "FR-01.61"],
   newFrs: ["FR-01.60"],
-  tests: { passed: 12, total: 12 },
+  tests: { passed: 12, total: 12, skipped: null },
   gates: { derived: true, test: "pass", review: "unknown", security: "unknown" },
   phaseDurations: null,
   campaign: null,

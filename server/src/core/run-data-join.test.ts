@@ -43,7 +43,7 @@ function baseRun(over: Partial<RunProjection> = {}): RunProjection {
     specImpact: "Modify",
     affectedFrs: ["FR-01.47"],
     newFrs: [],
-    tests: { passed: 10, total: 10 },
+    tests: { passed: 10, total: 10, skipped: null },
     phaseTimings: null,
     campaign: null,
     subIterateId: null,
@@ -57,24 +57,24 @@ function baseRun(over: Partial<RunProjection> = {}): RunProjection {
 describe("deriveTestGate", () => {
   // @covers FR-01.47
   it("pass when total>0 and passed===total", () => {
-    expect(deriveTestGate({ passed: 10, total: 10 })).toBe("pass");
+    expect(deriveTestGate({ passed: 10, total: 10 }, null)).toBe("pass");
   });
   // @covers FR-01.47
   it("fail when passed<total", () => {
-    expect(deriveTestGate({ passed: 9, total: 10 })).toBe("fail");
+    expect(deriveTestGate({ passed: 9, total: 10 }, null)).toBe("fail");
   });
   // @covers FR-01.47
   it("unknown when tests are null / total 0 / a mark absent", () => {
-    expect(deriveTestGate(null)).toBe("unknown");
-    expect(deriveTestGate({ passed: 0, total: 0 })).toBe("unknown");
-    expect(deriveTestGate({ passed: null, total: 10 })).toBe("unknown");
+    expect(deriveTestGate(null, null)).toBe("unknown");
+    expect(deriveTestGate({ passed: 0, total: 0 }, null)).toBe("unknown");
+    expect(deriveTestGate({ passed: null, total: 10 }, null)).toBe("unknown");
   });
 });
 
 describe("deriveGates", () => {
   // @covers FR-01.47
   it("returns a derived-flagged object when tests are present", () => {
-    const g = deriveGates(baseRun({ tests: { passed: 10, total: 10 } }));
+    const g = deriveGates(baseRun({ tests: { passed: 10, total: 10, skipped: null } }));
     expect(g).toEqual({ derived: true, test: "pass", review: "unknown", security: "unknown" });
   });
   // @covers FR-01.47
@@ -83,7 +83,7 @@ describe("deriveGates", () => {
   });
   // @covers FR-01.47
   it("never claims review/security pass — they stay unknown (honest)", () => {
-    const g = deriveGates(baseRun({ tests: { passed: 3, total: 4 } }));
+    const g = deriveGates(baseRun({ tests: { passed: 3, total: 4, skipped: null } }));
     expect(g?.review).toBe("unknown");
     expect(g?.security).toBe("unknown");
     expect(g?.test).toBe("fail");
@@ -134,7 +134,7 @@ describe("joinRunData", () => {
     expect(out.specImpact).toBe("modify");
     expect(out.specImpactRaw).toBe("Modify");
     expect(out.affectedFrs).toEqual(["FR-01.47"]);
-    expect(out.tests).toEqual({ passed: 10, total: 10 });
+    expect(out.tests).toEqual({ passed: 10, total: 10, skipped: null });
     expect(out.gates).toEqual({ derived: true, test: "pass", review: "unknown", security: "unknown" });
     expect(out.phaseDurations).toBeNull();
   });

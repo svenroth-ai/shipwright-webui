@@ -3,7 +3,6 @@
  *
  * Pure + deterministic, so the rules that decide what a user sees are unit-
  * testable without a DOM.
- *
  * The HIDE-EMPTY rule is the whole point and it is deliberately asymmetric:
  *
  *   hidden  — `not_applicable`   this artifact does not apply to this run
@@ -11,12 +10,9 @@
  *   shown   — `available`        clickable, with a summary
  *             `unavailable`      compact, NON-clickable "currently unavailable"
  *             `error`            same, as an error
- *
- * Why `unavailable` must stay visible: it means "this SHOULD exist and we could
- * not read it" — an unreadable event log, a pointer that failed validation.
- * Hiding it would let a data-integrity problem masquerade as "nothing exists",
- * which is exactly the class of lie the state model was introduced to kill.
- *
+ * Why `unavailable` must stay visible: it means "this SHOULD exist and we
+ * could not read it" (an unreadable event log, a failed pointer validation) —
+ * hiding it would let a data-integrity problem masquerade as "nothing exists".
  * ONE exception, added 2026-07-21: while the run is LIVE (`context.runLive`),
  * `not_yet_created` means "not written YET", not "this run has no such
  * artifact" — so it is SHOWN, inert, as a pending entry. Without it the rail is
@@ -26,11 +22,12 @@
  * from "not written yet".
  */
 
-import type {
-  ArtifactDescriptor,
-  ArtifactState,
-  MissionContext,
-} from "./missionContextApi";
+import type { ArtifactDescriptor, ArtifactState, MissionContext } from "./missionContextApi";
+
+// Re-exported so existing import sites (`import { testsResultText } from
+// "./missionArtifacts"`) keep working — the Tests headline logic itself moved
+// to missionArtifacts.testsWording.ts to stay under the bloat limit.
+export { testsResultText } from "./missionArtifacts.testsWording";
 
 /**
  * The rail order.
@@ -194,33 +191,6 @@ export function testsChipValue(context: MissionContext | null | undefined): stri
 export function servesChipValue(context: MissionContext | null | undefined): string | null {
   const v = context?.servesFrId;
   return v && v.length > 0 ? v : null;
-}
-
-/**
- * The Tests DETAIL headline, from the pass/total the run recorded —
- * "All 42 tests passing" / "40 of 42 tests passing" / "42 tests recorded".
- *
- * Mirrors the server's `resultsSentence` wording (artifacts-tests.ts) so the
- * rail receipt and the panel headline never teach different things. Returns
- * null when nothing citable was recorded, so the caller shows the file table
- * (or a plain note) alone.
- */
-export function testsResultText(
-  results: { passed: number | null; total: number | null } | null | undefined,
-): string | null {
-  if (!results) return null;
-  const { passed, total } = results;
-  // A genuine zero-of-zero is not a result — never render "All 0 tests passing".
-  if ((passed ?? 0) === 0 && (total ?? 0) === 0) return null;
-  const word = (n: number): string => (n === 1 ? "test" : "tests");
-  if (passed != null && total != null) {
-    return passed === total
-      ? `All ${total} ${word(total)} passing`
-      : `${passed} of ${total} ${word(total)} passing`;
-  }
-  if (total != null) return `${total} ${word(total)} recorded`;
-  if (passed != null) return `${passed} ${word(passed)} passing`;
-  return null;
 }
 
 /** "FR-01.28 — Embedded terminal (mapped from FR-01.44)" for the detail rows. */

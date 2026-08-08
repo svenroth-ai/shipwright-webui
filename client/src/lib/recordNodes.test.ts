@@ -8,7 +8,7 @@ const FULL: RunFactsLike = {
   affectedFrs: ["FR-01.55"],
   specImpact: "add",
   tests: { passed: 12, total: 12 },
-  gates: { review: "pass" },
+  gates: { test: "pass", review: "pass" },
   commit: "abc1234deadbeef",
 };
 
@@ -34,7 +34,7 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
   it("mid-run with a FAILING gate → Review is NOT done and shows no 'clean' receipt", () => {
     const nodes = deriveRecordNodes({
       missionState: "live",
-      facts: { ...FULL, gates: { review: "fail" }, commit: null },
+      facts: { ...FULL, gates: { test: "pass", review: "fail" }, commit: null },
     });
     const k = byKey(nodes);
     expect(k.review.state).not.toBe("done");
@@ -81,6 +81,17 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
     expect(nodes).toHaveLength(5);
     expect(nodes.every((n) => n.state === "pending")).toBe(true);
     expect(nodes.every((n) => n.receipt === null)).toBe(true);
+  });
+
+  // @covers FR-01.66
+  it("a post-reversal host-gated skip reads DONE with the honest 9/10 receipt (gate drives completion, not passed===total; iterate-2026-08-08-tests-total-skip-contract discriminating case)", () => {
+    const nodes = deriveRecordNodes({
+      missionState: "done",
+      facts: { ...FULL, tests: { passed: 9, total: 10 }, gates: { test: "pass", review: "pass" } },
+    });
+    const k = byKey(nodes);
+    expect(k.tests.state).toBe("done");
+    expect(k.tests.receipt).toBe("9/10");
   });
 
   // @covers FR-01.66

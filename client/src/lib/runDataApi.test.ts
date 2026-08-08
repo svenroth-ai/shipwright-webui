@@ -37,7 +37,7 @@ describe("runDataApi", () => {
       specImpactRaw: "Modify",
       affectedFrs: ["FR-01.47"],
       newFrs: [],
-      tests: { passed: 10, total: 10 },
+      tests: { passed: 10, total: 10, skipped: null },
       gates: { derived: true, test: "pass", review: "unknown", security: "unknown" },
       phaseDurations: null,
       campaign: null,

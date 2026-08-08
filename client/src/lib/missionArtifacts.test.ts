@@ -18,9 +18,6 @@ import {
   isArtifactPending,
   isArtifactVisible,
   isSupportedSchema,
-  servesChipValue,
-  testsChipValue,
-  testsResultText,
   usesContextRail,
   visibleArtifacts,
   testFrLabel,
@@ -204,58 +201,8 @@ describe("schema gate", () => {
   });
 });
 
-describe("instrument chips (AC8 — honest or dash)", () => {
-  it("renders passed/total when both are present", () => {
-    expect(testsChipValue(ctx({ tests: { passed: 12, total: 12 } }))).toBe("12/12");
-  });
-
-  it("returns null on a PARTIAL record — never invents a denominator", () => {
-    expect(testsChipValue(ctx({ tests: { passed: 12, total: null } }))).toBeNull();
-    expect(testsChipValue(ctx({ tests: { passed: null, total: 12 } }))).toBeNull();
-    expect(testsChipValue(ctx({ tests: null }))).toBeNull();
-  });
-
-  it("renders a zero-passed suite honestly rather than as absent", () => {
-    expect(testsChipValue(ctx({ tests: { passed: 0, total: 9 } }))).toBe("0/9");
-  });
-
-  it("serves the fold-resolved FR id, or null", () => {
-    expect(servesChipValue(ctx({ servesFrId: "FR-01.66" }))).toBe("FR-01.66");
-    expect(servesChipValue(ctx({ servesFrId: null }))).toBeNull();
-  });
-});
-
-describe("testsResultText (the counts-led detail headline)", () => {
-  it("says 'All N tests passing' on a green suite", () => {
-    expect(testsResultText({ passed: 3037, total: 3037 })).toBe("All 3037 tests passing");
-  });
-
-  it("says 'N of M tests passing' when some failed — never rounds to green", () => {
-    expect(testsResultText({ passed: 3009, total: 3037 })).toBe("3009 of 3037 tests passing");
-  });
-
-  it("falls back to a total-only or passed-only phrasing", () => {
-    expect(testsResultText({ passed: null, total: 42 })).toBe("42 tests recorded");
-    expect(testsResultText({ passed: 7, total: null })).toBe("7 tests passing");
-  });
-
-  it("singularises a one-test suite", () => {
-    expect(testsResultText({ passed: 1, total: 1 })).toBe("All 1 test passing");
-  });
-
-  it("returns null when nothing citable was recorded", () => {
-    expect(testsResultText(null)).toBeNull();
-    expect(testsResultText({ passed: null, total: null })).toBeNull();
-  });
-
-  it("treats a genuine zero-of-zero as no result — never 'All 0 tests passing'", () => {
-    expect(testsResultText({ passed: 0, total: 0 })).toBeNull();
-  });
-
-  it("still reports a real failing run (0 of N)", () => {
-    expect(testsResultText({ passed: 0, total: 9 })).toBe("0 of 9 tests passing");
-  });
-});
+// Instruments chip + testsResultText ("instrument chips" / "testsResultText"
+// describes) split out to missionArtifacts.tests-chip.test.ts — bloat limit.
 
 describe("frRowLabel", () => {
   it("shows the fold provenance when the id moved", () => {

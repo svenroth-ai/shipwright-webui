@@ -58,13 +58,14 @@ const NODE_ORDER: RecordNodeKey[] = ["req", "spec", "tests", "review", "commit"]
 
 /** Per-node "is this step evidently COMPLETE?" — derived from real facts only. */
 function completionFlags(facts: RunFactsLike): Record<RecordNodeKey, boolean> {
-  const tests = facts.tests;
   return {
     req: (facts.affectedFrs?.length ?? 0) > 0,
     spec: facts.specImpact != null,
-    // tests are "done" only when the suite is fully green; present-but-red is
-    // NOT complete (it stays the active frontier mid-run).
-    tests: tests != null && tests.passed != null && tests.total != null && tests.passed === tests.total,
+    // tests are "done" only when the pre-resolved gate is an explicit pass;
+    // present-but-red/unknown is NOT complete (stays the active frontier
+    // mid-run). Never re-derive from passed===total here — the server's
+    // tests-gate.ts already resolved the epoch-appropriate convention.
+    tests: facts.gates?.test === "pass",
     // a DERIVED gate: only an explicit pass counts; "fail"/"unknown" are not done.
     review: facts.gates?.review === "pass",
     commit: facts.commit != null && facts.commit.length > 0,

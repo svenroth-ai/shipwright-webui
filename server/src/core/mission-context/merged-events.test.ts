@@ -62,7 +62,7 @@ describe("findWorkCompletedFromMergedRef", () => {
     expect(r.status).toBe("found");
     if (r.status !== "found") throw new Error("unreachable");
     expect(r.run.runId).toBe(RUN);
-    expect(r.run.tests).toEqual({ passed: 3037, total: 3037 });
+    expect(r.run.tests).toEqual({ passed: 3037, total: 3037, skipped: null });
     expect(r.run.commit).toBe(""); // preserved — the reader must not invent one
   });
 

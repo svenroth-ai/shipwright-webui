@@ -20,7 +20,6 @@
  * types — node:fs is natural in `server/`, the client tsconfig has no
  * @types/node, and text is what catches a mirror that compiles fine alone while
  * describing a different shape.
- *
  * @covers FR-01.66
  */
 
@@ -145,6 +144,7 @@ const SHARED_UNIONS = [
   "ReviewSource",
   "DecisionSource",
   "SubIterateSelection",
+  "GateState",
 ];
 
 describe("mission-context types — server SoT vs client verbatim mirror", () => {

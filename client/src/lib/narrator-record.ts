@@ -26,7 +26,7 @@ export interface RunFactsLike {
   /** spec_impact normalized to lowercase (add | modify | none | null). */
   specImpact?: string | null;
   tests?: { passed: number | null; total: number | null } | null;
-  gates?: { review?: GateState } | null;
+  gates?: { test?: GateState; review?: GateState } | null;
   commit?: string | null;
 }
 
@@ -57,9 +57,12 @@ function testsReceipt(tests?: RunFactsLike["tests"]): string {
   return NA;
 }
 
-function testsCaption(tests?: RunFactsLike["tests"]): string {
+/** `gate` is the pre-resolved verdict (server `tests-gate.ts`) — never
+ *  re-derived from `passed === total` here (that breaks post-reversal runs
+ *  where a `skipped` count can make a genuine pass read numerically unequal). */
+function testsCaption(tests?: RunFactsLike["tests"], gate?: GateState): string {
   if (tests && tests.passed != null && tests.total != null) {
-    const verb = tests.passed === tests.total ? "green" : "passing";
+    const verb = gate === "pass" ? "green" : "passing";
     return `Suite ${tests.passed}/${tests.total} ${verb}.`;
   }
   return `Suite ${NA}.`;
@@ -89,7 +92,7 @@ export function narrateRecord(facts: RunFactsLike): RecordNode[] {
       key: "tests",
       label: RECORD_LABELS.tests,
       receipt: testsReceipt(facts.tests),
-      caption: testsCaption(facts.tests),
+      caption: testsCaption(facts.tests, facts.gates?.test),
     },
     {
       key: "review",

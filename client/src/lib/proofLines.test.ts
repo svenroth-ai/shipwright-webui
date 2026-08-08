@@ -98,6 +98,14 @@ describe("deriveVerdict", () => {
   });
 
   // @covers FR-01.66
+  it("a post-reversal host-gated skip is clear even though passed !== total numerically — the gate decides, not raw equality (iterate-2026-08-08-tests-total-skip-contract discriminating case)", () => {
+    const v = deriveVerdict({
+      facts: { tests: { passed: 9, total: 10 }, gates: { test: "pass", review: "pass", security: "pass" } },
+    });
+    expect(v.outcome).toBe("clear");
+  });
+
+  // @covers FR-01.66
   it("zero-total suite is not 'green' (guards a vacuous ALL CLEAR)", () => {
     const v = deriveVerdict({
       facts: { tests: { passed: 0, total: 0 }, gates: { review: "pass", security: "pass" } },
@@ -147,6 +155,20 @@ describe("deriveProofLines", () => {
     expect(text).not.toContain("review clean");
     expect(text).not.toContain("security clean");
     expect(text).not.toContain("suite green");
+  });
+
+  // @covers FR-01.66
+  it("a post-reversal host-gated skip shows 'suite green — 9 passed', not the red-suite line (iterate-2026-08-08-tests-total-skip-contract discriminating case)", () => {
+    const facts: ProofFacts = {
+      runId: "iterate-2026-08-08-x",
+      tests: { passed: 9, total: 10 },
+      gates: { test: "pass", review: "unknown", security: "unknown" },
+    };
+    const verdict = deriveVerdict({ facts });
+    const text = allText(deriveProofLines({ facts, verdict }));
+    expect(text).toContain("suite green");
+    expect(text).toContain("9 passed");
+    expect(text).not.toContain("9/10 passing"); // the red-suite wording must not also appear
   });
 
   // @covers FR-01.66

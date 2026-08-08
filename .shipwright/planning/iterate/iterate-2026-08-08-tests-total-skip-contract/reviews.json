@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-08-tests-total-skip-contract",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T09:57:24.228492+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The rewrite of `event-test-counts-executed.test.ts` removes the old D4 assertion that `total` = executed (passed+failed) without adding a replacement data‑integrity check. Malformed events where `total < passed` or `total < passed + skipped` could go undetected.",
+          "suggestion": "Retain a separate assertion (e.g., `total >= passed` and, when `skipped` is present, `total >= passed + skipped`) in the ratchet, independent of the pass/fail derivation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The server‑side `tests‑gate.ts` and the client‑side mirror are expected to stay byte‑identical but no automated guard exists against accidental drift.",
+          "suggestion": "Add a cross‑workspace vitest test that loads both functions and asserts they return identical results for the same set of inputs.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge‑case",
+          "file": null,
+          "line": null,
+          "finding": "normalizedSkip()` uses `Number.isInteger`, which would reject a string `\"5\"` (treating it as 0). This is acceptable for the known producer (Python writes numbers) but may surprise if the predicate is ever reused with untrusted JSON.",
+          "suggestion": "No change needed now; note in a code comment that the function expects a numeric `skipped`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The new `run‑tests‑mirror‑sync.test.ts` is planned in `server/src/test` but needs to import client‑side types; the workspace vitest configuration must allow that import.",
+          "suggestion": "Verify the import path works in the monorepo vitest setup or place the sync test in a root‑level `test/` directory if needed. This is a minor setup detail.  Overall Assessment: The dual‑predicate approach avoids data migration, correctly interprets all historical events, and centralizes the pass/fail logic – it is a clean, low‑risk change. The identified refinements (predicate‑drift test, data‑integrity assertion) are small hardening additions that don’t block approval.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The permanent dual-predicate cannot reliably distinguish the two contracts when an old-convention run both skipped and failed tests. For example, an old event with `passed: 99, total: 100, skipped: 1` means “99 passed, 1 failed, 1 skipped” under the historical executed-total contract, but the proposed predicate classifies it as pass because `99 + 1 === 100`. The same ambiguity also makes `testsRatio()` report 100% for that failed old-convention run. The planned “genuine failure” cases (`98/100/skipped:1`) do not exercise this collision.",
+          "suggestion": "Add an explicit, persisted convention/schema discriminator to newly written producer events, such as `tests.total_semantics: \"collected\"` or an event-schema version. Treat absent metadata as the historical executed-total convention, and use collected-total logic only for explicitly marked new events. This requires a small monorepo producer change despite the current out-of-scope statement; without it, correctness for immutable old records and newly collected-count records cannot both be guaranteed. Add a regression fixture for the ambiguous old failure shape (`99/100/skipped:1`) and verify it remains fail.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The predicate validates only `skipped`; it permits malformed `passed` and `total` values to influence a gate or ratio. Since values originate in JSONL, runtime data can be non-integer, negative, or otherwise invalid despite TypeScript interfaces. For example, `passed: -1, total: 1, skipped: 2` satisfies the proposed collected-count pass condition, and malformed count combinations can yield a clamped 100% sparkline.",
+          "suggestion": "Normalize/validate all three counts at the reader boundary or in the shared gate: require finite non-negative integers for `passed` and `total`, require `total > 0`, and return `unknown`/`null` for invalid counts. Keep the skip normalization, but make malformed-input behavior explicit in predicate and ratio tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The server and client predicate implementations are intentionally mirrored, but the plan only creates a server predicate test file. Interface mirror tests will not detect logic drift in `deriveTestsGate()` or `testsRatio()`, particularly after a future fix to the ambiguity above. “Byte-for-byte mirrored logic” is an informal constraint rather than an enforceable dependency.",
+          "suggestion": "Add a client `testsGate` unit test suite using the same named case matrix as the server suite, including legacy no-skip, collected-count green, invalid counts, and the old-convention skipped-plus-failure collision. If workspace boundaries permit it, keep shared JSON test vectors as a fixture rather than duplicating expected semantics in two independently maintained tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The D4 ratchet’s proposed success criterion—zero offenders among the currently observed 42 skipped records—only proves the present corpus happens to be compatible with the OR rule. It does not prove the rule preserves the historical contract generally, and it would bless the false-green ambiguity above if such a record later appears in imported, restored, or previously unexamined event logs.",
+          "suggestion": "Retain the real-log ratchet as a corpus regression, but supplement it with explicit semantic fixtures for both convention variants. Once a convention marker exists, ratchet each fixture according to its marker rather than accepting either interpretation for every record.  Overall, the plumbing and consumer-centralization approach are sensible, and avoiding amendment of immutable history is the right instinct. However, the proposed OR predicate loses information and can convert a real historical failure into a pass, so the contract needs an explicit version/semantics signal before implementation. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-08T07:21:10.856427+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - **Category:** risk  \n  **Severity:** medium  \n  **Finding:** The rewrite of `event-test-counts-executed.test.ts` removes the old D4 assertion that `total` = executed (passed+failed) without adding a replacement data‑integrity check. Malformed events where `total < passed` or `total < passed + skipped` could go undetected.  \n  **Suggestion:** Retain a separate assertion (e.g., `total >= passed` and, when `skipped` is present, `total >= passed + skipped`) in the ratchet, independent of the pass/fail derivation.\n\n- **Category:** risk  \n  **Severity:** low  \n  **Finding:** The server‑side `tests‑gate.ts` and the client‑side mirror are expected to stay byte‑identical but no automated guard exists against accidental drift.  \n  **Suggestion:** Add a cross‑workspace vitest test that loads both functions and asserts they return identical results for the same set of inputs.\n\n- **Category:** edge‑case  \n  **Severity:** low  \n  **Finding:** `normalizedSkip()` uses `Number.isInteger`, which would reject a string `\"5\"` (treating it as 0). This is acceptable for the known producer (Python writes numbers) but may surprise if the predicate is ever reused with untrusted JSON.  \n  **Suggestion:** No change needed now; note in a code comment that the function expects a numeric `skipped`.\n\n- **Category:** dependency  \n  **Severity:** low  \n  **Finding:** The new `run‑tests‑mirror‑sync.test.ts` is planned in `server/src/test` but needs to import client‑side types; the workspace vitest configuration must allow that import.  \n  **Suggestion:** Verify the import path works in the monorepo vitest setup or place the sync test in a root‑level `test/` directory if needed. This is a minor setup detail.\n\n**Overall Assessment:** The dual‑predicate approach avoids data migration, correctly interprets all historical events, and centralizes the pass/fail logic – it is a clean, low‑risk change. The identified refinements (predicate‑drift test, data‑integrity assertion) are small hardeni […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The permanent dual-predicate cannot reliably distinguish the two contracts when an old-convention run both skipped and failed tests. For example, an old event with `passed: 99, total: 100, skipped: 1` means “99 passed, 1 failed, 1 skipped” under the historical executed-total contract, but the proposed predicate classifies it as pass because `99 + 1 === 100`. The same ambiguity also makes `testsRatio()` report 100% for that failed old-convention run. The planned “genuine failure” cases (`98/100/skipped:1`) do not exercise this collision.  \n   **Suggestion:** Add an explicit, persisted convention/schema discriminator to newly written producer events, such as `tests.total_semantics: \"collected\"` or an event-schema version. Treat absent metadata as the historical executed-total convention, and use collected-total logic only for explicitly marked new events. This requires a small monorepo producer change despite the current out-of-scope statement; without it, correctness for immutable old records and newly collected-count records cannot both be guaranteed. Add a regression fixture for the ambiguous old failure shape (`99/100/skipped:1`) and verify it remains fail.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The predicate validates only `skipped`; it permits malformed `passed` and `total` values to influence a gate or ratio. Since values originate in JSONL, runtime data can be non-integer, negative, or otherwise invalid despite TypeScript interfaces. For example, `passed: -1, total: 1, skipped: 2` satisfies the proposed collected-count pass condition, and malformed count combinations can yield a clamped 100% sparkline.  \n   **Suggestion:** Normalize/validate all three counts at the reader boundary or in the shared gate: require finite non-negative integers for `passed` and `total`, require `total > 0`, and return `unknown`/`null` for invalid counts. Keep the skip n […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "approve"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "hardening",
+          "file": "client/src/lib/missionArtifacts.ts",
+          "line": 201,
+          "finding": "The new `ResultsLike` alias declares both `skipped?` and `gate?` as optional. An omitted `skipped` silently drops the disclosure and the headline reverts to the exact overstating \"All 10 tests passing\" that finding 2 just closed.",
+          "suggestion": "Delete the alias and type the param `MissionTests | null | undefined` (already exported from ./missionContextApi).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "nit",
+          "file": "server/src/test/event-test-counts-executed.test.ts",
+          "line": 249,
+          "finding": "The replacement D4 test title \"non-negative integer, tracked apart from total (either convention)\" is newly inaccurate: post-reversal `skipped` is inside `total`, not apart from it.",
+          "suggestion": "Rename to \"keeps any skipped count a non-negative integer (convention-independent)\".",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "asymmetry",
+          "file": "client/src/lib/narrator-record.ts",
+          "line": 65,
+          "finding": "The Tests card now discloses the skip while narrator-record.ts and proofLines.ts render the same run without it. Neither is false, so acceptable as a decision rather than an oversight.",
+          "suggestion": "No action needed.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-08T09:33:19.339177+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "wording-consistency",
+          "file": "server/src/core/mission-context/artifacts-tests.ts",
+          "line": 90,
+          "finding": "Claim under doubt: Every gate value renders honest, distinguishable wording after the skip-disclosure fix. — gate:\"unknown\" (e.g. all-collected-tests-skipped, {passed:0,total:5,skipped:5}) fell through to the same branch as a real failure -- \"0 of 5 tests passing\", indistinguishable from 5 real failures, or worse \"5 of 5 tests passing\" (reads fully green) for {passed:5,total:5,skipped:5}. No test or E2E covered an unknown gate's wording.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/tests-gate.ts",
+          "line": 75,
+          "finding": "Claim under doubt: The epoch verdict is deterministic given an event's own `ts`. — Bare `Date.parse` treats an offset-less ISO string as host-LOCAL time (ECMA-262), so `deriveTestsGate({passed:99,total:100,skipped:1}, \"2026-08-08T01:00:00\")` returns \"pass\" in UTC and \"fail\" in Europe/Zurich -- the D4 ratchet could go red on one machine and green on another.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "documentation-accuracy",
+          "file": "server/src/test/event-test-counts-executed.test.ts",
+          "line": 178,
+          "finding": "Claim under doubt: The D4 describe title accurately describes the rule it enforces. — The title still read \"recorded test counts are executed counts (D4 ratchet)\", contradicting its own header for post-reversal events.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "forward-compatibility",
+          "file": "server/src/test/event-test-counts-executed.test.ts",
+          "line": 69,
+          "finding": "Claim under doubt: A future amendment correcting a pre-reversal event's `tests` block is unambiguous about which convention to write. — `effectiveEvents()` overlays `fields` while keeping the TARGET's own `ts`, so a future amendment must still be written in the OLD shape even though the tool authoring it, running post-reversal, defaults to the new COLLECTED shape. The header covered the two existing amendments but stated no forward rule.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-08T09:33:26.034622+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "shipwright_events.jsonl` — missing from diff",
+          "line": null,
+          "finding": "The explicitly unchecked acceptance criterion requiring this run’s own `work_completed` event to be the first post-reversal collected-count record, with an explicit `tests.skipped`, is not delivered. No event-log update is included, so the change does not establish or verify the first forward-written producer-side shape it claims to support.",
+          "suggestion": "Add this iterate’s `work_completed` event with `tests.total` as collected count and an explicit `tests.skipped` value, then ensure the real-log D4 test exercises it under the post-reversal rule.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/mission-context/artifacts-tests.ts:89-116` and `client/src/lib/missionArtifacts.ts:203-211",
+          "line": null,
+          "finding": "Any `gate === \"unknown\"` record with both `passed` and `total` present plus a positive raw `skipped` value is rendered as if all tests were skipped. But `unknown` also results from malformed counts and impossible skip counts. For example, `{ passed: 0, total: 5, skipped: 9 }` yields `unknown` in `deriveTestsGate()` because `total - skipped <= 0`, then renders “All 5 collected tests were skipped — none ran” and `9/5 skipped`; `{ passed: -1, total: 5, skipped: 1 }` similarly makes an unsupported all-skipped claim. This violates the stated honest-degradation behavior for malformed JSONL input.",
+          "suggestion": "Only use the all-skipped wording/receipt when the raw values prove that state, e.g. valid non-negative integer `passed === 0`, `total > 0`, and `skipped === total`; otherwise render a neutral malformed/no-result result without asserting that all tests were skipped.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/core/mission-context/artifacts-tests.test.ts:250-264` and `client/src/lib/missionArtifacts.tests-chip.test.ts:94-100",
+          "line": null,
+          "finding": "The new all-skipped tests cover only the valid `{ passed: 0, total: 5, skipped: 5 }` case. They do not test unknown gates caused by malformed/impossible values, so the false all-skipped rendering described above passes all added tests.",
+          "suggestion": "Add server and client tests for at least `skipped > total`, negative/non-integer `passed` or `total` with positive `skipped`, and verify neither the headline nor receipt claims that all tests were skipped.  Overall assessment: ship-with-fixes. The epoch-aware gate implementation is largely aligned with the contract, but the missing forward event and malformed-input rendering can leave the delivered behavior incomplete and make false user-facing claims.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-08T09:57:05.681515+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: spec\n- Severity: medium\n- File: `shipwright_events.jsonl` — missing from diff\n- Finding: The explicitly unchecked acceptance criterion requiring this run’s own `work_completed` event to be the first post-reversal collected-count record, with an explicit `tests.skipped`, is not delivered. No event-log update is included, so the change does not establish or verify the first forward-written producer-side shape it claims to support.\n- Suggestion: Add this iterate’s `work_completed` event with `tests.total` as collected count and an explicit `tests.skipped` value, then ensure the real-log D4 test exercises it under the post-reversal rule.\n\n- Category: bug\n- Severity: medium\n- File: `server/src/core/mission-context/artifacts-tests.ts:89-116` and `client/src/lib/missionArtifacts.ts:203-211`\n- Finding: Any `gate === \"unknown\"` record with both `passed` and `total` present plus a positive raw `skipped` value is rendered as if all tests were skipped. But `unknown` also results from malformed counts and impossible skip counts. For example, `{ passed: 0, total: 5, skipped: 9 }` yields `unknown` in `deriveTestsGate()` because `total - skipped <= 0`, then renders “All 5 collected tests were skipped — none ran” and `9/5 skipped`; `{ passed: -1, total: 5, skipped: 1 }` similarly makes an unsupported all-skipped claim. This violates the stated honest-degradation behavior for malformed JSONL input.\n- Suggestion: Only use the all-skipped wording/receipt when the raw values prove that state, e.g. valid non-negative integer `passed === 0`, `total > 0`, and `skipped === total`; otherwise render a neutral malformed/no-result result without asserting that all tests were skipped.\n\n- Category: test\n- Severity: medium\n- File: `server/src/core/mission-context/artifacts-tests.test.ts:250-264` and `client/src/lib/missionArtifacts.tests-chip.test.ts:94-100`\n- Finding: The new all-skipped tests cover only the valid `{ passed: 0, total: 5, skipped: 5 }` case. They do not te […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      },
+      "contradiction_resolution": "Only one leg (openai) answered this round; deepseek returned an empty reply twice. Not a genuine contradiction between two verdicts -- treated as single-leg evidence. Both of openai's bug/test findings (malformed-unknown-gate wording, missing malformed-input test coverage) were fixed and re-verified in-session; its spec finding (this run's own forward work_completed event not yet written) is the known pending F5b finalization step."
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-08T09:31:26.265771+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

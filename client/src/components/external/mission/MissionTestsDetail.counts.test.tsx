@@ -38,14 +38,39 @@ function testsArtifact(over: Partial<NonNullable<TestsArtifact["detail"]>>): Tes
 
 describe("TestsDetail — counts-led", () => {
   it("LEADS with the recorded pass/total and shows no empty table", () => {
-    render(<TestsDetail artifact={testsArtifact({ results: { passed: 3037, total: 3037 }, rows: [] })} />);
+    render(
+      <TestsDetail
+        artifact={testsArtifact({
+          results: { passed: 3037, total: 3037, skipped: null, gate: "pass" },
+          rows: [],
+        })}
+      />,
+    );
     expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("All 3037 tests passing");
     expect(screen.queryByTestId("artifact-tests-table")).not.toBeInTheDocument();
     expect(screen.getByTestId("artifact-tests-no-files")).toBeInTheDocument();
   });
 
+  it("a post-reversal host-gated skip discloses the skip count though gate is pass (iterate-2026-08-08-tests-total-skip-contract discriminating case)", () => {
+    render(
+      <TestsDetail
+        artifact={testsArtifact({
+          results: { passed: 9, total: 10, skipped: 1, gate: "pass" },
+          rows: [],
+        })}
+      />,
+    );
+    expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent(
+      "9 of 10 tests passing (1 skipped)",
+    );
+  });
+
   it("shows BOTH the result headline and the file table when a diff exists", () => {
-    render(<TestsDetail artifact={testsArtifact({ results: { passed: 40, total: 42 } })} />);
+    render(
+      <TestsDetail
+        artifact={testsArtifact({ results: { passed: 40, total: 42, skipped: null, gate: "fail" } })}
+      />,
+    );
     expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("40 of 42 tests passing");
     expect(screen.getByTestId("artifact-tests-table")).toBeInTheDocument();
   });

@@ -29,6 +29,7 @@ export interface RunGates {
 export interface RunTests {
   passed: number | null;
   total: number | null;
+  skipped: number | null;
 }
 
 export interface PhaseDuration {

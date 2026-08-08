@@ -1,0 +1,198 @@
+{
+  "last_updated": "2026-08-08",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-08-tests-total-skip-contract",
+    "date": "2026-08-08",
+    "unit": "PASS \u2014 client 3191 passed (342 files); server 3343 passed / 1 skipped (284 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 mission-tests-skipped-gate.spec.ts, real Chromium against an isolated single-process dev stack; see surface_verification",
+    "design_fidelity": "n/a \u2014 wording-only change to existing UI text, no layout/visual change",
+    "smoke": "n/a \u2014 no server-startup-affecting change",
+    "degraded": [
+      "External code-review cascade (external_review.py --mode code) ran with only ONE of the two provider legs (deepseek) returning a usable reply across 3 attempts \u2014 the openai leg twice returned an empty/degraded reply before succeeding on a later, complete-diff re-run. Recorded as review type external_code with a --contradiction-resolution note on what single-leg evidence covered."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "deriveTestsGate pre-reversal parity (no skip)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "deriveTestsGate pre-reversal, real historical shape (skip extra)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "deriveTestsGate post-reversal green/fail (skip folded)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "Epoch-boundary collision (same numbers, opposite verdict)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "Malformed input floors (negative/non-integer/total<=0/null)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "Missing/unparseable ts degrades to the stricter pre-reversal rule",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "RunTests/MissionTests server<->client mirror parity",
+          "disposition": "tested",
+          "evidence": "mission-context-types-sync.test.ts, run-tests-mirror-sync.test.ts"
+        },
+        {
+          "behavior": "event-log-reader.ts reads skipped through (absent/present)",
+          "disposition": "tested",
+          "evidence": "event-log-reader.test.ts"
+        },
+        {
+          "behavior": "run-data-join.ts gate delegation, real disk round-trip",
+          "disposition": "tested",
+          "evidence": "run-data-join.skipped-boundary.file.test.ts"
+        },
+        {
+          "behavior": "deriveTestsGate post-reversal: all-collected-tests-skipped -> unknown, never a vacuous pass (code review, MEDIUM)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "artifacts-tests.ts/missionArtifacts.ts skip-carrying-pass wording discloses the skip count, never rounds up to a false 'All N passing' (code review, MEDIUM)",
+          "disposition": "tested",
+          "evidence": "artifacts-tests.counts-led.test.ts, MissionTestsDetail.counts.test.tsx, missionArtifacts.tests-chip.test.ts, mission-tests-skipped-gate.spec.ts"
+        },
+        {
+          "behavior": "toMissionTests() is the SOLE RunTests->MissionTests constructor, closing a resolver.ts/artifacts-tests.ts divergence on the {0,0} edge (code review, LOW-MEDIUM)",
+          "disposition": "tested",
+          "evidence": "artifacts-tests.test.ts ({0,0}->null case), closed by construction for resolver.ts"
+        },
+        {
+          "behavior": "resolver.ts \u2014 the third server-side gate-resolution site (found via tsc, not the original mini-plan); gate-resolved, epoch-disambiguated",
+          "disposition": "tested",
+          "evidence": "resolver.tests-gate.test.ts"
+        },
+        {
+          "behavior": "recordNodes.completionFlags().tests reads gates.test, incl. the discriminating passed:9,total:10->done case",
+          "disposition": "tested",
+          "evidence": "recordNodes.test.ts"
+        },
+        {
+          "behavior": "proofLines.testsGreen()/suiteFailLine() read gates.test, incl. the discriminating passed:9,total:10->clear case",
+          "disposition": "tested",
+          "evidence": "proofLines.test.ts"
+        },
+        {
+          "behavior": "narrator-record.testsCaption() takes the resolved gate, incl. the discriminating 'green' (not 'passing') wording case",
+          "disposition": "tested",
+          "evidence": "narrator.test.ts"
+        },
+        {
+          "behavior": "narrator.ts narrateVerdict \u2014 verified no change needed",
+          "disposition": "tested",
+          "evidence": "narrator.test.ts (unmodified, still green)"
+        },
+        {
+          "behavior": "projectLogStats.buildSparkline() \u2014 verified no change needed (pass-ratio math, unaffected by the headline wording decision)",
+          "disposition": "untestable",
+          "reason_code": "no-behavior-change",
+          "evidence": "reasoned: passed<=total holds under either convention; known minor sparkline dilution under skips left undocumented-but-accepted per operator's wording-scope answer"
+        },
+        {
+          "behavior": "D4 ratchet against the REAL live event log (42 records + all others)",
+          "disposition": "tested",
+          "evidence": "event-test-counts-executed.test.ts"
+        },
+        {
+          "behavior": "D4 integrity: total >= passed always",
+          "disposition": "tested",
+          "evidence": "event-test-counts-executed.test.ts"
+        },
+        {
+          "behavior": "D4 integrity: total >= passed+skipped post-reversal only",
+          "disposition": "tested",
+          "evidence": "event-test-counts-executed.test.ts"
+        },
+        {
+          "behavior": "Boundary Probe: skipped-absent/zero/positive-green/positive-fail, real disk",
+          "disposition": "tested",
+          "evidence": "run-data-join.skipped-boundary.file.test.ts"
+        },
+        {
+          "behavior": "E2E: Mission tab renders a skipped-carrying green run correctly, with the skip disclosed",
+          "disposition": "tested",
+          "evidence": "mission-tests-skipped-gate.spec.ts (executed against an isolated real-browser stack, see surface_verification)"
+        },
+        {
+          "behavior": "Post-reversal ALL-collected-tests-skipped (gate:'unknown') reads as 'skipped \u2014 none ran', never fail-shaped text or a false green (doubt review, MEDIUM); a partial record keeps its own distinct fallback wording, not swallowed by the new unknown branch",
+          "disposition": "tested",
+          "evidence": "artifacts-tests.counts-led.test.ts, missionArtifacts.tests-chip.test.ts"
+        },
+        {
+          "behavior": "An offset-less ts defaults to the pre-reversal rule rather than Date.parse's host-local-time reading (doubt review, LOW-MEDIUM)",
+          "disposition": "tested",
+          "evidence": "tests-gate.test.ts"
+        },
+        {
+          "behavior": "D4 describe title no longer teaches the reverted pre-epoch-only rule for a post-reversal event (doubt review, LOW)",
+          "disposition": "tested",
+          "evidence": "event-test-counts-executed.test.ts describe title itself (rename); the suite it heads still asserts the D4 ratchet, so a re-introduced pre-epoch-only claim would be caught by the same tests"
+        },
+        {
+          "behavior": "Forward-amendment hazard: a future amendment of a pre-reversal event's tests must stay in the OLD shape, since effectiveEvents() keeps the target's own ts (doubt review, LOW)",
+          "disposition": "untestable",
+          "reason_code": "no-such-case-exists-yet",
+          "evidence": "documented in the event-test-counts-executed.test.ts header comment; not independently testable, no such amendment exists yet"
+        },
+        {
+          "behavior": "A MALFORMED unknown record (skipped exceeds total, or negative passed) never claims 'all N were skipped' -- only the raw counts, not a truthy skipped, may license that (external code review, MEDIUM)",
+          "disposition": "tested",
+          "evidence": "artifacts-tests.counts-led.test.ts, missionArtifacts.tests-chip.test.ts"
+        },
+        {
+          "behavior": "External code review's diff-completeness gap (git diff HEAD silently omitting new untracked files, incl. tests-gate.ts itself) is closed for future review cascades",
+          "disposition": "tested",
+          "evidence": "conventions.md Learnings bullet (process fix, verified by re-running the cascade with a complete diff via git add -N)"
+        },
+        {
+          "behavior": "This run's own work_completed event (written at F5b) records tests.total as the COLLECTED count with an explicit tests.skipped",
+          "disposition": "tested",
+          "evidence": "F5b step, verified against the D4 ratchet on the next suite run"
+        }
+      ],
+      "counts": {
+        "testable": 28,
+        "tested": 28,
+        "untestable": 2,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 30,
+        "covered_acs": 30
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "playwright test --config playwright.iterate.config.ts e2e/flows/mission-tests-skipped-gate.spec.ts (isolated single-process stack, temp USERPROFILE, BASE_URL=http://127.0.0.1:3849)",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-08-08-tests-total-skip-contract/surface_verification.json",
+      "timestamp": "2026-08-08T10:12:43Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-08-tests-total-skip-contract",
+    "commit": "d245fec1a4791d1e511ac2cb0b49718206ecadbc",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
