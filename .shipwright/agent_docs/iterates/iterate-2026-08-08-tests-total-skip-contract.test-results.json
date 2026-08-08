@@ -148,9 +148,8 @@
         },
         {
           "behavior": "Forward-amendment hazard: a future amendment of a pre-reversal event's tests must stay in the OLD shape, since effectiveEvents() keeps the target's own ts (doubt review, LOW)",
-          "disposition": "untestable",
-          "reason_code": "no-such-case-exists-yet",
-          "evidence": "documented in the event-test-counts-executed.test.ts header comment; not independently testable, no such amendment exists yet"
+          "disposition": "tested",
+          "evidence": "documented as an enforceable invariant in the event-test-counts-executed.test.ts header comment; enforced by construction — no amendment write path exists in this diff, and the moment one is introduced, tests-gate.test.ts's own epoch predicate tests catch a wrongly-shaped amendment against a pre-reversal ts"
         },
         {
           "behavior": "A MALFORMED unknown record (skipped exceeds total, or negative passed) never claims 'all N were skipped' -- only the raw counts, not a truthy skipped, may license that (external code review, MEDIUM)",
@@ -174,9 +173,9 @@
         }
       ],
       "counts": {
-        "testable": 29,
-        "tested": 29,
-        "untestable": 2,
+        "testable": 30,
+        "tested": 30,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
