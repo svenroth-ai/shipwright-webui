@@ -1,0 +1,72 @@
+{
+  "last_updated": "2026-08-09",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-09-triage-filter-styling",
+    "date": "2026-08-09",
+    "unit": "PASS \u2014 client 3270 passed (350 files); server 3390 passed / 1 skipped (289 files); one server run flaked 1/3391 (rmSync afterEach race, unrelated to this diff) and the immediate re-run was fully green",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 2 Playwright tests in triage-filter-preview-restyle.spec.ts via F0.5 surface_verification, exit 0",
+    "design_fidelity": "PASS \u2014 token reuse only (--radius-button, --color-border, --color-inset, --ink-fixed, --color-text, --color-primary for chips; --color-info-bg/--info-line/--color-info for PreviewButton), no new tokens introduced; a new tokens.contrast.test.ts ladder rung locks the --ink-fixed/--inset pairing, it does not add a token",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Triage filter chips get the Board's control geometry (--radius-button corners, 1.5px border) \u2014 AC1",
+          "disposition": "tested",
+          "evidence": "TriageFilterGroup.test.tsx \"gives every chip the Board's --radius-button / 1.5px-border geometry\"; TriageSortLevel.test.tsx \"gives the select and direction button the same geometry as the filter chips\"; E2E includedStyle.radius/width"
+        },
+        {
+          "behavior": "Excluded (off) chip reads via a non-color cue (line-through + inset fill), text at AA contrast via --ink-fixed, never the failing --color-muted/--inset pair \u2014 AC2",
+          "disposition": "tested",
+          "evidence": "TriageFilterGroup.test.tsx \"renders the excluded (off) state with a line-through + inset fill + ink-fixed text, not --color-muted or --color-faint\"; tokens.contrast.test.ts \"iterate-2026-08-09 --ink-fixed on --inset (triage chip excluded)\"; E2E excludedStyle.color/decoration"
+        },
+        {
+          "behavior": "Included (on) chip stays plain text, --color-primary reserved for the hover border only on either state \u2014 AC1/AC2",
+          "disposition": "tested",
+          "evidence": "TriageFilterGroup.test.tsx \"renders the included (majority) state as plain text, no primary colour\", \"included state has no line-through\", \"reserves --color-primary for the hover BORDER only, on both states\"; E2E includedStyle.color/decoration"
+        },
+        {
+          "behavior": "Preview button is legible on the dark Board toolbar \u2014 literal info-tint fill instead of the transparent --color-surface it inherited from .chrome-dark-controls \u2014 AC3",
+          "disposition": "tested",
+          "evidence": "PreviewButton.test.tsx \"fills with the literal info-tint background, not --color-surface\""
+        },
+        {
+          "behavior": "Preview button renders only for a genuine single-project selection, not for \"All Projects\" or the synthesized \"Unassigned\" pseudo-project (both of which resolvedProjectId falls back to realProjects[0] for) \u2014 AC4",
+          "disposition": "tested",
+          "evidence": "CreateControls.test.tsx \"single-project mode shows Preview when the capability is enabled\", \"All-Projects mode never shows Preview, even when the capability is enabled\", \"Unassigned pseudo-project never shows Preview, even when the capability is enabled\""
+        },
+        {
+          "behavior": "AC4 holds in a real browser: All-Projects renders the plain-cascade picker with zero preview-button nodes, a genuine project renders the button \u2014 AC4",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/triage-filter-preview-restyle.spec.ts (plain-cascade-trigger visible anchor + preview-button toHaveCount(0) on All Projects; preview-button present on a real project)"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "n/a \u2014 surface=web, no justification required"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-09-triage-filter-styling",
+    "commit": "eea0784bd85b95a1a8512869fbad42a8607372a4",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

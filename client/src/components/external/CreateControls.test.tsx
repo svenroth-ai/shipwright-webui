@@ -17,6 +17,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
 import { CreateControls } from "./CreateControls";
+import { UNASSIGNED_PROJECT_ID } from "../../lib/projectIds";
 import type { ActionDefinition } from "../../lib/externalApi";
 import type { Project } from "../../types";
 
@@ -84,5 +85,39 @@ describe("CreateControls", () => {
     expect(screen.getByTestId("plain-cascade-trigger")).toBeTruthy();
     expect(screen.queryByTestId("create-menu-split-button")).toBeNull();
     expect(screen.queryByTestId("plain-claude-button")).toBeNull();
+  });
+
+  // iterate-2026-08-09-triage-filter-styling AC4 — Preview spawns a dev
+  // server for ONE project; it has no meaning in All-Projects cascade mode,
+  // where resolvedProjectId is just a fallback for the actions dropdown,
+  // not a genuine selection.
+  it("single-project mode shows Preview when the capability is enabled", () => {
+    wrap(<CreateControls {...base} activeProjectId="p1" previewEnabled />);
+    expect(screen.getByTestId("preview-button")).toBeTruthy();
+  });
+
+  it("All-Projects mode never shows Preview, even when the capability is enabled", () => {
+    wrap(<CreateControls {...base} activeProjectId={null} previewEnabled />);
+    expect(screen.queryByTestId("preview-button")).toBeNull();
+  });
+
+  // code-reviewer Stage 2 finding: TaskBoardPage's resolvedProjectId falls
+  // back to realProjects[0] for the synthesized "Unassigned" pseudo-project
+  // too (not just null) — a user viewing Unassigned tasks must not see
+  // Preview pointed at some other, arbitrary project.
+  it("Unassigned pseudo-project never shows Preview, even when the capability is enabled", () => {
+    wrap(
+      <CreateControls
+        {...base}
+        activeProjectId={UNASSIGNED_PROJECT_ID}
+        resolvedProjectId="p1"
+        previewEnabled
+      />,
+    );
+    expect(screen.queryByTestId("preview-button")).toBeNull();
+    // The rest of the flat-mode cluster still renders normally — only
+    // Preview is scope-gated.
+    expect(screen.getByTestId("create-menu-split-button")).toBeTruthy();
+    expect(screen.getByTestId("plain-claude-button")).toBeTruthy();
   });
 });

@@ -39,7 +39,7 @@ Three categories of regression guards are spelled out in CLAUDE.md and must be r
 4. Transcript endpoint is stateless (`?fromByte=&expectFingerprint=`) → multi-tab for free; UTF-8-safe chunking on linefeed boundaries; torn-read retry 6x (`core/session-watcher.ts`).
 5. No SSE / no chokidar — sequential 1 s client polling; watcher state derived on demand from mtime.
 6. Plugin dirs re-passed on every launch (`--plugin-dir` does not survive `--resume`); `MIN_SUPPORTED_CLI` pinned (`core/cli-compat.ts`).
-7. Preview-capability precedence (ADR-044): `stack.frontend` AND `dev_server.command` gate `<PreviewButton>`; `.shipwright-webui/actions.json` `actions.preview.enabled=false` hides it regardless.
+7. Preview-capability precedence (ADR-044): `stack.frontend` AND `dev_server.command` gate `<PreviewButton>`; `.shipwright-webui/actions.json` `actions.preview.enabled=false` hides it regardless; plus board scope — it renders only for a genuine single-project selection (`resolvedProjectId === activeProjectId`), never All-Projects or the synthesized "Unassigned" pseudo-project (iterate-2026-08-09-triage-filter-styling).
 
 ## DO-NOT regression guards (index — full text + rationale in CLAUDE.md)
 
@@ -74,6 +74,8 @@ Three categories of regression guards are spelled out in CLAUDE.md and must be r
 - **iterate-2026-08-02-mobile-work-mode** (2026-08-02, responsive terminal): a mounted terminal is not necessarily measurable or visible. Gate every fit/send path on both conditions, and trigger the same cancellable settled refit from a responsive layout revision even when the logical active tab never changed; ResizeObserver timing alone is not the contract. → decision_log (Run-ID).
 - **iterate-2026-08-08-tests-total-skip-contract** (2026-08-08): Learning (tooling) — `git diff HEAD` silently omits every new UNTRACKED file; an external code-review cascade fed that diff couldn't see the core `tests-gate.ts` predicate at all and flagged it unverifiable. Fix: `git add -N` (intent-to-add) the new files before diffing, then `git reset --` them back to untracked once the diff is captured. → decision_log (Run-ID).
 - **iterate-2026-08-08-tests-total-skip-contract** (2026-08-08): Learning (correctness) — a truthy secondary field (`skipped`) must not license a headline claim without validating the primary invariant it depends on (`passed===0 && total>0 && skipped===total`); a malformed record (`skipped` exceeding `total`, negative `passed`) must fall back to "no result", never assert what the raw counts don't actually prove. → decision_log (Run-ID).
+- **iterate-2026-08-09-triage-filter-styling** (2026-08-09): Learning (correctness) — a `null`-only guard can miss a second value sharing the same fallback: `resolvedProjectId` fell back to `realProjects[0]` for BOTH "All Projects" and the synthesized "Unassigned" project; the Preview gate only excluded the first. Caught by code review, not self-review. Fix: gate on the real invariant (`resolvedProjectId === activeProjectId`), not one known-bad value. → decision_log (Run-ID).
+- **iterate-2026-08-09-triage-filter-styling** (2026-08-09): Learning (correctness) — the repo's own contrast ladder (`tokens.contrast.test.ts`) already recorded `--color-muted` on `--inset` as FAILING (~4.39:1) for an unrelated badge; new code paired them anyway, green by omission (the ladder checks its list, not source usage). Grep the ladder for a pair before using it. → decision_log (Run-ID).
 
 Hard-won, mostly empirical; many predate or complement an ADR. Tighten, do not delete.
 

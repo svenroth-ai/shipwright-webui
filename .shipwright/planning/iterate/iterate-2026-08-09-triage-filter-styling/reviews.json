@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-09-triage-filter-styling",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-09T07:19:38.514220+00:00",
+      "disposition": null,
+      "recorded_by": "main-agent",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The mini‑plan’s description of `TriageFilterGroup` restyling contradicts AC2 (the final, agreed encoding). It proposes an “active state” with `border‑[var(--color‑primary)] text‑[var(--color‑primary)]` and a resting state with `text‑[var(--color‑muted)]`. The approved encoding requires the included (default‑on) chips to be plain ink with no colour and no fill, the excluded state to carry `bg‑[var(--color‑inset)] text‑[var(--color‑muted)]`, and `‑‑color‑primary` to appear only on hover. Implementing the mini‑plan as written would reintroduce a hue‑only on/off distinction, directly violating AC2 and defeating the purpose of the restyle.",
+          "suggestion": "Align the mini‑plan with AC2: drop the “active state” primary colours; define included (plain) and excluded (inset + muted) classes; reserve `‑‑color‑primary` for hover. Update the test expectations accordingly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The mini‑plan claims “No new E2E spec — this is a visual/conditional‑render change fully covered by unit tests”, but the change specification’s Verification section mandates a real‑browser E2E spec (`triage-filter-preview-restyle.spec.ts`) that asserts computed styles for radius, background colours, and conditional rendering. Omitting it would leave the ACs unverified against a real DOM and skip the required evidence.",
+          "suggestion": "Include the E2E spec in the implementation scope. Write it per the spec’s assertions, run it in the isolated dev stack, and add it to the verification checklist.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge‑case",
+          "file": null,
+          "line": null,
+          "finding": "The PreviewButton gate description uses “move inside the `!allProjects` branch (flat‑mode cluster)”. The AC specifies hiding the button when `activeProjectId === null`. While `!allProjects` likely maps to the same condition, the exact prop name or branching logic could be misinterpreted if the component’s internal structure differs from the description.",
+          "suggestion": "Confirm in `CreateControls.tsx` that `activeProjectId === null` is the correct condition. Align the code and mini‑plan phrasing with the AC’s explicit `activeProjectId === null` check to avoid ambiguity.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The mini‑plan’s chip restyling mentions the “existing hover” but does not define how the hover style interacts with the new classes. If the hover class previously used `‑‑color‑primary` on top of a tint fill, it must now work on the new resting state without breaking the exclusive‑hover rule.",
+          "suggestion": "Verify that the hover class applies `‑‑color‑primary` only to the border and text (not fill), and that it is added/removed correctly for both included and excluded chips to satisfy AC2.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The Mini-Plan’s proposed `TriageFilterGroup` classes contradict the stated acceptance criteria and the prior review’s resolved affordance issue. Step 3 makes the active state `border-[var(--color-primary)] text-[var(--color-primary)]` and the resting state muted. AC2 instead requires included/default chips to use plain ink with no fill, excluded chips to use inset fill plus muted text, and `--color-primary` only on hover. The Mini-Plan would reintroduce a hue-based resting-state distinction and does not implement the required excluded-state inset fill.",
+          "suggestion": "Update the implementation steps and class-level unit assertions to explicitly model the two semantic states: - included/default: plain ink, transparent background, standard border; - excluded: `bg-[var(--color-inset)] text-[var(--color-muted)]`, with an appropriate standard border; - hover only: `--color-primary` affordance for both states. Ensure the component’s boolean naming and test cases make clear whether “active” currently means included or excluded, rather than applying styles to an ambiguously named active state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The Mini-Plan’s verification strategy conflicts with the accepted medium-iterate verification requirements. It says “No new E2E spec” and manual screenshots only, while the specification explicitly requires `client/e2e/flows/triage-filter-preview-restyle.spec.ts` with real-browser computed-style assertions and same-page project/all-project Preview visibility checks. The listed files also omit this E2E file.",
+          "suggestion": "Add the E2E spec to the files and work breakdown. Cover actual computed chip radius/background states, Preview’s background in the dark toolbar, and toggling between a selected project and All Projects. Keep class-list unit tests as implementation-level guards, but do not substitute them for browser validation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan omits the required visual-regression baseline workflow for `/triage`. This restyle is expected to change the baselined `triage.png`, and a manual local screenshot cannot replace the pinned Linux-container baseline regeneration and changed-file review.",
+          "suggestion": "Include the F11 workflow as a completion prerequisite: trigger baseline generation after push, inspect `changed-baselines.txt`, confirm the expected `triage.png` change and any unexpected Board change, commit the regenerated asset, and rerun the visual gate.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed Preview gate is written as `!allProjects`, while the behavioral contract is specifically `activeProjectId === null`. Since `resolvedProjectId` deliberately falls back to the first project in All Projects mode, correctness depends on `allProjects` always being derived from the same authoritative state and never temporarily diverging during route/state transitions.",
+          "suggestion": "Gate Preview directly on the canonical scope value (`activeProjectId !== null`) where it is available, or document and test the invariant that `allProjects` is exactly equivalent to `activeProjectId === null`. Preserve the fallback `resolvedProjectId` solely for controls that intentionally support All Projects, and verify Preview cannot receive that fallback in any branch.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The plan says to move Preview “inside the `!allProjects` branch (flat-mode cluster),” but does not identify whether that branch has layout-specific behavior, keyboard ordering, or alternate rendering paths. Moving a control rather than conditionally rendering it in place can unintentionally alter toolbar ordering or omit it in a valid single-project layout mode.",
+          "suggestion": "Make the smallest local change: retain Preview’s current single-project placement and add an explicit scope condition around it, unless the existing branch structure proves that placement is identical across supported modes. Add a single-project test that asserts both Preview presence and expected neighboring controls/order if the test harness supports it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The Mini-Plan does not include the documented Preview-capability precedence update, despite AC4 adding project scope as a fourth gate and the internal review identifying this as required documentation consistency. It also conditionally mentions `TriageSortLevel.test.tsx` but does not list it among modified files, despite changing that component’s geometry.",
+          "suggestion": "Include the relevant `CLAUDE.md` update in the file list and describe project scope as a prerequisite ahead of attempting Preview. Add or update `TriageSortLevel.test.tsx` to pin the matching radius and border utility shape alongside the filter-chip assertions.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No material security issue is introduced by a local CSS token replacement and a client-side visibility gate. However, hiding Preview for All Projects is only a UI-scope correction, not authorization enforcement.",
+          "suggestion": "Confirm the existing Preview launch action continues to validate project scope/server eligibility at its action boundary; do not treat this render condition as a security control.  Overall, the root-cause direction is sound and the changes can remain small, but the Mini-Plan must be reconciled with its own acceptance criteria and required browser/baseline verification before implementation. In particular, implement the resolved included/excluded chip encoding rather than the conflicting active/resting styles currently proposed. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-09T07:05:30.725843+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - **Category:** approach  \n  **Severity:** high  \n  **Finding:** The mini‑plan’s description of `TriageFilterGroup` restyling contradicts **AC2** (the final, agreed encoding). It proposes an “active state” with `border‑[var(--color‑primary)] text‑[var(--color‑primary)]` and a resting state with `text‑[var(--color‑muted)]`. The approved encoding requires the **included** (default‑on) chips to be plain ink with **no colour and no fill**, the **excluded** state to carry `bg‑[var(--color‑inset)] text‑[var(--color‑muted)]`, and `‑‑color‑primary` to appear **only** on hover. Implementing the mini‑plan as written would reintroduce a hue‑only on/off distinction, directly violating AC2 and defeating the purpose of the restyle.  \n  **Suggestion:** Align the mini‑plan with AC2: drop the “active state” primary colours; define included (plain) and excluded (inset + muted) classes; reserve `‑‑color‑primary` for hover. Update the test expectations accordingly.\n\n- **Category:** dependency  \n  **Severity:** medium  \n  **Finding:** The mini‑plan claims “No new E2E spec — this is a visual/conditional‑render change fully covered by unit tests”, but the change specification’s **Verification** section mandates a real‑browser E2E spec (`triage-filter-preview-restyle.spec.ts`) that asserts computed styles for radius, background colours, and conditional rendering. Omitting it would leave the ACs unverified against a real DOM and skip the required evidence.  \n  **Suggestion:** Include the E2E spec in the implementation scope. Write it per the spec’s assertions, run it in the isolated dev stack, and add it to the verification checklist.\n\n- **Category:** edge‑case  \n  **Severity:** low  \n  **Finding:** The PreviewButton gate description uses “move inside the `!allProjects` branch (flat‑mode cluster)”. The AC specifies hiding the button when `activeProjectId === null`. While `!allProjects` likely maps to the same condition, the exact prop name or branching logic could be misinterpr […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The Mini-Plan’s proposed `TriageFilterGroup` classes contradict the stated acceptance criteria and the prior review’s resolved affordance issue. Step 3 makes the active state `border-[var(--color-primary)] text-[var(--color-primary)]` and the resting state muted. AC2 instead requires included/default chips to use plain ink with no fill, excluded chips to use inset fill plus muted text, and `--color-primary` only on hover. The Mini-Plan would reintroduce a hue-based resting-state distinction and does not implement the required excluded-state inset fill.  \n   **Suggestion:** Update the implementation steps and class-level unit assertions to explicitly model the two semantic states:\n   - included/default: plain ink, transparent background, standard border;\n   - excluded: `bg-[var(--color-inset)] text-[var(--color-muted)]`, with an appropriate standard border;\n   - hover only: `--color-primary` affordance for both states.\n   Ensure the component’s boolean naming and test cases make clear whether “active” currently means included or excluded, rather than applying styles to an ambiguously named active state.\n\n2. **Category:** dependency  \n   **Severity:** high  \n   **Finding:** The Mini-Plan’s verification strategy conflicts with the accepted medium-iterate verification requirements. It says “No new E2E spec” and manual screenshots only, while the specification explicitly requires `client/e2e/flows/triage-filter-preview-restyle.spec.ts` with real-browser computed-style assertions and same-page project/all-project Preview visibility checks. The listed files also omit this E2E file.  \n   **Suggestion:** Add the E2E spec to the files and work breakdown. Cover actual computed chip radius/background states, Preview’s background in the dark toolbar, and toggling between a selected project and All Projects. Keep class-list unit tests as implementation-level guards, but do not substitute them for bro […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/triage/TriageFilterGroup.tsx",
+          "line": 29,
+          "finding": "Round-4 (final) finding: docstring said text stays --ink-fixed on BOTH states, but only excluded does (included uses --color-text, same rendered color, different token). Fixed: reworded to state which state uses which token and why, trimmed accreted rationale.",
+          "suggestion": "n/a — fixed",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-09T08:02:59.230929+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-09T08:03:57.780461+00:00",
+      "disposition": "Stage 3 doubt-reviewer is conditional per SKILL.md Step 8 / iteration-reviews.md: non-trivial touches only (migrations, async/concurrency, cross-plugin imports, irreversible ops). This diff is CSS classes + one conditional-render gate + a contrast-ladder test addition -- none apply, so Stage 3 was never due.",
+      "recorded_by": "main-agent",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-09T08:04:06.096585+00:00",
+      "disposition": "external_code is the fallback/escalation cascade for when the internal spec-reviewer/code-reviewer cascade genuinely cannot run (iteration-reviews.md, 'the responsibility moves outward'). The internal cascade ran successfully this session (spec: 1 round PASS; code: 4 rounds, final PASS) -- the escalation condition never triggered, so external_code was never required. F11's check_review_record needs only one of code/external_code completed, and code is completed.",
+      "recorded_by": "main-agent",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-09T07:17:36.211018+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-09T07:02:51.542000+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

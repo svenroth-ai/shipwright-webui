@@ -16,6 +16,18 @@ describe("PreviewButton", () => {
     render(<PreviewButton projectId="p1" enabled />);
     expect(screen.getByTestId("preview-button")).toBeTruthy();
   });
+
+  // iterate-2026-08-09-triage-filter-styling AC3 — `--color-surface` reads
+  // as near-transparent under the Board header's `.chrome-dark-controls`
+  // (which does not remap the `info` token family), making the button
+  // unreadable on the dark toolbar. The fix is a literal light-blue fill
+  // that stays legible regardless of the surrounding chrome.
+  it("fills with the literal info-tint background, not --color-surface", () => {
+    render(<PreviewButton projectId="p1" enabled />);
+    const btn = screen.getByTestId("preview-button");
+    expect(btn.className).toContain("bg-[var(--color-info-bg)]");
+    expect(btn.className).not.toContain("bg-[var(--color-surface)]");
+  });
 });
 
 describe("previewErrorToToast", () => {

@@ -5,6 +5,12 @@
  * The new control shape in this feature: nothing else in the app does
  * two-level sort, so unlike the filter chips there is no existing
  * pattern to reuse here (see the iterate spec's Design Check).
+ *
+ * iterate-2026-08-09-triage-filter-styling (AC1): geometry bumped to
+ * `--radius-button` / `border-[1.5px]` and hover to
+ * `hover:border-[var(--color-primary)] hover:text-[var(--color-text)]`,
+ * matching the just-restyled filter chips in the same bar — see
+ * TriageFilterGroup.tsx's docstring for the full rationale.
  */
 
 import { ArrowDown, ArrowUp } from "lucide-react";
@@ -52,12 +58,12 @@ export function TriageSortLevel({
 
   return (
     <div className="flex items-center gap-1.5" data-testid={`${testIdPrefix}-group`}>
-      <span className="text-[11px] font-medium text-[var(--color-muted)] uppercase">{label}</span>
+      <span className="text-[11px] font-semibold text-[var(--color-muted)] uppercase tracking-[0.06em]">{label}</span>
       <select
         value={level.key}
         onChange={(e) => onChange({ ...level, key: e.target.value as SortKey })}
         aria-label={`${name} sort key`}
-        className="text-[11px] rounded border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[var(--color-text)]"
+        className="text-[11px] rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-0.5 text-[var(--color-text)]"
         data-testid={`${testIdPrefix}-key`}
       >
         {SORT_KEYS.map((key) => (
@@ -71,7 +77,7 @@ export function TriageSortLevel({
         onClick={toggleDirection}
         aria-label={`${name} sort direction: ${level.direction === "asc" ? "Ascending" : "Descending"}`}
         title={level.direction === "asc" ? "Ascending" : "Descending"}
-        className="inline-flex h-6 w-6 items-center justify-center rounded border border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)]"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
         data-testid={`${testIdPrefix}-direction`}
       >
         {level.direction === "asc" ? (

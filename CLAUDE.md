@@ -112,7 +112,7 @@ One-line index — rationale lives in the cited ADRs (`.shipwright/agent_docs/de
 
 ### Preview-capability precedence
 
-The Preview dev-server spawn path (not Claude — see ADR-044) gates on three sources: **1.** profile `stack.frontend` (capability gate) · **2.** profile `dev_server.command` (spawn target) · **3.** `.shipwright-webui/actions.json` → `actions.preview.enabled` (user-level opt-out). `<PreviewButton>` renders only when 1 AND 2 are present; `enabled = false` hides it regardless. A boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). Full diagram: [`.shipwright/agent_docs/architecture.md`](.shipwright/agent_docs/architecture.md).
+The Preview dev-server spawn path (not Claude — see ADR-044) gates on four sources: **1.** profile `stack.frontend` (capability gate) · **2.** profile `dev_server.command` (spawn target) · **3.** `.shipwright-webui/actions.json` → `actions.preview.enabled` (user-level opt-out) · **4.** (iterate-2026-08-09-triage-filter-styling) `CreateControls` scope: Preview spawns a dev server for ONE project, so it renders only when `resolvedProjectId === activeProjectId` — a genuine single-project selection, not the fallback (`realProjects[0]`) TaskBoardPage substitutes for BOTH "All projects" (`activeProjectId === null`) and the synthesized "Unassigned" pseudo-project. `<PreviewButton>` renders only when 1, 2 and 4 hold; 3 (`enabled = false`) hides it regardless. A boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). Full diagram: [`.shipwright/agent_docs/architecture.md`](.shipwright/agent_docs/architecture.md).
 
 ### DO-NOT regression guards (see ADR-035)
 
