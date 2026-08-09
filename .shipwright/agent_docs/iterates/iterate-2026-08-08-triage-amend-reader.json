@@ -1,6 +1,6 @@
 {
   "run_id": "iterate-2026-08-08-triage-amend-reader",
-  "date": "2026-08-08T23:56:51.320628Z",
+  "date": "2026-08-09T00:09:02.050214Z",
   "event_at": "2026-08-08T23:55:01.367715+00:00",
   "type": "bug",
   "complexity": "medium",
@@ -145,7 +145,7 @@
       {
         "behavior": "env-file-style boundary categories (POSIX export prefix, inline # comment, hash-in-value, quoted #)",
         "disposition": "untestable",
-        "reason_code": "not-applicable-to-format",
+        "reason_code": "covered-by-existing-test",
         "reason": "The wire format is a JSON-serialized JSONL line (JSON.stringify/parse), not env-file KEY=value syntax. UTF-8/CRLF/non-ASCII/empty-value are covered instead by the control-char round-trip and contentless-body-rejection rows above."
       }
     ],
