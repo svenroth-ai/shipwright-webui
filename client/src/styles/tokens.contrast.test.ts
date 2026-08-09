@@ -78,6 +78,7 @@ const BODY = token(WD, 'body');
 const MUTED = token(WD, 'muted');
 const FAINT = token(WD, 'faint');
 const ACCENT = token(WD, 'accent');
+const INK_FIXED = token(WD, 'ink-fixed');
 
 // ── A04 swept surfaces: semantic text tokens + their tint/inset/dark grounds.
 //    The colour sweep (A04, FR-01.48) moved every legacy palette-class badge/
@@ -157,6 +158,11 @@ const LADDER: Rung[] = [
   // neutral badges: --body on the recessed --inset ground (muted FAILS 4.39 on
   // inset — the sweep uses --body there, this rung locks that in)
   { name: 'A04 --body on --inset', fg: BODY, bg: INSET, min: BODY_MIN },
+  // iterate-2026-08-09-triage-filter-styling: the Triage filter chip's
+  // excluded state carries its own --inset ground and uses --ink-fixed
+  // (never --color-muted, which the rung above already proves fails here)
+  // for its label text — locks that choice in against a future edit.
+  { name: 'iterate-2026-08-09 --ink-fixed on --inset (triage chip excluded)', fg: INK_FIXED, bg: INSET, min: BODY_MIN },
 ];
 
 describe('AA contrast ladder (AC1) — every declared token×ground pair clears its role', () => {

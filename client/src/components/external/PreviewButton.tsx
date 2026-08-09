@@ -8,6 +8,16 @@
  *   - 8px pulsing dot indicator when `loading` (a running dev-server spawn)
  *     via the `pulse-preview-dot` keyframes defined inline.
  *
+ * iterate-2026-08-09-triage-filter-styling: background switched from
+ * `--color-surface` to the literal `--color-info-bg` tint. This header
+ * renders inside `.chrome-dark-controls`, which re-points `--color-surface`
+ * to a ~10%-opacity white overlay for controls on the dark board toolbar —
+ * but deliberately does NOT re-point the semantic `info`/`ok`/`warn`/`err`
+ * families ("badges keep their meaning"). `--color-info`'s navy text over
+ * that near-transparent surface read as invisible on the dark bar. Preview
+ * is a CTA, not a status badge, so the fix is local: a literal light-blue
+ * fill that reads the same regardless of the surrounding chrome.
+ *
  * Error handling is unchanged from section 03:
  *   - POST /api/external/projects/:id/preview
  *   - On success → open the returned url in a new tab.
@@ -87,7 +97,7 @@ export function PreviewButton({
         disabled={loading || !projectId}
         data-testid="preview-button"
         title="Spawn dev server for this project (npm run dev)"
-        className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] border-[1.5px] border-[var(--info-line)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-info)] transition-colors hover:border-[var(--info-line)] hover:bg-[var(--color-info-bg)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] border-[1.5px] border-[var(--info-line)] bg-[var(--color-info-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-info)] transition-colors hover:border-[var(--color-info)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? (
           <Loader2 size={12} className="animate-spin" />

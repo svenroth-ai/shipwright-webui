@@ -70,4 +70,25 @@ describe("TriageSortLevel", () => {
     fireEvent.click(screen.getByTestId("triage-sort-primary-direction"));
     expect(onChange).toHaveBeenCalledWith({ key: "modified", direction: "asc" });
   });
+
+  // iterate-2026-08-09-triage-filter-styling AC1 — same bar, same geometry
+  // as the just-restyled filter chips (--radius-button corners, the
+  // StatusFilterMenu-matching border class), so the sort row doesn't read
+  // as a different, older-styled control glued onto the bottom of the bar.
+  it("gives the select and direction button the same geometry as the filter chips", () => {
+    render(
+      <TriageSortLevel
+        label="Primary"
+        level={{ key: "modified", direction: "desc" }}
+        onChange={vi.fn()}
+        testIdPrefix="triage-sort-primary"
+      />,
+    );
+    const select = screen.getByTestId("triage-sort-primary-key");
+    const direction = screen.getByTestId("triage-sort-primary-direction");
+    for (const el of [select, direction]) {
+      expect(el.className).toContain("rounded-[var(--radius-button)]");
+      expect(el.className).toContain("border-[1.5px]");
+    }
+  });
 });
