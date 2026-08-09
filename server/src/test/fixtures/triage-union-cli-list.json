@@ -22,6 +22,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false,
       "pendingDelivery": false
     },
@@ -45,6 +47,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false,
       "pendingDelivery": false
     },
@@ -68,6 +72,8 @@
       "statusReason": "parked with a date",
       "promotedTaskId": null,
       "revisitAt": "2020-01-01",
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": true,
       "pendingDelivery": false
     },
@@ -91,6 +97,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false,
       "pendingDelivery": true
     },
@@ -114,6 +122,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false,
       "pendingDelivery": true
     }
@@ -139,6 +149,8 @@
       "statusReason": "parked with a future date",
       "promotedTaskId": null,
       "revisitAt": "2099-01-01",
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false,
       "pendingDelivery": false
     },
@@ -162,6 +174,8 @@
       "statusReason": "parked with no date",
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false,
       "pendingDelivery": false
     }

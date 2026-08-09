@@ -1,0 +1,194 @@
+{
+  "run_id": "iterate-2026-08-08-triage-amend-reader",
+  "date": "2026-08-09T00:09:02.050214Z",
+  "event_at": "2026-08-08T23:55:01.367715+00:00",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/triage-amend-reader",
+  "spec": ".shipwright/planning/iterate/2026-08-08-triage-amend-reader.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-08-triage-amend-reader",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "readAllItems overlays a single valid amend (AC1)",
+        "disposition": "tested",
+        "evidence": "triage-store.test.ts"
+      },
+      {
+        "behavior": "Two amends accumulate, later-ts-wins per field (AC5)",
+        "disposition": "tested",
+        "evidence": "triage-store.test.ts"
+      },
+      {
+        "behavior": "Amend interleaved with a status flip resolves in true ts/file-order (AC1/AC5)",
+        "disposition": "tested",
+        "evidence": "triage-store.test.ts"
+      },
+      {
+        "behavior": "Invalid PRESENT field skips the whole amend, no partial apply (AC4)",
+        "disposition": "tested",
+        "evidence": "triage-amend.test.ts"
+      },
+      {
+        "behavior": "severity amend recomputes suggestedPriority; kind amend leaves suggestedDomain untouched (AC2)",
+        "disposition": "tested",
+        "evidence": "triage-store.test.ts"
+      },
+      {
+        "behavior": "TS reader deep-equals Python reader on regenerated fixtures (AC6)",
+        "disposition": "tested",
+        "evidence": "triage-store.test.ts fixtures regenerated via real triage.py",
+        "category": "integration"
+      },
+      {
+        "behavior": "appendAmendEvent writes a delta-only line, absent fields omitted (AC7)",
+        "disposition": "tested",
+        "evidence": "triage-write-amend.test.ts"
+      },
+      {
+        "behavior": "appendAmendEvent bootstraps a missing tracked file (mkdir + header) (AC7)",
+        "disposition": "tested",
+        "evidence": "triage-write-amend.test.ts"
+      },
+      {
+        "behavior": "appendAmendEvent control-char/non-ASCII round-trip (AC7)",
+        "disposition": "tested",
+        "evidence": "triage-write-amend.test.ts"
+      },
+      {
+        "behavior": "Write target follows residence (tracked vs outbox), matching status-flip precedent (AC7)",
+        "disposition": "tested",
+        "evidence": "triage-write-amend.test.ts"
+      },
+      {
+        "behavior": "parseAmendBody rejects contentless/invalid-severity/non-object/bad-id (AC7)",
+        "disposition": "tested",
+        "evidence": "triage-validation.test.ts"
+      },
+      {
+        "behavior": "POST /amend 200/400/404/409/503 route contract (AC7)",
+        "disposition": "tested",
+        "evidence": "triage-routes-amend.test.ts"
+      },
+      {
+        "behavior": "writesRouteToOutbox computed correctly on idle main / feature branch / no-remote (AC9)",
+        "disposition": "tested",
+        "evidence": "triage-board-read.test.ts"
+      },
+      {
+        "behavior": "writesRouteToOutbox reflects a branch switch on the very next read, no staleness window (AC9)",
+        "disposition": "tested",
+        "evidence": "triage-board-read.test.ts (external code-review finding)"
+      },
+      {
+        "behavior": "Pencil Edit toggle visible only for status=triage and not already editing (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageDetailHeader.test.tsx"
+      },
+      {
+        "behavior": "Provenance subtitle shown iff amendedBy set (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageDetailHeader.test.tsx"
+      },
+      {
+        "behavior": "TriageDetailHeader hides read-mode title/severity while editMode is true (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageDetailHeader.test.tsx (external code-review finding)"
+      },
+      {
+        "behavior": "TriageAmendForm builds a correct delta (Cancel=no-op, Save=changed fields only) (AC7/AC8)",
+        "disposition": "tested",
+        "evidence": "TriageAmendForm.test.tsx"
+      },
+      {
+        "behavior": "buildDelta diffs against a mount-time snapshot, not the live polled item prop (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageAmendForm.test.tsx (doubt-review finding)"
+      },
+      {
+        "behavior": "buildDelta's title change-detection has no whitespace false-positive (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageAmendForm.test.tsx (external code-review finding)"
+      },
+      {
+        "behavior": "TriageAmendForm.onSave surfaces a rejected mutation as an inline error, not an unhandled rejection (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageAmendForm.test.tsx (external code-review finding)"
+      },
+      {
+        "behavior": "AC9 disclosure banner shown on false/undefined, hidden on true (AC9)",
+        "disposition": "tested",
+        "evidence": "TriageAmendForm.test.tsx"
+      },
+      {
+        "behavior": "Modal wiring: Edit swaps Detail for the form, hides the action row + pencil (AC8)",
+        "disposition": "tested",
+        "evidence": "TriageDetailModal.amend.test.tsx"
+      },
+      {
+        "behavior": "Open modal reflects a successful Save without a manual close/reopen (AC8)",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/triage-amend.spec.ts (real stack)"
+      },
+      {
+        "behavior": "Cancel writes no amend event; original title/detail/severity survive on disk (AC8)",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/triage-amend.spec.ts"
+      },
+      {
+        "behavior": "LaunchPayloadBlock removal leaves no dangling import/fixture reference (AC10)",
+        "disposition": "tested",
+        "evidence": "full client suite green post-deletion"
+      },
+      {
+        "behavior": "env-file-style boundary categories (POSIX export prefix, inline # comment, hash-in-value, quoted #)",
+        "disposition": "untestable",
+        "reason_code": "covered-by-existing-test",
+        "reason": "The wire format is a JSON-serialized JSONL line (JSON.stringify/parse), not env-file KEY=value syntax. UTF-8/CRLF/non-ASCII/empty-value are covered instead by the control-char round-trip and contentless-body-rejection rows above."
+      }
+    ],
+    "counts": {
+      "testable": 26,
+      "tested": 26,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 10,
+      "covered_acs": 10
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "playwright.cmd test e2e/flows/triage-amend.spec.ts --config=client/playwright.config.ts --reporter=list --project=chromium",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": ".shipwright/runs/iterate-2026-08-08-triage-amend-reader/surface_verification.json",
+    "timestamp": "2026-08-08T23:49:18.911Z",
+    "justification": "n/a"
+  },
+  "declared_removals": [
+    {
+      "path": "client/src/components/triage/LaunchPayloadBlock.tsx",
+      "reason": "AC10 - dead, Fix-now is the only launch affordance actually used (operator decision 2026-08-08)"
+    },
+    {
+      "path": "client/src/components/triage/LaunchPayloadBlock.test.tsx",
+      "reason": "AC10 - test file for the removed component"
+    },
+    {
+      "path": "client/src/lib/launchPayload.ts",
+      "reason": "AC10 - sole consumer (LaunchPayloadBlock) removed"
+    },
+    {
+      "path": "client/src/lib/launchPayload.test.ts",
+      "reason": "AC10 - test file for the removed module"
+    },
+    {
+      "path": "client/src/test/fixtures/launch-payload-strip.json",
+      "reason": "AC10 - fixture used only by the removed launchPayload tests"
+    }
+  ]
+}

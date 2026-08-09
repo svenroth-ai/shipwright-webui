@@ -46,6 +46,8 @@ const item: TriageItem = {
   promotedTaskId: null,
   revisitAt: null,
   revisitDue: false,
+  amendedBy: null,
+  amendedAt: null,
 };
 
 function renderModal(opts?: { onPromoted?: Mock }) {

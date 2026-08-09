@@ -53,6 +53,8 @@ function item(overrides: Partial<TriageItem> & Pick<TriageItem, "id">): TriageIt
     promotedTaskId: null,
     revisitAt: null,
     revisitDue: false,
+    amendedBy: null,
+    amendedAt: null,
     ...overrides,
   };
 }

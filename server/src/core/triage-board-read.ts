@@ -8,7 +8,9 @@
  * one testable place (external review "split into layers").
  */
 
+import { execFile } from "node:child_process";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import type { TriageItem } from "../types/triage.js";
 import { readAllItemsWithDeliveredOrigin } from "./triage-compose.js";
@@ -19,6 +21,15 @@ export interface BoardOrigin {
   available: boolean;
   /** Commits the local checkout is behind its upstream, or null. */
   behind: number | null;
+  /**
+   * iterate-2026-08-08-triage-amend-reader (AC9): true when a status/amend
+   * write right now would route to the per-tree outbox (idle main — origin
+   * remote + HEAD on the default branch). False means a write lands on the
+   * TRACKED store instead — the Edit UI uses this to disclose that BEFORE
+   * the operator submits, not after. Optional/absent-safe: an older client
+   * or a read that fell back to DEGRADED treats it as unknown.
+   */
+  writesRouteToOutbox?: boolean;
 }
 
 export interface BoardRead {
@@ -35,6 +46,47 @@ export interface BoardRead {
 export function originUnionEnabled(): boolean {
   const v = (process.env.SHIPWRIGHT_WEBUI_TRIAGE_ORIGIN_UNION ?? "").trim().toLowerCase();
   return v !== "0" && v !== "false" && v !== "off";
+}
+
+const execFileAsync = promisify(execFile);
+
+async function gitAsync(projectRoot: string, gitArgs: string[]): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", projectRoot, ...gitArgs], {
+      encoding: "utf-8",
+      timeout: 5000,
+      windowsHide: true,
+    });
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * AC9's disclosure signal — read path twin of triage-write.ts's
+ * `shouldRouteToOutbox`. This path is polled every 30 s per registered
+ * project (useTriage.ts); the write path's version uses `spawnSync`, which
+ * blocks Node's single event loop for the duration of up to 3 git calls on
+ * EVERY poll of EVERY project (code-reviewer, iterate-2026-08-08-triage-
+ * amend-reader). A first fix cached that cost with a short TTL, but a cached
+ * `true` can be served for up to the TTL after HEAD actually moves off the
+ * default branch — silently suppressing AC9's disclosure banner in exactly
+ * the case it exists to catch, the opposite of the spec's "fail toward
+ * disclosure" principle (external code-review finding). `execFile` runs
+ * off-thread (libuv), so the event loop stays free without caching anything
+ * — this closes the performance and the staleness concern at once. Same
+ * short-circuit logic and fail-safe-false semantics as the sync version;
+ * kept as its own function (not exported from triage-write.ts) since this
+ * read path is its only caller.
+ */
+async function shouldRouteToOutboxAsync(projectRoot: string): Promise<boolean> {
+  if ((await gitAsync(projectRoot, ["remote", "get-url", "origin"])) === null) return false;
+  const current = await gitAsync(projectRoot, ["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (!current) return false;
+  const head = await gitAsync(projectRoot, ["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]);
+  const defaultBranch = head ? head.replace(/^origin\//, "") : "main";
+  return current === defaultBranch;
 }
 
 const DEGRADED: BoardOrigin = { available: false, behind: null };
@@ -84,7 +136,10 @@ function reportCorruption(
  * empty items — the caller stays a thin one-liner. Items are shallow-cloned so
  * the route's per-request enrichment never mutates shared objects.
  */
-export function readBoardItems(trackedAbsolute: string, projectId: string): BoardRead {
+export async function readBoardItems(
+  trackedAbsolute: string,
+  projectId: string,
+): Promise<BoardRead> {
   try {
     const projectRoot = path.dirname(path.dirname(trackedAbsolute));
     const delivered = loadDeliveredOrigin(projectRoot, { enabled: originUnionEnabled() });
@@ -109,7 +164,11 @@ export function readBoardItems(trackedAbsolute: string, projectId: string): Boar
     reportCorruption(projectId, corruptTotal, corrupt);
     return {
       items,
-      origin: { available: delivered.originAvailable, behind: delivered.localBehind },
+      origin: {
+        available: delivered.originAvailable,
+        behind: delivered.localBehind,
+        writesRouteToOutbox: await shouldRouteToOutboxAsync(projectRoot),
+      },
     };
   } catch (err) {
     console.warn(

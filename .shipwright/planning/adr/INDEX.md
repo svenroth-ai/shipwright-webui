@@ -26,3 +26,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [ADR-137 — ADR — Decisions reads the drops; the campaign store stops calling a degraded read "ok"](137-mission-decisions-drops-store-honesty.md)
 - [ADR-138 — ADR — Answering Claude's mid-run question from the Inbox: spiked, measured, NOT built](138-inbox-answer-in-place-not-built.md)
 - [ADR-139 — ADR — Epoch-gated resolution of `tests.total` (collected vs executed)](139-tests-total-skip-contract.md)
+- [Triage amend event support (reader parity + Edit-in-place UI)](iterate-2026-08-08-triage-amend-reader.md)

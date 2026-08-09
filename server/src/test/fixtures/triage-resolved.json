@@ -21,6 +21,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -43,6 +45,8 @@
       "statusReason": "out of scope this sprint",
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -65,6 +69,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -88,6 +94,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -111,6 +119,8 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
       "revisitDue": false
     },
     {
@@ -133,6 +143,56 @@
       "statusReason": null,
       "promotedTaskId": null,
       "revisitAt": null,
+      "amendedBy": null,
+      "amendedAt": null,
+      "revisitDue": false
+    },
+    {
+      "id": "trg-hhhh8888",
+      "ts": "2026-08-08T10:00:00Z",
+      "originalTs": "2026-08-08T10:00:00Z",
+      "source": "phaseQuality",
+      "severity": "high",
+      "kind": "bug",
+      "title": "First correction: title only",
+      "detail": "Original detail, never amended",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "phaseQuality:amend-accumulate",
+      "status": "triage",
+      "suggestedPriority": "P1",
+      "suggestedDomain": "engineering",
+      "statusBy": null,
+      "statusReason": null,
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "amendedBy": "sven",
+      "amendedAt": "2026-08-08T10:10:00Z",
+      "revisitDue": false
+    },
+    {
+      "id": "trg-iiii9999",
+      "ts": "2026-06-01T08:02:00Z",
+      "originalTs": "2026-06-01T08:00:00Z",
+      "source": "compliance",
+      "severity": "medium",
+      "kind": "compliance",
+      "title": "Corrected title, chronologically BEFORE the dismiss above despite appearing after it in the file",
+      "detail": "Original detail",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "compliance:amend-interleaved-status",
+      "status": "dismissed",
+      "suggestedPriority": "P2",
+      "suggestedDomain": "compliance",
+      "statusBy": "manualReview",
+      "statusReason": "superseded",
+      "promotedTaskId": null,
+      "revisitAt": null,
+      "amendedBy": "sven",
+      "amendedAt": "2026-06-01T08:01:00Z",
       "revisitDue": false
     }
   ]

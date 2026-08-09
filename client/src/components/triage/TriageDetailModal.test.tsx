@@ -28,10 +28,16 @@ import { TriageDetailModal } from "./TriageDetailModal";
 import type { FixNowIntent } from "./fixNowIntent";
 import type { TriageItem } from "../../lib/triageApi";
 
+const { amendMutateAsyncSpy } = vi.hoisted(() => ({
+  amendMutateAsyncSpy: vi.fn(),
+}));
 vi.mock("../../hooks/useTriage", () => ({
   useDismissTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSnoozeTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   usePromoteTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useTriageDrift: () => ({ data: { available: false, behind: null } }),
+  useAmendTriageItem: () => ({ mutateAsync: amendMutateAsyncSpy, isPending: false }),
+  useTriageDisplayItem: (_projectId: string, item: unknown) => item,
 }));
 
 const { useProjectActionsSpy } = vi.hoisted(() => ({
@@ -82,6 +88,8 @@ const baseItem: TriageItem = {
   promotedTaskId: null,
   revisitAt: null,
   revisitDue: false,
+  amendedBy: null,
+  amendedAt: null,
 };
 
 // Resolved catalog stub — both new-task + new-iterate present so the

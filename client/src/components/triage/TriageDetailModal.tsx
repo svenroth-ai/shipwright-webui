@@ -1,5 +1,6 @@
 /*
- * TriageDetailModal.tsx — full detail + action buttons (Promote/Dismiss/Snooze).
+ * TriageDetailModal.tsx — full detail + action buttons (Promote/Dismiss/Snooze)
+ * plus an inline Edit (Amend) affordance for title/detail/severity.
  *
  * Promote opens the dedicated PromoteModal (form fields). Dismiss + Snooze
  * are simpler — single optional reason input.
@@ -12,26 +13,34 @@
  * `onFixNow`. The parent (TriagePage) owns the NewIssueModal mount —
  * mounting it inside TriageDetailModal would unmount when this dialog
  * closes on `onOpenChange(false)`, killing the modal before it could
- * render. `LaunchPayloadBlock` still renders informational payload
- * text; the legacy clipboard-copy path is removed.
+ * render.
+ *
+ * iterate-2026-08-08-triage-amend-reader (AC8/AC10): the informational
+ * `LaunchPayloadBlock` is REMOVED — never acted on, only Fix-now is used.
+ * Its space now hosts the Edit toggle: a header pencil icon-button, NOT a
+ * fifth action-row button — Edit corrects the record, the row transitions
+ * status. `displayItem` (`useTriageDisplayItem`) keeps the modal live
+ * post-save — every earlier mutation closed the modal, so none needed it.
  */
 
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import type { TriageItem } from "../../lib/triageApi";
 import {
   useDismissTriageItem,
   useSnoozeTriageItem,
+  useTriageDisplayItem,
+  useTriageDrift,
 } from "../../hooks/useTriage";
 import { useProjectActions } from "../../hooks/useProjectActions";
 import { useStartCampaign } from "../../hooks/useStartCampaign";
-import { PendingDeliveryBadge, SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
 import { CampaignStartCta } from "./CampaignStartCta";
-import { LaunchPayloadBlock } from "./LaunchPayloadBlock";
 import { PromoteModal } from "./PromoteModal";
 import { SnoozeRevisitField } from "./SnoozeRevisitField";
+import { TriageAmendForm } from "./TriageAmendForm";
+import { TriageDetailHeader } from "./TriageDetailHeader";
 import { buildFixNowIntent, type FixNowIntent } from "./fixNowIntent";
 
 interface TriageDetailModalProps {
@@ -77,27 +86,31 @@ export function TriageDetailModal({
   const snooze = useSnoozeTriageItem(projectId);
   const startCampaignMut = useStartCampaign(projectId);
   const projectActions = useProjectActions(projectId);
+  // Shares the page-level triage list query's cache entry (useTriage.ts) — no extra fetch.
+  const drift = useTriageDrift(projectId);
+  const displayItem = useTriageDisplayItem(projectId, item);
   const [reason, setReason] = useState("");
   const [revisitAt, setRevisitAt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
-  // Reset the inline failure surfaces whenever the displayed item or
-  // open-state changes — a stale failure message from a previous click
-  // should not bleed onto the next item / re-open.
+  // Reset inline failure surfaces on item/open change — a stale message
+  // from a previous click should not bleed onto the next item / re-open.
   useEffect(() => {
     setFixNowFailure(null);
     setStartError(null);
+    setEditMode(false);
   }, [item.id, open]);
 
   // FR-01.33 — campaign-umbrella branch. A triage item the producer linked to
   // a campaign carries `campaignSlug` (+ lifecycle status). draft/null → offer
   // "Start Campaign" (flip to active); active → "Go to board"; complete → no
   // CTA. The campaign CTA being shown demotes Fix-now to a secondary style.
-  const campaignSlug = item.campaignSlug ?? null;
-  const campaignStatus = item.campaignStatus ?? null;
+  const campaignSlug = displayItem.campaignSlug ?? null;
+  const campaignStatus = displayItem.campaignStatus ?? null;
   const isCampaignItem = Boolean(campaignSlug);
   // Fix-now is demoted to a secondary style whenever a campaign CTA competes
   // for primary attention (draft/active/legacy-null) — but NOT when the
@@ -140,7 +153,7 @@ export function TriageDetailModal({
       setFixNowFailure("Fix-now handler not wired on this page.");
       return;
     }
-    const result = buildFixNowIntent(item, projectActions.data, projectId);
+    const result = buildFixNowIntent(displayItem, projectActions.data, projectId);
     if (result.kind === "failed") {
       setFixNowFailure(result.message);
       return;
@@ -191,78 +204,66 @@ export function TriageDetailModal({
             data-testid="triage-detail-modal"
           >
             <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <Dialog.Title className="text-lg font-semibold">
-                    {item.title}
-                  </Dialog.Title>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <SourceBadge source={item.source} />
-                    <SeverityBadge severity={item.severity} />
-                    <StatusBadge status={item.status} />
-                    {item.pendingDelivery && <PendingDeliveryBadge />}
-                    <code className="text-[11px] text-[var(--color-muted)]">{item.id}</code>
-                  </div>
-                </div>
-                <Dialog.Close asChild>
-                  <button
-                    type="button"
-                    className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors"
-                    aria-label="Close"
-                  >
-                    <X size={18} />
-                  </button>
-                </Dialog.Close>
-              </div>
+              <TriageDetailHeader item={displayItem} editMode={editMode} onEdit={() => setEditMode(true)} />
 
               <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
                 <div>
                   <dt className="text-[var(--color-muted)]">Suggested priority</dt>
-                  <dd className="font-mono">{item.suggestedPriority}</dd>
+                  <dd className="font-mono">{displayItem.suggestedPriority}</dd>
                 </div>
                 <div>
                   <dt className="text-[var(--color-muted)]">Suggested domain</dt>
-                  <dd>{item.suggestedDomain}</dd>
+                  <dd>{displayItem.suggestedDomain}</dd>
                 </div>
                 <div>
                   <dt className="text-[var(--color-muted)]">Kind</dt>
-                  <dd>{item.kind}</dd>
+                  <dd>{displayItem.kind}</dd>
                 </div>
                 <div>
                   <dt className="text-[var(--color-muted)]">Original ts</dt>
-                  <dd className="font-mono text-[10px]">{item.originalTs}</dd>
+                  <dd className="font-mono text-[10px]">{displayItem.originalTs}</dd>
                 </div>
-                {item.dedupKey && (
+                {displayItem.dedupKey && (
                   <div className="col-span-2">
                     <dt className="text-[var(--color-muted)]">Dedup key</dt>
                     <dd className="font-mono text-[10px] break-all">
-                      {item.dedupKey}
+                      {displayItem.dedupKey}
                     </dd>
                   </div>
                 )}
-                {item.evidencePath && (
+                {displayItem.evidencePath && (
                   <div className="col-span-2">
                     <dt className="text-[var(--color-muted)]">Evidence</dt>
                     <dd className="font-mono text-[10px] break-all">
-                      {item.evidencePath}
+                      {displayItem.evidencePath}
                     </dd>
                   </div>
                 )}
               </dl>
 
-              <div className="border-t border-[var(--color-border)] pt-4">
-                <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
-                  Detail
-                </h4>
-                <p
-                  className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
-                  data-testid="triage-detail-body"
-                >
-                  {item.detail}
-                </p>
-              </div>
-
-              <LaunchPayloadBlock item={item} />
+              {editMode ? (
+                <div className="border-t border-[var(--color-border)] pt-4">
+                  <TriageAmendForm
+                    projectId={projectId}
+                    item={displayItem}
+                    writesRouteToOutbox={drift.data?.writesRouteToOutbox}
+                    onCancel={() => setEditMode(false)}
+                    onSaved={() => setEditMode(false)}
+                  />
+                </div>
+              ) : (
+                <div className="border-t border-[var(--color-border)] pt-4">
+                  <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
+                    Detail
+                  </h4>
+                  <p
+                    className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
+                    data-testid="triage-detail-body"
+                  >
+                    {displayItem.detail}
+                  </p>
+                </div>
+              )}
 
               {isCampaignItem && campaignSlug && (
                 <CampaignStartCta
@@ -275,7 +276,7 @@ export function TriageDetailModal({
                 />
               )}
 
-              {item.status === "triage" && (
+              {displayItem.status === "triage" && !editMode && (
                 <div className="border-t border-[var(--color-border)] pt-4 mt-4">
                   <label className="block">
                     <span className="text-xs font-medium text-[var(--color-text)]">
@@ -363,7 +364,7 @@ export function TriageDetailModal({
         open={promoteOpen}
         onOpenChange={setPromoteOpen}
         projectId={projectId}
-        item={item}
+        item={displayItem}
         onPromoted={() => {
           onActionComplete?.("promoted");
           onOpenChange(false);

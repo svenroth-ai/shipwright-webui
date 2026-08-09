@@ -12,16 +12,27 @@
  * (file order); resolution is by id, so a line present in both (post-sweep,
  * pre-GC) collapses to one item.
  *
- * Two-pass status resolution (matches Python read_all_items):
+ * Two-pass resolution (matches Python read_all_items):
  *   - Pass 1 applies ALL `append` events (base records, union of both files)
- *   - Pass 2 applies ALL `status` events ordered by (ts, file-order): ts is
- *     primary so the chronologically-later flip in EITHER file wins; file
- *     order (tracked-before-outbox) is the stable tiebreaker for equal ts,
- *     preserving the single-file "later valid line wins by file order"
- *     contract. The append-first split stops an outbox append (status:triage)
- *     from clobbering a tracked status flip.
+ *   - Pass 2 applies ALL `status` AND `amend` events TOGETHER, ordered by
+ *     (ts, file-order): ts is primary so the chronologically-later event in
+ *     EITHER file wins REGARDLESS OF EVENT TYPE; file order (tracked-before-
+ *     outbox) is the stable tiebreaker for equal ts, preserving the
+ *     single-file "later valid line wins by file order" contract. The
+ *     append-first split stops an outbox append (status:triage) from
+ *     clobbering a tracked status flip. Each event type keeps its own
+ *     overlay semantics (status: whole-field replace; amend: only present
+ *     fields, via `triage-amend.ts tryApplyAmend`) — interleaving them by
+ *     time is what makes two amends ACCUMULATE (each is a merge) while a
+ *     later status still fully supersedes an earlier one (iterate-2026-08-08-
+ *     triage-amend-reader; byte-for-byte mirror of `triage.py`
+ *     read_all_items` Pass 2, which loops one combined sorted list rather
+ *     than two separate passes).
  *   - status overlay sets: status, ts, statusBy, statusReason, revisitAt
  *   - promotedTaskId only set when the status event carries a non-null value
+ *   - amend overlay sets: title/detail/severity/kind (present fields only),
+ *     suggestedPriority (on a severity amend), amendedBy, amendedAt — never
+ *     `ts`, which stays "time of the last STATUS decision"
  *
  * Park-expiry overlay (monorepo P2.03, iterate-2026-08-05-triage-deferred-
  * envelope): `applyDeferOverlay` (triage-defer.ts) runs exactly ONCE, right
@@ -49,6 +60,7 @@
 import { statSync } from "node:fs";
 
 import type { TriageItem, TriageStatus } from "../types/triage.js";
+import { AMENDED_AT_FIELD, AMENDED_BY_FIELD, tryApplyAmend } from "./triage-amend.js";
 import { applyDeferOverlay, utcToday } from "./triage-defer.js";
 import { readRawLines } from "./triage-raw.js";
 import { outboxPathFor } from "./triage-paths.js";
@@ -107,7 +119,7 @@ function tsKey(raw: Record<string, unknown>): string {
  * Two-pass union resolution over already-parsed raw lines (tracked THEN
  * outbox, file order). Byte-for-byte mirror of Python `read_all_items`'s
  * resolution body — Pass 1 applies all `append` events, Pass 2 applies all
- * `status` events ordered by (ts, file-order).
+ * `status` AND `amend` events together, ordered by (ts, file-order).
  *
  * Exported for the delivered-origin composer (`triage-compose.ts`): the same
  * multi-source union already reconciles tracked ∪ outbox, so adding origin as
@@ -133,28 +145,37 @@ export function resolveUnion(rawLines: Record<string, unknown>[]): TriageItem[] 
     // Revisit semantics belong only to a valid `snoozed` status event — a
     // hand-edited append must not acquire park semantics (mirrors Python).
     item.revisitAt = null;
+    item[AMENDED_BY_FIELD] = null;
+    item[AMENDED_AT_FIELD] = null;
     resolved.set(id, item);
   }
 
-  // Pass 2 — overlay status flips ordered by (ts, file-order). ts is primary
-  // so a chronologically-later status in EITHER file wins; the enumerate
-  // index is the stable tiebreaker for equal ts (tracked precedes outbox).
-  const statusEvents: { idx: number; raw: Record<string, unknown> }[] = [];
+  // Pass 2 — overlay status flips AND amends TOGETHER, ordered by
+  // (ts, file-order). ts is primary so a chronologically-later event in
+  // EITHER file wins regardless of type; the enumerate index is the stable
+  // tiebreaker for equal ts (tracked precedes outbox).
+  const statusAndAmendEvents: { idx: number; raw: Record<string, unknown> }[] = [];
   rawLines.forEach((raw, idx) => {
-    if (raw.event === "status") statusEvents.push({ idx, raw });
+    if (raw.event === "status" || raw.event === "amend") statusAndAmendEvents.push({ idx, raw });
   });
-  statusEvents.sort((a, b) => {
+  statusAndAmendEvents.sort((a, b) => {
     const ta = tsKey(a.raw);
     const tb = tsKey(b.raw);
     if (ta < tb) return -1;
     if (ta > tb) return 1;
     return a.idx - b.idx;
   });
-  for (const { raw } of statusEvents) {
+  for (const { raw } of statusAndAmendEvents) {
     const id = raw.id;
     if (typeof id !== "string") continue;
     const item = resolved.get(id);
-    if (!item) continue; // status for unknown id (corrupt / out-of-order) — skip
+    if (!item) continue; // status/amend for unknown id (corrupt / out-of-order) — skip
+
+    if (raw.event === "amend") {
+      tryApplyAmend(item, raw);
+      continue;
+    }
+
     const newStatus = raw.newStatus;
     if (typeof newStatus === "string" && STATUSES.has(newStatus as TriageStatus)) {
       item.status = newStatus;

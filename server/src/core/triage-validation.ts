@@ -5,7 +5,8 @@
  * past its recorded ceiling; no behavior changed by the move.
  */
 
-import type { TriagePriority } from "../types/triage.js";
+import type { TriagePriority, TriageSeverity } from "../types/triage.js";
+import { validateAmendEvent } from "./triage-amend.js";
 import { parseRevisitDate, utcToday } from "./triage-defer.js";
 
 const TRIAGE_ID_RE = /^trg-[0-9a-fA-F]{8}$/;
@@ -167,4 +168,53 @@ export function parseDismissSnoozeBody(
     revisitAt = parsed;
   }
   return { ok: true, value: { triageId, reason, revisitAt } };
+}
+
+export interface AmendBody {
+  triageId: string;
+  title?: string;
+  detail?: string;
+  severity?: TriageSeverity;
+}
+
+/**
+ * Validates a `POST /api/triage/:projectId/amend` body: a DELTA, never a
+ * rewrite — any subset of title/detail/severity, at least one present
+ * (contentless → 400 before any write, mirrors `check_amend_fields`'s
+ * writer-side precondition in `lib/triage_amend.py`). Field-level validity
+ * (non-blank title, string detail, known severity) reuses
+ * `triage-amend.ts`'s `validateAmendEvent` — the SAME check the reader
+ * applies to a stored line, so a body that would pass here is guaranteed to
+ * resolve on the very next read (no accepted-but-silently-ignored amend).
+ * `kind` is deliberately NOT accepted here — the Edit UI only offers
+ * title/detail/severity (filing-card decision); the wire format itself
+ * still supports a `kind` amend for parity with any future producer.
+ */
+export function parseAmendBody(body: unknown): Validated<AmendBody> {
+  if (!isPlainObject(body)) return { ok: false, error: { error: "body_not_object" } };
+  const triageId = body.triageId;
+  if (typeof triageId !== "string" || !TRIAGE_ID_RE.test(triageId)) {
+    return { ok: false, error: { error: "invalid_triageId", field: "triageId" } };
+  }
+  const candidate: Record<string, unknown> = {};
+  if (body.title !== undefined) candidate.title = body.title;
+  if (body.detail !== undefined) candidate.detail = body.detail;
+  if (body.severity !== undefined) candidate.severity = body.severity;
+  if (Object.keys(candidate).length === 0) {
+    return { ok: false, error: { error: "amend_contentless" } };
+  }
+  if (!validateAmendEvent(candidate)) {
+    return { ok: false, error: { error: "invalid_amend_field" } };
+  }
+  return {
+    ok: true,
+    value: {
+      triageId,
+      ...(candidate.title !== undefined ? { title: candidate.title as string } : {}),
+      ...(candidate.detail !== undefined ? { detail: candidate.detail as string } : {}),
+      ...(candidate.severity !== undefined
+        ? { severity: candidate.severity as TriageSeverity }
+        : {}),
+    },
+  };
 }

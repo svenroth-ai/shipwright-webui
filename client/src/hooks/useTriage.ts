@@ -9,11 +9,13 @@
 
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  amendTriageItem,
   dismissTriageItem,
   fetchTriage,
   getTriageCounts,
   promoteTriageItem,
   snoozeTriageItem,
+  type AmendBody,
   type PromoteBody,
   type PromoteResult,
   type StatusFlipBody,
@@ -147,6 +149,29 @@ export function useSnoozeTriageItem(projectId: string) {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: itemsKey(projectId) });
       void qc.invalidateQueries({ queryKey: countsKey });
+    },
+  });
+}
+
+/**
+ * Live-refetching view of a single item — a caller (TriageDetailModal) that
+ * holds `item` as a one-time prop snapshot from a parent's card click stays
+ * current after a mutation invalidates the shared list cache (e.g. Edit /
+ * amend), instead of displaying stale pre-mutation content in an already-open
+ * modal. Falls back to the prop when the cache has no entry yet (first paint)
+ * or the item fell out of the resolved set.
+ */
+export function useTriageDisplayItem(projectId: string, item: TriageItem): TriageItem {
+  const liveItems = useTriageItems(projectId);
+  return liveItems.data?.find((i) => i.id === item.id) ?? item;
+}
+
+export function useAmendTriageItem(projectId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: AmendBody) => amendTriageItem(projectId, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: itemsKey(projectId) });
     },
   });
 }

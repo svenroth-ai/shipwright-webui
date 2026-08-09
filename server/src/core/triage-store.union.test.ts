@@ -77,6 +77,10 @@ function statusLine(
   });
 }
 
+function amendLine(id: string, ts: string, fields: Record<string, unknown>): string {
+  return JSON.stringify({ event: "amend", id, ts, by: "webui", ...fields });
+}
+
 describe("triage-store: readAllItems — union (tracked ∪ outbox)", () => {
   let workDir: string;
   let trackedPath: string;
@@ -181,6 +185,22 @@ describe("triage-store: readAllItems — union (tracked ∪ outbox)", () => {
     const [item] = readAllItems(trackedPath);
     expect(item.status).toBe("dismissed");
     expect(item.statusReason).toBe("outbox wins");
+  });
+
+  it("applies an OUTBOX amend to a TRACKED append (cross-file, code-review finding: no amend coverage in the union suite)", () => {
+    // Pass 2's shared (ts, file-order) sort dispatches status and amend events
+    // identically regardless of which file they came from — this is the amend
+    // analog of the "applies an OUTBOX status flip to a TRACKED append" case
+    // above, closing the gap the code-reviewer flagged for
+    // iterate-2026-08-08-triage-amend-reader.
+    writeFileSync(trackedPath, `${HEADER}\n${appendLine("trg-z", "2026-06-01T08:00:00Z")}\n`);
+    writeFileSync(
+      outboxPath,
+      amendLine("trg-z", "2026-06-01T09:00:00Z", { title: "Corrected via outbox" }) + "\n",
+    );
+    const [item] = readAllItems(trackedPath);
+    expect(item.title).toBe("Corrected via outbox");
+    expect(item.amendedBy).toBe("webui");
   });
 
   it("tolerates corrupt lines in the outbox without throwing", () => {
