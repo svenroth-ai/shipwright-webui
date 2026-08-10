@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "The patch is limited to the five fresh audit findings and the mini-plan records each required reconciliation."},
+    {"name": "Error Handling", "verdict": "n/a", "note": "No runtime code path or external boundary changed."},
+    {"name": "Security Basics", "verdict": "pass", "note": "No secrets, credentials, authentication, or executable behavior were added; the copied local environment file remains ignored."},
+    {"name": "Test Quality", "verdict": "pass", "note": "The audit itself is the behavior-level check for all five bookkeeping controls, and the static test-hygiene probe found no findings."},
+    {"name": "Performance Basics", "verdict": "n/a", "note": "No runtime performance path changed."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "All additions follow existing event, audit-config, baseline, and planning conventions; the four H1 files are deliberately recorded rather than split without evidence."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "The changed JSON and JSONL producers are validated by their real consumers: JSON parsing and the B/F/G/H auditor pass against disk state."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff completed with no findings."}
+  ]
+}
