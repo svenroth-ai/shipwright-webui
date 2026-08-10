@@ -206,6 +206,15 @@ export function parseAmendBody(body: unknown): Validated<AmendBody> {
   if (!validateAmendEvent(candidate)) {
     return { ok: false, error: { error: "invalid_amend_field" } };
   }
+  // Node refuses NUL bytes in execFile arguments. Keep newlines valid in an
+  // amend detail, but reject the one character that could otherwise turn this
+  // well-formed HTTP request into an opaque process-spawn failure.
+  if (
+    (typeof candidate.title === "string" && candidate.title.includes("\0")) ||
+    (typeof candidate.detail === "string" && candidate.detail.includes("\0"))
+  ) {
+    return { ok: false, error: { error: "invalid_amend_field" } };
+  }
   return {
     ok: true,
     value: {

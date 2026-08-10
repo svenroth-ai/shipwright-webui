@@ -35,6 +35,8 @@ interface PromoteModalProps {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   item: TriageItem;
+  writeDisabled?: boolean;
+  writeDisabledReason?: string;
   /** Called after a successful 201 Promote so the parent can close + toast. */
   onPromoted?: (taskId: string, recovered: boolean) => void;
 }
@@ -44,6 +46,8 @@ export function PromoteModal({
   onOpenChange,
   projectId,
   item,
+  writeDisabled = false,
+  writeDisabledReason,
   onPromoted,
 }: PromoteModalProps) {
   const promote = usePromoteTriageItem(projectId);
@@ -79,6 +83,7 @@ export function PromoteModal({
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+    if (writeDisabled) return;
     const result = await promote.mutateAsync({
       triageId: item.id,
       priority,
@@ -232,6 +237,11 @@ export function PromoteModal({
                 {error}
               </div>
             )}
+            {writeDisabled && (
+              <div className="mt-4 p-2 text-xs text-warn bg-warn-tint border border-[var(--warn-line)] rounded" data-testid="triage-promote-unavailable">
+                Promote is unavailable: {writeDisabledReason}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2.5 mt-5">
               <Dialog.Close asChild>
@@ -244,7 +254,8 @@ export function PromoteModal({
               </Dialog.Close>
               <button
                 type="submit"
-                disabled={promote.isPending}
+                disabled={writeDisabled || promote.isPending}
+                title={writeDisabled ? writeDisabledReason : undefined}
                 className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                 data-testid="promote-submit"
               >

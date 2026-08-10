@@ -27,9 +27,11 @@ interface TriageDetailHeaderProps {
   item: TriageItem;
   editMode: boolean;
   onEdit: () => void;
+  writeDisabled?: boolean;
+  writeDisabledReason?: string;
 }
 
-export function TriageDetailHeader({ item, editMode, onEdit }: TriageDetailHeaderProps) {
+export function TriageDetailHeader({ item, editMode, onEdit, writeDisabled = false, writeDisabledReason }: TriageDetailHeaderProps) {
   return (
     <div className="flex items-start justify-between mb-4">
       <div>
@@ -57,7 +59,9 @@ export function TriageDetailHeader({ item, editMode, onEdit }: TriageDetailHeade
           <button
             type="button"
             onClick={onEdit}
-            className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors"
+            disabled={writeDisabled}
+            title={writeDisabledReason}
+            className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Edit"
             data-testid="triage-edit-toggle"
           >

@@ -63,6 +63,13 @@ describe("parseAmendBody", () => {
     });
   });
 
+  it("rejects NUL in an amend field before it reaches execFile", () => {
+    expect(parseAmendBody({ triageId: "trg-aaaa1111", detail: "bad\0argument" })).toEqual({
+      ok: false,
+      error: { error: "invalid_amend_field" },
+    });
+  });
+
   it("ignores a `kind` field on the body — not accepted from the Edit UI", () => {
     const result = parseAmendBody({ triageId: "trg-aaaa1111", title: "x", kind: "bug" });
     expect(result).toEqual({ ok: true, value: { triageId: "trg-aaaa1111", title: "x" } });

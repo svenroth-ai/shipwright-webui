@@ -9,11 +9,10 @@
  *   POST /api/triage/:projectId/snooze    — single-file write → 200
  *   POST /api/triage/:projectId/amend     — single-file DELTA write (edit-in-place) → 200
  *
- * Lock-order convention (global): triage.jsonl FIRST, then sdk-sessions.json.
- * See conventions.md "Lock acquisition order".
+ * The Python CLI owns triage.jsonl locking and status compare-and-swap. This
+ * route only uses the sdk-sessions store's independent lock while preparing a
+ * promoted task; it never takes a TypeScript triage lock.
  */
-
-import { existsSync } from "node:fs";
 
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -36,10 +35,14 @@ import {
   parseAmendBody,
 } from "../core/triage-validation.js";
 import {
-  appendAmendEvent,
-  appendStatusEvent,
-  TriageWriteError,
-} from "../core/triage-write.js";
+  runTriageCli,
+  triageWriteAvailability,
+  type TriageCliResult,
+  type TriageWriteAvailability,
+} from "../core/triage-cli-runner.js";
+
+/** Never put an interpreter probe on the native board-read critical path. */
+export const TRIAGE_WRITE_AVAILABILITY_TTL_MS = 15_000;
 
 /**
  * Hard cap on the promoted task's description. Verbatim mirror of the
@@ -83,20 +86,12 @@ export interface TriageRoutesDeps {
   getProjectById: (id: string) => TriageProjectMeta | undefined;
   /** sdk-sessions store (find/create/persist). */
   store: SdkSessionsStore;
-  /**
-   * Cross-process file lock for the triage.jsonl path. MUST use a
-   * collision-safe lockfile path (`.weblock`) so it never clashes with
-   * the Python `_FileLock` regular-file sidecar at `<file>.lock` — see
-   * core/triage-lock.ts (`createTriageLock`) and ADR-106. In tests this
-   * is an in-process mutex.
-   */
-  lock: (path: string) => Promise<() => Promise<void>>;
-  /** Failure injection for tests — when set, replaces appendStatusEvent. */
-  appendStatusEventOverride?: typeof appendStatusEvent;
-  /** Failure injection for tests — when set, replaces appendAmendEvent. */
-  appendAmendEventOverride?: typeof appendAmendEvent;
-  /** Pinnable now-provider for tests. */
-  now?: () => string;
+  /** Sole triage transition writer. Defaults to the installed Python CLI. */
+  runTriageCli?: typeof runTriageCli;
+  /** Availability probe for the visible no-fallback degraded state. */
+  triageWriteAvailability?: typeof triageWriteAvailability;
+  /** Test seam for the cached availability refresh interval. */
+  triageWriteAvailabilityTtlMs?: number;
   /**
    * FR-01.33 — injected campaign correlation (server-side enrichment). Returns
    * each campaign in the project as `{expandsTriage, slug, status}`. Wired in
@@ -109,8 +104,39 @@ export interface TriageRoutesDeps {
 
 export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
   const app = new Hono();
-  const append = deps.appendStatusEventOverride ?? appendStatusEvent;
-  const amend = deps.appendAmendEventOverride ?? appendAmendEvent;
+  const writeTriage = deps.runTriageCli ?? runTriageCli;
+  const writeAvailability = deps.triageWriteAvailability ?? triageWriteAvailability;
+  const availabilityTtlMs = deps.triageWriteAvailabilityTtlMs ?? TRIAGE_WRITE_AVAILABILITY_TTL_MS;
+  let cachedAvailability: { at: number; value: TriageWriteAvailability } | null = null;
+  let availabilityInFlight: Promise<void> | null = null;
+
+  function currentWriteAvailability(): Promise<TriageWriteAvailability> {
+    const now = Date.now();
+    if (cachedAvailability && now - cachedAvailability.at <= availabilityTtlMs) {
+      return Promise.resolve(cachedAvailability.value);
+    }
+    if (!availabilityInFlight) {
+      availabilityInFlight = writeAvailability()
+        .then((value) => { cachedAvailability = { at: Date.now(), value }; })
+        .catch(() => {
+          cachedAvailability = {
+            at: Date.now(),
+            value: {
+              available: false,
+              reason: "The triage write engine could not be checked.",
+            },
+          };
+        })
+        .finally(() => { availabilityInFlight = null; });
+    }
+    // A cold probe must not delay a native board read. Keep transitions safely
+    // disabled until its verdict is available; subsequent polling picks it up.
+    return Promise.resolve(cachedAvailability?.value ?? {
+      available: false,
+      checking: true,
+      reason: "Checking whether the triage write engine is available.",
+    });
+  }
 
   // ----------------------------------------------------------------------
   // GET /api/triage/counts — aggregate (status==triage) per project + total,
@@ -187,11 +213,14 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
     // `origin` drift metadata for the staleness banner (additive; older clients
     // ignore it). Read errors + git failures degrade inside readBoardItems. See
     // core/triage-board-read.ts.
-    const board = await readBoardItems(pathRes.absolute, projectId);
+    const [board, write] = await Promise.all([
+      readBoardItems(pathRes.absolute, projectId),
+      currentWriteAvailability(),
+    ]);
     const items = board.items;
     enrichWithCampaignRefs(items, projectId, deps.listCampaignRefs);
     enrichPendingDelivery(items, pathRes.absolute);
-    return c.json({ items, origin: board.origin });
+    return c.json({ items, origin: { ...board.origin, write } });
   });
 
   // ----------------------------------------------------------------------
@@ -223,65 +252,26 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    // RC3 (ADR-106, spec AC4): a missing triage.jsonl means the item
-    // cannot exist — answer 404 BEFORE touching the lock. proper-lockfile
-    // would ENOENT on a missing target anyway, and there is nothing to
-    // contend on.
-    if (!existsSync(pathRes.absolute)) {
-      return c.json(
-        { error: "triage_item_not_found", triageId: parsed.value.triageId },
-        404,
-      );
-    }
-
-    // Lock #1 (FIRST per global lock-order convention): triage.jsonl.
-    // Genuine contention (`ELOCKED` — another webui tab, or the Python
-    // `_FileLock` producer) degrades to a clean 503, never an opaque 500.
-    let releaseTriage: () => Promise<void>;
-    try {
-      releaseTriage = await deps.lock(pathRes.absolute);
-    } catch (err) {
-      if (isElockedError(err)) return lockUnavailable(c);
-      throw err;
+    // Read natively to construct the local task, but leave the transition
+    // itself to the Python CLI. This snapshot is deliberately NOT a TypeScript
+    // CAS: the CLI repeats the precondition under its cross-process lock.
+    const item = findItemById(readAllItems(pathRes.absolute), parsed.value.triageId);
+    if (!item) {
+      return c.json({ error: "triage_item_not_found", triageId: parsed.value.triageId }, 404);
     }
     try {
-      const items = readAllItems(pathRes.absolute);
-      const item = findItemById(items, parsed.value.triageId);
-      if (!item) {
-        return c.json({ error: "triage_item_not_found", triageId: parsed.value.triageId }, 404);
-      }
-
-      // Status pre-check (held under triage lock; serializes same-id
-      // concurrent promotes via the triage path lock).
-      if (item.status !== "triage") {
-        // Already promoted/dismissed/snoozed by some actor. Allow if we
-        // own the back-ref (idempotent recovery from prior partial-promote);
-        // otherwise reject with 409.
-        const preExisting = deps.store.findByPromotedFromTriageId(
-          parsed.value.triageId,
-        );
-        if (!preExisting) {
-          return c.json(
-            {
-              error: "triage_item_not_in_triage_state",
-              actualStatus: item.status,
-            },
-            409,
-          );
-        }
-      }
-
       let taskId: string;
       let recovered: boolean;
+      let createdTaskId: string | undefined;
 
       // RC2 fix (ADR-106): create-or-recover with NO route-held
       // sdk-sessions lock. `store.persist()` takes its own
       // proper-lockfile lock internally; a second route-level lock on
       // the same sdk-sessions.json was the non-reentrant self-deadlock
       // (proper-lockfile is not reentrant → inner lock `ELOCKED` → 500).
-      // Same-id concurrent promotes are already serialized by the
-      // triage.jsonl lock held above; the back-ref lookup below stays
-      // as the idempotent create-vs-recover decision.
+      // The CLI serializes same-id promotes under its cross-process lock; the
+      // back-ref lookup below stays as the idempotent create-vs-recover
+      // decision.
       const existing = deps.store.findByPromotedFromTriageId(
         parsed.value.triageId,
       );
@@ -328,36 +318,59 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         await deps.store.persist();
         taskId = created.taskId;
         recovered = false;
+        createdTaskId = taskId;
       }
 
-      // Step 7: append status flip to triage.jsonl.
-      try {
-        append({
-          jsonlPath: pathRes.absolute,
-          triageId: parsed.value.triageId,
-          newStatus: "promoted",
-          by: "webui",
-          reason: "webuiPromote",
-          promotedTaskId: `EXT:${taskId}`,
-          now: deps.now,
+      const cli = await writeTriage({
+        projectRoot: project.path,
+        operation: "promote",
+        itemId: parsed.value.triageId,
+        args: [`--task-ref=EXT:${taskId}`, "--reason=webuiPromote"],
+      });
+      let resolvedItem = cli.kind === "ok" ? cli.item : undefined;
+      if (!resolvedItem && cli.kind === "precondition" && recovered) {
+        // The original promotion may have committed before its stdout was
+        // lost. A second `promote` correctly receives the CLI's stable
+        // precondition exit, so reconcile through the CLI reader before
+        // declaring the recoverable task stranded.
+        const shown = await writeTriage({
+          projectRoot: project.path,
+          operation: "show",
+          itemId: parsed.value.triageId,
+          args: [],
         });
-      } catch (err) {
-        // ENOENT or any other write failure → 207 partial. The
-        // ExternalTask has already been minted with the back-ref so a
-        // retry will hit the idempotent path.
-        if (err instanceof TriageWriteError) {
-          return c.json(
-            {
-              error: "promote_partial",
-              taskId,
-              triageId: parsed.value.triageId,
-              code: err.code,
-              message: "ExternalTask created; triage status flip failed — retry to complete",
-            },
-            207,
-          );
+        if (
+          shown.kind === "ok" &&
+          shown.item.status === "promoted" &&
+          shown.item.promotedTaskId === `EXT:${taskId}`
+        ) {
+          resolvedItem = shown.item;
         }
-        throw err;
+      }
+      if (!resolvedItem) {
+        // A newly minted task has no triage transition until the CLI says it
+        // succeeded. Stable CLI refusals prove no transition committed, so a
+        // Python-originated winning race cannot leave a WebUI orphan behind.
+        // An unrecognised result is deliberately NOT rolled back: the CLI may
+        // have committed before stdout was truncated, and its promoted event
+        // references this task. Preserve that recoverable partial instead.
+        if (createdTaskId && cli.kind !== "failed") {
+          deps.store.delete(createdTaskId);
+          await deps.store.persist();
+        }
+        if (cli.kind === "engine-unavailable") return engineUnavailable(c, cli);
+        if (cli.kind === "failed") {
+          return c.json({
+            error: "promote_partial",
+            taskId,
+            triageId: parsed.value.triageId,
+            code: "triage_cli_result_unknown",
+            message: "ExternalTask created; triage transition result is unknown — retry to reconcile.",
+          }, 207);
+        }
+        // `ok` always supplies a non-null object to `resolvedItem`; TypeScript
+        // cannot retain that relationship through the reconciliation branch.
+        return cliFailure(c, cli as Exclude<TriageCliResult, { kind: "ok" } | { kind: "engine-unavailable" }>, parsed.value.triageId);
       }
 
       const fullTask = deps.store.get(taskId);
@@ -369,15 +382,13 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         triageId: parsed.value.triageId,
         newStatus: "promoted",
         recovered,
+        item: resolvedItem,
       };
       return c.json(response, 201);
     } catch (err) {
-      // `store.persist()` ELOCKED — same contention class as the
-      // triage lock → clean 503, not an opaque 500.
+      // sdk-sessions persistence is still independently lock-protected.
       if (isElockedError(err)) return lockUnavailable(c);
       throw err;
-    } finally {
-      await releaseQuietly(releaseTriage);
     }
   });
 
@@ -426,62 +437,19 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    if (!existsSync(pathRes.absolute)) {
-      return c.json(
-        { error: "triage_item_not_found", triageId: parsed.value.triageId },
-        404,
-      );
-    }
-
-    let release: () => Promise<void>;
-    try {
-      release = await deps.lock(pathRes.absolute);
-    } catch (err) {
-      if (isElockedError(err)) return lockUnavailable(c);
-      throw err;
-    }
-    try {
-      const items = readAllItems(pathRes.absolute);
-      const item = findItemById(items, parsed.value.triageId);
-      if (!item) {
-        return c.json({ error: "triage_item_not_found", triageId: parsed.value.triageId }, 404);
-      }
-
-      // Edit is in-scope only for an open triage card (AC8) — an amend on
-      // a dismissed/snoozed/promoted item would correct a record whose
-      // status transition has already been decided on the old content.
-      if (item.status !== "triage") {
-        return c.json(
-          {
-            error: "triage_item_not_in_triage_state",
-            actualStatus: item.status,
-          },
-          409,
-        );
-      }
-      try {
-        amend({
-          jsonlPath: pathRes.absolute,
-          triageId: parsed.value.triageId,
-          by: "webui",
-          title: parsed.value.title,
-          detail: parsed.value.detail,
-          severity: parsed.value.severity,
-          now: deps.now,
-        });
-      } catch (err) {
-        if (err instanceof TriageWriteError) {
-          return c.json(
-            { error: err.code, message: err.message },
-            500,
-          );
-        }
-        throw err;
-      }
-      return c.json({ triageId: parsed.value.triageId, amended: true });
-    } finally {
-      await releaseQuietly(release);
-    }
+    const cli = await writeTriage({
+      projectRoot: project.path,
+      operation: "amend",
+      itemId: parsed.value.triageId,
+      args: [
+        ...(parsed.value.title !== undefined ? [`--title=${parsed.value.title}`] : []),
+        ...(parsed.value.detail !== undefined ? [`--detail=${parsed.value.detail}`] : []),
+        ...(parsed.value.severity !== undefined ? [`--severity=${parsed.value.severity}`] : []),
+      ],
+    });
+    if (cli.kind === "ok") return c.json({ triageId: parsed.value.triageId, amended: true, item: cli.item });
+    if (cli.kind === "engine-unavailable") return engineUnavailable(c, cli);
+    return cliFailure(c, cli, parsed.value.triageId);
   });
 
   async function statusFlipRoute(
@@ -513,82 +481,33 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    // RC3 (ADR-106, spec AC4): missing triage.jsonl → 404 before the
-    // lock (nothing to contend on; proper-lockfile would ENOENT).
-    if (!existsSync(pathRes.absolute)) {
+    // Orphan-promote guard: this is task-store recovery, not a triage CAS.
+    // The CLI owns both the unlocked status check and the locked transition.
+    const existing = deps.store.findByPromotedFromTriageId(parsed.value.triageId);
+    if (existing) {
       return c.json(
-        { error: "triage_item_not_found", triageId: parsed.value.triageId },
-        404,
+        {
+          error: "promote_in_progress",
+          taskId: existing.taskId,
+          message:
+            "A previous Promote attempt left a task; complete the promote (retry) or delete the task first.",
+        },
+        409,
       );
     }
 
-    // Genuine lock contention (`ELOCKED`) degrades to a clean 503.
-    let release: () => Promise<void>;
-    try {
-      release = await deps.lock(pathRes.absolute);
-    } catch (err) {
-      if (isElockedError(err)) return lockUnavailable(c);
-      throw err;
-    }
-    try {
-      const items = readAllItems(pathRes.absolute);
-      const item = findItemById(items, parsed.value.triageId);
-      if (!item) {
-        return c.json({ error: "triage_item_not_found", triageId: parsed.value.triageId }, 404);
-      }
-
-      // Orphan-promote guard (Gemini MED #2): if a back-ref task exists,
-      // a prior promote completed step 5 but failed step 7. Block
-      // dismiss/snooze until the operator finishes (or rolls back) the
-      // promote.
-      const existing = deps.store.findByPromotedFromTriageId(
-        parsed.value.triageId,
-      );
-      if (existing) {
-        return c.json(
-          {
-            error: "promote_in_progress",
-            taskId: existing.taskId,
-            message:
-              "A previous Promote attempt left a task; complete the promote (retry) or delete the task first.",
-          },
-          409,
-        );
-      }
-
-      if (item.status !== "triage") {
-        return c.json(
-          {
-            error: "triage_item_not_in_triage_state",
-            actualStatus: item.status,
-          },
-          409,
-        );
-      }
-      try {
-        append({
-          jsonlPath: pathRes.absolute,
-          triageId: parsed.value.triageId,
-          newStatus,
-          by: "webui",
-          reason: parsed.value.reason,
-          promotedTaskId: null,
-          revisitAt: parsed.value.revisitAt,
-          now: deps.now,
-        });
-      } catch (err) {
-        if (err instanceof TriageWriteError) {
-          return c.json(
-            { error: err.code, message: err.message },
-            500,
-          );
-        }
-        throw err;
-      }
-      return c.json({ triageId: parsed.value.triageId, newStatus });
-    } finally {
-      await releaseQuietly(release);
-    }
+    const cli = await writeTriage({
+      projectRoot: project.path,
+      operation: newStatus === "dismissed" ? "dismiss" : "snooze",
+      itemId: parsed.value.triageId,
+      args: [
+        ...(parsed.value.reason ? [`--reason=${parsed.value.reason}`] : []),
+        ...(newStatus === "snoozed" && parsed.value.revisitAt ? [`--revisit=${parsed.value.revisitAt}`] : []),
+      ],
+    });
+    if (cli.kind === "ok") return c.json({ triageId: parsed.value.triageId, newStatus, item: cli.item });
+    if (cli.kind === "engine-unavailable") return engineUnavailable(c, cli);
+    return cliFailure(c, cli, parsed.value.triageId);
   }
 
   return app;
@@ -636,16 +555,7 @@ function deriveDescription(detail: unknown): string | undefined {
     : trimmed;
 }
 
-// ----------------------------------------------------------------------
-// Lock-failure classification (ADR-106, RC3)
-// ----------------------------------------------------------------------
-
-/**
- * `proper-lockfile` signals genuine contention with `code: "ELOCKED"`
- * (the lock is held — by another webui tab, or by the Python `_FileLock`
- * producer if the `.weblock`/`.lock` paths ever realign). Any other error
- * (EACCES, ENOENT, EPERM, …) is a real filesystem fault, not contention.
- */
+/** sdk-sessions persistence remains lock-protected independently of triage. */
 function isElockedError(err: unknown): boolean {
   return (
     typeof err === "object" &&
@@ -668,25 +578,24 @@ function lockUnavailable(c: Context) {
   );
 }
 
-/**
- * Release a proper-lockfile lock in a `finally` WITHOUT clobbering the
- * route's already-determined response. A `finally` that throws overrides
- * the preceding `return`/`throw`; a failed unlock (lock dir removed
- * externally, perms changed) must not turn a successful 201/200 — or a
- * deliberate 503 — into an opaque 500. The failure is logged and
- * swallowed (external code review, ADR-106).
- */
-async function releaseQuietly(release: () => Promise<void>): Promise<void> {
-  try {
-    await release();
-  } catch (err) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        message: "triage route: lock release failed (ignored)",
-        error: String(err).slice(0, 200),
-      }),
-    );
+function engineUnavailable(c: Context, result: Extract<TriageCliResult, { kind: "engine-unavailable" }>) {
+  return c.json(
+    { error: "engine_unavailable", message: result.reason, repairCommand: result.repairCommand },
+    503,
+  );
+}
+
+function cliFailure(c: Context, result: Exclude<TriageCliResult, { kind: "ok" } | { kind: "engine-unavailable" }>, triageId: string) {
+  switch (result.kind) {
+    case "precondition":
+      return c.json({ error: "triage_item_not_in_triage_state", triageId }, 409);
+    case "not-found":
+    case "store-uninitialised":
+      return c.json({ error: "triage_item_not_found", triageId }, 404);
+    case "lock-timeout":
+      return lockUnavailable(c);
+    case "failed":
+      return c.json({ error: "triage_write_failed", message: result.reason }, 502);
   }
 }
 

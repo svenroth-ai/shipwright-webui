@@ -4,7 +4,7 @@
  * Sets a campaign's top-level lifecycle `status` (the `draft → active` flip
  * behind the Triage "Start Campaign" action). A deliberate, narrow relaxation
  * of the "WebUI is read-only on campaign state" rule — the same operator-write
- * pattern as `core/triage-write.ts` (ADR-101/106): caller holds the lock; this
+ * established write pattern (ADR-101/106): caller holds the lock; this
  * module just does the read-modify-write of a single field.
  *
  * Write target mirrors the READ precedence in `pickLifecycle` (status.json

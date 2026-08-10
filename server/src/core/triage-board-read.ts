@@ -64,7 +64,7 @@ async function gitAsync(projectRoot: string, gitArgs: string[]): Promise<string 
 }
 
 /**
- * AC9's disclosure signal — read path twin of triage-write.ts's
+ * AC9's disclosure signal — read path twin of the Python CLI's
  * `shouldRouteToOutbox`. This path is polled every 30 s per registered
  * project (useTriage.ts); the write path's version uses `spawnSync`, which
  * blocks Node's single event loop for the duration of up to 3 git calls on
@@ -77,7 +77,7 @@ async function gitAsync(projectRoot: string, gitArgs: string[]): Promise<string 
  * off-thread (libuv), so the event loop stays free without caching anything
  * — this closes the performance and the staleness concern at once. Same
  * short-circuit logic and fail-safe-false semantics as the sync version;
- * kept as its own function (not exported from triage-write.ts) since this
+ * kept as its own function since this
  * read path is its only caller.
  */
 async function shouldRouteToOutboxAsync(projectRoot: string): Promise<boolean> {

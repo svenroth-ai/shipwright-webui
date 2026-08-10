@@ -35,6 +35,9 @@ interface TriageAmendFormProps {
   item: TriageItem;
   /** From the origin drift signal — see TriageOrigin.writesRouteToOutbox. */
   writesRouteToOutbox: boolean | undefined;
+  /** The installed Python CLI is unavailable, so no safe write path exists. */
+  writeDisabled?: boolean;
+  writeDisabledReason?: string;
   onCancel: () => void;
   onSaved: () => void;
 }
@@ -62,6 +65,8 @@ export function TriageAmendForm({
   projectId,
   item,
   writesRouteToOutbox,
+  writeDisabled = false,
+  writeDisabledReason,
   onCancel,
   onSaved,
 }: TriageAmendFormProps) {
@@ -76,6 +81,7 @@ export function TriageAmendForm({
 
   const onSave = async () => {
     setError(null);
+    if (writeDisabled) return;
     const delta = buildDelta(initialItem, title, detail, severity);
     if (Object.keys(delta).length === 0) {
       // Nothing actually changed — Save behaves like Cancel rather than
@@ -151,6 +157,14 @@ export function TriageAmendForm({
           change.
         </div>
       )}
+      {writeDisabled && (
+        <div
+          className="p-2 text-xs text-warn bg-warn-tint border border-[var(--warn-line)] rounded"
+          data-testid="triage-amend-unavailable"
+        >
+          Save is unavailable: {writeDisabledReason ?? "Triage writing is unavailable."}
+        </div>
+      )}
       {error && (
         <div
           className="p-2 text-xs text-err bg-err-tint border border-[var(--err-line)] rounded"
@@ -173,7 +187,8 @@ export function TriageAmendForm({
         <button
           type="button"
           onClick={onSave}
-          disabled={amend.isPending || !title.trim()}
+          disabled={writeDisabled || amend.isPending || !title.trim()}
+          title={writeDisabled ? writeDisabledReason : undefined}
           className="h-9 px-4 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
           data-testid="triage-amend-save"
         >

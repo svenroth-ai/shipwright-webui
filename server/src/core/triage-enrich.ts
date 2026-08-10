@@ -60,7 +60,7 @@ function mtimeOrNull(p: string): number | null {
  * events — identical to Python `_append_ids_at` (OAI2/Gem4). A missing file
  * yields an empty set via `appendIdsInFile`'s tolerant reader (OAI7/Gem2).
  *
- * Deliberately NOT evicted by triage-write's `invalidateCacheForPath`: WebUI
+ * Deliberately NOT evicted by a writer: WebUI
  * writes are exclusively `status` events, which never change append-id sets
  * (and the write bumps the file mtime anyway, which misses this memo on the
  * next call). Do not "fix" the asymmetry.

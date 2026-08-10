@@ -73,7 +73,7 @@ describe("endsWithoutNewline — filesystem faults", () => {
     });
 
     // Degrades to "safely appendable"; the append itself surfaces real I/O
-    // problems via TriageWriteError.
+    // problems through its caller's write-error mapping.
     expect(endsWithoutNewline("whatever.jsonl")).toBe(false);
     expect(mockFs.closeSync).toHaveBeenCalledWith(42);
   });
