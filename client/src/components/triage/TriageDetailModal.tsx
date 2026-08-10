@@ -1,28 +1,3 @@
-/*
- * TriageDetailModal.tsx — full detail + action buttons (Promote/Dismiss/Snooze)
- * plus an inline Edit (Amend) affordance for title/detail/severity.
- *
- * Promote opens the dedicated PromoteModal (form fields). Dismiss + Snooze
- * are simpler — single optional reason input.
- *
- * iterate-2026-05-21-triage-fix-now-and-phase-slash — the **Fix now**
- * CTA semantics changed. Previously (iterate-2026-05-20) it copied the
- * producer-generated `launchPayload` to the clipboard and showed a
- * transient confirmation. After this iterate it builds a `FixNowIntent`
- * via `fixNowIntent.buildFixNowIntent` and bubbles it to the parent via
- * `onFixNow`. The parent (TriagePage) owns the NewIssueModal mount —
- * mounting it inside TriageDetailModal would unmount when this dialog
- * closes on `onOpenChange(false)`, killing the modal before it could
- * render.
- *
- * iterate-2026-08-08-triage-amend-reader (AC8/AC10): the informational
- * `LaunchPayloadBlock` is REMOVED — never acted on, only Fix-now is used.
- * Its space now hosts the Edit toggle: a header pencil icon-button, NOT a
- * fifth action-row button — Edit corrects the record, the row transitions
- * status. `displayItem` (`useTriageDisplayItem`) keeps the modal live
- * post-save — every earlier mutation closed the modal, so none needed it.
- */
-
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2 } from "lucide-react";
@@ -86,7 +61,6 @@ export function TriageDetailModal({
   const snooze = useSnoozeTriageItem(projectId);
   const startCampaignMut = useStartCampaign(projectId);
   const projectActions = useProjectActions(projectId);
-  // Shares the page-level triage list query's cache entry (useTriage.ts) — no extra fetch.
   const drift = useTriageDrift(projectId);
   const displayItem = useTriageDisplayItem(projectId, item);
   const [reason, setReason] = useState("");
@@ -96,9 +70,9 @@ export function TriageDetailModal({
   const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const writeDisabled = drift.data?.write?.available === false;
+  const writeDisabledReason = drift.data?.write?.reason ?? "Triage writing is unavailable.";
 
-  // Reset inline failure surfaces on item/open change — a stale message
-  // from a previous click should not bleed onto the next item / re-open.
   useEffect(() => {
     setFixNowFailure(null);
     setStartError(null);
@@ -204,7 +178,13 @@ export function TriageDetailModal({
             data-testid="triage-detail-modal"
           >
             <div className="p-6">
-              <TriageDetailHeader item={displayItem} editMode={editMode} onEdit={() => setEditMode(true)} />
+              <TriageDetailHeader
+                item={displayItem}
+                editMode={editMode}
+                onEdit={() => setEditMode(true)}
+                writeDisabled={writeDisabled}
+                writeDisabledReason={writeDisabledReason}
+              />
 
               <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
                 <div>
@@ -247,6 +227,8 @@ export function TriageDetailModal({
                     projectId={projectId}
                     item={displayItem}
                     writesRouteToOutbox={drift.data?.writesRouteToOutbox}
+                    writeDisabled={writeDisabled}
+                    writeDisabledReason={writeDisabledReason}
                     onCancel={() => setEditMode(false)}
                     onSaved={() => setEditMode(false)}
                   />
@@ -278,6 +260,14 @@ export function TriageDetailModal({
 
               {displayItem.status === "triage" && !editMode && (
                 <div className="border-t border-[var(--color-border)] pt-4 mt-4">
+                  {writeDisabled && (
+                    <div
+                      className="mb-3 p-2 text-xs text-warn bg-warn-tint border border-[var(--warn-line)] rounded"
+                      data-testid="triage-write-unavailable"
+                    >
+                      Triage actions are unavailable: {writeDisabledReason}
+                    </div>
+                  )}
                   <label className="block">
                     <span className="text-xs font-medium text-[var(--color-text)]">
                       Reason (optional, applies to Dismiss / Snooze)
@@ -324,7 +314,8 @@ export function TriageDetailModal({
                     <button
                       type="button"
                       onClick={onDismiss}
-                      disabled={dismiss.isPending || snooze.isPending}
+                      disabled={writeDisabled || dismiss.isPending || snooze.isPending}
+                      title={writeDisabled ? writeDisabledReason : undefined}
                       className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-dismiss"
                     >
@@ -336,7 +327,8 @@ export function TriageDetailModal({
                     <button
                       type="button"
                       onClick={onSnooze}
-                      disabled={dismiss.isPending || snooze.isPending}
+                      disabled={writeDisabled || dismiss.isPending || snooze.isPending}
+                      title={writeDisabled ? writeDisabledReason : undefined}
                       className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-snooze"
                     >
@@ -348,7 +340,9 @@ export function TriageDetailModal({
                     <button
                       type="button"
                       onClick={() => setPromoteOpen(true)}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
+                      disabled={writeDisabled}
+                      title={writeDisabled ? writeDisabledReason : undefined}
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-promote"
                     >
                       Promote
@@ -365,6 +359,8 @@ export function TriageDetailModal({
         onOpenChange={setPromoteOpen}
         projectId={projectId}
         item={displayItem}
+        writeDisabled={writeDisabled}
+        writeDisabledReason={writeDisabledReason}
         onPromoted={() => {
           onActionComplete?.("promoted");
           onOpenChange(false);

@@ -593,9 +593,6 @@ if (isMainModule) {
             if (!p || p.synthesized) return undefined;
             return { id: p.id, path: p.path, synthesized: p.synthesized };
           },
-          // ADR-106: collision-safe `.weblock` lock path (never clashes with the
-          // Python `_FileLock` sidecar `triage.jsonl.lock`); store.persist() self-locks.
-          lock: createTriageLock(),
           // FR-01.33 — injected campaign-ref reader so the triage route can
           // annotate items with the campaign that expands them WITHOUT
           // importing any campaign module (preserves the

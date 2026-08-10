@@ -31,7 +31,7 @@ import {
   type SdkSessionsStoreDeps,
 } from "../core/sdk-sessions-store.js";
 import { createTriageRoutes } from "./triage.js";
-import { createTriageLock } from "../core/triage-lock.js";
+import type { TriageRoutesDeps } from "./triage.js";
 import { _clearCache_TEST_ONLY } from "../core/triage-store.js";
 import { _clearEnrichCache_TEST_ONLY } from "../core/triage-enrich.js";
 import { outboxPathFor } from "../core/triage-paths.js";
@@ -80,10 +80,13 @@ export interface Harness {
   triagePath: string;
   outboxPath: string;
   app: ReturnType<typeof createTriageRoutes>;
+  store: SdkSessionsStore;
   cleanup: () => void;
 }
 
-export async function makeHarness(): Promise<Harness> {
+export async function makeHarness(
+  overrides: Pick<TriageRoutesDeps, "runTriageCli" | "triageWriteAvailability" | "triageWriteAvailabilityTtlMs"> = {},
+): Promise<Harness> {
   _clearCache_TEST_ONLY();
   _clearEnrichCache_TEST_ONLY();
   const workDir = mkdtempSync(path.join(tmpdir(), "triage-outbox-api-"));
@@ -104,14 +107,14 @@ export async function makeHarness(): Promise<Harness> {
     getAllProjects: () => projects,
     getProjectById: (id) => projects.find((p) => p.id === id),
     store,
-    lock: createTriageLock(0),
-    now: () => "2026-06-08T20:00:00Z",
+    ...overrides,
   });
 
   return {
     triagePath,
     outboxPath: outboxPathFor(triagePath),
     app,
+    store,
     cleanup: () => rmSync(workDir, { recursive: true, force: true }),
   };
 }

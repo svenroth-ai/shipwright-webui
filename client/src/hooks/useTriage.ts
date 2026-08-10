@@ -26,6 +26,7 @@ import {
 } from "../lib/triageApi";
 
 const POLL_MS = 30_000;
+const WRITE_AVAILABILITY_RETRY_MS = 1_000;
 
 const itemsKey = (projectId: string) => ["triage", "items", projectId] as const;
 const countsKey = ["triage", "counts"] as const;
@@ -45,7 +46,10 @@ function triageListQuery(projectId: string | undefined, enabled: boolean) {
         ? fetchTriage(projectId)
         : Promise.resolve({ items: [], origin: DEGRADED_ORIGIN }),
     enabled: Boolean(projectId) && enabled,
-    refetchInterval: POLL_MS,
+    refetchInterval: (query: { state: { data?: TriageListResponse } }) =>
+      query.state.data?.origin.write?.checking === true
+        ? WRITE_AVAILABILITY_RETRY_MS
+        : POLL_MS,
     refetchIntervalInBackground: false,
   };
 }

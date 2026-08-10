@@ -1,7 +1,7 @@
 /*
  * triage-store.ts — TS port of `triage.read_all_items` from
  * `shared/scripts/triage.py`. Pure read path; status flips go through
- * `triage-write.ts`. Raw JSONL line reading lives in `triage-raw.ts`.
+ * the Python triage CLI. Raw JSONL line reading lives in `triage-raw.ts`.
  *
  * UNION read (campaign 2026-06-08-triage-outbox-delivery / D1): the
  * resolved view sources the tracked `triage.jsonl` AND the per-tree,
@@ -42,7 +42,7 @@
  *
  * Cache (5 s soft TTL) keyed by the tracked path, keyed on BOTH the tracked
  * AND outbox mtimes — a change to either file invalidates. Forced eviction
- * via invalidateCacheForPath() (called from triage-write.ts).
+ * from test support after a fixture mutation.
  *
  * The overlay result depends on wall-clock time, not just file bytes, so a
  * cache hit alone cannot answer "is this still correct" — a park's due day
@@ -90,7 +90,7 @@ interface CacheEntry {
 const CACHE_TTL_MS = 5_000;
 const cache = new Map<string, CacheEntry>();
 
-/** Forced cache eviction — called by triage-write.ts after a successful append. */
+/** Forced cache eviction for test support after a fixture mutation. */
 export function invalidateCacheForPath(path: string): void {
   cache.delete(path);
 }
@@ -268,7 +268,7 @@ export function readAllItems(trackedPath: string): TriageItem[] {
 
 /**
  * Set of `append`-event ids in ONE file (residence probe for the
- * residence-derived status write in triage-write.ts). Mirrors Python
+ * residence-derived status write in the Python CLI). Mirrors Python
  * `_append_ids_at`. Tolerant — skips corrupt lines.
  */
 export function appendIdsInFile(jsonlPath: string): Set<string> {
