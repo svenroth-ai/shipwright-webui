@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: edge-case  \n  Severity: medium  \n  File: server/src/core/model-tier-config-reader.ts:53-55  \n  Finding: Main-worktree resolution assumes the common Git directory is `<main-worktree>/.git` and returns `dirname(commonDir)`. This is false for valid Git layouts using a separate git directory or submodules, where the common directory can be elsewhere (for example, `.git/modules/<submodule>`). In those projects the reader looks for `shipwright_model_config.json` in the parent of the Git metadata directory rather than the project\u2019s main worktree, causing the card to silently show inherited defaults instead of the framework configuration.  \n  Suggestion: Resolve the main worktree path using `git worktree list --porcelain` (selecting the primary worktree) rather than deriving it from `--git-common-dir`; retain `projectPath` only as the non-Git fallback.\n\n- Category: test  \n  Severity: medium  \n  File: client/e2e/flows/model-tier-defaults.spec.ts:61-74, 109-115  \n  Finding: The test proves command generation only by manually POSTing `{ \"review-model\": \"opus\" }` to the launch API, while the browser flow merely checks that the UI command preview contains the flag. It never submits the browser-selected override and verifies the command generated for that selection. A regression that displays the advanced selection and preview correctly but omits that parameter from the modal\u2019s launch payload would pass. It also does not assert that execution/standalone-Plan override fields are absent, so the \u201conly supported overrides are offered\u201d portion of AC4 is not protected.  \n  Suggestion: Submit the modal after selecting `review-model=opus` and intercept or inspect the resulting launch command/payload. Add negative assertions that no execution override appears in Iterate and no unsupported model override is offered by standalone Plan.\n\nOverall assessment: the ordinary worktree implementation meets the primary behavior, but main-worktree discovery is incorrect for supported nonstandard Git layouts and the E2E coverage does not verify the actual UI-to-launch path. Ship with fixes.  \nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": "- Category: spec  \n- Severity: medium  \n- File: server/src/core/model-tier-config-reader.ts:49\u201354 (`resolveModelConfigRoot`)  \n- Finding: The `--path-format=absolute` flag used in `git rev-parse` is only available in Git \u2265\u202f2.31. On systems with an older Git, the command will fail, and the fallback to `projectPath` will cause linked worktrees to read their own divergent `shipwright_model_config.json` instead of the main worktree copy, violating acceptance criterion\u202f3 (linked worktrees must read the main-worktree config).  \n- Suggestion: Provide an alternative resolution that works without `--path-format=absolute` (e.g., parse `git rev-parse --git-common-dir` and resolve relative paths with `path.resolve`, or use `git rev-parse --show-toplevel` inside the main worktree), or document the minimum Git version and refuse to serve config from linked worktrees when the resolution is uncertain.\n\n---\n\nThe implementation satisfies all other acceptance criteria and is well-tested, but the linked-worktree resolution can silently break under older Git, compromising the explicit guarantee in the spec. That should be addressed before general release.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
+  }
+}

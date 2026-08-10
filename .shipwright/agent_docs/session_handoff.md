@@ -1,35 +1,47 @@
 ---
 canon_generated: true
-run_id: "changelog-v0.24.0-20260808-1500"
-phase: "changelog"
-reason: "release v0.24.0"
-timestamp: "2026-08-08T20:38:36.160644+00:00"
+run_id: "iterate-2026-08-10-model-tier-defaults"
+phase: "iterate"
+reason: "iterate: model-tier defaults"
+timestamp: "2026-08-10T17:23:22.375729+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-08-08 20:38:36 UTC
+> Auto-generated 2026-08-10 17:23:22 UTC
 
 ## Session Info
 
-- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
-- **Timestamp**: 2026-08-08 20:38:36 UTC
-- **Reason**: release v0.24.0
+- **Session ID**: unknown
+- **Timestamp**: 2026-08-10 17:23:22 UTC
+- **Reason**: iterate: model-tier defaults
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
-- **Date**: 2026-08-08T10:36:25.721563Z
+- **Run ID**: iterate-2026-08-10-model-tier-defaults
+- **Date**: 2026-08-10T17:23:13.222786Z
 - **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/tests-total-skip-contract
-- **ADR**: iterate-2026-08-08-tests-total-skip-contract
+- **Complexity**: small
+- **Branch**: iterate/model-tier-defaults
+- **ADR**: iterate-2026-08-10-model-tier-defaults
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
+- **Spec**: .shipwright/planning/iterate/2026-08-10-model-tier-defaults.md
+
+## Current Iterate Progress
+
+- **Branch**: iterate/model-tier-defaults
+- **Spec**: .shipwright/planning/iterate/2026-08-10-model-tier-defaults.md
+- **External Review Marker**: stale (predates spec (2026-08-08T07:21:54))
+- **Review Cascade**: no run_id resolved
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
-- **Phase**: changelog
+- **Phase**: design
 - **Current Split**: 01-adopted
 - **Current Section**: adopted-baseline
 
@@ -38,8 +50,8 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 ## Git State
 
-- **Branch**: feat/track-model-config-allowlist
-- **Last Commit**: e76e3fc1 chore(release): v0.24.0
+- **Branch**: iterate/model-tier-defaults
+- **Last Commit**: 1d9fc49d chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -55,17 +67,17 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
-| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
-| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
-| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
-| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
+| evt-a75dd0b1 | work_completed | iterate (Surface read-only project model tiers and supported Iterate override choices.) | 2026-08-10 |
+| evt-fc564bb8 | work_completed | iterate (Restyle Triage filter chips to match the Board's control chrome; fix Preview button illegibility on the dark project toolbar; fix Preview button rendering without a genuine single-project selection.) | 2026-08-09 |
+| evt-b63cbc59 | event_amended | — | 2026-08-09 |
+| evt-77104140 | work_completed | iterate (Triage reader resolves amend events (Python parity); adds an inline Edit-in-place UI for title/detail/severity; removes the dead LaunchPayloadBlock) | 2026-08-08 |
+| evt-5bc685bc | compliance_update_failed | changelog | 2026-08-08 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 398
-- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
+- **Total work events**: 402
+- **Last iterate**: change — Surface read-only project model tiers and supported Iterate override choices. (2026-08-10)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

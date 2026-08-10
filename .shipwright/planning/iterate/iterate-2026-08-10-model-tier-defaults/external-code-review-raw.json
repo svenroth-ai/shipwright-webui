@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: server/src/core/model-tier-config-reader.ts:60\n- Finding: A missing configuration file, or a missing recognized role entry in an otherwise valid file, silently returns inherited tiers with no `warning`. The card only renders the required visible explanation when `data.warning` is present, so these missing-value cases are indistinguishable from an ordinary configured inheritance state. This does not satisfy AC2\u2019s requirement that missing values fail soft *and visibly explain* the configuration problem.\n- Suggestion: Return an appropriate warning when the file is absent or when required recognized role values are missing (or otherwise distinguish intentional inheritance from missing configuration according to the framework schema), and add reader/component coverage for that state.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/flows/model-tier-defaults.spec.ts:58-66, 109-115\n- Finding: The E2E test verifies a generated launch command through a direct API request before interacting with the modal. The later UI interaction only verifies the command preview and never submits the modal or observes its launch request/result. Thus, a regression where the selected `review-model` value is omitted or altered when the modal launches would still pass, despite AC4 requiring a selected supported override to yield the flag in the generated launch command.\n- Suggestion: After selecting the UI override, submit the modal and intercept/assert the launch request or returned launch command contains `--review-model opus`; alternatively, make the test\u2019s launch API call use the exact parameters emitted by the modal.\n\nOverall assessment: ship-with-fixes. The core reader, GET-only route, and supported Iterate fields are implemented, but missing-value warning behavior and the end-to-end launch wiring need verification/correction before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": "- Category: spec\n- Severity: low\n- File: server/src/core/model-tier-config-reader.ts:47\n- Finding: The `resolveModelConfigRoot` function uses `--path-format=absolute` with `git rev-parse --git-common-dir`. While this works on modern Git versions, the flag\u2019s acceptance with `--git-common-dir` is undocumented in some older Git releases. If the command fails for any reason, the fallback returns `projectPath` and may bypass the main-worktree guarantee, reading a stale linked copy instead.\n- Suggestion: Use `git rev-parse --absolute-git-dir` (which returns the absolute path to the .git directory) or resolve the output of `--git-common-dir` with `path.resolve` to ensure absolute paths without relying on a potentially unsupported flag.\n\n- Category: edge-case\n- Severity: low\n- File: server/src/core/model-tier-config-reader.ts:73-82\n- Finding: If the config file exists but contains an object with no recognized keys (e.g., `{\"unknown\": \"opus\"}`), the reader returns no warning and all tiers inherit. While this is fail-soft, an unsupported key might mean the operator intended a different role name, and the silent ignore could hide misconfiguration.\n- Suggestion: Optionally add a warning when known role keys are missing and others are present (e.g., `model_config_unexpected_keys`) to alert operators, though this is not required by the current spec.\n\n- Category: test\n- Severity: low\n- File: client/src/components/external/ModelTierSummary.test.tsx:22-24\n- Finding: The component test mocks `useModelTierConfig` with a `warning` of `\"model_config_invalid\"` and expects the status text to contain \u201ccould not be read\u201d. This verifies the warning is rendered, but the test never validates the tier values themselves for the invalid case (they are set to inherit via mock). A change in the reader\u2019s output mapping could go unnoticed if the test only checks the warning string.\n- Suggestion: Add an assertion that each of the four role tiers shows \u201cinherit\u201d when the warning is present, ensuring the UI respects fail-soft inheritance.\n\nOverall assessment: The implementation fulfills all acceptance criteria with well-structured code and thorough tests. The minor observations above are refinements that do not block release.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: deepseek=approve, openai=revise"
+  }
+}

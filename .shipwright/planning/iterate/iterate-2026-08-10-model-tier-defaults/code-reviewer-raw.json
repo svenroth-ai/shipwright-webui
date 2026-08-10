@@ -1,0 +1,8 @@
+{
+  "stage": "code-reviewer",
+  "verdict": "REJECT",
+  "findings": [
+    {"severity": "blocking", "location": "client/src/components/external/ModelTierSummary.tsx:10-13; server/src/core/model-tier-config-reader.ts:74-79", "finding": "Invalid model configuration still becomes an invisible inherited tier. The client ignores the endpoint's warning, so malformed/non-object config is displayed as ordinary inherit under project default. Invalid recognized-role values and unknown keys also produce no warning.", "suggestion": "Mark invalid recognized-role values and unsupported config structure/keys as model_config_invalid, render a compact warning state, and test malformed plus invalid-role cases through the component/API boundary."},
+    {"severity": "minor", "location": "server/src/core/model-tier-config-reader.test.ts", "finding": "The central linked-worktree behavior is untested. Existing tests exercise only the non-Git fallback, although the implementation promises config is read from the main Git root rather than a linked worktree.", "suggestion": "Add a real-repository linked-worktree boundary test with divergent config copies and assert the main-root copy wins."}
+  ]
+}
