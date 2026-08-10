@@ -45,6 +45,7 @@ import { SessionWatcher } from "../core/session-watcher.js";
 import { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 
 import { createRunConfigRouter } from "./run-config/routes.js";
+import { createModelConfigRouter } from "./model-config/routes.js";
 import { createComplianceRouter } from "./compliance/routes.js";
 import { createEventsRouter } from "./events/routes.js";
 import { createRunsRouter } from "./runs/routes.js";
@@ -236,6 +237,8 @@ export function createExternalRoutes(args: {
     "/",
     createRunConfigRouter({ getProjectById, readRunConfig: runConfigReader }),
   );
+  // Framework-owned model tiers are a read-only project setting, like run-config.
+  app.route("/", createModelConfigRouter({ getProjectById }));
   // FR-01.43 — compliance dashboard is a READ-ONLY observer of dashboard.md.
   app.route(
     "/",

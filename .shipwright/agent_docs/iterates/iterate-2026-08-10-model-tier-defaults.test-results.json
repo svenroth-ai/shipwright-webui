@@ -1,0 +1,89 @@
+{
+  "last_updated": "2026-08-10",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-10-model-tier-defaults",
+    "date": "2026-08-10",
+    "unit": {
+      "status": "passed",
+      "passed": 3286,
+      "total": 3286
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 1,
+      "exit_code": 0
+    },
+    "declared_removals": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Effective tiers are read and shown for all four roles",
+          "disposition": "tested",
+          "evidence": "reader, route and component tests; Chromium E2E passed"
+        },
+        {
+          "behavior": "Missing or invalid configuration is visibly fail-soft",
+          "disposition": "tested",
+          "evidence": "model-tier-config-reader and ModelTierSummary tests passed"
+        },
+        {
+          "behavior": "Linked worktrees cannot use divergent defaults",
+          "disposition": "tested",
+          "evidence": "reader linked-worktree and inherited-Git-variable tests passed"
+        },
+        {
+          "behavior": "Supported review override reaches the launch command",
+          "disposition": "tested",
+          "evidence": "model-tier-defaults Chromium E2E passed"
+        },
+        {
+          "behavior": "Model-config API is GET-only",
+          "disposition": "tested",
+          "evidence": "route and API-contract tests passed"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-10-model-tier-defaults",
+    "commit": "1d9fc49d013ecc1adc35bda1b36f1bcb84040d12",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

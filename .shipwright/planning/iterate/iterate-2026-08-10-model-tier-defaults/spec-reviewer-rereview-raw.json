@@ -1,0 +1,10 @@
+{
+  "stage": "spec-reviewer",
+  "verdict": "PASS",
+  "spec_citations": [
+    "All four project model-tier defaults are displayed read-only from shipwright_model_config.json.",
+    "Iterate exposes only the monorepo-declared plan-review, review, and finalization override flags; execution remains display-only.",
+    "The E2E flow proves a selected override reaches both the command preview and generated launch command.",
+    "No framework-owned configuration write surface was added."
+  ]
+}

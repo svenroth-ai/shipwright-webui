@@ -22,8 +22,10 @@ import {
   appendLine,
   TRIAGE_HEADER,
 } from "./_triage-api-harness.js";
+import { resolveTriageCliScript } from "../core/triage-cli-runner.js";
 
 const LF = String.fromCharCode(10);
+const cachedCliIt = resolveTriageCliScript() ? it : it.skip;
 
 describe("triage routes — record-boundary recovery (F0.5 surface=api)", () => {
   const harnesses: Harness[] = [];
@@ -103,7 +105,7 @@ describe("triage routes — record-boundary recovery (F0.5 surface=api)", () => 
     expect(body.items).toEqual([]);
   });
 
-  it("a dismiss still lands correctly on a file that had a concatenated line", async () => {
+  cachedCliIt("a dismiss still lands correctly on a file that had a concatenated line", async () => {
     const h = await makeHarness();
     harnesses.push(h);
     // Recovery feeds `appendIdsInFile`, which drives residence routing for the

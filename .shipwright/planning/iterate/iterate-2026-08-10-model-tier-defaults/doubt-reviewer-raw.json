@@ -1,0 +1,1 @@
+{"stage":"doubt-reviewer","verdict":"REJECT","doubts":[{"severity":"blocking","location":"server/src/core/model-tier-config-reader.ts:45","finding":"Main-root resolution trusts inherited GIT_DIR/GIT_COMMON_DIR/GIT_WORK_TREE and can silently read model defaults from a different repository.","suggestion":"Sanitize Git discovery overrides and test a conflicting GIT_DIR."}]}

@@ -1,6 +1,6 @@
 /*
- * triage-lock.ts — collision-safe proper-lockfile factory for the
- * Triage routes (ADR-106, iterate-20260515-triage-promote-500).
+ * triage-lock.ts — collision-safe proper-lockfile factory for legacy
+ * Node-owned stores (ADR-106, iterate-20260515-triage-promote-500).
  *
  * Why this exists:
  *   `<project>/.shipwright/triage.jsonl` is locked by TWO independent,
@@ -17,17 +17,13 @@
  *   `ELOCKED`. Every webui triage write 500s. The Python sidecar
  *   persists on disk, so the collision is permanent — not a race.
  *
- * Fix: route the webui's lockfile to `<file>.weblock` so the two
- *   primitives occupy disjoint paths. They never mutually-excluded
- *   each other anyway (the "don't compose" Known Limitation from
- *   ADR-101 + `triage-write.ts`); write safety rests on append-mode
- *   line-atomicity + last-status-wins resolution, unchanged.
+ * Fix: route a Node store's lockfile to `<file>.weblock` so the two
+ *   primitives occupy disjoint paths. Triage transition safety now rests on
+ *   the Python CLI; this helper remains for other Node-owned stores.
  *
  * This factory is the single, tested home of the `.weblock` decision —
- * `index.ts` wires its result as `createTriageRoutes` `deps.lock`. The
- * triage routes are the only Node-side writer of `triage.jsonl`
- * (`triage-write.ts:appendStatusEvent`), so no other Node lock site
- * needs the same treatment.
+ * Current users include campaign and dismissed-campaign stores. Triage routes
+ * do not use this helper: they execute the Python CLI for every transition.
  */
 
 import * as lockfile from "proper-lockfile";
@@ -35,7 +31,7 @@ import * as lockfile from "proper-lockfile";
 export type TriageLockRelease = () => Promise<void>;
 
 /**
- * Build the `deps.lock` helper for the Triage routes. Locking path `p`
+ * Build a collision-safe lock helper. Locking path `p`
  * coordinates via a `<p>.weblock` directory — never the `<p>.lock`
  * path the Python `_FileLock` sidecar occupies.
  *

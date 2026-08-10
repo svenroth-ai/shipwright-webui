@@ -1,0 +1,32 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "deepseek": {
+      "status": "error",
+      "reason": "The configured OpenRouter DeepSeek leg exited without a response after two isolated attempts; retained as a degraded leg."
+    },
+    "openai": {
+      "feedback": "- Category: test\n- Severity: medium\n- File: server/src/core/model-tier-config-reader.test.ts:119 \u2014 The \u201cGit cannot identify its main worktree\u201d test\u2019s expectation conflicts with the Git layout it creates. `git init --separate-git-dir=<metadata> <root>` leaves `<root>/.git` as a gitdir file, and `git worktree list --porcelain` still reports `<root>` as the first (main) worktree. `resolveModelConfigRoot()` therefore returns `root` and reads its `review: \"opus\"` config, so the asserted `model_config_unreadable`/`inherit` result will fail.\n- Suggestion: Change this test to assert that the main checkout\u2019s `opus` value wins, consistent with the linked-worktree requirement. If an unresolvable-main-worktree fallback is intended, construct a genuinely unusable `git worktree list`/main-worktree condition and test that explicitly.\n\nOverall assessment: ship-with-fixes. The implementation appears to meet the requested read-only display, warning, linked-worktree, override, and GET-only API behavior, but the added reader test is expected to fail under normal Git behavior and must be corrected before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "deepseek": "unavailable",
+    "openai": "revise"
+  },
+  "statuses": {
+    "deepseek": "error",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
+  }
+}

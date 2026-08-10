@@ -1,0 +1,9 @@
+{
+  "stage": "spec-reviewer",
+  "verdict": "REJECT",
+  "spec_citations": [
+    {"kind": "unsupported-flag", "diff_location": "server/src/config/default-actions.json:33", "spec_ref": "WebUI may only expose flags owned and consumed by the monorepo.", "divergence": "Standalone Plan exposes --plan-review-model although current monorepo Plan reads only project config and does not consume that flag."},
+    {"kind": "applicability", "diff_location": "server/src/config/default-actions.json:67-68", "spec_ref": "Only applicable overrides should be offered; current limitations must not be misrepresented.", "divergence": "Iterate currently has no live standalone execution spawn and finalization is campaign-mode only, so their prompt choices over-promise behavior."},
+    {"kind": "launchability", "diff_location": "client/e2e/flows/model-tier-defaults.spec.ts", "spec_ref": "The operator must be able to launch with an explicit tier, not merely see a field.", "divergence": "The E2E probe shows fields but does not enable a tier, select a value, or verify the invocation."}
+  ]
+}

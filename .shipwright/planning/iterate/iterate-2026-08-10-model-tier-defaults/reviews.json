@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-10-model-tier-defaults",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-10T15:53:09.021125+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-10T16:32:49.511529+00:00",
+      "disposition": "external plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-10T16:06:08.005242+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-10T16:15:30.162230+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/core/model-tier-config-reader.test.ts:119 — The “Git cannot identify its main worktree” test’s expectation conflicts with the Git layout it creates. `git init --separate-git-dir=<metadata> <root>` leaves `<root>/.git` as a gitdir file, and `git worktree list --porcelain` still reports `<root>` as the first (main) worktree. `resolveModelConfigRoot()` therefore returns `root` […truncated]",
+          "line": null,
+          "finding": "Change this test to assert that the main checkout’s `opus` value wins, consistent with the linked-worktree requirement. If an unresolvable-main-worktree fallback is intended, construct a genuinely unusable `git worktree list`/main-worktree condition and test that explicitly.  Overall assessment: ship-with-fixes. The implementation appears to meet the requested read-only display, warning, linked-worktree, override, and GET-only API behavior, but the added reader test is expected to fail under normal Git behavior and must be corrected before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-10T16:32:40.372408+00:00",
+      "disposition": "OpenAI review completed; its final separate-git-dir test concern was rejected after the real regression test passed, while the Git resolution failure was fixed. The DeepSeek route produced no response after two isolated attempts.",
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: The configured OpenRouter DeepSeek leg exited without a response after two isolated attempts; retained as a degraded leg.>\n\n[openai] - Category: test\n- Severity: medium\n- File: server/src/core/model-tier-config-reader.test.ts:119 — The “Git cannot identify its main worktree” test’s expectation conflicts with the Git layout it creates. `git init --separate-git-dir=<metadata> <root>` leaves `<root>/.git` as a gitdir file, and `git worktree list --porcelain` still reports `<root>` as the first (main) worktree. `resolveModelConfigRoot()` therefore returns `root` and reads its `review: \"opus\"` config, so the asserted `model_config_unreadable`/`inherit` result will fail.\n- Suggestion: Change this test to assert that the main checkout’s `opus` value wins, consistent with the linked-worktree requirement. If an unresolvable-main-worktree fallback is intended, construct a genuinely unusable `git worktree list`/main-worktree condition and test that explicitly.\n\nOverall assessment: ship-with-fixes. The implementation appears to meet the requested read-only display, warning, linked-worktree, override, and GET-only API behavior, but the added reader test is expected to fail under normal Git behavior and must be corrected before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "deepseek": "unavailable",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-10T15:58:53.961127+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-10T16:32:49.613820+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

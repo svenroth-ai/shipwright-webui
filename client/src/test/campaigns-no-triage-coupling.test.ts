@@ -36,7 +36,7 @@ beforeAll(async () => {
     "server/src/routes/triage.ts",
     "server/src/core/triage-store.ts",
     "server/src/core/triage-paths.ts",
-    "server/src/core/triage-write.ts",
+    "server/src/core/triage-cli-runner.ts",
     "server/src/core/triage-lock.ts",
     "server/src/types/triage.ts",
   ];

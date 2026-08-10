@@ -166,4 +166,43 @@ describe("TriageDetailModal — Edit toggle (AC8)", () => {
     fireEvent.click(screen.getByTestId("triage-edit-toggle"));
     expect(screen.queryByTestId("triage-amend-tracked-disclosure")).toBeNull();
   });
+
+  it("disables every triage write action with a visible engine-unavailable reason", () => {
+    driftDataRef.current = {
+      available: true,
+      behind: 0,
+      write: { available: false, reason: "No working Python (3.11+) was found." },
+    };
+    renderModal();
+    expect(screen.getByTestId("triage-write-unavailable")).toHaveTextContent("No working Python");
+    expect(screen.getByTestId("triage-edit-toggle")).toBeDisabled();
+    expect(screen.getByTestId("triage-dismiss")).toBeDisabled();
+    expect(screen.getByTestId("triage-snooze")).toBeDisabled();
+    expect(screen.getByTestId("triage-promote")).toBeDisabled();
+  });
+
+  it("disables an already-open Edit form if the write engine becomes unavailable", () => {
+    driftDataRef.current = { available: true, behind: 0, write: { available: true } };
+    const Wrapper = makeWrapper();
+    const modal = () => (
+      <Wrapper>
+        <TriageDetailModal
+          open={true}
+          onOpenChange={vi.fn()}
+          projectId="proj-a"
+          item={baseItem}
+        />
+      </Wrapper>
+    );
+    const rendered = render(modal());
+    fireEvent.click(screen.getByTestId("triage-edit-toggle"));
+    driftDataRef.current = {
+      available: true,
+      behind: 0,
+      write: { available: false, reason: "No working Python (3.11+) was found." },
+    };
+    rendered.rerender(modal());
+    expect(screen.getByTestId("triage-amend-unavailable")).toHaveTextContent("No working Python");
+    expect(screen.getByTestId("triage-amend-save")).toBeDisabled();
+  });
 });

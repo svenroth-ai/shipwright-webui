@@ -28,10 +28,11 @@
 │  │  :5173             │  proxy  │  :3847                          │ │
 │  │                    │   WS    │                                 │ │
 │  │  TaskBoardPage     │ ────────▶ external/ (registration shell)  │ │
-│  │  TaskDetailPage    │         │  + 11 sub-routers:              │ │
+│  │  TaskDetailPage    │         │  + 12 sub-routers:              │ │
 │  │  ProjectsPage      │         │    tasks/  launch/  transcript/ │ │
 │  │  InboxPage         │         │    inbox/  actions/ preview/    │ │
 │  │  TriagePage        │         │    tree/   file/    run-config/ │ │
+│  │                    │         │    model-config/                │ │
 │  │  DiagnosticsPage   │         │    media/  pr-status/           │ │
 │  │  SettingsPage      │         │  routes/{projects,settings,     │ │
 │  │                    │         │         profiles,diagnostics,   │ │
@@ -60,6 +61,7 @@
 │                                 │   project-manager.ts            │ │
 │                                 │   profile-loader.ts             │ │
 │                                 │   run-config-reader.ts (RO)     │ │
+│                                 │   model-tier-config-reader.ts   │ │
 │                                 │   project-actions-loader.ts     │ │
 │                                 │   actions-substitute.ts         │ │
 │                                 │   actions-schema-validator.ts   │ │
@@ -143,7 +145,7 @@ The transcript endpoint is stateless (rule 4): clients pass `GET /api/external/t
 
 State lives in three `proper-lockfile`-guarded files under `~/.shipwright-webui/` (ELOCKED → HTTP 409): `projects.json` (registry), `sdk-sessions.json` (task store, schemaVersion v1–v4, additive write-on-touch migration per ADR-038/044 — v4 adds the optional `boardColumn` override; rule 15), and `settings.json`. `SdkSessionsStore.persist()` re-reads and 3-way-merges under the lock, then writes atomically (tmp+rename) via `core/sdk-sessions-merge.ts`, so two webui instances sharing `~/.shipwright-webui` can't clobber each other's rows (rule DO-NOT #6). Stack profiles resolve in three steps: `SHIPWRIGHT_PROFILES_DIR` → `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`.
 
-Project configuration is read-only: `<project>/.shipwright-webui/actions.json` overlays the bundled `default-actions.json` (`core/project-actions-loader.ts` + `actions-substitute.ts`), and `<project>/shipwright_run_config.json` is consumed via `core/run-config-reader.ts` — the v2 read surfaces the optional `mode` (`multi_session | single_session`, absent→`multi_session` via `resolveRunMode`, an unrecognised value dropped+warned rather than rejecting the config). The WebUI **never** writes `shipwright_run_config.json` or `run_loop_state.json` (rule 12).
+Project configuration is read-only: `<project>/.shipwright-webui/actions.json` overlays the bundled `default-actions.json` (`core/project-actions-loader.ts` + `actions-substitute.ts`), `<project>/shipwright_run_config.json` is consumed via `core/run-config-reader.ts` — the v2 read surfaces the optional `mode` (`multi_session | single_session`, absent→`multi_session` via `resolveRunMode`, an unrecognised value dropped+warned rather than rejecting the config) — and `shipwright_model_config.json` is consumed through `core/model-tier-config-reader.ts` from the main Git root (so a linked worktree cannot show a stale copy). The task-board `ModelTierSummary` displays those effective `plan_review`, `review`, `finalization`, and `execution` defaults; action schemas offer opt-in launch overrides. The WebUI **never** writes framework-owned run or model config (rule 12).
 
 ### 5. The Task Board (column decoupled from liveness state)
 
@@ -203,6 +205,7 @@ Two features are pure consumers of producer-owned files under `<project>/.shipwr
 
 ## Architecture Updates
 _**One line per change, ≤600 chars** — always-loaded Layer-1 context; detail lives in the cited decision-drop / ADR (the SSoT — read it in `decision_log.md`), not here. **The canonical anchor is the run_id**, one atomic line per change: `- **<run_id>** (date, flags) — one sentence. Spec: planning/iterate/<slug>.md.` The run_id↔ADR-NNN mapping lives in `decision_log.md` (keyed by `Run-ID:`) — DO NOT append a duplicate `ADR-NNN` bullet here (the release aggregator no longer does; the monorepo shape-gate enforces the run_id grammar from 2026-06-28). Superseded entries stay (their context explains later changes). Deep-historical bare-`ADR-NNN` lines with no run_id twin (pre-2026-06-11) are grandfathered as-is._
+- **iterate-2026-08-10-model-tier-defaults** (2026-08-10): Data-flow — read-only `model-config` exposes framework-owned project model defaults to cards and supported Iterate launch overrides. → decision_log.md (ADR via Run-ID: iterate-2026-08-10-model-tier-defaults)
 - **iterate-2026-08-08-triage-amend-reader** (2026-08-08): Component — reader now resolves `amend` events (Python parity); new `POST /api/triage/:projectId/amend` write route + `TriageAmendForm`/`TriageDetailHeader` give the Triage Detail modal an inline Edit-in-place affordance; `LaunchPayloadBlock` removed (dead, Fix-now only). → decision_log.md (ADR via Run-ID: iterate-2026-08-08-triage-amend-reader)
 - **iterate-2026-08-08-triage-filters-sort-parked** (2026-08-08): Component — new `TriageFilterSortBar`/`TriageFilterGroup`/`TriageSortLevel` + `useTriageViewState` + `lib/triageFilterSort.ts` add view-only Priority/Domain/Complexity filters and an independent two-level sort to the Triage tab; Parked becomes its own default-hidden filter with due/dateless escape hatches. → decision_log.md (ADR via Run-ID: iterate-2026-08-08-triage-filters-sort-parked)
 - **iterate-2026-08-02-mobile-work-mode** (2026-08-02): Component — compact Task Detail and Mission project mounted desktop state into direct mobile navigation while preserving terminal socket and artifact context. → decision_log.md (ADR via Run-ID: iterate-2026-08-02-mobile-work-mode)

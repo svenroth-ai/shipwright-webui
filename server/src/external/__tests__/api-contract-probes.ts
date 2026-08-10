@@ -209,6 +209,14 @@ export const PROBE_TABLE: Probe[] = [
     expectErrorCode: "project_not_found",
   },
   {
+    baselineId: "projects.model_config",
+    describe: "GET /projects/:id/model-config nonexistent project → 404",
+    method: "GET",
+    path: `/api/external/projects/${NONEXISTENT_PROJECT}/model-config`,
+    expectStatus: 404,
+    expectErrorCode: "project_not_found",
+  },
+  {
     baselineId: "projects.tree",
     describe: "GET /projects/:id/tree nonexistent project → 404",
     method: "GET",
@@ -275,6 +283,13 @@ export const PROBE_TABLE: Probe[] = [
     describe: "(covered by dedicated multi-method test in consumer suite)",
     method: "POST",
     path: `/api/external/projects/${NONEXISTENT_PROJECT}/run-config`,
+    expectStatus: 404,
+  },
+  {
+    baselineId: "model_config.no_mutation",
+    describe: "(covered by dedicated multi-method test in consumer suite)",
+    method: "POST",
+    path: `/api/external/projects/${NONEXISTENT_PROJECT}/model-config`,
     expectStatus: 404,
   },
   // -------------- transcript multi-tab stateless pseudo-endpoint ---------

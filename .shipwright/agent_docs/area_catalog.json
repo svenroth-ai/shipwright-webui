@@ -1,0 +1,185 @@
+{
+  "areas": [
+    {
+      "cross_cutting_tags": [],
+      "id": "bootstrapper",
+      "path_patterns": [
+        "bootstrapper/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "changelog-unreleased-d",
+      "path_patterns": [
+        "CHANGELOG-unreleased.d/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "claude",
+      "path_patterns": [
+        ".claude/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "client",
+      "path_patterns": [
+        "client/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [
+        "client/e2e/flows/model-tier-defaults.spec.ts",
+        "client/src/components/external/ModelTierSummary.tsx",
+        "client/src/components/external/TaskCard.tsx",
+        "client/src/hooks/useModelTierConfig.ts",
+        "client/src/lib/externalApi.ts"
+      ],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "docs",
+      "path_patterns": [
+        "docs/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "github",
+      "path_patterns": [
+        ".github/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [
+        "repository"
+      ],
+      "id": "root",
+      "path_patterns": [
+        ".env.example",
+        ".gitattributes",
+        ".gitignore",
+        ".gitleaks.toml",
+        ".semgrepignore",
+        ".trivyignore.yaml",
+        "AGENTS.md",
+        "CHANGELOG.md",
+        "CLAUDE.md",
+        "CODE_OF_CONDUCT.md",
+        "CONTRIBUTING.md",
+        "LICENSE",
+        "Makefile",
+        "README.md",
+        "SECURITY.md",
+        "audit_config.json",
+        "shipwright_accepted_risks.yaml",
+        "shipwright_bloat_baseline.json",
+        "shipwright_build_config.json",
+        "shipwright_compliance_config.json",
+        "shipwright_events.jsonl",
+        "shipwright_iterate_config.json",
+        "shipwright_model_config.json",
+        "shipwright_plan_config.json",
+        "shipwright_project_config.json",
+        "shipwright_run_config.json",
+        "shipwright_sync_config.json",
+        "shipwright_test_results.json"
+      ],
+      "planned_paths": [],
+      "priority": -100,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "scripts",
+      "path_patterns": [
+        "scripts/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "server",
+      "path_patterns": [
+        "server/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [
+        "server/src/config/default-actions.json",
+        "server/src/core/model-tier-config-reader.ts",
+        "server/src/external/__tests__/api-contract-baseline.json",
+        "server/src/external/model-config/routes.ts",
+        "server/src/external/routes.ts"
+      ],
+      "requirements": [],
+      "source": "deterministic",
+      "status": "active"
+    },
+    {
+      "cross_cutting_tags": [],
+      "id": "shipwright",
+      "path_patterns": [
+        ".shipwright/**"
+      ],
+      "planned_paths": [],
+      "priority": 0,
+      "realized_paths": [
+        ".shipwright/agent_docs/architecture.md"
+      ],
+      "requirements": [],
+      "source": "provisional",
+      "status": "active"
+    }
+  ],
+  "catalogue_version": 2,
+  "path_fingerprint": "719bb926b97514bf28f91b9358afd8daf40459935456e4cd4964a0929677061e",
+  "producer": "shared/scripts/tools/area_catalog.py",
+  "schema_version": 1,
+  "sources": [
+    "iterate",
+    "iterate:bootstrap"
+  ]
+}
