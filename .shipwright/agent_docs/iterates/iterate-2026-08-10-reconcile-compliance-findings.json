@@ -1,0 +1,26 @@
+{
+  "run_id": "iterate-2026-08-10-reconcile-compliance-findings",
+  "date": "2026-08-10T17:52:52.521162Z",
+  "event_at": "2026-08-10T17:52:31.669590+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "default",
+  "branch": "iterate/reconcile-compliance-findings",
+  "spec": ".shipwright/planning/iterate/2026-08-10-reconcile-compliance-findings-miniplan.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-10-reconcile-compliance-findings",
+  "test_completeness": {
+    "status": "n/a",
+    "justification": "This small no-FR compliance reconciliation changes only audit metadata, baseline policy, and documentation hygiene. JSON validation, the authoritative B/F/G/H audit checks, full client and server unit suites, builds, lint, type checks, and an isolated E2E run provide proportionate verification; no new user-observable behavior exists to enumerate."
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-08-10T17:50:19.385Z",
+    "justification": "This is a data-only reconciliation of compliance configuration, append-only audit events, and documentation hygiene; no runtime behavior or user-facing surface changed."
+  },
+  "declared_removals": []
+}

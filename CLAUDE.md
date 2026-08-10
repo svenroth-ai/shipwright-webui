@@ -7,13 +7,9 @@
 
 ## Shared vocabulary
 
-Allowlist · Ratchet · Anti-Ratchet · Producer · Action-Unit · Canon-Gate —
-shipwright-wide terminology lives in
-[`../shipwright/shared/glossary.md`](../shipwright/shared/glossary.md)
-(sibling clone; without one, the same file is at
-https://github.com/svenroth-ai/shipwright/blob/main/shared/glossary.md).
-Mandatory reference for the bloat anti-ratchet rule + ADR-template fields
-(Ousterhout / YAGNI / Chesterton-Fence / Re-Review-Date / Incident-Reference).
+Allowlist · Ratchet · Anti-Ratchet · Producer · Action-Unit · Canon-Gate are
+defined in [`../shipwright/shared/glossary.md`](../shipwright/shared/glossary.md)
+(sibling clone; otherwise [online](https://github.com/svenroth-ai/shipwright/blob/main/shared/glossary.md)); it is mandatory for bloat anti-ratchet and ADR-template fields.
 
 ## Pre-commit hooks
 

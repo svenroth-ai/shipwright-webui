@@ -1,0 +1,58 @@
+{
+  "last_updated": "2026-08-10",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-10-reconcile-compliance-findings",
+    "date": "2026-08-10",
+    "unit": {
+      "status": "passed",
+      "passed": 6660,
+      "total": 6661
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "partial",
+      "passed": 354,
+      "total": 416
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [
+      "The isolated full Playwright run completed with 354 passed, 9 skipped, and 53 existing failures in terminal, clipboard, transcript, media, and fixture-harness flows. The unrelated failures are recorded as triage trg-4dc1dae2; this iterate changed no runtime code."
+    ],
+    "test_completeness": {
+      "status": "n/a",
+      "justification": "This small no-FR compliance reconciliation changes only audit metadata, baseline policy, and documentation hygiene. JSON validation, the authoritative B/F/G/H audit checks, full client and server unit suites, builds, lint, type checks, and an isolated E2E run provide proportionate verification; no new user-observable behavior exists to enumerate."
+    },
+    "surface_verification": {
+      "surface": "none",
+      "runner": "",
+      "exit_code": 0,
+      "tests_run": 0,
+      "evidence_path": "",
+      "timestamp": "2026-08-10T17:50:19.385Z",
+      "justification": "This is a data-only reconciliation of compliance configuration, append-only audit events, and documentation hygiene; no runtime behavior or user-facing surface changed."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-10-reconcile-compliance-findings",
+    "commit": "5f084b19642bed81935700d8bee866a4edc07f46",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
