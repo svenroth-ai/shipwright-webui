@@ -693,28 +693,32 @@
       "limit": 300,
       "current": 319,
       "state": "grandfathered",
-      "adr": "iterate-2026-08-10-reconcile-compliance-findings"
+      "adr": "iterate-2026-07-24-terminal-scroll-atlas-smear",
+      "note": "The 319-line scenario is the cohesive WebGL atlas repaint regression proof from the prior terminal renderer decision; splitting its shared setup and assertion sequence would weaken the end-to-end fault path."
     },
     {
       "path": "client/e2e/flows/97-terminal-drop-resync.spec.ts",
       "limit": 300,
       "current": 303,
       "state": "grandfathered",
-      "adr": "iterate-2026-08-10-reconcile-compliance-findings"
+      "adr": "iterate-2026-07-30-drop-resync-smoke-gate",
+      "note": "The 303-line spec is the CI-gated dropped-byte resync proof from the prior terminal fix; its positive, coalescing, and negative timing assertions share one harness and are not safely separable."
     },
     {
       "path": "client/src/hooks/wsLiveness.ts",
       "limit": 300,
       "current": 305,
       "state": "grandfathered",
-      "adr": "iterate-2026-08-10-reconcile-compliance-findings"
+      "adr": "iterate-2026-07-27-mac-terminal-fast-dead-socket",
+      "note": "The 305-line hook keeps the socket liveness, wake detection, and interaction-revival contract together from the prior terminal recovery decision; extracting part of it would create a new coordination seam."
     },
     {
       "path": "server/scripts/regen-triage-fixtures.py",
       "limit": 300,
       "current": 310,
       "state": "grandfathered",
-      "adr": "iterate-2026-08-10-reconcile-compliance-findings"
+      "adr": "iterate-2026-08-05-triage-deferred-envelope",
+      "note": "The 310-line fixture generator remains the single deterministic CLI-parity source for the prior Deferred-triage decision; splitting it would duplicate serialization and fixture ordering rules."
     }
   ]
 }
