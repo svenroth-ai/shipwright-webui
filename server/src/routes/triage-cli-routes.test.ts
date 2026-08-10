@@ -12,6 +12,8 @@ import { resolveTriageCliScript, runTriageCli, type TriageCliResult } from "../c
 import { defaultRun, resolvePython } from "../core/readiness-probe.js";
 
 const execFileAsync = promisify(execFile);
+const hasCachedCli = resolveTriageCliScript() !== null;
+const cachedCliIt = hasCachedCli ? it : it.skip;
 
 function seed(h: Harness, id = "trg-aaaa1111"): void {
   writeFileSync(h.triagePath, `${TRIAGE_HEADER}\n${appendLine(id)}\n`);
@@ -25,6 +27,13 @@ describe("triage routes — Python CLI writer", () => {
   afterEach(() => h.cleanup());
 
   it("routes dismiss through the CLI and returns its resolved item", async () => {
+    h.cleanup();
+    h = await makeHarness({
+      runTriageCli: async (input) => ({
+        kind: "ok", operation: input.operation,
+        item: { id: input.itemId, status: "dismissed", statusReason: "out of scope" },
+      }),
+    });
     seed(h);
     const response = await h.app.request("/api/triage/proj-a/dismiss", {
       method: "POST",
@@ -37,6 +46,16 @@ describe("triage routes — Python CLI writer", () => {
   });
 
   it("routes snooze and amend through the CLI, preserving the resulting delta", async () => {
+    h.cleanup();
+    h = await makeHarness({
+      runTriageCli: async (input) => ({
+        kind: "ok",
+        operation: input.operation,
+        item: input.operation === "amend"
+          ? { id: input.itemId, title: "Corrected", amendedBy: "cli" }
+          : { id: input.itemId, status: "snoozed", revisitAt: "2099-01-01" },
+      }),
+    });
     seed(h, "trg-bbbb2222");
     const amended = await h.app.request("/api/triage/proj-a/amend", {
       method: "POST",
@@ -56,6 +75,14 @@ describe("triage routes — Python CLI writer", () => {
   });
 
   it("keeps optional user text in a single CLI option argument", async () => {
+    const calls: string[][] = [];
+    h.cleanup();
+    h = await makeHarness({
+      runTriageCli: async (input) => {
+        calls.push(input.args);
+        return { kind: "ok", operation: input.operation, item: { id: input.itemId, title: "--not-an-option" } };
+      },
+    });
     seed(h, "trg-eeee5555");
     const amended = await h.app.request("/api/triage/proj-a/amend", {
       method: "POST",
@@ -64,6 +91,7 @@ describe("triage routes — Python CLI writer", () => {
     });
     expect(amended.status).toBe(200);
     expect((await amended.json()).item).toMatchObject({ title: "--not-an-option" });
+    expect(calls).toEqual([["--title=--not-an-option"]]);
   });
 
   it("does not wait for an availability probe before serving a native board read", async () => {
@@ -84,7 +112,7 @@ describe("triage routes — Python CLI writer", () => {
     finishProbe?.({ available: true });
   });
 
-  it("interleaves a Python producer and UI transition: exactly one CLI CAS succeeds", async () => {
+  cachedCliIt("interleaves a Python producer and UI transition: exactly one CLI CAS succeeds", async () => {
     seed(h, "trg-cccc3333");
     const python = await resolvePython(defaultRun);
     const script = resolveTriageCliScript();
@@ -157,7 +185,7 @@ describe("triage routes — Python CLI writer", () => {
     expect(h.store.get(body.taskId)).toMatchObject({ promotedFromTriageId: "trg-dddd4444" });
   });
 
-  it("reconciles a committed promotion when its first CLI response was lost", async () => {
+  cachedCliIt("reconciles a committed promotion when its first CLI response was lost", async () => {
     let discardFirstPromoteResponse = true;
     const commitThenLoseResponse: typeof runTriageCli = async (input) => {
       const result = await runTriageCli(input);
