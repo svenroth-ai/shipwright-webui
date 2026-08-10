@@ -75,6 +75,7 @@ import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { EditTaskModal } from "./EditTaskModal";
 import { TaskCardMenu } from "./TaskCardMenu";
+import { ModelTierSummary } from "./ModelTierSummary";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -238,10 +239,7 @@ export function TaskCard({ task }: Props) {
           </div>
         </div>
 
-        {/* Meta row — project pill + state pill + phase badge. HYGIENE
-            INVARIANT (A16, FR-01.60): NO FR chips and NO gate dots on a board
-            card — that proof lives in the logbook / task detail; the standing
-            guard is TaskCard.hygiene.test.tsx. Phase: prefer server task.phase
+        {/* Meta row — project pill + state pill + phase badge. Phase: prefer server task.phase
             (ADR-056); legacy tasks fall back to title-keyword derivation. */}
         <div
           className="flex flex-wrap items-center gap-1.5"
@@ -285,6 +283,8 @@ export function TaskCard({ task }: Props) {
             );
           })()}
         </div>
+
+        <ModelTierSummary projectId={task.projectId} />
 
         {/* Launch failure notice (FR-01.61, A17) — a launch_failed / jsonl_missing
             card is no longer silent: the SAME words as the task-detail header +

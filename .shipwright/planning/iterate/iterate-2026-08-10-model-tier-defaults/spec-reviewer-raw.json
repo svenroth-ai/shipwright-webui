@@ -1,0 +1,14 @@
+{
+  "stage": "spec-reviewer",
+  "verdict": "REJECT",
+  "spec_citations": [
+    "WebUI may only expose flags owned and consumed by the monorepo.",
+    "Only applicable overrides should be offered; current limitations must not be misrepresented.",
+    "The operator must be able to launch with an explicit tier, not merely see a field."
+  ],
+  "findings": [
+    {"severity": "blocking", "location": "server/src/config/default-actions.json:33", "finding": "Standalone Plan exposes --plan-review-model, but current monorepo Plan explicitly says that flag belongs to Iterate and standalone Plan reads only project config. WebUI is inventing an unsupported invocation."},
+    {"severity": "blocking", "location": "server/src/config/default-actions.json:67-68", "finding": "The ordinary Iterate prompt claims Finalization and Execution overrides apply to this iterate. Monorepo Iterate consumes review/finalization/plan_review flags, but documents execution as having no live spawn in a standalone iterate; finalization is consumed by campaign-mode spawns. Execution is also absent from Iterate's declared Usage. These choices therefore over-promise behavior."},
+    {"severity": "blocking", "location": "client/e2e/flows/model-tier-defaults.spec.ts", "finding": "The E2E test proves read-only display and field visibility only. It never enables a tier, selects a value, verifies the generated slash command, or launches it. The central acceptance condition—explicit invocation without hand-writing the flag—remains unproved."}
+  ]
+}

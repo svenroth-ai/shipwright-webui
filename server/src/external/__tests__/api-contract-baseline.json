@@ -5,7 +5,7 @@
     "captured_by": "iterate-2026-05-26-campaign-C-C2-external-routes-split / runner",
     "purpose": "Pre-split API contract snapshot — empirical anchor for the C2 contract sweep. Every endpoint, method, documented status code + response key set listed in source order. Post-split contract sweep MUST reproduce every row.",
     "extraction_method": "hand-curated from a thorough read of server/src/external/routes.ts (lines 371-2516); cross-validated against client/src/lib/externalApi.ts wrapper signatures.",
-    "endpoint_count": 23,
+    "endpoint_count": 25,
     "documented_status_codes": [200, 400, 404, 405, 409, 413, 415, 500, 501]
   },
   "endpoints": [
@@ -277,6 +277,20 @@
       "invariant_load_bearing": "CLAUDE.md rule 12 — webui is read-only observer of run-config. NO POST/PATCH endpoint exists; the framework's orchestrator owns every mutation."
     },
     {
+      "id": "projects.model_config",
+      "method": "GET",
+      "path": "/api/external/projects/:projectId/model-config",
+      "source_lines": "model-config/routes.ts",
+      "future_sub_router": "model-config",
+      "client_consumer": "client/src/lib/externalApi.ts getModelTierConfig",
+      "success": {"status": 200, "keys": ["tiers"]},
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]}
+      ],
+      "invariant_load_bearing": "CLAUDE.md rule 12 — the WebUI only reads shipwright_model_config.json. Framework-owned model defaults have no WebUI mutation endpoint."
+    },
+    {
       "id": "projects.tree",
       "method": "GET",
       "path": "/api/external/projects/:projectId/tree",
@@ -381,6 +395,17 @@
       "path": "/api/external/projects/:projectId/run-config",
       "future_sub_router": "run-config",
       "expected_behavior": "Hono returns 404 (no handler defined for these methods). CLAUDE.md rule 12: webui is a read-only observer of run-config; no mutation endpoint exists.",
+      "success": null,
+      "error_branches": [
+        {"code": "(Hono default 404 — handler not defined)", "status": 404}
+      ]
+    },
+    {
+      "id": "model_config.no_mutation",
+      "method": "POST/PATCH/PUT/DELETE",
+      "path": "/api/external/projects/:projectId/model-config",
+      "future_sub_router": "model-config",
+      "expected_behavior": "Hono returns 404 (no handler defined for these methods). CLAUDE.md rule 12: WebUI is a read-only observer of framework-owned model config; no mutation endpoint exists.",
       "success": null,
       "error_branches": [
         {"code": "(Hono default 404 — handler not defined)", "status": 404}

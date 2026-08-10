@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "Reads the framework-owned model config, shows all four requested roles, and adds only opt-in start overrides."},
+    {"name": "Error Handling", "verdict": "pass", "note": "Missing, malformed, and invalid config states fail soft to inherited tiers; unavailable projects receive existing-style 404/400 JSON errors."},
+    {"name": "Security Basics", "verdict": "pass", "note": "The route defines GET only, uses project registry lookup, returns no raw configuration content, and has no config write path."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Reader, router, API-contract, UI, action-schema, and real-browser tests assert observable behavior including the read-only invariant."},
+    {"name": "Performance Basics", "verdict": "pass", "note": "React Query deduplicates per-project reads; the small config is read only on the API request path and has no list-wide server scan."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "New concern-specific files are below 300 LOC and reuse the existing run-config router, action-schema, and query conventions."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "The E2E fixture writes shipwright_model_config.json, then verifies reader/API/card/start-dialog behavior through the running stack."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "The changed test files add no focused or silently skipped tests; the mandatory diff probe is run again in F0.5."}
+  ]
+}

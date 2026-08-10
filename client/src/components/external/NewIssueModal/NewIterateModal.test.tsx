@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 
 import { ITERATE_ACTION, openMoreOptions, renderModal } from "./__testFixtures";
 
@@ -41,6 +41,31 @@ describe("NewIterateModal — rendering", () => {
     openMoreOptions();
     expect(screen.getByTestId("command-preview-panel")).toBeTruthy();
     expect(screen.queryByTestId("command-preview-generic")).toBeNull();
+  });
+
+  it("offers each model-role override in the start prompt", () => {
+    renderModal({
+      action: {
+        ...ITERATE_ACTION,
+        parameters: [
+          "plan-review-model",
+          "review-model",
+          "finalization-model",
+        ].map((name) => ({
+          name,
+          type: "enum" as const,
+          label: `${name} override`,
+          enum: ["opus", "sonnet", "haiku", "inherit"],
+          cli_flag: `--${name}`,
+          value_separator: "space" as const,
+        })),
+      },
+    });
+    openMoreOptions();
+    fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+    for (const role of ["plan-review-model", "review-model", "finalization-model"]) {
+      expect(screen.getByText(`${role} override`)).toBeTruthy();
+    }
   });
 
   it("title + description inputs are present", () => {

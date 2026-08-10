@@ -269,6 +269,21 @@ describe("api-contract-sweep — C2 baseline (PR #71)", () => {
     },
   );
 
+  it(
+    "model-config no-mutation — POST/PATCH/PUT/DELETE on /projects/:id/model-config " +
+      "all return 404 (CLAUDE.md rule 12 — read-only observer)",
+    async () => {
+      const url = `/api/external/projects/${NONEXISTENT_PROJECT}/model-config`;
+      for (const method of ["POST", "PATCH", "PUT", "DELETE"] as const) {
+        const res = await app.request(url, { method });
+        expect(
+          res.status,
+          `${method} ${url} returned ${res.status}; rule 12 requires 404 (no handler)`,
+        ).toBe(404);
+      }
+    },
+  );
+
   // ---------------------------------------------------------------------
   // Meta-tests — protect both directions of baseline ↔ probe drift.
   // ---------------------------------------------------------------------

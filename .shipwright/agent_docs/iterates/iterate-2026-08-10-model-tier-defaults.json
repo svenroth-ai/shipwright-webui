@@ -1,0 +1,38 @@
+{
+  "run_id": "iterate-2026-08-10-model-tier-defaults",
+  "date": "2026-08-10T17:23:13.222786Z",
+  "event_at": "2026-08-09T08:32:49.548930+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/model-tier-defaults",
+  "spec": ".shipwright/planning/iterate/2026-08-10-model-tier-defaults.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-10-model-tier-defaults",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "all acceptance criteria",
+        "disposition": "tested",
+        "evidence": "F0 unit and F0.5 E2E"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 1,
+    "exit_code": 0
+  },
+  "declared_removals": []
+}
