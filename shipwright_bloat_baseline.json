@@ -701,8 +701,8 @@
       "limit": 300,
       "current": 303,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-30-drop-resync-smoke-gate",
-      "note": "The 303-line spec is the CI-gated dropped-byte resync proof from the prior terminal fix; its positive, coalescing, and negative timing assertions share one harness and are not safely separable."
+      "adr": "iterate-2026-07-30-terminal-ws-drop-resync",
+      "note": "The 303-line spec is the CI-gated dropped-byte resync proof from the canonical terminal decision; its positive, coalescing, and negative timing assertions share one harness and are not safely separable."
     },
     {
       "path": "client/src/hooks/wsLiveness.ts",
