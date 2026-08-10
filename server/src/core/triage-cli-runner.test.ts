@@ -39,4 +39,13 @@ describe("triage CLI writer bridge", () => {
       reason: "No working Python (3.11+) was found.",
     });
   });
+
+  it("maps engine, timeout, malformed, and invalid JSON outcomes without a fallback", async () => {
+    const base = { run: runPython, existsFn: exists, scriptOverride: "C:/cache/triage_cli.py" };
+    const input = { projectRoot: "C:/project", operation: "amend" as const, itemId: "trg-cccc3333", args: [] };
+    await expect(runTriageCli(input, { ...base, spawn: async () => ({ code: -1, stdout: "", stderr: "" }) })).resolves.toMatchObject({ kind: "engine-unavailable" });
+    await expect(runTriageCli(input, { ...base, spawn: async () => ({ code: 124, stdout: "", stderr: "", spawnError: "timeout" }) })).resolves.toEqual({ kind: "failed", reason: "Triage writing took too long and was stopped." });
+    await expect(runTriageCli(input, { ...base, spawn: async () => ({ code: 2, stdout: "", stderr: "bad option\n" }) })).resolves.toEqual({ kind: "failed", reason: "bad option" });
+    await expect(runTriageCli(input, { ...base, spawn: async () => ({ code: 0, stdout: "not json", stderr: "" }) })).resolves.toEqual({ kind: "failed", reason: "The triage write engine didn't return valid JSON." });
+  });
 });

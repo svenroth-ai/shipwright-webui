@@ -112,6 +112,58 @@ describe("triage routes — Python CLI writer", () => {
     finishProbe?.({ available: true });
   });
 
+  it("caches a completed availability probe and converts probe errors into a visible disabled state", async () => {
+    let probes = 0;
+    h.cleanup();
+    h = await makeHarness({ triageWriteAvailability: async () => ({ available: ++probes === 1 }) });
+    seed(h, "trg-aabbccdd");
+    await h.app.request("/api/triage/proj-a");
+    await Promise.resolve();
+    const cached = await h.app.request("/api/triage/proj-a");
+    expect((await cached.json()).origin.write).toEqual({ available: true });
+    expect(probes).toBe(1);
+
+    h.cleanup();
+    h = await makeHarness({ triageWriteAvailability: async () => { throw new Error("probe failed"); } });
+    seed(h, "trg-aabbccdd");
+    await h.app.request("/api/triage/proj-a");
+    await Promise.resolve();
+    const failed = await h.app.request("/api/triage/proj-a");
+    expect((await failed.json()).origin.write).toMatchObject({ available: false, reason: "The triage write engine could not be checked." });
+  });
+
+  it("maps stable CLI failure categories and reconciles a recovered promote through show", async () => {
+    const responses: TriageCliResult[] = [
+      { kind: "failed", reason: "lost response" },
+      { kind: "precondition" },
+      { kind: "ok", operation: "show", item: { status: "promoted" } },
+    ];
+    h.cleanup();
+    h = await makeHarness({
+      runTriageCli: async (input) => {
+        const result = responses.shift()!;
+        return result.kind === "ok" && input.operation === "show"
+          ? { ...result, item: { ...result.item, promotedTaskId: `EXT:${h.store.list()[0]?.taskId}` } }
+          : result;
+      },
+    });
+    seed(h, "trg-ddccbbaa");
+    const body = { triageId: "trg-ddccbbaa", priority: "P1", domain: "engineering", tags: [] };
+    expect((await h.app.request("/api/triage/proj-a/promote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).status).toBe(207);
+    expect((await h.app.request("/api/triage/proj-a/promote", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).status).toBe(201);
+
+    for (const [kind, expected] of [["engine-unavailable", 503], ["precondition", 409], ["not-found", 404], ["lock-timeout", 503], ["failed", 502]] as const) {
+      h.cleanup();
+      const result: TriageCliResult = kind === "engine-unavailable"
+        ? { kind, reason: "missing", repairCommand: "repair" }
+        : kind === "failed" ? { kind, reason: "broken" } : { kind };
+      h = await makeHarness({ runTriageCli: async () => result });
+      seed(h, "trg-a1b2c3d4");
+      const response = await h.app.request("/api/triage/proj-a/amend", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ triageId: "trg-a1b2c3d4", title: "Changed" }) });
+      expect(response.status).toBe(expected);
+    }
+  });
+
   cachedCliIt("interleaves a Python producer and UI transition: exactly one CLI CAS succeeds", async () => {
     seed(h, "trg-cccc3333");
     const python = await resolvePython(defaultRun);
