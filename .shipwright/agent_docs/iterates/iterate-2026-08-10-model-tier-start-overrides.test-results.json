@@ -1,0 +1,104 @@
+{
+  "last_updated": "2026-08-10",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-10-model-tier-start-overrides",
+    "date": "2026-08-10",
+    "unit": {
+      "status": "passed",
+      "passed": 6619,
+      "total": 6620
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "partial",
+      "passed": 0,
+      "total": 6
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [
+      "Local visual baselines are Linux CI artifacts; Windows comparison differed across unchanged screens. The six baselines changed by the prior card-display PR were restored to their parent revision and CI remains the authoritative visual gate."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Task cards neither display model tiers nor request model configuration",
+          "disposition": "tested",
+          "evidence": "model-tier-defaults.spec.ts browser request counter; TaskCard.test.tsx; full client suite"
+        },
+        {
+          "behavior": "New Iterate displays the effective plan-review and review defaults as session-only choices",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.test.tsx loading, unavailable, and configured-default cases; model-tier-defaults.spec.ts"
+        },
+        {
+          "behavior": "Only an explicit model choice emits its matching catalog-owned launch flag",
+          "disposition": "tested",
+          "evidence": "payload-launch.test.tsx and model-tier-defaults.spec.ts launch payload assertions"
+        },
+        {
+          "behavior": "Finalization and execution controls are absent, including legacy required catalog entries",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.test.tsx required-enum regression; model-tier-defaults.spec.ts"
+        },
+        {
+          "behavior": "Standalone Plan keeps no mutable no-op Plan Review selector",
+          "disposition": "tested",
+          "evidence": "model-tier-defaults.spec.ts opens Plan and asserts no model-tier override fields"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": ".shipwright\\runs\\iterate-2026-08-10-model-tier-start-overrides\\surface-runner.cmd",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\model-tier-start-overrides\\.shipwright\\runs\\iterate-2026-08-10-model-tier-start-overrides\\surface_verification.log",
+      "timestamp": "2026-08-10T21:24:02.207Z",
+      "attempts": 1
+    },
+    "declared_removals": [
+      {
+        "path": "client/src/components/external/ModelTierSummary.tsx",
+        "reason": "The model-tier display belongs to the Iterate start decision, not task-card metadata."
+      },
+      {
+        "path": "client/src/components/external/ModelTierSummary.test.tsx",
+        "reason": "Deleted with the obsolete task-card model-tier component."
+      }
+    ]
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-10-model-tier-start-overrides",
+    "commit": "8ba78d97be5c2c0c9b55723fd9814fa219b692a8",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

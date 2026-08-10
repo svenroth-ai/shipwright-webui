@@ -82,7 +82,7 @@ export function useNewIssueForm(props: HookInput) {
     (p) => !p.synthesized && p.id !== UNASSIGNED_PROJECT_ID,
   );
   const seedScopedProject = initialProjectId
-    ? undefined
+    ? seedRealProjects.find((p) => p.id === initialProjectId)
     : activeProjectId && activeProjectId !== UNASSIGNED_PROJECT_ID
       ? seedRealProjects.find((p) => p.id === activeProjectId)
       : undefined;
