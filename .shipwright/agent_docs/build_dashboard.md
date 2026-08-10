@@ -1,14 +1,10 @@
 # Project Activity Dashboard
-> Updated: 2026-08-10 17:23 UTC | Session: unknown | Run: iterate-2026-08-10-model-tier-defaults
+> Updated: 2026-08-08 20:38 UTC | Session: b24c7537-4b35-4585-be92-02ee02b3ff6b
 
-## Recent Changes (332 iterations)
+## Recent Changes (328 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Surface read-only project model tiers and supported Iterate override choices. | 3286/3286 |  | tooling | 2026-08-10 |
-| bug | Restyle Triage filter chips to match the Board's control chrome; fix Preview button illegibility on the dark project toolbar; fix Preview button rendering without a genuine single-project selection. | 3270/3270 |  | FR-01.17 | 2026-08-09 |
-| bug | Triage reader resolves amend events (Python parity); adds an inline Edit-in-place UI for title/detail/severity; removes the dead LaunchPayloadBlock | 6650/6651 |  | FR-01.30 | 2026-08-08 |
-| change | Track AGENTS.md as the durable Codex operating contract. | 6607/6608 |  | docs | 2026-08-08 |
 | feature | Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. | 6536/6536 |  | FR-01.30 | 2026-08-08 |
 | change | Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure. | 6534/6535 (1 skipped) |  | FR-01.66 | 2026-08-08 |
 | change | Port monorepo P2.03 (CONTRACT_VERSION 2) parked-entry lifecycle: readAllItems gains revisitAt/revisitDue, a CLI-parity envelope projection, a read-only Deferred section in the Triage tab, and an optional Snooze revisit-date field. | 6461/6462 |  | FR-01.30 | 2026-08-05 |
@@ -339,7 +335,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-08-10 | Unit: 3286/3286 | E2E: 1/1 | Smoke: passed | (iterate)
+Last run: 2026-07-28 | Unit: PASS — client 3092 passed (331 files); server 3030 passed / 1 skipped (261 files) | Integration: n/a — no CRUD or service-boundary change | pgTAP: n/a — no RLS or schema change | E2E: PASS — real-Chromium mermaid render probe (authoring-time, not a committed spec); see surface_verification | Smoke: n/a — no server behaviour change | (iterate)
 
 ## Pipeline
 

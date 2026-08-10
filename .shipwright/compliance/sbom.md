@@ -1,7 +1,7 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-10T17:23:22.375729+00:00
-Source-State: run=iterate-2026-08-10-model-tier-defaults
+Generated: 2026-08-08T10:22:56.851142+00:00
+Source-State: run=iterate-2026-08-08-tests-total-skip-contract base=a93a22c0b468 release=v0.24.0
 Consistency-audit: never run
 
 ## Summary
@@ -11,7 +11,7 @@ Consistency-audit: never run
 | Runtime dependencies | 45 (deduplicated) |
 | Dev dependencies | 25 |
 | Total packages | 70 |
-| Licenses resolved | 70 / 70 |
+| Licenses resolved | 65 / 70 |
 | Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
@@ -19,11 +19,12 @@ Consistency-audit: never run
 
 ```mermaid
 pie title License Distribution (all 70 packages)
-    "MIT" : 63
+    "MIT" : 58
     "Apache-2.0" : 3
     "OFL-1.1" : 2
     "BSD-3-Clause" : 1
     "ISC" : 1
+    "unknown" : 5
 ```
 
 ## Runtime Dependencies
@@ -86,21 +87,21 @@ pie title License Distribution (all 70 packages)
 | @testing-library/react | ^16.0.0 | MIT |
 | @testing-library/user-event | ^14.0.0 | MIT |
 | @types/diff | ^7.0.2 | MIT |
+| @types/node | ^22.0.0 | - |
 | @types/node | ^25.6.2 | MIT |
-| @types/node | ^22.0.0 | MIT |
-| @types/proper-lockfile | ^4.1.4 | MIT |
+| @types/proper-lockfile | ^4.1.4 | - |
 | @types/react | ^19.0.0 | MIT |
 | @types/react-dom | ^19.0.0 | MIT |
-| @types/shell-quote | ^1.7.5 | MIT |
+| @types/shell-quote | ^1.7.5 | - |
 | @vitejs/plugin-react | ^4.0.0 | MIT |
-| @vitest/coverage-v8 | ^4.1.10 | MIT |
+| @vitest/coverage-v8 | ^4.1.10 | - |
 | esbuild | ^0.25.12 | MIT |
 | jsdom | ^25.0.0 | MIT |
 | msw | ^2.0.0 | MIT |
 | oxlint | ^1.66.0 | MIT |
 | tailwindcss | ^4.0.0 | MIT |
+| tsx | ^4.19.0 | - |
 | tsx | ^4.21.0 | MIT |
-| tsx | ^4.19.0 | MIT |
 | typescript | ^5.7.0 | Apache-2.0 |
 | typescript | ^5.6.0 | Apache-2.0 |
 | vite | ^6.0.0 | MIT |
@@ -108,5 +109,5 @@ pie title License Distribution (all 70 packages)
 
 ## License Compliance
 
-No license concerns: all 70 packages resolved (0 unknown, 0 copyleft).
+**5 dependency(ies) could not be resolved in this scan** - license unverified; verify before distribution.
 
