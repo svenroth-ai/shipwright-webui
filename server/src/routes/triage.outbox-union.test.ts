@@ -22,8 +22,10 @@ import path from "node:path";
 // record-boundary recovery gate (`triage.recovery-api.test.ts`) share one
 // wiring instead of duplicating it.
 import { type Harness, makeHarness, appendLine } from "./_triage-api-harness.js";
+import { resolveTriageCliScript } from "../core/triage-cli-runner.js";
 
 const POST = { method: "POST", headers: { "content-type": "application/json" } };
+const cachedCliIt = resolveTriageCliScript() ? it : it.skip;
 
 describe("triage routes — outbox union (F0.5 surface=api)", () => {
   const harnesses: Harness[] = [];
@@ -77,7 +79,7 @@ describe("triage routes — outbox union (F0.5 surface=api)", () => {
     expect(body.total).toBe(2);
   });
 
-  it("POST /:projectId/dismiss on an outbox finding → 200; the flip residence-routes to the outbox (no tracked drift) and the item reads back dismissed", async () => {
+  cachedCliIt("POST /:projectId/dismiss on an outbox finding → 200; the flip residence-routes to the outbox (no tracked drift) and the item reads back dismissed", async () => {
     const h = await makeHarness();
     harnesses.push(h);
     // Tracked store exists (header only) so the route's existence-guard + lock

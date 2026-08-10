@@ -11,6 +11,9 @@ import { describe, it, expect, afterEach } from "vitest";
 import { writeFileSync } from "node:fs";
 
 import { makeHarness, appendLine, TRIAGE_HEADER, type Harness } from "./_triage-api-harness.js";
+import { resolveTriageCliScript } from "../core/triage-cli-runner.js";
+
+const cachedCliIt = resolveTriageCliScript() ? it : it.skip;
 
 describe("POST /api/triage/:projectId/snooze — revisitAt", () => {
   let harness: Harness;
@@ -19,7 +22,7 @@ describe("POST /api/triage/:projectId/snooze — revisitAt", () => {
     harness?.cleanup();
   });
 
-  it("AC7: accepts a valid future revisitAt and carries it on the emitted event", async () => {
+  cachedCliIt("AC7: accepts a valid future revisitAt and carries it on the emitted event", async () => {
     harness = await makeHarness();
     writeFileSync(harness.triagePath, `${TRIAGE_HEADER}\n${appendLine("trg-aaaaaaaa")}\n`);
 
@@ -37,7 +40,7 @@ describe("POST /api/triage/:projectId/snooze — revisitAt", () => {
     expect(item?.revisitAt).toBe("2099-01-01");
   });
 
-  it("AC7: leaving revisitAt out behaves exactly as before — item parks with no date", async () => {
+  cachedCliIt("AC7: leaving revisitAt out behaves exactly as before — item parks with no date", async () => {
     harness = await makeHarness();
     writeFileSync(harness.triagePath, `${TRIAGE_HEADER}\n${appendLine("trg-bbbbbbbb")}\n`);
 

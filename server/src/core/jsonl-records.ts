@@ -220,7 +220,7 @@ export function* recordsFromLines(
  * "safely appendable". This mirrors the Python leaf, which catches OSError
  * broadly and documents that "the append itself will surface any real I/O
  * problem" — accurate here too: a swallowed EACCES is immediately re-raised by
- * `appendFileSync` and mapped to `TriageWriteError` by the existing handler, so
+ * `appendFileSync` and mapped to a route-level write error by its caller, so
  * no error is lost. Propagating early would diverge from the cross-language
  * contract for no behavioural gain (external review R10, rejected with reason).
  */

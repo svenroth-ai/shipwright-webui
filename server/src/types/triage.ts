@@ -151,4 +151,6 @@ export interface TriagePromoteResponse extends TriageActionResponse {
   newStatus: "promoted";
   /** True when the route reused an existing back-ref task (idempotent retry). */
   recovered: boolean;
+  /** The CLI's resolved post-transition item; never reconstituted by the route. */
+  item: TriageItem | Record<string, unknown>;
 }

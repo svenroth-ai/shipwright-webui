@@ -95,6 +95,14 @@ export interface TriageOrigin {
    * (older server, or a degraded read) — treat as unknown, not as `false`.
    */
   writesRouteToOutbox?: boolean;
+  /** The Python CLI that exclusively owns triage transitions. */
+  write?: {
+    available: boolean;
+    /** The server is probing the CLI; the client re-polls quickly while true. */
+    checking?: boolean;
+    reason?: string;
+    repairCommand?: string;
+  };
 }
 
 export interface TriageListResponse {
