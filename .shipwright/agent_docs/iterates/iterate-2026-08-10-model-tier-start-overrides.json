@@ -1,0 +1,41 @@
+{
+  "run_id": "iterate-2026-08-10-model-tier-start-overrides",
+  "date": "2026-08-10T21:25:04.291594Z",
+  "event_at": "2026-08-10T18:02:22.736914+00:00",
+  "branch": "iterate/model-tier-start-overrides",
+  "spec": ".shipwright/planning/iterate/iterate-2026-08-10-model-tier-start-overrides.md",
+  "tests_passed": true,
+  "surface_verification": {
+    "evidence_path": ".shipwright/runs/iterate-2026-08-10-model-tier-start-overrides/surface_verification.json",
+    "surface": "web",
+    "exit_code": 0,
+    "tests_run": 1
+  },
+  "complexity": "small",
+  "adr": "iterate-2026-08-10-model-tier-start-overrides",
+  "type": "change",
+  "prior_source": "keyword",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 5,
+      "untested_testable": 0,
+      "tested": 5,
+      "untestable": 0
+    },
+    "enumeration_basis": {
+      "covered_acs": 5,
+      "acs": 5
+    }
+  },
+  "declared_removals": [
+    {
+      "path": "client/src/components/external/ModelTierSummary.tsx",
+      "reason": "The model-tier display belongs to the Iterate start decision, not task-card metadata."
+    },
+    {
+      "path": "client/src/components/external/ModelTierSummary.test.tsx",
+      "reason": "Deleted with the obsolete task-card model-tier component."
+    }
+  ]
+}

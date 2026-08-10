@@ -15,6 +15,13 @@
 import { CommandPreviewPanel } from "../CommandPreviewPanel";
 import { FieldLabel } from "./FieldLabel";
 import { LeadwrightFieldsFragment } from "./LeadwrightFields";
+import {
+  ModelTierOverrideFields,
+} from "./ModelTierOverrideFields";
+import {
+  isModelOverrideField,
+  isUnsupportedModelOverrideField,
+} from "./modelTierOverrideSchema";
 import { MoreOptionsDisclosure } from "./MoreOptionsDisclosure";
 import { paramsToPreview } from "./paramHelpers";
 import {
@@ -30,6 +37,11 @@ import {
 import type { UseNewIssueFormReturn } from "./useNewIssueForm";
 
 export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
+  const modelOverrideFields = form.currentSchema.filter(isModelOverrideField);
+  const remainingAdvancedFields = form.advancedFields.filter(
+    (field) => !isModelOverrideField(field) && !isUnsupportedModelOverrideField(field),
+  );
+
   return (
     <>
       <ProjectFieldFragment
@@ -71,6 +83,13 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
         open={form.moreOptionsOpen}
         onToggle={() => form.setMoreOptionsOpen((v) => !v)}
       >
+        <ModelTierOverrideFields
+          fields={modelOverrideFields}
+          projectId={form.selectedProject?.id}
+          paramValues={form.paramValues}
+          setParamValues={form.setParamValues}
+          setParamEnabled={form.setParamEnabled}
+        />
         <LeadwrightFieldsFragment
           showLeadDomain={form.showLeadDomain}
           showLeadPriority={form.showLeadPriority}
@@ -90,7 +109,7 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
         />
         <AdvancedParamsFragment
           requiredFields={form.requiredFields}
-          advancedFields={form.advancedFields}
+          advancedFields={remainingAdvancedFields}
           paramValues={form.paramValues}
           setParamValues={form.setParamValues}
           revealedSecrets={form.revealedSecrets}

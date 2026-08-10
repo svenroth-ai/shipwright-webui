@@ -1,0 +1,8 @@
+{
+  "items": [
+    {"name": "scope", "verdict": "pass", "note": "Only iterate-start controls and related catalog/card cleanup changed."},
+    {"name": "launch contract", "verdict": "pass", "note": "Defaults emit no flag; explicit choices use the catalog-owned parameter."},
+    {"name": "configuration safety", "verdict": "pass", "note": "Model configuration remains read-only and unavailable states are explicit."},
+    {"name": "tests", "verdict": "pass", "note": "Focused, full client/server, and browser flow verification completed."}
+  ]
+}

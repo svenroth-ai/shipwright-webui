@@ -59,9 +59,8 @@
       "modal_fields": ["title", "autonomy", "description", "domain", "priority", "complexityHint", "tags", "blockedBy"],
       "parameters": [
         { "name": "type", "type": "enum", "label": "Change type", "enum": ["feature", "change", "bug"], "cli_flag": "--type", "value_separator": "space", "helpText": "Auto-detected if omitted" },
-        { "name": "plan-review-model", "type": "enum", "label": "Plan-review model override", "enum": ["opus", "sonnet", "haiku", "inherit"], "cli_flag": "--plan-review-model", "value_separator": "space", "helpText": "Overrides this iterate only; leave off to use the project default." },
-        { "name": "review-model", "type": "enum", "label": "Review model override", "enum": ["opus", "sonnet", "haiku", "inherit"], "cli_flag": "--review-model", "value_separator": "space", "helpText": "Overrides this iterate only; leave off to use the project default." },
-        { "name": "finalization-model", "type": "enum", "label": "Finalization model override", "enum": ["opus", "sonnet", "haiku", "inherit"], "cli_flag": "--finalization-model", "value_separator": "space", "helpText": "Overrides this iterate only; leave off to use the project default." }
+        { "name": "plan-review-model", "type": "enum", "label": "Plan review", "enum": ["opus", "sonnet", "haiku", "inherit"], "cli_flag": "--plan-review-model", "value_separator": "space" },
+        { "name": "review-model", "type": "enum", "label": "Review", "enum": ["opus", "sonnet", "haiku", "inherit"], "cli_flag": "--review-model", "value_separator": "space" }
       ]
     },
     {
