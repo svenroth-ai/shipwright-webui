@@ -132,7 +132,7 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
   });
 
-  it("an Activity prose artifact link automatically selects Detail", () => {
+  it("an Activity command group stays available without changing compact panels", () => {
     setupCompletedCompact(JSON.stringify({
       type: "assistant",
       message: {
@@ -145,13 +145,10 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
       },
     }));
     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
-    fireEvent.click(within(screen.getByTestId("mission-narration")).getByRole(
-      "button", { name: "plan" },
-    ));
-    expect(screen.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
-      "aria-selected", "true",
-    );
-    expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
+    const group = within(screen.getByTestId("mission-activity-feed")).getByText("Ran commands");
+    fireEvent.click(group);
+    expect(screen.getByTestId("mission-compact-tab-activity")).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
   });
 
   it("Activity → Detail → close restores and focuses Activity", async () => {

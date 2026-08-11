@@ -28,7 +28,6 @@ import type { RunDataJoin } from "../lib/runDataApi";
 import type { Campaign } from "../lib/campaignsApi";
 import { parseCampaignSlug } from "../lib/campaignSlug";
 import { parseSessionJsonl } from "../external/session-parser";
-import { factsFromTranscript } from "../lib/narrator-facts";
 import {
   summarizeEvents,
   type LifecycleStage,
@@ -36,7 +35,8 @@ import {
   type TranscriptActivity,
   type TranscriptSummary,
 } from "../lib/narrator-transcript";
-import { narrate, type Paragraph } from "../lib/narrator-prose";
+import { deriveActivityFeed, type ActivityFeed } from "../lib/missionActivityFeed";
+import type { MissionContext } from "../lib/missionContextApi";
 import { deriveRecordNodes, type MissionState, type RecordNodeView } from "../lib/recordNodes";
 import { useCampaigns } from "./useCampaigns";
 import { useMissionState } from "./useMissionState";
@@ -76,7 +76,7 @@ export interface MissionLiveModel {
    * opens no second reader. Empty when the transcript evidences nothing; the
    * component then renders its honest waiting line.
    */
-  narrative: Paragraph[];
+  feed: ActivityFeed;
   /** The Req/Spec/Test/Review/Commit nodes rendered AS artifact links. */
   nodes: RecordNodeView[];
   /** Autonomous-campaign progress, or null for a normal session (FR-01.67). */
@@ -124,7 +124,7 @@ export function deriveMissionLive(input: {
   campaign?: CampaignMissionInfo | null;
   /** The composed prose for the middle card (FR-01.68), threaded in for the
    *  same reason — this stays a pure assembler. */
-  narrative?: Paragraph[];
+  feed?: ActivityFeed;
 }): MissionLiveModel {
   const { missionState, run, transcript, taskTitle } = input;
   const campaign = input.campaign ?? null;
@@ -164,7 +164,7 @@ export function deriveMissionLive(input: {
     stageActivity,
     stageComplete: completed,
     narration: { summary: transcript.summary, activity: transcript.activity },
-    narrative: input.narrative ?? [],
+    feed: input.feed ?? deriveActivityFeed([], null, taskTitle),
     nodes: deriveRecordNodes({ missionState, facts: run }),
     campaign,
   };
@@ -186,6 +186,7 @@ export interface MissionLiveOptions extends StageOptions {
   artifactKeys?: readonly string[];
   /** Resolved iterate identity; never substitute a task's pipeline run id. */
   runId?: string | null;
+  context?: MissionContext | null;
 }
 
 export function useMissionLive(
@@ -193,7 +194,6 @@ export function useMissionLive(
   transcriptContent: string,
   stageOptions?: MissionLiveOptions,
 ): MissionLiveModel {
-  const artifactKeys = stageOptions?.artifactKeys;
   const missionState = useMissionState(task ?? null);
   const runDetail = useRunDetail(
     task?.projectId ?? null,
@@ -212,9 +212,9 @@ export function useMissionLive(
     () => summarizeEvents(events, { scenario, phase }),
     [events, scenario, phase],
   );
-  const narrative = useMemo(
-    () => narrate(factsFromTranscript(events), artifactKeys ?? []),
-    [events, artifactKeys],
+  const feed = useMemo(
+    () => deriveActivityFeed(events, stageOptions?.context ?? null, task?.title ?? null, task?.description),
+    [events, stageOptions?.context, task?.title, task?.description],
   );
 
   // Campaign awareness (FR-01.67): the existing 3 s campaign poll, enabled ONLY
@@ -235,8 +235,8 @@ export function useMissionLive(
         transcript,
         taskTitle: task?.title ?? null,
         campaign,
-        narrative,
+        feed,
       }),
-    [missionState, run, transcript, task?.title, campaign, narrative],
+    [missionState, run, transcript, task?.title, campaign, feed],
   );
 }
