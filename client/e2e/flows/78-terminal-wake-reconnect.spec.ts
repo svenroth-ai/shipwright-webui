@@ -87,7 +87,11 @@ test.describe("Embedded terminal — wake detector recovers a slept-through sock
       await expect(terminal).toHaveAttribute("data-ws-ready", "true", {
         timeout: 30_000,
       });
-      expect(attaches).toBe(1);
+      // React development mode may establish an initial replacement socket.
+      // Record the settled baseline; the wake assertion is about a *new*
+      // connection after the simulated sleep, not a particular mount count.
+      expect(attaches).toBeGreaterThanOrEqual(1);
+      const attachedBeforeSleep = attaches;
 
       // ── The lid closes and the machine sleeps ──
       // The socket goes half-open: still OPEN to the browser, but the peer is
@@ -107,7 +111,7 @@ test.describe("Embedded terminal — wake detector recovers a slept-through sock
       // terminal would sit frozen until the ~45 s heartbeat (or a reload).
       await expect
         .poll(() => attaches, { timeout: 15_000 })
-        .toBeGreaterThan(1);
+        .toBeGreaterThan(attachedBeforeSleep);
 
       // And with the peer answering again, it settles back to ready on its own.
       answerPings = true;

@@ -139,7 +139,12 @@ test.describe("Inbox → terminal fallback (A19, FR-01.63)", () => {
     // Inbox navigation caused ZERO outbound `data` frames to the pty (AC1). Only
     // the operator's own keystrokes would — and this flow types none.
     await page.waitForTimeout(1_500);
-    const dataFrames = outboundDataFrames(cap, taskId, clickAt);
+    // xterm reports focus with DECSET 1004's focus-in control sequence. That
+    // comes from focusing the terminal (the required AC-2 result), not from
+    // the Inbox CTA injecting an answer.
+    const dataFrames = outboundDataFrames(cap, taskId, clickAt).filter(
+      (frame) => frame.payload !== "\u001b[I" && frame.payload !== "\u001b[O",
+    );
     expect(
       dataFrames.map((f) => f.payload),
       "the Inbox terminal-fallback navigation must write NOTHING to the pty (A19 fence)",

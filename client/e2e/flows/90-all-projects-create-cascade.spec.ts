@@ -14,6 +14,7 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { cleanupCwd, makeTaskCwd } from "../helpers/task-fixture";
 
 test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
   test("cascade scopes New + Plain to the chosen project, in board and list views", async ({
@@ -21,18 +22,21 @@ test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
     request,
   }) => {
     const suffix = Date.now();
-    const mk = (name: string) =>
+    const projectACwd = await makeTaskCwd("cascade-a-e2e-");
+    const projectBCwd = await makeTaskCwd("cascade-b-e2e-");
+    const mk = (name: string, cwd: string) =>
       request.post("/api/projects", {
-        data: { name, path: process.cwd(), profile: "default", status: "active" },
+        data: { name, path: cwd, profile: "default", status: "active" },
       });
-    const { data: a } = (await (await mk(`cascade-a-${suffix}`)).json()) as {
+    const { data: a } = (await (await mk(`cascade-a-${suffix}`, projectACwd)).json()) as {
       data: { id: string };
     };
-    const { data: b } = (await (await mk(`cascade-b-${suffix}`)).json()) as {
+    const { data: b } = (await (await mk(`cascade-b-${suffix}`, projectBCwd)).json()) as {
       data: { id: string };
     };
 
-    await page.goto("/");
+    try {
+      await page.goto("/");
     await expect(page.getByTestId("task-board-page")).toBeVisible();
 
     // AC3 — All-Projects (default) shows the cascade, NOT the flat split-button.
@@ -93,8 +97,11 @@ test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
     await expect(page.getByTestId("create-menu-split-button")).toBeVisible();
     await expect(page.getByTestId("create-menu-cascade-trigger")).toHaveCount(0);
 
-    // Cleanup so the seeded projects don't leak across runs.
-    await request.delete(`/api/projects/${a.id}`);
-    await request.delete(`/api/projects/${b.id}`);
+    } finally {
+      await request.delete(`/api/projects/${a.id}`).catch(() => {});
+      await request.delete(`/api/projects/${b.id}`).catch(() => {});
+      await cleanupCwd(projectACwd);
+      await cleanupCwd(projectBCwd);
+    }
   });
 });

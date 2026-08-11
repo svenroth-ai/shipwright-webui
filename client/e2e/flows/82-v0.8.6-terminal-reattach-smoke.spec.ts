@@ -137,22 +137,18 @@ test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
       // Emit a deterministic banner-shaped payload via keystrokes so
       // the test does NOT depend on Claude actually being launched in
       // the pty (new-plain stays on a bare shell prompt). 20 unique
-      // BANNER lines + a marker — enough volume that scrollback
-      // accumulation is detectable in the buffer-line count even with
-      // some natural prompt-redraw drift.
-      // PowerShell on Windows is the default shell; on POSIX the same
-      // for-loop syntax works in bash via `seq`. For cross-shell
-      // compatibility, use a simple `echo` chain instead.
+      // BANNER lines give enough volume to detect scrollback accumulation.
+      // Use the Node runtime that starts this local harness, rather than a
+      // long shell chain: long pastes can drop their final character at the
+      // xterm/PowerShell boundary, while separate commands crowd the viewport
+      // with their input echoes and hide the scrollback we need to inspect.
       await page.getByTestId("embedded-terminal-canvas").click();
-      const bannerCmd = Array.from(
-        { length: 20 },
-        (_, i) => `echo BANNER_LINE_${String(i).padStart(2, "0")}`,
-      ).join("; ");
-      await page.keyboard.type(bannerCmd);
+      await page.keyboard.type(
+        `node -e "for(let i=0;i<20;i++)console.log('BANNER_LINE_'+String(i).padStart(2,'0'))"`,
+      );
       await page.keyboard.press("Enter");
-      // Allow the pty to echo the command + emit all 20 lines + redraw
-      // the prompt afterwards.
-      await page.waitForTimeout(2_500);
+      // Allow the pty to emit all lines and redraw the prompt.
+      await page.waitForTimeout(1_000);
 
       // Capture FULL xterm buffer (visible viewport AND scrollback) via
       // the test-only window.__embeddedTerminal handle. `.xterm-rows`
@@ -177,36 +173,34 @@ test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
           ).__embeddedTerminal;
           if (!term) return { lineCount: -1, outputLineCount: -1 };
           const lineCount = term.buffer.active.length;
-          // Count standalone output lines that match exactly
-          // `BANNER_LINE_NN` (no shell prompt prefix). The user typed
-          // ONE long `echo X; echo Y; ...` command which produces 20
-          // such standalone output lines — one per echo. These do NOT
-          // appear in the typed command echo (the command has them as
-          // substrings of `echo BANNER_LINE_NN` not as standalone
-          // lines), and PowerShell's READLINE repaint of the input
-          // line never produces standalone-`BANNER_LINE_NN` content
-          // either.
+          // Count output lines that begin with `BANNER_LINE_NN`. The single
+          // Node command produces 20 such output lines. They do not appear in
+          // its command echo, which begins with `node -e`, and PowerShell's
+          // READLINE repaint has the same prefix. The final line can share its
+          // xterm buffer row with the next shell prompt, so accept trailing
+          // prompt text on that row.
           //
           // So a SINGLE typed-and-executed run gives exactly 20 of
           // these. A replay of the same disk content gives 20 again.
           // Accumulation across N visits would give N×20.
           let outputLineCount = 0;
-          const exact = /^BANNER_LINE_\d{2}$/;
+          const output = /^BANNER_LINE_\d{2}(?:\s|$)/;
           for (let i = 0; i < lineCount; i++) {
             const line = term.buffer.active.getLine(i);
             if (!line) continue;
             const text = line.translateToString().trim();
-            if (exact.test(text)) outputLineCount += 1;
+            if (output.test(text)) outputLineCount += 1;
           }
           return { lineCount, outputLineCount };
         });
       };
 
-      const initial = await captureBufferStats();
-      // Sanity: must have emitted exactly 20 standalone `BANNER_LINE_NN`
+      // Sanity: must have emitted exactly 20 `BANNER_LINE_NN`
       // output lines (one per echo in the typed command). Less than that
       // means the keystroke fixture didn't run all 20.
-      expect(initial.outputLineCount).toBe(20);
+      await expect.poll(async () => (await captureBufferStats()).outputLineCount, {
+        timeout: 10_000,
+      }).toBe(20);
 
       // Round-trip 1: Task → Board → Task
       await page.goto(`/`);

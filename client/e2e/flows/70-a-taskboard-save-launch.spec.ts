@@ -150,6 +150,11 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
 
     await page.goto("/");
     await expect(page.getByTestId("task-board-page")).toBeVisible();
+    // Clipboard is shared by Chromium contexts on Windows. The normal
+    // sessionStorage handoff intentionally leaves it untouched, so clear any
+    // earlier fixture's value before distinguishing that path from the
+    // privacy-mode clipboard fallback below.
+    await page.evaluate(() => navigator.clipboard.writeText(""));
 
     await page.getByTestId("create-menu-primary").click();
     await expect(page.getByTestId("new-issue-modal-new-task")).toBeVisible();

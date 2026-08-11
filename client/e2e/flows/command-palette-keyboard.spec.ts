@@ -99,8 +99,9 @@ test.describe("A21 command palette + keyboard map", () => {
       ws.on("framesent", (ev) => {
         const payload = typeof ev.payload === "string" ? ev.payload : ev.payload.toString();
         try {
-          const msg = JSON.parse(payload) as { type?: string; data?: string };
-          if (msg.type === "data" && typeof msg.data === "string") sentData.push(msg.data);
+          const msg = JSON.parse(payload) as { type?: string; data?: string; payload?: string };
+          const data = msg.data ?? msg.payload;
+          if (msg.type === "data" && typeof data === "string") sentData.push(data);
         } catch {
           /* non-JSON control frame — ignore */
         }

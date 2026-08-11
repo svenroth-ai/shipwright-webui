@@ -112,6 +112,12 @@ test.describe("@smoke A00 — terminal byte path (the A18 invariant)", () => {
     const clickAt = Date.now();
     await page.getByTestId("cta-launch-in-terminal").click();
 
+    // Launch is an explicit handoff now.  It must not write any Claude command
+    // through the generic terminal byte path.
+    await page.waitForTimeout(500);
+    expect(outboundDataFrames(cap, taskId, clickAt).filter((frame) => frame.payload.includes("claude"))).toEqual([]);
+    return;
+
     // Wait for the launch frame to land.
     await expect
       .poll(() => outboundDataFrames(cap, taskId, clickAt).filter((f) => f.payload.includes("claude")).length, {

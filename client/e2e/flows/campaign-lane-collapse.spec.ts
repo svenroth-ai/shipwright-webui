@@ -1,5 +1,5 @@
 import { seedCampaigns } from "../helpers/campaign-fixture";
-import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { cleanupProject, seedProject, seedTask, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -33,6 +33,9 @@ test.describe("Campaign lane collapse + layout", () => {
         done: 1,
       })),
     );
+    // The board suppresses empty status columns. Seed one owned task so the
+    // layout assertion observes an actual kanban rather than an empty-state.
+    await seedTask(request, { projectId: project.projectId, title: "campaign-lane-anchor" });
     await setActiveProject(page, project.projectId);
   });
 

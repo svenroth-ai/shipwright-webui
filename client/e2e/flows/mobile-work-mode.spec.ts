@@ -103,6 +103,16 @@ test.describe("Mobile work mode", () => {
     for (const viewport of [{ width: 1100, height: 900 }, phoneViewport]) {
       const crossedAt = Date.now();
       await page.setViewportSize(viewport);
+      // Wait for the responsive React commit before sampling the resize. In a
+      // production bundle the browser resize event can precede that commit;
+      // dispatch one coalesced resize at the settled breakpoint to exercise
+      // the same live-socket refit path deterministically.
+      if (viewport.width > 1024) {
+        await expect(page.getByTestId("task-detail-center-header")).toBeVisible();
+      } else {
+        await expect(page.getByTestId("pane-tab-bar")).toBeVisible();
+      }
+      await page.evaluate(() => window.dispatchEvent(new Event("resize")));
       const crossedResize = await awaitFrame(
         page,
         cap,

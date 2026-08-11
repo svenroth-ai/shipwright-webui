@@ -12,13 +12,27 @@
  */
 
 import { test, expect } from "@playwright/test";
-import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { homedir } from "node:os";
+import { cleanupProject, cleanupTask, seedProject, type SeededProject } from "../helpers/fixtures";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
 test.describe("Inbox awaiting-user (plain-text question)", () => {
+  let project: SeededProject;
+  const taskIds: string[] = [];
+  const jsonlDirs: string[] = [];
+
+  test.beforeEach(async ({ request }) => {
+    project = await seedProject(request, { name: "inbox-awaiting-user" });
+  });
+
+  test.afterEach(async ({ request }) => {
+    for (const taskId of taskIds.splice(0)) await cleanupTask(request, taskId);
+    await cleanupProject(request, project);
+    for (const dir of jsonlDirs.splice(0)) rmSync(dir, { recursive: true, force: true });
+  });
   test("surfaces a plain-text question + auto-clears on user reply", async ({
     page,
     request,
@@ -29,13 +43,15 @@ test.describe("Inbox awaiting-user (plain-text question)", () => {
     const questionUuid = `e2e-q-${stamp}`;
 
     const create = await request.post("/api/external/tasks", {
-      data: { title: "inbox-awaiting-user", cwd: "C:/tmp/inbox-awaiting-user" },
+      data: { title: "inbox-awaiting-user", cwd: project.path, projectId: project.projectId },
     });
     const { task } = (await create.json()) as {
       task: { taskId: string; sessionUuid: string };
     };
+    taskIds.push(task.taskId);
 
     const encodedDir = path.join(PROJECTS_DIR, `e2e-inbox-awaiting-${stamp}`);
+    jsonlDirs.push(encodedDir);
     mkdirSync(encodedDir, { recursive: true });
     const jsonlPath = path.join(encodedDir, `${task.sessionUuid}.jsonl`);
 
@@ -69,8 +85,9 @@ test.describe("Inbox awaiting-user (plain-text question)", () => {
       page.getByTestId(`inbox-question-text-${questionUuid}`),
     ).toContainText("Which would you like?");
 
-    // text_question cards are read-only — no Answer / dismiss CTA.
-    await expect(card.locator("button")).toHaveCount(0);
+    // The current Inbox provides a navigation-only terminal handoff.  It must
+    // not fabricate a reply; the following JSONL user event still clears it.
+    await expect(card.locator("button")).toHaveCount(1);
 
     // The user replies in the terminal — a `user` event lands after the
     // turn. The next inbox derivation must drop the card (auto-clear).
@@ -98,14 +115,17 @@ test.describe("Inbox awaiting-user (plain-text question)", () => {
     const create = await request.post("/api/external/tasks", {
       data: {
         title: "inbox-awaiting-user-list",
-        cwd: "C:/tmp/inbox-awaiting-user-list",
+        cwd: project.path,
+        projectId: project.projectId,
       },
     });
     const { task } = (await create.json()) as {
       task: { taskId: string; sessionUuid: string };
     };
+    taskIds.push(task.taskId);
 
     const encodedDir = path.join(PROJECTS_DIR, `e2e-inbox-awaiting-ql-${stamp}`);
+    jsonlDirs.push(encodedDir);
     mkdirSync(encodedDir, { recursive: true });
     const jsonlPath = path.join(encodedDir, `${task.sessionUuid}.jsonl`);
 

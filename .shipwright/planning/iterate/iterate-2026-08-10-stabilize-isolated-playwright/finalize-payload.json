@@ -1,0 +1,94 @@
+{
+  "run_id": "iterate-2026-08-10-stabilize-isolated-playwright",
+  "artifact_sync": { "ref": "HEAD~1..HEAD", "skip": false },
+  "decision": {
+    "section": "Iterate — bug: stabilize isolated Playwright suite failures",
+    "title": "Disposable ownership boundary for mutable E2E",
+    "context": "Ordinary E2E execution could attach mutating fixtures to an operator's persistent registry when BASE_URL was present.",
+    "decision": "Run ordinary mutable Playwright projects only through a temporary-home, dedicated-loopback stack and retain live probes as named quarantines.",
+    "consequences": "Fixture writes are isolated by default; every owner-created project or task must be deleted before its disposable directory is removed.",
+    "rationale": "A process-local sentinel plus a resolved temporary registry gives the harness an enforceable ownership boundary rather than relying on caller configuration.",
+    "rejected": "Keeping BASE_URL as an ordinary-suite escape hatch was rejected because it can silently target the operator registry.",
+    "architecture_impact": "convention"
+  },
+  "changelog": [
+    {
+      "category": "Fixed",
+      "bullet": "Isolate mutable Playwright runs in a disposable temporary profile and fail closed when the registry escapes it."
+    },
+    {
+      "category": "Fixed",
+      "bullet": "Clean campaign and fixture-owned E2E resources through their API owner paths, including assertion-failure teardown."
+    },
+    {
+      "category": "Fixed",
+      "bullet": "Keep genuine live-stack device probes in explicit cleanup-checked quarantine commands."
+    }
+  ],
+  "iterate_entry": {
+    "type": "bug",
+    "complexity": "medium",
+    "prior_source": "keyword",
+    "branch": "codex/iterate-2026-08-10-stabilize-isolated-playwright",
+    "spec": ".shipwright/planning/iterate/iterate-2026-08-10-stabilize-isolated-playwright.md",
+    "tests_passed": true,
+    "adr": "iterate-2026-08-10-stabilize-isolated-playwright",
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "AC1 default isolated mutable Playwright stack",
+          "disposition": "tested",
+          "evidence": "client npm run test:e2e: 412 passed, 8 skipped"
+        },
+        {
+          "behavior": "AC2 fail-closed mutable suite selection",
+          "disposition": "tested",
+          "evidence": "client/scripts/isolated-stack.node-test.mjs: 3/3 passed"
+        },
+        {
+          "behavior": "AC3 temporary registry containment",
+          "disposition": "tested",
+          "evidence": "client/scripts/isolated-stack.node-test.mjs: 3/3 passed"
+        },
+        {
+          "behavior": "AC4 contamination guard retains failure verdict",
+          "disposition": "tested",
+          "evidence": "client/scripts/isolated-stack.node-test.mjs: 3/3 passed"
+        },
+        {
+          "behavior": "AC5 campaign fixture owner cleanup on every outcome",
+          "disposition": "tested",
+          "evidence": "focused campaign regressions and full client npm run test:e2e"
+        },
+        {
+          "behavior": "AC6 named live quarantine boundary",
+          "disposition": "tested",
+          "evidence": "dedicated quarantine configs reviewed; default full suite passed without them"
+        }
+      ],
+      "counts": { "testable": 6, "tested": 6, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 6, "covered_acs": 6 }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 1,
+      "exit_code": 0,
+      "justification": "Full production-built isolated-stack Playwright suite passed with 412 scenarios and 8 declared skips."
+    },
+    "declared_removals": []
+  },
+  "finalize": {
+    "reason": "iterate: stabilize isolated Playwright suite failures",
+    "event_extras": {
+      "intent": "bug",
+      "description": "Stabilize mutable Playwright fixtures behind a disposable registry boundary.",
+      "summary": "Playwright tests now use their own temporary data and clean it up instead of touching an operator's projects.",
+      "spec_impact": "none",
+      "spec_impact_justification": "The change only strengthens the E2E harness and fixture cleanup; Command Center runtime behavior is unchanged.",
+      "change_type": "tooling",
+      "none_reason": "E2E launcher and test-fixture lifecycle work only; no product requirement behavior changed.",
+      "tests": { "passed": 412, "total": 420, "e2e_run": true }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -42,46 +42,62 @@ test.describe("Campaigns board dismiss / restore (FR-01.33)", () => {
       "utf-8",
     );
 
-    // 2. Register the project (server generates the id we scope the board by).
-    const reg = await request.post("/api/projects", {
-      data: { name: `E2E Dismiss ${RUN}`, path: projectDir, profile: "vite-hono" },
-    });
-    expect(reg.ok()).toBeTruthy();
-    const regBody = (await reg.json()) as { data?: { id?: string }; id?: string };
-    const projectId = regBody.data?.id ?? regBody.id;
-    expect(projectId, "registration returns a project id").toBeTruthy();
+    let projectId: string | undefined;
+    try {
+      // 2. Register the project (server generates the id we scope the board by).
+      const reg = await request.post("/api/projects", {
+        data: { name: `E2E Dismiss ${RUN}`, path: projectDir, profile: "vite-hono" },
+      });
+      expect(reg.ok()).toBeTruthy();
+      const regBody = (await reg.json()) as { data?: { id?: string }; id?: string };
+      projectId = regBody.data?.id ?? regBody.id;
+      expect(projectId, "registration returns a project id").toBeTruthy();
+      if (!projectId) throw new Error("registration returned no project id");
 
-    // 3. Board scoped to the fixture project (URL projectId wins, useProjectFilter).
-    await page.goto(`/?projectId=${encodeURIComponent(projectId as string)}`);
-    await expect(page.getByTestId("task-board-page")).toBeVisible();
+      // 3. Board scoped to the fixture project (URL projectId wins, useProjectFilter).
+      await page.goto(`/?projectId=${encodeURIComponent(projectId)}`);
+      await expect(page.getByTestId("task-board-page")).toBeVisible();
 
-    const card = page.getByTestId(`campaign-lane-card-${SLUG}`);
-    await expect(card).toBeVisible({ timeout: 15000 });
-    // It's the ghost (events provenance) and not yet dismissed.
-    await expect(page.getByTestId(`campaign-events-badge-${SLUG}`)).toBeVisible();
-    const control = page.getByTestId(`campaign-dismiss-${SLUG}`);
-    await expect(control).not.toHaveAttribute("data-dismissed", "true");
+      const card = page.getByTestId(`campaign-lane-card-${SLUG}`);
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId(`campaign-events-badge-${SLUG}`)).toBeVisible();
+      const control = page.getByTestId(`campaign-dismiss-${SLUG}`);
+      await expect(control).not.toHaveAttribute("data-dismissed", "true");
 
-    // 4. Dismiss → the card leaves the active lane.
-    await control.click();
-    await expect(card).toBeHidden({ timeout: 15000 });
-    const toggle = page.getByTestId("campaigns-show-dismissed-toggle");
-    await expect(toggle).toContainText("1 erledigt", { timeout: 15000 });
+      // 4. Dismiss → the card leaves the active lane.
+      await control.click();
+      await expect(card).toBeHidden({ timeout: 15000 });
+      const toggle = page.getByTestId("campaigns-show-dismissed-toggle");
+      await expect(toggle).toContainText("1 erledigt", { timeout: 15000 });
 
-    // 5. Reveal the dismissed list → the ghost is there with a restore control.
-    await toggle.click();
-    const dismissedCard = page.getByTestId(`campaign-lane-card-${SLUG}`);
-    await expect(dismissedCard).toBeVisible();
-    const restore = page.getByTestId(`campaign-dismiss-${SLUG}`);
-    await expect(restore).toHaveAttribute("data-dismissed", "true");
+      // 5. Reveal the dismissed list → the ghost is there with a restore control.
+      await toggle.click();
+      const dismissedCard = page.getByTestId(`campaign-lane-card-${SLUG}`);
+      await expect(dismissedCard).toBeVisible();
+      const restore = page.getByTestId(`campaign-dismiss-${SLUG}`);
+      await expect(restore).toHaveAttribute("data-dismissed", "true");
 
-    // 6. Restore → the card returns to the active lane (no longer dismissed).
-    await restore.click();
-    await expect(page.getByTestId(`campaign-dismiss-${SLUG}`)).not.toHaveAttribute(
-      "data-dismissed",
-      "true",
-      { timeout: 15000 },
-    );
-    await expect(page.getByTestId(`campaign-lane-card-${SLUG}`)).toBeVisible();
+      // 6. Restore → the card returns to the active lane (no longer dismissed).
+      await restore.click();
+      await expect(page.getByTestId(`campaign-dismiss-${SLUG}`)).not.toHaveAttribute(
+        "data-dismissed",
+        "true",
+        { timeout: 15000 },
+      );
+      await expect(page.getByTestId(`campaign-lane-card-${SLUG}`)).toBeVisible();
+    } finally {
+      try {
+        if (projectId) {
+          const deleted = await request.delete(`/api/projects/${encodeURIComponent(projectId)}`);
+          expect(deleted.ok()).toBeTruthy();
+          const projects = await request.get("/api/projects");
+          expect(projects.ok()).toBeTruthy();
+          const body = (await projects.json()) as { data: Array<{ id: string }> };
+          expect(body.data.some((project) => project.id === projectId)).toBe(false);
+        }
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+      }
+    }
   });
 });

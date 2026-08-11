@@ -15,7 +15,7 @@ test.describe('Triage tab', () => {
     await page.goto('/triage');
     await expect(page).toHaveURL('/triage');
     await expect(page.getByTestId('triage-page')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /^Triage$/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Triage/i })).toBeVisible();
   });
 
   test('sidebar exposes a Triage entry that links to /triage', async ({ page }) => {

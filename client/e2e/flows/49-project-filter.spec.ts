@@ -12,10 +12,13 @@
  */
 
 import { test, expect } from "@playwright/test";
+import { cleanupCwd, makeTaskCwd } from "../helpers/task-fixture";
 
 test.describe("Project filter dropdown (iterate 3.8a)", () => {
   test("filter persists across reload + toggles back to all", async ({ page, request }) => {
     const suffix = Date.now();
+    const projectACwd = await makeTaskCwd("proj-a-e2e-");
+    const projectBCwd = await makeTaskCwd("proj-b-e2e-");
 
     // Seed two real projects via the API. Use directories that already
     // exist on the test machine (cwd is fine) to bypass the existsSync
@@ -23,7 +26,7 @@ test.describe("Project filter dropdown (iterate 3.8a)", () => {
     const projA = await request.post("/api/projects", {
       data: {
         name: `proj-a-${suffix}`,
-        path: process.cwd(),
+        path: projectACwd,
         profile: "default",
         status: "active",
       },
@@ -31,7 +34,7 @@ test.describe("Project filter dropdown (iterate 3.8a)", () => {
     const projB = await request.post("/api/projects", {
       data: {
         name: `proj-b-${suffix}`,
-        path: process.cwd(),
+        path: projectBCwd,
         profile: "default",
         status: "active",
       },
@@ -41,15 +44,16 @@ test.describe("Project filter dropdown (iterate 3.8a)", () => {
 
     // Seed one task per project via POST /api/external/tasks.
     const tA = await request.post("/api/external/tasks", {
-      data: { title: `task-A-${suffix}`, cwd: process.cwd(), projectId: aBody.id },
+      data: { title: `task-A-${suffix}`, cwd: projectACwd, projectId: aBody.id },
     });
     const tB = await request.post("/api/external/tasks", {
-      data: { title: `task-B-${suffix}`, cwd: process.cwd(), projectId: bBody.id },
+      data: { title: `task-B-${suffix}`, cwd: projectBCwd, projectId: bBody.id },
     });
     const { task: taskA } = (await tA.json()) as { task: { taskId: string } };
     const { task: taskB } = (await tB.json()) as { task: { taskId: string } };
 
-    await page.goto("/");
+    try {
+      await page.goto("/");
     await expect(page.getByTestId("task-board-page")).toBeVisible();
 
     // Dropdown trigger is present and lists both projects when opened.
@@ -85,10 +89,14 @@ test.describe("Project filter dropdown (iterate 3.8a)", () => {
     await expect(page.getByText(`task-A-${suffix}`)).toBeVisible();
     await expect(page.getByText(`task-B-${suffix}`)).toBeVisible();
 
-    // Cleanup — delete both tasks so we don't leak across test runs.
-    await request.delete(`/api/external/tasks/${taskA.taskId}`);
-    await request.delete(`/api/external/tasks/${taskB.taskId}`);
-    await request.delete(`/api/projects/${aBody.id}`);
-    await request.delete(`/api/projects/${bBody.id}`);
+    } finally {
+      // Owner deletes first so live PTYs release their directories before rm.
+      await request.delete(`/api/external/tasks/${taskA.taskId}`).catch(() => {});
+      await request.delete(`/api/external/tasks/${taskB.taskId}`).catch(() => {});
+      await request.delete(`/api/projects/${aBody.id}`).catch(() => {});
+      await request.delete(`/api/projects/${bBody.id}`).catch(() => {});
+      await cleanupCwd(projectACwd);
+      await cleanupCwd(projectBCwd);
+    }
   });
 });

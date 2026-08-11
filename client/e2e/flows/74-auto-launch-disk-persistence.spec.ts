@@ -39,6 +39,15 @@ async function cleanupCwd(dir: string): Promise<void> {
   }
 }
 
+async function cleanupTaskCwd(
+  request: import("@playwright/test").APIRequestContext,
+  taskId: string,
+  cwd: string,
+): Promise<void> {
+  await request.delete(`/api/external/tasks/${encodeURIComponent(taskId)}`).catch(() => {});
+  await cleanupCwd(cwd);
+}
+
 async function createTask(
   request: import("@playwright/test").APIRequestContext,
   cwd: string,
@@ -90,7 +99,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       );
       expect(clipboardCalls).toBe(0);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 
@@ -116,7 +125,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       const body = (await bad.json()) as { error?: string };
       expect(body.error).toBe("invalid_task_id");
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 
@@ -148,7 +157,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       );
       expect(clear.status()).toBe(204);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 
@@ -185,7 +194,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       ).not.toBeVisible();
       expect(fetchCalls).toHaveLength(0);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 
@@ -220,7 +229,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       expect(seenCalls.length).toBe(1);
       expect(seenCalls[0]).toContain(`/api/terminal/${taskId}/clear-scrollback`);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 
@@ -259,7 +268,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       // Modal stays open (user can dismiss via Cancel).
       await expect(page.getByTestId("confirm-clear-history-dialog")).toBeVisible();
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 
@@ -282,7 +291,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       // After delete, clear is 204 (no-op on missing files).
       expect(followClear.status()).toBe(204);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, taskId, cwd);
     }
   });
 });
