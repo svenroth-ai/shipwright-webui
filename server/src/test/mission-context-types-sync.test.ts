@@ -22,7 +22,6 @@
  * describing a different shape.
  * @covers FR-01.66
  */
-
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -136,6 +135,7 @@ const SHARED_UNIONS = [
   "ArtifactState",
   "ArtifactKind",
   "RequirementConfidence",
+  "RequirementLifecycle",
   "MergeState",
   "TestChangeKind",
   "ReviewType",

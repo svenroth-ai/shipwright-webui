@@ -40,7 +40,7 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
     });
     expect(a.state).toBe("available");
     expect(a.receipt).toBe("3037/3037 passing");
-    expect(a.summary).toMatch(/all 3037 tests passing/i);
+    expect(a.summary).toMatch(/passed — all 3037 tests passing/i);
     expect(a.detail?.results).toEqual({ passed: 3037, total: 3037, skipped: null, gate: "pass" });
     expect(a.detail?.rows).toEqual([]); // no diff → no per-file rows, and that is fine
   });
@@ -52,7 +52,7 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
       index: NO_INDEX,
     });
     expect(a.state).toBe("available");
-    expect(a.summary).toMatch(/3009 of 3037 tests passing/i);
+    expect(a.summary).toMatch(/failed — 3009 of 3037 tests passing/i);
     expect(a.receipt).toBe("3009/3037 passing");
   });
 
@@ -85,7 +85,7 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
     });
     expect(a.state).toBe("available");
     expect(a.receipt).toBe("40/42 passing"); // the headline is the result, not the file count
-    expect(a.summary).toMatch(/40 of 42 tests passing/i);
+    expect(a.summary).toMatch(/failed — 40 of 42 tests passing/i);
     expect(a.summary).toContain("added 1 test file"); // …then the diff enrichment
     expect(a.detail?.rows).toHaveLength(3);
     expect(a.detail?.results).toEqual({ passed: 40, total: 42, skipped: null, gate: "fail" });
@@ -105,7 +105,7 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
     });
     expect(a.state).toBe("available");
     expect(a.receipt).toBe("9/10 passing");
-    expect(a.summary).toMatch(/9 of 10 tests passing \(1 skipped\)/i);
+    expect(a.summary).toMatch(/passed — 9 of 10 tests passing \(1 skipped\)/i);
     expect(a.detail?.results).toEqual({ passed: 9, total: 10, skipped: 1, gate: "pass" });
   });
 
@@ -119,7 +119,7 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
     expect(a.state).toBe("available");
     expect(a.detail?.results?.gate).toBe("unknown");
     expect(a.receipt).toBe("5/5 skipped");
-    expect(a.summary).toMatch(/all 5 collected tests were skipped — none ran/i);
+    expect(a.summary).toMatch(/needs attention — all 5 collected tests were skipped, so none ran/i);
     expect(a.summary ?? "").not.toMatch(/passing/i);
   });
 
@@ -132,7 +132,7 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
       index: NO_INDEX,
     });
     expect(a.detail?.results?.gate).toBe("unknown");
-    expect(a.summary).toBe("No test result recorded.");
+    expect(a.summary).toBe("No reliable result — the recorded test counts are incomplete or invalid.");
     expect(a.summary ?? "").not.toMatch(/all 5/i);
     expect(a.receipt).not.toMatch(/skipped/i);
   });
@@ -146,7 +146,18 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
       index: NO_INDEX,
     });
     expect(a.detail?.results?.gate).toBe("unknown");
-    expect(a.summary).toBe("No test result recorded.");
+    expect(a.summary).toBe("No reliable result — the recorded test counts are incomplete or invalid.");
+  });
+
+  it("never lets malformed skipped values greenwash a producer-pass gate", () => {
+    const a = buildTestsArtifact({
+      events: foundWithTests({ passed: 5, total: 5, skipped: -1, ts: "2026-08-08T12:00:00Z" }),
+      diff: { status: "unavailable", reason: "bad_commit" },
+      index: NO_INDEX,
+    });
+    expect(a.detail?.results?.gate).toBe("pass");
+    expect(a.summary).toBe("No reliable result — the recorded test counts are incomplete or invalid.");
+    expect(a.receipt).toBe("no reliable result");
   });
 
   it("treats {passed:null,total:null} as no counts — an empty tests object is not a result", () => {
@@ -158,14 +169,14 @@ describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
     expect(a.state).toBe("unavailable"); // falls through to the honest gap message
   });
 
-  it("says 'N tests recorded' when only a total was recorded", () => {
+  it("says no reliable result when only a total was recorded", () => {
     const a = buildTestsArtifact({
       events: foundWithTests({ passed: null, total: 42 }),
       diff: { status: "unavailable", reason: "bad_commit" },
       index: NO_INDEX,
     });
     expect(a.state).toBe("available");
-    expect(a.summary).toMatch(/42 tests recorded/i);
+    expect(a.summary).toMatch(/no reliable result — the run recorded only part of its test counts/i);
   });
 
   it("treats {passed:0,total:0} as no counts — never 'All 0 tests passing'", () => {

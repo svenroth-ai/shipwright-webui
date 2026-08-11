@@ -125,3 +125,12 @@ describe("detail bodies are styled at all (S1 left these hooks empty on purpose)
     expect(narrow).toMatch(/a-meta[^}]*grid-template-columns:\s*1fr/);
   });
 });
+
+describe("artifact close controls retain their scenario-specific placement", () => {
+  it("keeps the legacy panel close button absolute while the shared header owns normal flow", () => {
+    expect(ruleFor(".artifact .a-close")).toMatch(/position:\s*absolute/);
+    expect(ruleFor(".artifact .a-header .a-close")).toMatch(/position:\s*static/);
+    expect(ruleFor(".on-photo .artifact .a-close")).toMatch(/top:\s*8px/);
+    expect(ruleFor(".on-photo .artifact .a-close")).toMatch(/right:\s*8px/);
+  });
+});

@@ -44,6 +44,18 @@ export interface PlannedImpact {
   prose: string | null;
 }
 
+/**
+ * Read only the declared impact value from the iterate spec. This is separate
+ * from `plannedImpactFromSpec`: a heading can describe planned work while an
+ * explicit `spec_impact: none` says no requirement changes are planned.
+ */
+export function declaredSpecImpact(specText: string | null | undefined): string | null {
+  if (!specText) return null;
+  const slice = specText.length > SCAN_BYTES ? specText.slice(0, SCAN_BYTES) : specText;
+  const match = /(?:^|\n)\s*(?:[-*]\s*)?(?:\*\*)?spec[ _-]?impact(?:\*\*)?\s*[:=]\s*`?\s*(add|modify|remove|none)\b/i.exec(slice);
+  return match?.[1]?.toLowerCase() ?? null;
+}
+
 /** Collapse a markdown block to one readable line, bounded for display. */
 function condense(block: string, maxLen = 240): string | null {
   const text = block

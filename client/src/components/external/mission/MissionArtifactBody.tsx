@@ -14,6 +14,7 @@
  * context response renders a typed `stale` notice, never an unrelated file.
  */
 
+import { useEffect, useRef, useState } from "react";
 import type { ArtifactDescriptor } from "../../../lib/missionContextApi";
 import { frRowLabel } from "../../../lib/missionArtifacts";
 import { useArtifactDocument } from "../../../hooks/useMissionContext";
@@ -28,13 +29,14 @@ import {
 interface Props {
   taskId: string;
   artifact: ArtifactDescriptor;
+  showSummary?: boolean;
 }
 
-export function MissionArtifactBody({ taskId, artifact }: Props) {
+export function MissionArtifactBody({ taskId, artifact, showSummary = true }: Props) {
   return (
     <>
       {/* Region 1 — the business summary. */}
-      {artifact.summary ? (
+      {showSummary && artifact.summary ? (
         <p className="a-body" data-testid="artifact-summary">
           {artifact.summary}
         </p>
@@ -54,7 +56,7 @@ function ArtifactDetail({ taskId, artifact }: { taskId: string; artifact: Artifa
     case "spec":
       return <SpecDetail taskId={taskId} documentId={artifact.detail?.documentId ?? null} />;
     case "requirement":
-      return <RequirementDetail artifact={artifact} />;
+      return <RequirementDetail taskId={taskId} artifact={artifact} />;
     case "tests":
       return <TestsDetail artifact={artifact} />;
     case "review":
@@ -116,28 +118,39 @@ function SpecDetail({ taskId, documentId }: { taskId: string; documentId: string
 }
 
 function RequirementDetail({
+  taskId,
   artifact,
 }: {
+  taskId: string;
   artifact: Extract<ArtifactDescriptor, { kind: "requirement" }>;
 }) {
   const detail = artifact.detail;
   if (!detail) return <p className="a-note">No requirement detail was recorded.</p>;
 
+  const lifecycle = detail.lifecycle ?? (detail.confidence === "planned" ? "planned" : detail.confidence === "finalized" ? "recorded" : "discovering");
+  const lifecycleText = {
+    discovering: "Discovering affected requirements.",
+    planned: "Planned requirement impact — this run has not finished yet.",
+    recorded: "Recorded requirement impact at completion.",
+    none: "No requirement changed.",
+  }[lifecycle];
+
   return (
     <>
-      {/* Mid-run this is PLANNED impact and says so — never presented as a
-          decided new/changed classification before Finalize (§6). */}
       <p className="a-note" data-testid="artifact-req-confidence">
-        {detail.confidence === "planned"
-          ? "Planned impact — this run has not finished yet."
-          : detail.confidence === "finalized"
-            ? "Recorded at completion."
-            : "No requirement could be resolved."}
+        {lifecycleText}
       </p>
       {detail.rows.length > 0 ? (
         <ul className="a-rows" data-testid="artifact-req-rows">
           {detail.rows.map((row) => (
-            <li key={row.originalFrId}>{frRowLabel(row)}</li>
+            <li key={row.originalFrId} data-testid="artifact-req-row">
+              <strong>{frRowLabel(row)}</strong>
+              {row.area ? <span className="a-muted"> · {row.area}</span> : null}
+              {row.description ? <p className="a-note">{row.description}</p> : null}
+              {detail.sourceDocument ? (
+                <RequirementSource taskId={taskId} documentId={detail.sourceDocument.documentId} frId={row.displayFrId} anchor={row.sourceAnchor ?? null} />
+              ) : null}
+            </li>
           ))}
         </ul>
       ) : null}
@@ -145,6 +158,48 @@ function RequirementDetail({
         <p className="a-note">Spec impact: {detail.specImpact}</p>
       ) : null}
     </>
+  );
+}
+
+function RequirementSource({ taskId, documentId, frId, anchor }: { taskId: string; documentId: string; frId: string; anchor: string | null }) {
+  const [open, setOpen] = useState(false);
+  const doc = useArtifactDocument(taskId, open ? documentId : null);
+  const sourceAnchor = anchor ?? `fr-${frId.slice(3).replace(".", "")}`;
+  const sourceRef = useRef<HTMLDivElement | null>(null);
+  const escapedFrId = frId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const sourceRowPattern = new RegExp("^\\|\\s*`?" + escapedFrId + "`?\\s*\\|");
+  const sourceRow = doc.data?.status === "ok"
+    ? doc.data.document.body.split(/\r?\n/).find((line) => sourceRowPattern.test(line)) ?? null
+    : null;
+
+  useEffect(() => {
+    if (open && sourceRow) sourceRef.current?.scrollIntoView({ block: "nearest" });
+  }, [open, sourceRow]);
+
+  return (
+    <div className="a-requirement-source">
+      <a
+        href={`#${sourceAnchor}`}
+        className="a-popout"
+        onClick={() => setOpen((value) => !value)}
+        data-testid="artifact-req-source"
+      >
+        {open ? "Hide requirements specification" : `Open requirements specification — ${frId}`}
+      </a>
+      {open && doc.data?.status === "ok" ? (
+        <div data-testid="artifact-req-source-document">
+          {sourceRow ? (
+            <div id={sourceAnchor} ref={sourceRef} tabIndex={-1} data-testid="artifact-req-source-row">
+              <p className="a-note">Cited requirement row: <code>{sourceRow}</code></p>
+            </div>
+          ) : (
+            <p className="a-note">The cited requirement row is no longer present in this version of the specification.</p>
+          )}
+          <DocumentMarkdown text={doc.data.document.body} />
+        </div>
+      ) : null}
+      {open && doc.data?.status !== "ok" && !doc.isPending ? <p className="a-note">The requirements specification is currently unavailable.</p> : null}
+    </div>
   );
 }
 

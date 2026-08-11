@@ -46,7 +46,7 @@ describe("TestsDetail — counts-led", () => {
         })}
       />,
     );
-    expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("All 3037 tests passing");
+    expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("Passed — all 3037 tests passing");
     expect(screen.queryByTestId("artifact-tests-table")).not.toBeInTheDocument();
     expect(screen.getByTestId("artifact-tests-no-files")).toBeInTheDocument();
   });
@@ -61,7 +61,7 @@ describe("TestsDetail — counts-led", () => {
       />,
     );
     expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent(
-      "9 of 10 tests passing (1 skipped)",
+      "Passed — 9 of 10 tests passing (1 skipped)",
     );
   });
 
@@ -71,7 +71,7 @@ describe("TestsDetail — counts-led", () => {
         artifact={testsArtifact({ results: { passed: 40, total: 42, skipped: null, gate: "fail" } })}
       />,
     );
-    expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("40 of 42 tests passing");
+    expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("Failed — 40 of 42 tests passing");
     expect(screen.getByTestId("artifact-tests-table")).toBeInTheDocument();
   });
 });

@@ -31,6 +31,7 @@ import type { EventLookup } from "./iterate-record.js";
 import type { TestsDiff } from "./tests-diff.js";
 import { inferLayer } from "./tests-diff.js";
 import type { TraceabilityIndex } from "./traceability.js";
+import type { TestEvidence } from "./test-evidence.js";
 import type { MissionTests } from "./types.js";
 import type { TestRow, TestsArtifact } from "./types-slice2.js";
 
@@ -50,6 +51,7 @@ export interface TestsInput {
   events: EventLookup;
   diff: TestsDiff;
   index: TraceabilityIndex;
+  evidence?: TestEvidence;
 }
 
 function hiddenTests(state: "not_yet_created" | "not_applicable", note?: string): TestsArtifact {
@@ -90,6 +92,12 @@ function isNonNegInt(n: number | null | undefined): n is number {
   return typeof n === "number" && Number.isInteger(n) && n >= 0;
 }
 
+/** The producer gate remains authoritative, but malformed raw counts cannot look green. */
+function hasValidCompleteCounts(r: MissionTests): boolean {
+  if (!isNonNegInt(r.passed) || !isNonNegInt(r.total) || r.passed > r.total) return false;
+  return r.skipped == null || (isNonNegInt(r.skipped) && r.skipped <= r.total);
+}
+
 /** True only when the raw counts PROVE every collected test was skipped —
  *  `passed` genuinely 0, `total` a positive integer, `skipped` exactly equal
  *  to it. Anything else reaching `gate:"unknown"` is a malformed/partial
@@ -101,10 +109,12 @@ function isGenuinelyAllSkipped(r: MissionTests): boolean {
   );
 }
 
-/** "All 42 tests passing" / "9 of 10 tests passing (1 skipped)" / "42 tests
- *  recorded" / "All 5 collected tests were skipped — none ran.". */
+/** A plain-language gate heading followed by the run's recorded counts. */
 function resultsSentence(r: MissionTests): string {
   if (r.passed != null && r.total != null) {
+    if (!hasValidCompleteCounts(r)) {
+      return "No reliable result — the recorded test counts are incomplete or invalid.";
+    }
     // `unknown` with BOTH fields present means nothing citable happened
     // despite having full data — never phrased as pass- or fail-shaped
     // "passing" text (doubt review, MEDIUM: an all-skipped post-reversal run
@@ -115,24 +125,24 @@ function resultsSentence(r: MissionTests): string {
     // unchanged.
     if (r.gate === "unknown") {
       return isGenuinelyAllSkipped(r)
-        ? `All ${plural(r.total, "collected test", "collected tests")} were skipped — none ran.`
-        : "No test result recorded.";
+        ? `Needs attention — all ${plural(r.total, "collected test", "collected tests")} were skipped, so none ran.`
+        : "No reliable result — the recorded test counts are incomplete or invalid.";
     }
     // A skipped-carrying pass is disclosed, not rounded up to "All N passing"
     // — that overstates what ran (code review, MEDIUM).
     if (r.gate === "pass" && (r.skipped ?? 0) > 0) {
-      return `${r.passed} of ${plural(r.total, "test", "tests")} passing (${r.skipped} skipped).`;
+      return `Passed — ${r.passed} of ${plural(r.total, "test", "tests")} passing (${r.skipped} skipped).`;
     }
     return r.gate === "pass"
-      ? `All ${plural(r.total, "test", "tests")} passing.`
-      : `${r.passed} of ${plural(r.total, "test", "tests")} passing.`;
+      ? `Passed — all ${plural(r.total, "test", "tests")} passing.`
+      : `Failed — ${r.passed} of ${plural(r.total, "test", "tests")} passing.`;
   }
-  if (r.total != null) return `${plural(r.total, "test", "tests")} recorded.`;
-  return `${plural(r.passed ?? 0, "test", "tests")} passing.`;
+  return "No reliable result — the run recorded only part of its test counts.";
 }
 
 /** The compact rail receipt for a counts result. */
 function resultsReceipt(r: MissionTests): string {
+  if (!hasValidCompleteCounts(r)) return "no reliable result";
   if (r.gate === "unknown" && isGenuinelyAllSkipped(r)) {
     return `${r.skipped}/${r.total} skipped`;
   }
@@ -253,6 +263,7 @@ export function buildTestsArtifact(input: TestsInput): TestsArtifact {
       // claimed the manifest was fine (external code review, MEDIUM). With no
       // rows there is nothing to link, so the manifest is not "at fault".
       manifestStatus: !hasFiles || (index.status === "ok" && !index.truncated) ? "ok" : "unavailable",
+      evidence: input.evidence,
     },
   };
 }

@@ -1,0 +1,1 @@
+{"stage":"code","verdict":"PASS","review":[],"rationale":"The post-doubt fixes preserve terminal context selection and legacy close-button placement; focused client and server tests passed."}

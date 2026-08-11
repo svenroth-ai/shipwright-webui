@@ -98,6 +98,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     scenario: stageScenario(context),
     phase: pipelinePhase(context),
     artifactKeys,
+    runId: context?.scenario === "iterate" ? context.runId : undefined,
   });
   const activeArtifact = artifacts?.find((a) => a.kind === activeNode) ?? null;
 
@@ -175,7 +176,13 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   // only more complete. The transcript is still on disk and `useTaskTranscript`
   // is ungated, so both states drive the SAME derivation and cannot diverge.
   const isDesignGate = model.missionState === "designgate";
-  const completed = model.mode === "completed";
+  // The iterate resolver owns terminal artifacts. Its merged-event fallback can
+  // be complete before the legacy local run-detail reader catches up, so never
+  // let that independent join hide the resolved centre card.
+  const taskTerminal = task.state === "done" || task.state === "launch_failed";
+  const completed = model.mode === "completed" || (
+    context?.scenario === "iterate" && taskTerminal && context.runLive === false
+  );
 
   return (
     // `flex flex-col` (not a bare block) is load-bearing: `.mc-body` is
@@ -222,10 +229,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           data-testid="mission-panel-activity"
         >
           {isDesignGate ? (
-            <OperationCard task={task} />
+            <OperationCard task={task} context={context} />
           ) : completed ? (
             <div className="mc-op-stack" data-testid="mission-completed-stack">
-              <OperationCard task={task} />
+              <OperationCard task={task} context={context} />
               <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
             </div>
           ) : (

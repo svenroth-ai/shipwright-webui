@@ -171,6 +171,15 @@ describe("deriveProofLines", () => {
     expect(text).not.toContain("9/10 passing"); // the red-suite wording must not also appear
   });
 
+  it("does not emit a green proof line for malformed producer-pass counts", () => {
+    const facts: ProofFacts = {
+      tests: { passed: 5, total: 5, skipped: -1 },
+      gates: { test: "pass", review: "pass", security: "pass" },
+    };
+    expect(deriveVerdict({ facts }).outcome).toBe("neutral");
+    expect(allText(deriveProofLines({ facts, verdict: deriveVerdict({ facts }) }))).not.toContain("suite green");
+  });
+
   // @covers FR-01.66
   it("empty log -> empty summary (never an invented line, AC5)", () => {
     const verdict = deriveVerdict({ facts: null });

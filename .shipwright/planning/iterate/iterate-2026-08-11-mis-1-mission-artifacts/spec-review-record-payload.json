@@ -1,0 +1,12 @@
+{
+  "stage": "spec",
+  "verdict": "REJECT",
+  "spec_citations": [
+    {"kind":"identity","spec_ref":"AC1: iterate Mission uses MissionContext.runId and never task.runId.","divergence":"A null iterate run id currently falls back to task.runId.","diff_location":"client/src/components/external/mission/OperationCard.tsx:54-66"},
+    {"kind":"lifecycle","spec_ref":"Historic artifacts must degrade explicitly, not imply a false lifecycle.","divergence":"A readable spec can be shown as Planned before an unreadable event source is handled.","diff_location":"server/src/core/mission-context/artifacts.ts:153-189"},
+    {"kind":"traceability","spec_ref":"AC2: requirement source must identify the exact requirement in the opaque document.","divergence":"The implementation opens the whole document and attaches a synthetic wrapper id rather than targeting the cited row.","diff_location":"client/src/components/external/mission/MissionArtifactBody.tsx:164-176"},
+    {"kind":"tests","spec_ref":"AC3: malformed or partial test counts are never greenwashed.","divergence":"Malformed skipped values can still render as Passed.","diff_location":"server/src/core/mission-context/artifacts-tests.ts:117-129"},
+    {"kind":"requirements","spec_ref":"Explicit NONE is always No requirement changed.","divergence":"Rows are returned before an explicit none is handled, allowing contradictory stale ids to appear.","diff_location":"server/src/core/mission-context/artifacts.ts:150-160"},
+    {"kind":"readability","spec_ref":"AC2: requirement detail must be readable plain language.","divergence":"Adopted descriptions containing Markdown or HTML are emitted as literal tokens.","diff_location":"server/src/core/mission-context/fold-map.ts:94"}
+  ]
+}

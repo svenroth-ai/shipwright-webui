@@ -55,10 +55,13 @@ const REQUIREMENT: ArtifactDescriptor = {
         displayFrId: "FR-01.28",
         name: "Embedded terminal",
         area: "TRM",
+        description: "Shows the terminal as part of the Mission record.",
+        sourceAnchor: "fr-0128",
         mappedFrom: "FR-01.44",
       },
     ],
     specImpact: "modify",
+    sourceDocument: { documentId: "signed-adopted-spec", title: "Requirements specification" },
   },
 };
 
@@ -88,7 +91,7 @@ function setup(artifact: ArtifactDescriptor, onClose = vi.fn()) {
 }
 
 describe("two-region layout", () => {
-  it("renders the business summary ABOVE the detail region", () => {
+  it("keeps title, summary, and body in one normal-flow header sequence", () => {
     docMock.mockReturnValue({
       data: { status: "ok", document: { title: "mini-plan.md", body: "# Plan" } },
       isPending: false,
@@ -100,6 +103,7 @@ describe("two-region layout", () => {
     expect(summary).toHaveTextContent("The plan this change was built to.");
     // DOM order is the layout contract: summary first, document below.
     expect(summary.compareDocumentPosition(detail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(screen.getByTestId("artifact-header")).getByRole("heading", { name: "Spec" })).toBeInTheDocument();
   });
 
   it("closes on the close button and on Escape", () => {
@@ -206,12 +210,28 @@ describe("requirement detail (structured rows)", () => {
     );
   });
 
+  it("shows readable requirement metadata and only opens its signed source on request", () => {
+    docMock.mockReturnValue({
+      data: { status: "ok", document: { title: "spec.md", body: "# Requirements\nReference FR-01.28 in prose\n| FR-01.280 | TSK | Wrong capability |\n| FR-01.28 | TRM | Exact capability |" } },
+      isPending: false,
+      isError: false,
+    });
+    setup(REQUIREMENT);
+    expect(screen.getByTestId("artifact-req-row")).toHaveTextContent("Shows the terminal as part of the Mission record.");
+    expect(screen.queryByTestId("artifact-req-source-document")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("artifact-req-source"));
+    expect(screen.getByTestId("artifact-req-source-row")).toHaveAttribute("id", "fr-0128");
+    expect(screen.getByTestId("artifact-req-source")).toHaveAttribute("href", "#fr-0128");
+    expect(screen.getByTestId("artifact-req-source-row")).toHaveTextContent("Exact capability");
+    expect(screen.getByTestId("artifact-req-source-row")).not.toHaveTextContent("Wrong capability");
+  });
+
   it("labels a mid-run requirement as PLANNED, not decided", () => {
     setup({
       ...REQUIREMENT,
       detail: { ...REQUIREMENT.detail!, confidence: "planned" },
     } as ArtifactDescriptor);
-    expect(screen.getByTestId("artifact-req-confidence")).toHaveTextContent("Planned impact");
+    expect(screen.getByTestId("artifact-req-confidence")).toHaveTextContent("Planned requirement impact");
   });
 
   it("does NOT render a document region for a requirement", () => {

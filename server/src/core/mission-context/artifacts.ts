@@ -27,7 +27,7 @@ import type {
 } from "./types.js";
 import type { FoldMap } from "./fold-map.js";
 import { resolveFrList } from "./fold-map.js";
-import { plannedImpactFromSpec } from "./planned-impact.js";
+import { declaredSpecImpact, plannedImpactFromSpec } from "./planned-impact.js";
 import type { IterateDoc, EventLookup } from "./iterate-record.js";
 import type { RunProjection } from "../event-log-reader.js";
 
@@ -112,30 +112,54 @@ export interface RequirementInput {
   events: EventLookup;
   /** Spec body, used ONLY for mid-run planned impact (AC1). */
   specText?: string | null;
+  /** True only while the resolver still observes this iterate as live. */
+  runLive?: boolean;
+  sourceDocument?: { documentId: string; title: string } | null;
 }
 
 export function buildRequirementArtifact(input: RequirementInput): RequirementArtifact {
-  const { foldMap, doc, events } = input;
+  const { foldMap, events } = input;
+  // Direct builder consumers predate this signal; preserve their historical
+  // live-spec semantics while resolver callers always provide the fact.
+  const runLive = input.runLive ?? true;
 
   // Prefer the per-run agent-doc when it actually carries FRs (rare but
   // cleaner); otherwise fall back to work_completed (the common real path).
   const eventRun: RunProjection | null = events.status === "found" ? events.run : null;
-  const docHasFrs = (doc?.affectedFrs.length ?? 0) > 0 || (doc?.newFrs.length ?? 0) > 0;
+  // `work_completed` is the only terminal source. The retained per-run summary
+  // is a bounded cache, so it may enrich old rows but must never make a live
+  // plan look recorded or override a completed event.
+  const rawAffected = eventRun?.affectedFrs ?? [];
+  const rawNew = eventRun?.newFrs ?? [];
+  const eventImpact = eventRun?.specImpact?.trim().toLowerCase() ?? null;
+  const plannedImpact = declaredSpecImpact(input.specText);
+  const specImpact = eventRun ? eventImpact : plannedImpact;
 
-  const rawAffected = docHasFrs ? (doc?.affectedFrs ?? []) : (eventRun?.affectedFrs ?? []);
-  const rawNew = docHasFrs ? (doc?.newFrs ?? []) : (eventRun?.newFrs ?? []);
-  const specImpact = doc?.specImpact ?? eventRun?.specImpact ?? null;
+  // A read failure is neither a live plan nor a completed record. Do this
+  // before consulting the iterate spec so a historical Mission cannot be
+  // described as merely planned when its terminal evidence is unreadable.
+  if (events.status === "unavailable") {
+    return {
+      kind: "requirement",
+      label: "Requirement",
+      state: "unavailable",
+      summary: null,
+      receipt: null,
+      note: "The run record could not be read.",
+      detail: null,
+    };
+  }
 
   // Finalized the moment a durable record exists for this run; otherwise the
   // run is still deciding, so anything we show is PLANNED.
-  const finalized = Boolean(eventRun) || docHasFrs || doc != null;
+  const finalized = Boolean(eventRun);
 
   // Mid-run there is no record — fall back to what the spec PLANS to touch, so
   // a live iterate still shows a real Requirement (AC1) instead of a blank.
   // The scan is SCOPED to the spec's affected-boundaries section; a
   // document-wide scrape reported References and citations as impact.
   const recorded = [...rawAffected, ...rawNew];
-  const usingPlanned = !finalized && recorded.length === 0;
+  const usingPlanned = !finalized && runLive && recorded.length === 0 && specImpact !== "none";
   const planned = usingPlanned
     ? plannedImpactFromSpec(input.specText)
     : { frIds: [], prose: null };
@@ -143,6 +167,34 @@ export function buildRequirementArtifact(input: RequirementInput): RequirementAr
 
   const confidence: RequirementConfidence =
     rows.length === 0 ? "unresolved" : usingPlanned ? "planned" : "finalized";
+  const lifecycle = finalized ? (specImpact === "none" ? "none" : "recorded") : !runLive ? "discovering" :
+    specImpact === "none" ? "none" : usingPlanned && (rows.length > 0 || planned.prose) ? "planned" : "discovering";
+
+  // Without a live worktree or terminal record, Mission knows the identity but
+  // cannot claim a plan or completion. Preserve that ambiguity explicitly.
+  if (!finalized && !runLive) {
+    return {
+      kind: "requirement",
+      label: "Requirement",
+      state: "available",
+      summary: "Discovering affected requirements.",
+      receipt: "discovering",
+      detail: { type: "requirements", confidence: "unresolved", lifecycle: "discovering", rows: [], specImpact: null, sourceDocument: input.sourceDocument ?? null },
+    };
+  }
+
+  // Explicit NONE is authoritative. Stale ids in a producer payload must not
+  // turn a declared no-requirement change into a contradictory requirement row.
+  if (specImpact === "none") {
+    return {
+      kind: "requirement",
+      label: "Requirement",
+      state: "available",
+      summary: "No requirement changed.",
+      receipt: "no requirement change",
+      detail: { type: "requirements", confidence: finalized ? "finalized" : "unresolved", lifecycle: "none", rows: [], specImpact, sourceDocument: input.sourceDocument ?? null },
+    };
+  }
 
   if (rows.length > 0) {
     return {
@@ -151,7 +203,7 @@ export function buildRequirementArtifact(input: RequirementInput): RequirementAr
       state: "available",
       summary: requirementSummary(rows, confidence),
       receipt: rows.map((r) => r.displayFrId).join(", "),
-      detail: { type: "requirements", confidence, rows, specImpact },
+      detail: { type: "requirements", confidence, lifecycle, rows, specImpact, sourceDocument: input.sourceDocument ?? null },
     };
   }
 
@@ -166,45 +218,27 @@ export function buildRequirementArtifact(input: RequirementInput): RequirementAr
       state: "available",
       summary: `Planned impact — ${planned.prose}`,
       receipt: "planned impact",
-      detail: { type: "requirements", confidence: "planned", rows: [], specImpact },
+      detail: { type: "requirements", confidence: "planned", lifecycle: "planned", rows: [], specImpact, sourceDocument: input.sourceDocument ?? null },
     };
   }
 
-  // No FR ids anywhere. If the log could not be read we do NOT know; say so.
-  if (events.status === "unavailable") {
-    return {
-      kind: "requirement",
-      label: "Requirement",
-      state: "unavailable",
-      summary: null,
-      receipt: null,
-      note: "The run record could not be read.",
-      detail: null,
-    };
-  }
-
-  // A finalized run that genuinely touched no requirement (spec_impact:none)
-  // is a real, honest answer — not an absence.
-  if (finalized && specImpact) {
+  if (!finalized) {
     return {
       kind: "requirement",
       label: "Requirement",
       state: "available",
-      summary:
-        specImpact === "none"
-          ? "No requirement changed — this was a fix or an internal change."
-          : `Requirement impact recorded as “${specImpact}”.`,
-      receipt: specImpact === "none" ? "no requirement change" : specImpact,
-      detail: { type: "requirements", confidence: "finalized", rows: [], specImpact },
+      summary: "Discovering affected requirements.",
+      receipt: "discovering",
+      detail: { type: "requirements", confidence: "unresolved", lifecycle: "discovering", rows: [], specImpact: null, sourceDocument: input.sourceDocument ?? null },
     };
   }
 
   return {
     kind: "requirement",
     label: "Requirement",
-    state: "not_yet_created",
-    summary: null,
-    receipt: null,
-    detail: null,
+    state: "available",
+    summary: "Recorded requirement impact, but individual requirements could not be identified.",
+    receipt: "recorded impact",
+    detail: { type: "requirements", confidence: "unresolved", lifecycle: "recorded", rows: [], specImpact, sourceDocument: input.sourceDocument ?? null },
   };
 }

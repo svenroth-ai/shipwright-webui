@@ -6,9 +6,9 @@
  * The defect this pins (internal code review of PR #309, DOC): the client mirror
  * described `runLive` as "a validated pointer whose worktree git still
  * registers" — the condition BEFORE the external plan review added the terminal
- * one. The implementation is `chosen.isWorktree && events.status !== "found"`,
- * so a run that has recorded `work_completed` is not live even while its
- * worktree survives. A reader of the mirror would have concluded the opposite.
+ * one. The implementation requires a worktree, a non-terminal task, and no
+ * `work_completed`, so either terminal fact makes the run not live even while
+ * its worktree survives. A reader of the mirror would have concluded the opposite.
  *
  * `mission-context-types-sync.test.ts` cannot catch this: it compares the SHAPES
  * and deliberately strips comments first, so prose is invisible to it. Hence a
@@ -69,6 +69,7 @@ const REQUIRED_CLAUSES: [name: string, pattern: RegExp][] = [
   // same clause and neither file should have to adopt the other's sentence.
   ["git still registers the worktree", /still registers its worktree|worktree git still registers/i],
   ["the terminal work_completed condition", /work_completed/],
+  ["the terminal task condition", /task is not terminal|task.*not terminal/i],
   ["what the client does with it", /pending/i],
 ];
 
@@ -87,6 +88,6 @@ describe("runLive — documentation parity between the server SoT and the client
     // Without this the two comments could agree with each other and both be
     // wrong — the failure mode the review actually found, one level up.
     const src = read(RESOLVER);
-    expect(src).toMatch(/runLive:\s*chosen\.isWorktree\s*&&\s*events\.status\s*!==\s*"found"/);
+    expect(src).toMatch(/const runLive\s*=\s*chosen\.isWorktree\s*&&\s*!req\.taskTerminal\s*&&\s*events\.status\s*!==\s*"found"/);
   });
 });

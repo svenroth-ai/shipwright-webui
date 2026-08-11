@@ -88,7 +88,7 @@ describe("DecisionsDetail", () => {
     // Real and recorded — it simply has no number yet. The wording must not
     // imply a fault, and no ADR id may be invented to fill the gap.
     expect(screen.getByTestId("artifact-decision-unnumbered")).toHaveTextContent(
-      "Decided — not yet published in a release.",
+      "Recorded — ADR number assigned at release.",
     );
     expect(screen.getByTestId("artifact-decision-entry")).toHaveAttribute("data-adr", "");
     expect(screen.getByTestId("artifact-decision-entry")).toHaveAttribute("data-source", "drop");
@@ -98,6 +98,7 @@ describe("DecisionsDetail", () => {
   it("does NOT badge a numbered ADR from the aggregated log", () => {
     render(<DecisionsDetail artifact={artifact} />);
     expect(screen.queryByTestId("artifact-decision-unnumbered")).not.toBeInTheDocument();
+    expect(screen.getByTestId("artifact-decision-published")).toHaveTextContent("Published as ADR-300.");
     expect(screen.getByTestId("artifact-decision-entry")).toHaveAttribute("data-adr", "ADR-300");
   });
 

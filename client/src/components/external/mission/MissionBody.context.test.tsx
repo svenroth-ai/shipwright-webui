@@ -153,6 +153,17 @@ describe("context-driven artifact rail", () => {
     expect(screen.getByTestId("artifact-link-requirement")).toBeInTheDocument();
   });
 
+  it.each(["done", "launch_failed"] as const)("keeps the resolved terminal OperationCard for %s when the legacy run join has not caught up", (state) => {
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
+    contextMock.mockReturnValue({ data: context({ runLive: false }) });
+    render(<MissionBody task={{ ...TASK, state } as ExternalTask} transcriptContent="" onOpenDocument={vi.fn()} />);
+    expect(screen.getByTestId("mission-completed-stack")).toBeInTheDocument();
+    // The live placeholder and the resolved card deliberately share the test
+    // hook; the completed stack must contain the resolved one.
+    expect(screen.getAllByTestId("operation-card")).toHaveLength(2);
+  });
+
   it("HIDES an artifact that does not exist yet (hide-empty)", () => {
     contextMock.mockReturnValue({ data: context() });
     setup();

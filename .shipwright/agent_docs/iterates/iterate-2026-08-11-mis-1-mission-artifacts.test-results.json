@@ -1,0 +1,27 @@
+{
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-11-mis-1-mission-artifacts",
+    "date": "2026-08-11",
+    "unit": { "status": "passed", "passed": 131, "total": 131 },
+    "integration": { "status": "passed", "passed": 2, "total": 2 },
+    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
+    "e2e": { "status": "not_run", "passed": 0, "total": 0 },
+    "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
+    "smoke": { "status": "not_run" },
+    "degraded": ["Full server-suite process-spawn tests are blocked by Windows EPERM in this sandbox; focused Mission server tests and client tests passed."],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        { "behavior": "Terminal Mission uses resolved context identity for done and launch_failed", "disposition": "tested", "evidence": "MissionBody.context.test.tsx: 12 passed", "category": "integration" },
+        { "behavior": "Requirement lifecycle distinguishes discovering, planned, recorded and NONE", "disposition": "tested", "evidence": "artifacts-requirement-lifecycle.test.ts: passed" },
+        { "behavior": "Requirement source anchors and missing-data degradation remain truthful", "disposition": "tested", "evidence": "MissionArtifactPanel.test.tsx: passed" },
+        { "behavior": "Test evidence classifier distinguishes failed, malformed, skipped and unavailable data", "disposition": "tested", "evidence": "test-evidence.test.ts and counts-led test: passed" },
+        { "behavior": "Decision copy and normal-flow headers remain readable", "disposition": "tested", "evidence": "MissionDecisionsDetail and mission-typography-invariant tests: passed" },
+        { "behavior": "Server/client MissionContext contract and run-live terminal parity", "disposition": "tested", "evidence": "mission-context-types-sync and mission-runlive-doc-parity: passed", "category": "integration" }
+      ],
+      "counts": { "testable": 6, "tested": 6, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 6, "covered_acs": 6 }
+    },
+    "surface_verification": { "surface": "web", "tests_run": 0, "exit_code": 0, "justification": "Focused rendered client tests cover the Mission detail components; no browser service is available in this sandbox." }
+  }
+}

@@ -18,6 +18,7 @@
  */
 
 import type { ExternalTask } from "../../../lib/externalApi";
+import type { MissionContext } from "../../../lib/missionContextApi";
 import { useMissionState } from "../../../hooks/useMissionState";
 import { useRunDetail } from "../../../hooks/useRunData";
 import { deriveProofLines, deriveVerdict, type ProofFacts } from "../../../lib/proofLines";
@@ -29,6 +30,7 @@ import { DesignGateCard } from "./DesignGateCard";
 
 interface Props {
   task: ExternalTask;
+  context?: MissionContext | null;
 }
 
 /** The narrator mission line for the current verdict, or null when there is no
@@ -46,11 +48,24 @@ function missionInputFor(
   return null;
 }
 
-export function OperationCard({ task }: Props) {
+export function OperationCard({ task, context }: Props) {
   const missionState = useMissionState(task);
-  const runDetail = useRunDetail(task.projectId, task.runId ?? null);
-  const facts: ProofFacts | null =
-    runDetail.data?.status === "ok" ? runDetail.data.run : null;
+  const iterateContext = context?.scenario === "iterate" ? context : null;
+  // An iterate's identity is owned by MissionContext. A missing context id is
+  // an honest lack of identity, never permission to join a pipeline run.
+  const runDetail = useRunDetail(task.projectId, iterateContext ? iterateContext.runId ?? null : task.runId ?? null);
+  const joinedFacts: ProofFacts | null = runDetail.data?.status === "ok" ? runDetail.data.run : null;
+  const tests = iterateContext?.artifacts.find((artifact) => artifact.kind === "tests");
+  const commit = iterateContext?.artifacts.find((artifact) => artifact.kind === "commit");
+  const facts: ProofFacts | null = iterateContext
+    ? iterateContext.runId ? {
+      runId: iterateContext.runId,
+      commit: commit?.kind === "commit" ? commit.detail?.commit ?? null : null,
+      affectedFrs: iterateContext.servesFrId ? [iterateContext.servesFrId] : [],
+      tests: tests?.kind === "tests" ? tests.detail?.results : null,
+      gates: { test: tests?.kind === "tests" ? tests.detail?.results?.gate ?? "unknown" : "unknown", review: "unknown", security: "unknown" },
+    } : null
+    : joinedFacts;
 
   if (missionState === "designgate") {
     // A12 ROUTES the middle slot to A14's real design-gate body — the gallery of

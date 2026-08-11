@@ -61,49 +61,49 @@ describe("instrument chips (AC8 — honest or dash)", () => {
 });
 
 describe("testsResultText (the counts-led detail headline)", () => {
-  it("says 'All N tests passing' on a green suite", () => {
+  it("leads a green suite with Passed", () => {
     expect(testsResultText({ passed: 3037, total: 3037, skipped: null, gate: "pass" })).toBe(
-      "All 3037 tests passing",
+      "Passed — all 3037 tests passing",
     );
   });
 
-  it("says 'N of M tests passing' when some failed — never rounds to green", () => {
+  it("leads a failed suite with Failed — never rounds to green", () => {
     expect(testsResultText({ passed: 3009, total: 3037, skipped: null, gate: "fail" })).toBe(
-      "3009 of 3037 tests passing",
+      "Failed — 3009 of 3037 tests passing",
     );
   });
 
-  it("falls back to a total-only or passed-only phrasing", () => {
-    expect(testsResultText({ passed: null, total: 42, skipped: null, gate: "unknown" })).toBe("42 tests recorded");
-    expect(testsResultText({ passed: 7, total: null, skipped: null, gate: "unknown" })).toBe("7 tests passing");
+  it("labels partial counts as having no reliable result", () => {
+    expect(testsResultText({ passed: null, total: 42, skipped: null, gate: "unknown" })).toBe("No reliable result — the run recorded only part of its test counts");
+    expect(testsResultText({ passed: 7, total: null, skipped: null, gate: "unknown" })).toBe("No reliable result — the run recorded only part of its test counts");
   });
 
   it("singularises a one-test suite", () => {
-    expect(testsResultText({ passed: 1, total: 1, skipped: null, gate: "pass" })).toBe("All 1 test passing");
+    expect(testsResultText({ passed: 1, total: 1, skipped: null, gate: "pass" })).toBe("Passed — all 1 test passing");
   });
 
   it("a post-reversal host-gated skip discloses the skip count rather than 'All N passing' (discriminating case)", () => {
     expect(testsResultText({ passed: 9, total: 10, skipped: 1, gate: "pass" })).toBe(
-      "9 of 10 tests passing (1 skipped)",
+      "Passed — 9 of 10 tests passing (1 skipped)",
     );
   });
 
   it("a green run with no skips still says 'All N passing'", () => {
     expect(testsResultText({ passed: 10, total: 10, skipped: 0, gate: "pass" })).toBe(
-      "All 10 tests passing",
+      "Passed — all 10 tests passing",
     );
   });
 
   it("a post-reversal ALL-skipped run discloses 'skipped — none ran', never fail-shaped 'passing' text (doubt review, MEDIUM)", () => {
     expect(testsResultText({ passed: 0, total: 5, skipped: 5, gate: "unknown" })).toBe(
-      "All 5 collected tests were skipped — none ran",
+      "Needs attention — all 5 collected tests were skipped, so none ran",
     );
   });
 
   it("an unknown gate with no citable skip count falls back to a plain 'no result' phrase", () => {
     expect(testsResultText({ passed: 0, total: 0, skipped: null, gate: "unknown" })).toBeNull();
     expect(testsResultText({ passed: 5, total: 0, skipped: null, gate: "unknown" })).toBe(
-      "No test result recorded",
+      "No reliable result — the recorded test counts are incomplete or invalid",
     );
   });
 
@@ -111,11 +111,25 @@ describe("testsResultText (the counts-led detail headline)", () => {
     // skipped(9) != total(5): the record does not prove every collected test
     // was skipped, just that it is broken.
     expect(testsResultText({ passed: 0, total: 5, skipped: 9, gate: "unknown" })).toBe(
-      "No test result recorded",
+      "No reliable result — the recorded test counts are incomplete or invalid",
     );
     // negative passed -- skipped(1) is genuine but does not prove ALL 5 were skipped.
     expect(testsResultText({ passed: -1, total: 5, skipped: 1, gate: "unknown" })).toBe(
-      "No test result recorded",
+      "No reliable result — the recorded test counts are incomplete or invalid",
+    );
+  });
+
+  it("suppresses malformed producer-pass counts rather than showing a green chip", () => {
+    expect(testsChipValue(ctx({ tests: { passed: 5, total: 5, skipped: -1, gate: "pass" } }))).toBeNull();
+    expect(testsChipValue(ctx({ tests: { passed: 5, total: 5, skipped: 0.5, gate: "pass" } }))).toBeNull();
+  });
+
+  it("never lets malformed skips greenwash a producer-pass gate", () => {
+    expect(testsResultText({ passed: 5, total: 5, skipped: -1, gate: "pass" })).toBe(
+      "No reliable result — the recorded test counts are incomplete or invalid",
+    );
+    expect(testsResultText({ passed: 5, total: 5, skipped: 0.5, gate: "pass" })).toBe(
+      "No reliable result — the recorded test counts are incomplete or invalid",
     );
   });
 
@@ -129,6 +143,6 @@ describe("testsResultText (the counts-led detail headline)", () => {
   });
 
   it("still reports a real failing run (0 of N)", () => {
-    expect(testsResultText({ passed: 0, total: 9, skipped: null, gate: "fail" })).toBe("0 of 9 tests passing");
+    expect(testsResultText({ passed: 0, total: 9, skipped: null, gate: "fail" })).toBe("Failed — 0 of 9 tests passing");
   });
 });

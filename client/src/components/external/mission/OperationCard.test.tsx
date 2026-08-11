@@ -3,16 +3,17 @@ import { render, screen } from "@testing-library/react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { RunDataJoin, RunDetailResponse } from "../../../lib/runDataApi";
+import type { MissionContext } from "../../../lib/missionContextApi";
 
 // AC1: the card consumes A11's useMissionState + A02's useRunDetail — it does NOT
 // re-derive state. We mock both hooks and drive the card from their outputs.
 const missionStateMock = vi.fn<() => "done" | "live" | "designgate">();
-const runDetailMock = vi.fn<() => { data: RunDetailResponse | undefined }>();
+const runDetailMock = vi.fn<(projectId: string | null, runId: string | null) => { data: RunDetailResponse | undefined }>();
 vi.mock("../../../hooks/useMissionState", () => ({
   useMissionState: () => missionStateMock(),
 }));
 vi.mock("../../../hooks/useRunData", () => ({
-  useRunDetail: () => runDetailMock(),
+  useRunDetail: (projectId: string | null, runId: string | null) => runDetailMock(projectId, runId),
 }));
 // A14 owns the design-gate body; A12 only ROUTES to it. Stub it so this test
 // stays about the routing decision, not the gate's internals (which carry their
@@ -53,6 +54,27 @@ afterEach(() => {
 });
 
 describe("OperationCard — the three states render from real signals (AC1)", () => {
+  it("uses the resolved Mission iterate id, never the task pipeline id", () => {
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue(ok(null));
+    const context = {
+      scenario: "iterate",
+      runId: "iterate-2026-08-11-mis-1",
+      servesFrId: "FR-01.66",
+      artifacts: [{ kind: "tests", label: "Tests", state: "available", summary: null, receipt: null, detail: { type: "tests", results: { passed: 4, total: 4, skipped: 0, gate: "pass" }, rows: [], counts: { added: 0, modified: 0, removed: 0 }, byLayer: [], truncated: false, manifestStatus: "ok" } }],
+    } as unknown as MissionContext;
+    render(<OperationCard task={{ ...TASK, runId: "run-pipeline" } as ExternalTask} context={context} />);
+    expect(screen.getByTestId("proof-summary")).toHaveTextContent("iterate-2026-08-11-mis-1");
+    expect(screen.getByTestId("verdict-banner")).toHaveTextContent("Not fully verified");
+  });
+
+  it("never falls back to a pipeline id when an iterate identity is absent", () => {
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue(ok(GREEN_RUN));
+    render(<OperationCard task={{ ...TASK, runId: "run-pipeline" } as ExternalTask} context={{ scenario: "iterate", runId: null, artifacts: [], servesFrId: null } as unknown as MissionContext} />);
+    expect(runDetailMock).toHaveBeenLastCalledWith("p1", null);
+    expect(screen.getByTestId("verdict-banner")).toHaveTextContent("No run data yet");
+  });
   it("done + a green run -> ALL CLEAR + green proof lines", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue(ok(GREEN_RUN));

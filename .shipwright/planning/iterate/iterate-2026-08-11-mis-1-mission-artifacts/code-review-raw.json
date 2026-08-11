@@ -1,0 +1,10 @@
+{
+  "stage": "code",
+  "verdict": "REJECT",
+  "review": [
+    {"severity":"high","category":"correctness","file":"server/src/core/mission-context/artifacts.ts","location":"148-166, 181-214; caller at resolver.ts:262-271","finding":"Requirement lifecycle treats every absent work_completed record as an in-progress run. Completed or abandoned Missions with delayed/missing terminal events can render planned impact.","suggestion":"Pass authoritative terminal/live state; use Planned only while genuinely live and add delayed-artifact coverage."},
+    {"severity":"high","category":"evidence-integrity","file":"server/src/core/mission-context/test-evidence.ts","location":"26-40","finding":"F5c validation accepts inconsistent completeness counts or malformed/partial evidence as available.","suggestion":"Validate status and count invariants; degrade malformed/partial evidence and add fixtures."},
+    {"severity":"medium","category":"api-mirror","file":"server/src/test/mission-context-types-sync.test.ts","location":"134-149","finding":"RequirementLifecycle is absent from SHARED_UNIONS, so the mirror guard fails.","suggestion":"Register RequirementLifecycle and run the sync test."}
+  ],
+  "rationale":"Focused checks pass, but evidence-honesty lifecycle/F5c gaps and the mirror guard block acceptance."
+}

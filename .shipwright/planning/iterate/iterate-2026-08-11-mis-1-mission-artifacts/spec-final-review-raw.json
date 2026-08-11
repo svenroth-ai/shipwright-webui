@@ -1,0 +1,15 @@
+{
+  "stage": "spec",
+  "verdict": "PASS",
+  "spec_citations": [
+    {"spec_ref":"AC1 — iterate Mission identity comes only from MissionContext.runId","divergence":"None. Iterate contexts use their resolved ID or null and never fall back to task.runId.","kind":"match","diff_location":"client/src/components/external/mission/OperationCard.tsx:53-68; client/src/hooks/useMissionLive.ts:198-201"},
+    {"spec_ref":"AC2 — exact requirement lifecycle, metadata, fold provenance, and safe source traceability","divergence":"None. Unreadable completion evidence degrades explicitly, NONE is authoritative, adopted metadata is normalized, and source lookup matches the exact first Markdown-table cell.","kind":"match","diff_location":"server/src/core/mission-context/artifacts.ts; server/src/core/mission-context/fold-map.ts; client/src/components/external/mission/MissionArtifactBody.tsx"},
+    {"spec_ref":"AC3 — authoritative event gate and malformed evidence never greenwashed","divergence":"None. Validity controls detail, receipt, chip, OperationCard verdict, and proof lines.","kind":"match","diff_location":"server/src/core/mission-context/artifacts-tests.ts; client/src/lib/missionArtifacts.testsWording.ts; client/src/lib/proofLines.ts"},
+    {"spec_ref":"AC3 — F5c evidence is exact-run-bound enrichment only","divergence":"None. The embedded run id must match before evidence is exposed.","kind":"match","diff_location":"server/src/core/mission-context/test-evidence.ts"},
+    {"spec_ref":"AC4 and AC5 — decision wording and normal-flow headers","divergence":"None. Required wording and normal-flow headers are present.","kind":"match","diff_location":"client/src/components/external/mission/MissionSlice2Details.tsx; MissionArtifactPanel.tsx"},
+    {"spec_ref":"AC6 — focused coverage","divergence":"None. Boundary cases are covered.","kind":"match","diff_location":"server/client Mission tests"},
+    {"spec_ref":"Scope — WebUI only","divergence":"None. No producer/event-contract or unrelated terminal/pipeline change.","kind":"match","diff_location":"current worktree diff"}
+  ],
+  "findings": [],
+  "rationale":"All original and residual findings are addressed; Stage 1 may proceed to Stage 2."
+}

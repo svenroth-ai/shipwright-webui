@@ -203,6 +203,7 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
       transcript,
       phaseTaskId: task.phaseTaskId ?? null,
       taskRunId: task.runId ?? null,
+      taskTerminal: task.state === "done" || task.state === "launch_failed",
       // Server-held, server-written — this is what keeps a FINALIZED iterate
       // resolvable after its `iterate_active` pointer was pruned.
       association: task.missionContext ?? null,

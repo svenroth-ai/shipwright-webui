@@ -1,0 +1,20 @@
+{
+  "stage": "spec",
+  "verdict": "REJECT",
+  "spec_citations": [
+    "iterate spec AC1: iterate centre card uses MissionContext.runId and never task pipeline runId",
+    "iterate spec AC2: exact requirement lifecycle plus resolved metadata and opaque document-backed source",
+    "iterate spec AC3: malformed or partial counts are never greenwashed",
+    "iterate spec AC6: focused tests cover source order, lifecycle transitions, terminal identity, and degradation",
+    "authoritative MIS-1 constraint: missing historic artifacts must degrade explicitly rather than imply a false lifecycle"
+  ],
+  "findings": [
+    {"severity":"high","source_location":"client/src/components/external/mission/OperationCard.tsx:54-66; client/src/hooks/useMissionLive.ts:198","issue":"An iterate context with a missing/null MissionContext.runId falls back to task.runId.","recommended_correction":"Choose identity by scenario, not nullish fallback; add null/missing iterate-ID coverage."},
+    {"severity":"high","source_location":"server/src/core/mission-context/artifacts.ts:153-189","issue":"Planned rows/prose return before unavailable terminal evidence is checked.","recommended_correction":"Give unreadable terminal evidence fail-closed precedence over planned lifecycle claims."},
+    {"severity":"high","source_location":"client/src/components/external/mission/MissionArtifactBody.tsx:164-176; server/src/core/mission-context/fold-map.ts:164-165","issue":"The requirements source expands the whole document but does not target an exact cited requirement row.","recommended_correction":"Use the signed opaque document ID with an exact row locator and safe fallback."},
+    {"severity":"high","source_location":"server/src/core/mission-context/artifacts-tests.ts:117-129; client/src/lib/missionArtifacts.testsWording.ts:30-42","issue":"Malformed skipped counts can still render Passed.","recommended_correction":"Add display-level count validation and mirror the cases in server/client tests."},
+    {"severity":"medium","source_location":"server/src/core/mission-context/artifacts.ts:150-160 and 192-202","issue":"Explicit NONE is evaluated after the rows branch, allowing stale FR ids to override it.","recommended_correction":"Handle authoritative NONE before resolving/returning rows and add contradictory-input coverage."},
+    {"severity":"medium","source_location":"server/src/core/mission-context/fold-map.ts:94; client/src/components/external/mission/MissionArtifactBody.tsx:149","issue":"Adopted descriptions may expose Markdown/HTML tokens directly.","recommended_correction":"Normalize descriptions to readable plain text and test the real row shape."}
+  ],
+  "rationale": "Happy paths are present, but core trust and lifecycle boundary cases are missing. Stage 2 remains blocked."
+}

@@ -1,0 +1,1 @@
+{"stage":"code","verdict":"PASS","review":[],"rationale":"The terminal predicate now matches the server's done/launch_failed lifecycle, with a focused regression test for both states."}

@@ -68,7 +68,7 @@ function gitWith(registered: string[]): GitRunner {
   };
 }
 
-function resolve(projectRoot: string, git: GitRunner) {
+function resolve(projectRoot: string, git: GitRunner, taskTerminal = false) {
   return resolveMissionContext(
     {
       taskId: "task-1",
@@ -82,6 +82,7 @@ function resolve(projectRoot: string, git: GitRunner) {
       hasCampaignRecord: false,
       actions: null,
       runConfigStatus: "ok",
+      taskTerminal,
     },
     { git },
   );
@@ -190,6 +191,31 @@ describe("runLive + the unregistered-worktree fallback", () => {
 
     const { context } = await resolve(root, gitWith([root, wt]));
     expect(context.runLive).toBe(false);
+  });
+
+  it("treats a terminal task with delayed completion evidence as non-live", async () => {
+    const root = project({ worktreePath: null, mainSpec: true });
+    const wt = mkdtempSync(join(tmpdir(), "mc-wt-terminal-"));
+    roots.push(wt);
+    const { context } = await resolve(root, gitWith([root, wt]), true);
+    expect(context.runLive).toBe(false);
+    const requirement = context.artifacts.find((artifact) => artifact.kind === "requirement");
+    expect(requirement?.summary).toBe("Discovering affected requirements.");
+  });
+
+  it("does not reuse a cached live context after the task becomes terminal", async () => {
+    const root = project({ worktreePath: null, mainSpec: true });
+    const wt = mkdtempSync(join(tmpdir(), "mc-wt-cache-terminal-"));
+    roots.push(wt);
+    writeFileSync(
+      join(root, ".shipwright", "iterate_active", `${UUID}.json`),
+      JSON.stringify({ run_id: RUN_ID, slug: "live-demo", worktree_path: wt, main_root: root, session_id: UUID }),
+    );
+    const live = await resolve(root, gitWith([root, wt]), false);
+    expect(live.context.runLive).toBe(true);
+    const terminal = await resolve(root, gitWith([root, wt]), true);
+    expect(terminal.context.runLive).toBe(false);
+    expect(terminal.context.artifacts.find((artifact) => artifact.kind === "requirement")?.summary).toBe("Discovering affected requirements.");
   });
 
   it("a pointer with NO worktree at all is not live either", async () => {
