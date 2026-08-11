@@ -106,6 +106,55 @@ describe("launchExternalTask POST body — bit-perfect", () => {
     expect("phase" in parsed).toBe(false);
   });
 
+  it("Iterate omits project-default model tiers and emits only an explicitly selected override", async () => {
+    const cap: { body?: string } = {};
+    globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
+    renderModal({
+      action: {
+        ...ITERATE_ACTION,
+        parameters: [
+          {
+            name: "plan-review-model",
+            label: "Plan review",
+            type: "enum",
+            enum: ["opus", "sonnet", "haiku", "inherit"],
+            cli_flag: "--plan-review-model",
+            value_separator: "space",
+          },
+          {
+            name: "review-model",
+            label: "Review",
+            type: "enum",
+            enum: ["opus", "sonnet", "haiku", "inherit"],
+            cli_flag: "--review-model",
+            value_separator: "space",
+          },
+        ],
+      },
+      onToast: () => {},
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "Choose review tier" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-more-options-toggle"));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("model-tier-override-review-model"), {
+        target: { value: "opus" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
+    });
+    await waitFor(() => expect(cap.body).toBeTruthy());
+    const parsed = JSON.parse(cap.body!);
+    expect(parsed.parameters).toEqual({ "review-model": "opus" });
+    expect(parsed.parameters).not.toHaveProperty("plan-review-model");
+  });
+
   it("Plain Launch body has actionId=new-plain only (no autonomy/phase/parameters)", async () => {
     const cap: { body?: string } = {};
     globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;

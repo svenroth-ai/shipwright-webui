@@ -25,6 +25,7 @@ import type { RenderableParamSchema } from "../../../types/action-schema";
 import type { Project } from "../../../types";
 
 import type { Mode } from "./types";
+import { isIterateModelTierField } from "./modelTierOverrideSchema";
 
 export interface UseNewIssueFormDerivedInput {
   open: boolean;
@@ -82,7 +83,9 @@ export function useNewIssueFormDerived(input: UseNewIssueFormDerivedInput) {
     [projects],
   );
   const scopedProject: Project | undefined = useMemo(() => {
-    if (initialProjectId) return undefined;
+    if (initialProjectId) {
+      return realProjects.find((p) => p.id === initialProjectId);
+    }
     if (!activeProjectId || activeProjectId === UNASSIGNED_PROJECT_ID)
       return undefined;
     return realProjects.find((p) => p.id === activeProjectId);
@@ -122,6 +125,10 @@ export function useNewIssueFormDerived(input: UseNewIssueFormDerivedInput) {
     const nextEnabled: Record<string, boolean> = {};
     const nextValues: Record<string, string | boolean> = {};
     for (const s of currentSchemaRef.current) {
+      if (mode === "new-iterate" && isIterateModelTierField(s)) {
+        nextEnabled[s.name] = false;
+        continue;
+      }
       if (s.required) {
         nextEnabled[s.name] = true;
         if (
@@ -139,6 +146,7 @@ export function useNewIssueFormDerived(input: UseNewIssueFormDerivedInput) {
     setRevealedSecrets({});
   }, [
     open,
+    mode,
     schemaKey,
     setParamValues,
     setParamEnabled,
@@ -162,20 +170,22 @@ export function useNewIssueFormDerived(input: UseNewIssueFormDerivedInput) {
   const effectiveProjectId =
     scopedProject?.id ?? selectedProjectId ?? realProjects[0]?.id ?? "";
 
+  const requiredFields = useMemo(
+    () => currentSchema.filter(
+      (s) => s.required && !(mode === "new-iterate" && isIterateModelTierField(s)),
+    ),
+    [currentSchema, mode],
+  );
+
   const requiredMissing = useMemo(() => {
-    return currentSchema.some((s) => {
+    return requiredFields.some((s) => {
       if (!s.required) return false;
       const v = paramValues[s.name];
       if (s.type === "boolean") return v !== true;
       if (typeof v === "string") return v.trim() === "";
       return v === undefined;
     });
-  }, [currentSchema, paramValues]);
-
-  const requiredFields = useMemo(
-    () => currentSchema.filter((s) => s.required),
-    [currentSchema],
-  );
+  }, [requiredFields, paramValues]);
   const advancedFields = useMemo(
     () => currentSchema.filter((s) => !s.required),
     [currentSchema],

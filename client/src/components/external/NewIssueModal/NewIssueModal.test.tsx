@@ -11,6 +11,7 @@ import {
   fireEvent,
   act,
   cleanup,
+  waitFor,
 } from "@testing-library/react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -206,11 +207,10 @@ describe("lifecycle reset (Step 3.5 OpenAI #2)", () => {
       projectsOverride: PROJECTS_MULTI,
       initialProjectId: "proj-zzz",
     });
-    // First open with initialProjectId=proj-zzz → select reflects it.
-    const sel = screen.getByTestId(
-      "new-issue-project-select",
-    ) as HTMLSelectElement;
-    expect(sel.value).toBe("proj-zzz");
+    // A cascade-picked project is fixed so its catalog cannot be paired
+    // with another project's selected path or model defaults.
+    expect(screen.queryByTestId("new-issue-project-select")).toBeNull();
+    expect(screen.getByTestId("project-context-name")).toHaveTextContent("zzz");
     // Tiny smoke check that the QueryClient seeded both rows.
     expect(qc.getQueryData(["projects"])).toBeTruthy();
   });
@@ -240,5 +240,51 @@ describe("lifecycle reset (Step 3.5 OpenAI #2)", () => {
     // Pipeline mode → no phase dropdown.
     expect(screen.getByTestId("new-issue-modal-new-pipeline")).toBeTruthy();
     expect(screen.queryByTestId("new-issue-phase-select")).toBeNull();
+  });
+
+  it("clears same-schema model defaults when an open modal changes to Iterate", async () => {
+    const modelParameter = {
+      name: "review-model",
+      label: "Review",
+      type: "enum" as const,
+      enum: ["opus", "sonnet"],
+      cli_flag: "--review-model",
+      value_separator: "space" as const,
+      required: true,
+      default: "opus",
+    };
+    const customAction = {
+      id: "custom-run",
+      label: "Custom run",
+      kind: "external_launch" as const,
+      command_template: "claude /custom-run",
+      parameters: [modelParameter],
+    };
+    const iterateAction = {
+      ...ITERATE_ACTION,
+      parameters: [modelParameter],
+    };
+    const onOpenChange = vi.fn();
+    const { rerender, qc } = renderModal({
+      action: customAction,
+      onOpenChange,
+    });
+    await waitFor(() => expect(screen.getByTestId("new-issue-required-section")).toBeTruthy());
+    rerender(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <NewIssueModal
+            open
+            onOpenChange={onOpenChange}
+            action={iterateAction}
+            projectActions={SAMPLE_ACTIONS}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => {
+      openMoreOptions();
+    });
+    await waitFor(() => expect(screen.getByTestId("model-tier-override-review-model")).toHaveValue(""));
   });
 });

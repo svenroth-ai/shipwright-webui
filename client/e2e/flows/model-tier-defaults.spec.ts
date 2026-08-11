@@ -1,7 +1,6 @@
 /*
- * Model-tier defaults are framework-owned project configuration. The board
- * displays them read-only; New Iterate exposes only the framework-supported
- * per-run override flags.
+ * Model-tier defaults are framework-owned project configuration. They are
+ * visible only at an Iterate launch decision, never as task-card metadata.
  */
 
 import {
@@ -34,7 +33,7 @@ test.describe("Model-tier defaults", () => {
       },
     });
     task = await seedTask(request, {
-      title: "Model-tier card fixture",
+      title: "No model-tier card fixture",
       cwd: project.path,
       projectId: project.projectId,
     });
@@ -46,10 +45,16 @@ test.describe("Model-tier defaults", () => {
     await cleanupProject(request, project);
   });
 
-  test("shows effective tiers and sends an explicitly selected supported override", async ({
+  test("shows project defaults only at Iterate start and sends an explicitly selected supported override", async ({
     page,
     request,
   }) => {
+    let pageModelConfigRequests = 0;
+    page.on("request", (outgoing) => {
+      if (outgoing.url().includes(`/api/external/projects/${project.projectId}/model-config`)) {
+        pageModelConfigRequests += 1;
+      }
+    });
     const response = await request.get(
       apiUrl(`/api/external/projects/${project.projectId}/model-config`),
     );
@@ -74,34 +79,29 @@ test.describe("Model-tier defaults", () => {
 
     await page.goto("/");
     await expect(page.getByTestId(`task-card-${task.taskId}`)).toBeVisible();
-    const summary = page.getByTestId(`task-model-tiers-${project.projectId}`);
-    await expect(summary).toBeVisible();
-    await expect(page.getByTestId(`task-model-tier-${project.projectId}-plan_review`)).toContainText("opus");
-    await expect(page.getByTestId(`task-model-tier-${project.projectId}-review`)).toContainText("opus");
-    await expect(page.getByTestId(`task-model-tier-${project.projectId}-finalization`)).toContainText("sonnet");
-    await expect(page.getByTestId(`task-model-tier-${project.projectId}-execution`)).toContainText("sonnet");
+    await expect(page.getByTestId(`task-model-tiers-${project.projectId}`)).toHaveCount(0);
+    expect(pageModelConfigRequests).toBe(0);
 
     await page.getByTestId("create-menu-caret").click();
     await page.getByTestId("create-menu-item-new-task").click();
     await page.getByTestId("new-issue-phase-select").click();
     await page.getByTestId("new-issue-phase-option-plan").click();
     await page.getByTestId("new-issue-more-options-toggle").click();
-    await expect(page.getByTestId("paramfield-plan-review-model")).toHaveCount(0);
-    await expect(page.getByTestId("paramfield-review-model")).toHaveCount(0);
+    await expect(page.getByTestId("model-tier-override-fields")).toHaveCount(0);
     await page.keyboard.press("Escape");
 
     await page.getByTestId("create-menu-caret").click();
     await page.getByTestId("create-menu-item-new-iterate").click();
     await expect(page.getByTestId("new-issue-modal-new-iterate")).toBeVisible();
     await page.getByTestId("new-issue-more-options-toggle").click();
-    await page.getByTestId("new-issue-advanced-toggle").click();
-    for (const role of ["plan-review-model", "review-model", "finalization-model"]) {
-      await expect(page.getByTestId(`paramfield-${role}`)).toBeVisible();
-      await expect(page.getByTestId(`paramfield-${role}-enable`)).toBeVisible();
-    }
+    await expect(page.getByTestId("model-tier-override-plan-review-model")).toContainText("Project default — Opus");
+    await expect(page.getByTestId("model-tier-override-review-model")).toContainText("Project default — Opus");
+    await expect(page.getByTestId("model-tier-override-plan-review-model")).toHaveValue("");
+    await expect(page.getByTestId("model-tier-override-review-model")).toHaveValue("");
+    expect(pageModelConfigRequests).toBe(1);
+    await expect(page.getByTestId("paramfield-finalization-model")).toHaveCount(0);
     await expect(page.getByTestId("paramfield-execution-model")).toHaveCount(0);
-    await page.getByTestId("paramfield-review-model-enable").check();
-    await page.getByTestId("paramfield-review-model").locator("select").selectOption("opus");
+    await page.getByTestId("model-tier-override-review-model").selectOption("opus");
     await expect(page.getByTestId("command-preview-panel")).toContainText("--review-model opus");
     await page.getByTestId("new-issue-title-input").fill("Model-tier explicit launch fixture");
     const launchResponse = page.waitForResponse((response) =>

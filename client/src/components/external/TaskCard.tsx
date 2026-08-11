@@ -75,7 +75,6 @@ import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { EditTaskModal } from "./EditTaskModal";
 import { TaskCardMenu } from "./TaskCardMenu";
-import { ModelTierSummary } from "./ModelTierSummary";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -283,8 +282,6 @@ export function TaskCard({ task }: Props) {
             );
           })()}
         </div>
-
-        <ModelTierSummary projectId={task.projectId} />
 
         {/* Launch failure notice (FR-01.61, A17) — a launch_failed / jsonl_missing
             card is no longer silent: the SAME words as the task-detail header +
