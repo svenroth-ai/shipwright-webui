@@ -1,35 +1,32 @@
 # Commit Change Log
 
-Generated: 2026-08-11T08:50:56.622815+00:00
-Source-State: run=iterate-2026-08-11-mis-1-mission-artifacts
+Generated: 2026-08-08T10:22:56.851142+00:00
+Source-State: run=iterate-2026-08-08-tests-total-skip-contract base=a93a22c0b468 release=v0.24.0
 Consistency-audit: never run
-Total commits: 784
+Total commits: 776
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 296
-    "feat" : 195
+    "fix" : 293
+    "feat" : 193
     "chore" : 139
-    "docs" : 72
-    "refactor" : 33
+    "docs" : 71
+    "refactor" : 32
     "test" : 30
     "ci" : 8
-    "other" : 5
     "perf" : 5
+    "other" : 4
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 296 commits
+### Fixes (fix) — 293 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-08-10 | triage | route Command Center writes through CLI (#357) | 03e4d5d7256d |
-| 2026-08-09 | triage | match Board control chrome for filter chips; fix Preview button contrast + scope (#356) | 072372bb3bae |
-| 2026-08-09 | triage | resolve amend events in the reader; add Edit-in-place UI (#355) | c867fbee0763 |
 | 2026-08-08 | mission | epoch-gate tests.total to the toolchain's collected-count convention (#351) | a1772974d8fa |
 | 2026-08-05 | ci | bump github/codeql-action from v3 to v4 (#349) | 76943483acb6 |
 | 2026-08-05 | ci | bring the vendored Tier-3 PR reviewer to canonical parity (security) (#329) | c57adb5dd601 |
@@ -324,12 +321,10 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 195 commits
+### Features (feat) — 193 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-08-10 | iterate | surface model tiers at run start (#360) | 142108e18ff0 |
-| 2026-08-10 | model-config | surface effective model tiers (#358) | c4100ae525b3 |
 | 2026-08-08 | triage | view-only filters, two-level sort, and a Parked filter (#350) | 2b16b654e24a |
 | 2026-08-05 | triage | surface parked items in a Deferred section (monorepo P2.03 parity) (#348) | e4ca6cd7800c |
 | 2026-08-03 | mobile | prioritize terminal work mode (#346) | 92494953ddba |
@@ -528,7 +523,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-08-08 | gitignore | track shipwright_model_config.json via root-anchored allowlist (#352) | 8802b00328c2 |
+| 2026-08-08 | gitignore | track shipwright_model_config.json via root-anchored allowlist | a93a22c0b468 |
 | 2026-07-30 | adr | regenerate INDEX.md so it lists ADR-134 through ADR-138 (#334) | b0d9657365e0 |
 | 2026-07-30 | repo | keep Spec/ fully local, commit the iterate planning residue (#333) | e7922fecf7cd |
 | 2026-07-27 | triage | port the two-stage PR review from shipwright#437 | 6941dbe90f7a |
@@ -668,11 +663,10 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 72 commits
+### Documentation (docs) — 71 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-08-08 | — | track Codex operating policy (#353) | 0db83535f1cd |
 | 2026-07-31 | claude-md | carry the review-subagent standing request into webui (#337) | ef57da35f10e |
 | 2026-07-22 | inbox | record the answer-in-place spike and the decision not to build it (#315) | b84d6b4fd87e |
 | 2026-07-21 | mission | state the upstream cross-repo contracts where the code is edited (#306) | 6aa8f6a354f5 |
@@ -745,11 +739,10 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 33 commits
+### Refactoring (refactor) — 32 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-08-10 | compliance | reconcile stale audit findings (#359) | 8ba78d97be5c |
 | 2026-08-01 | spawn | extract core/win32-spawn.ts, drop the dead async probe, pin win32 path semantics (#342) | 8e6fec70c3a2 |
 | 2026-07-16 | chrome | anthracite sidebar + uniform 92px PageHead + closed type scale + self-hosted fonts (A05, FR-01.48) (#261) | 9eebd2a6f68f |
 | 2026-07-16 | theme | colour sweep onto Weather-Deck tokens (A04, FR-01.48) (#260) | 1fe0f595cbce |
@@ -831,16 +824,6 @@ pie title Commit Types
 | 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | b11a7e5bb7c6 |
 | 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | 0d152274b995 |
 
-### Other (other) — 5 commits
-
-| Date | Scope | Description | Commit |
-|------|-------|-------------|--------|
-| 2026-08-08 | — | Release v0.24.0 (#354) | fe9ae487bd9c |
-| 2026-05-01 | — | Revert "Merge iterate/overflow-anchor-virtualized: disable browser scroll-anchoring in virtualized branch (ADR-063)" | a3de45595930 |
-| 2026-04-23 | — | iterate 3.9 — E2E spec backlog cleanup + TaskCard menu-bubbling fix (#9) | f8f89f135182 |
-| 2026-04-22 | — | iterate 3.8 — post-iterate-3 cleanup (E2E + scrollbar gutter) (#8) | d58cb21c8b5f |
-| 2026-04-17 | — | poc: assistant-ui migration probe (branch poc/assistant-ui-migration) | f8ea3f403df8 |
-
 ### Performance (perf) — 5 commits
 
 | Date | Scope | Description | Commit |
@@ -850,6 +833,15 @@ pie title Commit Types
 | 2026-07-22 | transcript | read only the byte range the caller asked for (FR-01.66) (#313) | e96274fe2478 |
 | 2026-07-21 | mission | pay the run-identity scan once per task, not once per poll (FR-01.66) (#311) | 835393c7a3cf |
 | 2026-07-21 | mission | run resolver git off the event loop + cache root-set/event-log reads (FR-01.66) (#302) | 20285143cda9 |
+
+### Other (other) — 4 commits
+
+| Date | Scope | Description | Commit |
+|------|-------|-------------|--------|
+| 2026-05-01 | — | Revert "Merge iterate/overflow-anchor-virtualized: disable browser scroll-anchoring in virtualized branch (ADR-063)" | a3de45595930 |
+| 2026-04-23 | — | iterate 3.9 — E2E spec backlog cleanup + TaskCard menu-bubbling fix (#9) | f8f89f135182 |
+| 2026-04-22 | — | iterate 3.8 — post-iterate-3 cleanup (E2E + scrollbar gutter) (#8) | d58cb21c8b5f |
+| 2026-04-17 | — | poc: assistant-ui migration probe (branch poc/assistant-ui-migration) | f8ea3f403df8 |
 
 ### Build (build) — 1 commits
 
@@ -861,7 +853,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 784 |
+| Total commits | 776 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 784 |
+| Human-authored commits | 776 |
 

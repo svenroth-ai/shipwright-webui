@@ -1,35 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-08-11-mis-1-mission-artifacts"
-phase: "iterate"
-reason: "iterate: make Mission artifacts trustworthy"
-timestamp: "2026-08-11T08:50:56.622815+00:00"
+run_id: "changelog-v0.24.0-20260808-1500"
+phase: "changelog"
+reason: "release v0.24.0"
+timestamp: "2026-08-08T20:38:36.160644+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-08-11 08:50:56 UTC
+> Auto-generated 2026-08-08 20:38:36 UTC
 
 ## Session Info
 
-- **Session ID**: unknown
-- **Timestamp**: 2026-08-11 08:50:56 UTC
-- **Reason**: iterate: make Mission artifacts trustworthy
+- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
+- **Timestamp**: 2026-08-08 20:38:36 UTC
+- **Reason**: release v0.24.0
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-08-11-mis-1-mission-artifacts
-- **Date**: 2026-08-11T08:50:45.537201Z
+- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
+- **Date**: 2026-08-08T10:36:25.721563Z
 - **Type**: change
 - **Complexity**: medium
-- **Branch**: codex/mis-1-mission-artifacts
-- **ADR**: iterate-2026-08-11-mis-1-mission-artifacts
+- **Branch**: iterate/tests-total-skip-contract
+- **ADR**: iterate-2026-08-08-tests-total-skip-contract
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-08-11-mis-1-mission-artifacts.md
+- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
 
 ## Legacy build state
 
-- **Phase**: design
+- **Phase**: changelog
 - **Current Split**: 01-adopted
 - **Current Section**: adopted-baseline
 
@@ -38,8 +38,8 @@ timestamp: "2026-08-11T08:50:56.622815+00:00"
 
 ## Git State
 
-- **Branch**: codex/mis-1-mission-artifacts
-- **Last Commit**: 142108e1 feat(iterate): surface model tiers at run start (#360)
+- **Branch**: feat/track-model-config-allowlist
+- **Last Commit**: e76e3fc1 chore(release): v0.24.0
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -55,17 +55,17 @@ timestamp: "2026-08-11T08:50:56.622815+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-2c636c05 | work_completed | iterate (Make Mission artifacts trustworthy, traceable, and readable) | 2026-08-11 |
-| evt-45203dbb | event_amended | — | 2026-08-10 |
-| evt-cfebfece | grade_snapshot | — | 2026-08-10 |
-| evt-b38ac518 | work_completed | iterate (Move model-tier defaults from task cards to the New Iterate start dialog.) | 2026-08-10 |
-| evt-4273c81d | event_amended | — | 2026-08-10 |
+| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
+| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
+| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
+| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
+| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 407
-- **Last iterate**: change — Make Mission artifacts trustworthy, traceable, and readable (2026-08-11)
+- **Total work events**: 398
+- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

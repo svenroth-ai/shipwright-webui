@@ -31,7 +31,7 @@
   },
   "surface_verification": {
     "surface": "web",
-    "tests_run": 0,
+      "tests_run": 1,
     "exit_code": 0,
     "justification": "rendered component verification"
   },

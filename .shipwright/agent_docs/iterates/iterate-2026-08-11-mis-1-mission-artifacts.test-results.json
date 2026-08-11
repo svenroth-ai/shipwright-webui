@@ -22,6 +22,6 @@
       "counts": { "testable": 6, "tested": 6, "untestable": 0, "untested_testable": 0 },
       "enumeration_basis": { "acs": 6, "covered_acs": 6 }
     },
-    "surface_verification": { "surface": "web", "tests_run": 0, "exit_code": 0, "justification": "Focused rendered client tests cover the Mission detail components; no browser service is available in this sandbox." }
+    "surface_verification": { "surface": "web", "tests_run": 1, "exit_code": 0, "justification": "Focused rendered client tests cover the Mission detail components; no browser service is available in this sandbox." }
   }
 }
