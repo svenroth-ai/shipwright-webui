@@ -1,0 +1,15 @@
+{
+  "stage": "doubt",
+  "verdict": "REJECT",
+  "doubts": [
+    {
+      "claim_under_doubt": "Every terminal resolved iterate context selects the artifact-backed OperationCard even when the legacy run join has not caught up.",
+      "disproof_attempt": "The server treats both done and launch_failed as terminal, but the client repair covered only done, leaving launch_failed to render OperationLive when the legacy join is empty.",
+      "severity": "HIGH",
+      "lens": "client/server terminal-state parity",
+      "file": "client/src/components/external/mission/MissionBody.tsx",
+      "line": 183,
+      "what_would_resolve_it": "Use the same terminal-state predicate as the server and cover launch_failed with a null run-detail join."
+    }
+  ]
+}

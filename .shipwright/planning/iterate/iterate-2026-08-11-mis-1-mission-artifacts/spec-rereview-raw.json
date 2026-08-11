@@ -1,0 +1,17 @@
+{
+  "stage": "spec",
+  "verdict": "REJECT",
+  "spec_citations": [
+    {"spec_ref":"AC1 — iterate identity comes only from MissionContext.runId","divergence":"Resolved: nullable iterate contexts now pass null rather than falling back to task.runId in both OperationCard and useMissionLive.","kind":"match","diff_location":"client/src/components/external/mission/OperationCard.tsx:53-68; client/src/hooks/useMissionLive.ts:198-201"},
+    {"spec_ref":"AC2 — lifecycle source order, explicit NONE, readable metadata, and exact opaque-document source","divergence":"Lifecycle degradation, explicit NONE precedence, and description normalization are resolved. Exact row targeting remains unsafe because it uses substring matching.","kind":"partial_mismatch","diff_location":"server/src/core/mission-context/artifacts.ts:124-177; server/src/core/mission-context/fold-map.ts:64-75; client/src/components/external/mission/MissionArtifactBody.tsx:164-203"},
+    {"spec_ref":"AC3 — producer gate leads, but malformed counts are never greenwashed","divergence":"The long result sentence rejects malformed skipped counts, but receipts, chips, and proof lines still use raw passing facts.","kind":"mismatch","diff_location":"server/src/core/mission-context/artifacts-tests.ts:113-150; client/src/lib/missionArtifacts.ts:178-187; client/src/lib/proofLines.ts:71-72,146-153"},
+    {"spec_ref":"AC4 — decision-drop and published-ADR wording","divergence":"Resolved with the required recorded and published wording.","kind":"match","diff_location":"client/src/components/external/mission/MissionSlice2Details.tsx:276-287"},
+    {"spec_ref":"AC5 — shared normal-flow detail header with no absolute toolbar collision","divergence":"Resolved: title, summary, and tools share the normal-flow header in panel and modal.","kind":"match","diff_location":"client/src/components/external/mission/MissionArtifactPanel.tsx:86-121; client/src/styles/mission-record.css"},
+    {"spec_ref":"AC6 — focused coverage for source order, lifecycle transitions, terminal identity, and degradation","divergence":"Coverage is missing exact-row collision and malformed-count compact-surface cases.","kind":"partial_mismatch","diff_location":"server/src/core/mission-context/artifacts-requirement-lifecycle.test.ts; client/src/components/external/mission/OperationCard.test.tsx"}
+  ],
+  "findings": [
+    {"severity":"high","source_location":"client/src/components/external/mission/MissionArtifactBody.tsx:170-180","issue":"Substring matching can select FR-01.280 or a prose reference instead of the exact capability row.","recommended_correction":"Match the exact first table-cell FR identifier and add collision coverage."},
+    {"severity":"high","source_location":"server/src/core/mission-context/artifacts-tests.ts:143-150; client/src/lib/missionArtifacts.ts:184-187; client/src/lib/proofLines.ts:71-72,146-153","issue":"Malformed producer-pass counts can still look green in receipts, chips, and proof lines.","recommended_correction":"Apply one display classification across all Mission test surfaces and test them."}
+  ],
+  "rationale":"Stage 1 remains rejected pending exact traceability and consistent malformed-evidence degradation."
+}

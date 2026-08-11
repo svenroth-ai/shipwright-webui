@@ -73,6 +73,7 @@ export interface TestsArtifact extends ArtifactBase {
      * themselves are still real (they come from git).
      */
     manifestStatus: "ok" | "unavailable";
+    evidence?: { status: "available" | "unavailable"; verifiedBehaviors: string[]; completeness: { tested: number; testable: number; untestedTestable: number } | null; note: string | null };
   } | null;
 }
 

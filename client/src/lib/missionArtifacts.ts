@@ -23,6 +23,7 @@
  */
 
 import type { ArtifactDescriptor, ArtifactState, MissionContext } from "./missionContextApi";
+import { hasReliableTestCounts } from "./missionArtifacts.testsWording";
 
 // Re-exported so existing import sites (`import { testsResultText } from
 // "./missionArtifacts"`) keep working — the Tests headline logic itself moved
@@ -183,7 +184,7 @@ export function artifactStateWord(state: ArtifactState): string {
  */
 export function testsChipValue(context: MissionContext | null | undefined): string | null {
   const t = context?.tests;
-  if (!t || t.passed == null || t.total == null) return null;
+  if (!t || !hasReliableTestCounts(t.passed, t.total, t.skipped)) return null;
   return `${t.passed}/${t.total}`;
 }
 

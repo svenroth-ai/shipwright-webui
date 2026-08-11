@@ -29,6 +29,8 @@ export interface ResolveRequest {
   hasCampaignRecord: boolean;
   actions: ScenarioInputs["actions"];
   runConfigStatus: ScenarioInputs["runConfigStatus"];
+  /** Server-owned terminal task state; it overrides a lingering worktree proxy. */
+  taskTerminal?: boolean;
   /**
    * S3 — native scenario facts, gathered server-side (external/facts-slice3.ts).
    * Optional so existing callers/tests compile; absent behaves as `unavailable`,

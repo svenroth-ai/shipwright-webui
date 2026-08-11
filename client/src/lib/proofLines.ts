@@ -14,6 +14,7 @@
  */
 
 import { NA } from "./narrator-strings";
+import { hasReliableTestCounts } from "./missionArtifacts.testsWording";
 
 export type GateState = "pass" | "fail" | "unknown";
 /** ALL CLEAR / GATE HOLD / neutral. `neutral` is deliberately never `clear`. */
@@ -32,7 +33,7 @@ export interface ProofFacts {
   runId?: string | null;
   commit?: string | null;
   affectedFrs?: string[] | null;
-  tests?: { passed: number | null; total: number | null } | null;
+  tests?: { passed: number | null; total: number | null; skipped?: number | null } | null;
   gates?: { test?: GateState; review?: GateState; security?: GateState } | null;
 }
 
@@ -69,7 +70,7 @@ export const DURATION_NA = NA;
  *  re-derived from `passed === total` here (a post-reversal run can carry a
  *  `skipped` count that makes a genuine pass read numerically unequal). */
 function testsGreen(tests: ProofFacts["tests"], gate?: GateState): boolean {
-  return tests != null && tests.passed != null && tests.total != null && gate === "pass";
+  return tests != null && hasReliableTestCounts(tests.passed, tests.total, tests.skipped) && gate === "pass";
 }
 
 /**
@@ -160,7 +161,7 @@ function suiteLine(facts: ProofFacts): ProofLine | null {
  *  flip the verdict to GATE HOLD, but the failure is still shown). */
 function suiteFailLine(facts: ProofFacts): ProofLine | null {
   const t = facts.tests;
-  if (!t || t.passed == null || t.total == null) return null;
+  if (!t || !hasReliableTestCounts(t.passed, t.total, t.skipped)) return null;
   if (facts.gates?.test !== "fail") return null; // green/unknown — handled elsewhere
   return {
     id: "suite-fail",

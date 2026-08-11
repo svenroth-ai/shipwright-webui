@@ -184,6 +184,8 @@ export function deriveMissionLive(input: {
  *  so this hook still makes no second server round-trip. */
 export interface MissionLiveOptions extends StageOptions {
   artifactKeys?: readonly string[];
+  /** Resolved iterate identity; never substitute a task's pipeline run id. */
+  runId?: string | null;
 }
 
 export function useMissionLive(
@@ -193,7 +195,10 @@ export function useMissionLive(
 ): MissionLiveModel {
   const artifactKeys = stageOptions?.artifactKeys;
   const missionState = useMissionState(task ?? null);
-  const runDetail = useRunDetail(task?.projectId ?? null, task?.runId ?? null);
+  const runDetail = useRunDetail(
+    task?.projectId ?? null,
+    stageOptions?.scenario === "iterate" ? stageOptions.runId ?? null : task?.runId ?? null,
+  );
   const run = runDetail.data?.status === "ok" ? runDetail.data.run : null;
   const scenario = stageOptions?.scenario ?? null;
   const phase = stageOptions?.phase ?? null;

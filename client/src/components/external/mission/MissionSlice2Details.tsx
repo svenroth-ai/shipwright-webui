@@ -52,6 +52,22 @@ export function TestsDetail({ artifact }: { artifact: TestsArtifact }) {
           {resultText}
         </p>
       ) : null}
+      {detail.evidence?.status === "available" && detail.evidence.verifiedBehaviors.length > 0 ? (
+        <section data-testid="artifact-tests-evidence">
+          <p className="a-note">Verified behaviours from this run's test evidence:</p>
+          <ul className="a-rows">
+            {detail.evidence.verifiedBehaviors.map((behavior) => <li key={behavior}>{behavior}</li>)}
+          </ul>
+        </section>
+      ) : detail.evidence?.note ? (
+        <p className="a-note" data-testid="artifact-tests-evidence-unavailable">{detail.evidence.note}</p>
+      ) : null}
+      {detail.evidence?.status === "available" && detail.evidence.completeness ? (
+        <p className="a-note" data-testid="artifact-tests-completeness">
+          Test completeness: {detail.evidence.completeness.tested} of {detail.evidence.completeness.testable} testable behaviours verified
+          {detail.evidence.completeness.untestedTestable > 0 ? ` (${detail.evidence.completeness.untestedTestable} still unverified)` : "."}
+        </p>
+      ) : null}
 
       {/* The file table + its counts are the ENRICHMENT — only when a real
           commit diff resolved. A counts-only run shows its result above and an
@@ -259,9 +275,17 @@ export function DecisionsDetail({ artifact }: { artifact: DecisionsArtifact }) {
         >
           {entry.source === "drop" ? (
             <p className="a-note" data-testid="artifact-decision-unnumbered">
-              Decided — not yet published in a release.
+              Recorded — ADR number assigned at release.
             </p>
-          ) : null}
+          ) : entry.adrId ? (
+            <p className="a-note" data-testid="artifact-decision-published">
+              Published as {entry.adrId}.
+            </p>
+          ) : (
+            <p className="a-note" data-testid="artifact-decision-unverified">
+              This published decision has no reliable ADR number.
+            </p>
+          )}
           <DocumentMarkdown text={entry.markdown} />
         </section>
       ))}

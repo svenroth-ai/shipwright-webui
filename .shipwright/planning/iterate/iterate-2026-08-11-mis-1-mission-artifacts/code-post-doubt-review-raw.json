@@ -1,0 +1,13 @@
+{
+  "stage": "code",
+  "verdict": "REJECT",
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "file": "client/src/styles/mission-record.css",
+      "line": 160,
+      "issue": "The normal-flow override is correctly scoped to `.a-header`, but the responsive rule removed the legacy ArtifactPanel close button’s `top: 8px; right: 8px`. Its absolute close button now falls back to 16px, causing the cross-scenario layout regression the doubt review sought to avoid.",
+      "recommendation": "Restore `top: 8px; right: 8px` on `.on-photo .artifact .a-close`; these offsets are inert for the new header’s statically positioned close button. Add a source/style assertion covering legacy absolute placement and header-scoped static placement."
+    }
+  ]
+}

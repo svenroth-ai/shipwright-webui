@@ -58,6 +58,7 @@ export type ArtifactKind =
   | "sub_iterate";
 
 export type RequirementConfidence = "planned" | "finalized" | "unresolved";
+export type RequirementLifecycle = "discovering" | "planned" | "recorded" | "none";
 export type MergeState = "merged" | "pending" | "unknown";
 
 export interface FrRow {
@@ -65,6 +66,8 @@ export interface FrRow {
   displayFrId: string;
   name: string | null;
   area: string | null;
+  description?: string | null;
+  sourceAnchor?: string | null;
   /** Set only when the Fold-Map actually moved the id — renders "mapped from …". */
   mappedFrom: string | null;
 }
@@ -88,8 +91,10 @@ export interface RequirementArtifact extends ArtifactBase {
   detail: {
     type: "requirements";
     confidence: RequirementConfidence;
+    lifecycle?: RequirementLifecycle;
     rows: FrRow[];
     specImpact: string | null;
+    sourceDocument?: { documentId: string; title: string } | null;
   } | null;
 }
 
@@ -141,6 +146,7 @@ export interface TestsArtifact extends ArtifactBase {
     truncated: boolean;
     /** `unavailable` → the FR links are MISSING, not empty. */
     manifestStatus: "ok" | "unavailable";
+    evidence?: { status: "available" | "unavailable"; verifiedBehaviors: string[]; completeness: { tested: number; testable: number; untestedTestable: number } | null; note: string | null };
   } | null;
 }
 
@@ -254,9 +260,9 @@ export interface MissionContext {
   runId: string | null;
   /**
    * Is this run IN FLIGHT right now? Server-side: a validated pointer whose
-   * worktree git still registers AND no `work_completed` recorded for the run —
-   * a completion record is terminal, so it ends live-ness even while the
-   * worktree survives. It decides ONE thing here: whether an artifact that has
+   * worktree git still registers, the owning task is not terminal, AND no
+   * `work_completed` recorded for the run — either terminal fact ends live-ness
+   * even while the worktree survives. It decides ONE thing here: whether an artifact that has
    * not been written yet is hidden ("this run has no such artifact") or shown as
    * pending ("not written yet"). An `unavailable` artifact NEVER becomes
    * pending. See `missionArtifacts.ts`.

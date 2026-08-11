@@ -42,6 +42,7 @@ export interface FrEntry {
   id: string;
   area: string | null;
   name: string | null;
+  description: string | null;
 }
 
 export interface FoldMap {
@@ -58,6 +59,18 @@ const EMPTY_MAP: FoldMap = { entries: new Map(), folds: new Map(), loaded: false
 /** Strip markdown code ticks + whitespace from a table cell. */
 function cell(s: string): string {
   return s.replace(/`/g, "").trim();
+}
+
+/** Keep the adopted row's user-facing capability sentence, not its markup or changelog. */
+function readableDescription(value: string | undefined): string | null {
+  if (!value) return null;
+  const leading = value.split(/<br\s*\/?>/i, 1)[0];
+  const text = leading
+    .replace(/\*\*/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text || null;
 }
 
 /**
@@ -90,6 +103,7 @@ export function parseFoldMap(specText: string): FoldMap {
         id: first,
         area: second.length > 0 && second.length <= 8 ? second : null,
         name: cols[2].length > 0 ? cols[2] : null,
+        description: readableDescription(cols[4]),
       });
     }
   }
@@ -159,6 +173,8 @@ export function resolveFr(map: FoldMap, originalFrId: string): FrRow {
     displayFrId: current,
     name: entry?.name ?? null,
     area: entry?.area ?? null,
+    description: entry?.description ?? null,
+    sourceAnchor: `fr-${current.slice(3).replace(".", "")}`,
     // Only set when the fold actually MOVED the id — never a self-reference.
     mappedFrom: current !== original ? original : null,
   };

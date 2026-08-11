@@ -26,6 +26,7 @@ import type { EventLookup } from "./iterate-record.js";
 import { readReviewState, reviewStatePaths } from "./review-state.js";
 import { readChangedTestFiles } from "./tests-diff.js";
 import { readTraceabilityIndex, traceabilityPath } from "./traceability.js";
+import { readTestEvidence, testEvidencePath } from "./test-evidence.js";
 import type { DecisionsArtifact, ReviewArtifact, TestsArtifact } from "./types-slice2.js";
 import { defaultGit, type GitRunner } from "./worktree-roots.js";
 
@@ -50,6 +51,7 @@ export function slice2RevPaths(projectRoot: string, runId: string): string[] {
     // directory alone would freeze an edited drop.
     ...dropFilePaths(projectRoot, runId),
     ...reviewStatePaths(projectRoot, runId),
+    testEvidencePath(projectRoot, runId),
   ];
 }
 
@@ -103,7 +105,7 @@ export async function buildSlice2Artifacts(input: Slice2Input): Promise<Slice2Re
 
   return {
     artifacts: [
-      buildTestsArtifact({ events, diff, index }),
+      buildTestsArtifact({ events, diff, index, evidence: readTestEvidence(projectRoot, runId) }),
       buildReviewArtifact(readReviewState(projectRoot, runId)),
       // drops ∪ decision_log, deduplicated by run_id (the log wins). A run's ADR
       // exists ONLY as a drop between its F3 and the next release aggregation,

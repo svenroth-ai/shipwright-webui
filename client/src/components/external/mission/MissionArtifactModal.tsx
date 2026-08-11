@@ -49,19 +49,18 @@ export function MissionArtifactModal({ open, onOpenChange, taskId, artifact }: P
           data-testid="mission-artifact-modal"
           data-node={artifact.kind}
         >
-          <div className="flex items-center gap-2 border-b border-[var(--color-border,#e0dbd4)] px-4 py-2.5">
-            <FileText
-              size={14}
-              className="shrink-0 text-[var(--color-accent,#857568)]"
-              aria-hidden="true"
-            />
-            <Dialog.Title
-              className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[var(--color-text,#1a1a1a)]"
-              data-testid="mission-artifact-modal-label"
-              title={artifact.label}
-            >
-              {artifact.label}
-            </Dialog.Title>
+          <header className="a-header flex items-start gap-2 border-b border-[var(--color-border,#e0dbd4)] px-4 py-2.5" data-testid="artifact-header">
+            <div className="a-heading">
+              <span className="eyebrow"><FileText size={14} aria-hidden="true" /> Artifact</span>
+              <Dialog.Title
+                className="min-w-0 text-[16px] font-semibold text-[var(--color-text,#1a1a1a)]"
+                data-testid="mission-artifact-modal-label"
+                title={artifact.label}
+              >
+                {artifact.label}
+              </Dialog.Title>
+              {artifact.summary ? <p className="a-body" data-testid="artifact-summary">{artifact.summary}</p> : null}
+            </div>
             <Dialog.Close asChild>
               <button
                 type="button"
@@ -72,13 +71,13 @@ export function MissionArtifactModal({ open, onOpenChange, taskId, artifact }: P
                 <X size={14} />
               </button>
             </Dialog.Close>
-          </div>
+          </header>
           <ModalScrollBody
             className="max-h-[calc(90vh-52px)]"
             data-testid="mission-artifact-modal-body"
           >
             <div className="artifact is-popout">
-              <MissionArtifactBody taskId={taskId} artifact={artifact} />
+              <MissionArtifactBody taskId={taskId} artifact={artifact} showSummary={false} />
             </div>
           </ModalScrollBody>
         </Dialog.Content>

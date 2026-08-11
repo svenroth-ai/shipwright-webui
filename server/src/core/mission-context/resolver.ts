@@ -22,7 +22,7 @@ import {
 export { _clearResolverCache } from "./resolver-parts.js";
 // Re-exported so the detail endpoint keeps its single import site (§5.2).
 export { readDocumentBody } from "./document-read.js";
-import { loadFoldMap, specPath } from "./fold-map.js";
+import { loadFoldMap, SPEC_REL_PARTS, specPath } from "./fold-map.js";
 import { checkSquashMerged, extractPrMarker, readOriginSlug } from "./merge-check.js";
 import { refreshMerge } from "./merge-refresh.js";
 import { mintDocId } from "./doc-ids.js";
@@ -177,7 +177,10 @@ export async function resolveMissionContext(
     ],
     [runId, chosen.root, req.taskId],
   );
-  const cacheKey = `${projectRoot}::${sessionUuid}::${runId}`;
+  // Task terminal state is server-owned input, not a filesystem revision. It
+  // must participate in the cache identity so a completed task cannot reuse a
+  // previously-live context while its worktree and event log are unchanged.
+  const cacheKey = `${projectRoot}::${sessionUuid}::${runId}::${req.taskTerminal ? "terminal" : "active"}`;
   // Persist on a LIVE pointer, and on a corroborated transcript recovery — which
   // is the whole point of the recovery: pay the scan once. Read back off the
   // WINNING rule, so the id and its provenance cannot disagree; an id that came
@@ -221,6 +224,16 @@ export async function resolveMissionContext(
   }
 
   const foldMap = loadFoldMap(projectRoot);
+  const requirementsDocument = mintDocId({
+    t: req.taskId,
+    s: sessionUuid,
+    p: projectRoot,
+    r: runId,
+    root: projectRoot,
+    rel: SPEC_REL_PARTS.join("/"),
+    rev,
+    f: docFingerprint(specPath(projectRoot)),
+  });
 
   // --- Commit + merge -------------------------------------------------------
   // The marker must belong to THIS project's own origin repo (a sibling repo's
@@ -239,6 +252,11 @@ export async function resolveMissionContext(
     commit: run?.commit?.trim() || null,
     git: deps.git,
   });
+  // `runLive` retains its visual worktree meaning. Requirement planning has a
+  // separate authority: the server-owned task state, which can mark a run
+  // terminal while a worktree lingers (or active while root selection fell back).
+  const runLive = chosen.isWorktree && !req.taskTerminal && events.status !== "found";
+  const requirementLive = !req.taskTerminal && events.status !== "found";
 
   // CONTRACT §6 order: Spec · Requirement · Tests · Review · Decisions · Commit.
   const artifacts: ArtifactDescriptor[] = [
@@ -249,7 +267,17 @@ export async function resolveMissionContext(
       fromWorktree: chosen.isWorktree,
       intent: run?.intent ?? null,
     }),
-    buildRequirementArtifact({ foldMap, doc: iterateDoc, events, specText }),
+    buildRequirementArtifact({
+      foldMap,
+      doc: iterateDoc,
+      events,
+      specText,
+      runLive: requirementLive,
+      sourceDocument: {
+        documentId: requirementsDocument,
+        title: "Requirements specification",
+      },
+    }),
     ...slice2.artifacts,
     buildCommitArtifact({ events, prNumber: marker?.number ?? null, prUrl: marker?.url ?? null, merge }),
   ];
@@ -272,7 +300,7 @@ export async function resolveMissionContext(
     // is the same lie in the other direction. A `work_completed` record is a
     // terminal fact, so it ends live-ness. Both inputs participate in `rev`
     // (`chosen.root` + the event log's mtime), so neither can freeze in cache.
-    runLive: chosen.isWorktree && events.status !== "found",
+    runLive,
     artifacts,
     // Shares artifacts-tests.ts's constructor so this never diverges from
     // the Tests artifact's own `detail.results` on the `{0,0}` edge case.

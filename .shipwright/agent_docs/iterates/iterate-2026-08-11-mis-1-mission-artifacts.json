@@ -1,0 +1,39 @@
+{
+  "run_id": "iterate-2026-08-11-mis-1-mission-artifacts",
+  "date": "2026-08-11T08:50:45.537201Z",
+  "event_at": "2026-08-10T21:33:46.781510+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "codex/mis-1-mission-artifacts",
+  "spec": ".shipwright/planning/iterate/iterate-2026-08-11-mis-1-mission-artifacts.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-11-mis-1-mission-artifacts",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "MIS-1 acceptance criteria",
+        "disposition": "tested",
+        "evidence": "focused client/server suites"
+      }
+    ],
+    "counts": {
+      "testable": 1,
+      "tested": 1,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+      "tests_run": 1,
+    "exit_code": 0,
+    "justification": "rendered component verification"
+  },
+  "declared_removals": []
+}

@@ -821,12 +821,25 @@ write surface; gated, path-guarded, and concurrency-safe.
   server-side, gated by the event's own `ts` against `REVERSAL_EPOCH_MS`: pre-reversal
   events read `passed === total`, post-reversal events read
   `passed + skipped === total` — never both, and never re-derived by a consumer. A
-  post-reversal host-gated skip renders "N of M tests passing (K skipped)", never a
+  post-reversal host-gated skip renders "Passed — N of M tests passing (K skipped)", never a
   bare "N of M" indistinguishable from a real failure. A post-reversal run where every
-  collected test was skipped renders "All N collected tests were skipped — none ran",
-  never fail-shaped text and never "All N passing"; a malformed record (skipped
-  exceeding total, negative passed) falls back to "No test result recorded" rather
+  collected test was skipped renders "Needs attention — all N collected tests were skipped, so none ran",
+  never pass-shaped text; a malformed record (skipped exceeding total, negative passed)
+  falls back to "No reliable result" rather
   than asserting a claim the raw counts don't support.
+- (Q) **(iterate-2026-08-11-mis-1-mission-artifacts)** An iterate Mission joins its
+  centre card and terminal artifacts by the resolved `MissionContext.runId`, never a
+  pipeline-shaped `task.runId`. Requirement detail states **Discovering**, **Planned**,
+  **Recorded**, or **No requirement changed** from its ordered sources: the current
+  iterate specification is live intent; only that run's `work_completed` record is
+  terminal evidence; and the adopted specification contributes only its readable
+  requirement metadata and signed source document. Tests lead with **Passed**,
+  **Failed**, **Needs attention**, or **No reliable result**, then may enrich the
+  detail with the exact run-bound F5c test-completeness snapshot. A missing or invalid
+  snapshot states the missing evidence rather than changing the producer gate. Decision
+  drops read "Recorded — ADR number assigned at release"; a numbered log decision reads
+  "Published as ADR-NNN". Artifact toolbar, title, summary, and typed body share a
+  normal-flow header without overlap. Added by `iterate-2026-08-11-mis-1-mission-artifacts`.
 - Scenarios 1/3/4/5 keep today's behaviour verbatim (this is additive for the iterate
   scenario); the embedded terminal is byte-identical. Added by
   `iterate-2026-07-18-mission-s1-resolver-core-artifacts`.

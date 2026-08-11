@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name":"Spec Compliance","verdict":"pass","note":"All six MIS-1 acceptance criteria are implemented in the existing Mission data and presentation layers."},
+    {"name":"Error Handling","verdict":"pass","note":"Unreadable or incomplete artifact data degrades to explicit unavailable states rather than fabricated values."},
+    {"name":"Security Basics","verdict":"pass","note":"Requirement sources use server-minted document identifiers; the client does not construct paths."},
+    {"name":"Test Quality","verdict":"pass","note":"Focused server and rendered client tests cover lifecycle, source order, terminal identity, count validity, and header layout invariants."},
+    {"name":"Performance Basics","verdict":"pass","note":"Resolver cache identity includes terminal state and all reads remain bounded existing artifact reads."},
+    {"name":"Naming & Structure","verdict":"pass","note":"Changes follow existing MissionContext, artifact-builder, and Mission component boundaries."},
+    {"name":"Affected Boundaries","verdict":"pass","note":"The existing server/client MissionContext wire mirror is updated and parity-tested; no producer contract changed."},
+    {"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff reported no findings."}
+  ]
+}

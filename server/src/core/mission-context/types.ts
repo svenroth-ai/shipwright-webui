@@ -115,6 +115,10 @@ export interface FrRow {
   name: string | null;
   /** Area code (TSK, TRM, …); null when unknown. */
   area: string | null;
+  /** Plain-language capability description from the adopted requirements row. */
+  description?: string | null;
+  /** Safe in-document anchor for this requirement's adopted-spec source. */
+  sourceAnchor?: string | null;
   /** `mapped from FR-01.44` — set ONLY when the fold actually moved the id. */
   mappedFrom: string | null;
 }
@@ -126,15 +130,18 @@ export interface FrRow {
  * `unresolved` — a source existed but yielded no usable FR ids.
  */
 export type RequirementConfidence = "planned" | "finalized" | "unresolved";
+export type RequirementLifecycle = "discovering" | "planned" | "recorded" | "none";
 
 export interface RequirementArtifact extends ArtifactBase {
   kind: "requirement";
   detail: {
     type: "requirements";
     confidence: RequirementConfidence;
+    lifecycle?: RequirementLifecycle;
     rows: FrRow[];
     /** `none` / `modify` / `add` … as recorded; null when not yet known. */
     specImpact: string | null;
+    sourceDocument?: { documentId: string; title: string } | null;
   } | null;
 }
 
@@ -224,9 +231,9 @@ export interface MissionContext {
   runId: string | null;
   /**
    * Is this run IN FLIGHT right now? True only when the pointer validated, git
-   * still registers its worktree, AND the run has recorded no `work_completed`
-   * — a completion record is terminal, so it ends live-ness even while the
-   * worktree survives. False for every other scenario.
+   * still registers its worktree, the owning task is not terminal, AND the run
+   * has recorded no `work_completed` — either terminal fact ends live-ness even
+   * while the worktree survives. False for every other scenario.
    *
    * The client uses it for ONE decision: whether `not_yet_created` means "this
    * run has no such artifact" (hide it) or "it has not been written YET" (show

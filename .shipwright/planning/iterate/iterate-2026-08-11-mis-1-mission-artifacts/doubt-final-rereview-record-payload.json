@@ -1,0 +1,1 @@
+{"stage":"doubt","verdict":"PASS","doubts":[],"rationale":"Final disproof review found the terminal-state predicate aligned across server and client, including launch_failed."}

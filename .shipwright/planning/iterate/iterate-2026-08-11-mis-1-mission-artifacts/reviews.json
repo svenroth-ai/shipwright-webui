@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-11-mis-1-mission-artifacts",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-11T08:51:24.319380+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The stated precedence rules conflict for authoritative sources. The plan says `work_completed` is the only source that can produce Recorded, but also says an explicit `spec_impact: none` from “either authoritative source” always produces No requirement changed. A stale adopted spec saying `none` could therefore override a completed record that lists a recorded requirement, incorrectly hiding completion evidence.",
+          "suggestion": "Define a complete source matrix with a single ordering for conflicting records. In particular, make terminal `work_completed` evidence authoritative for a completed Mission; only use adopted-spec `none` when no terminal completion record exists. Add conflict fixtures covering recorded-vs-planned, recorded-vs-none, planned-vs-none, and malformed newer source fallback.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan assumes the adopted-spec row reliably contains ID, title, plain-language description, area, fold provenance, and a source anchor, but does not identify the existing schema/versioning and fallback behavior when older or partial records lack these fields. The specification requires all of these requirement-detail fields.",
+          "suggestion": "Confirm the actual event/spec schemas and explicitly map each displayed field to its source. Define safe rendering for absent optional fields without inventing values, and decide whether an incomplete requirement row is “usable” for lifecycle classification. Add compatibility fixtures for older/partial adopted specs and work-completed records.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The test-result state mapping is still underspecified. “unknown/all-skipped/malformed/partial → No reliable result or Needs attention” does not establish which condition maps to which user-facing state, nor how mixed outcomes behave (for example, passed tests plus skipped required tests, failures plus malformed totals, zero executed tests, or producer-gate pass with incomplete F5c). This risks inconsistent client/server interpretation and greenwashing through an ambiguous fallback.",
+          "suggestion": "Specify and encode one exhaustive classifier based on the producer gate and count validity. At minimum, define exact outcomes for pass, fail, skipped-only, zero/unknown totals, mismatched totals, partial reports, malformed reports, and mixed pass/fail/skip counts. Preserve a producer failure as Failed even when enrichment is malformed, and use Needs attention versus No reliable result according to a documented, testable rule.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "“Read the immutable F5c snapshot” needs an explicit binding rule. If snapshot lookup is keyed through the prior task pipeline identity, a terminal iterate Mission can accidentally display evidence from a different task attempt or a newer/reused artifact.",
+          "suggestion": "Resolve F5c evidence from the same immutable run-scoped artifact set as `MissionContext.runId`, and validate any embedded run/iterate identity before using it as enrichment. Fail closed to the degradation message on mismatch, absent identity, unreadable content, or schema incompatibility. Include a regression fixture where task-run and Mission run IDs differ.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Minting an “opaque, task-bound document id” is not sufficient source-link protection by itself. If the document endpoint accepts that ID without server-side authorization and Mission/run binding, users could retrieve another run’s adopted requirements source through an exposed or guessed/replayed opaque identifier.",
+          "suggestion": "Have the server mint and resolve the source reference, enforce the current user’s existing Mission/document authorization, and verify that the reference belongs to the resolved Mission/run and permitted document anchor. Do not let the client construct document IDs or anchors. Add authorization and cross-run reference rejection tests in addition to format/safety tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The “terminal artifacts” rule does not define terminal lifecycle coverage or behavior during eventual consistency. A Mission may be completed while `work_completed` or F5c persistence is delayed; cancellation/abandonment may also be terminal without a completion record. Rendering a terminal card with a blank or pipeline-derived fallback would violate the identity and evidence requirements.",
+          "suggestion": "Enumerate supported terminal statuses and define the interim presentation when terminal status is visible but terminal artifacts are not yet readable: always retain `MissionContext.runId`, show discovery/unavailable evidence wording, and never fall back to a task pipeline run. Add lifecycle tests for in-progress, completed-with-delayed-artifacts, completed-with-artifacts, and any supported cancelled/failed terminal state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The Decisions copy change relies on `source` and `adrId`, but the plan does not address invalid or partial combinations such as `source=published` with no ADR number, or an ADR number present before publication. Blindly formatting these as `ADR-NNN` can create a false publication claim.",
+          "suggestion": "Define valid state combinations and conservative fallbacks. Show “Published as ADR-NNN” only when publication provenance and a valid ADR identifier are both present; otherwise retain a non-published/needs-attention representation and log or test the inconsistent data condition.  Overall, the direction is sound and appropriately reuses existing evidence, but the source-conflict rules, test-state classifier, and server-side source-link authorization need to be made explicit before implementation. The focused regressions should cover these contracts, not only happy-path rendering. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-11T08:49:29.804583+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] **Findings**\n\n| Category   | Severity | Finding | Suggestion |\n|------------|----------|---------|-------------|\n| approach   | medium   | The mapping between individual requirements and their corresponding `work_completed` records is not described. The mini‑plan mentions parsing adopted requirements and treating a `work_completed` as **Recorded**, but it does not define how each requirement is linked to its completion event. Without a join key (e.g., requirement ID), the status can be misassigned. | Explicitly define the join: match the requirement identifier in the adopted‑spec row to the requirement identifier stored in the `work_completed` event. Add tests for missing, duplicate, and orphaned matches. |\n| approach   | medium   | The precedence wording lists `Planned` before `No requirement changed`, which could lead a developer to mark an explicit `spec_impact: none` as Planned, violating the acceptance criteria. | Restructure the decision tree: `work_completed` → Recorded; `spec_impact: none` (from either source) → No requirement changed; explicit impact section with a value → Planned; otherwise → Discovering. Include a dedicated test for `spec_impact: none`. |\n| risk       | low      | Iterate Mission centre card now uses `MissionContext.runId` and may assume the runId is always present. If a legacy iterate mission lacks this context, the rendering could crash or show an invalid identity. | Add a guard: if `MissionContext.runId` is missing for an iterate mission, fall back to the existing task‑pipeline lookup and log a warning. This keeps existing data safe. |\n| edge‑case  | low      | Test result classification for “malformed” or “partial” counts is undetailed. A corrupt test‑count field (non‑numeric, negative, missing) or a count that is less than the defined total could still produce a gate “pass” from the producer and be displayed as Passed, greenwashing the result. | Implement explicit validation: if `testCount` is not a positive integer, or  […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The stated precedence rules conflict for authoritative sources. The plan says `work_completed` is the only source that can produce **Recorded**, but also says an explicit `spec_impact: none` from “either authoritative source” always produces **No requirement changed**. A stale adopted spec saying `none` could therefore override a completed record that lists a recorded requirement, incorrectly hiding completion evidence.  \n   **Suggestion:** Define a complete source matrix with a single ordering for conflicting records. In particular, make terminal `work_completed` evidence authoritative for a completed Mission; only use adopted-spec `none` when no terminal completion record exists. Add conflict fixtures covering recorded-vs-planned, recorded-vs-none, planned-vs-none, and malformed newer source fallback.\n\n2. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The plan assumes the adopted-spec row reliably contains ID, title, plain-language description, area, fold provenance, and a source anchor, but does not identify the existing schema/versioning and fallback behavior when older or partial records lack these fields. The specification requires all of these requirement-detail fields.  \n   **Suggestion:** Confirm the actual event/spec schemas and explicitly map each displayed field to its source. Define safe rendering for absent optional fields without inventing values, and decide whether an incomplete requirement row is “usable” for lifecycle classification. Add compatibility fixtures for older/partial adopted specs and work-completed records.\n\n3. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** The test-result state mapping is still underspecified. “unknown/all-skipped/malformed/partial → No reliable result or Needs attention” does not establish which condition maps to which user-facing state, nor how mixed outcomes behave (for example, passed tests plus […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      },
+      "model_tier": "sonnet"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-11T07:28:15.136506+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-11T07:28:52.582225+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-11T08:49:51.484827+00:00",
+      "disposition": "authorized OpenRouter runner returned no observable result after repeated isolated-worktree attempts; internal code-reviewer completed",
+      "recorded_by": "external-review-runner",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-11T06:58:07.446995+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-11T08:49:51.691875+00:00",
+      "disposition": "shipwright-plan opus-plan-reviewer is not available in this session; external plan review and required internal cascade completed",
+      "recorded_by": "iterate",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

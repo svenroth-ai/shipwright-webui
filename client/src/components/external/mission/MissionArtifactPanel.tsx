@@ -83,37 +83,42 @@ export function MissionArtifactPanel({ taskId, artifact, onClose }: Props) {
         data-testid="mission-artifact-panel"
         data-node={artifact.kind}
       >
-        <div className="a-tools">
-          <button
-            type="button"
-            className="a-popout"
-            onClick={() => setPopoutOpen(true)}
-            data-testid="artifact-popout"
-            title="Expand to a larger view"
-          >
-            <ExternalLink size={13} aria-hidden="true" />
-            Pop out
-          </button>
-          <button
-            ref={closeRef}
-            type="button"
-            className="a-close"
-            onClick={onClose}
-            aria-label="Close"
-            data-testid="artifact-close"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-
-        <span className="eyebrow">{artifact.label}</span>
+        <header className="a-header" data-testid="artifact-header">
+          <div className="a-heading">
+            <span className="eyebrow">Artifact</span>
+            <h3>{artifact.label}</h3>
+            {artifact.summary ? <p className="a-body" data-testid="artifact-summary">{artifact.summary}</p> : null}
+          </div>
+          <div className="a-tools">
+            <button
+              type="button"
+              className="a-popout"
+              onClick={() => setPopoutOpen(true)}
+              data-testid="artifact-popout"
+              title="Expand to a larger view"
+            >
+              <ExternalLink size={13} aria-hidden="true" />
+              Pop out
+            </button>
+            <button
+              ref={closeRef}
+              type="button"
+              className="a-close"
+              onClick={onClose}
+              aria-label="Close"
+              data-testid="artifact-close"
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        </header>
         {/* While the pop-out is open the modal renders the SAME body. Rendering
             it here too would put a document's heading ids (rehype-slug) in the
             DOM twice — duplicate ids that break in-doc anchor nav inside the
             modal (an anchor would resolve to the occluded inline copy). The
             inline panel sits behind the modal overlay anyway, so drop its body
             until the modal closes (external review — duplicate-render). */}
-        {popoutOpen ? null : <MissionArtifactBody taskId={taskId} artifact={artifact} />}
+        {popoutOpen ? null : <MissionArtifactBody taskId={taskId} artifact={artifact} showSummary={false} />}
       </aside>
 
       <MissionArtifactModal

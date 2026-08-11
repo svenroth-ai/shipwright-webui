@@ -16,6 +16,12 @@ function isGenuinelyAllSkipped(passed: number | null, total: number | null, skip
   return isNonNegInt(passed) && passed === 0 && isNonNegInt(total) && total > 0 && skipped === total;
 }
 
+export function hasReliableTestCounts(passed: number | null | undefined, total: number | null | undefined, skipped: number | null | undefined): boolean {
+  const isNonNegInt = (n: number | null | undefined): n is number => typeof n === "number" && Number.isInteger(n) && n >= 0;
+  return isNonNegInt(passed) && isNonNegInt(total) && passed <= total &&
+    (skipped == null || (isNonNegInt(skipped) && skipped <= total));
+}
+
 /** Null when nothing citable was recorded. */
 export function testsResultText(results: MissionTests | null | undefined): string | null {
   if (!results) return null;
@@ -24,24 +30,26 @@ export function testsResultText(results: MissionTests | null | undefined): strin
   if ((passed ?? 0) === 0 && (total ?? 0) === 0) return null;
   const word = (n: number): string => (n === 1 ? "test" : "tests");
   if (passed != null && total != null) {
+    if (!hasReliableTestCounts(passed, total, skipped)) {
+      return "No reliable result — the recorded test counts are incomplete or invalid";
+    }
     // `unknown` with BOTH fields present = nothing citable despite full data
     // — never "passing" text (doubt review, MEDIUM). A partial record (only
     // ONE field) is a DIFFERENT "unknown" — the fallbacks below, unchanged.
     if (gate === "unknown") {
       return isGenuinelyAllSkipped(passed, total, skipped)
-        ? `All ${total} collected ${word(total)} were skipped — none ran`
-        : "No test result recorded";
+        ? `Needs attention — all ${total} collected ${word(total)} were skipped, so none ran`
+        : "No reliable result — the recorded test counts are incomplete or invalid";
     }
     // `gate` is pre-resolved — never re-derive from passed===total. A skipped
     // green run is disclosed, not rounded up to "All N passing" (code review).
     if (gate === "pass" && (skipped ?? 0) > 0) {
-      return `${passed} of ${total} ${word(total)} passing (${skipped} skipped)`;
+      return `Passed — ${passed} of ${total} ${word(total)} passing (${skipped} skipped)`;
     }
     return gate === "pass"
-      ? `All ${total} ${word(total)} passing`
-      : `${passed} of ${total} ${word(total)} passing`;
+      ? `Passed — all ${total} ${word(total)} passing`
+      : `Failed — ${passed} of ${total} ${word(total)} passing`;
   }
-  if (total != null) return `${total} ${word(total)} recorded`;
-  if (passed != null) return `${passed} ${word(passed)} passing`;
+  if (total != null || passed != null) return "No reliable result — the run recorded only part of its test counts";
   return null;
 }
