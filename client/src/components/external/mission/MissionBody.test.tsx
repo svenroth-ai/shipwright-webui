@@ -92,7 +92,7 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     expect(screen.queryByTestId("artifact-scrim")).not.toBeInTheDocument();
   });
 
-  it("a live session with no run row narrates the JSONL, NOT 'No run data yet' (AC1)", () => {
+  it("a live session with no run row shows the activity feed, NOT 'No run data yet'", () => {
     missionStateMock.mockReturnValue("live");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
     const transcript = JSON.stringify({
@@ -100,16 +100,9 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
       message: { content: [{ type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } }] },
     });
     setup(transcript);
-    // The middle is the told story, not the verdict banner / "No run data yet".
-    // FR-01.68 replaced the `mission-narration-summary` line and the mechanical
-    // per-step list ("Editing login.tsx") with prose: one edit to a product file
-    // reads as work done, not as a filename.
-    expect(screen.getByTestId("mission-narration")).toBeInTheDocument();
-    expect(screen.getByTestId("mission-narration")).toHaveTextContent(
-      "One file was then changed.",
-    );
-    expect(screen.queryByTestId("mission-narration-summary")).not.toBeInTheDocument();
-    expect(screen.getByTestId("mission-narration")).not.toHaveTextContent("login.tsx");
+    expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
+    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("implementation was updated");
+    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
     expect(screen.queryByText(/No run data yet/i)).not.toBeInTheDocument();
     // The left panel shows the business summary + the inferred stage.
     expect(screen.getByTestId("mission-summary")).toHaveTextContent("Survey the hull");
@@ -120,8 +113,7 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
     setup("");
-    expect(screen.getByTestId("mission-narration")).toHaveAttribute("data-empty", "true");
-    expect(screen.getByTestId("mission-narration")).toHaveTextContent(/waiting/i);
+    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent(/waiting/i);
     // Stage is "—" when it cannot be derived (never guessed).
     expect(screen.getByTestId("mission-stage")).toHaveAttribute("data-stage", "none");
     expect(screen.getByTestId("mission-stage-none")).toBeInTheDocument();
@@ -131,12 +123,9 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse });
     setup("");
-    // FR-01.68 AC10: the verdict is KEPT and the story is added beneath it, so a
-    // run reads the same before and after it finishes — only more complete.
-    // (Before FR-01.68 the narration was absent entirely once a run completed.)
     expect(screen.getByTestId("verdict-banner")).toBeInTheDocument();
     expect(screen.getByTestId("mission-completed-stack")).toBeInTheDocument();
-    expect(screen.getByTestId("mission-narration")).toBeInTheDocument();
+    expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
     // The audit trail is preserved as clickable artifact links.
     for (const key of ["req", "spec", "tests", "review", "commit"] as const) {
       expect(screen.getByTestId(`record-node-${key}`)).toBeInTheDocument();

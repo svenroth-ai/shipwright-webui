@@ -31,7 +31,7 @@ import {
 } from "../../../lib/missionArtifacts";
 import { MissionLeftPanel } from "./MissionLeftPanel";
 import { OperationCard } from "./OperationCard";
-import { OperationLive } from "./OperationLive";
+import { MissionActivityFeed } from "./MissionActivityFeed";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { MissionArtifactPanel } from "./MissionArtifactPanel";
 import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
@@ -99,8 +99,13 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     phase: pipelinePhase(context),
     artifactKeys,
     runId: context?.scenario === "iterate" ? context.runId : undefined,
+    context,
   });
-  const activeArtifact = artifacts?.find((a) => a.kind === activeNode) ?? null;
+  // A work-completed run can truthfully be terminal before its commit/PR has
+  // been recorded. The final feed card still opens that delivery detail (which
+  // explains the missing receipt) even though hide-empty omits it from the rail.
+  const activeArtifact = artifacts?.find((a) => a.kind === activeNode)
+    ?? (activeNode === "commit" ? context?.artifacts.find((a) => a.kind === "commit") ?? null : null);
 
   const activeRecordNode =
     activeNode && !artifacts
@@ -233,10 +238,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           ) : completed ? (
             <div className="mc-op-stack" data-testid="mission-completed-stack">
               <OperationCard task={task} context={context} />
-              <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
+              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} />
             </div>
           ) : (
-            <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} />
           )}
         </div>
         <div

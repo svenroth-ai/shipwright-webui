@@ -66,6 +66,16 @@
 }
 .mc-story-link:hover { text-decoration-color: currentColor; }
 .mc-story-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 3px; }
+.mc-feed { gap: 10px; }
+.mc-feed-pinned { display: grid; gap: 4px; flex: 0 0 auto; font-size: 13px; color: var(--body); }
+.mc-feed-pinned strong { color: var(--ink); font-size: 15px; line-height: 1.35; }
+.mc-feed-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mc-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px; display: grid; align-content: start; gap: 9px; }
+.mc-feed-scroll:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
+.mc-feed-card { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: color-mix(in srgb, var(--card) 88%, transparent); font-size: 13px; line-height: 1.5; }
+.mc-feed-card p { margin: 0 0 7px; }.mc-feed-card p:last-child { margin-bottom: 0; }
+.mc-feed-card details { margin-top: 8px; color: var(--muted); }.mc-feed-card summary { cursor: pointer; font-weight: 600; }.mc-feed-card ul { margin: 6px 0 0; padding-left: 18px; }
+.mc-feed-card[data-kind="system"] { border-style: dashed; background: transparent; color: var(--muted); font-size: 12px; }
 .mc-hero .t { color: #5fc9b4; }
 .mc-hero .p { color: #3fbf9a; }
 .mc-hero .r { color: #f08772; }
