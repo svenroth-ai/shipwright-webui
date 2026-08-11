@@ -88,7 +88,7 @@
       "spec_impact_justification": "The change only strengthens the E2E harness and fixture cleanup; Command Center runtime behavior is unchanged.",
       "change_type": "tooling",
       "none_reason": "E2E launcher and test-fixture lifecycle work only; no product requirement behavior changed.",
-      "tests": { "passed": 412, "total": 420, "e2e_run": true }
+      "tests": { "passed": 412, "total": 420, "skipped": 8, "e2e_run": true }
     }
   }
 }
