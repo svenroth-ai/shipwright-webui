@@ -43,7 +43,7 @@ test.describe("TaskDetail title rename + launch sync", () => {
   }) => {
     // Seed a task via API so the test isolates from the create-form UI.
     const create = await request.post("/api/external/tasks", {
-      data: { title: "before-rename", cwd: process.cwd() },
+      data: { title: "before-rename", cwd: process.cwd(), projectId: project.projectId },
     });
     const { task } = (await create.json()) as { task: { taskId: string; title: string } };
     expect(task.title).toBe("before-rename");
@@ -65,9 +65,9 @@ test.describe("TaskDetail title rename + launch sync", () => {
     await page.reload();
     await expect(page.getByTestId("task-title-display")).toHaveText(/after-rename/);
 
-    // Trigger a launch via the new header CTA (iterate 3 section 04 —
-    // LaunchRow / CopyCommandCard deleted). The command is copied to
-    // the clipboard; we assert --name carries the renamed title.
+    // Trigger a launch via the header CTA, then use the explicit manual-copy
+    // menu path. The CTA hands off to the embedded terminal rather than
+    // writing the clipboard directly.
     await context.setExtraHTTPHeaders({
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -82,14 +82,17 @@ test.describe("TaskDetail title rename + launch sync", () => {
       "Awaiting launch",
       { timeout: 5000 },
     );
-    const ps = await page.evaluate(() => navigator.clipboard.readText());
-    expect(ps).toContain("--name 'after-rename'");
-    expect(ps).not.toContain("--name 'before-rename'");
+    await page.getByTestId("task-detail-menu-trigger").click();
+    await page.getByTestId("task-detail-menu-copy-resume-command").click();
+    await expect(page.getByTestId("task-detail-menu-notice")).toHaveAttribute("data-kind", "ok");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain("--name 'after-rename'");
+    expect(copied).not.toContain("--name 'before-rename'");
   });
 
   test("rename via Escape cancels without writing", async ({ page, request }) => {
     const create = await request.post("/api/external/tasks", {
-      data: { title: "escape-cancel", cwd: process.cwd() },
+      data: { title: "escape-cancel", cwd: process.cwd(), projectId: project.projectId },
     });
     const { task } = (await create.json()) as { task: { taskId: string } };
 

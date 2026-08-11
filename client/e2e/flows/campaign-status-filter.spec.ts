@@ -51,7 +51,7 @@ test.describe("Campaigns lane status filter", () => {
     await cleanupProject(request, project);
   });
 
-  test("board shows only active + legacy campaigns; draft, complete, and stale-active-done are hidden", async ({
+  test("board shows active, draft, and legacy campaigns; complete states are hidden", async ({
     page,
   }) => {
     await page.goto("/");
@@ -60,13 +60,12 @@ test.describe("Campaigns lane status filter", () => {
 
     await expect(page.getByTestId("campaign-lane-card-2026-06-03-active")).toBeVisible();
     await expect(page.getByTestId("campaign-lane-card-2026-06-03-legacy")).toBeVisible();
-    await expect(page.getByTestId("campaign-lane-card-2026-06-03-draft")).toHaveCount(0);
+    await expect(page.getByTestId("campaign-lane-card-2026-06-03-draft")).toBeVisible();
     await expect(page.getByTestId("campaign-lane-card-2026-06-03-complete")).toHaveCount(0);
     // Regression guard (2026-06-05): an `active` campaign at done==total is hidden.
     // The fixture must seed `2026-06-03-active-done` (status "active", 2/2).
     await expect(page.getByTestId("campaign-lane-card-2026-06-03-active-done")).toHaveCount(0);
 
-    // exactly the two expected cards render (active + legacy)
-    await expect(page.getByTestId(/^campaign-lane-card-/)).toHaveCount(2);
+    await expect(page.getByTestId(/^campaign-lane-card-/)).toHaveCount(3);
   });
 });

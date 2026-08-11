@@ -41,7 +41,7 @@ test.describe("TaskDetail Launch CTA", () => {
 
     const title = `e2e-launch-${Date.now()}`;
     const create = await request.post("/api/external/tasks", {
-      data: { title, cwd: process.cwd() },
+      data: { title, cwd: process.cwd(), projectId: project.projectId },
     });
     expect(create.status()).toBe(200);
     const { task } = (await create.json()) as { task: { taskId: string } };

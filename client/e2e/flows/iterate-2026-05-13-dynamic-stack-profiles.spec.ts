@@ -17,7 +17,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("iterate-2026-05-13 — dynamic stack-profile rendering (FR-01.03)", () => {
-  test("Stack Profile step renders all bundled profiles + Custom sentinel", async ({
+  test("guided new-project flow derives the persistent Stack Profile from the selected answers", async ({
     page,
   }) => {
     await page.goto("/projects");
@@ -25,37 +25,42 @@ test.describe("iterate-2026-05-13 — dynamic stack-profile rendering (FR-01.03)
     // Open the wizard via the testid'd "Create Project" CTA.
     await page.getByTestId("projects-create-button").click();
 
-    // Wait for the wizard modal to mount.
-    await expect(page.getByTestId("wizard-modal")).toBeVisible();
+    await expect(page).toHaveURL(/\/wizard$/);
 
-    // Step 1: fill name + path so we can advance.
-    await page.getByPlaceholder("My Awesome App").fill("Test Dynamic Profiles");
-    const pathInput = page
-      .getByPlaceholder(/Users|home|projects/)
-      .first();
-    await pathInput.fill("C:/tmp/test-dynamic-profiles");
+    await expect(page.getByTestId("intent-wizard")).toBeVisible();
+    await page.getByTestId("wizard-door-new").click();
+    await page.getByTestId("wizard-brief-input").fill("Test Dynamic Profiles");
+    await page.getByTestId("wizard-next").click();
+    await page.getByTestId("wizard-opt-who").getByText("Just me").click();
+    await page.getByTestId("wizard-next").click();
+    await page.getByTestId("wizard-opt-remember").getByText("Yes").click();
+    await page.getByTestId("wizard-next").click();
+    await page.getByTestId("wizard-opt-where").getByText("On the web").click();
     await page.getByTestId("wizard-next").click();
 
-    // Step 2: Stack Profile — the new dynamic step.
-    await expect(page.getByText(/Stack & Profile/)).toBeVisible();
+    // The intent wizard superseded the old profile-card picker. Its plan card
+    // must still surface the selected stack and retain the deploy-secret cue.
+    const plan = page.getByTestId("wizard-plan-card");
+    await expect(plan).toBeVisible();
+    await expect(plan).toContainText("supabase-nextjs");
+    await expect(page.getByTestId("wizard-plan-envvars")).toBeVisible();
+  });
 
-    // AC-1: all bundled profiles render. Server resolves
-    // server/profiles/{supabase-nextjs,vite-hono,python-plugin-monorepo}.json
-    // (refreshed in this iterate). Custom is always last.
-    await expect(
-      page.getByTestId("stack-profile-card-supabase-nextjs"),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("stack-profile-card-vite-hono"),
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("stack-profile-card-python-plugin-monorepo"),
-    ).toBeVisible();
-    await expect(page.getByTestId("stack-profile-card-custom")).toBeVisible();
+  test("guided new-project flow selects the local Stack Profile when persistence is not needed", async ({ page }) => {
+    await page.goto("/wizard");
+    await expect(page.getByTestId("intent-wizard")).toBeVisible();
+    await page.getByTestId("wizard-door-new").click();
+    await page.getByTestId("wizard-brief-input").fill("Local-only test project");
+    await page.getByTestId("wizard-next").click();
+    await page.getByTestId("wizard-opt-who").getByText("Just me").click();
+    await page.getByTestId("wizard-next").click();
+    await page.getByRole("button", { name: "No", exact: true }).click();
+    await page.getByTestId("wizard-next").click();
+    await page.getByTestId("wizard-opt-where").getByText("Just on my machine").click();
+    await page.getByTestId("wizard-next").click();
 
-    // AC-2: clicking vite-hono updates selection (border-primary class).
-    const viteHonoCard = page.getByTestId("stack-profile-card-vite-hono");
-    await viteHonoCard.click();
-    await expect(viteHonoCard).toHaveClass(/border-\[var\(--color-primary\)\]/);
+    const plan = page.getByTestId("wizard-plan-card");
+    await expect(plan).toContainText("vite-hono");
+    await expect(page.getByTestId("wizard-plan-envvars")).toHaveCount(0);
   });
 });

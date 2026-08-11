@@ -93,14 +93,19 @@ test.describe("Spec 76 — auto-launch reader→writer race", () => {
   test.setTimeout(180_000);
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "76-autolaunch-reader-writer-race" });
+    project = await seedProject(request, {
+      name: "76-autolaunch-reader-writer-race",
+      // The launch matrix uses normal Shipwright actions, which an
+      // un-adopted project intentionally hides behind /shipwright-adopt.
+      adopted: true,
+    });
     await setActiveProject(page, project.projectId);
   });
   test.afterEach(async ({ request }) => {
     await cleanupProject(request, project);
   });
 
-  test("Pure Claude (new-plain) Save → TaskCard Launch ×3", async ({ page, request }) => {
+  test("Pure Claude (new-plain) Save → TaskCard auto-launch ×3", async ({ page, request }) => {
     const results: Outcome[] = [];
     const created: string[] = [];
 
@@ -146,7 +151,7 @@ test.describe("Spec 76 — auto-launch reader→writer race", () => {
     ]);
   });
 
-  test("New Task direct-Launch from NewIssueModal ×3", async ({ page, request }) => {
+  test("New Task modal auto-launch ×3", async ({ page, request }) => {
     const results: Outcome[] = [];
     const created: string[] = [];
 
@@ -191,7 +196,7 @@ test.describe("Spec 76 — auto-launch reader→writer race", () => {
     ]);
   });
 
-  test("Save → Backlog → TaskCard Launch (new-task) ×3", async ({ page, request }) => {
+  test("Save → Backlog → TaskCard auto-launch (new-task) ×3", async ({ page, request }) => {
     const results: Outcome[] = [];
     const created: string[] = [];
 

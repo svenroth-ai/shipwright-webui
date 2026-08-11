@@ -16,9 +16,10 @@
 import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { API_BASE } from "../helpers/env";
 import { test, expect } from "@playwright/test";
+import { writeFileSync } from "node:fs";
+import path from "node:path";
 
 const BASE = API_BASE;
-const PID = process.env.PROJECT_ID ?? "";
 const RAMP_LEN = 100;
 
 test.describe("Flow J — /media video streaming", () => {
@@ -28,6 +29,8 @@ test.describe("Flow J — /media video streaming", () => {
 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "70-j-media-route" });
+    writeFileSync(path.join(project.path, "clip.mp4"), Buffer.from([...Array(RAMP_LEN).keys()]));
+    writeFileSync(path.join(project.path, "README.md"), "fixture\n", "utf8");
     await setActiveProject(page, project.projectId);
   });
 
@@ -37,7 +40,7 @@ test.describe("Flow J — /media video streaming", () => {
 
   test("real-server Range request → 206 byte-exact slice", async ({ request }) => {
     const res = await request.get(
-      `${BASE}/api/external/projects/${PID}/media?path=clip.mp4`,
+      `${BASE}/api/external/projects/${project.projectId}/media?path=clip.mp4`,
       { headers: { Range: "bytes=10-19" } },
     );
     expect(res.status()).toBe(206);
@@ -52,7 +55,7 @@ test.describe("Flow J — /media video streaming", () => {
 
   test("full GET → 200 + Accept-Ranges + video/mp4", async ({ request }) => {
     const res = await request.get(
-      `${BASE}/api/external/projects/${PID}/media?path=clip.mp4`,
+      `${BASE}/api/external/projects/${project.projectId}/media?path=clip.mp4`,
     );
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toBe("video/mp4");
@@ -61,7 +64,7 @@ test.describe("Flow J — /media video streaming", () => {
 
   test("non-video extension → 415", async ({ request }) => {
     const res = await request.get(
-      `${BASE}/api/external/projects/${PID}/media?path=README.md`,
+      `${BASE}/api/external/projects/${project.projectId}/media?path=README.md`,
     );
     expect(res.status()).toBe(415);
   });
@@ -73,7 +76,7 @@ test.describe("Flow J — /media video streaming", () => {
     page.on("response", (r) => {
       if (r.url().includes("/media?path=")) mediaStatuses.push(r.status());
     });
-    await page.goto(`${BASE}/preview?projectId=${PID}&path=clip.mp4`);
+    await page.goto(`${BASE}/preview?projectId=${project.projectId}&path=clip.mp4`);
 
     // VideoRenderer rendered — the <video> element, or (for a non-decodable
     // synthetic clip) its onError fallback chip. Either proves the SmartViewer

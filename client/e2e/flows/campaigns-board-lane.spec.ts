@@ -82,6 +82,8 @@ test.describe("Campaigns lane on the Task Board", () => {
     await expect(launch).toBeEnabled();
     await expect(launch).toHaveText(/Launch \(B1\)/);
     await launch.click();
+    await expect(page.getByTestId(`campaign-step-dialog-${SLUG}`)).toBeVisible();
+    await page.getByTestId(`campaign-step-confirm-${SLUG}`).click();
     await page.waitForURL(/\/tasks\/[0-9a-f-]{36}$/, { timeout: 10000 });
   });
 });

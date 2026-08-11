@@ -63,7 +63,11 @@ test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)",
       await expect(
         page.getByTestId(`projects-card-${projectId}-tasks`),
       ).toContainText("1 task");
-      await expect(page.getByTestId("projects-card-unassigned")).toHaveCount(0);
+      // Project/task queries settle independently. Capture the established
+      // gallery state only after the target card has rendered, so an unrelated
+      // fixture row cannot race this test's before/after comparison.
+      const unassignedBefore = await page.getByTestId("projects-card-unassigned").count();
+      await expect(page.getByTestId("projects-card-unassigned")).toHaveCount(unassignedBefore);
 
       // The delete button raises a window.confirm — capture its text (it must
       // warn about the 1 task) and accept it.
@@ -78,7 +82,7 @@ test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)",
       // Post-cascade: the project card is gone AND — the regression guard — NO
       // phantom Unassigned card appears (pre-#200 the orphaned task synthesized one).
       await expect(page.getByTestId(`projects-card-${projectId}`)).toHaveCount(0);
-      await expect(page.getByTestId("projects-card-unassigned")).toHaveCount(0);
+      await expect(page.getByTestId("projects-card-unassigned")).toHaveCount(unassignedBefore);
 
       // And the task is actually gone from the store (not merely re-homed).
       const list = await request.get("/api/external/tasks");

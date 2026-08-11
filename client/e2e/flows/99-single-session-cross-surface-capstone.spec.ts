@@ -125,19 +125,12 @@ async function openBoard(page: Page, projectId: string): Promise<void> {
   await expect(page.getByTestId("task-board-page")).toBeVisible();
 }
 
-/** A terminal-WS `{type:"data"}` tx frame (after `afterMs`) that is a launch
- *  command. Keys on the STABLE `claude --session-id` marker (like C5's
- *  launchSendForTask) — NOT on `/shipwright-run` — so the command-content
- *  assertions below do the real proving: a regression that drops `/shipwright-run`
- *  then fails FAST on `toContain` (wrong command) rather than as a 30 s
- *  awaitFrame timeout indistinguishable from "no frame delivered at all". */
+/** A terminal-WS `{type:"data"}` tx frame (after `afterMs`) that is a launch command. */
 function launchDataFrame(cap: WsCapture, taskId: string, afterMs: number) {
-  return (f: CapturedFrame, env: Record<string, unknown> | null): boolean => {
-    if (f.kind !== "tx") return false;
-    if (env?.type !== "data") return false;
-    if (f.ts < afterMs) return false;
-    const sock = cap.sockets.get(f.socketId);
-    if (!sock || !isTerminalSocket(sock.url, taskId)) return false;
+  return (frame: CapturedFrame, env: Record<string, unknown> | null): boolean => {
+    if (frame.kind !== "tx" || env?.type !== "data" || frame.ts < afterMs) return false;
+    const socket = cap.sockets.get(frame.socketId);
+    if (!socket || !isTerminalSocket(socket.url, taskId)) return false;
     const payload = (env as { payload?: unknown }).payload;
     return typeof payload === "string" && payload.includes("claude --session-id");
   };
@@ -199,6 +192,7 @@ test.describe("Flow 99 — single-session cross-surface capstone (W4)", () => {
 
     // The cross-surface assertion: the SERVER-BUILT master command lands in the
     // terminal over its live WS — the board handed off exactly what runs.
+    await expect(page.getByTestId("embedded-terminal")).toHaveAttribute("data-ws-ready", "true");
     const launch = await awaitFrame(page, cap, launchDataFrame(cap, taskId, clickAt), {
       timeoutMs: 30_000,
     });

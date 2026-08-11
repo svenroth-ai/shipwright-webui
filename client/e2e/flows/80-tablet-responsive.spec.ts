@@ -226,9 +226,9 @@ test.describe("Terminal survives a breakpoint crossing (P1b — C1 guard)", () =
 test.describe("Desktop non-regression (≥1024px)", () => {
   test.use({ viewport: DESKTOP });
 
-  test("sidebar is expanded (brand label visible)", async ({ page }) => {
+  test("sidebar is expanded (brand logo visible)", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Shipwright")).toBeVisible();
+    await expect(page.getByTestId("sidebar-brand-logo")).toBeVisible();
     await expect(page.getByRole("button", { name: /expand sidebar/i })).toHaveCount(0);
   });
 

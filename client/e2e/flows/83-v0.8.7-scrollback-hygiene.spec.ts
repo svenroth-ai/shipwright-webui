@@ -41,7 +41,6 @@ let project: SeededProject;
 
 // User's local active project — same value used by Spec 82.
 
-const STOP_MARKER_SUBSTRING = "──── shell stopped at";
 
 async function makeTaskCwd(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "v087-spec83-"));
@@ -218,7 +217,7 @@ test.describe("Spec 83 — v0.8.7 scrollback hygiene + new-plain idle", () => {
     }
   });
 
-  test("AC-2 (replay accumulator): single kill→respawn surfaces marker via accumulator", async ({
+  test("AC-2 (replay storage): repeated kill→respawn keeps markers on disk", async ({
     page,
     request,
   }) => {
@@ -226,12 +225,8 @@ test.describe("Spec 83 — v0.8.7 scrollback hygiene + new-plain idle", () => {
     // signal in production — pty2's startup `\x1b[2J\x1b[H` (clear-screen
     // + cursor-home) wipes the replay-painted content immediately after
     // replay_end fires, so a buffer scan returns 0 markers in the live
-    // app. The CORRECT measurement is the same one EmbeddedTerminal uses
-    // for AC-4: count markers in the cumulative replay-payload string
-    // (`replayAccumulatorRef`). We piggy-back on the AC-4 footer for
-    // this — but AC-4 only renders at N≥2, so we trigger TWO close
-    // cycles here to get the footer to confirm the marker reached
-    // xterm via WS.
+    // app. The retired replay accumulator/footer is therefore not a stable
+    // browser surface; this fixture verifies the durable disk contract.
     const cwd = await makeTaskCwd();
     const taskId = await createAndLaunch(request, cwd, "ac2-replay-acc");
     try {
@@ -268,18 +263,18 @@ test.describe("Spec 83 — v0.8.7 scrollback hygiene + new-plain idle", () => {
       const onDisk = await readScrollbackFile(taskId);
       expect(countMarkers(onDisk)).toBeGreaterThanOrEqual(2);
 
-      // Footer only renders at N≥2; its presence proves replay carried
-      // the markers all the way through to the AC-4 accumulator.
+      // The historical accumulator footer was removed.  Its absence ensures
+      // this regression fixture does not reintroduce the retired UI surface.
       await expect(
         page.getByTestId("embedded-terminal-stopped-sessions-footer"),
-      ).toBeVisible({ timeout: 5_000 });
+      ).toHaveCount(0);
     } finally {
       await deleteTask(request, taskId);
       await cleanupCwd(cwd);
     }
   });
 
-  test("AC-3 + AC-4: ≥3 kill→respawn cycles produce footer + collapse on replay", async ({
+  test("AC-3: ≥3 kill→respawn cycles retain durable scrollback markers", async ({
     page,
     request,
   }) => {
@@ -308,56 +303,19 @@ test.describe("Spec 83 — v0.8.7 scrollback hygiene + new-plain idle", () => {
         await page.waitForTimeout(800);
       }
 
-      // Final visit — replay-on-attach paints all markers in the
-      // xterm buffer, AC-4 footer counts them.
+      // Final visit verifies that the terminal remains attachable after the
+      // repeated close cycles.
       await page.goto(`/tasks/${taskId}`);
       await expect(
         page.getByTestId("embedded-terminal"),
       ).toHaveAttribute("data-ws-ready", "true", { timeout: 15_000 });
       await page.waitForTimeout(3_500);
 
-      // Count markers visible in the buffer (AC-2 emission verification).
-      const markerCount = await page.evaluate(({ marker }) => {
-        const term = (
-          window as unknown as {
-            __embeddedTerminal?: {
-              buffer: {
-                active: {
-                  length: number;
-                  getLine(i: number): { translateToString(t?: boolean): string } | undefined;
-                };
-              };
-            } | null;
-          }
-        ).__embeddedTerminal;
-        if (!term) return -1;
-        let count = 0;
-        for (let i = 0; i < term.buffer.active.length; i++) {
-          const line = term.buffer.active.getLine(i);
-          if (line && line.translateToString(true).includes(marker)) {
-            count++;
-          }
-        }
-        return count;
-      }, { marker: STOP_MARKER_SUBSTRING });
-      // Cycles can vary slightly under timing; we expect ≥2 markers.
-      expect(markerCount).toBeGreaterThanOrEqual(2);
-
-      // AC-4: footer rendered with N markers count.
-      const footer = page.getByTestId("embedded-terminal-stopped-sessions-footer");
-      await expect(footer).toBeVisible({ timeout: 5_000 });
-      const footerText = (await footer.textContent()) ?? "";
-      // German UI copy: "Scrollback enthält N beendete Shell-Sessions"
-      expect(footerText.toLowerCase()).toContain("beendete shell-sessions");
-      // The number embedded in the copy reflects markerCount.
-      const m = footerText.match(/(\d+)\s+beendete/i);
-      expect(m).not.toBeNull();
-      expect(Number(m?.[1])).toBeGreaterThanOrEqual(2);
-
-      // AC-4 button is reachable.
+      const onDisk = await readScrollbackFile(taskId);
+      expect(countMarkers(onDisk)).toBeGreaterThanOrEqual(3);
       await expect(
-        page.getByTestId("embedded-terminal-clear-history-button"),
-      ).toBeVisible();
+        page.getByTestId("embedded-terminal-stopped-sessions-footer"),
+      ).toHaveCount(0);
     } finally {
       await deleteTask(request, taskId);
       await cleanupCwd(cwd);

@@ -68,9 +68,11 @@ test.describe("Campaign single-step launch from the board", () => {
     await expect(launchBtn).toHaveText(/Launch \(B1\)/);
     await expect(launchBtn).toBeEnabled();
 
-    // Ordinary (non-risky) step → one click launches directly, NO dialog.
+    // Every campaign step is now confirmed before it creates a task.  The
+    // confirmation is the ownership boundary for the server-side launch.
     await launchBtn.click();
-    await expect(page.getByTestId(`campaign-step-dialog-${SLUG}`)).toHaveCount(0);
+    await expect(page.getByTestId(`campaign-step-dialog-${SLUG}`)).toBeVisible();
+    await page.getByTestId(`campaign-step-confirm-${SLUG}`).click();
 
     // REAL create + server campaign-step launch branch + navigate.
     await expect(page).toHaveURL(/\/tasks\/[0-9a-fA-F-]{6,}/, { timeout: 15000 });

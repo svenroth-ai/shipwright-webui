@@ -15,11 +15,12 @@
     "lint": "oxlint .",
     "typecheck": "tsc --noEmit",
     "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
-    "test:e2e": "playwright test --project=chromium --project=mobile-chromium",
-    "test:e2e:smoke": "playwright test --project=chromium --grep @smoke",
-    "test:e2e:quarantine": "playwright test --project=quarantine",
-    "test:visual": "playwright test --project=visual",
-    "test:visual:update": "playwright test --project=visual --update-snapshots"
+    "test:e2e": "node e2e/isolated-stack.mjs --project=chromium --project=mobile-chromium --project=schema-isolated",
+    "test:e2e:smoke": "node e2e/isolated-stack.mjs --project=chromium --grep @smoke",
+    "test:e2e:quarantine": "node e2e/live-quarantine.mjs",
+    "test:e2e:harness": "node --test scripts/isolated-stack.node-test.mjs",
+    "test:visual": "node e2e/isolated-stack.mjs --project=visual",
+    "test:visual:update": "node e2e/isolated-stack.mjs --project=visual --update-snapshots"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

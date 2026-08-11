@@ -46,7 +46,7 @@ test.describe("TerminalLaunchButton — clipboard --name shape", () => {
     });
 
     const create = await request.post("/api/external/tasks", {
-      data: { title: "clipboard-name-spec", cwd: process.cwd() },
+      data: { title: "clipboard-name-spec", cwd: process.cwd(), projectId: project.projectId },
     });
     const { task } = (await create.json()) as { task: { taskId: string } };
 

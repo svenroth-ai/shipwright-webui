@@ -52,8 +52,9 @@ test.describe("Replay width-mismatch fidelity (read-only/narrow re-attach)", () 
     request,
   }) => {
     const suffix = Date.now();
+    const projectCwd = await makeTaskCwd("replay-width-e2e-");
     const proj = await request.post("/api/projects", {
-      data: { name: `replay-width-${suffix}`, path: process.cwd(), profile: "default", status: "active" },
+      data: { name: `replay-width-${suffix}`, path: projectCwd, profile: "default", status: "active" },
     });
     expect(proj.ok()).toBeTruthy();
     const { data: p } = (await proj.json()) as { data: { id: string } };
@@ -102,6 +103,7 @@ test.describe("Replay width-mismatch fidelity (read-only/narrow re-attach)", () 
       if (taskId) await request.delete(`/api/external/tasks/${encodeURIComponent(taskId)}`).catch(() => {});
       await request.delete(`/api/projects/${p.id}`).catch(() => {});
       await cleanupCwd(cwd);
+      await cleanupCwd(projectCwd);
     }
   });
 });

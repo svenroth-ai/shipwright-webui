@@ -33,8 +33,10 @@
  */
 
 import { API_BASE } from "../helpers/env";
+import { cleanupProject, seedProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 
+let fixtureProject: SeededProject;
 
 interface ProjectView {
   id: string;
@@ -43,22 +45,10 @@ interface ProjectView {
   synthesized?: boolean;
 }
 
-async function pickRealProject(
-  request: APIRequestContext,
-): Promise<ProjectView> {
-  const res = await request.get(`${API_BASE}/api/projects`);
-  expect(res.ok(), `GET /api/projects: ${res.status()}`).toBeTruthy();
-  const body = (await res.json()) as { data?: ProjectView[] };
-  const projects = body.data ?? [];
-  // Prefer the WebUI project (it's adopted + always has a real path).
-  const webui = projects.find(
-    (p) => !p.synthesized && p.path && /shipwright-webui$/i.test(p.path),
-  );
-  if (webui) return webui;
-  // Fallback: first non-synthesized project with a path.
-  const any = projects.find((p) => !p.synthesized && p.path);
-  if (!any) throw new Error("No registered project with a path is available");
-  return any;
+async function pickRealProject(_request: APIRequestContext): Promise<ProjectView> {
+  // This suite used to borrow the operator's adopted WebUI project.  Give each
+  // test its own adopted temp project so the matrix runs with an empty registry.
+  return { id: fixtureProject.projectId, name: fixtureProject.name, path: fixtureProject.path };
 }
 
 interface CreateOpts {
@@ -118,6 +108,14 @@ async function getTask(request: APIRequestContext, taskId: string) {
   };
   return body.task;
 }
+
+test.beforeEach(async ({ request }) => {
+  fixtureProject = await seedProject(request, { name: "E2E Spec 75 launch matrix", adopted: true });
+});
+
+test.afterEach(async ({ request }) => {
+  await cleanupProject(request, fixtureProject);
+});
 
 test.describe("Spec 75 — Launch matrix (direct path: full body on /launch)", () => {
   test("new-task direct launch — command contains the phase slash command", async ({

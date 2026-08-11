@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -97,28 +97,49 @@ test.describe("Triage Start Campaign action (FR-01.33)", () => {
       "utf-8",
     );
 
-    // 2. Register the project via the API (server generates id/createdAt).
-    const reg = await request.post("/api/projects", {
-      data: { name: "E2E Start Campaign", path: projectDir, profile: "vite-hono" },
-    });
-    expect(reg.ok()).toBeTruthy();
+    let projectId: string | undefined;
+    try {
+      // 2. Register the project via the API (server generates id/createdAt).
+      const reg = await request.post("/api/projects", {
+        data: { name: "E2E Start Campaign", path: projectDir, profile: "vite-hono" },
+      });
+      expect(reg.ok()).toBeTruthy();
+      projectId = ((await reg.json()) as { data: { id: string } }).data.id;
+      expect(projectId).toBeTruthy();
 
-    // 3. Triage: open the umbrella item's detail modal.
-    await page.goto("/triage");
-    const card = page.getByTestId(`triage-item-${TRIAGE_ID}`);
-    await expect(card).toBeVisible({ timeout: 15000 });
-    await card.click();
-    await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
+      // 3. Triage: open the umbrella item's detail modal.
+      await page.goto("/triage");
+      const card = page.getByTestId(`triage-item-${TRIAGE_ID}`);
+      await expect(card).toBeVisible({ timeout: 15000 });
+      await card.click();
+      await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
 
-    // 4. Start Campaign (draft → active) + auto-navigate to the board.
-    const startBtn = page.getByTestId("triage-start-campaign");
-    await expect(startBtn).toBeVisible();
-    await startBtn.click();
+      // 4. Start Campaign (draft → active) + auto-navigate to the board.
+      const startBtn = page.getByTestId("triage-start-campaign");
+      await expect(startBtn).toBeVisible();
+      await startBtn.click();
 
-    // 5. The board now shows the campaign that was hidden while draft.
-    await expect(page.getByTestId("task-board-page")).toBeVisible({ timeout: 15000 });
-    await expect(page.getByTestId(`campaign-lane-card-${SLUG}`)).toBeVisible({
-      timeout: 15000,
-    });
+      // 5. The board now shows the campaign that was hidden while draft.
+      await expect(page.getByTestId("task-board-page")).toBeVisible({ timeout: 15000 });
+      await expect(page.getByTestId(`campaign-lane-card-${SLUG}`)).toBeVisible({
+        timeout: 15000,
+      });
+    } finally {
+      try {
+        if (projectId) {
+          const deleted = await request.delete(`/api/projects/${encodeURIComponent(projectId)}`);
+          expect(deleted.ok()).toBeTruthy();
+
+          // Regression guard: the owner delete must remove the fixture even when
+          // this spec ran against a persistent stack and an assertion above failed.
+          const projects = await request.get("/api/projects");
+          expect(projects.ok()).toBeTruthy();
+          const body = (await projects.json()) as { data: Array<{ id: string }> };
+          expect(body.data.some((project) => project.id === projectId)).toBe(false);
+        }
+      } finally {
+        rmSync(projectDir, { recursive: true, force: true });
+      }
+    }
   });
 });

@@ -1,18 +1,27 @@
 import { defineConfig, devices } from '@playwright/test';
+import os from 'node:os';
+import path from 'node:path';
 
-// iterate-2026-05-23 (terminal-selection-uxd) — make BASE_URL + webServer
-// env-aware so F0.5 runs against an isolated worktree stack on a custom
-// VITE_PORT. When BASE_URL is set we assume the operator has booted both
-// halves themselves (Hono + Vite); we skip Playwright's webServer
-// auto-spawn entirely (otherwise it tries to start `npm run dev` on the
-// hardcoded :5173 and times out when the live Vite is elsewhere).
+// The ordinary suite runs through e2e/isolated-stack.mjs. It owns a temporary
+// USERPROFILE/HOME and distinct Hono/Vite ports, then exports BASE_URL. A raw
+// BASE_URL is never enough: it used to attach mutable fixtures to the operator's
+// persistent registry. Real-device probes use playwright.quarantine.config.ts,
+// which exposes no mutable default projects.
 //
 // A00 (iterate-2026-07-10-harness-hardening): the default is now IPv4. Node
 // resolves `localhost` to `::1` first while the Hono bind is v4 — a trap this
 // repo has hit repeatedly. Every env-dependent value in the suite is derived in
 // e2e/helpers/env.ts; this file and that helper read the SAME `BASE_URL`.
 const baseURL = process.env.BASE_URL || 'http://127.0.0.1:5173';
-const skipManagedWebServer = Boolean(process.env.BASE_URL);
+const isIsolated = process.env.SHIPWRIGHT_E2E_ISOLATED === '1';
+const profileHome = process.env.USERPROFILE || process.env.HOME || '';
+const relativeToTemp = path.relative(path.resolve(os.tmpdir()), path.resolve(profileHome));
+const temporaryProfile = relativeToTemp === '' || (!relativeToTemp.startsWith('..') && !path.isAbsolute(relativeToTemp));
+if (!isIsolated || !temporaryProfile || process.env.SHIPWRIGHT_E2E_HARNESS !== 'temporary-home') {
+  throw new Error(
+    'Refusing Playwright without the isolated temporary-home harness. Use npm run test:e2e for the isolated suite or the explicit quarantine command for real-device tests.',
+  );
+}
 
 // D05 (F19/F20) — the two ADR-038 schema specs mutate sdk-sessions.json on
 // disk and run ONLY under an isolated temp-USERPROFILE/HOME stack that exports
@@ -26,7 +35,7 @@ const skipManagedWebServer = Boolean(process.env.BASE_URL);
 // existence imply the sentinel, and the spec's self-lock still additionally
 // requires a temp-dir home so a misconfigured run fails loudly.
 const SCHEMA_ISOLATED_SPECS = /(62-schema-migration|70-g-schema-persistence)\.spec\.ts$/;
-const runSchemaIsolated = process.env.SHIPWRIGHT_E2E_ISOLATED === '1';
+const runSchemaIsolated = isIsolated;
 
 // ── A00: QUARANTINE ─────────────────────────────────────────────────────────
 // Specs that CANNOT run against an isolated stack because they assert on a live
@@ -168,14 +177,4 @@ export default defineConfig({
         ]
       : []),
   ],
-  ...(skipManagedWebServer
-    ? {}
-    : {
-        webServer: {
-          command: 'npm run dev',
-          url: 'http://127.0.0.1:5173',
-          reuseExistingServer: true,
-          timeout: 60000,
-        },
-      }),
 });

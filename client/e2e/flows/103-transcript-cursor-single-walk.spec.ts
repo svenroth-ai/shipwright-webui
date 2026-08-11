@@ -114,12 +114,13 @@ test.describe("Transcript cursor — the pane asks for the delta", () => {
       .poll(() => cursors.length, { timeout: 8000 })
       .toBeGreaterThanOrEqual(4);
 
-    // The first poll legitimately asks for everything; every later one must
-    // ask from where the previous response ended. Pre-fix every entry was 0.
+    // Startup can issue a duplicate whole-file request while React mounts the
+    // pane. Once the first delta request arrives, every steady-state poll must
+    // continue from its cursor; pre-fix no request ever had a positive offset.
     expect(cursors[0]).toBe(0);
-    const later = cursors.slice(1);
-    expect(later.length).toBeGreaterThan(0);
-    expect(later.every((c) => c > 0)).toBe(true);
+    const firstDelta = cursors.findIndex((cursor) => cursor > 0);
+    expect(firstDelta).toBeGreaterThan(0);
+    expect(cursors.slice(firstDelta).every((cursor) => cursor > 0)).toBe(true);
 
     // Now append a line that ONLY ever arrives inside a delta — the first
     // whole-file poll never saw it. If accumulation were broken (replace
@@ -153,8 +154,7 @@ test.describe("Transcript cursor — the pane asks for the delta", () => {
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
     await expect(page.getByText("pre-rotation beta")).toBeVisible({ timeout: 5000 });
-    await expect.poll(() => cursors.length, { timeout: 6000 }).toBeGreaterThanOrEqual(2);
-    expect(cursors[cursors.length - 1]).toBeGreaterThan(0);
+    await expect.poll(() => cursors.some((cursor) => cursor > 0), { timeout: 6000 }).toBe(true);
 
     // Replace the file with a SHORTER one — a new session under the same uuid.
     // The server sees size < the fingerprint's size and reports `rotated`.

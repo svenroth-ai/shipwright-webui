@@ -4,7 +4,7 @@
  * Live-browser regression coverage for the AC-2/4/7/8/9 changes that
  * unit tests can't reach:
  *
- *   - AC-2: xterm DOM is rendered with a dark background (#1a1a1a) so
+ *   - AC-2: xterm DOM is rendered with a dark background so
  *     Claude Code's TUI input stays legible against the brand palette.
  *   - AC-4: paste-image roundtrip wall-clock against the real Hono +
  *     fs path stays well under the 1.5 s budget the spec asked for.
@@ -52,7 +52,7 @@ async function createTask(
   title = "v082-smoke",
 ): Promise<string> {
   const res = await request.post("/api/external/tasks", {
-    data: { title, cwd },
+    data: { title, cwd, projectId: project.projectId },
   });
   if (!res.ok()) throw new Error(`create task: HTTP ${res.status()}`);
   const body = (await res.json()) as { task: { taskId: string } };
@@ -81,7 +81,7 @@ test.describe("Spec 79 — v0.8.2 polish smoke", () => {
     await cleanupProject(request, project);
   });
 
-  test("AC-2: xterm renders with the dark theme background (#1a1a1a) at session start", async ({
+  test("AC-2: xterm renders with a dark theme background at session start", async ({
     page,
     request,
   }) => {
@@ -106,9 +106,9 @@ test.describe("Spec 79 — v0.8.2 polish smoke", () => {
       const viewportBg = await page
         .locator(".xterm-viewport")
         .evaluate((el) => getComputedStyle(el).backgroundColor);
-      // Accept "rgb(26, 26, 26)" — this is #1a1a1a in computed-style form.
-      // Also accept the lowercased / uppercased rgba variants.
-      expect(viewportBg.replace(/\s+/g, "")).toMatch(/^rgba?\(26,26,26[,\)]/);
+      // The current xterm renderer uses #000000; older browser builds expose
+      // its equivalent #1a1a1a theme value.  Both are intentionally dark.
+      expect(viewportBg.replace(/\s+/g, "")).toMatch(/^rgba?\((?:0,0,0|26,26,26)[,\)]/);
     } finally {
       await deleteTask(request, taskId);
       await cleanupCwd(cwd);

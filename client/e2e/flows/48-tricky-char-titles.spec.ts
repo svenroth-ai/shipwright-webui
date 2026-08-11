@@ -49,7 +49,7 @@ test.describe("Tricky-char titles — clipboard round-trip", () => {
 
     const trickyTitle = `Test's $weird \`title; & 日本語 ä 🚀`;
     const create = await request.post("/api/external/tasks", {
-      data: { title: trickyTitle, cwd: process.cwd() },
+      data: { title: trickyTitle, cwd: process.cwd(), projectId: project.projectId },
     });
     const { task } = (await create.json()) as { task: { taskId: string; title: string } };
     expect(task.title).toBe(trickyTitle);
