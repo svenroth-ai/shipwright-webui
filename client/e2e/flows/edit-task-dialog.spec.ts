@@ -12,6 +12,16 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Edit Task dialog", () => {
+  const ownedTaskIds: string[] = [];
+
+  test.afterEach(async ({ request }) => {
+    while (ownedTaskIds.length > 0) {
+      const taskId = ownedTaskIds.pop()!;
+      const deleted = await request.delete(`/api/external/tasks/${encodeURIComponent(taskId)}`);
+      expect(deleted.ok(), `task cleanup failed for ${taskId}: ${await deleted.text()}`).toBeTruthy();
+    }
+  });
+
   test("edits a never-started Backlog task — PATCH round-trips + header reflects it", async ({
     page,
     request,
@@ -25,6 +35,7 @@ test.describe("Edit Task dialog", () => {
     });
     expect(create.ok()).toBeTruthy();
     const { task } = (await create.json()) as { task: { taskId: string } };
+    ownedTaskIds.push(task.taskId);
 
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
@@ -78,6 +89,7 @@ test.describe("Edit Task dialog", () => {
       },
     });
     const { task } = (await create.json()) as { task: { taskId: string } };
+    ownedTaskIds.push(task.taskId);
     // Launch → state leaves `draft` + `launchedAt` is set → "started".
     const launch = await request.post(
       `/api/external/tasks/${task.taskId}/launch`,
@@ -109,6 +121,7 @@ test.describe("Edit Task dialog", () => {
       data: { title: "card-edit-e2e", cwd: process.cwd() },
     });
     const { task } = (await create.json()) as { task: { taskId: string } };
+    ownedTaskIds.push(task.taskId);
 
     await page.goto("/");
     await expect(page.getByTestId(`task-card-${task.taskId}`)).toBeVisible();

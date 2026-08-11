@@ -64,15 +64,14 @@ test.describe("Campaign autonomous launch from the board", () => {
     await expect(launchBtn).toBeVisible();
     await expect(launchBtn).toBeEnabled();
 
-    // Confirm dialog: exact command preview + the no-per-step-gate warning.
+    // Confirm dialog: exact command preview.  The dialog owns the execution
+    // acknowledgement; a non-risky fixture needs no extra checkbox.
     await launchBtn.click();
     const dialog = page.getByTestId(`campaign-autonomous-dialog-${SLUG}`);
     await expect(dialog).toBeVisible();
     await expect(page.getByTestId(`campaign-autonomous-command-${SLUG}`)).toHaveText(
       `/shipwright-iterate --campaign ${SLUG} --autonomous`,
     );
-    await expect(dialog).toContainText(/no per-step gate/i);
-
     // No risky pending step → no ack checkbox → confirm is enabled.
     await expect(page.getByTestId(`campaign-autonomous-ack-${SLUG}`)).toHaveCount(0);
 

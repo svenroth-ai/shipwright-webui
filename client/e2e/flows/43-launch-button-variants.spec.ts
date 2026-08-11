@@ -14,7 +14,7 @@
 import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
-test.describe("TerminalLaunchButton — variant consistency", () => {
+test.describe("TerminalLaunchButton — TaskCard launch handoff", () => {
   // A00 — this spec assumed a project already existed on the machine.
   // Without one the board renders no create-menu, no columns, no chip.
   let project: SeededProject;
@@ -36,7 +36,7 @@ test.describe("TerminalLaunchButton — variant consistency", () => {
 
   test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
-  test("compact (TaskBoard) and primary (TaskDetail) emit identical launch commands", async ({
+  test("TaskBoard launch hands off to TaskDetail, where the resume command is copyable", async ({
     page,
     request,
     context,
@@ -50,7 +50,7 @@ test.describe("TerminalLaunchButton — variant consistency", () => {
     // another spec while polling.
     const uniqueTitle = `variant-spec-${Date.now()}`;
     const create = await request.post("/api/external/tasks", {
-      data: { title: uniqueTitle, cwd: process.cwd() },
+      data: { title: uniqueTitle, cwd: process.cwd(), projectId: project.projectId },
     });
     const { task } = (await create.json()) as { task: { taskId: string } };
 
@@ -65,45 +65,21 @@ test.describe("TerminalLaunchButton — variant consistency", () => {
     await expect(compact).toBeVisible({ timeout: 5000 });
     await compact.click();
 
-    // Mutation is async; poll the clipboard up to 5 s for OUR specific
-    // launch command to land. The compact variant has no visible
-    // "Copied" state, so we look for the unique title.
-    let compactClip = "";
-    await expect(async () => {
-      compactClip = await page.evaluate(() => navigator.clipboard.readText());
-      expect(compactClip).toContain(`--name '${uniqueTitle}'`);
-    }).toPass({ timeout: 5000 });
-    // Compact = first launch on a draft task → fresh start, --session-id present.
-    expect(compactClip).toContain("--session-id");
-    expect(compactClip).not.toContain("--resume");
+    // TaskCard actions now hand the command to TaskDetail through
+    // sessionStorage so the embedded terminal can execute it. They never
+    // write the clipboard; that legacy assertion was an A00 suite failure.
+    await expect(page).toHaveURL(new RegExp(`/tasks/${task.taskId}$`));
+    await expect(page.getByTestId("task-state-badge")).toHaveText("Awaiting launch");
 
-    // Primary variant — TaskDetail header. Iterate 3 section 04 replaced
-    // the old `terminal-launch-btn` with the state-dependent CTA. Post
-    // first-launch the task is in awaiting_external_start, so the CTA is
-    // `cta-terminal` (Terminal — re-copy resume command).
+    // The accessible manual-copy path is the TaskDetail header menu. It
+    // exposes the resume command for a different terminal after the handoff.
     await page.evaluate(() => navigator.clipboard.writeText(""));
-    await page.goto(`/tasks/${task.taskId}`);
-    const primary = page.getByTestId("cta-terminal");
-    await expect(primary).toBeVisible({ timeout: 5000 });
-    await primary.click();
-
-    // Same pattern as iterate 3.9c: click triggers a mutation; poll clipboard
-    // for the expected command rather than waiting on transient button text.
-    let primaryClip = "";
-    await expect(async () => {
-      primaryClip = await page.evaluate(() => navigator.clipboard.readText());
-      expect(primaryClip).toContain(`--name '${uniqueTitle}'`);
-      expect(primaryClip).toContain("--resume");
-    }).toPass({ timeout: 5000 });
-    // Primary = second launch on the same task; state has transitioned past
-    // draft, so this is a resume command (--resume <uuid>, no --session-id).
-    // The CLI rejects --session-id + --resume together (without --fork-session).
-    expect(primaryClip).not.toContain("--session-id");
-
-    // The two clipboards target the SAME session UUID — once via
-    // --session-id (fresh), once via --resume (re-attach).
-    const compactUuidRe = /--session-id '([0-9a-f-]{36})'/;
-    const primaryUuidRe = /--resume '([0-9a-f-]{36})'/;
-    expect(compactUuidRe.exec(compactClip)?.[1]).toBe(primaryUuidRe.exec(primaryClip)?.[1]);
+    await page.getByTestId("task-detail-menu-trigger").click();
+    await page.getByTestId("task-detail-menu-copy-resume-command").click();
+    await expect(page.getByTestId("task-detail-menu-notice")).toHaveAttribute("data-kind", "ok");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toContain(`--name '${uniqueTitle}'`);
+    expect(copied).toMatch(/--resume '[0-9a-f-]{36}'/);
+    expect(copied).not.toContain("--session-id");
   });
 });

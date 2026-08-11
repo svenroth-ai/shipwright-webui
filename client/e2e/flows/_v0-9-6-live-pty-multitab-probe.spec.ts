@@ -142,6 +142,10 @@ test.describe("Iterate E (ADR-092) probe — multi-tab + server-restart", () => 
         const rowsC = await pageC.locator(".xterm-rows > div").allTextContents();
         const tabCSeesMarker = rowsC.join("\n").includes(MARKER);
 
+        // The HTML reporter may initialise (and replace) its output tree while
+        // the probe is running, so establish the diagnostic directory at the
+        // point of use as well as at test start.
+        await fs.mkdir(ARTIFACT_DIR, { recursive: true });
         await fs.writeFile(
           path.join(ARTIFACT_DIR, "multitab-result.json"),
           JSON.stringify({

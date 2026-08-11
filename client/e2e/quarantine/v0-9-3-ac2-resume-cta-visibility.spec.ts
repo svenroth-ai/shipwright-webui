@@ -29,7 +29,6 @@ import { test, expect } from "@playwright/test";
 import { apiUrl } from "../helpers/env";
 import {
   cleanupProject,
-  cleanupTask,
   seedProject,
   setActiveProject,
   type SeededProject,
@@ -93,8 +92,27 @@ test.describe("v0.9.3 AC-2 (QUARANTINED — needs a real Claude CLI)", () => {
   });
 
   test.afterEach(async ({ request }) => {
-    await cleanupTask(request, taskId);
-    await cleanupProject(request, project);
+    try {
+      if (taskId) {
+        const deleted = await request.delete(apiUrl(`/api/external/tasks/${encodeURIComponent(taskId)}`));
+        expect(deleted.ok(), `task cleanup failed: ${await deleted.text()}`).toBeTruthy();
+        const absent = await request.get(apiUrl(`/api/external/tasks/${encodeURIComponent(taskId)}`));
+        expect(absent.status(), `task remained after cleanup: ${await absent.text()}`).toBe(404);
+      }
+    } finally {
+      try {
+        if (project) {
+          const deleted = await request.delete(apiUrl(`/api/projects/${encodeURIComponent(project.projectId)}`));
+          expect(deleted.ok(), `project cleanup failed: ${await deleted.text()}`).toBeTruthy();
+          const projects = (await (await request.get(apiUrl("/api/projects"))).json()) as {
+            data: Array<{ id: string }>;
+          };
+          expect(projects.data.some((entry) => entry.id === project.projectId)).toBe(false);
+        }
+      } finally {
+        await cleanupProject(request, project);
+      }
+    }
   });
 
   test("AC-2: Resume button hides within 2.5s of clicking it on idle new-plain", async ({

@@ -68,11 +68,14 @@ async function deleteTask(
   origin: string,
   taskId: string,
 ): Promise<void> {
-  await request
-    .delete(`${apiBase}/api/external/tasks/${taskId}`, { headers: { Origin: origin } })
-    .catch(() => {
-      /* best-effort */
-    });
+  const response = await request.delete(`${apiBase}/api/external/tasks/${taskId}`, {
+    headers: { Origin: origin },
+  });
+  expect(response.status(), `task cleanup returned non-200: ${await response.text()}`).toBe(200);
+  const absent = await request.get(`${apiBase}/api/external/tasks/${taskId}`, {
+    headers: { Origin: origin },
+  });
+  expect(absent.status(), `task remained after cleanup: ${await absent.text()}`).toBe(404);
 }
 
 test.describe("iterate v0.9.1 — Tailscale WS upgrade real-browser repro", () => {

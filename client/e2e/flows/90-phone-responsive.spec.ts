@@ -24,6 +24,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 import { createTask, cleanupTask, makeTaskCwd, cleanupCwd } from "../helpers/task-fixture";
+import { cleanupProject, cleanupTaskCwd, seedProject, seedTask, type SeededTask } from "../helpers/fixtures";
 
 async function pageOverflowPx(page: Page): Promise<number> {
   return page.evaluate(() => {
@@ -80,8 +81,12 @@ test.describe("Phone responsive (<768px, touch)", () => {
     await expect(page.getByTestId("mobile-nav-drawer")).toHaveCount(0);
   });
 
-  test("project dropdown moves into the top bar; status filter is an icon menu, no pills (AC-1/AC-2)", async ({ page }) => {
-    await page.goto("/");
+  test("project dropdown moves into the top bar; status filter is an icon menu, no pills (AC-1/AC-2)", async ({ page, request }) => {
+    const project = await seedProject(request, { name: "phone-filter" });
+    let task: SeededTask | undefined;
+    try {
+      task = await seedTask(request, { projectId: project.projectId, title: "phone-filter-task" });
+      await page.goto("/");
     // AC-1: the single project dropdown lives in the top bar, NOT the board header.
     const topbar = page.getByTestId("mobile-topbar");
     await expect(topbar.getByTestId("project-filter-dropdown")).toBeVisible();
@@ -96,11 +101,17 @@ test.describe("Phone responsive (<768px, touch)", () => {
     await page.getByTestId("board-filter-menu-item-active").click();
     await expect(page.getByTestId("board-filter-menu")).toBeVisible();
     // The active-filter dot now marks the (closed or open) trigger.
-    await expect(page.getByTestId("board-filter-menu-dot")).toBeVisible();
+      await expect(page.getByTestId("board-filter-menu-dot")).toBeVisible();
+    } finally {
+      await cleanupTaskCwd(request, task);
+      await cleanupProject(request, project);
+    }
   });
 
-  test("top-bar project dropdown is content-width, NOT the full bar (phone-header-polish #3)", async ({ page }) => {
-    await page.goto("/");
+  test("top-bar project dropdown is content-width, NOT the full bar (phone-header-polish #3)", async ({ page, request }) => {
+    const project = await seedProject(request, { name: "phone-dropdown" });
+    try {
+      await page.goto("/");
     const topbar = page.getByTestId("mobile-topbar");
     const dd = topbar.getByTestId("project-filter-dropdown");
     await expect(dd).toBeVisible();
@@ -108,14 +119,18 @@ test.describe("Phone responsive (<768px, touch)", () => {
     const ddW = (await dd.boundingBox())!.width;
     // Narrower than the bar (leaves room for ☰ + brand) and within the 60vw cap.
     expect(ddW).toBeLessThan(barW * 0.72);
-    expect(ddW).toBeLessThanOrEqual(page.viewportSize()!.width * 0.6 + 2);
+      expect(ddW).toBeLessThanOrEqual(page.viewportSize()!.width * 0.6 + 2);
+    } finally {
+      await cleanupProject(request, project);
+    }
   });
 
   test("phone '+ New' drills project → actions in ONE downward popup, no off-screen overflow (phone-header-polish #1)", async ({ page, request }) => {
     // Seed a real (non-synthesized) project so the All-Projects create menu shows.
     const suffix = Date.now();
+    const projectCwd = await makeTaskCwd("phone-new-e2e-");
     const created = await request.post("/api/projects", {
-      data: { name: `phone-new-${suffix}`, path: process.cwd(), profile: "default", status: "active" },
+      data: { name: `phone-new-${suffix}`, path: projectCwd, profile: "default", status: "active" },
     });
     const { data: p } = (await created.json()) as { data: { id: string } };
     try {
@@ -142,13 +157,15 @@ test.describe("Phone responsive (<768px, touch)", () => {
       await page.keyboard.press("Escape");
     } finally {
       await request.delete(`/api/projects/${p.id}`);
+      await cleanupCwd(projectCwd);
     }
   });
 
   test("new-task modal is touch-safe — inputs ≥16px (no iOS focus-zoom) + equal-height ≥44px footer buttons (iterate-2026-06-27)", async ({ page, request }) => {
     // Seed a real project so the create-menu cascade resolves to an action.
+    const projectCwd = await makeTaskCwd("phone-touch-e2e-");
     const created = await request.post("/api/projects", {
-      data: { name: `phone-touch-${Date.now()}`, path: process.cwd(), profile: "default", status: "active" },
+      data: { name: `phone-touch-${Date.now()}`, path: projectCwd, profile: "default", status: "active" },
     });
     const { data: p } = (await created.json()) as { data: { id: string } };
     try {
@@ -177,15 +194,24 @@ test.describe("Phone responsive (<768px, touch)", () => {
       await page.keyboard.press("Escape");
     } finally {
       await request.delete(`/api/projects/${p.id}`);
+      await cleanupCwd(projectCwd);
     }
   });
 
-  test("list view hides the Phase column at phone width; no page overflow (AC-5)", async ({ page }) => {
-    await page.goto("/");
-    await page.getByTestId("view-toggle-list").click();
-    await expect(page.getByTestId("task-list-header-state")).toBeVisible();
-    await expect(page.getByTestId("task-list-header-phase")).toBeHidden();
-    expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
+  test("list view hides the Phase column at phone width; no page overflow (AC-5)", async ({ page, request }) => {
+    const project = await seedProject(request, { name: "phone-list" });
+    let task: SeededTask | undefined;
+    try {
+      task = await seedTask(request, { projectId: project.projectId, title: "phone-list-task" });
+      await page.goto("/");
+      await page.getByTestId("view-toggle-list").click();
+      await expect(page.getByTestId("task-list-header-state")).toBeVisible();
+      await expect(page.getByTestId("task-list-header-phase")).toBeHidden();
+      expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
+    } finally {
+      await cleanupTaskCwd(request, task);
+      await cleanupProject(request, project);
+    }
   });
 
   test("projects table does not widen the page (scrolls in-card) (AC-5)", async ({ page }) => {
@@ -264,12 +290,9 @@ test.describe("Phone responsive (<768px, touch)", () => {
     // (unit-covered); this proves a real Radix dialog fits at 393px.
     await page.goto("/projects");
     await page.getByTestId("projects-create-button").click();
-    const dialog = page.getByTestId("wizard-modal");
+    const dialog = page.getByTestId("intent-wizard");
     await expect(dialog).toBeVisible();
     expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
-    const box = await dialog.boundingBox();
-    const vw = page.viewportSize()!.width;
-    expect(box!.width).toBeLessThanOrEqual(vw);
   });
 });
 

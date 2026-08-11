@@ -75,6 +75,7 @@ done
 cd "${REPO_ROOT}/client"
 export BASE_URL
 export SHIPWRIGHT_E2E_ISOLATED=1
+export SHIPWRIGHT_E2E_HARNESS=temporary-home
 export HOME="${TMPHOME}"
 export USERPROFILE="${TMPHOME}"
 

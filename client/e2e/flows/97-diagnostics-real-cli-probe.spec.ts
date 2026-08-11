@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { API_BASE } from '../helpers/env';
 
 /**
  * Diagnostics — the REAL boot-time Claude CLI probe, end to end.
@@ -23,8 +24,7 @@ import { test, expect } from '@playwright/test';
  * it means something.
  */
 
-// The suite hardcodes the default port; the isolated worktree stack overrides it.
-const API = process.env.WEBUI_API_URL || 'http://127.0.0.1:3847';
+const API = API_BASE;
 
 interface CliSnapshot {
   raw: string;
