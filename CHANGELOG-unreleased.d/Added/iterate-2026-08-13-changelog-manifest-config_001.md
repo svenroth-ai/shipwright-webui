@@ -1,0 +1,1 @@
+Declared the published package manifests (bootstrapper, server, client package.json) in a new shipwright_changelog_config.json, so a release keeps the npm-shipped version in lock-step with the tag and CHANGELOG instead of silently shipping a stale version.
