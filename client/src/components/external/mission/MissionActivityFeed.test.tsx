@@ -18,6 +18,11 @@ const renderedLongIterateFixture: ActivityFeed = {
 };
 
 describe("MissionActivityFeed", () => {
+  // Renders 905 DOM nodes and text-queries all of them — comfortably under
+  // 1s locally, but the default 5000ms vitest timeout is too tight under
+  // CI's coverage-instrumented, full-suite-parallel run (observed timing out
+  // at ~5000ms twice on shipwright-webui#366, pre-existing and unrelated to
+  // that PR's diff).
   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
     const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"), "Make the Mission view evidence-based");
     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
@@ -38,7 +43,7 @@ describe("MissionActivityFeed", () => {
     fireEvent.wheel(timeline, { deltaY: 240 });
     expect(timeline.scrollTop).toBe(240);
     expect(screen.getByTestId("mission-feed-goal").parentElement).not.toBe(timeline);
-  });
+  }, 20_000);
 
   it("opens durable evidence from a card", async () => {
     const onArtifactClick = vi.fn();
