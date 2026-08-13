@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-13-changelog-manifest-config",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T12:53:41.740047+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T12:53:20.096036+00:00",
+      "disposition": "external LLM plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "bootstrapper/test/changelog-manifest-config.test.mjs",
+          "line": null,
+          "finding": "Tautological round-trip assertion (JSON.parse(JSON.stringify) cannot fail) — ADDRESSED: replaced with load-bearing no-duplicate-paths + no-BOM checks.",
+          "suggestion": "Replace with a check that can actually fail.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "bootstrapper/test/changelog-manifest-config.test.mjs",
+          "line": null,
+          "finding": "Parse at describe-body collection time makes the exists test unable to emit a clean diagnostic on a deleted file — ADDRESSED: parse made lazy per-test.",
+          "suggestion": "Lazy-load inside each it.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "readability",
+          "file": "bootstrapper/test/changelog-manifest-config.test.mjs",
+          "line": null,
+          "finding": "Test 7 (bootstrapper+server present) is subsumed by test 5 (exact set); kept as executable documentation of the parity coupling.",
+          "suggestion": "Optional removal.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-13T12:54:57.436426+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T12:53:19.970002+00:00",
+      "disposition": "Stage 3 doubt-reviewer is conditional on non-trivial touches (migrations/async/concurrency/cross-plugin imports/irreversible ops); this diff is a passive config declaration plus its shape guard, none apply",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T12:53:20.516054+00:00",
+      "disposition": "external code review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T12:53:19.718401+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T12:53:20.368085+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

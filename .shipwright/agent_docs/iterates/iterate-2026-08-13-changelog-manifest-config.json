@@ -1,0 +1,47 @@
+{
+  "run_id": "iterate-2026-08-13-changelog-manifest-config",
+  "date": "2026-08-13T12:59:25.348098Z",
+  "event_at": "2026-08-13T09:43:55.904984+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/changelog-manifest-config",
+  "spec": "shipwright_changelog_config.json declaration + bootstrapper shape guard",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-13-changelog-manifest-config",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "shipwright_changelog_config.json declares exactly {bootstrapper,server,client}/package.json as package_json manifests",
+        "disposition": "tested",
+        "evidence": "bootstrapper/test/changelog-manifest-config.test.mjs \"declares exactly the three shipped manifests\" + \"every entry is {path,format:package_json}\" PASSED (210/210)"
+      },
+      {
+        "behavior": "every declared manifest exists on disk and carries a version string",
+        "disposition": "tested",
+        "evidence": "bootstrapper/test/changelog-manifest-config.test.mjs \"every declared manifest exists and is a package.json carrying a version string\" PASSED"
+      },
+      {
+        "behavior": "no duplicate declared paths (mirrors the consumer duplicate_manifest_path rejection)",
+        "disposition": "tested",
+        "evidence": "bootstrapper/test/changelog-manifest-config.test.mjs \"has no duplicate declared paths\" PASSED"
+      },
+      {
+        "behavior": "the declaration is parsed+accepted by the real changelog consumer (load_declared_manifests resolves all three)",
+        "disposition": "untestable",
+        "reason_code": "covered-by-existing-test",
+        "reason": "parsing/consumption is covered by the monorepo tests test_manifest_sync_core.py + test_changelog_checks_manifest_sync.py; empirically confirmed here via sync_release_manifests.py --dry-run -> status:ok"
+      }
+    ],
+    "counts": {
+      "testable": 4,
+      "tested": 3,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  }
+}
