@@ -40,20 +40,11 @@ import {
   type TriageCliResult,
   type TriageWriteAvailability,
 } from "../core/triage-cli-runner.js";
+import { normalizeDescription } from "../external/_shared/helpers.js";
 
 /** Never put an interpreter probe on the native board-read critical path. */
 export const TRIAGE_WRITE_AVAILABILITY_TTL_MS = 15_000;
 
-/**
- * Hard cap on the promoted task's description. Verbatim mirror of the
- * identically-named `DESCRIPTION_MAX_LENGTH` in `external/routes.ts` (the
- * cap the launch + edit routes enforce via `normalizeDescription`) — the
- * matching name keeps the two greppable together if they ever need to be
- * reconciled. A triage `detail` has no producer-side length bound, so it
- * is capped here before it becomes a task description, otherwise a
- * pathological item could mint an over-long, hard-to-edit task.
- */
-const DESCRIPTION_MAX_LENGTH = 20_000;
 /**
  * Action assigned to a promoted triage task. The launch route only
  * injects a task's description into the `claude` command via the
@@ -302,7 +293,18 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         // silently dropped; without the description there is nothing to
         // inject. Both are required for the triage→backlog→in-progress
         // chain to carry the brief end to end.
-        const description = deriveDescription(item.detail);
+        // Reuse the exact same normalizeDescription() create/edit already
+        // enforce (create.ts / patch.ts) — not a hand-rolled trim+cap
+        // check — so promote applies the identical rule (cap measured on
+        // the RAW string, before trimming) and the operator sees one
+        // consistent error regardless of entry point. A prior version
+        // checked the cap post-trim here, which silently accepted a
+        // padded-with-whitespace detail that create/edit would reject.
+        const normalized = normalizeDescription(item.detail);
+        if (!normalized.ok) {
+          return c.json({ error: "invalid_description", detail: normalized.error }, 400);
+        }
+        const description = normalized.value;
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,
@@ -531,28 +533,6 @@ function mergeTags(defaults: string[], userTags: string[]): string[] {
     }
   }
   return out;
-}
-
-/**
- * Derive the promoted task's description from a triage item's `detail`.
- * `detail` is typed `string` but resolved from raw JSONL, so it is
- * defensively re-checked. Whitespace-only → `undefined` (no description
- * field minted); over-length → trimmed and capped at DESCRIPTION_MAX_LENGTH.
- *
- * Interior newlines are deliberately PRESERVED — a triage `detail` is
- * often multi-paragraph and reads better that way in the task UI. The
- * launch path flattens the description to a single line at substitution
- * time (`actions-substitute.ts flattenDescription`); do NOT add a
- * newline / control-char rejection here — that would re-break the
- * multi-line findings the launch path is built to accept.
- */
-function deriveDescription(detail: unknown): string | undefined {
-  if (typeof detail !== "string") return undefined;
-  const trimmed = detail.trim();
-  if (!trimmed) return undefined;
-  return trimmed.length > DESCRIPTION_MAX_LENGTH
-    ? trimmed.slice(0, DESCRIPTION_MAX_LENGTH)
-    : trimmed;
 }
 
 /** sdk-sessions persistence remains lock-protected independently of triage. */

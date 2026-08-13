@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-08-13-task-description-length-cap",
+  "date": "2026-08-13T09:36:54.588341Z",
+  "event_at": "2026-08-11T09:48:04.757454+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/task-description-length-cap",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-13-task-description-length-cap"
+}

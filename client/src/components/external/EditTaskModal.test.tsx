@@ -11,6 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { EditTaskModal } from "./EditTaskModal";
+import { DESCRIPTION_MAX_LENGTH } from "./NewIssueModal/SimpleFields";
 import { ApiError } from "../../lib/externalApi";
 import type { ExternalTask } from "../../lib/externalApi";
 import type { ResolvedProjectActions } from "../../lib/externalApi";
@@ -176,6 +177,19 @@ describe("EditTaskModal — started task (AC-2)", () => {
     renderModal(baseTask({ state: "draft", launchedAt: "2026-05-18T11:00:00Z" }));
     expect(screen.getByTestId("edit-task-readonly-description")).toBeInTheDocument();
     expect(screen.queryByTestId("edit-task-description-input")).toBeNull();
+  });
+});
+
+describe("EditTaskModal — description length cap (iterate-2026-08-13-task-description-length-cap)", () => {
+  it("caps the editable description textarea's maxLength at DESCRIPTION_MAX_LENGTH", () => {
+    renderModal(baseTask());
+    const desc = screen.getByTestId("edit-task-description-input") as HTMLTextAreaElement;
+    expect(desc.maxLength).toBe(DESCRIPTION_MAX_LENGTH);
+  });
+
+  it("shows a live character-count hint reflecting the current length and the cap", () => {
+    renderModal(baseTask({ description: "hello" }));
+    expect(screen.getByText(new RegExp(`5/${DESCRIPTION_MAX_LENGTH}`))).toBeInTheDocument();
   });
 });
 

@@ -7,7 +7,11 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-import { TitleFieldFragment, DescriptionFieldFragment } from "./SimpleFields";
+import {
+  TitleFieldFragment,
+  DescriptionFieldFragment,
+  DESCRIPTION_MAX_LENGTH,
+} from "./SimpleFields";
 
 describe("SimpleFields — visible frames on the grey-beige sheet (WCAG 1.4.11)", () => {
   // @covers FR-01.38
@@ -26,5 +30,18 @@ describe("SimpleFields — visible frames on the grey-beige sheet (WCAG 1.4.11)"
     const ta = screen.getByTestId("new-issue-description-input");
     expect(ta.className).toContain("bg-white");
     expect(ta.className).toContain("border-[var(--surface-form-line");
+  });
+});
+
+describe("SimpleFields — description length cap (iterate-2026-08-13-task-description-length-cap)", () => {
+  it("caps the textarea's maxLength at DESCRIPTION_MAX_LENGTH", () => {
+    render(<DescriptionFieldFragment description="" setDescription={() => {}} />);
+    const ta = screen.getByTestId("new-issue-description-input") as HTMLTextAreaElement;
+    expect(ta.maxLength).toBe(DESCRIPTION_MAX_LENGTH);
+  });
+
+  it("shows a live character-count hint reflecting the current length and the cap", () => {
+    render(<DescriptionFieldFragment description="hello" setDescription={() => {}} />);
+    expect(screen.getByText(new RegExp(`5/${DESCRIPTION_MAX_LENGTH}`))).toBeInTheDocument();
   });
 });

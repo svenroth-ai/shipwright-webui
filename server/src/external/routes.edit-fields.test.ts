@@ -16,50 +16,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
 
+import { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 import {
-  SdkSessionsStore,
-  type SdkSessionsStoreDeps,
-} from "../core/sdk-sessions-store.js";
-import { SessionWatcher } from "../core/session-watcher.js";
-import { createExternalRoutes, type ExternalRouteProjectView } from "./routes.js";
-
-function inMemoryDeps(): SdkSessionsStoreDeps {
-  const files = new Map<string, string>();
-  const existing = new Set<string>();
-  return {
-    readFile: async (p) => {
-      if (!files.has(p)) throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
-      return files.get(p)!;
-    },
-    writeFile: async (p, data) => { files.set(p, data); existing.add(p); },
-    existsSync: (p) => existing.has(p),
-    mkdirSync: (p) => { existing.add(p); },
-    ensureFile: (p) => { if (!files.has(p)) files.set(p, ""); existing.add(p); },
-  };
-}
-
-const PROJECT: ExternalRouteProjectView = {
-  id: "p1",
-  name: "Project One",
-  path: "/fake/project-one",
-};
-
-function makeApp(store: SdkSessionsStore): Hono {
-  const app = new Hono();
-  app.route(
-    "/",
-    createExternalRoutes({
-      store,
-      watcher: new SessionWatcher({ projectsDir: "/fake/projects" }),
-      ptyManager: { get: () => undefined },
-      getKnownProjectIds: () => new Set([PROJECT.id]),
-      getProjectById: (id) => (id === PROJECT.id ? PROJECT : undefined),
-    }),
-  );
-  return app;
-}
-
-const STORE_PATH = "/store/sdk-sessions.json";
+  inMemoryDeps,
+  makeApp,
+  STORE_PATH,
+} from "./_routes-edit-fields-harness.js";
 
 describe("POST /api/external/tasks — description persistence (AC-3)", () => {
   let app: Hono;

@@ -27,11 +27,25 @@ export const IDLE_REACTIVATE_THRESHOLD_MS = 5_000;
 export const TITLE_MAX_LENGTH = 200;
 
 /**
- * Hard cap on the task description / initial prompt. Generous — real
- * briefs (pasted errors, file references) stay well under it; the cap
- * just bounds a pathological payload. iterate-2026-05-18-edit-task-dialog.
+ * Hard cap on the task description / initial prompt. Originally 20,000
+ * (iterate-2026-05-18-edit-task-dialog) — generous headroom against a
+ * pathological payload, but far above the actual constraint: a task's
+ * description is embedded verbatim as a single-line positional argument
+ * in the launch command (`{task.initial_prompt}` /
+ * `core/actions-substitute.ts`), which the embedded terminal writes to
+ * the pty in one shot. Windows' interactive console line editor
+ * (cmd.exe and PowerShell's console host, both hosted via ConPTY here)
+ * has a well-known ~8,191-character ceiling for a single
+ * interactively-typed/pasted line — past that the line is silently
+ * truncated or the shell chokes on an unbalanced quote, so the command
+ * appears to paste cleanly but Claude never starts. Lowered to 6,000
+ * (iterate-2026-08-13-task-description-length-cap) to leave safe
+ * headroom under that ceiling once the slash command, `--plugin-dir`
+ * args, `--name`, `--session-id` and shell-quoting overhead are added
+ * alongside it — while still comfortably fitting real briefs (pasted
+ * errors, file references, triage findings).
  */
-export const DESCRIPTION_MAX_LENGTH = 20_000;
+export const DESCRIPTION_MAX_LENGTH = 6_000;
 
 // ---------------------------------------------------------------------------
 // Project view shape (consumed by every sub-router that takes a projectId).

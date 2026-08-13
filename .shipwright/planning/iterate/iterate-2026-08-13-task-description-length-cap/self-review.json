@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "root_cause_pinned", "verdict": "pass", "note": "DESCRIPTION_MAX_LENGTH (20,000) was far above the ~8,191-char Windows console line limit the launch command actually hits; lowered to 6,000 with a comment explaining the real constraint."},
+    {"name": "all_entry_points_covered", "verdict": "pass", "note": "Create/edit already funneled through normalizeDescription(); triage-promote changed from silent-truncate to the same reject shape."},
+    {"name": "no_duplicated_constant", "verdict": "pass", "note": "triage.ts now imports DESCRIPTION_MAX_LENGTH from external/_shared/helpers.ts instead of hand-mirroring it."},
+    {"name": "tests_pin_boundary_and_rejection", "verdict": "pass", "note": "At-cap (6000, accepted) and over-cap (6001, rejected with exact message) tests for create, edit, and promote."},
+    {"name": "affected_boundaries_reviewed", "verdict": "pass", "note": "helpers.ts, triage.ts promote route, two client textareas — client maxLength mirrors the server constant via an exported constant, not an independent magic number."},
+    {"name": "full_suite_green", "verdict": "pass", "note": "Server: 289 files / 3359 passed + 1 pre-existing skip. Client: 352 files / 3312 passed. tsc --noEmit clean both workspaces. oxlint clean on every touched file."},
+    {"name": "bloat_baseline_respected", "verdict": "pass", "note": "EditTaskModal.tsx baseline current/adr updated in-commit for its +6 LOC growth (already grandfathered over 300); routes.edit-fields.test.ts kept net-negative via a shared harness extraction instead of ratcheting."},
+    {"name": "scope_boundary_honored", "verdict": "pass", "note": "Deeper two-stage launch-dispatch fix and any sibling-monorepo change explicitly out of scope per user decision; monorepo triage card trg-496b35ba filed separately instead."}
+  ]
+}
