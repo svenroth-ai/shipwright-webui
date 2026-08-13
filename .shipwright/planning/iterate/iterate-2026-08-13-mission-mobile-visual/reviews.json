@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-13-mission-mobile-visual",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T15:08:02.727728+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 18,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The mini-plan gates `OperationCard` in `MissionBody`, but it does not explicitly remove or conditionally suppress `VerdictBanner` where it is composed into the Mission top row. Acceptance criterion 2 requires the fact-free “Not fully verified” banner to disappear; if `VerdictBanner` is rendered separately from `OperationCard`, this plan may leave it visible for neutral/empty verdict states.",
+          "suggestion": "Trace the actual `VerdictBanner` render site in `MissionTopRow`/`MissionBody` and add an explicit edit that removes the neutral usage or conditions it out. Add a component test asserting the banner does not render for the neutral/no-useful-report state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "outcome !== \"neutral\"` as the render gate for `OperationCard` may suppress more than the derived verdict. If `OperationCard` contains operation metadata, actions, or other useful non-banner content in the neutral case, the whole card disappears instead of just the fact-free status. The condition may also be incomplete if `outcome` can be `null`/`undefined` or another no-run state.",
+          "suggestion": "Inspect the real `OperationCard` neutral rendering. If it has any content beyond the derived verdict, preserve that content rather than hiding the whole card. Use an explicit, exhaustively handled state check and cover neutral/no-run/completed variants in `MissionBody` tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Replacing `Tabs.Root` with a direct `EmbeddedTerminal` risks losing the wrapper’s layout/flex/height and accessibility semantics, even if the terminal element keeps the same `id`/`data-testid`. Existing terminal/replay specs may stay green while the visual pane collapses or the tab/tabpanel ARIA association breaks.",
+          "suggestion": "Move the necessary `Tabs.Content`/`Tabs.Root` container classes and `role=\"tabpanel\"`/`aria-labelledby` association onto the new direct wrapper. Add a layout/visual regression assertion for terminal height in tablet/phone viewports, not just selector-based tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Removing `centerTab`, `CenterTab`, and `TAB_STORAGE_KEY` wholesale can leave stale references in storage-event listeners, URL handling, or other consumers. If `PaneTabBar` still controls Files/Terminal/Viewer destinations, the plan must confirm that `centerTab` was truly only the removed Transcript/Terminal pair and not the active-pane source of truth.",
+          "suggestion": "Grep all references to `TAB_STORAGE_KEY`, `centerTab`, and `onCenterTabChange` before removal. Remove or migrate storage listeners and ensure Files/Viewer selection still works after the prop/state is gone.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan says the feed will reuse “`assistantText()`/BubbleTranscript rendering pieces,” but the implementation steps do not specify whether those BubbleTranscript pieces are exported or whether they will be extracted. Reusing private sub-components or duplicating formatting logic can create coupling or fork existing behavior.",
+          "suggestion": "Confirm whether the needed BubbleTranscript/rendering logic is already exported. If not, extract a small shared formatting/rendering utility used by both Mission feed and Transcript, and avoid importing private component internals.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Dark-surface token flips for `.mc-op`/`.mc-feed` may unintentionally leak into shared `on-photo`/mission styles if applied at a broad root scope, altering other Mission or Files & Terminal surfaces.",
+          "suggestion": "Scope the dark tokens narrowly to the Mission middle-card area and run adjacent-surface visual regression checks, not just the Mission baselines.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Making Resume icon-only on phone can silently remove its accessible name or create an undersized touch target. The plan does not mention preserving `aria-label`/`title` or touch dimensions.",
+          "suggestion": "Keep an explicit accessible label and ensure the icon-only control meets the project’s mobile touch-target minimum. Add a focused component/a11y test for the phone variant.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The right-edge gutter fix leaves the shared-vs-per-consumer decision open until build time (`MobileTopBarSlot` vs. per-consumer overrides). This can lead to duplicated CSS or drift between Board, Task Detail, and Intent Wizard.",
+          "suggestion": "Decide the source of truth before coding; prefer the shared mobile top-bar slot unless a measured per-consumer exception is actually required. Document the chosen mechanism in the mini-plan.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The richer narration is derived from transcript/assistant text, which is user-influenced content. If the rewrite introduces any HTML or markdown rendering path, there is potential for injection or unsafe link rendering.",
+          "suggestion": "Reuse the existing safe React text-node/formatting path; if richer rendering requires markdown or links, ensure it goes through the same sanitizer used elsewhere and add a test with transcript text containing HTML/script-like content.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The treatment of `VerdictBanner` is internally ambiguous. The acceptance criterion says it is removed from the Mission top row, while the plan retains the component for `clear`/`hold` cases and only bypasses `OperationCard` for `outcome === \"neutral\"`. If `VerdictBanner` is still composed inside the retained `OperationCard` path, this may preserve the very top-row/status-band shape the approved mockup intends to remove.",
+          "suggestion": "Trace the exact `OperationCard`/`VerdictBanner` composition and define the intended rule explicitly: either remove `VerdictBanner` from Mission entirely and express factual `clear`/`hold` outcomes within the operation/feed card, or state which factual cases retain it and update the visual acceptance criteria and screenshot tests accordingly. Gate on a “has meaningful verdict” predicate rather than only `outcome !== \"neutral\"` if incomplete/unknown verdict states exist.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Removing the `Tabs.Root`, `centerTab` state, and `BubbleTranscript` from `TaskDetailPage` is more than deleting one visible tab: it can remove tab keyboard semantics, persisted-state handling, focus restoration, and any tab-driven behavior in `PaneTabBar` or `TaskDetailThreePane`. The plan preserves terminal test IDs, but test IDs alone do not prove Files, Terminal, and Viewer continue to select the correct panes.",
+          "suggestion": "Before refactoring, map the current ownership of pane selection and every `PaneTabBar` action. Confirm how Files and Viewer remain reachable and selected after `centerTab` props are removed, including compact/mobile layouts. Add behavioral tests that click each remaining destination and assert the corresponding content and ARIA selected state, rather than only asserting that Transcript is absent and terminal selectors remain stable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan assumes the Mission activity feed adequately replaces the removed transcript, but it only says it will reuse parsing and BubbleTranscript “rendering pieces.” A feed derived from selected activity cards may omit user messages, assistant detail, errors, tool output, or chronological context that users previously accessed through Transcript.",
+          "suggestion": "Compare the actual transcript content model with the feed’s generated `ActivityCard` coverage for completed, live, failed, empty, and multi-turn sessions. If the feed intentionally remains a summary, verify the Transcript tab was not the only access path for any material content; otherwise preserve a route/detail affordance or expand the feed using the existing safe rendering primitives.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed neutral-only condition is underspecified for missing, stale, malformed, or newly introduced verdict outcomes. A completed run with `outcome` absent or an unrecognized value could render an empty or misleading `OperationCard`, or accidentally hide useful “no run” information inherited from the existing narrator/designgate behavior.",
+          "suggestion": "Identify the verdict type and enumerate its runtime states. Add unit cases for neutral, clear, hold, no-run, missing, and unknown outcomes, with an explicit fallback that presents useful feed/narrator content without a fact-free banner.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Richer narration sourced from transcript-derived assistant/user text introduces a practical content-safety risk if the implementation changes from existing BubbleTranscript rendering to assembled HTML or interpolation with `dangerouslySetInnerHTML`. Transcript content may contain arbitrary user- or assistant-generated markup-like text.",
+          "suggestion": "Reuse the existing React rendering/tokenization path directly, preserving escaping and link sanitization behavior. Do not construct HTML strings for rich narration. Add a focused rendering test containing HTML-like content, URLs, and malformed markdown to verify it renders as text or through the existing safe link component.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The mobile validation cited is centered on a 720px-high phone viewport and measured screenshots. The header changes are especially vulnerable to narrow devices, safe-area insets, long task titles/statuses, larger text settings, and localization. Icon-only Resume also risks becoming inaccessible or too small to use.",
+          "suggestion": "Add responsive assertions at the project’s narrowest supported width and with a long title/status fixture. Preserve a visible focus state, an accessible name/tooltip for Resume, and an adequate touch target. Include safe-area-aware padding if the app supports iPhone-style inset devices.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The right-edge gutter implementation is deferred between per-consumer fixes and `MobileTopBarSlot`/`MainLayout`, which risks solving Board, Task Detail, and Intent Wizard with inconsistent local overrides. The stated objective is a shared header/spacing standard.",
+          "suggestion": "Inspect computed padding and containing blocks first, then make the change at the narrowest shared layout owner that actually governs all affected headers. Use component-specific CSS only for intentional deviations, and assert the 14px gutter from each affected screen in the Playwright test.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The rule-26 exception is still described as “e.g. 88px,” while the acceptance criterion requires a concrete documented phone value. Leaving the value to be chosen during implementation weakens the approved-mockup traceability and can create a CSS/documentation mismatch.",
+          "suggestion": "Record the exact approved minimum width before coding, apply it only in the defined phone media/query scope, and make the `CLAUDE.md` exception name, threshold, rationale, and CSS selector/media condition agree exactly. Test both the phone exception and the unchanged desktop/tablet minimum.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Dark-surface changes mention `on-photo.css` token-flip scoping “as needed.” Broad token flips can unintentionally affect nested controls, terminal/viewer surfaces, or unrelated Mission cards, particularly where CSS variables inherit.",
+          "suggestion": "Scope dark tokens to the specific Mission middle-card roots (`.mc-op`/`.mc-feed`) rather than a broad Mission/page ancestor. Verify contrast and interactive states—text, muted text, links, focus rings, selected segmented controls—in both feed and operation-card variants.  Overall, the direction is sound and appropriately avoids new infrastructure, but the pane-navigation refactor and the exact VerdictBanner replacement behavior need to be resolved before implementation. The visual work should also be validated against content and accessibility edge cases, not only the approved screenshot dimensions. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-13T13:05:55.852174+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] ## Findings\n\n1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The mini-plan gates `OperationCard` in `MissionBody`, but it does not explicitly remove or conditionally suppress `VerdictBanner` where it is composed into the Mission top row. Acceptance criterion 2 requires the fact-free “Not fully verified” banner to disappear; if `VerdictBanner` is rendered separately from `OperationCard`, this plan may leave it visible for neutral/empty verdict states.  \n   **Suggestion:** Trace the actual `VerdictBanner` render site in `MissionTopRow`/`MissionBody` and add an explicit edit that removes the neutral usage or conditions it out. Add a component test asserting the banner does not render for the neutral/no-useful-report state.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** `outcome !== \"neutral\"` as the render gate for `OperationCard` may suppress more than the derived verdict. If `OperationCard` contains operation metadata, actions, or other useful non-banner content in the neutral case, the whole card disappears instead of just the fact-free status. The condition may also be incomplete if `outcome` can be `null`/`undefined` or another no-run state.  \n   **Suggestion:** Inspect the real `OperationCard` neutral rendering. If it has any content beyond the derived verdict, preserve that content rather than hiding the whole card. Use an explicit, exhaustively handled state check and cover neutral/no-run/completed variants in `MissionBody` tests.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** Replacing `Tabs.Root` with a direct `EmbeddedTerminal` risks losing the wrapper’s layout/flex/height and accessibility semantics, even if the terminal element keeps the same `id`/`data-testid`. Existing terminal/replay specs may stay green while the visual pane collapses or the tab/tabpanel ARIA association breaks.  \n   **Suggestion:** Move the necessary `Tabs.Content`/`Tabs.Root` container classes and `role=\"tab […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** The treatment of `VerdictBanner` is internally ambiguous. The acceptance criterion says it is removed from the Mission top row, while the plan retains the component for `clear`/`hold` cases and only bypasses `OperationCard` for `outcome === \"neutral\"`. If `VerdictBanner` is still composed inside the retained `OperationCard` path, this may preserve the very top-row/status-band shape the approved mockup intends to remove.  \n   **Suggestion:** Trace the exact `OperationCard`/`VerdictBanner` composition and define the intended rule explicitly: either remove `VerdictBanner` from Mission entirely and express factual `clear`/`hold` outcomes within the operation/feed card, or state which factual cases retain it and update the visual acceptance criteria and screenshot tests accordingly. Gate on a “has meaningful verdict” predicate rather than only `outcome !== \"neutral\"` if incomplete/unknown verdict states exist.\n\n2. **Category:** risk  \n   **Severity:** high  \n   **Finding:** Removing the `Tabs.Root`, `centerTab` state, and `BubbleTranscript` from `TaskDetailPage` is more than deleting one visible tab: it can remove tab keyboard semantics, persisted-state handling, focus restoration, and any tab-driven behavior in `PaneTabBar` or `TaskDetailThreePane`. The plan preserves terminal test IDs, but test IDs alone do not prove Files, Terminal, and Viewer continue to select the correct panes.  \n   **Suggestion:** Before refactoring, map the current ownership of pane selection and every `PaneTabBar` action. Confirm how Files and Viewer remain reachable and selected after `centerTab` props are removed, including compact/mobile layouts. Add behavioral tests that click each remaining destination and assert the corresponding content and ARIA selected state, rather than only asserting that Transcript is absent and terminal selectors remain stable.\n\n3. **Category:** dependency  \n   **Severity:** medium  \n […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      },
+      "model_tier": "opus"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/components/external/ProjectCreatePhoneMenu.tsx",
+          "line": 155,
+          "finding": "The level-2 'back' control was a plain <button onClick> sibling inside DropdownMenu.Content, invisible to Radix's Collection-based Tab/arrow-key roving focus — keyboard-unreachable once drilled into a project's actions.",
+          "suggestion": "Restore as a DropdownMenu.Item with onSelect preventDefault, matching the project-row pattern already used in the same file.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionTopRow.tsx",
+          "line": 173,
+          "finding": "Phone branch's 'Awaiting approval' pill was missing data-testid=\"mission-awaiting-approval\" and the pulsing-dot animation that the desktop branch renders for the identical pill.",
+          "suggestion": "Restore both for parity with the desktop variant.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionCompactTabs.tsx",
+          "line": 55,
+          "finding": "Dead Tailwind utility classes (grid shrink-0 grid-cols-3 gap-1 p-1) coexisted with the unlayered plain-CSS rule that actually governs the layout, never applying.",
+          "suggestion": "Drop the redundant Tailwind classes.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "consistency",
+          "file": "client/src/components/wizard/IntentWizard/flightplan-mobile.css",
+          "line": 129,
+          "finding": ".fp-sheet-close was sized 32px, below the 44px touch-target minimum this same diff establishes for every other phone-only control (ResumeCTA iconOnly, mobile-nav-trigger).",
+          "suggestion": "Bump to 44px minimum.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-13T15:08:41.963298+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T15:08:50.785020+00:00",
+      "disposition": "doubt-reviewer's own gating criteria (per shipwright-build agent description): only for non-trivial touches — migrations, async/concurrency, cross-plugin imports, irreversible ops. This diff is CSS/JSX visual restructuring + conditional rendering on an existing viewport hook; none of those criteria apply. code-reviewer (Stage 2) already ran adversarially on the same diff and found/fixed 4 real issues including a keyboard-nav regression.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/mobile-work-mode-mission.spec.ts",
+          "line": 7,
+          "finding": "The newly split “Mobile work mode — Mission tabs” suite no longer inherits the phone viewport configuration from `mobile-work-mode.spec.ts`, but does not set a viewport itself. Under Playwright’s normal desktop default, the compact Mission tabs and phone-only layout assertions are not the active UI, so this test will either fail or cease to validate the intended phone behavior.",
+          "suggestion": "Add an explicit `test.use({ viewport: { width: <phone-width>, height: <phone-height> } })` (and `isMobile` if used by the project’s existing mobile suite) to this new file, matching the setup formerly shared by `mobile-work-mode.spec.ts`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/wizard/IntentWizard/FlightPlanRail.test.tsx",
+          "line": 64,
+          "finding": "The test named “the chip meets the 44px touch-target minimum” only verifies that the element has the `fp-chip` class. It would still pass if the CSS minimum height were removed or changed below 44px, so it does not validate the behavior it claims to cover.",
+          "suggestion": "Assert computed `min-height`/bounding-box height in a browser-level mobile test, or otherwise test the loaded CSS value, so regressions to the phone touch target fail the suite.  Overall assessment: The implementation appears to cover the substantive Mission, Transcript-removal, and mobile UI requirements, but the newly extracted mobile E2E scenario must restore its explicit phone viewport before shipping. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-13T15:20:10.337590+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: test\n- Severity: medium\n- File: `client/e2e/flows/mobile-work-mode-mission.spec.ts:7`\n- Finding: The newly split “Mobile work mode — Mission tabs” suite no longer inherits the phone viewport configuration from `mobile-work-mode.spec.ts`, but does not set a viewport itself. Under Playwright’s normal desktop default, the compact Mission tabs and phone-only layout assertions are not the active UI, so this test will either fail or cease to validate the intended phone behavior.\n- Suggestion: Add an explicit `test.use({ viewport: { width: <phone-width>, height: <phone-height> } })` (and `isMobile` if used by the project’s existing mobile suite) to this new file, matching the setup formerly shared by `mobile-work-mode.spec.ts`.\n\n- Category: test\n- Severity: low\n- File: `client/src/components/wizard/IntentWizard/FlightPlanRail.test.tsx:64`\n- Finding: The test named “the chip meets the 44px touch-target minimum” only verifies that the element has the `fp-chip` class. It would still pass if the CSS minimum height were removed or changed below 44px, so it does not validate the behavior it claims to cover.\n- Suggestion: Assert computed `min-height`/bounding-box height in a browser-level mobile test, or otherwise test the loaded CSS value, so regressions to the phone touch target fail the suite.\n\nOverall assessment: The implementation appears to cover the substantive Mission, Transcript-removal, and mobile UI requirements, but the newly extracted mobile E2E scenario must restore its explicit phone viewport before shipping.  \nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T15:08:21.545369+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-13T13:05:35.016767+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

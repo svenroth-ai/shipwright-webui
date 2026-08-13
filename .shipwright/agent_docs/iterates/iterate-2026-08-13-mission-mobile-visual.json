@@ -1,0 +1,86 @@
+{
+  "run_id": "iterate-2026-08-13-mission-mobile-visual",
+  "date": "2026-08-13T16:03:07.280946Z",
+  "event_at": "2026-08-13T16:01:59.322431+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/mission-mobile-visual",
+  "spec": ".shipwright/planning/iterate/2026-08-13-mission-mobile-visual.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-13-mission-mobile-visual",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Mission middle card renders on the dark surface (mockup-approved), not white (AC1)",
+        "disposition": "tested",
+        "evidence": "OperationCard.tsx / mission-operation.css restyle onto the shared dark on-photo tokens; OperationCard.test.tsx covers verdict/proof-line rendering against the restyled component; real production Vite/Tailwind build succeeded after fixing a CSS comment-parsing bug in mission-operation.css (confirms the token wiring actually compiles and applies)"
+      },
+      {
+        "behavior": "VerdictBanner suppressed on a fact-free neutral verdict, but a red test-suite proof line is NEVER hidden (AC2, the internal-review-caught invariant)",
+        "disposition": "tested",
+        "evidence": "OperationCard.test.tsx: 'DONE task, RED suite (test gate failed) -> no banner, but the red suite line is NEVER hidden' and 'empty event log (done, run null) -> NEUTRAL, no banner, never a false ALL CLEAR (AC3)'; VerdictBanner.test.tsx: 'clear -> the .ok banner...', 'hold -> the .err banner...'"
+      },
+      {
+        "behavior": "Activity feed narration reuses assistantText()/missionActivityFeed.ts parsing plus BubbleTranscript rendering pieces, not new LLM infra (AC3)",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.ts modified (+27/-0 lines, no new network/LLM calls); missionActivityFeed.test.ts (+18 lines); MissionActivityFeed.test.tsx: 'renders the long-iterate fixture in a focusable, operable scrolling timeline', 'renders HTML-like card text as inert markdown, never a real element'"
+      },
+      {
+        "behavior": "Transcript sub-tab removed from Files & Terminal; only Files/Terminal/Viewer remain (AC4)",
+        "disposition": "tested",
+        "evidence": "PaneTabBar.test.tsx: 'renders exactly three equal direct destinations with no Transcript/Session tab'; mobile-work-mode.spec.ts real-browser assertion `await expect(tabs).toHaveText([\"Files\", \"Terminal\", \"Viewer\"])`"
+      },
+      {
+        "behavior": "Board (mobile): project-filter dropdown and create control share the header's right-edge gutter (AC5)",
+        "disposition": "tested",
+        "evidence": "A20-mobile-visual-fixes.spec.ts: 'the phone top-bar slot's right padding matches the real PageHead gutter (32px)' (real-browser, measured against the verified value, not the mockup's illustrative guess)"
+      },
+      {
+        "behavior": "Task Detail (mobile): header controls no longer overlap the two-line title+status block; Resume is icon-only; collapsed control reads as a segmented pill (AC6)",
+        "disposition": "tested",
+        "evidence": "A20-mobile-visual-fixes.spec.ts: 'back-arrow, title row and actions cluster don't overlap the status-pills row' and 'Resume is icon-only with an accessible name and a 44px touch target' (both real-browser, including the self-caught 44px touch-target regression and the flex-truncation title-overlap regression, both fixed and re-verified green)"
+      },
+      {
+        "behavior": "Intent Wizard (mobile) fixed to the same header/spacing standard (AC7)",
+        "disposition": "tested",
+        "evidence": "FlightPlanRail.test.tsx: 'renders a summary chip instead of the full rail', 'opens a sheet with the same rows on tap, closes on the close button', 'the chip meets the 44px touch-target minimum', 'still renders the full rail unchanged when isPhone resolves false'; A20-mobile-visual-fixes.spec.ts real-browser 'the Flight Plan rail collapses to a summary chip and opens a bottom sheet with a 44px close target'"
+      },
+      {
+        "behavior": "CLAUDE.md rule 26 gains one documented phone-only 88px --btn-min-w exception, not a silent per-component override (AC8)",
+        "disposition": "tested",
+        "evidence": "CLAUDE.md rule 26 amended with the phone-only override text; buttons.css carries the single `@media (max-width:767px)` override; conventions.md Convention Updates entry for iterate-2026-08-13-mission-mobile-visual cross-references it; create-cta-standard.test.ts (existing ratchet) still passes"
+      },
+      {
+        "behavior": "Spec-tab panel routing and Terminal-as-default-pane behavior verified against real code before touching either; no change shipped unless verification showed a real break (AC9, verify-first)",
+        "disposition": "tested",
+        "evidence": "Step 7 verify-first pass read the real routing/default-pane code before build (task-list step 'Verify-first behavior checks'); TaskDetailPage.tsx diff shows no change to Spec-tab panel routing logic, only the Transcript-tab removal; useCompactPaneSelection.ts diff removes only the retired centerTab plumbing, terminal stays the sole/default center-pane surface"
+      },
+      {
+        "behavior": "Terminal text-smearing left untouched by this iterate (AC10, explicit out-of-scope boundary)",
+        "disposition": "tested",
+        "evidence": "git diff --stat for this run touches no file under client/src/components/terminal/, server/src/terminal/, or the smear-related CSS/JS (pty-manager, xterm renderer, cell-state snapshot) \u2014 confirmed via the full changed-file list this session"
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 10,
+      "covered_acs": 10
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=mobile-chromium e2e/flows/mobile-work-mode.spec.ts e2e/flows/mobile-work-mode-mission.spec.ts e2e/flows/A20-mobile-visual-fixes.spec.ts",
+    "exit_code": 0,
+    "tests_run": 7,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-mobile-visual\\.shipwright\\runs\\iterate-2026-08-13-mission-mobile-visual\\surface_verification.log",
+    "timestamp": "2026-08-13T15:52:46.644Z",
+    "attempts": 1
+  }
+}

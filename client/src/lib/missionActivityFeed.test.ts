@@ -182,4 +182,22 @@ describe("deriveActivityFeed", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), result("a", true), tool("b", "Read", { file_path: "b.ts" }), result("b")].join("\n")).events;
     expect(deriveActivityFeed(events, context("unknown"), "Read").cards.some((card) => card.kind === "blocker")).toBe(true);
   });
+
+  it("prefers the turn's own explanation over the generic bucket sentence (iterate-2026-08-13-mission-mobile-visual)", () => {
+    const events = parseSessionJsonl(event({
+      type: "assistant",
+      message: { role: "assistant", content: [
+        { type: "text", text: "Checking how the auth guard handles a stale token." },
+        { type: "tool_use", id: "read1", name: "Read", input: { file_path: "auth.ts" } },
+      ] },
+    })).events;
+    const feed = deriveActivityFeed(events, context("unknown"), "Fallback");
+    expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Checking how the auth guard handles a stale token.");
+  });
+
+  it("falls back to the generic bucket sentence when the turn carries no explanation", () => {
+    const events = parseSessionJsonl(tool("read1", "Read", { file_path: "auth.ts" })).events;
+    const feed = deriveActivityFeed(events, context("unknown"), "Fallback");
+    expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("The existing behaviour was examined before changes were made.");
+  });
 });

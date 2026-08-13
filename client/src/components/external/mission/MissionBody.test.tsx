@@ -119,11 +119,15 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     expect(screen.getByTestId("mission-stage-none")).toBeInTheDocument();
   });
 
-  it("a COMPLETED run keeps its verdict/proof middle + artifact links (AC2)", () => {
+  it("a COMPLETED run keeps its proof middle + artifact links (AC2)", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse });
     setup("");
-    expect(screen.getByTestId("verdict-banner")).toBeInTheDocument();
+    // COMPLETED_RUN's security gate is unwired -> a neutral verdict, so no
+    // banner renders (iterate-2026-08-13-mission-mobile-visual); the real
+    // proof lines (run id + "review clean") still render underneath.
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
+    expect(screen.getByTestId("proof-summary")).toHaveTextContent("review clean");
     expect(screen.getByTestId("mission-completed-stack")).toBeInTheDocument();
     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
     // The audit trail is preserved as clickable artifact links.

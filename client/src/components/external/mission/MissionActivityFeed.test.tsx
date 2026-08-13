@@ -46,4 +46,18 @@ describe("MissionActivityFeed", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open commit" }));
     expect(onArtifactClick).toHaveBeenCalledWith("commit");
   });
+
+  // Content-safety constraint (external review, iterate-2026-08-13-mission-mobile-visual):
+  // card.text can carry a turn's own assistant prose (assistant-influenced content), so it
+  // must render through the same safe markdown path as the rest of the transcript, never a
+  // raw <p>/dangerouslySetInnerHTML — HTML-like text must never become a real element.
+  it("renders HTML-like card text as inert markdown, never a real element", () => {
+    const { container } = render(<MissionActivityFeed feed={{
+      goal: "g",
+      outcome: "In progress",
+      cards: [{ kind: "implement", text: '<img src=x onerror="window.__pwned=true">Edited the login handler.', commands: [] }],
+    }} />);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText(/Edited the login handler/)).toBeInTheDocument();
+  });
 });

@@ -35,27 +35,7 @@ describe("VerdictBanner", () => {
   });
 
   // @covers FR-01.66
-  it("neutral/no-data -> an honest muted 'No run data yet', NOT ALL CLEAR", () => {
-    render(<VerdictBanner outcome="neutral" reason="no-data" />);
-    const banner = screen.getByTestId("verdict-banner");
-    expect(banner).toHaveClass("mc-verdict", "neutral");
-    expect(banner).toHaveTextContent("No run data yet");
-    expect(banner).not.toHaveTextContent("ALL CLEAR");
-    expect(banner.querySelector("svg")).toBeTruthy();
-  });
-
-  // @covers FR-01.66
-  it("neutral/in-progress -> 'In progress'", () => {
-    render(<VerdictBanner outcome="neutral" reason="in-progress" />);
-    expect(screen.getByTestId("verdict-banner")).toHaveTextContent("In progress");
-  });
-
-  // @covers FR-01.66
-  it("neutral/unverified -> 'Not fully verified', NOT a false ALL CLEAR", () => {
-    render(<VerdictBanner outcome="neutral" reason="unverified" />);
-    const banner = screen.getByTestId("verdict-banner");
-    expect(banner).toHaveClass("mc-verdict", "neutral");
-    expect(banner).toHaveTextContent("Not fully verified");
-    expect(banner).not.toHaveTextContent("ALL CLEAR");
-  });
+  // There is deliberately no `neutral` variant to test — retired
+  // iterate-2026-08-13-mission-mobile-visual. OperationCard renders no
+  // banner at all for a neutral verdict; see OperationCard.test.tsx.
 });

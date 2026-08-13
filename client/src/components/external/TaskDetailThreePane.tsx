@@ -27,9 +27,7 @@ interface Props {
   right: ReactNode;
   /** Container px width; tests pass a deterministic value. */
   containerWidth?: number;
-  centerTab?: "transcript" | "terminal";
   activePane?: PaneId;
-  onCenterTabChange?: (tab: "transcript" | "terminal") => void;
   onActivePaneChange?: (pane: PaneId) => void;
 }
 
@@ -38,17 +36,13 @@ export function TaskDetailThreePane({
   center,
   right,
   containerWidth,
-  centerTab,
   activePane,
-  onCenterTabChange,
   onActivePaneChange,
 }: Props) {
   const layout = useThreePaneLayout();
   const compact = useIsCompactViewport();
-  const { resolvedPane, resolvedCenterTab, selectPane, selectCenterTab } =
-    useCompactPaneSelection({
-      activePane, centerTab, onActivePaneChange, onCenterTabChange,
-    });
+  const { resolvedPane, selectPane } =
+    useCompactPaneSelection({ activePane, onActivePaneChange });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState<number>(
     containerWidth ?? 1280,
@@ -218,14 +212,7 @@ export function TaskDetailThreePane({
       data-compact={compact || undefined}
       data-maximized={maxed || undefined}
     >
-      {compact && (
-        <PaneTabBar
-          active={resolvedPane}
-          centerTab={resolvedCenterTab}
-          onChange={selectPane}
-          onCenterTabChange={selectCenterTab}
-        />
-      )}
+      {compact && <PaneTabBar active={resolvedPane} onChange={selectPane} />}
       <PanelGroup
         direction="horizontal"
         className={compact ? "min-h-0 w-full flex-1" : "h-full w-full"}
@@ -253,7 +240,7 @@ export function TaskDetailThreePane({
           onKeyDown={leftSplitterKeydown}
         />
         <Panel
-          {...compactPaneA11y(compact, resolvedPane, "center", `workspace-tab-${resolvedCenterTab}`)}
+          {...compactPaneA11y(compact, resolvedPane, "center", "workspace-tab-terminal")}
           ref={centerRef}
           defaultSize={sizes.center}
           minSize={compact ? 0 : 20}

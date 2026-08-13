@@ -76,7 +76,7 @@ export function MainLayout() {
         {isPhone ? (
           <div
             data-testid="mobile-topbar"
-            className="flex shrink-0 items-center gap-2 bg-[var(--color-sidebar-bg)] px-1 [padding-top:env(safe-area-inset-top)]"
+            className="flex shrink-0 items-center gap-2 bg-[var(--color-sidebar-bg)] pl-1 [padding-top:env(safe-area-inset-top)]"
           >
             <button
               type="button"
@@ -91,8 +91,16 @@ export function MainLayout() {
             {/* Page-injected content (Task Board portals its project dropdown
                 here on phones — iterate-2026-06-15 AC-1). Empty on other
                 routes. min-w-0 lets the dropdown truncate instead of pushing
-                the bar wider than the viewport on narrow phones. */}
-            <MobileTopBarSlotTarget className="flex min-w-0 flex-1 items-center justify-end pr-1" />
+                the bar wider than the viewport on narrow phones. The bar's
+                own right edge used to stop at 4px (pr-1) while PageHead /
+                .page-container / .board-container below it all share the
+                SAME unconditional 32px (pr-8) right gutter at every
+                viewport — the dropdown's right edge and "+New"'s right edge
+                landed on two different lines instead of one shared gutter
+                (iterate-2026-08-13-mission-mobile-visual). This element is
+                the sole right-padding owner for the bar — the outer row
+                above carries none, so there is exactly one 32px source. */}
+            <MobileTopBarSlotTarget className="flex min-w-0 flex-1 items-center justify-end pr-8" />
           </div>
         ) : null}
         <DiagnosticsBanner />

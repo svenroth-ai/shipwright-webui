@@ -9,8 +9,18 @@
  *
  * Testids:
  *   view-toggle-root, view-toggle-board, view-toggle-list.
+ *
+ * Height fix (iterate-2026-08-13-mission-mobile-visual): the buttons carried
+ * no explicit height (px-3 py-1 ⇒ ~28px) while the Filter/Density icon
+ * buttons right next to them are a fixed 32px (h-8 w-8) — a real cross-
+ * viewport mismatch, not a phone-only issue, now `h-8` everywhere. Phone
+ * additionally drops the "Board"/"List" text labels (icon-only, same 32px
+ * square as Filter/Density) to free up row width for the create button —
+ * the accessible name moves to `aria-label` when the text is hidden.
  */
 import { LayoutGrid, List } from "lucide-react";
+
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 
 export type TaskBoardView = "board" | "list";
 
@@ -20,6 +30,7 @@ interface Props {
 }
 
 export function ViewToggle({ value, onChange }: Props) {
+  const iconOnly = useIsPhoneViewport();
   return (
     <div
       className={
@@ -34,16 +45,18 @@ export function ViewToggle({ value, onChange }: Props) {
         active={value === "board"}
         onClick={() => onChange("board")}
         testId="view-toggle-board"
-        icon={<LayoutGrid size={12} />}
+        icon={<LayoutGrid size={13} />}
         label="Board"
+        iconOnly={iconOnly}
       />
       <div className="w-px self-stretch bg-[var(--color-border)]" aria-hidden="true" />
       <ToggleButton
         active={value === "list"}
         onClick={() => onChange("list")}
         testId="view-toggle-list"
-        icon={<List size={12} />}
+        icon={<List size={13} />}
         label="List"
+        iconOnly={iconOnly}
       />
     </div>
   );
@@ -55,25 +68,29 @@ interface ToggleButtonProps {
   testId: string;
   icon: React.ReactNode;
   label: string;
+  iconOnly: boolean;
 }
 
-function ToggleButton({ active, onClick, testId, icon, label }: ToggleButtonProps) {
+function ToggleButton({ active, onClick, testId, icon, label, iconOnly }: ToggleButtonProps) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={active}
+      aria-label={iconOnly ? label : undefined}
+      title={iconOnly ? label : undefined}
       onClick={onClick}
       data-testid={testId}
       className={
-        "inline-flex items-center gap-1.5 px-3 py-1 text-[12px] font-medium transition-colors " +
+        "inline-flex h-8 items-center justify-center gap-1.5 text-[12px] font-medium transition-colors " +
+        (iconOnly ? "w-8" : "px-3") + " " +
         (active
           ? "bg-[var(--color-muted-bg)] text-[var(--color-primary)]"
           : "bg-transparent text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)]")
       }
     >
       {icon}
-      {label}
+      {!iconOnly && label}
     </button>
   );
 }

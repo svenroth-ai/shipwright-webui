@@ -65,11 +65,6 @@ test.describe("@smoke core surfaces", () => {
   test("the embedded terminal pane mounts and its WebSocket goes ready", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
 
-    const terminalTab = page.getByRole("tab", { name: /terminal/i });
-    if (await terminalTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await terminalTab.click();
-    }
-
     // data-ws-ready is the honest signal: the pane being in the DOM proves
     // nothing, because a terminal that never attaches its socket looks identical.
     const term = page.getByTestId("embedded-terminal");

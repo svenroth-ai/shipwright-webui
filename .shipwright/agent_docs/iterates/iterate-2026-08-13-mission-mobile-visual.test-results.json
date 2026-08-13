@@ -1,0 +1,90 @@
+{
+  "last_updated": "2026-08-13",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-13-mission-mobile-visual",
+    "date": "2026-08-13",
+    "unit": "PASS \u2014 client 3324 passed (352 files); server 3360 passed / 1 skipped (289 files, total 3361)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 mobile-chromium: A20-mobile-visual-fixes.spec.ts (5/5) + mobile-work-mode.spec.ts (1/1) + mobile-work-mode-mission.spec.ts (1/1), 7/7; see surface_verification",
+    "design_fidelity": "PASS \u2014 Mission middle-card dark surface + VerdictBanner suppression verified at the unit level (OperationCard.test.tsx / VerdictBanner.test.tsx); mobile header/gutter/touch-target geometry verified via real-browser Playwright (A20 spec) against the approved mockups",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [
+      "90-phone-responsive.spec.ts carries 2 real, reproducible failures unrelated to this diff: the phone create-menu project drill-down flow locks the New Task modal to the picked project (ProjectContextStrip), but the test still asserts a project <select> \u2014 confirmed pre-existing (the locking behavior in useNewIssueFormDerived.ts predates this test by two weeks in git history) and confirmed untouched by this session's diff. Filed as triage card trg-7f296eff. Excluded from this run's e2e scope accordingly.",
+      "The Playwright 'chromium' (desktop) project discovers zero tests in this worktree's isolated-stack environment \u2014 confirmed pre-existing and unrelated to this diff via multiple empirical probes (single-file, pre-existing-file, unfiltered runs all return 0; only mobile-chromium/schema-isolated contribute to the canonical 3-project run's test count). Out of scope to root-cause in a visual-only iterate; desktop-only specs (80-tablet-responsive, A11-mission-record-rail, A13-mission-shell, 76-intent-launcher-front-door) could not be executed live this session as a result.",
+      "Visual regression baselines are Linux-only (project convention) and cannot be regenerated on this Windows dev machine; the Mission tab and mobile-view changes are expected to shift several baselines \u2014 flagged for the `visual-baselines.yml` on-demand regen workflow after push, per the established PR flow."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Mission middle card renders on the dark surface (mockup-approved), not white (AC1)",
+          "disposition": "tested",
+          "evidence": "OperationCard.tsx / mission-operation.css restyle onto the shared dark on-photo tokens; OperationCard.test.tsx covers verdict/proof-line rendering against the restyled component; real production Vite/Tailwind build succeeded after fixing a CSS comment-parsing bug in mission-operation.css (confirms the token wiring actually compiles and applies)"
+        },
+        {
+          "behavior": "VerdictBanner suppressed on a fact-free neutral verdict, but a red test-suite proof line is NEVER hidden (AC2, the internal-review-caught invariant)",
+          "disposition": "tested",
+          "evidence": "OperationCard.test.tsx: 'DONE task, RED suite (test gate failed) -> no banner, but the red suite line is NEVER hidden' and 'empty event log (done, run null) -> NEUTRAL, no banner, never a false ALL CLEAR (AC3)'; VerdictBanner.test.tsx: 'clear -> the .ok banner...', 'hold -> the .err banner...'"
+        },
+        {
+          "behavior": "Activity feed narration reuses assistantText()/missionActivityFeed.ts parsing plus BubbleTranscript rendering pieces, not new LLM infra (AC3)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.ts modified (+27/-0 lines, no new network/LLM calls); missionActivityFeed.test.ts (+18 lines); MissionActivityFeed.test.tsx: 'renders the long-iterate fixture in a focusable, operable scrolling timeline', 'renders HTML-like card text as inert markdown, never a real element'"
+        },
+        {
+          "behavior": "Transcript sub-tab removed from Files & Terminal; only Files/Terminal/Viewer remain (AC4)",
+          "disposition": "tested",
+          "evidence": "PaneTabBar.test.tsx: 'renders exactly three equal direct destinations with no Transcript/Session tab'; mobile-work-mode.spec.ts real-browser assertion `await expect(tabs).toHaveText([\"Files\", \"Terminal\", \"Viewer\"])`"
+        },
+        {
+          "behavior": "Board (mobile): project-filter dropdown and create control share the header's right-edge gutter (AC5)",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts: 'the phone top-bar slot's right padding matches the real PageHead gutter (32px)' (real-browser, measured against the verified value, not the mockup's illustrative guess)"
+        },
+        {
+          "behavior": "Task Detail (mobile): header controls no longer overlap the two-line title+status block; Resume is icon-only; collapsed control reads as a segmented pill (AC6)",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts: 'back-arrow, title row and actions cluster don't overlap the status-pills row' and 'Resume is icon-only with an accessible name and a 44px touch target' (both real-browser, including the self-caught 44px touch-target regression and the flex-truncation title-overlap regression, both fixed and re-verified green)"
+        },
+        {
+          "behavior": "Intent Wizard (mobile) fixed to the same header/spacing standard (AC7)",
+          "disposition": "tested",
+          "evidence": "FlightPlanRail.test.tsx: 'renders a summary chip instead of the full rail', 'opens a sheet with the same rows on tap, closes on the close button', 'the chip meets the 44px touch-target minimum', 'still renders the full rail unchanged when isPhone resolves false'; A20-mobile-visual-fixes.spec.ts real-browser 'the Flight Plan rail collapses to a summary chip and opens a bottom sheet with a 44px close target'"
+        },
+        {
+          "behavior": "CLAUDE.md rule 26 gains one documented phone-only 88px --btn-min-w exception, not a silent per-component override (AC8)",
+          "disposition": "tested",
+          "evidence": "CLAUDE.md rule 26 amended with the phone-only override text; buttons.css carries the single `@media (max-width:767px)` override; conventions.md Convention Updates entry for iterate-2026-08-13-mission-mobile-visual cross-references it; create-cta-standard.test.ts (existing ratchet) still passes"
+        },
+        {
+          "behavior": "Spec-tab panel routing and Terminal-as-default-pane behavior verified against real code before touching either; no change shipped unless verification showed a real break (AC9, verify-first)",
+          "disposition": "tested",
+          "evidence": "Step 7 verify-first pass read the real routing/default-pane code before build (task-list step 'Verify-first behavior checks'); TaskDetailPage.tsx diff shows no change to Spec-tab panel routing logic, only the Transcript-tab removal; useCompactPaneSelection.ts diff removes only the retired centerTab plumbing, terminal stays the sole/default center-pane surface"
+        },
+        {
+          "behavior": "Terminal text-smearing left untouched by this iterate (AC10, explicit out-of-scope boundary)",
+          "disposition": "tested",
+          "evidence": "git diff --stat for this run touches no file under client/src/components/terminal/, server/src/terminal/, or the smear-related CSS/JS (pty-manager, xterm renderer, cell-state snapshot) \u2014 confirmed via the full changed-file list this session"
+        }
+      ],
+      "counts": {
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-13-mission-mobile-visual",
+    "commit": "332f2e2a46e66fa210671db045f21df3a32851be",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

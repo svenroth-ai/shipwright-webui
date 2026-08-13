@@ -2,54 +2,44 @@
  * PaneTabBar — compact (tablet/phone ≤1023px) tab switcher for the task-detail
  * panes (iterate-2026-06-14-tablet-responsive-view AC-4).
  *
- * Four compact tabs flatten the desktop 3-pane plus the center sub-view:
- * Files · Transcript · Terminal · Viewer. The center subtree stays mounted.
- * This is purely presentational — it owns no pane content. TaskDetailThreePane
- * keeps the SAME persistent `<PanelGroup>` mounted and merely sizes the active
- * pane to 100% / others to 0 on change, so the embedded terminal subtree is
- * never unmounted across a tab switch or a breakpoint crossing (plan-review
- * C1/C2; CLAUDE.md rule 21).
+ * Three compact tabs flatten the desktop 3-pane: Files · Terminal · Viewer.
+ * (Transcript retired iterate-2026-08-13-mission-mobile-visual — Mission's
+ * activity feed covers that ground; the center sub-view is unambiguously
+ * Terminal now, so there is no more centerTab input to thread.) The center
+ * subtree stays mounted. This is purely presentational — it owns no pane
+ * content. TaskDetailThreePane keeps the SAME persistent `<PanelGroup>`
+ * mounted and merely sizes the active pane to 100% / others to 0 on change,
+ * so the embedded terminal subtree is never unmounted across a tab switch or
+ * a breakpoint crossing (plan-review C1/C2; CLAUDE.md rule 21).
  */
 
 export type PaneId = "left" | "center" | "right";
 
 interface PaneTabBarProps {
   active: PaneId;
-  centerTab: "transcript" | "terminal";
   onChange: (id: PaneId) => void;
-  onCenterTabChange: (tab: "transcript" | "terminal") => void;
 }
 
-type CompactTab = "left" | "transcript" | "terminal" | "right";
+type CompactTab = "left" | "terminal" | "right";
 
 const TABS: { id: CompactTab; label: string }[] = [
   { id: "left", label: "Files" },
-  { id: "transcript", label: "Transcript" },
   { id: "terminal", label: "Terminal" },
   { id: "right", label: "Viewer" },
 ];
 
 const PANEL_FOR_TAB: Record<CompactTab, string> = {
   left: "task-pane-left",
-  transcript: "task-center-panel-transcript",
   terminal: "task-center-panel-terminal",
   right: "task-pane-right",
 };
 
-export function PaneTabBar({
-  active,
-  centerTab,
-  onChange,
-  onCenterTabChange,
-}: PaneTabBarProps) {
-  const selectedId: CompactTab = active === "center" ? centerTab : active;
+export function PaneTabBar({ active, onChange }: PaneTabBarProps) {
+  // "terminal" keeps its own DOM id/testid (unchanged from when it shared the
+  // slot with Transcript) so the terminal/replay E2E corpus stays byte-stable.
+  const selectedId: CompactTab = active === "center" ? "terminal" : active;
   const select = (id: CompactTab) => {
-    if (id === "transcript" || id === "terminal") {
-      onCenterTabChange(id);
-      onChange("center");
-      return;
-    }
-    onChange(id);
+    onChange(id === "terminal" ? "center" : id);
   };
 
   return (
@@ -57,7 +47,7 @@ export function PaneTabBar({
       role="tablist"
       aria-label="Task detail panes"
       data-testid="pane-tab-bar"
-      className="compact-tab-surface grid shrink-0 grid-cols-4 gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
+      className="compact-tab-surface grid shrink-0 grid-cols-3 gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
       onKeyDown={(event) => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault();

@@ -48,7 +48,16 @@ export function MissionCompactTabs({
       role="tablist"
       aria-label="Mission panels"
       data-testid="mission-compact-tabs"
-      className="compact-tab-surface grid shrink-0 grid-cols-3 gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
+      // `mc-tabs` reuses the SAME glass-pill trough as the desktop Mission /
+      // Files & Terminal segmented switch (MissionSegmented) instead of a
+      // second, flat-white hand-rolled skin — the two tab strips read as one
+      // visual language now (iterate-2026-08-13-mission-mobile-visual). The
+      // grid layout comes entirely from `.mc-tabs.compact-tab-surface` in
+      // mission-record.css (an UNLAYERED plain-CSS rule, which always beats
+      // Tailwind's `@layer utilities` regardless of specificity) — Tailwind
+      // grid/gap/padding utilities are deliberately NOT duplicated here
+      // (code review: they'd be dead weight, never actually applying).
+      className="mc-tabs compact-tab-surface"
       onKeyDown={handleKeyDown}
     >
       {TABS.map((tab, index) => {
@@ -70,12 +79,7 @@ export function MissionCompactTabs({
             disabled={disabled}
             data-testid={`mission-compact-tab-${tab.id}`}
             onClick={() => onChange(tab.id)}
-            className={
-              "min-h-11 rounded-[7px] px-2 text-[13px] font-semibold transition " +
-              (selected
-                ? "bg-white text-[var(--ink)] shadow-[inset_0_-3px_0_var(--accent)]"
-                : "bg-white text-[var(--body)] hover:bg-[var(--g50)] disabled:text-[var(--faint)]")
-            }
+            className={`mc-tab min-h-11 px-2 text-[13px]${selected ? " active" : ""}`}
           >
             {tab.label}
           </button>

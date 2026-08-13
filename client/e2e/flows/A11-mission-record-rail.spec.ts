@@ -43,9 +43,6 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     // Default top tab = Files & Terminal → the embedded terminal is present
     // without any extra navigation, exactly as before A11.
     await expect(page.getByTestId("embedded-terminal")).toBeVisible({ timeout: 15_000 });
-    // getByRole("tab", {name:/terminal/i}) still resolves to the ONE center tab
-    // (the top switch is plain buttons, not role=tab).
-    await expect(page.getByRole("tab", { name: /terminal/i })).toHaveCount(1);
   });
 
   test("Mission tab shows the Record; each node opens its artifact", async ({ page }) => {

@@ -4,12 +4,10 @@
  * Browser-tests as much of the embedded-terminal surface as Playwright
  * can reach without a real Strg+V image-paste (that one stays a manual
  * smoke). Covers:
- *   - Tab strip renders with Transcript + Terminal triggers.
- *   - Default tab on first visit is Terminal (per plan §User-Entscheidungen).
- *   - Tab toggle persists in localStorage["webui:embedded-terminal-default-tab"]
- *     and survives a page reload.
- *   - xterm canvas + helper textarea are present in the DOM (forceMount
- *     keeps both panes mounted across toggle).
+ *   - The terminal pane renders unconditionally (Transcript sub-tab
+ *     retired iterate-2026-08-13-mission-mobile-visual — Mission's
+ *     activity feed covers that ground now).
+ *   - xterm canvas + helper textarea are present in the DOM.
  *   - WebSocket endpoint /api/terminal/:taskId/ws is reachable
  *     (HTTP upgrade succeeds → ready envelope arrives).
  *   - REST endpoints: POST /paste-image (PNG round-trip via a stub PNG
@@ -64,54 +62,21 @@ async function createTask(request: import("@playwright/test").APIRequestContext,
 test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
 test.describe("ADR-067 — Embedded terminal", () => {
-  test("tabs render; Terminal default; xterm canvas + helper textarea present", async ({ page, request }) => {
+  test("terminal pane renders unconditionally; xterm canvas + helper textarea present", async ({ page, request }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd);
     try {
       await page.goto(`/tasks/${taskId}`);
       await expect(page.getByTestId("task-detail-page")).toBeVisible();
-      await expect(page.getByTestId("task-detail-tabs")).toBeVisible();
-      await expect(page.getByTestId("task-detail-tab-transcript")).toBeVisible();
-      await expect(page.getByTestId("task-detail-tab-terminal")).toBeVisible();
 
-      // Default = Terminal.
+      // The terminal pane is the sole center-pane surface now — no tab
+      // strip, no data-state, just present and visible.
       const terminalPane = page.getByTestId("task-detail-terminal");
-      await expect(terminalPane).toHaveAttribute("data-state", "active");
-
-      // Both forceMount-ed panes exist in DOM (forceMount regression fence).
-      await expect(page.getByTestId("task-detail-transcript")).toBeAttached();
+      await expect(terminalPane).toBeVisible();
       await expect(terminalPane).toBeAttached();
 
       // xterm rendered: helper textarea is present inside the embedded-terminal wrapper.
       await expect(page.locator(".xterm-helper-textarea")).toHaveCount(1);
-    } finally {
-      await cleanupCwd(cwd);
-    }
-  });
-
-  test("tab toggle persists in localStorage and survives reload", async ({ page, request }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd);
-    try {
-      await page.goto(`/tasks/${taskId}`);
-      await page.getByTestId("task-detail-tab-transcript").click();
-      await expect(page.getByTestId("task-detail-transcript")).toHaveAttribute(
-        "data-state",
-        "active",
-      );
-      const stored = await page.evaluate(() =>
-        localStorage.getItem("webui:embedded-terminal-default-tab"),
-      );
-      // Accept both the JSON-stringified form ('"transcript"') and the
-      // bare string form, in case useLocalStorage's encoding contract
-      // changes — the spec only requires the SEMANTIC value to round-trip.
-      expect(stored === '"transcript"' || stored === "transcript").toBe(true);
-
-      await page.reload();
-      await expect(page.getByTestId("task-detail-transcript")).toHaveAttribute(
-        "data-state",
-        "active",
-      );
     } finally {
       await cleanupCwd(cwd);
     }
@@ -265,28 +230,28 @@ test.describe("ADR-067 — Embedded terminal", () => {
     }
   });
 
-  test("Launch CTA fires webui:launch-copied; tab flips to Terminal automatically", async ({ page, request }) => {
+  test("Launch CTA auto-surfaces Files & Terminal when launched from Mission", async ({ page, request }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd);
     try {
       await page.goto(`/tasks/${taskId}`);
-      // Force-flip to Transcript first to make the post-launch flip observable.
-      await page.getByTestId("task-detail-tab-transcript").click();
-      await expect(page.getByTestId("task-detail-transcript")).toHaveAttribute(
-        "data-state",
-        "active",
-      );
+      // Force-flip to Mission first to make the post-launch flip observable
+      // (Files & Terminal is the mount-default, so a no-op start state would
+      // hide a regression here — TaskDetailPage.tsx's pendingLaunch effect
+      // calls `setMissionTab("files")` when a launch is dispatched).
+      const missionTrigger = page.getByTestId("mission-tab-mission");
+      const filesTrigger = page.getByTestId("mission-tab-files");
+      await missionTrigger.click();
+      await expect(missionTrigger).toHaveAttribute("aria-checked", "true");
+
       // Click the launch CTA in the header (testid `cta-launch-in-terminal`
-      // for draft/awaiting_external_start tasks; the header dispatches
-      // webui:launch-copied after the clipboard write).
+      // for draft/awaiting_external_start tasks).
       await page.getByTestId("cta-launch-in-terminal").click();
-      // The clipboard write is async + the event dispatch follows it. Wait
-      // for the resulting flip.
-      await expect(page.getByTestId("task-detail-terminal")).toHaveAttribute(
-        "data-state",
-        "active",
-        { timeout: 5000 },
-      );
+      // The launch dispatch is async. Wait for the resulting flip back to
+      // Files & Terminal.
+      await expect(filesTrigger).toHaveAttribute("aria-checked", "true", {
+        timeout: 5000,
+      });
     } finally {
       await cleanupCwd(cwd);
     }

@@ -25,9 +25,21 @@
 .mc-tab.active { color: var(--ink); background: var(--card); box-shadow: var(--sh-xs); }
 .mc-tab:hover:not(.active) { color: var(--ink); }
 .mc-tab:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-tab:disabled { color: var(--faint); cursor: default; }
 @media (max-width: 1023px) {
   .mc-tabrow .mc-tab { min-height: 44px; padding: 6px 10px; }
 }
+
+/* Compact Overview/Activity/Detail tab-sheet (MissionCompactTabs, phone/tablet
+   only) reuses the .mc-tabs/.mc-tab glass-pill skin above verbatim — same
+   trough colour/border/radius, same .mc-tab.active chip — but needs a fixed
+   3-column grid spanning the full header width, not .mc-tabs's content-hugging
+   inline-flex. Tailwind's `grid`/`gap-*`/`p-*` utilities live in a lower
+   cascade layer than this plain CSS, so they cannot win against `.mc-tabs`'s
+   unlayered `display: inline-flex`; the layout is declared here instead
+   (iterate-2026-08-13-mission-mobile-visual — previously a second, flat-white
+   hand-rolled skin that read as a different control from MissionSegmented). */
+.mc-tabs.compact-tab-surface { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; flex-shrink: 0; align-self: stretch; }
 .btn-glass.mobile-light-link {
   background: var(--card); border-color: var(--line); color: var(--body);
 }

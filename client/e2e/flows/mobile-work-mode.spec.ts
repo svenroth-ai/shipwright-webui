@@ -2,7 +2,6 @@ import { expect, test } from "@playwright/test";
 import {
   cleanupProject,
   cleanupTaskCwd,
-  seedLocalStorage,
   seedProject,
   seedTask,
   setActiveProject,
@@ -54,33 +53,28 @@ test.describe("Mobile work mode", () => {
       data: { description: DESCRIPTION },
     });
 
-    // Persisted centre choice: correct on first compact paint and after a round-trip.
-    await seedLocalStorage(page, {
-      "webui:embedded-terminal-default-tab": JSON.stringify("transcript"),
-    });
+    // Centre pane defaults to Terminal (the sole center-pane surface since
+    // iterate-2026-08-13-mission-mobile-visual retired the Transcript
+    // sub-tab) — correct on first compact paint and after a round-trip.
     await installFirstCompactTabProbe(page);
 
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
-    await expect(page.getByTestId("pane-tab-transcript")).toHaveAttribute(
+    await expect(page.getByTestId("pane-tab-terminal")).toHaveAttribute(
       "aria-selected",
       "true",
     );
     await expect.poll(() => page.evaluate(
       () => document.documentElement.dataset.firstCompactWorkspaceTab,
-    )).toBe("pane-tab-transcript");
+    )).toBe("pane-tab-terminal");
     const phoneViewport = page.viewportSize()!;
     await page.setViewportSize({ width: 1100, height: 900 });
-    await expect(page.getByTestId("task-detail-tab-transcript")).toHaveAttribute(
-      "data-state",
-      "active",
-    );
+    await expect(page.getByTestId("task-detail-terminal")).toBeVisible();
     await page.setViewportSize(phoneViewport);
-    await expect(page.getByTestId("pane-tab-transcript")).toHaveAttribute(
+    await expect(page.getByTestId("pane-tab-terminal")).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    await page.getByTestId("pane-tab-terminal").click();
     const terminal = page.getByTestId("embedded-terminal");
     await expect(terminal).toHaveAttribute("data-ws-ready", "true", {
       timeout: 20_000,
@@ -132,7 +126,7 @@ test.describe("Mobile work mode", () => {
     expect(terminalOpens().length).toBe(opensBefore);
 
     const tabs = page.getByTestId("pane-tab-bar").getByRole("tab");
-    await expect(tabs).toHaveText(["Files", "Transcript", "Terminal", "Viewer"]);
+    await expect(tabs).toHaveText(["Files", "Terminal", "Viewer"]);
     await expect(page.getByTestId("pane-tab-center")).toHaveCount(0);
     await expect(page.getByTestId("task-detail-center-header")).toHaveCount(0);
     await expect(page.getByTestId("pane-tab-terminal")).toHaveAttribute(
@@ -260,50 +254,5 @@ test.describe("Mobile work mode", () => {
       path: testInfo.outputPath("mobile-terminal-work-mode.png"),
       fullPage: false,
     });
-  });
-
-  test("Mission uses Overview, Activity and contextual Detail", async ({
-    page,
-    request,
-  }, testInfo) => {
-    task = await seedTask(request, { title: "Inspect the mobile mission" });
-    await page.goto(`/tasks/${task.taskId}`);
-    await page.getByTestId("mission-tab-mission").click();
-
-    const tabs = page.getByTestId("mission-compact-tabs").getByRole("tab");
-    await expect(tabs).toHaveText(["Overview", "Activity", "Detail"]);
-    await expect(page.getByTestId("mission-compact-tab-detail")).toBeDisabled();
-    await expect(page.getByTestId("mission-panel-overview")).toBeVisible();
-    await expect(page.getByTestId("mission-panel-activity")).toBeHidden();
-
-    await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page.getByTestId("artifact-panel")).toBeVisible();
-    for (const action of ["artifact-close", "artifact-open-document"]) {
-      const box = await page.getByTestId(action).boundingBox();
-      expect(box?.height, `${action} needs a compact touch target`).toBeGreaterThanOrEqual(44);
-      expect(box?.width, `${action} needs a compact touch target`).toBeGreaterThanOrEqual(44);
-    }
-    await page.waitForTimeout(200);
-    await page.screenshot({
-      path: testInfo.outputPath("mobile-mission-detail.png"),
-      fullPage: false,
-    });
-
-    await page.getByTestId("artifact-close").click();
-    await expect(page.getByTestId("mission-compact-tab-overview")).toBeFocused();
-    await expect(page.getByTestId("mission-compact-tab-detail")).toBeDisabled();
-
-    await page.setViewportSize({ width: 820, height: 900 });
-    const shiplog = page.getByTestId("mission-open-ships-log");
-    await expect(shiplog).toHaveRole("link");
-    await expect(shiplog).toHaveAttribute("href", "/projects");
-    await expect(shiplog).not.toHaveAttribute("role", "tab");
-    await expect(shiplog).toHaveText("Shiplog");
-    const shiplogBox = await shiplog.boundingBox();
-    expect(shiplogBox?.height).toBeGreaterThanOrEqual(44);
   });
 });

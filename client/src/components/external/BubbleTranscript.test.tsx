@@ -1,12 +1,8 @@
 /*
- * BubbleTranscript unit coverage.
- *
- * Covers:
- *   - Layout fixtures: user (right), assistant (left), tool_use, tool_result,
- *     AskUserQuestion pending → resolved transition.
- *   - "Load older" pagination — state expands the visible window.
- *   - Virtualization toggle: ≥ 200 events renders the virtual list,
- *     < 200 renders the plain list.
+ * BubbleTranscript unit coverage: bubble layout fixtures, "Load older"
+ * pagination, and the ≥200-event virtualization toggle. Retired-E2E-spec
+ * migration coverage lives in BubbleTranscript.migrated-e2e.test.tsx
+ * (split out here, iterate-2026-08-13-mission-mobile-visual).
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -19,6 +15,10 @@ import {
   _resetAttachmentWarnDedupeForTesting,
 } from "./BubbleTranscript";
 import { parseSessionJsonl } from "../../external/session-parser";
+
+// pr-link rows call usePrStatus (React Query) — mocked so this file needs no
+// QueryClientProvider, same pattern as TranscriptRow.test.tsx.
+vi.mock("../../hooks/usePrStatus", () => ({ usePrStatus: () => ({ data: undefined }) }));
 
 const SYSTEM_VISIBILITY_KEY = "webui.transcript.showSystem";
 

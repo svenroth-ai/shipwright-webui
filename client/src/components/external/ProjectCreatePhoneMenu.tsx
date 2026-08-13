@@ -16,6 +16,31 @@
  * The trigger carries the ONE canonical `.btn-primary` (styles/buttons.css),
  * identical to the desktop cascade — same button, smaller viewport
  * (iterate-2026-07-21-all-projects-new-button-parity).
+ *
+ * Real title bar (iterate-2026-08-13-mission-mobile-visual): the back row
+ * used to be a full-width `DropdownMenu.Item` ("‹ {project name}") that
+ * combined navigation and the label as one row, so the drill-down read as a
+ * flat list rather than a designed two-screen flow. A header band now sits
+ * above the rows on both levels — "New — choose a project" on level 1, a
+ * back-chevron + the picked project's name on level 2 — border-separated
+ * from the list below. The chevron STAYS a `DropdownMenu.Item` (not a plain
+ * sibling `<button>`, which an earlier version of this fix used and which
+ * code review caught: Radix's Collection-based arrow-key/Tab nav inside
+ * `DropdownMenu.Content` only sees `Item`s, so a plain button is keyboard-
+ * unreachable) — it just carries a square icon-only className instead of a
+ * full-width row.
+ * Deliberately still `DropdownMenu.Content`, not a `Dialog` bottom sheet:
+ * `GuidedWizardMenuItem`/`RegisterManuallyMenuItem`/`CreateMenuHeading` are
+ * the SINGLE shared source of those rows across three surfaces (this file,
+ * `CreateMenuSplitButton`, `ProjectCreateCascade`) and are Radix
+ * `DropdownMenu.Item`-coupled — swapping the outer primitive here would
+ * either fork them or force a matching change on the other two surfaces,
+ * well past what this pass's visual scope covers. Radix's own Popper
+ * positioning is also fixed-position via inline styles, which a CSS-only
+ * "pin to the viewport bottom" override would be fighting rather than using.
+ * A plain header band closes the "reads as an afterthought" gap without
+ * that risk; a true fixed bottom sheet is a follow-up if still wanted after
+ * this ships.
  */
 
 import { useState } from "react";
@@ -85,6 +110,14 @@ export function ProjectCreatePhoneMenu({
           >
             {picked === null ? (
               <>
+                <div
+                  className="mb-1 border-b border-[var(--color-border)] px-2.5 pb-2 pt-1"
+                  data-testid="create-menu-cascade-title"
+                >
+                  <span className="text-[13px] font-semibold text-[var(--color-text)]">
+                    New — choose a project
+                  </span>
+                </div>
                 {/* Guided + register-manually frame the project drill-down
                     (iterate-2026-07-23-intent-launcher-front-door). */}
                 <CreateMenuHeading />
@@ -121,21 +154,30 @@ export function ProjectCreatePhoneMenu({
               </>
             ) : (
               <>
-                <DropdownMenu.Item
-                  data-testid="create-menu-phone-back"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setPicked(null);
-                  }}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-[6px] px-2 py-1.5 text-[12px] font-medium text-[var(--color-muted)] outline-none focus:bg-[var(--color-muted-bg)] hover:bg-[var(--color-muted-bg)]"
-                >
-                  <ChevronLeft size={14} aria-hidden="true" />
-                  <span className="truncate">{picked.name}</span>
-                </DropdownMenu.Item>
                 <div
-                  className="my-1 h-px bg-[var(--color-border)]"
-                  aria-hidden="true"
-                />
+                  className="mb-1 flex items-center gap-1.5 border-b border-[var(--color-border)] px-1 pb-2 pt-1"
+                  data-testid="create-menu-cascade-title"
+                >
+                  <DropdownMenu.Item
+                    data-testid="create-menu-phone-back"
+                    // Drill back out instead of closing the menu — same
+                    // preventDefault()-on-select pattern the project rows use
+                    // above, so Radix's roving focus keeps this control
+                    // keyboard-reachable (a plain sibling <button> is invisible
+                    // to DropdownMenu.Content's Collection-based arrow-key nav).
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setPicked(null);
+                    }}
+                    aria-label="Back to project list"
+                    className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-[var(--color-muted)] outline-none focus:bg-[var(--color-muted-bg)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)]"
+                  >
+                    <ChevronLeft size={16} aria-hidden="true" />
+                  </DropdownMenu.Item>
+                  <span className="truncate text-[13px] font-semibold text-[var(--color-text)]">
+                    New — {picked.name}
+                  </span>
+                </div>
                 <ProjectActionsLoader
                   projectId={picked.id}
                   filter={(a) => a.id !== "new-plain"}

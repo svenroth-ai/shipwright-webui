@@ -17,8 +17,9 @@ import { tmpdir } from "node:os";
  *
  * The project is selected via `?projectId=<id>` (URL wins over auto-select), so
  * the test is robust regardless of other registered projects. Self-seeds via
- * the real POST /api/projects + on-disk writes (mirrors pr-card-status.spec.ts)
- * and cleans up the registration + temp dir afterwards.
+ * the real POST /api/projects + on-disk writes (same self-seed-then-cleanup
+ * shape as the rest of this suite) and cleans up the registration + temp dir
+ * afterwards.
  */
 
 const SLUG = "2026-06-08-attached-guard-demo";

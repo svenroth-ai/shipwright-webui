@@ -1,4 +1,4 @@
-import { isOnlyToolResults, toolResults, toolUses, userText, type ParsedEvent } from "../external/session-parser";
+import { assistantText, isOnlyToolResults, toolResults, toolUses, userText, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
 import { sanitizeProofText } from "./proofLines";
 
@@ -66,7 +66,12 @@ function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
 }
 
 /** Typed-event reducer for the calm Mission activity feed. It deliberately does
- * not read tool output: only durable MissionContext may prove a completed gate. */
+ * not read tool output: only durable MissionContext may prove a completed gate.
+ * Per-card text prefers the turn's own `assistantText()` explanation over the
+ * generic bucket sentence when Claude wrote one (iterate-2026-08-13-mission-
+ * mobile-visual) — rendered by the caller through the same safe markdown path
+ * as the rest of the transcript (`MarkdownChunk`), never raw HTML, since it is
+ * assistant-influenced content. */
 export function deriveActivityFeed(
   events: readonly ParsedEvent[],
   context: MissionContext | null,
@@ -132,6 +137,16 @@ export function deriveActivityFeed(
       continue;
     }
     if (event.kind !== "assistant") continue;
+    // A turn's own explanation (when Claude wrote one alongside its tool calls)
+    // replaces the generic bucket sentence below — reusing the same raw-JSONL
+    // `assistantText()` narrator-transcript.ts already narrates from, so a
+    // non-technical reader gets the actual reasoning instead of a templated
+    // "was updated in compact steps." Purely deterministic text extraction,
+    // never a new LLM call. Empty for the common tool-only turn (no text
+    // block at all), which keeps every existing fallback-sentence case —
+    // including the many-files-in-a-row coalescing the long-iterate test
+    // relies on — byte-identical.
+    const prose = clean(assistantText(event).split("\n").find((line) => line.trim().length > 0) ?? "");
     for (const tool of toolUses(event)) {
       const input = tool.input as Record<string, unknown> | undefined;
       const shell = typeof input?.command === "string" ? input.command : "";
@@ -158,10 +173,10 @@ export function deriveActivityFeed(
         const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false);
         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
       } else {
-        const card = bucket === "review" ? add("review", "Review work is in progress.", label, artifact(context, "review") ? "review" : undefined)
-          : bucket === "spec" ? add("spec", "The intended change was captured in the run record.", label, artifact(context, "spec") ? "spec" : undefined)
-          : bucket === "investigate" ? add("investigate", "The existing behaviour was examined before changes were made.", label)
-          : add("implement", "The implementation was updated in compact steps.", label);
+        const card = bucket === "review" ? add("review", prose || "Review work is in progress.", label, artifact(context, "review") ? "review" : undefined)
+          : bucket === "spec" ? add("spec", prose || "The intended change was captured in the run record.", label, artifact(context, "spec") ? "spec" : undefined)
+          : bucket === "investigate" ? add("investigate", prose || "The existing behaviour was examined before changes were made.", label)
+          : add("implement", prose || "The implementation was updated in compact steps.", label);
         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
       }
     }

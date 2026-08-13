@@ -4,23 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import { PaneTabBar } from "./PaneTabBar";
 
 describe("PaneTabBar — compact direct workspace navigation", () => {
-  it("renders exactly four equal direct destinations with no Session tab", () => {
-    render(
-      <PaneTabBar
-        active="center"
-        centerTab="terminal"
-        onChange={vi.fn()}
-        onCenterTabChange={vi.fn()}
-      />,
-    );
-    expect(screen.getAllByRole("tab")).toHaveLength(4);
+  it("renders exactly three equal direct destinations with no Transcript/Session tab", () => {
+    render(<PaneTabBar active="center" onChange={vi.fn()} />);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
     expect(screen.getByRole("tab", { name: "Files" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Transcript" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Terminal" })).toHaveAttribute(
       "aria-selected",
       "true",
     );
     expect(screen.getByRole("tab", { name: "Viewer" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Transcript" })).toBeNull();
     expect(screen.queryByRole("tab", { name: "Session" })).toBeNull();
     expect(screen.getByTestId("pane-tab-left")).toHaveAttribute(
       "aria-controls",
@@ -30,64 +23,33 @@ describe("PaneTabBar — compact direct workspace navigation", () => {
       "aria-controls",
       "task-center-panel-terminal",
     );
-    expect(screen.getByTestId("pane-tab-transcript")).toHaveAttribute(
-      "aria-controls",
-      "task-center-panel-transcript",
-    );
     expect(screen.getByTestId("pane-tab-right")).toHaveAttribute(
       "aria-controls",
       "task-pane-right",
     );
   });
 
-  it("maps Transcript/Terminal to the centre pane plus the controlled centre value", () => {
+  it("maps Terminal to the centre pane", () => {
     const onChange = vi.fn();
-    const onCenterTabChange = vi.fn();
-    render(
-      <PaneTabBar
-        active="left"
-        centerTab="terminal"
-        onChange={onChange}
-        onCenterTabChange={onCenterTabChange}
-      />,
-    );
-    fireEvent.click(screen.getByTestId("pane-tab-transcript"));
+    render(<PaneTabBar active="left" onChange={onChange} />);
+    fireEvent.click(screen.getByTestId("pane-tab-terminal"));
     expect(onChange).toHaveBeenCalledWith("center");
-    expect(onCenterTabChange).toHaveBeenCalledWith("transcript");
   });
 
-  it("Files/Viewer change only the outer pane", () => {
+  it("Files/Viewer change the outer pane", () => {
     const onChange = vi.fn();
-    const onCenterTabChange = vi.fn();
-    render(
-      <PaneTabBar
-        active="center"
-        centerTab="terminal"
-        onChange={onChange}
-        onCenterTabChange={onCenterTabChange}
-      />,
-    );
+    render(<PaneTabBar active="center" onChange={onChange} />);
     fireEvent.click(screen.getByTestId("pane-tab-right"));
     expect(onChange).toHaveBeenCalledWith("right");
-    expect(onCenterTabChange).not.toHaveBeenCalled();
   });
 
   it("ArrowRight activates and focuses the next tab", () => {
     const onChange = vi.fn();
-    const onCenterTabChange = vi.fn();
-    render(
-      <PaneTabBar
-        active="center"
-        centerTab="transcript"
-        onChange={onChange}
-        onCenterTabChange={onCenterTabChange}
-      />,
-    );
-    const transcript = screen.getByTestId("pane-tab-transcript");
-    transcript.focus();
-    fireEvent.keyDown(transcript, { key: "ArrowRight" });
+    render(<PaneTabBar active="left" onChange={onChange} />);
+    const left = screen.getByTestId("pane-tab-left");
+    left.focus();
+    fireEvent.keyDown(left, { key: "ArrowRight" });
     expect(screen.getByTestId("pane-tab-terminal")).toHaveFocus();
     expect(onChange).toHaveBeenCalledWith("center");
-    expect(onCenterTabChange).toHaveBeenCalledWith("terminal");
   });
 });

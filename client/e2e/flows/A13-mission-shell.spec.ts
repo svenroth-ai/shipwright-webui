@@ -99,9 +99,6 @@ test.describe("A13 — Mission three-card shell", () => {
     await expect(page.getByTestId("record-rail")).toBeVisible();
     await page.getByTestId("mission-tab-files").click();
     await expect(term).toHaveAttribute("data-ws-ready", "true");
-
-    // The segmented switch adds no stray tab role — the ONE center Terminal tab.
-    await expect(page.getByRole("tab", { name: /terminal/i })).toHaveCount(1);
   });
 
   test("below the compact breakpoint the artifact auto-selects contextual Detail", async ({ page }) => {

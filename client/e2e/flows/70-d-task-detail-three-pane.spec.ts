@@ -1,7 +1,7 @@
 /*
  * Flow D — TaskDetail 3-pane coverage.
  *
- *   1. TaskDetailPage renders header + 3 panes (folder tree / transcript
+ *   1. TaskDetailPage renders header + 3 panes (folder tree / terminal
  *      / smart viewer). No composer, no old LaunchRow/CopyCommandCard.
  *   2. Header CTA is state-dependent (Launch for draft, none for done).
  *   3. ProjectChipMenu popover lists projects + "Unassigned".
@@ -10,7 +10,7 @@
  *   6. Splitter ArrowRight persists leftWidth in localStorage.
  */
 
-import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { apiUrl } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 
@@ -45,17 +45,12 @@ test.describe("Flow D — TaskDetail 3-pane", () => {
       },
     });
     await setActiveProject(page, project.projectId);
-    // The center tab is persisted and defaults to "terminal", so the
-    // transcript pane is hidden on a fresh profile.
-    await seedLocalStorage(page, {
-      "webui:embedded-terminal-default-tab": '"transcript"',
-    });
   });
   test.afterEach(async ({ request }) => {
     await cleanupProject(request, project);
   });
 
-  test("3-pane layout renders header + folder tree + transcript + viewer without legacy components", async ({
+  test("3-pane layout renders header + folder tree + terminal + viewer without legacy components", async ({
     page,
     request,
   }) => {
@@ -66,7 +61,7 @@ test.describe("Flow D — TaskDetail 3-pane", () => {
     // Structural: header + 3 panes.
     await expect(page.getByTestId("task-detail-header")).toBeVisible();
     await expect(page.getByTestId("folder-tree")).toBeVisible();
-    await expect(page.getByTestId("task-detail-transcript")).toBeVisible();
+    await expect(page.getByTestId("task-detail-terminal")).toBeVisible();
     await expect(page.getByTestId("task-detail-viewer")).toBeVisible();
 
     // Regression: legacy LaunchRow and CopyCommandCard components were

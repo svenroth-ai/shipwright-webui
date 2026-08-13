@@ -5,8 +5,10 @@
  * This flow proves the restyle is paint, not wire:
  *   - the three cards mount with the right surface classes (glass · beige · glass);
  *   - the terminal attaches (first WS `ready` awaited before any click);
- *   - switching Transcript↔Terminal, then MAXIMIZE + restore, never re-attaches
- *     the terminal socket (no remount → same pty session);
+ *   - MAXIMIZE + restore never re-attaches the terminal socket (no remount →
+ *     same pty session). (The Terminal↔Transcript Radix-tab switch this used
+ *     to also exercise was retired iterate-2026-08-13-mission-mobile-visual —
+ *     the center pane is unconditionally Terminal now, nothing to switch to.)
  *   - after all that, a plain keystroke still reaches the pty as EXACTLY its own
  *     bytes and nothing else (the byte path is unchanged).
  *
@@ -74,13 +76,6 @@ test.describe("@smoke A18 — three-card Files & Terminal (byte-identical pty)",
       cap.frames.filter((f) => f.kind === "open" && isTerminalSocket(f.url, taskId)).length;
     const opensBefore = socketOpens();
     expect(opensBefore).toBeGreaterThan(0);
-
-    // Switch Terminal → Transcript → Terminal (Radix tabs; forceMount hides, never
-    // unmounts). The pane bodies flip; the terminal stays mounted.
-    await page.getByTestId("task-detail-tab-transcript").click();
-    await expect(page.getByTestId("task-detail-transcript")).toBeVisible();
-    await page.getByTestId("task-detail-tab-terminal").click();
-    await expect(term).toHaveAttribute("data-ws-ready", "true");
 
     // Maximize the terminal (collapses both side cards) then restore.
     await page.getByTestId("terminal-maximize").click();

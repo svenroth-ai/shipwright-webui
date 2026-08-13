@@ -166,10 +166,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
         waitUntil: "domcontentloaded",
         timeout: 20_000,
       });
-      const terminalTab = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab.click();
-      }
       await page.waitForTimeout(4_000);
 
       const ws = pickAuthoritativeWs(capture, target!.taskId);
@@ -224,10 +220,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
         waitUntil: "domcontentloaded",
         timeout: 20_000,
       });
-      const terminalTab = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab.click();
-      }
       await page.waitForTimeout(4_000);
 
       const ws = pickAuthoritativeWs(capture, target!.taskId);
@@ -295,10 +287,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       waitUntil: "domcontentloaded",
       timeout: 20_000,
     });
-    const terminalTab = page.getByRole("tab", { name: /terminal/i });
-    if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await terminalTab.click();
-    }
     await page.waitForTimeout(4_000);
 
     const ws = pickAuthoritativeWs(capture, target!.taskId);
@@ -355,10 +343,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
         waitUntil: "domcontentloaded",
         timeout: 20_000,
       });
-      const terminalTab = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab.click();
-      }
       await page.waitForTimeout(2_000);
 
       // Resize mid-session — client emits a `resize` envelope to the
@@ -370,10 +354,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       // Re-attach via refresh — captures everything anew.
       const capture2 = attachWsCapture(page);
       await page.reload({ waitUntil: "domcontentloaded" });
-      const terminalTab2 = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab2.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab2.click();
-      }
       await page.waitForTimeout(4_000);
 
       const ws = pickAuthoritativeWs(capture2, target!.taskId);
@@ -455,10 +435,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
         waitUntil: "domcontentloaded",
         timeout: 20_000,
       });
-      const terminalTab = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab.click();
-      }
       // Wait long enough for the FIRST reconnect-backoff window (200 ms)
       // PLUS several additional cycles. Pre-fix this window contained
       // multiple authoritative WS attaches; post-fix it contains exactly
@@ -525,10 +501,6 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
         waitUntil: "domcontentloaded",
         timeout: 20_000,
       });
-      const terminalTab = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab.click();
-      }
       // Wait long enough for the server-side close-on-replay-only path
       // to execute. The server closes the WS with code 1000 after
       // sending the replay sequence.

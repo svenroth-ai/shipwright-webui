@@ -1,8 +1,14 @@
 /*
  * OperationCard — the MIDDLE card of Mission Control (FR-01.56, A12).
  *
- * The answer to "what happened, and can it ship?", in three stacked parts:
- *   1. a DERIVED verdict banner (VerdictBanner),
+ * The answer to "what happened, and can it ship?", in up to three stacked parts:
+ *   1. a DERIVED verdict banner (VerdictBanner) — ONLY for `clear`/`hold`, an
+ *      earned, specific verdict. A `neutral` outcome renders NO banner
+ *      (iterate-2026-08-13-mission-mobile-visual): `ProofSummary` already
+ *      carries its own honest "No run data yet — nothing to prove" empty
+ *      state when there are no facts, so a second fact-free "No run data
+ *      yet"/"Not fully verified" banner on top was pure redundancy either
+ *      way — with real proof lines (a red suite line, say) or without.
  *   2. a one-sentence narrator mission line (MissionLine), and
  *   3. a curated, READ-ONLY proof summary (ProofSummary — NOT the terminal).
  *
@@ -11,7 +17,9 @@
  * (the same join the Record rail reads), so the verdict and the Record can never
  * disagree. `designgate` routes to A14's design-gate surface; until A14 lands this
  * renders an HONEST placeholder (the narrator's design line) — never a fake
- * verdict.
+ * verdict. `ProofSummary`/`MissionLine` render unconditionally regardless of the
+ * banner, so `proofLines.ts`'s guarantee that a red test suite is never hidden
+ * behind a neutral verdict is untouched by the banner's own visibility.
  *
  * Architecture rule 1: this is a read-only observer. Its proof lines are rendered
  * history, not a channel — no xterm, no pty, no WebSocket (asserted, AC2).
@@ -77,12 +85,6 @@ export function OperationCard({ task, context }: Props) {
   const verdict = deriveVerdict({ facts });
   const proofLines = deriveProofLines({ facts, verdict });
   const missionInput = missionInputFor(verdict.outcome);
-  // The neutral banner's honest reason: a LIVE run is "in progress"; a run with no
-  // join is "no run data yet"; a finished run whose gates are not all affirmatively
-  // green (today's real state — review/security are unwired) is "not fully
-  // verified" — NEVER "in progress" for a done task (it isn't running).
-  const neutralReason: "in-progress" | "no-data" | "unverified" =
-    missionState === "live" ? "in-progress" : facts == null ? "no-data" : "unverified";
 
   return (
     <section
@@ -95,9 +97,7 @@ export function OperationCard({ task, context }: Props) {
         <VerdictBanner outcome="clear" tests={facts?.tests ?? null} />
       ) : verdict.outcome === "hold" ? (
         <VerdictBanner outcome="hold" />
-      ) : (
-        <VerdictBanner outcome="neutral" reason={neutralReason} />
-      )}
+      ) : null}
       {missionInput ? <MissionLine input={missionInput} /> : null}
       <ProofSummary lines={proofLines} />
     </section>

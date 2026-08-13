@@ -38,6 +38,13 @@ export interface ResumeCTAProps {
    * `task-detail-cta-error` alert region. `null` clears.
    */
   onError: (error: string | null) => void;
+  /**
+   * Phone header variant (iterate-2026-08-13-mission-mobile-visual): renders
+   * the icon alone, no visible "Resume" label, to fit the tight actions
+   * cluster next to the back-arrow and menu. The accessible name and the
+   * 44px touch target are unchanged — only the visible label is dropped.
+   */
+  iconOnly?: boolean;
 }
 
 async function prewarmPty(taskId: string): Promise<string | null> {
@@ -56,7 +63,7 @@ async function prewarmPty(taskId: string): Promise<string | null> {
   }
 }
 
-export function ResumeCTA({ task, onError }: ResumeCTAProps) {
+export function ResumeCTA({ task, onError, iconOnly = false }: ResumeCTAProps) {
   const launchMut = useLaunchTask();
   const coord = useLaunchCoordinator();
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
@@ -94,22 +101,28 @@ export function ResumeCTA({ task, onError }: ResumeCTAProps) {
     }
   }, [launchMut, task.taskId, flashCopied, coord, onError]);
 
+  const label = launchMut.isPending
+    ? "Preparing…"
+    : copiedLabel === "Resuming…"
+    ? "Sent — terminal opening"
+    : "Resume";
+
   return (
     <button
       type="button"
       onClick={() => void handleResume()}
       disabled={launchMut.isPending || coord.pendingLaunch !== null}
-      className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] px-2.5 py-1 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60 md:min-h-0 md:gap-2 md:px-4 md:py-1.5 md:text-[13px]"
+      className={
+        iconOnly
+          ? "inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60"
+          : "inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] px-2.5 py-1 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60 md:min-h-0 md:gap-2 md:px-4 md:py-1.5 md:text-[13px]"
+      }
       data-testid="cta-copy-resume-command"
       data-color="orange"
-      aria-label="Resume — auto-execute in embedded terminal"
+      aria-label={iconOnly ? `${label} — auto-execute in embedded terminal` : "Resume — auto-execute in embedded terminal"}
     >
       <TerminalIcon size={14} />
-      {launchMut.isPending
-        ? "Preparing…"
-        : copiedLabel === "Resuming…"
-        ? "Sent — terminal opening"
-        : "Resume"}
+      {!iconOnly && label}
     </button>
   );
 }

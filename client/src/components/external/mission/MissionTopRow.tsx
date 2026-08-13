@@ -106,82 +106,121 @@ export function MissionTopRow({ task, modelName }: Props) {
     }
   }, [deleteMut, navigate, task.state, task.taskId]);
 
+  // Shared between the phone and desktop branches below — identical instruments
+  // + CTA + menu cluster, only the wrapping row differs (iterate-2026-08-13:
+  // phone gets its own row split to fix the back-arrow/actions vertical-centering
+  // overlap against the two-line title+status block — see task-detail-mobile-status-row).
+  const actionsCluster = (
+    <>
+      {/* Mission instruments (A11): Grade · Tests · Serves. Hidden on phones. */}
+      <Instruments task={task} />
+      {/* AC4 (A14): at the design gate the ONE primary action is the gate
+          card's "Approve — start building" (which IS the resume/CTA path). The
+          header CTA (Launch OR Resume) is SUPPRESSED here so two primaries
+          never compete at the highest-stakes moment; it returns the instant the
+          gate lifts. Resume stays reachable in the ⋯ menu. */}
+      {missionState !== "designgate" && cta === "launch" && (
+        <LaunchCTA task={task} onError={setCtaError} />
+      )}
+      {missionState !== "designgate" && cta === "resume" && (
+        <ResumeCTA task={task} onError={setCtaError} iconOnly={isPhone} />
+      )}
+      <HeaderMenu
+        task={task}
+        onOpenEditTask={() => setEditOpen(true)}
+        onRename={handleRename}
+        onOpenProjectPicker={() => setProjectPickerOpen(true)}
+        onDeleteClick={handleDeleteClick}
+        onToggleDebug={() => setShowDebug((v) => !v)}
+        showDebug={showDebug}
+      />
+    </>
+  );
+
   return (
     <>
     <header
       // A05: `.mc-top` = anthracite ground + the scoped light --color-* flip so the
       // breadcrumb / title / meta read white on taupe. Asymmetric desktop padding
       // (17px 28px 17px 22px) lands the back-arrow glyph on the shared 32px gutter.
-      className="mc-top relative flex w-full items-center gap-2 px-3 py-2 md:gap-4 md:py-[17px] md:pl-[22px] md:pr-[28px]"
+      // Phone splits into two rows (top: back+title+actions, bottom: status pills)
+      // so items-center never centers against the whole two-line block.
+      className={
+        isPhone
+          ? "mc-top relative flex w-full flex-col gap-2 px-3 py-2"
+          : "mc-top relative flex w-full items-center gap-2 px-3 py-2 md:gap-4 md:py-[17px] md:pl-[22px] md:pr-[28px]"
+      }
       data-testid="task-detail-header"
     >
       <style>{STATE_BADGE_KEYFRAMES}</style>
-      <Link to="/" className="inline-flex min-h-11 min-w-11 items-center justify-center text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)] md:min-h-0 md:min-w-0" aria-label="Back to board" data-testid="task-detail-back">
-        <ArrowLeft size={16} />
-      </Link>
+      {isPhone ? (
+        <>
+          <div className="flex min-w-0 items-center gap-2">
+            <Link to="/" className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]" aria-label="Back to board" data-testid="task-detail-back">
+              <ArrowLeft size={16} />
+            </Link>
+            {/* `flex` is load-bearing here, not decorative: TitleEdit's phone
+                button is `inline-flex`, which sizes to its own content by
+                shrink-to-fit rather than the parent's clamped width — without
+                a `display:flex` parent the title renders at full intrinsic
+                width and overlaps the actions cluster instead of eliding. */}
+            <div className="flex min-w-0 flex-1" data-testid="task-detail-title-row">
+              <TitleEdit ref={titleRef} task={task} />
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5" data-testid="task-detail-actions">
+              {actionsCluster}
+            </div>
+          </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {!isPhone && (
-          <nav className="mc-crumb inline-flex items-center gap-1.5 text-[11px] text-[var(--color-muted,#6b7280)]" aria-label="Breadcrumb" data-testid="task-detail-breadcrumb">
-            <Link to="/" className="crumb-link transition hover:text-[var(--color-text,#1a1a1a)]" data-testid="task-detail-crumb-board">Board</Link>
-            <ChevronRight size={10} aria-hidden="true" className="opacity-50" />
-            <Link to="/projects" className="crumb-link truncate transition hover:text-[var(--color-text,#1a1a1a)]" data-testid="task-detail-crumb-project">{projectName}</Link>
-          </nav>
-        )}
-
-        <div className="relative flex min-w-0 items-center gap-2.5" data-testid="task-detail-title-row">
-          <TitleEdit ref={titleRef} task={task} />
-          {!isPhone && <StateBadge state={task.state} />}
-          {!isPhone && missionState === "designgate" && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-0.5 text-[11px] font-semibold text-warn" data-testid="mission-awaiting-approval">
-              <span className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[var(--warn-solid)]" style={{ animation: "taskDetailPulseDot 1.5s infinite" }} />
-              Awaiting approval
-            </span>
-          )}
-          {!isPhone && <ProjectChipMenu task={task} open={projectPickerOpen} onOpenChange={setProjectPickerOpen} />}
-        </div>
-
-        {isPhone && (
-          <div className="flex min-w-0 items-center gap-2" data-testid="task-detail-mobile-status-row">
+          {/* Status row sits below the title row, left-padded 44px (back-arrow
+              width, matching its restored 44px touch target) + 8px (gap) so the
+              pills visually align under the title text, not under the back arrow. */}
+          <div className="flex min-w-0 items-center gap-2 pl-[52px]" data-testid="task-detail-mobile-status-row">
             <StateBadge state={task.state} />
             {missionState === "designgate" && (
-              <span className="truncate rounded-full bg-warn-tint px-2 py-0.5 text-[11px] font-semibold text-warn">Awaiting approval</span>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-0.5 text-[11px] font-semibold text-warn" data-testid="mission-awaiting-approval">
+                <span className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[var(--warn-solid)]" style={{ animation: "taskDetailPulseDot 1.5s infinite" }} />
+                Awaiting approval
+              </span>
             )}
             <TaskDescriptionDisclosure task={task} />
           </div>
-        )}
+        </>
+      ) : (
+        <>
+          <Link to="/" className="inline-flex items-center justify-center text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]" aria-label="Back to board" data-testid="task-detail-back">
+            <ArrowLeft size={16} />
+          </Link>
 
-        {!isPhone && (
-          <MissionMetaLine task={task} startedAt={startedAt} lastEventAt={lastEventAt} modelName={modelName} />
-        )}
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <nav className="mc-crumb inline-flex items-center gap-1.5 text-[11px] text-[var(--color-muted,#6b7280)]" aria-label="Breadcrumb" data-testid="task-detail-breadcrumb">
+              <Link to="/" className="crumb-link transition hover:text-[var(--color-text,#1a1a1a)]" data-testid="task-detail-crumb-board">Board</Link>
+              <ChevronRight size={10} aria-hidden="true" className="opacity-50" />
+              <Link to="/projects" className="crumb-link truncate transition hover:text-[var(--color-text,#1a1a1a)]" data-testid="task-detail-crumb-project">{projectName}</Link>
+            </nav>
 
-        {!isPhone && <TaskDescriptionDisclosure task={task} />}
-      </div>
+            <div className="relative flex min-w-0 items-center gap-2.5" data-testid="task-detail-title-row">
+              <TitleEdit ref={titleRef} task={task} />
+              <StateBadge state={task.state} />
+              {missionState === "designgate" && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-0.5 text-[11px] font-semibold text-warn" data-testid="mission-awaiting-approval">
+                  <span className="inline-block h-[7px] w-[7px] shrink-0 rounded-full bg-[var(--warn-solid)]" style={{ animation: "taskDetailPulseDot 1.5s infinite" }} />
+                  Awaiting approval
+                </span>
+              )}
+              <ProjectChipMenu task={task} open={projectPickerOpen} onOpenChange={setProjectPickerOpen} />
+            </div>
 
-      <div className="flex items-center gap-2" data-testid="task-detail-actions">
-        {/* Mission instruments (A11): Grade · Tests · Serves. Hidden on phones. */}
-        <Instruments task={task} />
-        {/* AC4 (A14): at the design gate the ONE primary action is the gate
-            card's "Approve — start building" (which IS the resume/CTA path). The
-            header CTA (Launch OR Resume) is SUPPRESSED here so two primaries
-            never compete at the highest-stakes moment; it returns the instant the
-            gate lifts. Resume stays reachable in the ⋯ menu. */}
-        {missionState !== "designgate" && cta === "launch" && (
-          <LaunchCTA task={task} onError={setCtaError} />
-        )}
-        {missionState !== "designgate" && cta === "resume" && (
-          <ResumeCTA task={task} onError={setCtaError} />
-        )}
-        <HeaderMenu
-          task={task}
-          onOpenEditTask={() => setEditOpen(true)}
-          onRename={handleRename}
-          onOpenProjectPicker={() => setProjectPickerOpen(true)}
-          onDeleteClick={handleDeleteClick}
-          onToggleDebug={() => setShowDebug((v) => !v)}
-          showDebug={showDebug}
-        />
-      </div>
+            <MissionMetaLine task={task} startedAt={startedAt} lastEventAt={lastEventAt} modelName={modelName} />
+
+            <TaskDescriptionDisclosure task={task} />
+          </div>
+
+          <div className="flex items-center gap-2" data-testid="task-detail-actions">
+            {actionsCluster}
+          </div>
+        </>
+      )}
 
       {ctaError && (
         <span role="alert" className="absolute right-6 top-full mt-1 rounded bg-[var(--color-error,#DC2626)]/10 px-2 py-0.5 text-[11px]" style={{ color: "var(--color-error, #DC2626)" }} data-testid="task-detail-cta-error">

@@ -65,7 +65,9 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
     } as unknown as MissionContext;
     render(<OperationCard task={{ ...TASK, runId: "run-pipeline" } as ExternalTask} context={context} />);
     expect(screen.getByTestId("proof-summary")).toHaveTextContent("iterate-2026-08-11-mis-1");
-    expect(screen.getByTestId("verdict-banner")).toHaveTextContent("Not fully verified");
+    // Neutral verdict (security gate unwired) -> no banner at all (iterate-
+    // 2026-08-13-mission-mobile-visual); the proof summary carries the fact.
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
   });
 
   it("never falls back to a pipeline id when an iterate identity is absent", () => {
@@ -73,7 +75,10 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
     runDetailMock.mockReturnValue(ok(GREEN_RUN));
     render(<OperationCard task={{ ...TASK, runId: "run-pipeline" } as ExternalTask} context={{ scenario: "iterate", runId: null, artifacts: [], servesFrId: null } as unknown as MissionContext} />);
     expect(runDetailMock).toHaveBeenLastCalledWith("p1", null);
-    expect(screen.getByTestId("verdict-banner")).toHaveTextContent("No run data yet");
+    // Neutral/no-data -> no banner; ProofSummary's own honest-empty state
+    // carries "no run data" instead of a redundant second banner.
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
+    expect(screen.getByTestId("proof-summary")).toHaveAttribute("data-empty", "true");
   });
   it("done + a green run -> ALL CLEAR + green proof lines", () => {
     missionStateMock.mockReturnValue("done");
@@ -107,22 +112,24 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
     expect(screen.queryByText("ALL CLEAR")).not.toBeInTheDocument();
   });
 
-  it("empty event log (done, run null) -> NEUTRAL, never a false ALL CLEAR (AC3)", () => {
+  it("empty event log (done, run null) -> NEUTRAL, no banner, never a false ALL CLEAR (AC3)", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue(ok(null));
     render(<OperationCard task={TASK} />);
 
-    const banner = screen.getByTestId("verdict-banner");
-    expect(banner).toHaveAttribute("data-outcome", "neutral");
-    expect(banner).toHaveTextContent("No run data yet");
-    expect(banner).not.toHaveTextContent("ALL CLEAR");
+    // Neutral -> no banner at all (retired iterate-2026-08-13-mission-
+    // mobile-visual): a fact-free banner on top of an already-honest empty
+    // ProofSummary was pure redundancy.
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
+    expect(screen.queryByText("ALL CLEAR")).not.toBeInTheDocument();
     // honest empty summary — never an invented line.
     expect(screen.getByTestId("proof-summary")).toHaveAttribute("data-empty", "true");
   });
 
-  it("DONE task, green suite but unwired gates -> 'Not fully verified', NOT 'In progress' / ALL CLEAR", () => {
+  it("DONE task, green suite but unwired gates -> no banner, the red/green proof line still shows (never hidden)", () => {
     // The common REAL case today: a finished run with green tests but review/security
-    // unknown (the server never emits them). It is neither ALL CLEAR nor running.
+    // unknown (the server never emits them). Neutral, no banner — but the suite's
+    // outcome is never hidden: it is a real proof line inside ProofSummary.
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue(
       ok({
@@ -136,16 +143,34 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
     );
     render(<OperationCard task={TASK} />);
 
-    const banner = screen.getByTestId("verdict-banner");
-    expect(banner).toHaveAttribute("data-outcome", "neutral");
-    expect(banner).toHaveTextContent("Not fully verified");
-    expect(banner).not.toHaveTextContent("ALL CLEAR");
-    expect(banner).not.toHaveTextContent("In progress");
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
+    expect(screen.queryByText("ALL CLEAR")).not.toBeInTheDocument();
     // the honest partial evidence IS shown: the green suite line.
     expect(screen.getByTestId("proof-summary")).toHaveTextContent("suite green");
   });
 
-  it("LIVE run with only partial facts -> 'In progress'", () => {
+  it("DONE task, RED suite (test gate failed) -> no banner, but the red suite line is NEVER hidden", () => {
+    // The exact regression an earlier draft of this iterate would have introduced:
+    // hiding the whole card on neutral would have hidden this line. It must not.
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue(
+      ok({
+        runId: "iterate-2026-07-10-x",
+        commit: null,
+        affectedFrs: ["FR-01.56"],
+        tests: { passed: 10, total: 12 },
+        gates: { derived: true, test: "fail", review: "unknown", security: "unknown" },
+        phaseDurations: null,
+      } as unknown as RunDataJoin),
+    );
+    render(<OperationCard task={TASK} />);
+
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
+    expect(screen.getByTestId("proof-summary")).toHaveTextContent("10/12 passing");
+    expect(screen.getByTestId("proof-summary")).not.toHaveAttribute("data-empty", "true");
+  });
+
+  it("LIVE run with only partial facts -> no banner (neutral)", () => {
     missionStateMock.mockReturnValue("live");
     runDetailMock.mockReturnValue(
       ok({
@@ -156,7 +181,7 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
       } as unknown as RunDataJoin),
     );
     render(<OperationCard task={TASK} />);
-    expect(screen.getByTestId("verdict-banner")).toHaveTextContent("In progress");
+    expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
   });
 });
 

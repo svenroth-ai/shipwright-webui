@@ -31,12 +31,10 @@ export async function openTaskTerminal(
   taskId: string,
   opts: { expectWriter?: boolean } = {},
 ): Promise<void> {
+  // The terminal pane is unconditional now (Transcript sub-tab retired,
+  // iterate-2026-08-13-mission-mobile-visual) — no tab-switch needed to
+  // reach it.
   await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
-
-  const terminalTab = page.getByRole("tab", { name: /terminal/i });
-  if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await terminalTab.click();
-  }
 
   const term = page.getByTestId("embedded-terminal");
   await expect(term).toHaveAttribute("data-ws-ready", "true", { timeout: 20_000 });

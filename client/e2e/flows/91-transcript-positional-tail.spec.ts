@@ -1,6 +1,6 @@
 /*
  * Spec 91 — the transcript endpoint honours a bounded byte range against a
- * MULTI-MEGABYTE transcript, and the pane still streams over the same reader.
+ * MULTI-MEGABYTE transcript.
  *
  * iterate-2026-07-21-transcript-positional-tail-read made `SessionWatcher`
  * read only `[fromByte, EOF)` instead of loading the whole JSONL and slicing.
@@ -9,13 +9,21 @@
  * large enough that a whole-file read would be a visible cost rather than a
  * rounding error.
  *
- * Why a spec at all when the diff is server-only: the backend-affects-frontend
- * rule. `readChunk` backs `GET /api/external/tasks/:id/transcript`, which the
- * task-detail pane polls once a second, so `surface = web` is owed even though
- * no client file changed.
+ * iterate-2026-08-13-mission-mobile-visual retired the Transcript sub-tab
+ * this spec used to render through, so the two assertions that watched the
+ * live pane pick up "LAST-LINE-MARKER" / "APPENDED-AFTER-CURSOR" in the DOM
+ * are gone with it — there is no surviving page route that renders raw
+ * transcript text by default. That slice of coverage has no component-level
+ * equivalent either: it was proving the SERVER read is what the BROWSER
+ * actually receives over real HTTP against a >2 MB file, which
+ * `src/components/external/BubbleTranscript.test.tsx` cannot exercise (it
+ * never makes a network request). What remains below — the direct
+ * `request.get` calls against `/api/external/tasks/:id/transcript` — needs no
+ * page at all and stays exactly as strong a proof of the byte-range contract
+ * as before.
  */
 
-import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { seedTask, cleanupTaskCwd, type SeededTask } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 import { appendFileSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -39,27 +47,14 @@ function bulkLines(sessionUuid: string, count: number): string {
 }
 
 test.describe("Transcript positional tail read", () => {
-  let project: SeededProject;
-
-  test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "91-positional-tail" });
-    await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, {
-      "webui:embedded-terminal-default-tab": '"transcript"',
-    });
-  });
+  let task: SeededTask | undefined;
 
   test.afterEach(async ({ request }) => {
-    await cleanupProject(request, project);
+    await cleanupTaskCwd(request, task);
   });
 
-  test("serves a bounded tail of a multi-MB JSONL and keeps the pane live", async ({ page, request }) => {
-    const create = await request.post("/api/external/tasks", {
-      data: { title: "positional-tail", cwd: "C:/tmp/positional-tail" },
-    });
-    const { task } = (await create.json()) as {
-      task: { taskId: string; sessionUuid: string };
-    };
+  test("serves a bounded tail of a multi-MB JSONL over real HTTP", async ({ request }) => {
+    task = await seedTask(request, { title: "positional-tail" });
 
     const encodedDir = path.join(PROJECTS_DIR, `e2e-tail-${Date.now()}`);
     mkdirSync(encodedDir, { recursive: true });
@@ -81,12 +76,7 @@ test.describe("Transcript positional tail read", () => {
     const size = statSync(jsonlPath).size;
     expect(size).toBeGreaterThan(2_000_000);
 
-    // --- 1. The browser still renders the transcript over this reader. ---
-    await page.goto(`/tasks/${task.taskId}`);
-    await expect(page.getByTestId("task-detail-page")).toBeVisible();
-    await expect(page.getByText("LAST-LINE-MARKER")).toBeVisible({ timeout: 15_000 });
-
-    // --- 2. A bounded range returns ONLY that range, over real HTTP. ---
+    // --- 1. A bounded range returns ONLY that range, over real HTTP. ---
     const from = size - 4096;
     const res = await request.get(
       `/api/external/tasks/${task.taskId}/transcript?fromByte=${from}`,
@@ -102,10 +92,11 @@ test.describe("Transcript positional tail read", () => {
     // The chunk covers the tail, never the head, and is a fraction of the file.
     expect(body.chunk.content.length).toBeLessThan(8192);
     expect(body.chunk.content).not.toContain("first line of a long session");
+    expect(body.chunk.content).toContain("LAST-LINE-MARKER");
     expect(body.chunk.content.endsWith("\n")).toBe(true);
     expect(body.chunk.toByte).toBeLessThanOrEqual(size);
 
-    // --- 3. Cursor safety: resuming from toByte yields the appended bytes
+    // --- 2. Cursor safety: resuming from toByte yields the appended bytes
     //        exactly once, with nothing skipped in between. ---
     const cursor = body.chunk.toByte;
     const appended =
@@ -129,8 +120,5 @@ test.describe("Transcript positional tail read", () => {
     // Exactly once — a re-read of already-delivered bytes would duplicate it.
     expect(body2.chunk.content.split("APPENDED-AFTER-CURSOR").length - 1).toBe(1);
     expect(body2.chunk.toByte).toBe(statSync(jsonlPath).size);
-
-    // --- 4. The live pane picks the append up too (same reader, 1 s poll). ---
-    await expect(page.getByText("APPENDED-AFTER-CURSOR")).toBeVisible({ timeout: 15_000 });
   });
 });

@@ -105,11 +105,6 @@ test.describe("visual: task detail", () => {
   test("task-detail-terminal", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
 
-    const terminalTab = page.getByRole("tab", { name: /terminal/i });
-    if (await terminalTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await terminalTab.click();
-    }
-
     // Wait for the WS to be attached before capturing: a half-mounted terminal
     // would bake a transient loading state into the baseline, and then every
     // future run would have to reproduce that same race to match it.
