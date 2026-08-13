@@ -52,7 +52,7 @@ function realStoreDeps(): SdkSessionsStoreDeps {
 }
 
 /** A triage `append` event line, matching the producer wire shape. */
-export function appendLine(id: string, source = "drift"): string {
+export function appendLine(id: string, source = "drift", detail = `Detail for ${id}`): string {
   return JSON.stringify({
     event: "append",
     id,
@@ -62,7 +62,7 @@ export function appendLine(id: string, source = "drift"): string {
     severity: "high",
     kind: "bug",
     title: `Background finding ${id}`,
-    detail: `Detail for ${id}`,
+    detail,
     evidencePath: null,
     runId: null,
     commit: null,

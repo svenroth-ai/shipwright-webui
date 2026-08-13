@@ -85,6 +85,13 @@ export function TitleFieldFragment({
   );
 }
 
+// Mirrors the server's DESCRIPTION_MAX_LENGTH (server/src/external/_shared/
+// helpers.ts) — a description longer than this risks the launch command
+// exceeding the shell's interactive line-length limit, so the server
+// rejects it with 400 regardless. This client-side cap just surfaces that
+// limit before the user hits it, instead of after submit.
+export const DESCRIPTION_MAX_LENGTH = 6_000;
+
 export function DescriptionFieldFragment({
   description,
   setDescription,
@@ -95,13 +102,14 @@ export function DescriptionFieldFragment({
   return (
     <FieldLabel
       label="Description"
-      hint="optional — becomes the first prompt Claude sees"
+      hint={`optional — becomes the first prompt Claude sees · ${description.length}/${DESCRIPTION_MAX_LENGTH}`}
     >
       <textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         data-testid="new-issue-description-input"
         placeholder="What needs to be done? Link files, paste errors, reference FRs…"
+        maxLength={DESCRIPTION_MAX_LENGTH}
         className="min-h-[108px] w-full resize-y rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#847a75)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
       />
     </FieldLabel>

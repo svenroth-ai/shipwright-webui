@@ -32,6 +32,7 @@ import { useProjectActions } from "../../hooks/useProjectActions";
 import { useUpdateTask } from "../../hooks/useExternalTasks";
 import { isFieldEditable, isNeverStarted } from "../../lib/taskEditability";
 import { ModalScrollBody } from "../common/ModalScrollBody";
+import { DESCRIPTION_MAX_LENGTH } from "./NewIssueModal/SimpleFields";
 
 /** Catalog-free fallback field set — Phase is omitted because validating a
  *  phase id needs the project's actions catalog. */
@@ -280,13 +281,18 @@ export function EditTaskModal({ open, onOpenChange, task }: Props) {
                 {shows("description") && (
                   <Field
                     label="Description"
-                    hint={editable("description") ? "the first prompt Claude sees" : undefined}
+                    hint={
+                      editable("description")
+                        ? `the first prompt Claude sees · ${description.length}/${DESCRIPTION_MAX_LENGTH}`
+                        : undefined
+                    }
                   >
                     {editable("description") ? (
                       <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         data-testid="edit-task-description-input"
+                        maxLength={DESCRIPTION_MAX_LENGTH}
                         className={`${inputCls} min-h-[96px] resize-y`}
                       />
                     ) : (

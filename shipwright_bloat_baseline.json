@@ -82,9 +82,9 @@
     {
       "path": "client/src/components/external/EditTaskModal.tsx",
       "limit": 300,
-      "current": 439,
+      "current": 445,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-08-13-task-description-length-cap"
     },
     {
       "path": "client/src/components/external/FolderTree.tsx",

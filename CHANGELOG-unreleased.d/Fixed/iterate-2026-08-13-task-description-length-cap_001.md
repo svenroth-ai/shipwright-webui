@@ -1,0 +1,1 @@
+Task descriptions are now capped at 6,000 characters (was a miscalibrated 20,000) to stay under the Windows console's interactive line-length limit, which was causing long-description launches to silently fail to start.

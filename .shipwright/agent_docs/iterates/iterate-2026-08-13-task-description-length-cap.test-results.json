@@ -1,0 +1,72 @@
+{
+  "last_updated": "2026-08-13",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-13-task-description-length-cap",
+    "date": "2026-08-13",
+    "unit": "PASS \u2014 client 3316 passed (352 files); server 3360 passed / 1 skipped (289 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change; a length-validation guard on existing routes",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "skipped \u2014 complexity=small, so end-to-end verification is Advisory (Override Classes table), not mandatory. The change is a synchronous length check plus a client `maxLength`/counter on two existing textareas; unit tests directly exercise both the server routes (create/edit/promote, all three at the exact 6,000/6,001 boundary) and the client constant wiring, which is a more precise probe of the actual boundary than a browser click-through would add.",
+    "design_fidelity": "n/a \u2014 no design-system change (existing Field/textarea component reused; only `maxLength` + a text hint were added)",
+    "smoke": "n/a \u2014 no server startup/behavior change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "POST /api/external/tasks rejects a description over 6,000 chars with 400 invalid_description",
+          "disposition": "tested",
+          "evidence": "server/src/external/routes.description-length-cap.test.ts::\"rejects an over-long description with 400\""
+        },
+        {
+          "behavior": "POST /api/external/tasks accepts a description exactly at 6,000 chars, verbatim",
+          "disposition": "tested",
+          "evidence": "server/src/external/routes.description-length-cap.test.ts::\"accepts a description right at the cap (6,000 chars)\""
+        },
+        {
+          "behavior": "PATCH /api/external/tasks/:id rejects an over-cap description with 400, no field mutation (create/edit parity)",
+          "disposition": "tested",
+          "evidence": "server/src/external/routes.description-length-cap.test.ts::\"rejects an over-long description on PATCH with 400\""
+        },
+        {
+          "behavior": "POST /api/triage/:projectId/promote rejects an over-cap detail with 400, creating no task and calling no CLI",
+          "disposition": "tested",
+          "evidence": "server/src/routes/triage.promote-description-cap.test.ts::\"rejects an over-cap detail with 400 invalid_description...\""
+        },
+        {
+          "behavior": "POST /api/triage/:projectId/promote accepts a detail exactly at the cap, carrying it verbatim into the task",
+          "disposition": "tested",
+          "evidence": "server/src/routes/triage.promote-description-cap.test.ts::\"promotes a detail exactly at the cap...\""
+        },
+        {
+          "behavior": "Promote enforces the cap on the RAW string before trimming, identically to create/edit (code-review fix: a hand-rolled post-trim check previously accepted a whitespace-padded over-cap detail)",
+          "disposition": "tested",
+          "evidence": "server/src/routes/triage.promote-description-cap.test.ts::\"rejects a detail whose RAW length exceeds the cap even though its TRIMMED length does not (create/edit parity)\""
+        },
+        {
+          "behavior": "The description constant is a single source of truth (no stale 20,000 / duplicated copy)",
+          "disposition": "tested",
+          "evidence": "server/src/routes/triage.ts imports DESCRIPTION_MAX_LENGTH from external/_shared/helpers.ts; full-repo grep confirms no remaining 20_000/20000 reference to this cap"
+        },
+        {
+          "behavior": "Client description textareas (create + edit) enforce maxLength=6000 and show a live character-count hint",
+          "disposition": "tested",
+          "evidence": "client/src/components/external/NewIssueModal/SimpleFields.test.tsx (\"caps the textarea's maxLength...\", \"shows a live character-count hint...\") and EditTaskModal.test.tsx (same two cases) \u2014 new tests added during F5, filling a gap the code-reviewer's own draft evidence line had wrongly claimed was covered"
+        }
+      ],
+      "counts": {
+        "testable": 8,
+        "tested": 8,
+        "untestable": 0,
+        "untested_testable": 0
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-13-task-description-length-cap",
+    "commit": "272ca5ae86ae4aed20f8890af28770714101dbf9",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
