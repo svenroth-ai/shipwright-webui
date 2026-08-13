@@ -1,0 +1,7 @@
+{
+  "published_manifests": [
+    { "path": "bootstrapper/package.json", "format": "package_json" },
+    { "path": "server/package.json", "format": "package_json" },
+    { "path": "client/package.json", "format": "package_json" }
+  ]
+}
