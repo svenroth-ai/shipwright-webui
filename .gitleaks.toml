@@ -1,9 +1,11 @@
 # Gitleaks configuration for shipwright-webui.
 #
 # Extends gitleaks' full built-in ruleset (useDefault = true) and adds a
-# narrowly-scoped allowlist for ONE confirmed false positive.
+# narrowly-scoped allowlist for confirmed false positives. There is only
+# ONE global [allowlist] table in gitleaks' schema, so every entry below
+# lives in the same table's `regexes`/`stopwords` arrays.
 #
-# False positive: the built-in `sidekiq-secret` rule matches the shape
+# False positive 1: the built-in `sidekiq-secret` rule matches the shape
 # `[a-f0-9]{8}:[a-f0-9]{8}`. A documentation placeholder using the famous
 # magic-hex constants `cafebabe` / `deadbeef` (i.e. `cafebabe:deadbeef`)
 # matches that shape but is obviously NOT a real credential — it is an
@@ -12,20 +14,33 @@
 # file on any branch — verified via `git grep` across all refs and a clean
 # `git archive` scan). This allowlist keeps the secret gate meaningful for
 # every real rule while suppressing this single, self-evident placeholder.
+#
+# False positive 2 (iterate-2026-08-13-task-description-length-cap): the
+# built-in `generic-api-key` rule fires on `.shipwright/triage.jsonl` lines
+# 450/452, matching the strings `trg-e2emsngmaykjb2h` / `trg-e2emsnhw2r2hy88`.
+# Those are internal triage-item / E2E fixture IDs referenced inside a
+# compliance note about an unrelated test-cleanup bug — not credentials.
+# Confirmed with Sven (svroch) 2026-08-13. Scoped to the exact matched
+# strings only, not the whole file or rule.
 title = "shipwright-webui gitleaks config"
 
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Placeholder magic-hex (cafebabe:deadbeef) false-matched by the sidekiq-secret rule; not a real secret."
+description = "Confirmed non-secret false positives: cafebabe:deadbeef placeholder (sidekiq-secret) and triage fixture IDs trg-e2emsngmaykjb2h / trg-e2emsnhw2r2hy88 (generic-api-key)."
 regexTarget = "match"
 regexes = [
   '''cafebabe:deadbeef''',
+  '''trg-e2emsngmaykjb2h''',
+  '''trg-e2emsnhw2r2hy88''',
 ]
-# Belt-and-suspenders: any finding whose secret contains these famous
-# magic-hex placeholders is treated as a non-secret regardless of rule.
+# Belt-and-suspenders: any finding whose secret contains these known
+# non-secret placeholders/fixture IDs is treated as a non-secret regardless
+# of which rule matched it.
 stopwords = [
   "cafebabe",
   "deadbeef",
+  "trg-e2emsngmaykjb2h",
+  "trg-e2emsnhw2r2hy88",
 ]
