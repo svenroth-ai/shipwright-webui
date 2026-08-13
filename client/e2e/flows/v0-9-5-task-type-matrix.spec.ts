@@ -303,14 +303,13 @@ async function navigateToTaskDetail(
   taskId: string,
   timeoutMs = 20_000,
 ): Promise<void> {
+  // The terminal pane is unconditional now (Transcript tab retired,
+  // iterate-2026-08-13-mission-mobile-visual) — no tab-switch needed to
+  // reach it.
   await page.goto(`/tasks/${taskId}`, {
     waitUntil: "domcontentloaded",
     timeout: timeoutMs,
   });
-  const terminalTab = page.getByRole("tab", { name: /terminal/i });
-  if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await terminalTab.click();
-  }
 }
 
 async function waitForTerminalMount(page: Page, timeoutMs = 15_000) {
@@ -342,7 +341,7 @@ test.describe("v0.9.5 / Iterate D — task-type × scenario matrix [ADR-087/088/
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "v0-9-5-task-type-matrix" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom" });
   });
 
   for (const spec of TASK_TYPES) {

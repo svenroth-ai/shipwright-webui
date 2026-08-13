@@ -100,7 +100,11 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
             // — narrower than the bar instead of full-width (phone-header-polish #3).
             (fluid ? "max-w-[60vw] min-w-0 " : "min-w-[220px] ") +
             "border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] " +
-            "px-3 py-2 text-[13px] font-medium text-[var(--color-text)] " +
+            // fluid: top-heavy padding (9px/8px vs. the even 8px/8px below) — a
+            // touch more breathing room above the text
+            // (iterate-2026-08-13-mission-mobile-visual).
+            (fluid ? "px-3 pt-[9px] pb-2 " : "px-3 py-2 ") +
+            "text-[13px] font-medium text-[var(--color-text)] " +
             "transition-colors hover:border-[var(--color-primary)] " +
             (className ?? "")
           }
@@ -118,9 +122,14 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
             />
           )}
           <span className="flex-1 truncate text-left">{triggerLabel}</span>
-          <span className="text-[11px] font-normal text-[var(--color-muted)]">
-            {triggerCount} {triggerCount === 1 ? "task" : "tasks"}
-          </span>
+          {/* fluid (phone top bar): drop the task-count suffix — the pill's
+              width is what actually shrinks it, not a padding tweak
+              (iterate-2026-08-13-mission-mobile-visual). */}
+          {!fluid && (
+            <span className="text-[11px] font-normal text-[var(--color-muted)]">
+              {triggerCount} {triggerCount === 1 ? "task" : "tasks"}
+            </span>
+          )}
           <ChevronDown
             size={14}
             className="shrink-0 text-[var(--color-muted)]"

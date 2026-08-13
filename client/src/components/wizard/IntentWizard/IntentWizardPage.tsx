@@ -14,6 +14,7 @@ import { IntentWizard } from "./IntentWizard";
 import type { WizardDoor } from "./types";
 import "./intent-wizard.css";
 import "./intent-wizard-panels.css";
+import "./flightplan-mobile.css";
 
 function doorFromParam(seg: string | undefined): WizardDoor | null {
   if (seg === "adopt") return "adopt";

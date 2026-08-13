@@ -1,0 +1,146 @@
+/*
+ * Flight-plan phone chip + bottom sheet — split from intent-wizard.css to
+ * keep each wizard CSS file ≤300 LOC (same pattern intent-wizard-panels.css
+ * already follows). Imported alongside the other two by IntentWizardPage.
+ *
+ * Phone (isPhone, ≤767px — a JS-gated branch in FlightPlanRail.tsx, not the
+ * 900px breakpoint in intent-wizard.css, which still governs tablet's
+ * unabridged "drop below" reflow unchanged): the rail collapses to a
+ * tappable summary chip pinned under the question. Full row detail opens in
+ * a bottom sheet on tap (iterate-2026-08-13-mission-mobile-visual — the full
+ * rail's own solid background stacking mid-scroll broke "one question per
+ * screen").
+ */
+
+.fp-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 10px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-light-line);
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fp-chip:hover {
+  border-color: var(--accent-line);
+}
+.fp-chip:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.fp-chip-ic {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.fp-chip-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.fp-chip-t b {
+  font-size: 12px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.fp-chip-t span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.fp-chip-dots {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.fp-chip-dots i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.fp-chip-dots i.done {
+  background: var(--accent);
+}
+.fp-chip-chev {
+  color: var(--faint);
+  flex-shrink: 0;
+}
+
+/* The sheet reuses `.flightplan`'s dark rail styling (fh/fp-spine/fp-item
+   /fp-node) for its body, so its rows read identically to the desktop rail —
+   only position/shape/chrome differ. `.on-photo .flightplan` (panels.css)
+   sets a conflicting glass background + left border at equal (2-class)
+   specificity; the 3-class override below is required to win regardless of
+   import order (this app is always on-photo — MainLayout's SceneBackdrop). */
+.fp-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.45);
+}
+.flightplan.fp-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: auto;
+  z-index: 61;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 24px -8px rgba(0, 0, 0, 0.4);
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+}
+.on-photo .flightplan.fp-sheet {
+  background: var(--dark);
+  border-left: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.on-photo .flightplan.fp-sheet .fh,
+.on-photo .flightplan.fp-sheet .fp-item .fk,
+.on-photo .flightplan.fp-sheet .fp-node .fk {
+  color: rgba(255, 255, 255, 0.5);
+}
+.on-photo .flightplan.fp-sheet .fp-item .fv {
+  color: #fff;
+}
+.on-photo .flightplan.fp-sheet .fp-item .fw {
+  color: rgba(255, 255, 255, 0.6);
+}
+.on-photo .flightplan.fp-sheet .fp-line {
+  background: var(--dark-line);
+}
+.fp-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+/* 44px touch target — matches every other phone-only control added in this
+   same iterate (ResumeCTA iconOnly, mobile-nav-trigger); a bottom-sheet's
+   close affordance is a prime touch target and code review flagged the
+   original 32px as an inconsistency (iterate-2026-08-13-mission-mobile-visual). */
+.fp-sheet-close {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: inherit;
+  opacity: 0.7;
+}
+.fp-sheet-close:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
+}

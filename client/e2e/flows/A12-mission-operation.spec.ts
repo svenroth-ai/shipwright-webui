@@ -88,10 +88,6 @@ test.describe("A12 — Mission 'Operation' card", () => {
     const term = page.getByTestId("embedded-terminal");
     await expect(term).toBeVisible();
     await expect(term).toHaveAttribute("data-ws-ready", "true", { timeout: 20_000 });
-
-    // With the Files pane active, getByRole("tab", {name:/terminal/i}) resolves to
-    // the ONE center Terminal tab — the Operation card added no stray terminal tab.
-    await expect(page.getByRole("tab", { name: /terminal/i })).toHaveCount(1);
   });
 
   test("the Operation card sits BESIDE the left panel in the Mission body", async ({ page }) => {

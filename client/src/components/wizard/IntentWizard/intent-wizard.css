@@ -180,3 +180,7 @@
     border-top: 1px solid var(--dark-line);
   }
 }
+
+/* Flight-plan phone chip + bottom sheet (the collapsed rail on ≤767px
+   phones) live in flightplan-mobile.css — kept out of this file to stay
+   under the 300-LOC ceiling. */

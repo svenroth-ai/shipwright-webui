@@ -1,9 +1,11 @@
 /*
  * Spec 103 — iterate-2026-07-22-transcript-cursor-single-walk.
  *
- * Spec 32 already proves the pane RENDERS appended lines. That test passed
- * before this change and passes after it, because a pane that re-fetches the
- * whole file every second also shows new lines. It cannot tell the two apart.
+ * Spec 32 already proved the pane RENDERS appended lines (now migrated into
+ * `src/components/external/BubbleTranscript.test.tsx`, "live content
+ * growth"). That test passed before this change and passes after it,
+ * because a pane that re-fetches the whole file every second also shows new
+ * lines. It cannot tell the two apart.
  *
  * This spec asserts the thing that actually changed, against a real stack:
  *
@@ -11,35 +13,45 @@
  *          Read off the WIRE (`page.on("request")`), not off the DOM, because
  *          the rendered text is identical either way — that is the point of
  *          the change and the reason a render assertion cannot verify it.
- *   AC-1 — the accumulated pane still shows every line: the ones delivered by
- *          the first whole-file poll AND the ones that only ever arrived
- *          inside a later delta.
  *   AC-2 — truncating the JSONL under the browser makes the server report
- *          `rotated`; the client must rewind to `fromByte=0` and REPLACE, so
- *          the pane shows the new content and not the old text with the new
- *          spliced onto it.
+ *          `rotated`; the client must rewind to `fromByte=0` on the next
+ *          poll.
+ *
+ * iterate-2026-08-13-mission-mobile-visual retired the Transcript sub-tab, so
+ * the DOM half of this spec's original assertions ("still renders every
+ * line" / "the pane REPLACES, not appends") no longer has a page to run
+ * against — `useTaskTranscript` still polls unconditionally on every
+ * TaskDetailPage mount (it also feeds the header's model name + Mission's
+ * activity feed), but nothing renders the raw JSONL text by default anymore.
+ * That specific end-to-end DOM proof is genuinely lost; the underlying
+ * accumulate/rewind LOGIC it was corroborating is still pinned — in more
+ * detail than this spec ever asserted — by the pre-existing
+ * `src/hooks/useTaskTranscript.cursor.test.ts`,
+ * `useTaskTranscript.cursor-reset.test.ts`, and `useTaskTranscript.accumulate.test.ts`
+ * (mocked `getTranscript`, fake timers). What survives here is the one thing
+ * those mocked tests structurally cannot show: that the REAL browser, against
+ * a REAL server, over a REAL network round trip, actually sends the cursor it
+ * claims to send.
  */
 
 import {
-  cleanupProject,
-  seedLocalStorage,
-  seedProject,
-  setActiveProject,
-  type SeededProject,
+  cleanupTaskCwd,
+  seedTask,
+  type SeededTask,
 } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
-import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { homedir } from "node:os";
 
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
 /** Fixture dirs created under the REAL ~/.claude/projects, removed after each
- *  test. `cleanupProject` only removes the seeded app project, so without this
- *  every run leaks a JSONL directory into home state — and here that is not
- *  merely untidy: these directories enlarge the very corpus the projects-dir
- *  walk has to scan, so the leak degrades the thing under test (external diff
- *  review, openai). Registered before use so a failed assertion still cleans up. */
+ *  test. Without this every run leaks a JSONL directory into home state — and
+ *  here that is not merely untidy: these directories enlarge the very corpus
+ *  the projects-dir walk has to scan, so the leak degrades the thing under
+ *  test (external diff review, openai). Registered before use so a failed
+ *  assertion still cleans up. */
 const createdDirs: string[] = [];
 
 function fixtureDir(prefix: string): string {
@@ -70,35 +82,20 @@ function userLine(sessionUuid: string, text: string): string {
 }
 
 test.describe("Transcript cursor — the pane asks for the delta", () => {
-  let project: SeededProject;
-
-  test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "103-transcript-cursor" });
-    await setActiveProject(page, project.projectId);
-    // The center tab is persisted and defaults to "terminal", so the
-    // transcript pane is hidden on a fresh profile (A00).
-    await seedLocalStorage(page, {
-      "webui:embedded-terminal-default-tab": '"transcript"',
-    });
-  });
+  let task: SeededTask | undefined;
 
   test.afterEach(async ({ request }) => {
-    await cleanupProject(request, project);
+    await cleanupTaskCwd(request, task);
     while (createdDirs.length > 0) {
       rmSync(createdDirs.pop()!, { recursive: true, force: true });
     }
   });
 
-  test("stops re-requesting the whole file, and still renders every line (AC-1)", async ({
+  test("stops re-requesting the whole file after the first poll (AC-1)", async ({
     page,
     request,
   }) => {
-    const create = await request.post("/api/external/tasks", {
-      data: { title: "cursor-poll", cwd: "C:/tmp/cursor-poll" },
-    });
-    const { task } = (await create.json()) as {
-      task: { taskId: string; sessionUuid: string };
-    };
+    task = await seedTask(request, { title: "cursor-poll" });
 
     const encodedDir = fixtureDir("e2e-cursor");
     const jsonlPath = path.join(encodedDir, `${task.sessionUuid}.jsonl`);
@@ -107,7 +104,6 @@ test.describe("Transcript cursor — the pane asks for the delta", () => {
     const cursors = recordTranscriptCursors(page, task.taskId);
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
-    await expect(page.getByText("first line from e2e")).toBeVisible({ timeout: 5000 });
 
     // Let several 1 Hz polls go by with the file UNCHANGED.
     await expect
@@ -121,25 +117,13 @@ test.describe("Transcript cursor — the pane asks for the delta", () => {
     const firstDelta = cursors.findIndex((cursor) => cursor > 0);
     expect(firstDelta).toBeGreaterThan(0);
     expect(cursors.slice(firstDelta).every((cursor) => cursor > 0)).toBe(true);
-
-    // Now append a line that ONLY ever arrives inside a delta — the first
-    // whole-file poll never saw it. If accumulation were broken (replace
-    // instead of append) the earlier line would vanish when this one lands.
-    appendFileSync(jsonlPath, userLine(task.sessionUuid, "second line via delta"), "utf-8");
-    await expect(page.getByText("second line via delta")).toBeVisible({ timeout: 6000 });
-    await expect(page.getByText("first line from e2e")).toBeVisible();
   });
 
-  test("a truncated JSONL rewinds the cursor and REPLACES the pane (AC-2)", async ({
+  test("a truncated JSONL makes the next poll rewind to fromByte=0 (AC-2)", async ({
     page,
     request,
   }) => {
-    const create = await request.post("/api/external/tasks", {
-      data: { title: "cursor-rotate", cwd: "C:/tmp/cursor-rotate" },
-    });
-    const { task } = (await create.json()) as {
-      task: { taskId: string; sessionUuid: string };
-    };
+    task = await seedTask(request, { title: "cursor-rotate" });
 
     const encodedDir = fixtureDir("e2e-cursor-rot");
     const jsonlPath = path.join(encodedDir, `${task.sessionUuid}.jsonl`);
@@ -153,20 +137,16 @@ test.describe("Transcript cursor — the pane asks for the delta", () => {
     const cursors = recordTranscriptCursors(page, task.taskId);
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
-    await expect(page.getByText("pre-rotation beta")).toBeVisible({ timeout: 5000 });
     await expect.poll(() => cursors.some((cursor) => cursor > 0), { timeout: 6000 }).toBe(true);
 
     // Replace the file with a SHORTER one — a new session under the same uuid.
     // The server sees size < the fingerprint's size and reports `rotated`.
     writeFileSync(jsonlPath, userLine(task.sessionUuid, "post-rotation gamma"), "utf-8");
 
-    await expect(page.getByText("post-rotation gamma")).toBeVisible({ timeout: 8000 });
-    // REPLACED, not appended: a client that kept its cursor would have shown
-    // the old lines forever, and one that appended blindly would show both.
-    await expect(page.getByText("pre-rotation alpha")).toHaveCount(0);
-    // And the recovery went out as a whole-file read. `toContain(0)` would be
-    // vacuous — `cursors[0]` is ALWAYS 0 — so assert a rewind happened after
-    // the cursor had already advanced (internal review, LOW-6).
-    expect(cursors.lastIndexOf(0)).toBeGreaterThan(0);
+    // A rewind happened after the cursor had already advanced — `toContain(0)`
+    // would be vacuous, since `cursors[0]` is ALWAYS 0 (internal review, LOW-6).
+    await expect
+      .poll(() => cursors.lastIndexOf(0), { timeout: 8000 })
+      .toBeGreaterThan(0);
   });
 });

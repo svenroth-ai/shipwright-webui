@@ -223,8 +223,6 @@ describe("TaskDetailThreePane — compact (tablet ≤1023px)", () => {
       <TaskDetailThreePane
         containerWidth={820}
         activePane="center"
-        centerTab="terminal"
-        onCenterTabChange={vi.fn()}
         onActivePaneChange={onActivePaneChange}
         left={<div />}
         center={<div />}
@@ -243,8 +241,6 @@ describe("TaskDetailThreePane — compact (tablet ≤1023px)", () => {
     render(
       <TaskDetailThreePane
         containerWidth={820}
-        centerTab="terminal"
-        onCenterTabChange={vi.fn()}
         onActivePaneChange={onActivePaneChange}
         left={<div />}
         center={<div />}

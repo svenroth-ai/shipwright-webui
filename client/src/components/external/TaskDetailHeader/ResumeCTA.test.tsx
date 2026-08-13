@@ -162,6 +162,29 @@ describe("ResumeCTA — click triggers resume flow", () => {
   });
 });
 
+describe("ResumeCTA — iconOnly phone variant (iterate-2026-08-13-mission-mobile-visual)", () => {
+  it("hides the visible label but keeps a full accessible name and the 44px touch target", () => {
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    globalThis.fetch = vi.fn(async () => new Response("{}", { status: 200 })) as unknown as typeof fetch;
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <ResumeCTA task={makeTask()} onError={() => {}} iconOnly />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    const btn = screen.getByTestId("cta-copy-resume-command");
+    // No visible "Resume" text node — icon only.
+    expect(btn.textContent?.trim()).toBe("");
+    // Accessible name still says what the button does.
+    expect(btn.getAttribute("aria-label")).toContain("Resume");
+    // 44px touch target, fixed (not the desktop-shrinking min-h-11/md:min-h-0 pair).
+    expect(btn).toHaveClass("h-11", "w-11");
+  });
+});
+
 describe("ResumeCTA — unmount teardown-leak regression", () => {
   // Same defect class as LaunchCTA: the "Resuming…" flash schedules a
   // 1800 ms reset timer with no unmount cleanup, so a timer firing after

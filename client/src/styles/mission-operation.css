@@ -27,7 +27,6 @@
 .mc-verdict strong { font-weight: 700; }
 .mc-verdict.ok { background: var(--ok-tint); border: 1px solid var(--ok-line); color: var(--ok); }
 .mc-verdict.err { background: var(--err-tint); border: 1px solid var(--err-line); color: var(--err); }
-.mc-verdict.neutral { background: var(--g100); border: 1px solid var(--line); color: var(--muted); }
 .mc-verdict .mcv-badge { background: var(--err); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .02em; flex-shrink: 0; }
 
 /* ── mission line ───────────────────────────────────────────────────────── */
@@ -82,9 +81,50 @@
 .mc-hero .d { color: #8a827a; }
 .mc-hero-empty { color: #8a827a; }
 
-/* ── on-photo: .mc-op = white glass; .mc-hero STAYS BLACK with a keyline ──── */
-.on-photo .mc-op { background: var(--glass-light); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); border: 1px solid var(--glass-light-line); border-radius: 16px; box-shadow: var(--sh-photo); }
-.on-photo .mc-op .mc-missionline, .on-photo .mc-op .mc-missionline b { color: var(--ink); }
+/* ── on-photo: .mc-op = white glass, EXCEPT the design-gate state (FR-01.58,
+   A14) which keeps the original white-glass shell untouched — the gate's
+   thumbnail gallery + decision bar were never part of this iterate's scope
+   or its reviewed contrast pass. ─────────────────────────────────────────── */
+.on-photo .mc-op[data-state="designgate"] { background: var(--glass-light); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); border: 1px solid var(--glass-light-line); border-radius: 16px; box-shadow: var(--sh-photo); }
+.on-photo .mc-op[data-state="designgate"] .mc-missionline, .on-photo .mc-op[data-state="designgate"] .mc-missionline b { color: var(--ink); }
+
+/* ── on-photo, dark treatment (iterate-2026-08-13-mission-mobile-visual):
+   every OTHER .mc-op/.mc-feed card (the verdict/proof card and the live
+   activity feed) takes .mc-hero's existing #131110 dark ground instead of
+   white glass — extending the palette already shipped just below (.mc-hero,
+   its .t/.p/.r/.d spans) from the inner proof box to the WHOLE card, not a
+   new colour system. Scoped to `.mc-op` itself (never a page/Mission
+   ancestor, external review, low): local custom-property overrides so
+   VerdictBanner's .ok/.err chips, MissionLine and the feed card/links all
+   read the dark values through the SAME --ink/--body/--muted/--line/--card/
+   --ok/--err/--warn/--accent/--focus tokens they already consume — no
+   per-component duplication, and the focus ring + segmented states follow
+   for free. --ok/--err/--warn move from the light-glass solid-on-tint pair
+   to translucent rgba chips (mint/coral/amber, read off .mc-hero's own
+   spans) because the opaque light-theme tints (e.g. --ok-tint #ECFDF3) read
+   as a stray white box on a near-black card. */
+.on-photo .mc-op:not([data-state="designgate"]) {
+  background: #131110;
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .5), var(--sh-photo);
+  --ink: #f2f0ec; --body: #c9c7c1; --muted: #8a827a; --faint: #6b645d;
+  --line: rgba(255, 255, 255, .14); --line-strong: rgba(255, 255, 255, .24);
+  --card: #1a1817;
+  --ok: #3fbf9a; --ok-tint: rgba(63, 191, 154, .16); --ok-line: rgba(63, 191, 154, .4);
+  --err: #f08772; --err-tint: rgba(240, 135, 114, .16); --err-line: rgba(240, 135, 114, .4);
+  --warn: #e0ac5c; --warn-tint: rgba(224, 172, 92, .16); --warn-line: rgba(224, 172, 92, .4);
+  --accent: #5fc9b4; --accent-line: rgba(95, 201, 180, .45);
+  --focus: 0 0 0 4px rgba(95, 201, 180, .32);
+}
+.on-photo .mc-op:not([data-state="designgate"]) .mc-missionline,
+.on-photo .mc-op:not([data-state="designgate"]) .mc-missionline b { color: var(--ink); }
+/* .mcv-badge pairs a SOLID --err fill with hardcoded white text (line ~31) —
+   fine against the shipped dark-red --err (6.6:1), but --err is now the
+   light coral text/border colour above (tuned for a translucent tint on a
+   near-black ground) and white-on-coral drops to ~2.5:1. The badge is the
+   one spot that needs the inverted dark-on-light pairing; text/border
+   elsewhere keep reading --err straight off the token, unchanged. */
+.on-photo .mc-op:not([data-state="designgate"]) .mcv-badge { background: #f08772; color: #1a1110; }
 .on-photo .mc-hero { background: #131110; border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .5); color: #f2f0ec; }
 .on-photo .mc-hero-empty { color: #a8a29e; }
 

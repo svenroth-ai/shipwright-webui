@@ -18,6 +18,11 @@ const renderedLongIterateFixture: ActivityFeed = {
 };
 
 describe("MissionActivityFeed", () => {
+  // Renders 905 DOM nodes and text-queries all of them — comfortably under
+  // 1s locally, but the default 5000ms vitest timeout is too tight under
+  // CI's coverage-instrumented, full-suite-parallel run (observed timing out
+  // at ~5000ms twice on shipwright-webui#366, pre-existing and unrelated to
+  // that PR's diff).
   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
     const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"), "Make the Mission view evidence-based");
     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
@@ -38,12 +43,26 @@ describe("MissionActivityFeed", () => {
     fireEvent.wheel(timeline, { deltaY: 240 });
     expect(timeline.scrollTop).toBe(240);
     expect(screen.getByTestId("mission-feed-goal").parentElement).not.toBe(timeline);
-  });
+  }, 20_000);
 
   it("opens durable evidence from a card", async () => {
     const onArtifactClick = vi.fn();
     render(<MissionActivityFeed feed={{ ...renderedLongIterateFixture, cards: [{ kind: "delivery", text: "Delivered", commands: [], artifact: "commit" }] }} onArtifactClick={onArtifactClick} />);
     await userEvent.click(screen.getByRole("button", { name: "Open commit" }));
     expect(onArtifactClick).toHaveBeenCalledWith("commit");
+  });
+
+  // Content-safety constraint (external review, iterate-2026-08-13-mission-mobile-visual):
+  // card.text can carry a turn's own assistant prose (assistant-influenced content), so it
+  // must render through the same safe markdown path as the rest of the transcript, never a
+  // raw <p>/dangerouslySetInnerHTML — HTML-like text must never become a real element.
+  it("renders HTML-like card text as inert markdown, never a real element", () => {
+    const { container } = render(<MissionActivityFeed feed={{
+      goal: "g",
+      outcome: "In progress",
+      cards: [{ kind: "implement", text: '<img src=x onerror="window.__pwned=true">Edited the login handler.', commands: [] }],
+    }} />);
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByText(/Edited the login handler/)).toBeInTheDocument();
   });
 });

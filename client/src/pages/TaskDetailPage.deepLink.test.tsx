@@ -19,9 +19,6 @@ import { forwardRef, useEffect, useImperativeHandle } from "react";
 
 vi.mock("../hooks/useExternalTasks", () => ({ useExternalTask: vi.fn() }));
 vi.mock("../hooks/useTaskTranscript", () => ({ useTaskTranscript: vi.fn() }));
-vi.mock("../components/external/BubbleTranscript", () => ({
-  BubbleTranscript: () => <div data-testid="bubble-transcript-mock" />,
-}));
 vi.mock("../components/external/TaskDetailHeader", () => ({
   TaskDetailHeader: () => <div data-testid="task-detail-header-mock" />,
 }));
@@ -114,14 +111,10 @@ describe("TaskDetailPage — A19 terminal-fallback deep link", () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it("selects the Terminal segment and focuses the terminal on ?focus=terminal", async () => {
+  it("focuses the terminal on ?focus=terminal", async () => {
     renderAt("/tasks/t-123?pane=terminal&focus=terminal");
     await screen.findByTestId("embedded-terminal-mock");
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("task-detail-terminal").getAttribute("data-state"),
-      ).toBe("active"),
-    );
+    expect(screen.getByTestId("task-detail-terminal")).toBeInTheDocument();
     await waitFor(() => expect(focusSpy).toHaveBeenCalled());
   });
 

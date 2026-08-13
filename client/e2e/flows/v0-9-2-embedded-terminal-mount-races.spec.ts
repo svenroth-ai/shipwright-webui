@@ -107,11 +107,6 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
       timeout: 20_000,
     });
 
-    const terminalTab = page.getByRole("tab", { name: /terminal/i });
-    if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await terminalTab.click();
-    }
-
     // Wait for the EmbeddedTerminal container to be in the DOM.
     await page
       .locator('[data-testid="embedded-terminal"]')
@@ -203,11 +198,6 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
       waitUntil: "domcontentloaded",
       timeout: 20_000,
     });
-    const terminalTab = page.getByRole("tab", { name: /terminal/i });
-    if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await terminalTab.click();
-    }
-
     // Phase 1: wait for replay to flush (mount + ready + scrollback-meta +
     // replay_start + chunks + replay_separator + replay_end + first live
     // data). The v0.9.1 debug spec observed all of these in <100 ms over

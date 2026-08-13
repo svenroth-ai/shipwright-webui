@@ -1,31 +1,25 @@
 /* Task-detail composition shell. selectedPaths owns viewer tabs; activePath
- * owns the rendered file. Transcript counts come from the parsed read-only
- * session. Regression guards: no chat composer (DO-NOT #3) and no webui-side
- * `claude --resume` (DO-NOT #5). */
+ * owns the rendered file. Regression guards: no chat composer (DO-NOT #3) and
+ * no webui-side `claude --resume` (DO-NOT #5). */
 import {
   Suspense,
   lazy,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import * as Tabs from "@radix-ui/react-tabs";
 
 import { useExternalTask } from "../hooks/useExternalTasks";
 import { useTaskTranscript } from "../hooks/useTaskTranscript";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { BubbleTranscript } from "../components/external/BubbleTranscript";
 import { TaskDetailHeader } from "../components/external/TaskDetailHeader";
 import { TaskDetailThreePane } from "../components/external/TaskDetailThreePane";
 import { FocusModeToggle } from "../components/external/FocusModeToggle";
 import { FolderTree } from "../components/external/FolderTree";
 import { SmartViewer } from "../components/external/SmartViewer";
 import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
-import { toolUses } from "../external/session-parser";
-import { useParsedTranscript } from "../hooks/useParsedTranscript";
 import {
   LaunchCoordinatorProvider,
   useLaunchCoordinator,
@@ -51,8 +45,6 @@ import {
   type MissionTab,
 } from "../components/external/mission/MissionTabRow";
 
-type CenterTab = "transcript" | "terminal";
-const TAB_STORAGE_KEY = "webui:embedded-terminal-default-tab";
 // Mission | Files & Terminal top switch. Default "files" keeps the terminal the
 // mount-default view so the CI smoke gate + auto-launch + the ~50 terminal/replay
 // specs stay byte-stable. A13 restyled this into MissionTabRow but DELIBERATELY
@@ -81,13 +73,6 @@ function TaskDetailPageBody() {
   const coord = useLaunchCoordinator();
   const compact = useIsCompactViewport();
   const [activeCompactPane, setActiveCompactPane] = useState<PaneId>("center");
-  // Center-pane Toggle-Tab (ADR-067). Persisted globally per user
-  // preference — once a user picks Terminal, every TaskDetail they
-  // open lands on Terminal until they pick Transcript again.
-  const [centerTab, setCenterTab] = useLocalStorage<CenterTab>(
-    TAB_STORAGE_KEY,
-    "terminal",
-  );
   // Top-level Mission | Files & Terminal switch (A13 MissionTabRow). Default
   // "files" keeps the terminal the mount-default view (CI smoke gate + auto-launch
   // stay byte-stable); the Mission tab hosts the three-card shell.
@@ -123,10 +108,9 @@ function TaskDetailPageBody() {
     // A launch auto-executes in the embedded terminal — surface the Files &
     // Terminal tab so the pty is visible (a no-op unless the user is on Mission).
     setMissionTab("files");
-    setCenterTab("terminal");
     setActiveCompactPane("center");
     setPendingFocus(true);
-  }, [coord.pendingLaunch, setCenterTab, setMissionTab]);
+  }, [coord.pendingLaunch, setMissionTab]);
 
   // iterate-2026-05-18-inbox-terminal-prompts — Inbox-origin navigation
   // carries `{ focusTerminal: true }` in React-Router nav state (set by
@@ -144,7 +128,6 @@ function TaskDetailPageBody() {
     if (navState?.focusTerminal !== true) return;
     inboxFocusConsumedRef.current = true;
     setMissionTab("files");
-    setCenterTab("terminal");
     setActiveCompactPane("center");
     setPendingFocus(true);
     navigate(`${location.pathname}${location.search}`, { replace: true });
@@ -153,7 +136,6 @@ function TaskDetailPageBody() {
     location.search,
     location.state,
     navigate,
-    setCenterTab,
     setMissionTab,
   ]);
 
@@ -169,15 +151,13 @@ function TaskDetailPageBody() {
     if (!parseTerminalFocusIntent(location.search)) return;
     deepLinkFocusConsumedRef.current = true;
     setMissionTab("files");
-    setCenterTab("terminal");
     setPendingFocus(true);
     navigate(location.pathname, { replace: true });
-  }, [location.pathname, location.search, navigate, setCenterTab, setMissionTab]);
+  }, [location.pathname, location.search, navigate, setMissionTab]);
 
   // Iterate v0.8.5 AC-6: the `webui:focus-terminal-tab` event listener
   // was removed alongside the Terminal-CTA in TaskDetailHeader (the
-  // only dispatcher). The inline `Terminal` Tabs.Trigger inside the
-  // page now owns the tab-flip directly via Radix Tabs state.
+  // only dispatcher).
 
   // Phase-3 review fix (HIGH) reverted (live-smoke 2026-05-05):
   // The explicit `useEffect(() => () => coord.cancelLaunch("page-unmount"), [])`
@@ -350,12 +330,11 @@ function TaskDetailPageBody() {
   // pty). Focus mode is the EXISTING A18 maximize toggle (no parallel hide path).
   const focusTerminal = useCallback(() => {
     setMissionTab("files");
-    setCenterTab("terminal");
     setActiveCompactPane("center");
     requestAnimationFrame(() => terminalRef.current?.focus());
-  }, [setMissionTab, setCenterTab]);
+  }, [setMissionTab]);
   useTerminalFocusHotkey({ focusTerminal });
-  const terminalActive = missionTab === "files" && centerTab === "terminal" &&
+  const terminalActive = missionTab === "files" &&
     (!compact || activeCompactPane === "center");
   const handleSelect = useCallback((path: string) => {
     setSelectedPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
@@ -378,21 +357,6 @@ function TaskDetailPageBody() {
       return next;
     });
   }, []);
-  // Derived transcript stats for the center-pane header. Parsed incrementally
-  // so a streaming poll re-parses only the appended bytes, not the whole
-  // accumulated transcript (iterate-2026-07-23-transcript-incremental-render).
-  const parsedTranscript = useParsedTranscript(transcript.content);
-  const transcriptStats = useMemo(() => {
-    // Preserve pre-refactor behaviour: an empty transcript forces all stats to 0.
-    if (!transcript.content) return { events: 0, toolUses: 0, pending: 0 };
-    let tools = 0;
-    for (const e of parsedTranscript.events) {
-      if (e.kind === "assistant") tools += toolUses(e).length;
-    }
-    const pending = task?.inbox?.pendingToolUseIds?.length ?? 0;
-    return { events: parsedTranscript.events.length, toolUses: tools, pending };
-  }, [transcript.content, parsedTranscript, task?.inbox?.pendingToolUseIds]);
-
   if (error) {
     return (
       <div
@@ -435,9 +399,7 @@ function TaskDetailPageBody() {
           tab flip. Inset to line up with the tab control + Mission body (2026-07-17). */}
       <div className={missionTab === "files" ? "min-h-0 flex-1 px-0 pt-1 pb-0 md:px-4 md:pt-3 md:pb-4 lg:px-8 lg:pt-4 lg:pb-[22px]" : "hidden"}>
         <TaskDetailThreePane
-          centerTab={centerTab}
           activePane={activeCompactPane}
-          onCenterTabChange={setCenterTab}
           onActivePaneChange={setActiveCompactPane}
           left={
             <FolderTree
@@ -451,192 +413,116 @@ function TaskDetailPageBody() {
               className="ft-card ft-term flex h-full min-h-0 flex-col"
               data-testid="task-detail-center"
             >
-              <Tabs.Root
-                value={centerTab}
-                onValueChange={(v) => setCenterTab(v as CenterTab)}
-                className="flex h-full min-h-0 flex-col"
+              {/* Terminal is the sole center-pane surface (iterate-2026-08-13-
+                  mission-mobile-visual retired the Transcript sub-tab — Mission's
+                  activity feed now covers that ground). The greyed .ft-head band
+                  stays for FocusModeToggle; role="tab" is deliberately NOT kept
+                  as a decorative one-item tablist. */}
+              {!compact && <div
+                className="ft-head text-[11px]"
+                data-testid="task-detail-center-header"
               >
-                {!compact && <div
-                  className="ft-head text-[11px]"
-                  data-testid="task-detail-center-header"
-                >
-                  {/* Segmented Transcript/Terminal tabs, greyed .ft-head band —
-                      same style as Mission Control (A18 .mc-tabs.ft-seg). Radix
-                      role="tab" is preserved: the terminal E2E corpus pins
-                      getByRole("tab",{name:/terminal/i}) to exactly one match. */}
-                  <Tabs.List
-                    className="mc-tabs ft-seg"
-                    data-testid="task-detail-tabs"
-                  >
-                    <Tabs.Trigger
-                      value="transcript"
-                      className="mc-tab"
-                      data-testid="task-detail-tab-transcript"
-                    >
-                      Transcript
-                    </Tabs.Trigger>
-                    <Tabs.Trigger
-                      value="terminal"
-                      className="mc-tab"
-                      data-testid="task-detail-tab-terminal"
-                    >
-                      Terminal
-                    </Tabs.Trigger>
-                  </Tabs.List>
-                  {centerTab === "transcript" ? (
-                    <div className="ml-auto flex items-center gap-3 text-[var(--color-muted,#6b7280)]" data-testid="task-detail-transcript-header">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-[6px] w-[6px] rounded-full bg-[var(--color-info,#3B82F6)]"
-                        />
-                        <span data-testid="transcript-stat-events">
-                          {transcriptStats.events} events
-                        </span>
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-[6px] w-[6px] rounded-full bg-[var(--color-purple,#8B5CF6)]"
-                        />
-                        <span data-testid="transcript-stat-tool-uses">
-                          {transcriptStats.toolUses} tool uses
-                        </span>
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <span
-                          aria-hidden="true"
-                          className="inline-block h-[6px] w-[6px] rounded-full bg-[var(--color-warning,#D97706)]"
-                        />
-                        <span data-testid="transcript-stat-pending">
-                          {transcriptStats.pending} pending
-                        </span>
-                      </span>
-                    </div>
-                  ) : null}
-                  {/* Maximize terminal (A18): collapses both side cards via the
-                      existing useThreePaneLayout collapse→resize path. */}
+                {/* Maximize terminal (A18): collapses both side cards via the
+                    existing useThreePaneLayout collapse→resize path. */}
+                <FocusModeToggle />
+              </div>}
+              <div
+                id="task-center-panel-terminal"
+                className="relative min-h-0 flex-1"
+                data-testid="task-detail-terminal"
+              >
+                {compact && <div className="absolute right-2 top-2 z-20 rounded-lg bg-[var(--g100)] shadow-md">
                   <FocusModeToggle />
                 </div>}
-                {/*
-                 * forceMount on BOTH tabs — Radix's default unmounts inactive
-                 * content, which would tear down xterm + the WS every toggle
-                 * (external review F3). CSS hides inactive panes via
-                 * data-state="inactive".
-                 */}
-                <Tabs.Content
-                  value="transcript"
-                  forceMount
-                  id="task-center-panel-transcript"
-                  aria-labelledby={compact ? "workspace-tab-transcript" : undefined}
-                  className="min-h-0 flex-1 data-[state=inactive]:hidden"
-                  data-testid="task-detail-transcript"
+                <Suspense
+                  fallback={
+                    <div className="p-4 text-xs text-[var(--color-muted,#6b7280)]">
+                      Loading terminal…
+                    </div>
+                  }
                 >
-                  <BubbleTranscript content={transcript.content} task={task} />
-                </Tabs.Content>
-                <Tabs.Content
-                  value="terminal"
-                  forceMount
-                  id="task-center-panel-terminal"
-                  aria-labelledby={compact ? "workspace-tab-terminal" : undefined}
-                  className="relative min-h-0 flex-1 data-[state=inactive]:hidden"
-                  data-testid="task-detail-terminal"
-                >
-                  {compact && <div className="absolute right-2 top-2 z-20 rounded-lg bg-[var(--g100)] shadow-md">
-                    <FocusModeToggle />
-                  </div>}
-                  <Suspense
-                    fallback={
-                      <div className="p-4 text-xs text-[var(--color-muted,#6b7280)]">
-                        Loading terminal…
-                      </div>
-                    }
+                  {taskId ? (
+                    <EmbeddedTerminal
+                      ref={terminalRef}
+                      taskId={taskId}
+                      active={terminalActive}
+                      layoutRevision={compact ? "compact" : "desktop"}
+                      onReadyChange={handleTerminalReady}
+                      onGitignoreSuggestion={handleGitignoreSuggestion}
+                      onPasteImageError={handlePasteImageError}
+                      onTerminalMeta={setTerminalMeta}
+                    />
+                  ) : null}
+                </Suspense>
+                {pasteImageError ? (
+                  <div
+                    className="absolute bottom-3 left-3 flex items-center gap-2 rounded border border-[var(--color-error,#DC2626)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] text-[var(--color-error,#DC2626)] shadow"
+                    data-testid="paste-image-error-toast"
+                    role="alert"
                   >
-                    {taskId ? (
-                      <EmbeddedTerminal
-                        ref={terminalRef}
-                        taskId={taskId}
-                        active={terminalActive}
-                        layoutRevision={compact ? "compact" : "desktop"}
-                        onReadyChange={handleTerminalReady}
-                        onGitignoreSuggestion={handleGitignoreSuggestion}
-                        onPasteImageError={handlePasteImageError}
-                        onTerminalMeta={setTerminalMeta}
-                      />
-                    ) : null}
-                  </Suspense>
-                  {pasteImageError ? (
-                    <div
-                      className="absolute bottom-3 left-3 flex items-center gap-2 rounded border border-[var(--color-error,#DC2626)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] text-[var(--color-error,#DC2626)] shadow"
-                      data-testid="paste-image-error-toast"
-                      role="alert"
+                    <span>Image paste failed: {pasteImageError}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPasteImageError(null)}
+                      className="text-[11px] text-[var(--color-muted,#6b7280)]"
+                      data-testid="paste-image-error-dismiss"
+                      aria-label="Dismiss"
                     >
-                      <span>Image paste failed: {pasteImageError}</span>
+                      ×
+                    </button>
+                  </div>
+                ) : null}
+                {gitignoreToastOpen ? (
+                  <div
+                    className="absolute bottom-3 right-3 flex flex-col gap-1 rounded border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] shadow"
+                    data-testid="gitignore-suggestion-toast"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>
+                        Add <code>.claude-pastes/</code> to <code>.gitignore</code>?
+                      </span>
                       <button
                         type="button"
-                        onClick={() => setPasteImageError(null)}
+                        onClick={() => void handleGitignoreAppend()}
+                        disabled={gitignoreAppending}
+                        className="rounded bg-[var(--color-primary,#171717)] px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+                        data-testid="gitignore-suggestion-append"
+                      >
+                        {gitignoreAppending ? "Adding…" : "Append"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGitignoreToastOpen(false)}
                         className="text-[11px] text-[var(--color-muted,#6b7280)]"
-                        data-testid="paste-image-error-dismiss"
+                        data-testid="gitignore-suggestion-dismiss"
                         aria-label="Dismiss"
                       >
                         ×
                       </button>
                     </div>
-                  ) : null}
-                  {gitignoreToastOpen ? (
-                    <div
-                      className="absolute bottom-3 right-3 flex flex-col gap-1 rounded border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] shadow"
-                      data-testid="gitignore-suggestion-toast"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>
-                          Add <code>.claude-pastes/</code> to <code>.gitignore</code>?
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => void handleGitignoreAppend()}
-                          disabled={gitignoreAppending}
-                          className="rounded bg-[var(--color-primary,#171717)] px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
-                          data-testid="gitignore-suggestion-append"
-                        >
-                          {gitignoreAppending ? "Adding…" : "Append"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setGitignoreToastOpen(false)}
-                          className="text-[11px] text-[var(--color-muted,#6b7280)]"
-                          data-testid="gitignore-suggestion-dismiss"
-                          aria-label="Dismiss"
-                        >
-                          ×
-                        </button>
-                      </div>
-                      {gitignoreError ? (
-                        <span
-                          className="text-[11px] text-[var(--color-error,#DC2626)]"
-                          data-testid="gitignore-suggestion-error"
-                        >
-                          Failed: {gitignoreError}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  {/* ADR-068-A1 AC-15 + iterate v0.8.2 AC-8/AC-9: privacy
-                      disclosure (compact, dismissible). Renders only when
-                      the server reports scrollbackBytes > 0 for this task
-                      (AC-8). Retention copy interpolates the actual TTL +
-                      resolved scrollback dir from the ready envelope (AC-9).
-                      "Clear history" affordance still routes through the
-                      "..." menu. */}
-                  <PrivacyDisclosureFooter
-                    scrollbackBytes={terminalMeta.scrollbackBytes}
-                    retentionDays={terminalMeta.retentionDays}
-                    scrollbackDir={terminalMeta.scrollbackDir}
-                  />
-                </Tabs.Content>
-              </Tabs.Root>
+                    {gitignoreError ? (
+                      <span
+                        className="text-[11px] text-[var(--color-error,#DC2626)]"
+                        data-testid="gitignore-suggestion-error"
+                      >
+                        Failed: {gitignoreError}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {/* ADR-068-A1 AC-15 + iterate v0.8.2 AC-8/AC-9: privacy
+                    disclosure (compact, dismissible). Renders only when
+                    the server reports scrollbackBytes > 0 for this task
+                    (AC-8). Retention copy interpolates the actual TTL +
+                    resolved scrollback dir from the ready envelope (AC-9).
+                    "Clear history" affordance still routes through the
+                    "..." menu. */}
+                <PrivacyDisclosureFooter
+                  scrollbackBytes={terminalMeta.scrollbackBytes}
+                  retentionDays={terminalMeta.retentionDays}
+                  scrollbackDir={terminalMeta.scrollbackDir}
+                />
+              </div>
             </section>
           }
           right={

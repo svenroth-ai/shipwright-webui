@@ -1,13 +1,13 @@
 /*
- * TaskDetailPage — Toggle-Tab + Launch-Flow regression tests
- * (iterate-2026-05-03 / ADR-067).
+ * TaskDetailPage — Launch-Flow regression tests (iterate-2026-05-03 / ADR-067;
+ * Transcript sub-tab retired iterate-2026-08-13-mission-mobile-visual — the
+ * center pane is now unambiguously Terminal, so the old Toggle-Tab coverage
+ * collapses to "terminal is always the rendered/active content").
  *
  * Covers:
- *   - Tab switch via webui:launch-copied event flips center pane to terminal.
- *   - localStorage persists the chosen tab across mounts.
- *   - Both Tabs.Content panes mount + stay mounted across toggle (forceMount
- *     guarantee — closes external review F3 / Radix-unmount trap).
- *   - Other testids (3-pane shell, transcript stats) survive the rebuild.
+ *   - LaunchCoordinator auto-launch focuses the terminal (ADR-068-A1).
+ *   - Inbox-origin nav-state focuses the terminal.
+ *   - Gitignore-suggestion toast lifecycle.
  *
  * EmbeddedTerminal is mocked: jsdom can't render xterm. The mock surface
  * mirrors the real component's testid + onReadyChange callback.
@@ -25,9 +25,6 @@ vi.mock("../hooks/useExternalTasks", () => ({
 }));
 vi.mock("../hooks/useTaskTranscript", () => ({
   useTaskTranscript: vi.fn(),
-}));
-vi.mock("../components/external/BubbleTranscript", () => ({
-  BubbleTranscript: () => <div data-testid="bubble-transcript-mock" />,
 }));
 // Iterate-2026-05-04 (ADR-068-A1): TaskDetailHeader is mocked with a
 // surface that exposes a Launch button which dispatches into the
@@ -171,76 +168,24 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
     vi.clearAllMocks();
   });
 
-  it("renders both Tabs (Transcript + Terminal) plus the EmbeddedTerminal mock", async () => {
+  it("renders the terminal pane, mounted and active, plus the EmbeddedTerminal mock", async () => {
     renderPage();
-    expect(screen.getByTestId("task-detail-tab-transcript")).toBeInTheDocument();
-    expect(screen.getByTestId("task-detail-tab-terminal")).toBeInTheDocument();
     // React.lazy means the mock arrives async — wait.
-    expect(await screen.findByTestId("embedded-terminal-mock")).toBeInTheDocument();
-  });
-
-  it("default tab is Terminal (initial-default per plan §User-Entscheidungen)", async () => {
-    renderPage();
-    await screen.findByTestId("embedded-terminal-mock");
-    const terminalPane = screen.getByTestId("task-detail-terminal");
-    expect(terminalPane.getAttribute("data-state")).toBe("active");
-  });
-
-  it("forceMount keeps BOTH Tabs.Content rendered across toggle (no remount)", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByTestId("embedded-terminal-mock");
-    expect(screen.getByTestId("task-detail-transcript")).toBeInTheDocument();
+    const terminal = await screen.findByTestId("embedded-terminal-mock");
+    expect(terminal).toBeInTheDocument();
+    expect(terminal.getAttribute("data-active")).toBe("true");
     expect(screen.getByTestId("task-detail-terminal")).toBeInTheDocument();
-
-    const earlyMounts = mountCounterRef.current;
-    await user.click(screen.getByTestId("task-detail-tab-transcript"));
-    expect(screen.getByTestId("task-detail-transcript")).toBeInTheDocument();
-    expect(screen.getByTestId("task-detail-terminal")).toBeInTheDocument();
-    expect(screen.getByTestId("embedded-terminal-mock")).toBeInTheDocument();
-    await user.click(screen.getByTestId("task-detail-tab-terminal"));
-    // Mount counter must NOT increment per toggle — that's the regression
-    // fence for external review F3 (Radix-unmount trap).
-    expect(mountCounterRef.current).toBe(earlyMounts);
+    expect(screen.queryByTestId("task-detail-tab-transcript")).toBeNull();
   });
 
-  it("persists the chosen tab to localStorage and restores it on next mount", async () => {
-    const user = userEvent.setup();
-    const { unmount } = renderPage();
-    await screen.findByTestId("embedded-terminal-mock");
-    await user.click(screen.getByTestId("task-detail-tab-transcript"));
-    await waitFor(() =>
-      expect(localStorage.getItem("webui:embedded-terminal-default-tab")).toBe(
-        '"transcript"',
-      ),
-    );
-    unmount();
-    renderPage();
-    await screen.findByTestId("embedded-terminal-mock");
-    const transcriptPane = screen.getByTestId("task-detail-transcript");
-    expect(transcriptPane.getAttribute("data-state")).toBe("active");
-  });
-
-  it("flips to terminal + calls .focus() when LaunchCoordinator dispatchAutoLaunch fires (ADR-068-A1)", async () => {
+  it("flips to the Files & Terminal tab + calls .focus() when LaunchCoordinator dispatchAutoLaunch fires (ADR-068-A1)", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByTestId("embedded-terminal-mock");
-    // Start from transcript so the flip is observable.
-    await user.click(screen.getByTestId("task-detail-tab-transcript"));
-    await waitFor(() =>
-      expect(screen.getByTestId("task-detail-transcript").getAttribute("data-state")).toBe(
-        "active",
-      ),
-    );
     focusSpy.mockClear();
     // Dispatch via the new LaunchCoordinator path (replaces the old
     // window.dispatchEvent("webui:launch-copied") flow).
     await user.click(screen.getByTestId("task-detail-header-mock-launch"));
-    await waitFor(() =>
-      expect(screen.getByTestId("task-detail-terminal").getAttribute("data-state")).toBe(
-        "active",
-      ),
-    );
     await waitFor(() => expect(focusSpy).toHaveBeenCalled());
   });
 
@@ -249,13 +194,8 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
   it("focuses the terminal when arriving from the Inbox (focusTerminal nav-state)", async () => {
     renderPage({ focusTerminal: true });
     await screen.findByTestId("embedded-terminal-mock");
-    // The inbox-origin nav-state forces the Terminal tab + focuses xterm
-    // via the existing pendingFocus → handleTerminalReady path.
-    await waitFor(() =>
-      expect(
-        screen.getByTestId("task-detail-terminal").getAttribute("data-state"),
-      ).toBe("active"),
-    );
+    // The inbox-origin nav-state focuses xterm via the existing
+    // pendingFocus → handleTerminalReady path.
     await waitFor(() => expect(focusSpy).toHaveBeenCalled());
   });
 
@@ -342,21 +282,5 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
     await user.click(screen.getByTestId("gitignore-suggestion-dismiss"));
     expect(screen.queryByTestId("gitignore-suggestion-toast")).toBeNull();
     expect(fetchMock.mock.calls.some((c: unknown[]) => String(c[0]).includes("/append-gitignore"))).toBe(false);
-  });
-
-  it("transcript stats only render when transcript tab is active (avoids stale numbers in terminal-mode header)", async () => {
-    const user = userEvent.setup();
-    (useTaskTranscript as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
-      content: '{"type":"summary","summary":"x"}\n',
-      status: "ok",
-    });
-    renderPage();
-    await screen.findByTestId("embedded-terminal-mock");
-    // Default = terminal — stats hidden.
-    expect(screen.queryByTestId("transcript-stat-events")).toBeNull();
-    await user.click(screen.getByTestId("task-detail-tab-transcript"));
-    await waitFor(() =>
-      expect(screen.queryByTestId("transcript-stat-events")).not.toBeNull(),
-    );
   });
 });

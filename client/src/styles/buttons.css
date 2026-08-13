@@ -27,6 +27,19 @@
   --btn-min-w: 132px;
 }
 
+/* Phone-only exception (iterate-2026-08-13-mission-mobile-visual, CLAUDE.md
+   rule 26 amendment — a deliberate exception, not a drift): the Board
+   toolbar row has no free width for a 132px-minimum button next to
+   Filter/Density/ViewToggle at 767px and below. 88px is the CONTENT-NATURAL
+   floor for "+ New" (icon + label + caret) — `min-width` still lets any
+   longer label grow the button past it, exactly as the desktop rule already
+   allows; this only lowers the FLOOR, height/radius/colour are untouched. */
+@media (max-width: 767px) {
+  :root {
+    --btn-min-w: 88px;
+  }
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;

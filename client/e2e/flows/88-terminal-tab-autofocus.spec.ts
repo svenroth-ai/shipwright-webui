@@ -2,13 +2,24 @@
  * iterate-2026-05-23 (terminal-tab-autofocus) — auto-focus on tab
  * activation, end-to-end regression guard.
  *
- * Verifies that when the user is on TaskDetailPage with the Transcript
- * tab active and clicks the Terminal tab, the xterm helper-textarea
- * receives keyboard focus immediately — no extra canvas click required.
- * This is the user's reported pain point ("Ich muss immer ins terminal
- * klicken"); the unit tests cover the React-effect wiring, this E2E
- * proves the integration against a real Chromium + xterm + isolated
- * dev stack.
+ * Verifies that when the terminal pane transitions from inactive (hidden)
+ * to active, the xterm helper-textarea receives keyboard focus immediately
+ * — no extra canvas click required. This is the user's reported pain point
+ * ("Ich muss immer ins terminal klicken"); the unit tests cover the
+ * React-effect wiring, this E2E proves the integration against a real
+ * Chromium + xterm + isolated dev stack.
+ *
+ * The original activation trigger was the desktop Transcript/Terminal
+ * Radix tabs, retired in iterate-2026-08-13-mission-mobile-visual (the
+ * terminal is now the sole, unconditional center-pane surface). The
+ * underlying `active` prop on <EmbeddedTerminal> — and the autofocus +
+ * canvas-repair effect it drives — still exists (TaskDetailPage.tsx
+ * `terminalActive = missionTab === "files" && ...`): it is now gated by
+ * the top-level Mission | Files & Terminal switch (MissionTabRow /
+ * A13), which mounts the whole three-pane subtree under `className="hidden"`
+ * while "Mission" is selected. This spec now drives that same
+ * inactive->active transition through `mission-tab-mission` /
+ * `mission-tab-files` instead of the retired tab triggers.
  *
  * Soft-skip on baseURL unreachable (matches specs 86 + 87).
  */
@@ -40,50 +51,35 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
     }
   });
 
-  test.beforeEach(async ({ page }) => {
-    // Force Transcript as the default tab so the test starts with the
-    // Terminal tab INACTIVE. This is the inverse of specs 86 + 87,
-    // which pre-pin Terminal as default.
-    await page.addInitScript(() => {
-      try {
-        localStorage.setItem(
-          "webui:embedded-terminal-default-tab",
-          '"transcript"',
-        );
-      } catch {
-        /* noop */
-      }
-    });
-  });
-
-  test("clicking the Terminal tab from Transcript focuses xterm's helper-textarea", async ({
+  test("clicking Files & Terminal from Mission focuses xterm's helper-textarea", async ({
     page,
     request,
   }) => {
     await fs.mkdir(ARTIFACT_DIR, { recursive: true });
     const { cleanup } = await setupTerminalTask(page, request);
     try {
-      // 1. Assert the page landed on Transcript (not Terminal). If the
-      //    default-tab localStorage was ignored or overridden somewhere,
-      //    we want to know loudly — otherwise the rest of the spec
-      //    would be testing a different state than intended.
-      const transcriptTrigger = page.getByTestId("task-detail-tab-transcript");
-      const terminalTrigger = page.getByTestId("task-detail-tab-terminal");
-      await expect(transcriptTrigger).toHaveAttribute("data-state", "active");
-      await expect(terminalTrigger).toHaveAttribute("data-state", "inactive");
+      // 1. Switch to Mission first so the terminal pane goes inactive
+      //    (its subtree mounts under `className="hidden"` — see
+      //    TaskDetailPage.tsx). Files & Terminal is the mount-default, so
+      //    this spec explicitly leaves it before proving the return-trip
+      //    reactivates focus.
+      const missionTrigger = page.getByTestId("mission-tab-mission");
+      const filesTrigger = page.getByTestId("mission-tab-files");
+      await missionTrigger.click();
+      await expect(missionTrigger).toHaveAttribute("aria-checked", "true");
+      await expect(filesTrigger).toHaveAttribute("aria-checked", "false");
 
       // 2. Move focus AWAY from any element that might happen to hold it
       //    after navigation (sidebar nav link, header button). Focus the
-      //    Transcript trigger explicitly — that's a plausible
-      //    starting state when the user clicks a sibling tab. After the
-      //    Terminal-tab click we then prove focus MOVED to the xterm
-      //    helper-textarea (not stayed on the trigger, not stayed on
-      //    the body).
-      await transcriptTrigger.focus();
+      //    Mission trigger explicitly — that's a plausible starting state
+      //    when the user clicks a sibling tab. After the Files & Terminal
+      //    click we then prove focus MOVED to the xterm helper-textarea
+      //    (not stayed on the trigger, not stayed on the body).
+      await missionTrigger.focus();
 
-      // 3. Click the Terminal tab.
-      await terminalTrigger.click();
-      await expect(terminalTrigger).toHaveAttribute("data-state", "active");
+      // 3. Click back to Files & Terminal.
+      await filesTrigger.click();
+      await expect(filesTrigger).toHaveAttribute("aria-checked", "true");
 
       // 4. Allow the useEffect + React commit + xterm focus() to flush.
       //    The autofocus runs synchronously inside the effect, but
@@ -123,12 +119,13 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
     page,
     request,
   }) => {
-    // User-reported render-broken bug: when Transcript is the
-    // persisted default tab, xterm.open(container) runs while the
-    // Terminal container is `display:none` → canvas / WebGL atlas
-    // initialised at 0x0. On first Terminal-tab click the renderer
-    // carries that stale state through the first paint and the
-    // display looks "kaputt" until the next task remount.
+    // User-reported render-broken bug: when the terminal pane's subtree is
+    // mounted under `className="hidden"` (Mission tab selected —
+    // TaskDetailPage.tsx), xterm.open(container) runs while the container is
+    // `display:none` → canvas / WebGL atlas initialised at 0x0. On the
+    // return trip to Files & Terminal the renderer carries that stale state
+    // through the first paint and the display looks "kaputt" until the next
+    // task remount.
     //
     // Fix in EmbeddedTerminal.tsx: the autofocus useEffect also
     // calls `safeFit` + `term.refresh(0, rows-1)` on the
@@ -137,12 +134,15 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
     await fs.mkdir(ARTIFACT_DIR, { recursive: true });
     const { cleanup } = await setupTerminalTask(page, request);
     try {
-      const terminalTrigger = page.getByTestId("task-detail-tab-terminal");
-      // Defensive — confirm Transcript was indeed the start state.
-      const transcriptTrigger = page.getByTestId("task-detail-tab-transcript");
-      await expect(transcriptTrigger).toHaveAttribute("data-state", "active");
-      await terminalTrigger.click();
-      await expect(terminalTrigger).toHaveAttribute("data-state", "active");
+      const missionTrigger = page.getByTestId("mission-tab-mission");
+      const filesTrigger = page.getByTestId("mission-tab-files");
+      // Leave Files & Terminal (the mount-default) so the terminal pane goes
+      // inactive, then return to it — reproducing the active=false->true
+      // transition.
+      await missionTrigger.click();
+      await expect(missionTrigger).toHaveAttribute("aria-checked", "true");
+      await filesTrigger.click();
+      await expect(filesTrigger).toHaveAttribute("aria-checked", "true");
       // Allow the autofocus useEffect's setTimeout(0) + fit + refresh
       // path to flush, plus one paint frame.
       await page.waitForTimeout(250);

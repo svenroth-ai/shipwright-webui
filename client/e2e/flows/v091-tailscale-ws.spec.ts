@@ -108,13 +108,11 @@ test.describe("iterate v0.9.1 — Tailscale WS upgrade real-browser repro", () =
         timeout: 20_000,
       });
 
-      // The EmbeddedTerminal lazy-loads when the Terminal tab is open.
-      // Ensure it's the active tab (it's the default), then wait for
-      // the xterm container to mount + render a prompt.
-      const terminalTab = page.getByRole("tab", { name: /terminal/i });
-      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await terminalTab.click();
-      }
+      // The EmbeddedTerminal lazy-loads on mount; the terminal pane is
+      // unconditional now (Transcript sub-tab retired,
+      // iterate-2026-08-13-mission-mobile-visual) — no tab-switch needed
+      // to reach it. Wait for the xterm container to mount + render a
+      // prompt.
 
       // Authoritative DOM-based assertion: the xterm `.xterm-rows` div
       // (or equivalent .xterm-screen text container) should contain

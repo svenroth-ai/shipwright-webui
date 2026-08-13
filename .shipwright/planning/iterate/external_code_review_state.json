@@ -1,15 +1,15 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-10T16:32:40.380166+00:00",
+  "timestamp": "2026-08-13T15:20:10.345629+00:00",
   "provider": "openrouter",
-  "findings_count": 1,
+  "findings_count": 2,
   "self_review_fallback_ran": false,
-  "reason": "OpenAI review completed; its final separate-git-dir test concern was rejected after the real regression test passed, while the Git resolution failure was fixed. The DeepSeek route produced no response after two isolated attempts. \u2014 only some provider legs could be itemized \u2014 the count (1) may understate what was found",
+  "reason": "only some provider legs could be itemized \u2014 the count (2) may understate what was found",
   "review_mode": "code",
   "marker_schema": 3,
   "verdicts": {
-    "deepseek": "unavailable",
-    "openai": "revise"
+    "openai": "revise",
+    "deepseek": "unavailable"
   },
   "contradiction": {
     "detected": false,
