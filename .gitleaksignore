@@ -1,0 +1,11 @@
+# gitleaks fingerprint allowlist. One fingerprint per line: <commit>:<file>:<rule-id>:<start-line>
+# (commit is empty because CI runs `gitleaks detect --no-git` against the working tree).
+#
+# iterate-2026-08-13-task-description-length-cap: `generic-api-key` false-positives on
+# .shipwright/triage.jsonl:450/452 — the flagged strings (trg-e2emsngmaykjb2h,
+# trg-e2emsnhw2r2hy88) are internal triage-item / E2E fixture IDs inside a compliance
+# note about an unrelated test-cleanup bug, not credentials. Confirmed with Sven
+# (svroch) 2026-08-13. Targeted to these two exact findings only — not a path-wide
+# or rule-wide suppression.
+:.shipwright/triage.jsonl:generic-api-key:450
+:.shipwright/triage.jsonl:generic-api-key:452
