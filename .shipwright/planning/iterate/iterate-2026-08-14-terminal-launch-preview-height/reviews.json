@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-14-terminal-launch-preview-height",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:49:27.242464+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:48:52.202084+00:00",
+      "disposition": "small complexity, risk_flags=[] — full code review cascade + plan review are not triggered by the phase matrix",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:48:52.202084+00:00",
+      "disposition": "small complexity, risk_flags=[] — full code review cascade + plan review are not triggered by the phase matrix",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:48:52.202084+00:00",
+      "disposition": "small complexity, risk_flags=[] — full code review cascade + plan review are not triggered by the phase matrix",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:48:52.202084+00:00",
+      "disposition": "small complexity, risk_flags=[] — full code review cascade + plan review are not triggered by the phase matrix",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:48:52.202084+00:00",
+      "disposition": "small complexity, risk_flags=[] — full code review cascade + plan review are not triggered by the phase matrix",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-14T17:48:52.202084+00:00",
+      "disposition": "small complexity, risk_flags=[] — full code review cascade + plan review are not triggered by the phase matrix",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

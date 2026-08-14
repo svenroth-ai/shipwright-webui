@@ -1,0 +1,1 @@
+Fixed a bug where launching a task with a long description could silently fail: the terminal's command preview would fill the screen and the launch would never actually reach the running shell. The preview now stays a fixed height and scrolls instead.

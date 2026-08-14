@@ -1,0 +1,72 @@
+{
+  "last_updated": "2026-08-14",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-14-terminal-launch-preview-height",
+    "date": "2026-08-14",
+    "unit": "PASS \u2014 client 3327 passed (354 files); server 3360 passed / 1 skipped, pre-existing (289 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 e2e/flows/97-terminal-preview-banner-height-cap.spec.ts against the isolated stack (real Chromium); verified LOAD-BEARING by running it against the pre-fix code first (fails: canvas reported hidden/height 0) then the fix (passes)",
+    "design_fidelity": "n/a \u2014 bounded-size CSS fix on an existing banner, no new UI/visual redesign",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "previewCommand banner never exceeds a bounded height regardless of command length",
+          "disposition": "tested",
+          "evidence": "TerminalBanners.test.tsx \u2014 class-fence assertion (max-h-*, overflow-y-auto, shrink-0) on embedded-terminal-launch-preview with a 5300-char command"
+        },
+        {
+          "behavior": "manualSendCommand banner never exceeds a bounded height regardless of command length",
+          "disposition": "tested",
+          "evidence": "TerminalBanners.test.tsx \u2014 same class-fence assertion on embedded-terminal-manual-send"
+        },
+        {
+          "behavior": "a short previewCommand still renders its full text unclipped (no over-truncation regression)",
+          "disposition": "tested",
+          "evidence": "TerminalBanners.test.tsx \u2014 short command's full text found in the banner's textContent"
+        },
+        {
+          "behavior": "a long launch command's terminal canvas keeps a real (nonzero) height in a real browser",
+          "disposition": "tested",
+          "evidence": "e2e/flows/97-terminal-preview-banner-height-cap.spec.ts \u2014 real Chromium via the isolated stack; canvas.boundingBox().height polled > 0"
+        },
+        {
+          "behavior": "the launch command actually reaches the pty (does not silently time out behind the preview banner)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/97-terminal-preview-banner-height-cap.spec.ts \u2014 embedded-terminal-launch-preview banner clears within 10s (dispatch succeeded, not the ~timeout cancel path)"
+        },
+        {
+          "behavior": "self-scrolling manualSendCommand container's own direct children stay shrink-0 (DO-NOT #24)",
+          "disposition": "tested",
+          "evidence": "client/src/test/modal-scroll-body-invariant.test.ts \u2014 ratchet passes after adding [&>*]:shrink-0"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 1,
+      "exit_code": 0,
+      "justification": "The defect is a real-browser flex-layout squeeze (an uncapped preview banner drives the xterm canvas div to 0 height), which jsdom cannot compute \u2014 a unit test can only fence the CSS classes, not prove the geometry. Verified in a real Chromium browser via the isolated E2E stack (e2e/flows/97-terminal-preview-banner-height-cap.spec.ts): created a task with a 5300-char description + actionId=new-iterate (mirrors the real trg-c57bec15 production report), clicked the real Launch CTA, and asserted the terminal canvas keeps a nonzero height and the preview banner clears (dispatch succeeds) rather than staying stuck. Verified LOAD-BEARING by running the identical spec against the pre-fix code first: FAILED (canvas reported hidden \u2014 height 0, matching the reported user-visible symptom exactly), via an explicit git stash of the fix and restore."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-14-terminal-launch-preview-height",
+    "commit": "7f14049e5b23f46d2288d85efdd486b12c611f92",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
