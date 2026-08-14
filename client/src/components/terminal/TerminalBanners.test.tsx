@@ -37,6 +37,64 @@ const DATALOSS = '[data-testid="embedded-terminal-reset-dataloss"]';
 const RESET = '[data-testid="embedded-terminal-reset"]';
 const RECONNECTING = '[data-testid="embedded-terminal-reconnecting"]';
 
+/*
+ * iterate-2026-08-14-terminal-launch-preview-height — a long `new-iterate`
+ * launch command (task description substituted into a single-line command,
+ * observed at 5341 chars against the real production trg-c57bec15 report)
+ * makes the previewCommand/manualSendCommand banners wrap to 1000+px tall.
+ * As a flex-column sibling ahead of the xterm canvas div (min-h-0 flex-1),
+ * an uncapped banner squeezes the canvas to 0 height — isMeasurableTerminalContainer
+ * (width>0 && height>0) then never passes, so the pre-dispatch resize retry
+ * loop in useAutoLaunch.ts spins until timeout and the launch command is
+ * NEVER sent to the pty. jsdom does not compute real flex layout (no box
+ * model), so this asserts the CSS class fence (max-height + overflow) that
+ * bounds the banner's rendered size regardless of content length; the real
+ * end-to-end geometry is covered by a Playwright spec (real browser layout).
+ */
+describe("TerminalBanners — long-command preview/manual-send banners stay height-capped (iterate-2026-08-14)", () => {
+  const LONG_COMMAND = `claude --session-id abc --name x ${"y".repeat(5300)}`;
+
+  it("previewCommand banner carries a max-height + overflow-y class fence regardless of command length", () => {
+    const { container } = render(
+      <TerminalBanners {...makeProps({ previewCommand: LONG_COMMAND })} />,
+    );
+    const el = container.querySelector(
+      '[data-testid="embedded-terminal-launch-preview"]',
+    );
+    expect(el).not.toBeNull();
+    expect(el?.className).toMatch(/max-h-\d+/);
+    expect(el?.className).toMatch(/overflow-y-auto/);
+    // shrink-0: the banner must never be squeezed to a fractional/zero
+    // height under flexbox arithmetic either — it needs a firm cap, not a
+    // negotiable one.
+    expect(el?.className).toMatch(/shrink-0/);
+  });
+
+  it("manualSendCommand banner carries a max-height + overflow-y class fence regardless of command length", () => {
+    const { container } = render(
+      <TerminalBanners {...makeProps({ manualSendCommand: LONG_COMMAND })} />,
+    );
+    const el = container.querySelector(
+      '[data-testid="embedded-terminal-manual-send"]',
+    );
+    expect(el).not.toBeNull();
+    expect(el?.className).toMatch(/max-h-\d+/);
+    expect(el?.className).toMatch(/overflow-y-auto/);
+    expect(el?.className).toMatch(/shrink-0/);
+  });
+
+  it("a short previewCommand still renders the full text (no truncation of normal-length commands)", () => {
+    const short = "claude --session-id abc --name x --add-dir .";
+    const { container } = render(
+      <TerminalBanners {...makeProps({ previewCommand: short })} />,
+    );
+    const el = container.querySelector(
+      '[data-testid="embedded-terminal-launch-preview"]',
+    );
+    expect(el?.textContent).toContain(short);
+  });
+});
+
 describe("TerminalBanners — reset-banner resume data-loss note (AC6)", () => {
   it("renders the data-loss note when reset is shown and scrollback exists", () => {
     const { container } = render(

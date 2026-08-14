@@ -159,7 +159,7 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
       ) : null}
       {previewCommand ? (
         <div
-          className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)]"
+          className="-mx-2 -mt-2 mb-2 max-h-24 shrink-0 overflow-y-auto border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)]"
           data-testid="embedded-terminal-launch-preview"
         >
           <span className="opacity-70" aria-hidden>About to run:</span>{" "}
@@ -168,7 +168,7 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
       ) : null}
       {manualSendCommand ? (
         <div
-          className="-mx-2 -mt-2 mb-2 flex flex-col gap-1 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1.5 text-[11px] text-[var(--color-warning,#9a3412)]"
+          className="-mx-2 -mt-2 mb-2 flex max-h-32 shrink-0 flex-col gap-1 overflow-y-auto [&>*]:shrink-0 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1.5 text-[11px] text-[var(--color-warning,#9a3412)]"
           data-testid="embedded-terminal-manual-send"
         >
           <div className="flex items-start justify-between gap-2">
