@@ -719,6 +719,14 @@
       "state": "grandfathered",
       "adr": "iterate-2026-08-05-triage-deferred-envelope",
       "note": "The 310-line fixture generator remains the single deterministic CLI-parity source for the prior Deferred-triage decision; splitting it would duplicate serialization and fixture ordering rules."
+    },
+    {
+      "path": "client/e2e/flows/90-phone-responsive.spec.ts",
+      "limit": 300,
+      "current": 308,
+      "state": "grandfathered",
+      "adr": "iterate-2026-08-15-phone-new-project-test-fix",
+      "note": "Already over budget (307 lines) before this run; this diff's 2-line assertion fix (locked ProjectContextStrip, not a project select) pushed it to 308. The file is the single canonical spec this repo's mobile-chromium Playwright project runs (18 tests spanning the phone <768px surface) -- its own docstring records that one-file-per-project convention. A test-only assertion fix is not the moment to split an established, working suite; a real split is deferred, not smuggled into a scoped bug fix."
     }
   ]
 }
