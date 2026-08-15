@@ -1,0 +1,1 @@
+removed the retracted .gitignore blanket rule that silently discarded every future iterate decision-drop ADR; new decision-drops are tracked again while the generated INDEX.md and *.tmp scratch files stay ignored
