@@ -1,0 +1,60 @@
+{
+  "last_updated": "2026-08-15",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-15-gitignore-decision-drops",
+    "date": "2026-08-15",
+    "unit": "PASS \u2014 server vitest 3363 passed / 1 skipped (290 files); tsc --noEmit clean; oxlint clean on the new test file",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "n/a \u2014 no UI/feature surface; verified via a git-behavior meta-test (git check-ignore), not a browser E2E spec",
+    "design_fidelity": "n/a \u2014 no UI change",
+    "smoke": "n/a \u2014 no server runtime behaviour change; repo-hygiene fix to .gitignore",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A new decision-drop ADR file under .shipwright/agent_docs/decision-drops/ is tracked by git, not silently ignored",
+          "disposition": "tested",
+          "evidence": "server/src/test/gitignore-decision-drops-tracking.test.ts::\"does not ignore a new decision-drop file\" \u2014 git check-ignore reports the path as NOT ignored; proven red before the fix (blanket rule present) and green after (rule removed)"
+        },
+        {
+          "behavior": "The generated decision-drops/INDEX.md stays gitignored",
+          "disposition": "tested",
+          "evidence": "server/src/test/gitignore-decision-drops-tracking.test.ts::\"still ignores the generated INDEX.md\" \u2014 git check-ignore reports the path as ignored"
+        },
+        {
+          "behavior": "Scratch decision-drops/*.tmp writer files stay gitignored",
+          "disposition": "tested",
+          "evidence": "server/src/test/gitignore-decision-drops-tracking.test.ts::\"still ignores *.tmp scratch files in decision-drops\" \u2014 git check-ignore reports the path as ignored"
+        },
+        {
+          "behavior": "No regression to existing gitignore-driven tooling (file-tree browser ignore checks, mission decision-drop reads, terminal paste/gitignore append flow)",
+          "disposition": "tested",
+          "evidence": "Full server vitest suite (290 files / 3363 passed / 1 pre-existing skip) green after the change; grep confirmed no code path special-cases decision-drops being gitignored"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "justification": "Repo-hygiene fix to the root .gitignore (removes one retracted blanket-ignore line) plus a server-side vitest meta-test. No UI, API route, store mutation, or client-consumed contract changed \u2014 F0.5's Backend-affects-Frontend rule does not apply. Verified with a git-behavior meta-test (git check-ignore) rather than a runtime surface."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-15-gitignore-decision-drops",
+    "commit": "6465556837194c3727447805c9c172501e1ab00e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -32,7 +32,6 @@ shipwright_audit_report.json
 # Transiente / interne / generierte Inhalte wieder ausschliessen:
 /.shipwright/adopt/backups/
 /.shipwright/adopt/screenshots/
-/.shipwright/agent_docs/decision-drops/
 /.shipwright/agent_docs/visual/
 /.shipwright/agent_docs/runtime/
 /.shipwright/agent_docs/triage-remaining-iterates-handoff.md
