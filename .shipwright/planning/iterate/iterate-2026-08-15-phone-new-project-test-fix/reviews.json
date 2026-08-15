@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-15-phone-new-project-test-fix",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:13:51.391976+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:14:08.110461+00:00",
+      "disposition": "mini-plan is FEATURE-only at small complexity (Phase Matrix); this is a BUG-type test fix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:14:08.336568+00:00",
+      "disposition": "self-review sufficient per iteration-reviews.md: small complexity, no risk flags, 4-line diff, no security-sensitive files",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:14:08.495884+00:00",
+      "disposition": "Stage 3 is conditional on Stage 2 running and on migrations/async/cross-plugin/irreversible surface; neither applies to this 2-line test-assertion fix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:14:08.729290+00:00",
+      "disposition": "external cascade trigger rule not met: diff under 100 lines, no security-sensitive files, complexity is small not medium+",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:14:08.224945+00:00",
+      "disposition": "internal cascade (Step 8) does not fire: small complexity, no risk flags, diff under 100 lines per iteration-reviews.md When Self-Review is Sufficient",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-15T21:14:08.863724+00:00",
+      "disposition": "Internal Plan Review is a medium+-only gate per iteration-planning.md; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

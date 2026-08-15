@@ -27,3 +27,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [ADR-138 — ADR — Answering Claude's mid-run question from the Inbox: spiked, measured, NOT built](138-inbox-answer-in-place-not-built.md)
 - [ADR-139 — ADR — Epoch-gated resolution of `tests.total` (collected vs executed)](139-tests-total-skip-contract.md)
 - [Triage amend event support (reader parity + Edit-in-place UI)](iterate-2026-08-08-triage-amend-reader.md)
+- [ADR — Cap the terminal launch-preview banner's height](iterate-2026-08-14-terminal-launch-preview-height-terminal-launch-preview-height.md)
+- [ADR: Fix phone new-task E2E test assertion, not the component](iterate-2026-08-15-phone-new-project-test-fix-phone-new-project-test-fix.md)

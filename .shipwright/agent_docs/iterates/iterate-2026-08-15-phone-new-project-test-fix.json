@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-08-15-phone-new-project-test-fix",
+  "date": "2026-08-15T21:20:33.262923Z",
+  "event_at": "2026-08-14T18:11:32.012115+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/phone-new-project-test-fix",
+  "spec": "n/a \u2014 iterate spec skipped at small complexity",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-15-phone-new-project-test-fix"
+}

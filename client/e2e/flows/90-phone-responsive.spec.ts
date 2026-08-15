@@ -153,7 +153,8 @@ test.describe("Phone responsive (<768px, touch)", () => {
       // Selecting an action opens the modal scoped to the chosen project.
       await action.press("Enter");
       await expect(page.getByTestId("new-issue-modal-new-task")).toBeVisible();
-      await expect(page.getByTestId("new-issue-project-select")).toHaveValue(p.id);
+      await expect(page.getByTestId("project-context-strip")).toBeVisible();
+      await expect(page.getByTestId("project-context-name")).toHaveText(`phone-new-${suffix}`);
       await page.keyboard.press("Escape");
     } finally {
       await request.delete(`/api/projects/${p.id}`);
