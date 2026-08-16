@@ -36,7 +36,7 @@
       "id": "tasks.list",
       "method": "GET",
       "path": "/api/external/tasks",
-      "query": ["projectId?"],
+      "query": ["projectId?", "tag?"],
       "source_lines": "routes.ts:516-541",
       "future_sub_router": "tasks",
       "client_consumer": "client/src/lib/externalApi.ts listTasks",
@@ -107,6 +107,7 @@
         {"code": "invalid_domain", "status": 400},
         {"code": "invalid_tags", "status": 400},
         {"code": "invalid_blocked_by", "status": 400},
+        {"code": "invalid_po_feedback", "status": 400},
         {"code": "sdk-sessions.json is locked, retry", "status": 409, "note": "ELOCKED branch (CLAUDE.md rule 6)"}
       ]
     },

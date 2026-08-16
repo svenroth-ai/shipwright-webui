@@ -1,0 +1,26 @@
+{
+  "section": "iterate-2026-08-16-v1-lead-fields-tag-filter",
+  "summary": "All three flagged focus areas (clear-vs-omit contract for poFeedback, the sdk-sessions.json co-writer race, and the ?tag=/findManyByUuid interaction) checked out cleanly, plus a standard 5-axis pass. No correctness, security, architecture, or performance issues found. The bloat-neutral comment tightening on client/src/lib/externalApi.ts and server/src/core/sdk-sessions-store.ts was verified line-by-line against the diff hunks and is genuinely net-zero (not gamed via line-merging), and the tightened comments remain accurate.",
+  "review": [
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/external/tasks/list-get.ts",
+      "line": 38,
+      "finding": "The new ?tag= comment cites FR-04.09, which does not exist anywhere in .shipwright/planning/01-adopted/spec.md (verified via grep). This diff's own iterate spec went to considerable lengths to establish that FR citations in this repo MUST use the survivor id FR-01.01. FR-04.09 reads as either a stray/incorrect webui-spec citation or an under-disambiguated cross-repo reference to leadwright's own triage-v1-v4a.md FR numbering.",
+      "suggestion": "If FR-04.09 is a leadwright-repo FR id, disambiguate explicitly, e.g. \"(leadwright triage-v1-v4a.md FR-04.09: ...)\". If it was meant to be this repo's FR-01.01, fix the citation.",
+      "disposition": "accepted-and-fixed",
+      "resolution": "Disambiguated to \"(leadwright triage-v1-v4a.md FR-04.09: ...)\" in list-get.ts."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/core/sdk-sessions-store.ts",
+      "line": 161,
+      "finding": "The bloat-neutral comment tightening on the ExternalTask doc block produced one noticeably longer line (~106 chars) that breaks the ~80-char wrap width used by every surrounding line in the same block and file. Disclosed, deliberate trade-off from the mini-plan's bloat-neutral budget, still fully readable.",
+      "suggestion": "Optional: rewrap to match the block's existing ~80-char lines if/when this comment is next touched; not worth a dedicated edit now given the zero-headroom constraint.",
+      "disposition": "rejected-with-reason",
+      "resolution": "Left as-is per the reviewer's own \"not worth a dedicated edit now\" — the file is still at its exact zero-headroom bloat budget (543/543); rewrapping risks another bloat-neutral fixup cycle for a purely cosmetic gain."
+    }
+  ]
+}

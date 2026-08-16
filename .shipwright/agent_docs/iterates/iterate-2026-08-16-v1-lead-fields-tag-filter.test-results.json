@@ -1,0 +1,153 @@
+{
+  "last_updated": "2026-08-16",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-16-v1-lead-fields-tag-filter",
+    "date": "2026-08-16",
+    "unit": "PASS \u2014 server 3380 passed / 1 skipped (293 files); client 3327 passed (354 files)",
+    "integration": "n/a \u2014 no new CRUD resource or service-boundary; three field/query extensions on the existing ExternalTask PATCH/POST/GET routes",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 3/3, client/e2e/flows/lead-fields-tag-filter.spec.ts (API-testing-mode Playwright, request fixture only) against the isolated single-process F0.5 stack; re-run clean after the doubt-review fix + bloat-gate test-file split",
+    "design_fidelity": "n/a \u2014 no UI change, pure External Task API surface",
+    "smoke": "n/a \u2014 no server startup/behavior change",
+    "degraded": [
+      "External code-review cascade (Branch A): the deepseek leg returned an empty reply (single-leg degradation \u2014 'provider returned an empty reply'), not a whole-cascade failure. The openai leg completed successfully (verdict: revise, 3 findings, all reviewed and disposed \u2014 2 accepted-and-fixed, 1 rejected-with-reason). Overall cascade degraded=false, reviews_succeeded=1."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "poFeedback PATCH writes + echoes verbatim in the response (AC1)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts"
+        },
+        {
+          "behavior": "poFeedback trims like normalizeDescription (AC1)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts"
+        },
+        {
+          "behavior": "poFeedback PATCH succeeds on a started task, not frozen (AC2)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts"
+        },
+        {
+          "behavior": "poFeedback \"\" clears; absent after a ROUTE-persisted reload (AC3)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts (probe 1 fix \u2014 no explicit store.persist() in the test)"
+        },
+        {
+          "behavior": "poFeedback null clears; absent after a ROUTE-persisted reload (AC3)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts (probe 1 fix)"
+        },
+        {
+          "behavior": "poFeedback over-length (6001 chars) -> 400 invalid_po_feedback with the exact detail string (AC4)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts"
+        },
+        {
+          "behavior": "poFeedback exactly 6000 chars accepted (AC4 boundary)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts"
+        },
+        {
+          "behavior": "poFeedback non-string -> 400 invalid_po_feedback (AC4)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-patch.test.ts"
+        },
+        {
+          "behavior": "leadParentTaskId POST persists + round-trips via a ROUTE-persisted reload (AC5)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-create.test.ts (probe 1 fix)"
+        },
+        {
+          "behavior": "leadParentTaskId empty string soft-dropped on POST (AC6)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-create.test.ts"
+        },
+        {
+          "behavior": "poFeedback NOT accepted on POST \u2014 PATCH-only (AC7 regression)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-create.test.ts, routes.test.ts (surgically-edited existing regression)"
+        },
+        {
+          "behavior": "FROZEN_WHEN_STARTED literal (server + client mirror) untouched (AC10)",
+          "disposition": "tested",
+          "evidence": "pre-existing task-editability-mirror.test.ts parity test; re-verified directly against task-editability.ts:27-32 by doubt-reviewer"
+        },
+        {
+          "behavior": "?tag= exact case-sensitive match (AC8)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-list.test.ts"
+        },
+        {
+          "behavior": "?tag= unknown value -> 200 {tasks:[]}, not 400 (AC8)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-list.test.ts"
+        },
+        {
+          "behavior": "Empty ?tag= value behaves as no filter (AC8)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-list.test.ts"
+        },
+        {
+          "behavior": "?tag=x&projectId=y intersects both filters (AC8)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-list.test.ts"
+        },
+        {
+          "behavior": "Repeated ?tag=a&tag=b \u2014 first value only (AC8b)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-list.test.ts"
+        },
+        {
+          "behavior": "?tag= filter applied BEFORE findManyByUuid, walk sees only the matched set (AC9)",
+          "disposition": "tested",
+          "evidence": "routes.lead-fields-tag-filter-list.test.ts (probe 2 fix \u2014 exact-set assertion, not just size)"
+        },
+        {
+          "behavior": "poFeedback/leadParentTaskId merge behavior under a concurrent daemon write is field-generic, identical to domain/tags/blockedBy (co-writer note)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "sdk-sessions-store-merge-edge.test.ts Guard 3 already pins the generic same-row/different-field survival pattern mergeRow() implements with no per-field branch; traced against the live mergeRow() source by the doubt-reviewer (probe 3) to confirm poFeedback/leadParentTaskId hit the exact same code path as domain/tags/blockedBy, so a field-specific test would duplicate coverage."
+        },
+        {
+          "behavior": "Real-HTTP surface (not just in-process app.request()) for all three changes",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/lead-fields-tag-filter.spec.ts (3 tests, isolated single-process stack)"
+        },
+        {
+          "behavior": "api-contract-baseline.json stays in sync (tag? query param, invalid_po_feedback error code)",
+          "disposition": "tested",
+          "evidence": "api-contract-sweep.test.ts (34/34 passing, incl. both baseline-drift meta-tests)"
+        }
+      ],
+      "counts": {
+        "testable": 20,
+        "tested": 19,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 11,
+        "covered_acs": 11
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node e2e/isolated-stack.mjs --project=chromium e2e/flows/lead-fields-tag-filter.spec.ts",
+      "exit_code": 0,
+      "tests_run": 3,
+      "evidence_path": "client/playwright-report/index.html",
+      "justification": null,
+      "notes": "API-testing-mode Playwright spec (request fixture only, no page.goto) against the isolated single-process F0.5 stack (built client/dist served by one worktree Hono process). Backend-affects-Frontend rule applies (API routes touched) even though no client/** UI consumer exists yet. Re-run after the Stage-3 doubt-review comment fix and the bloat-gate test-file split; all 3 tests pass against the final code."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-16-v1-lead-fields-tag-filter",
+    "commit": "34fb5e33ed5bcb3808d4a34e471cc4948f6b281a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
