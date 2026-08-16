@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-08-16-phone-spec-split-fix",
+  "date": "2026-08-16T07:50:07.470805Z",
+  "event_at": "2026-08-15T21:20:33.404853+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/phone-spec-split-fix",
+  "spec": "n/a (no iterate spec authored at small complexity)",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-16-phone-spec-split-fix"
+}

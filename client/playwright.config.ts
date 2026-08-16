@@ -107,7 +107,7 @@ export default defineConfig({
     {
       name: 'mobile-chromium',
       use: { ...devices['Pixel 5'] },
-      testMatch: /(90-phone-responsive|90b-phone-new-task-touch-safety|mobile-work-mode(-mission)?|A20-mobile-visual-fixes)\.spec\.ts/,
+      testMatch: /(90-phone-responsive|90b-phone-new-task-touch-safety|90c-phone-up-band-guard|mobile-work-mode(-mission)?|A20-mobile-visual-fixes)\.spec\.ts/,
     },
     // A00 — visual regression. Deterministic capture is the whole game: a
     // baseline that drifts is worse than no baseline, because it trains people to

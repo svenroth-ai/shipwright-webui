@@ -5,11 +5,12 @@
  * Runs under the `mobile-chromium` Playwright project (Pixel 5: 393px wide,
  * hasTouch + isMobile) — the desktop `chromium` project ignores this file
  * (see playwright.config.ts testMatch, shared with the other mobile-chromium
- * specs including 90b-phone-new-task-touch-safety.spec.ts, split out of this
- * file by iterate-2026-08-15-phone-new-project-test-fix to stay under the
- * 300-line bloat budget). The first test PROVES the harness really is a
- * coarse-pointer phone (plan-review C1) so the later key-bar / drawer
- * assertions can't pass for the wrong reason.
+ * specs, incl. 90b-phone-new-task-touch-safety.spec.ts and
+ * 90c-phone-up-band-guard.spec.ts, both split out of this file to stay under
+ * the 300-line bloat budget — see 90b-phone-new-task-touch-safety.spec.ts and
+ * 90c-phone-up-band-guard.spec.ts headers for provenance). The first test
+ * PROVES the harness really is a coarse-pointer phone (plan-review C1) so the
+ * later key-bar / drawer assertions can't pass for the wrong reason.
  *
  * Verifies in a real touch browser:
  *   - No horizontal PAGE overflow on the daily-driver routes at phone width.
@@ -18,11 +19,12 @@
  *   - The embedded terminal shows the on-screen key bar on touch (AC-3).
  *   - List Phase column hidden + Projects table scrolls in-card (AC-5).
  *   - A modal fits the phone viewport (AC-4).
- *   - Up-band guard: at ≥768px the inline sidebar renders, not the drawer (L3).
  *
- * Component-level coverage (hooks, key mapping, drawer labels, role-gating)
- * lives in the vitest specs; this proves the real CSS + router + breakpoints
- * + touch media behave at an actual phone viewport.
+ * The up-band guard (≥768px → inline sidebar, not the drawer, L3) lives in
+ * 90c-phone-up-band-guard.spec.ts. Component-level coverage (hooks, key
+ * mapping, drawer labels, role-gating) lives in the vitest specs; this proves
+ * the real CSS + router + breakpoints + touch media behave at an actual
+ * phone viewport.
  */
 
 import { test, expect, type Page } from "@playwright/test";
@@ -260,15 +262,5 @@ test.describe("Phone responsive (<768px, touch)", () => {
     const dialog = page.getByTestId("intent-wizard");
     await expect(dialog).toBeVisible();
     expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
-  });
-});
-
-test.describe("Phone up-band guard (≥768px → inline sidebar, not the drawer)", () => {
-  test.use({ viewport: { width: 1024, height: 768 } });
-
-  test("at 1024px the inline sidebar renders, no phone top bar/drawer (L3)", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("sidebar-inline")).toBeVisible();
-    await expect(page.getByTestId("mobile-topbar")).toHaveCount(0);
   });
 });

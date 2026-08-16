@@ -1,0 +1,77 @@
+{
+  "last_updated": "2026-08-16",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-16-phone-spec-split-fix",
+    "date": "2026-08-16",
+    "unit": "PASS \u2014 client 3327 passed (354 files); server untouched, not re-run (no server files in this diff)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 18/18 mobile-chromium phone tests (90-phone-responsive, 90b-phone-new-task-touch-safety, 90c-phone-up-band-guard), incl. the previously-hanging touch-safe test now completing in 594ms",
+    "design_fidelity": "n/a \u2014 no UI/product code change, test files + Playwright config only",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "trg-9435df9d: touch-safe test no longer hangs 30s on new-issue-project-select in the scoped create-menu flow",
+          "disposition": "tested",
+          "evidence": "90b-phone-new-task-touch-safety.spec.ts run: completed in 594ms (was hanging to the 30s timeout before the fix); full isolated-stack run, mobile-chromium project"
+        },
+        {
+          "behavior": "Phone up-band guard test (L3) still passes after moving to its own file (90c-phone-up-band-guard.spec.ts)",
+          "disposition": "tested",
+          "evidence": "90c-phone-up-band-guard.spec.ts run: 1/1 passed, 768ms; asserts sidebar-inline visible + mobile-topbar count 0 at 1024px"
+        },
+        {
+          "behavior": "All 16 unchanged tests in 90-phone-responsive.spec.ts still pass after the docstring/split edits (no accidental scope change)",
+          "disposition": "tested",
+          "evidence": "90-phone-responsive.spec.ts run: 16/16 passed"
+        },
+        {
+          "behavior": "mobile-chromium testMatch picks up exactly the intended 18 tests across the 3 files (90, 90b, 90c), no duplicates or omissions after the regex edit",
+          "disposition": "tested",
+          "evidence": "node e2e/isolated-stack.mjs ... --project=mobile-chromium --list -> 'Total: 18 tests in 3 files', matching the pre-split file's own 18 tests"
+        },
+        {
+          "behavior": "All three touched files stay under the 300-line bloat cap (no shipwright_bloat_baseline.json entry needed)",
+          "disposition": "tested",
+          "evidence": "wc -l: 90-phone-responsive.spec.ts=266, 90b-phone-new-task-touch-safety.spec.ts=63, 90c-phone-up-band-guard.spec.ts=26 (project cap: 300)"
+        },
+        {
+          "behavior": "TypeScript + lint stay clean across the split",
+          "disposition": "tested",
+          "evidence": "npx tsc --noEmit -> exit 0; npx oxlint on the 4 touched files -> exit 0"
+        },
+        {
+          "behavior": "The wider client unit suite is unaffected by the file split (no import breakage)",
+          "disposition": "tested",
+          "evidence": "npx vitest run -> 3327 passed (354 files)"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 18,
+      "exit_code": 0,
+      "justification": "Real isolated Playwright run (mobile-chromium project) against a fresh built stack proves both the file split and the trg-9435df9d hang fix at runtime, not just via file inspection."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-16-phone-spec-split-fix",
+    "commit": "05796cd17ea6591f10b7f2895b36aa8315fb1531",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
