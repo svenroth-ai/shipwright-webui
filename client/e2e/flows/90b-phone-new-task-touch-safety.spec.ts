@@ -36,7 +36,13 @@ test.describe("Phone new-task modal touch safety (<768px, touch)", () => {
       // iOS Safari auto-zooms the page when a focused control computes to
       // <16px. Every text control in the modal must therefore be ≥16px on a
       // phone — otherwise the modal zooms in + clips on the right (the bug).
-      for (const id of ["new-issue-title-input", "new-issue-description-input", "new-issue-project-select"]) {
+      // `new-issue-project-select` is deliberately excluded (trg-9435df9d):
+      // this modal is scoped via the create-menu cascade, so the picker is
+      // replaced by ProjectContextStrip (see #369) and that testid never
+      // renders — getByTestId(...).evaluate() would auto-wait to the full
+      // 30s timeout instead of failing fast. It carries no zoom risk anyway
+      // since it is not a text field a user types into.
+      for (const id of ["new-issue-title-input", "new-issue-description-input"]) {
         const fs = await page.getByTestId(id).evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
         expect(fs, `${id} font-size`).toBeGreaterThanOrEqual(16);
       }

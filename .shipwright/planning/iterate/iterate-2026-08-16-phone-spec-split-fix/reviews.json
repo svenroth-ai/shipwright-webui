@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-16-phone-spec-split-fix",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:44:39.656275+00:00",
+      "disposition": "8-point self-review passed: test-only diff (26/63/266 lines, all under 300-line cap), no error-handling/security/perf surfaces touched, test-hygiene probe clean, 18/18 E2E tests pass incl. the previously-hanging touch-safe test now at 594ms",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:45:04.079889+00:00",
+      "disposition": "no mini-plan at this complexity/type: Mini-Plan is FEATURE-only at small complexity (this run is CHANGE, small); plan_internal is medium+ only",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:45:04.263940+00:00",
+      "disposition": "Full Code Review Trigger not met: small complexity, no risk flags, diff under 100 lines (19 insertions/21 deletions across tracked files + one new 26-line file) -- self-review is sufficient per iteration-reviews.md; doubt (Stage 3) and spec (Stage 1) are steps of that same cascade and were not reached",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:45:04.263940+00:00",
+      "disposition": "Full Code Review Trigger not met: small complexity, no risk flags, diff under 100 lines (19 insertions/21 deletions across tracked files + one new 26-line file) -- self-review is sufficient per iteration-reviews.md; doubt (Stage 3) and spec (Stage 1) are steps of that same cascade and were not reached",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:45:04.450723+00:00",
+      "disposition": "External LLM review is skip at small complexity per the Phase Matrix (medium+ only)",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:45:04.263940+00:00",
+      "disposition": "Full Code Review Trigger not met: small complexity, no risk flags, diff under 100 lines (19 insertions/21 deletions across tracked files + one new 26-line file) -- self-review is sufficient per iteration-reviews.md; doubt (Stage 3) and spec (Stage 1) are steps of that same cascade and were not reached",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T07:45:04.079889+00:00",
+      "disposition": "no mini-plan at this complexity/type: Mini-Plan is FEATURE-only at small complexity (this run is CHANGE, small); plan_internal is medium+ only",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
