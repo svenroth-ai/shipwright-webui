@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "Applies exactly the operator-decided patch: asserts project-context-strip visibility + project-context-name text instead of the never-rendered new-issue-project-select."},
+    {"name": "Error Handling", "verdict": "n/a", "note": "Test-only change; no runtime error-handling surface touched."},
+    {"name": "Security Basics", "verdict": "n/a", "note": "No user input, auth, or secrets involved."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Asserts on outcomes (visible strip + displayed project name), not internal state; matches the test's own stated intent better than the prior assertion on an internal id."},
+    {"name": "Performance Basics", "verdict": "n/a", "note": "No performance-relevant code changed."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "File stays at 308 lines (under 300 cap flagged only as advisory split target for new files; unchanged pre-existing size); testids reused verbatim from ProjectContextStrip.tsx."},
+    {"name": "Affected Boundaries", "verdict": "n/a", "note": "No serialized format changed."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff: no findings."}
+  ]
+}

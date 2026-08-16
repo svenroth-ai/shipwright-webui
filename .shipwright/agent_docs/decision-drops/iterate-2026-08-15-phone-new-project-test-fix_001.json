@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-15-phone-new-project-test-fix",
+  "date": "2026-08-15",
+  "section": "Iterate — bug: fix phone new-task E2E test assertion",
+  "title": "Assert the locked ProjectContextStrip, not a project select, on the phone drill-in New Task flow",
+  "context": "90-phone-responsive.spec.ts 'phone + New drills project' asserted a project select that never renders once the phone drill-in cascade has already scoped the modal to a project (useNewIssueFormDerived.ts locks it; SimpleFields.tsx shows ProjectContextStrip instead). Full context: see spec_ref.",
+  "decision": "Fix the test, not the component. Asserts project-context-strip visibility + project-context-name text instead, matching the test's own stated 'scoped modal' intent. See spec_ref for full rationale.",
+  "consequences": "Drill-in test passes with a stronger behavioral assertion. A textually-adjacent, unrelated test (touch-safe modal) independently times out on the same testid pattern; confirmed not a cascade, filed separately as trg-9435df9d. See spec_ref.",
+  "rationale": "ProjectContextStrip.tsx's own docstring states the read-only-when-scoped contract; re-offering a select after the user already picked a project one step earlier would contradict the flow's own design. See spec_ref for full detail.",
+  "rejected": "Giving the strip an override select to change project without closing the modal — a genuine feature, declined for now, out of scope for a test-fix diff.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-08-15-phone-new-project-test-fix-phone-new-project-test-fix.md"
+}

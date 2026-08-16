@@ -1,0 +1,67 @@
+{
+  "last_updated": "2026-08-15",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-15-phone-new-project-test-fix",
+    "date": "2026-08-15",
+    "unit": "PASS \u2014 client 3327 passed (354 files); server 3360 passed / 1 skipped (289 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 90-phone-responsive.spec.ts 'phone + New drills project' (the fixed assertion) run isolated under mobile-chromium: 1/1 pass, exit 0. Full-file run (18 tests) also executed: 17 passed, 1 pre-existing UNRELATED failure (touch-safe modal test, independent root cause, filed as trg-9435df9d, out of this diff's scope) \u2014 reproduced standalone too, so not a cascade artifact of this fix.",
+    "design_fidelity": "n/a \u2014 no UI/component change, test-only fix",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [
+      "90-phone-responsive.spec.ts:165 'new-task modal is touch-safe' independently times out (30s) on the same never-rendered new-issue-project-select testid this run fixes elsewhere in the file, but is a distinct assertion this run did not touch. Confirmed independent (reproduces alone, single worker) rather than a side effect of this run's original failure. Filed as trg-9435df9d per operator instruction; deliberately NOT fixed in this diff."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Phone create-menu cascade -> New Task modal renders the read-only ProjectContextStrip (visible, correct project name) instead of asserting on the never-rendered project select, once a project has already been picked in the drill-down",
+          "disposition": "tested",
+          "evidence": "e2e/flows/90-phone-responsive.spec.ts:154-157, mobile-chromium project, isolated-stack run: 1 passed (exit 0)"
+        },
+        {
+          "behavior": "No regression to the rest of the phone-responsive suite from the assertion change",
+          "disposition": "tested",
+          "evidence": "Full-file isolated-stack run: 17/18 pass; the 1 failure is pre-existing and unrelated (see degraded[] / trg-9435df9d), reproduces identically with or without this diff since the changed lines are outside its code path"
+        },
+        {
+          "behavior": "No regression to client or server unit suites",
+          "disposition": "tested",
+          "evidence": "client vitest: 3327/3327 passed (354 files); server vitest: 3360 passed / 1 skipped (289 files)"
+        },
+        {
+          "behavior": "Diff introduces no test-hygiene violation (silent skip / focused test)",
+          "disposition": "tested",
+          "evidence": "scan_test_hygiene.py --diff: no findings"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node e2e/isolated-stack.mjs --project=mobile-chromium e2e/flows/90-phone-responsive.spec.ts --grep \"phone-header-polish #1\" --workers=1",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "client/test-results (isolated-stack run, mobile-chromium)",
+      "timestamp": "2026-08-15T23:20:00Z",
+      "justification": "Test-only fix; the scoped web E2E re-run of the exact test the operator's decided patch targets is the direct evidence the fix works. The full-file run (18 tests, 17 pass) is additionally recorded in `e2e` above for context; its one unrelated failure is out of scope (trg-9435df9d)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-15-phone-new-project-test-fix",
+    "commit": "fc20da0e98d1bb039569b9b0994b2fdec9d0188e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
