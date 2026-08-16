@@ -1,0 +1,269 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-16-v1-lead-fields-tag-filter",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": null,
+          "category": "Naming & Structure",
+          "file": null,
+          "line": null,
+          "finding": "New sibling test file routes.lead-fields-tag-filter.test.ts is 305 lines, 5 over the 300-line guideline. Forced by Internal Plan Review Trap 2 (the natural home, tasks/__tests__/routes.test.ts, was already at 298/300 and separately bloat-baseline-pinned at 843); a new-file crossing is advisory-only (Group H audit, not the blocking pre-commit hook) and was a conscious mini-plan decision over further fragmenting 17 closely-related AC tests across more files.",
+          "suggestion": null,
+          "source": "self-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-16T21:44:39.541352+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan doesn't specify that the route should avoid calling `findManyByUuid` when the tag filter yields no matching tasks. Calling it with an empty set may cause unnecessary I/O or unexpected behaviour.",
+          "suggestion": "Ensure the route short-circuits to return `{\"tasks\":[]}` immediately if the filtered list is empty, without invoking `findManyByUuid`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "normalizePoFeedback` will be a near-duplicate of `normalizeDescription`, with separate logic for length and error codes. While the plan justifies this to avoid pinned error-string breakage and bloat, the duplication may cause maintenance drift over time.",
+          "suggestion": "Consider extracting a small shared helper for length validation only if future edits push both functions to diverge further. For now, the isolated duplication is acceptable, but note it for refactoring awareness.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan states that `null` clearing of `poFeedback` will work like `\"\"`. The implementation must explicitly handle `null` in `normalizePoFeedback` and ensure the existing field-clear mechanism (e.g., `delete task[key]` or `undefined` assignment) is followed, so the key is omitted in the persisted JSON after clear.",
+          "suggestion": "Verify that the patch handler's field-clear flow (used for `domain`/`tags`/`blockedBy`) works identically when `poFeedback` is `null` or `\"\"`, and add a targeted unit test for the `null` path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The bloat-neutral budget requires tightening comments in `sdk-sessions-store.ts` and `externalApi.ts` to offset added code lines. Poorly edited comments could reduce clarity or inadvertently remove important context about `leadParentTaskId`/`poFeedback` behaviours.",
+          "suggestion": "Have a second developer review the comment changes before commit to confirm the tightened text remains precise and that no behavioural documentation is lost.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The `leadParentTaskId` soft-drop on POST is said to mirror `domain`’s behaviour. If domain’s implementation trims whitespace before deciding to drop, this behaviour would be inherited. The spec only mentions `\"\"` (empty string), but trimming whitespace is low‑risk and consistent.",
+          "suggestion": "Inspect `readLeadCreateFields` handling of `domain` to replicate it exactly. If trimming is done there, apply it; if not, follow the spec verbatim (drop only on empty string). Document the exact rule in a comment to avoid confusion.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The AC9 test spies on `findManyByUuid` with a specific internal API. If the route implementation later changes the data-loading mechanism, the test may break or become misleading.",
+          "suggestion": "Add a comment in the test noting this dependency, so future maintainers understand why the spy is tied to `SessionWatcher.findManyByUuid`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The `sdk-sessions-validate.ts` load‑time tolerance for `poFeedback` requires that any length > 0 is allowed. The plan assumes it already tolerates this. Confirm the validator doesn't impose extra constraints that would reject a newly‑added `poFeedback` stored by the daemon with non‑empty content.",
+          "suggestion": "Check the validator’s current rule for `poFeedback` (line ~173-176) to ensure it’s permissive. If it’s stricter (e.g., max length), update it to match the API’s 6000‑char limit.  Overall assessment: The implementation plan is thorough and addresses the acceptance criteria, existing constraints, and testability in a well-reasoned manner. Minor edge-case refinements and a careful review of comment changes are the only action items before proceeding.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The client API mirror is planned as `poFeedback?: string`, but the server contract explicitly accepts `null` as a clear operation. Any typed caller using `TaskUpdatePatch` therefore cannot issue one of the supported API operations without a cast or bypassing the SDK type.",
+          "suggestion": "Define the field as `poFeedback?: string | null` in `TaskUpdatePatch` (consistent with any existing clearable patch-field types). Keep the field optional so omission remains distinct from an explicit clear.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan says `normalizePoFeedback` should structurally mirror `normalizeDescription`, but does not explicitly preserve the submitted non-empty text verbatim. AC1 requires the returned value to equal the sent value, while AC3 only defines `\"\"` and `null` as clearing inputs. If the description normalizer trims or otherwise transforms strings, reusing those semantics would silently violate the new feedback contract for whitespace-bearing feedback.",
+          "suggestion": "Make `normalizePoFeedback` semantics explicit: `null` and exactly `\"\"` produce `undefined`; a string of length `1..6000` is retained unchanged; every other value, including non-strings and strings over the cap, returns the dedicated `invalid_po_feedback` error. Add a route test using a value with leading/trailing whitespace to prove it is preserved.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The implementation plan identifies the dedicated error code but does not explicitly state that the handler will produce AC4’s exact externally contracted detail string, `poFeedback exceeds 6000 characters`. A structurally mirrored normalizer can easily retain the description-oriented detail text, which would pass a code-only assertion while breaking daemon branching/diagnostics expectations.",
+          "suggestion": "Have `normalizePoFeedback` return or allow the route to construct the exact code/detail pair for both overlength and non-string input, and assert both fields in the new route tests—not only the HTTP status and error code.  Overall, the route/store approach is appropriately narrow: it preserves POST’s daemon-owned-field drop behavior, avoids an unnecessary tag index, and filters before the expensive watcher lookup. Address the typed-null contract and make the feedback normalization/error semantics explicit before implementation. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-16T21:28:58.810905+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - **Category:** edge-case\n- **Severity:** low\n- **Finding:** The plan doesn't specify that the route should avoid calling `findManyByUuid` when the tag filter yields no matching tasks. Calling it with an empty set may cause unnecessary I/O or unexpected behaviour.\n- **Suggestion:** Ensure the route short-circuits to return `{\"tasks\":[]}` immediately if the filtered list is empty, without invoking `findManyByUuid`.\n\n- **Category:** approach\n- **Severity:** low\n- **Finding:** `normalizePoFeedback` will be a near-duplicate of `normalizeDescription`, with separate logic for length and error codes. While the plan justifies this to avoid pinned error-string breakage and bloat, the duplication may cause maintenance drift over time.\n- **Suggestion:** Consider extracting a small shared helper for length validation only if future edits push both functions to diverge further. For now, the isolated duplication is acceptable, but note it for refactoring awareness.\n\n- **Category:** edge-case\n- **Severity:** low\n- **Finding:** The plan states that `null` clearing of `poFeedback` will work like `\"\"`. The implementation must explicitly handle `null` in `normalizePoFeedback` and ensure the existing field-clear mechanism (e.g., `delete task[key]` or `undefined` assignment) is followed, so the key is omitted in the persisted JSON after clear.\n- **Suggestion:** Verify that the patch handler's field-clear flow (used for `domain`/`tags`/`blockedBy`) works identically when `poFeedback` is `null` or `\"\"`, and add a targeted unit test for the `null` path.\n\n- **Category:** risk\n- **Severity:** medium\n- **Finding:** The bloat-neutral budget requires tightening comments in `sdk-sessions-store.ts` and `externalApi.ts` to offset added code lines. Poorly edited comments could reduce clarity or inadvertently remove important context about `leadParentTaskId`/`poFeedback` behaviours.\n- **Suggestion:** Have a second developer review the comment changes before commit to confirm the tighten […truncated]\n\n[openai] 1. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The client API mirror is planned as `poFeedback?: string`, but the server contract explicitly accepts `null` as a clear operation. Any typed caller using `TaskUpdatePatch` therefore cannot issue one of the supported API operations without a cast or bypassing the SDK type.  \n   **Suggestion:** Define the field as `poFeedback?: string | null` in `TaskUpdatePatch` (consistent with any existing clearable patch-field types). Keep the field optional so omission remains distinct from an explicit clear.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The plan says `normalizePoFeedback` should structurally mirror `normalizeDescription`, but does not explicitly preserve the submitted non-empty text verbatim. AC1 requires the returned value to equal the sent value, while AC3 only defines `\"\"` and `null` as clearing inputs. If the description normalizer trims or otherwise transforms strings, reusing those semantics would silently violate the new feedback contract for whitespace-bearing feedback.  \n   **Suggestion:** Make `normalizePoFeedback` semantics explicit: `null` and exactly `\"\"` produce `undefined`; a string of length `1..6000` is retained unchanged; every other value, including non-strings and strings over the cap, returns the dedicated `invalid_po_feedback` error. Add a route test using a value with leading/trailing whitespace to prove it is preserved.\n\n3. **Category:** approach  \n   **Severity:** low  \n   **Finding:** The implementation plan identifies the dedicated error code but does not explicitly state that the handler will produce AC4’s exact externally contracted detail string, `poFeedback exceeds 6000 characters`. A structurally mirrored normalizer can easily retain the description-oriented detail text, which would pass a code-only assertion while breaking daemon branching/diagnostics expectations.  \n   **Suggestion:** Have `normalizePoFeedback` return o […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "approve"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/tasks/list-get.ts",
+          "line": 38,
+          "finding": "The new ?tag= comment cites FR-04.09, which does not exist anywhere in .shipwright/planning/01-adopted/spec.md (verified via grep). This diff's own iterate spec went to considerable lengths to establish that FR citations in this repo MUST use the survivor id FR-01.01. FR-04.09 reads as either a stray/incorrect webui-spec citation or an under-disambiguated cross-repo reference to leadwright's own triage-v1-v4a.md FR numbering.",
+          "suggestion": "If FR-04.09 is a leadwright-repo FR id, disambiguate explicitly, e.g. \"(leadwright triage-v1-v4a.md FR-04.09: ...)\". If it was meant to be this repo's FR-01.01, fix the citation.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/sdk-sessions-store.ts",
+          "line": 161,
+          "finding": "The bloat-neutral comment tightening on the ExternalTask doc block produced one noticeably longer line (~106 chars) that breaks the ~80-char wrap width used by every surrounding line in the same block and file. Disclosed, deliberate trade-off from the mini-plan's bloat-neutral budget, still fully readable.",
+          "suggestion": "Optional: rewrap to match the block's existing ~80-char lines if/when this comment is next touched; not worth a dedicated edit now given the zero-headroom constraint.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-16T21:53:21.409239+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "concurrency",
+          "file": "server/src/external/tasks/list-get.ts:38-46 (contrast with server/src/core/sdk-sessions-store.ts:446-451 findByPhaseTaskId + server/src/external/tasks/create.ts:131-136)",
+          "line": null,
+          "finding": "Claim under doubt: GET ?tag= gives leadwright's daemon a safe idempotency-search primitive (per list-get.ts's own doc comment and the iterate Goal's framing) — ?tag= is a stateless in-memory read with no server-side check-and-create; unlike the codebase's own existing findByPhaseTaskId()-then-create() pattern (atomic within one request, no await between check and write), a tag-based idempotency check spans two independent daemon-issued HTTP requests (GET then POST) with no lock between them. Two concurrent/racing daemon requests can each see an empty tag search and each POST, creating duplicate tagged tasks.",
+          "suggestion": "Either add an atomic server-side dedup-by-tag check mirroring findByPhaseTaskId, or explicitly document that ?tag= is a cheap lookup only -- not an idempotency guarantee -- and that the daemon owns duplicate-prevention itself.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling",
+          "file": "server/src/core/sdk-sessions-store.ts:229-230 (load), :520-524 (persist's only refresh point); server/src/external/tasks/list-get.ts:44",
+          "line": null,
+          "finding": "Claim under doubt: the ?tag= filter's staleness is bounded by the same acceptable window as the rest of the store's existing reads — SdkSessionsStore.load() runs once at boot; the in-memory map is only refreshed from disk as a side effect of THIS process's own persist(). A GET ?tag= against an idle/different instance can miss a daemon-created row indefinitely, not just within the co-writer note's short merge window.",
+          "suggestion": "Disclose the staleness bound explicitly for the idempotency-search use case, or add a re-read-before-answer path for ?tag= specifically if cross-instance freshness is required.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-16T22:00:58.445137+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/external/routes.lead-fields-tag-filter.test.ts:111-125",
+          "line": null,
+          "finding": "The clear-and-reload test explicitly calls `store.persist()` after the PATCH request. This masks a regression where the PATCH route successfully mutates in-memory state and returns 200 but fails to persist the change itself; the test’s direct store call would make the reload pass anyway. The same issue exists in the `null` clearing test at lines 129-141.",
+          "suggestion": "Remove the direct `store.persist()` calls after route requests and instantiate/load the second store immediately after the PATCH response. The route’s own awaited persistence must be what makes the round-trip assertion pass.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/external/routes.lead-fields-tag-filter.test.ts:184-193",
+          "line": null,
+          "finding": "The POST round-trip test also calls `await store.persist()` after receiving the create response. This does not prove that `POST /api/external/tasks` persisted `leadParentTaskId`; a broken route that only creates the record in memory would still pass because the test persists it manually before reload.",
+          "suggestion": "Reload a second store directly after the successful POST, without manually persisting the first store. This verifies the endpoint’s persistence behavior required by AC5.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/routes.lead-fields-tag-filter.test.ts:293-304",
+          "line": null,
+          "finding": "The AC9 spy test verifies only that `findManyByUuid` receives a set of size one, not that the set contains the UUID of the tag-matching task. An incorrect implementation that reduces the candidate set to an unrelated task would pass this test, while causing session-location enrichment to be performed for the wrong task.",
+          "suggestion": "Retain the created matching task and assert that the captured set equals `new Set([matchingTask.sessionUuid.toLowerCase()])`, in addition to asserting size one.  Overall assessment: The implementation appears to satisfy the API behavior requirements, but the persistence round-trip tests currently mask failures in route-level persistence and the I/O optimization test is incomplete. Ship with targeted test fixes.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-16T21:50:47.354683+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: test\n- Severity: medium\n- File: `server/src/external/routes.lead-fields-tag-filter.test.ts:111-125`\n- Finding: The clear-and-reload test explicitly calls `store.persist()` after the PATCH request. This masks a regression where the PATCH route successfully mutates in-memory state and returns 200 but fails to persist the change itself; the test’s direct store call would make the reload pass anyway. The same issue exists in the `null` clearing test at lines 129-141.\n- Suggestion: Remove the direct `store.persist()` calls after route requests and instantiate/load the second store immediately after the PATCH response. The route’s own awaited persistence must be what makes the round-trip assertion pass.\n\n- Category: test\n- Severity: medium\n- File: `server/src/external/routes.lead-fields-tag-filter.test.ts:184-193`\n- Finding: The POST round-trip test also calls `await store.persist()` after receiving the create response. This does not prove that `POST /api/external/tasks` persisted `leadParentTaskId`; a broken route that only creates the record in memory would still pass because the test persists it manually before reload.\n- Suggestion: Reload a second store directly after the successful POST, without manually persisting the first store. This verifies the endpoint’s persistence behavior required by AC5.\n\n- Category: test\n- Severity: low\n- File: `server/src/external/routes.lead-fields-tag-filter.test.ts:293-304`\n- Finding: The AC9 spy test verifies only that `findManyByUuid` receives a set of size one, not that the set contains the UUID of the tag-matching task. An incorrect implementation that reduces the candidate set to an unrelated task would pass this test, while causing session-location enrichment to be performed for the wrong task.\n- Suggestion: Retain the created matching task and assert that the captured set equals `new Set([matchingTask.sessionUuid.toLowerCase()])`, in addition to asserting size one.\n\nOverall assessment: The implementation […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T21:48:42.429347+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-16T21:24:03.100262+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

@@ -156,10 +156,9 @@ export interface ExternalTask {
    * All additive + optional; the persisted shape writes only keys that are
    * set, and the loader soft-drops malformed values per-field (mirrors the
    * phaseTaskId / runId / parentRunMaster forward-compat tolerance).
-   * User-creatable via POST /api/external/tasks: domain, priority,
-   * complexityHint, tags, blockedBy. Daemon-owned (NOT webui-writable; see
-   * MED-4 in routes.ts): leadParentTaskId, poFeedback, claimToken, claimedBy,
-   * claimedAt, claimPid, leadHandoff, promotedFromTriageId.
+   * User-creatable via POST: domain, priority, complexityHint, tags,
+   * blockedBy, leadParentTaskId. PATCH-only: poFeedback. Daemon-owned
+   * (MED-4 in routes.ts): claimToken, claimedBy, claimedAt, claimPid, leadHandoff, promotedFromTriageId.
    */
   domain?: string;
   priority?: LeadPriority;
@@ -360,17 +359,17 @@ export class SdkSessionsStore {
     runId?: string;
     parentRunMaster?: boolean;
     /**
-     * iterate-2026-05-14 lead-foundation-task-schema — only the 5
-     * user-creatable fields are accepted here. The daemon-owned fields
-     * (`claimToken`, `leadHandoff`, etc.) are NOT exposed on the create
-     * signature; the daemon mutates them via the claim helper that lives
-     * in the leadwright repo. External review MED-4.
+     * iterate-2026-05-14 lead-foundation-task-schema, widened 2026-08-16 to
+     * 6 fields (+leadParentTaskId). Daemon-owned fields (`claimToken`,
+     * `leadHandoff`, etc.) stay unexposed here — the daemon mutates them via
+     * its own claim helper in the leadwright repo. External review MED-4.
      */
     domain?: string;
     priority?: LeadPriority;
     complexityHint?: LeadComplexityHint;
     tags?: string[];
     blockedBy?: string[];
+    leadParentTaskId?: string;
     /**
      * iterate-2026-05-14 triage-tab (ADR-101) — back-ref to the upstream
      * triage item id (`trg-<8hex>`). Set EXCLUSIVELY by the
@@ -427,6 +426,7 @@ export class SdkSessionsStore {
     if (args.complexityHint) task.complexityHint = args.complexityHint;
     if (Array.isArray(args.tags)) task.tags = args.tags;
     if (Array.isArray(args.blockedBy)) task.blockedBy = args.blockedBy;
+    if (typeof args.leadParentTaskId === "string") task.leadParentTaskId = args.leadParentTaskId;
     // iterate-2026-05-14 triage-tab (ADR-101): back-ref to the promoted triage
     // item. Set ONLY by /api/triage/:projectId/promote (not public POST
     // /api/external/tasks); daemon-only-fields pattern from ADR-100.

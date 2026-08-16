@@ -144,8 +144,8 @@ export function registerTasksCreate(
         ? body.actionId.trim()
         : undefined;
 
-    // iterate-2026-05-14 lead-foundation-task-schema — five user-creatable
-    // routing fields land here with soft-drop semantics.
+    // iterate-2026-05-14 lead-foundation-task-schema, widened 2026-08-16 —
+    // six user-creatable routing fields land here with soft-drop semantics.
     const leadFields = readLeadCreateFields(body);
 
     // iterate-2026-05-18-edit-task-dialog — persist the description on

@@ -239,9 +239,9 @@ describe("SdkSessionsStore — lead-foundation field round-trip (iterate-2026-05
       tags: ["auth", "billing"],
       blockedBy: ["task-x", "task-y"],
     });
-    // create() only accepts the 5 user-creatable fields. The remaining 8
-    // daemon-owned + audit fields are set via patch() (the daemon writes
-    // these on claim; the promote producer writes promotedFromTriageId).
+    // create() now accepts 6 user-creatable fields (+leadParentTaskId, 2026-08-16).
+    // The remaining 7 daemon-owned + audit fields are set via patch() (the
+    // daemon writes these on claim; the promote producer writes promotedFromTriageId).
     a.patch(task.taskId, {
       leadParentTaskId: "task-root",
       poFeedback: "Renamed wrong — please undo",

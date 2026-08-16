@@ -1,0 +1,28 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "concurrency",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "concurrency",
+      "claim_under_doubt": "GET ?tag= gives leadwright's daemon a safe idempotency-search primitive (per list-get.ts's own doc comment and the iterate Goal's framing)",
+      "disproof_attempt": "?tag= is a stateless in-memory read with no server-side check-and-create; unlike the codebase's own existing findByPhaseTaskId()-then-create() pattern (atomic within one request, no await between check and write), a tag-based idempotency check spans two independent daemon-issued HTTP requests (GET then POST) with no lock between them. Two concurrent/racing daemon requests can each see an empty tag search and each POST, creating duplicate tagged tasks.",
+      "file": "server/src/external/tasks/list-get.ts:38-46 (contrast with server/src/core/sdk-sessions-store.ts:446-451 findByPhaseTaskId + server/src/external/tasks/create.ts:131-136)",
+      "what_would_resolve_it": "Either add an atomic server-side dedup-by-tag check mirroring findByPhaseTaskId, or explicitly document that ?tag= is a cheap lookup only -- not an idempotency guarantee -- and that the daemon owns duplicate-prevention itself.",
+      "disposition": "disproved-and-fixed",
+      "resolution": "The triage assignment's actual scope for Item 1c is narrowly the read-side filter (must NOT build a tag index; only saves the filesystem walk) -- an atomic check-and-create was never asked for and would be a scope expansion. Fixed the list-get.ts comment to explicitly disclaim atomicity and name duplicate-prevention as the daemon's own responsibility, instead of adding server-side dedup logic."
+    },
+    {
+      "severity": "medium",
+      "lens": "hidden coupling",
+      "claim_under_doubt": "the ?tag= filter's staleness is bounded by the same acceptable window as the rest of the store's existing reads",
+      "disproof_attempt": "SdkSessionsStore.load() runs once at boot; the in-memory map is only refreshed from disk as a side effect of THIS process's own persist(). A GET ?tag= against an idle/different instance can miss a daemon-created row indefinitely, not just within the co-writer note's short merge window.",
+      "file": "server/src/core/sdk-sessions-store.ts:229-230 (load), :520-524 (persist's only refresh point); server/src/external/tasks/list-get.ts:44",
+      "what_would_resolve_it": "Disclose the staleness bound explicitly for the idempotency-search use case, or add a re-read-before-answer path for ?tag= specifically if cross-instance freshness is required.",
+      "disposition": "disposed-via-finding-a",
+      "resolution": "This staleness property is pre-existing and identical for every other GET filter (?projectId=, plain list) -- not new architecture, only newly relevant while the comment implied an idempotency guarantee. Finding A's comment fix removes that implication, so no separate disclosure was added for ?tag= specifically -- it applies no differently than to the rest of the unmodified list endpoint."
+    }
+  ],
+  "summary": "Attacked all four lenses. Q1 (merge symmetry) and Q2 (create-time vs patch-time race) do NOT hold up any doubt -- mergeRow is field-generic and both create/patch persist() before responding, so no asymmetry exists; Stage 2's confirmation on those two points is correct. Q3 (tag-filter idempotency) surfaced a real, undisclosed gap in the FRAMING (not the implementation): the feature was documented as an idempotency-search primitive but provides no atomicity. Resolved by correcting the comment rather than expanding scope, since atomic dedup was never part of this iterate's assignment."
+}

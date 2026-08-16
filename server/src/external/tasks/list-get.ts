@@ -34,8 +34,21 @@ export function registerTasksListGet(
     // (unknown id → empty list, not 400) because an orphaned URL from a
     // deleted project is a benign state, not a user error.
     const filter = c.req.query("projectId");
+    // iterate-2026-08-16-v1-lead-fields-tag-filter — optional exact-match
+    // ?tag=<value> filter (leadwright triage-v1-v4a.md FR-04.09: a cheap
+    // lookup over the interface instead of scanning every session's JSONL).
+    // NOT an atomic/idempotent check-and-create (doubt-review finding,
+    // Stage 3): unlike findByPhaseTaskId()'s in-request check before
+    // store.create(), a GET-then-POST across two daemon requests has a
+    // TOCTOU race — duplicate-prevention across concurrent daemon writers
+    // is the CALLER's responsibility, not this filter's. c.req.query()
+    // takes only the FIRST value on a repeated param, matching ?projectId=.
+    // Applied BEFORE findManyByUuid so the per-session filesystem walk sees
+    // only the matched tasks.
+    const tagFilter = c.req.query("tag");
     const all = store.list();
-    const filtered = filter ? all.filter((t) => t.projectId === filter) : all;
+    let filtered = filter ? all.filter((t) => t.projectId === filter) : all;
+    if (tagFilter) filtered = filtered.filter((t) => t.tags?.includes(tagFilter));
     const locs = await watcher.findManyByUuid(
       new Set(filtered.map((t) => t.sessionUuid.toLowerCase())),
     );

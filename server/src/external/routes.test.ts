@@ -717,7 +717,6 @@ describe("poc-external routes — integration", () => {
           beatsUsed: 1,
           summary: "injected",
         },
-        leadParentTaskId: "injected-parent",
         poFeedback: "injected feedback",
         promotedFromTriageId: "trg-injected",
       }),
@@ -730,7 +729,6 @@ describe("poc-external routes — integration", () => {
         claimedAt?: string;
         claimPid?: number;
         leadHandoff?: unknown;
-        leadParentTaskId?: string;
         poFeedback?: string;
         promotedFromTriageId?: string;
       };
@@ -740,7 +738,6 @@ describe("poc-external routes — integration", () => {
     expect(task.claimedAt).toBeUndefined();
     expect(task.claimPid).toBeUndefined();
     expect(task.leadHandoff).toBeUndefined();
-    expect(task.leadParentTaskId).toBeUndefined();
     expect(task.poFeedback).toBeUndefined();
     expect(task.promotedFromTriageId).toBeUndefined();
   });
