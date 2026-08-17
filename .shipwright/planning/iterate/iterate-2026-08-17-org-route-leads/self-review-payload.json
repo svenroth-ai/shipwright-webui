@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All 5 endpoints (GET/PUT file, GET org-chart, GET usage, POST countersign) exist behind the host+secret gate; write allowlist is exactly the 6 named kinds (test counts them off); org-chart.json is read-only; lock target/staleness/realpath match the FR-04.28 contract verbatim; no extra endpoints added."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "Every fs call is try/catch-guarded with a specific ENOENT/generic-failure branch; every handler returns a structured {error, ...} JSON body with a documented status code; no unhandled null/undefined at the leadId/path/body boundaries (validated before first fs touch)."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "Every write target resolves through pathGuard + realPathGuard + lstat-symlink-check before touch; the secret compare is constant-time (timingSafeEqual); no hardcoded secret (env var only, fails closed to 503 when unset); host+secret middleware gates every route in the family."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "109 tests across 10 files assert on HTTP status + response body + actual file contents on disk, never internal state; every handler has both a happy-path and at least one error-path test; the two-process and symlink-unification tests specifically assert timing/ordering, not just eventual state, so they cannot pass with the lock deleted."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "No list endpoints (all single-file / single-lead reads); no N+1; synchronous fs calls match the existing write.ts convention this route was explicitly modeled on, capped at 2 MiB (small prose files only) — same performance envelope as every other project-file route in this codebase."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "server/src/external/org/ follows the existing per-resource sub-router convention (mirrors file/, tree/, etc.); every file is under 300 lines (largest is decisions-lock.ts at 235); naming (registerOrgX, createOrgRouter) matches sibling sub-routers verbatim."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "touches_io_boundary fires (JSON read/write in org-chart.ts/usage.ts, markdown transfer format in decisions-lock.ts). Producer/consumer pairs: (a) decisions-proposed.md/decision_log.md written by this route AND leadwright's daemon, read back and round-tripped in decisions-lock.test.ts + countersign.test.ts + the two-process proof; (b) org-chart.json/usage.json produced by leadwright, consumed (parsed+validated) here, round-tripped in org-chart.test.ts/usage.test.ts with both well-formed and malformed fixtures."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run shared/scripts/tools/scan_test_hygiene.py --diff → 'no findings' (no silent skips, no unquarantined .skip/.only in any new test file)."
+    }
+  ]
+}

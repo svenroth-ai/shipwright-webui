@@ -112,6 +112,9 @@ describe("api-contract-sweep — C2 baseline (PR #71)", () => {
         // `previewManager.spawn()` is not invoked along the 404 path.
         previewManager: new PreviewSessionManager(),
         ptyManager: { get: () => undefined },
+        // FR-04.38 — secret left undefined so org.* probes deterministically 503.
+        honoHost: "127.0.0.1",
+        leadsRoot: projectsDir,
       }),
     );
   });

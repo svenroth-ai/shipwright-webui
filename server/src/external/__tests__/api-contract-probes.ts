@@ -302,4 +302,26 @@ export const PROBE_TABLE: Probe[] = [
     path: `/api/external/tasks/${NONEXISTENT_TASK}/transcript`,
     expectStatus: 404,
   },
+  // ------------------------------- org -----------------------------------
+  // FR-04.38 — the consumer suite wires this harness's org router with an
+  // allowed host but NO configured secret, so every endpoint deterministically
+  // 503s without a secret header. Host-403 / secret-401 branches are covered
+  // by org/__tests__/routes.test.ts (injectable honoHost).
+  ...(
+    [
+      ["org.file_get", "GET", "/api/external/org/file?path=conventions.md"],
+      ["org.file_put", "PUT", "/api/external/org/file?path=conventions.md", "irrelevant — gate short-circuits"],
+      ["org.org_chart", "GET", "/api/external/org/org-chart"],
+      ["org.usage", "GET", "/api/external/org/leads/acme-lead/usage"],
+      ["org.countersign", "POST", "/api/external/org/decisions/countersign", {}],
+    ] as const
+  ).map(([baselineId, method, path, body]) => ({
+    baselineId,
+    describe: `${method} ${path} — secret not configured → 503 leads_route_not_configured`,
+    method,
+    path,
+    body,
+    expectStatus: 503,
+    expectErrorCode: "leads_route_not_configured",
+  })),
 ];

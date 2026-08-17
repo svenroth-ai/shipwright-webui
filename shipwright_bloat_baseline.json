@@ -481,6 +481,22 @@
       "adr": "iterate-2026-06-12-compliance-bloat-g2-reconcile"
     },
     {
+      "path": "server/src/external/__tests__/api-contract-probes.ts",
+      "limit": 300,
+      "current": 327,
+      "state": "grandfathered",
+      "adr": "iterate-2026-08-17-org-route-leads",
+      "note": "Already 305 (pre-existing) before this run added the 5 FR-04.38 org.* probe entries (compacted to a .map() to minimize growth)."
+    },
+    {
+      "path": "server/src/external/__tests__/api-contract-sweep.test.ts",
+      "limit": 300,
+      "current": 318,
+      "state": "grandfathered",
+      "adr": "iterate-2026-08-17-org-route-leads",
+      "note": "Already 315 (pre-existing) before this run wired honoHost/leadsRoot into the harness's createExternalRoutes call."
+    },
+    {
       "path": "server/src/external/actions-routes.test.ts",
       "limit": 300,
       "current": 1213,
@@ -521,6 +537,14 @@
       "current": 843,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "server/src/external/routes.ts",
+      "limit": 300,
+      "current": 329,
+      "state": "grandfathered",
+      "adr": "iterate-2026-08-17-org-route-leads",
+      "note": "Already 301 (pre-existing) before this run added the FR-04.38 org-router mount + deps (comments trimmed to minimize growth)."
     },
     {
       "path": "server/src/index.ts",

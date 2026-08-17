@@ -1,0 +1,403 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-17-org-route-leads",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-17T08:19:26.394840+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 17,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "approach / risk",
+          "file": null,
+          "line": null,
+          "finding": "The generic `PUT /api/external/org/file` handler is explicitly “mirrors `write.ts`, minus the lock,” while the spec says the write allowlist is the “5 named docs + `<lead-id>/charter.md`.” If the five named docs include `decisions-proposed.md` and/or `decision_log.md` — as the countersign workflow strongly implies — then the generic PUT becomes an un-locked third writer to the exact files the `proper-lockfile` contract is meant to serialize. This contradicts design decision 4, which assumes only two writers contend on `decisions-proposed.md`.",
+          "suggestion": "Explicitly enumerate the five named docs. Exclude `decisions-proposed.md` and `decision_log.md` from the generic PUT allowlist, or apply `withDecisionsLock` inside `file-write.ts` for those two paths. Otherwise the lock contract can be bypassed with the secret alone.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "POST /decisions/countersign` identifies the proposed entry only by `{ \"timestamp\": \"<ISO-8601>\" }`, but the proposed header format also includes `<lead-id>`. If two leads produce entries with the same timestamp, or a single clock resolution yields duplicate timestamps, the handler cannot disambiguate which entry to countersign.",
+          "suggestion": "Include `leadId` in the request body and match on both timestamp and lead ID, or return `409 ambiguous_entry` when multiple proposed headers match the timestamp.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case / risk",
+          "file": null,
+          "line": null,
+          "finding": "The countersign sequence updates two files (`decision_log.md` and `decisions-proposed.md`) under one lock, but there is no cross-file transaction. If the process crashes after appending the log entry but before rewriting the proposed file, a retry with the same timestamp will append a second ADR for the same decision.",
+          "suggestion": "Make the action retry-idempotent: before appending, scan `decision_log.md` for an existing entry with the same timestamp and lead ID, and return success instead of duplicating. Atomic per-file writes are not enough to prevent this failure mode.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "decisions-lock.ts` introduces `proper-lockfile`, but the file list does not include a `package.json` change, and the lock parameters (`stale`, `retries`, `realpath`) must also match leadwright’s external `lib/file-locks.ts` contract. An unverified assumption here would leave the daemon and webui using different lock semantics.",
+          "suggestion": "Add `proper-lockfile` to the server package if it is not already present. Before implementing, confirm leadwright’s actual lock target, stale timeout, retry behavior, and realpath handling, and mirror them explicitly in `withDecisionsLock`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "GET /api/external/org/leads/:leadId/usage` builds `~/.claude/leads/<leadId>/usage.json` from a URL path parameter, but the plan does not mention validating `leadId`. Values such as `..` or encoded path separators could escape the intended per-lead directory.",
+          "suggestion": "Validate `leadId` before path construction — reject `.`/`..`, empty values, and any path separators after decoding, or restrict it to the same expected lead-id shape used elsewhere. Then join with `leadsRoot`, resolve, and confirm the result is still under the leads root.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case / test",
+          "file": null,
+          "line": null,
+          "finding": "The two-process concurrency spec forks two child processes but may not force them to overlap in the critical section. If one child acquires, writes, and releases before the second reaches the lock call, the test passes even if locking is ineffective.",
+          "suggestion": "Add a barrier or shared start signal so both children attempt `withDecisionsLock` simultaneously, or have the first child hold the lock while the second observes contention. The test should prove serialization, not just eventual numbering.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The spec says an unset `SHIPWRIGHT_LEADS_ROUTE_SECRET` returns `503 leads_route_not_configured`, while the mini-plan’s contract-baseline section describes `403/401` probes and says the routes 403 without a configured secret. The test/baseline would encode the wrong default-closed status.",
+          "suggestion": "Reconcile the status code: unset secret should be `503` consistently, wrong/missing header `401`, disallowed host `403`. Update the contract probes and baseline accordingly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The decision-log transfer format is opaque, but the parser/computation scans for `## ADR-NNNN` headers. A body line inside an opaque entry that happens to start with `## ADR-1234 ...` could be misclassified as a new header and affect the “next number” computation or entry splitting.",
+          "suggestion": "Define a strict header regex that requires the full expected shape (`## ADR-<4-digit> [<ISO timestamp>] <lead-id>`) and treat non-matching `##` lines as body text. Add a test with a body line resembling an ADR header.  Overall, the approach is coherent and mostly well-scoped, but the generic write path may undermine the central lock contract, and the usage endpoint needs path-parameter validation before implementation. The remaining items are contract, idempotency, and test-fidelity refinements.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The symlink/realpath defense is only explicitly planned and tested for the generic `/file` resolver. The named endpoints (`org-chart`, `usage`, and especially `countersign`) construct fixed paths below `leadsRoot`; `ensureFile` and ordinary read/write calls can follow a pre-existing symlink. `proper-lockfile` with `realpath: true` canonicalizes a symlink for locking, but does not reject it. A symlinked `decisions-proposed.md` or `decision_log.md` could therefore make the route read or overwrite a file outside `~/.claude/leads`.",
+          "suggestion": "Build one shared named-file resolver for all org-root paths. It should canonicalize and validate the root, reject symlinks with `lstat` for every final target, validate that the resolved target remains below the canonical root, and apply the same checks to both decision files before lock acquisition and before each write. Add explicit tests for symlinked `org-chart.json`, `usage.json`, `decisions-proposed.md`, and `decision_log.md`, not only generic allowlist targets.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "A single file lock serializes cooperative writers but does not make the two-file countersign operation crash-atomic. If the process crashes or a write fails after appending `decision_log.md` but before removing the proposed block, retries can create duplicate ADRs; reversing the order can lose a proposal from the proposed file before it is durably logged. The proposed lock only protects this while the process is alive and all writers honor the same lock.",
+          "suggestion": "Define and implement an idempotent recovery rule under the lock. For example, use the proposed entry’s full identity to detect whether it has already been logged, then complete removal without creating another ADR; write the log atomically first, then rewrite the proposal file, and make retry reconcile the “logged and still proposed” state. Test injected failure between the two writes and a retry. If leadwright has a recovery convention for this transaction, use that exact convention rather than inventing a divergent one.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The approach assumes that leadwright’s daemon and this server share a precise `proper-lockfile` interoperability contract, but does not establish it. Locking the same pathname is insufficient if the daemon uses a different canonical path, `realpath` mode, lockfile location, stale/update policy, retry policy, or does not lock all proposal-file appends. The stated `stale: 10_000` can also permit a second process to evict a live lock during a slow or paused write.",
+          "suggestion": "Treat leadwright’s `lib/file-locks.ts` as a hard prerequisite: verify the exact lock target and options used by the daemon, including canonicalization and stale/update settings, and match them. Confirm that every daemon mutation of `decisions-proposed.md` takes that lock. Avoid a short stale timeout unless the matching lock contract has an appropriate heartbeat/update interval; otherwise use the daemon’s established values. Keep the real two-process test, but run one side through the actual daemon-compatible lock implementation or a fixture that uses its exact options.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The countersign request identifies an entry only by `timestamp`, while the proposed entry header contains both timestamp and `lead-id`. There is no stated uniqueness constraint for timestamps across leads, and ISO timestamps may legitimately collide between independently created proposals. A first-match implementation could countersign the wrong proposal. The plan also does not state that the input timestamp itself is validated.",
+          "suggestion": "Either make the request identity `{ timestamp, leadId }` or enforce that a timestamp resolves to exactly one proposed entry and return a conflict/error for zero or multiple matches. Parse and validate a canonical ISO-8601 timestamp rather than using it as an unvalidated string match. Include duplicate-timestamp and malformed-timestamp tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The “minimal structural check” for `org-chart.json` is weaker than the declared mirrored response shape and the requirement to avoid returning half structures. The plan only calls out presence of `version`, `po`, and `leads`, plus limited `reports_to`/`manages` checks; it does not require `leads` to be a record, each lead to be an object, or required fields such as `domain`, `name`, and `charter_path` to have valid primitive types. Similarly, “present+valid” `usage.json` does not define validation of finite non-negative numeric fields, valid `asOf`, or that the embedded `leadId` matches the path parameter.",
+          "suggestion": "Implement a small explicit runtime validator for the response contract—this need not import or reproduce leadwright’s full schema. Validate all fields the endpoint promises to return, reject malformed per-lead entries rather than returning a partially valid chart, and validate usage numeric/string fields and lead-ID consistency. Return the documented invalid-data response for any violation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "usage.ts` introduces a path parameter below `leadsRoot`, but the plan does not explicitly require strict lead-ID validation, decoded-path validation, or symlink rejection for the per-lead directory. A straightforward `join(leadsRoot, leadId, \"usage.json\")` is vulnerable to traversal or platform-specific separator handling unless the route parameter is constrained before filesystem access.",
+          "suggestion": "Reuse a single strict lead-ID validator for the charter allowlist and usage route. Reject separators, dot segments, absolute paths, and invalid decoded values; then apply root containment and `lstat`/realpath checks to the lead directory and `usage.json`. Add traversal, encoded separator, Windows separator, and symlinked lead-directory tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The documented status-code contract is inconsistent. The specification says an unset secret must return `503 leads_route_not_configured`, while the plan says the API contract probes register `403/401` responses and claims the routes are `403` without a configured secret. This can produce an incorrect baseline and an externally observable contract mismatch.",
+          "suggestion": "Make the middleware ordering and status contract explicit: an unset/empty server secret returns 503 before checking the request header; a configured secret with missing or incorrect header returns 401; an otherwise authorized request on a disallowed resolved bind host returns 403. Update the probe baseline and all tests to that single contract. Reject empty secret configuration at startup or treat it as unset.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan names `proper-lockfile` but does not state whether it is already a direct server dependency or how its TypeScript/runtime support will be added. Depending on a transitive installation is fragile, particularly for the child-process test and production packaging.",
+          "suggestion": "Verify it is a direct dependency of `server`; if not, add it explicitly with compatible typings/module configuration and include the dependency-lock update. Do not rely on leadwright’s installation because it is a separate repository/package.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "A test asserting that `resolveHonoHost` is invoked “exactly once during route construction” is tightly coupled to internal call structure and may discourage harmless refactoring without proving the intended security property.",
+          "suggestion": "Keep the implementation’s single resolved-host dependency, but test observable behavior instead: resolve once at startup, pass that resolved value into the router, and verify no request-time host resolution occurs. This gives the same regression protection with less brittle test coupling.  Overall, the route structure, allowlist scope, secret gate, and real cross-process test direction are sound. The change should be revised before implementation to close named-file symlink escapes and to establish crash-safe, daemon-compatible countersign transaction semantics. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-17T07:55:43.868938+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - **Category:** approach / risk  \n  **Severity:** high  \n  **Finding:** The generic `PUT /api/external/org/file` handler is explicitly “mirrors `write.ts`, minus the lock,” while the spec says the write allowlist is the “5 named docs + `<lead-id>/charter.md`.” If the five named docs include `decisions-proposed.md` and/or `decision_log.md` — as the countersign workflow strongly implies — then the generic PUT becomes an un-locked third writer to the exact files the `proper-lockfile` contract is meant to serialize. This contradicts design decision 4, which assumes only two writers contend on `decisions-proposed.md`.  \n  **Suggestion:** Explicitly enumerate the five named docs. Exclude `decisions-proposed.md` and `decision_log.md` from the generic PUT allowlist, or apply `withDecisionsLock` inside `file-write.ts` for those two paths. Otherwise the lock contract can be bypassed with the secret alone.\n\n- **Category:** edge-case  \n  **Severity:** medium  \n  **Finding:** `POST /decisions/countersign` identifies the proposed entry only by `{ \"timestamp\": \"<ISO-8601>\" }`, but the proposed header format also includes `<lead-id>`. If two leads produce entries with the same timestamp, or a single clock resolution yields duplicate timestamps, the handler cannot disambiguate which entry to countersign.  \n  **Suggestion:** Include `leadId` in the request body and match on both timestamp and lead ID, or return `409 ambiguous_entry` when multiple proposed headers match the timestamp.\n\n- **Category:** edge-case / risk  \n  **Severity:** medium  \n  **Finding:** The countersign sequence updates two files (`decision_log.md` and `decisions-proposed.md`) under one lock, but there is no cross-file transaction. If the process crashes after appending the log entry but before rewriting the proposed file, a retry with the same timestamp will append a second ADR for the same decision.  \n  **Suggestion:** Make the action retry-idempotent: before appending, scan `decision_log.md` for a […truncated]\n\n[openai] 1. **Category: security**  \n   **Severity: high**  \n   **Finding:** The symlink/realpath defense is only explicitly planned and tested for the generic `/file` resolver. The named endpoints (`org-chart`, `usage`, and especially `countersign`) construct fixed paths below `leadsRoot`; `ensureFile` and ordinary read/write calls can follow a pre-existing symlink. `proper-lockfile` with `realpath: true` canonicalizes a symlink for locking, but does not reject it. A symlinked `decisions-proposed.md` or `decision_log.md` could therefore make the route read or overwrite a file outside `~/.claude/leads`.  \n   **Suggestion:** Build one shared named-file resolver for all org-root paths. It should canonicalize and validate the root, reject symlinks with `lstat` for every final target, validate that the resolved target remains below the canonical root, and apply the same checks to both decision files before lock acquisition and before each write. Add explicit tests for symlinked `org-chart.json`, `usage.json`, `decisions-proposed.md`, and `decision_log.md`, not only generic allowlist targets.\n\n2. **Category: risk**  \n   **Severity: high**  \n   **Finding:** A single file lock serializes cooperative writers but does not make the two-file countersign operation crash-atomic. If the process crashes or a write fails after appending `decision_log.md` but before removing the proposed block, retries can create duplicate ADRs; reversing the order can lose a proposal from the proposed file before it is durably logged. The proposed lock only protects this while the process is alive and all writers honor the same lock.  \n   **Suggestion:** Define and implement an idempotent recovery rule under the lock. For example, use the proposed entry’s full identity to detect whether it has already been logged, then complete removal without creating another ADR; write the log atomically first, then rewrite the proposal file, and make retry reconcile the “logged and still proposed” state. Tes […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      },
+      "model_tier": "inherit"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/external/org/decisions-lock.ts",
+          "line": 170,
+          "finding": "ensureFile() wrote decisions-proposed.md via existsSync+writeFileSync BEFORE assertNotSymlink() ran on it. A dangling symlink at that path caused existsSync to report false and writeFileSync to write through the symlink to its target, including outside leadsRoot.",
+          "suggestion": "Reorder to lstat-check first, or replace existsSync+writeFileSync with writeFileSync(path, \"\", { flag: \"wx\" }).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/external/org/_helpers.ts",
+          "line": 87,
+          "finding": "checkOrgSecret returned \"invalid\" on a.length !== b.length before ever calling timingSafeEqual, reintroducing a timing side-channel revealing whether a guess's length matches the real secret's length.",
+          "suggestion": "Normalize both buffers to a fixed length before comparing so timingSafeEqual is always reached.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/org/file-read.ts",
+          "line": 48,
+          "finding": "Docstring claimed 403 symlink_forbidden but the handler only called stat() (follows symlinks) + realPathGuard() (containment only) — it never lstat-checked, so a final-component symlink resolving under leadsRoot was silently served 200.",
+          "suggestion": "Add an lstat-based isSymbolicLink() check before stat(), mirroring file-write.ts.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "server/src/external/org/__tests__/usage.test.ts",
+          "line": 1,
+          "finding": "usage.ts's symlink_forbidden branch was never exercised by a test; lstatSync wasn't dependency-injectable so it could only be covered by a real OS symlink.",
+          "suggestion": "Add a real-symlink test asserting 403 symlink_forbidden.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/org/countersign.ts",
+          "line": 118,
+          "finding": "registerCountersignRoute had no try/catch around countersign(); an OrgSymlinkEscapeError fell through to the generic global errorHandler as an uncaught 500 instead of the family's typed 403 symlink_forbidden.",
+          "suggestion": "Catch OrgSymlinkEscapeError and return the same 403 symlink_forbidden shape file-write.ts uses.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-17T08:35:38.771255+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary-and-contract",
+          "file": "server/src/external/org/decisions-lock.ts",
+          "line": 35,
+          "finding": "Claim under doubt: PROPOSED_HEADER_RE and LOGGED_HEADER_RE correctly detect every header line in decision_log.md / decisions-proposed.md. — JS `.` never matches `\\r` (LineTerminator exclusion); `raw.split(\"\\n\")` leaves a trailing `\\r` on each line of a CRLF-terminated file, and a bare `(.+)$` can never reach `$` on such a line — every header silently fails to match, so nextLoggedNumber([]) always returns 1 and mints duplicate ADR numbers. Repro given: parseLoggedEntries(\"## ADR-0001 [2026-01-01T00:00:00Z] pete\\r\\nbody\\r\\n\") returned [] instead of 1 entry.",
+          "suggestion": "Make both header regexes tolerant of an optional trailing \\r without touching splitBlocks' byte offsets (which must stay keyed to the original raw string).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency-and-ordering",
+          "file": "server/src/external/org/decisions-lock.ts",
+          "line": 231,
+          "finding": "Claim under doubt: assertNotSymlink on both paths, run once before lockfile.lock(), is sufficient TOCTOU defense for the whole critical section. — lockfile.lock() retries up to ~2.75s under contention (8 retries, 50ms→500ms backoff). A co-resident writer could swap either path for a symlink AFTER the pre-check ran but BEFORE this call actually holds the lock, and nothing re-checks before fn() runs.",
+          "suggestion": "Re-run assertNotSymlink on both paths immediately after lock acquisition succeeds, before invoking fn.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary-and-contract",
+          "file": "server/src/external/org/countersign.ts",
+          "line": 119,
+          "finding": "Claim under doubt: A lock-acquisition failure (ELOCKED) on countersign or the locked-kind PUT path falls through to an undifferentiated 500, unlike the repo's established CLAUDE.md DO-NOT #6 convention (\"PATCH surfaces ELOCKED as 409\"). — Traced the actual propagation path: neither handler's catch blocks intercept a plain rethrown Error, so ELOCKED reaches Hono's async error path uncaught — which is caught by app.onError(errorHandler) registered on the TOP-LEVEL app in server/src/index.ts:103. middleware/error-handler.ts:44 already maps any error with .code === \"ELOCKED\" to the SAME retryable 409 body every other multi-writer state file uses, and org routes are mounted onto that same app via app.route(\"/\", ...) with no shadowing onError anywhere in external/. Confirmed proper-lockfile itself throws Object.assign(new Error(...), {code:'ELOCKED'}) on contention (node_modules/proper-lockfile/lib/lockfile.js:53,68).",
+          "suggestion": "An integration-level regression test proving the full chain (mocked ELOCKED → 409) actually works end to end, since the doubt-reviewer had no visibility into the global middleware wiring from the org/ directory alone; plus a separate, genuinely-uncaught symlink gap discovered while tracing this.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/org/__tests__/symlink-lock-unification.test.ts",
+          "line": 50,
+          "finding": "Claim under doubt: The test proves realpath:true (proper-lockfile's option, set explicitly in withDecisionsLock) is what unifies a junction-aliased lock path. — The test only ever calls withDecisionsLock, which hardcodes realpath:true — there is no realpath:false control on the SAME junction fixture, so the observed unification could equally be explained by the OS/Node fs layer already treating a Windows junction as transparent at the syscall level, independent of proper-lockfile's own option.",
+          "suggestion": "Add a realpath:false variant against the identical junction fixture, calling proper-lockfile directly (bypassing withDecisionsLock's hardcoded option), and observe whether unification still happens.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/__tests__/two-process-lock.test.ts",
+          "line": 71,
+          "finding": "Claim under doubt: The two-process test's 250ms hold duration and non-overlap assertion give a reliable proof, not a lucky pass that would also occur with the lock silently broken. — The test asserts non-overlap AND sequential numbering, but never demonstrates what the SAME harness reports when the lock is actually absent — an assertion can look discriminating on paper while actually having enough slack (process-startup jitter, etc.) to pass regardless of whether the lock works.",
+          "suggestion": "A falsification control: run the identical two-process race with the lock deliberately bypassed, and confirm the harness DOES detect the resulting overlap/duplicate-numbering — turning the claim from asserted-by-construction into empirically demonstrated.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-and-contract",
+          "file": "server/src/external/org/_helpers.ts",
+          "line": 61,
+          "finding": "Claim under doubt: The host allowlist + single shared secret, with no rate limiting and no minimum secret length, is a sufficient authorization boundary for this route family. — There is no floor on SHIPWRIGHT_LEADS_ROUTE_SECRET's length or entropy, and no throttling of repeated invalid-secret attempts — an operator could unknowingly configure a short/guessable secret with no signal, and the route would accept unlimited attempts against it.",
+          "suggestion": "Either enforce a minimum secret length / add rate limiting, or record this as a deliberate, reasoned accepted risk.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-17T08:59:30.972531+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/external/org/org-chart.ts",
+          "line": 77,
+          "finding": "The named org-chart endpoint directly `join`s and `readFileSync`s `org-chart.json` with no `lstat` symlink rejection or `realPathGuard` containment validation. A symlinked `~/.claude/leads/org-chart.json` can therefore cause this authenticated route to read an arbitrary external JSON file; if it happens to satisfy the lightweight chart shape, its contents are returned successfully. This violates the specification’s named-endpoint symlink/realpath-defense requirement.",
+          "suggestion": "Resolve and validate the target against `leadsRoot`, reject a symlink final component before reading, and apply realpath containment before serving it. Add tests for a final-component symlink and a parent-directory symlink escape.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/external/org/file-write.ts",
+          "line": 207,
+          "finding": "PUT` to a missing `decisions-proposed.md` succeeds because the locked branch calls `withDecisionsLock`, whose `ensureFile` creates the target before `performWrite` performs its edit-existing check. The specification explicitly requires generic PUT to be edit-existing-only, mirroring `write.ts`; this creates a new allowlisted document instead of returning `404`. The accompanying test explicitly codifies this unsupported asymmetry.",
+          "suggestion": "Preserve the pre-lock existence state and return `404` for a missing target, while arranging lock acquisition without treating lock-target creation as permission to create the document (for example, use a separate lock bootstrap strategy or restore/delete the bootstrap file when the target did not previously exist).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/external/org/countersign.ts",
+          "line": 111,
+          "finding": "The countersign handler only checks that `timestamp` and `leadId` are non-empty strings. It accepts and transfers entries with arbitrary values such as `{ timestamp: \"T1\", leadId: \"anything\" }`, although the defined transfer format requires an ISO-8601 timestamp and a lead-id. The tests use invalid timestamps, so they confirm rather than catch the contract violation.",
+          "suggestion": "Validate `timestamp` as a canonical ISO-8601 timestamp and validate `leadId` using the shared `LEAD_ID_RE` before acquiring the lock; return `400` for invalid values and add corresponding rejection tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "server/src/external/org/countersign.ts",
+          "line": 70,
+          "finding": "Duplicate proposed entries with the same `(timestamp, leadId)` are silently mishandled. The handler moves only the first matching proposal; subsequent requests find the already-logged entry and remove one matching proposed block while returning `alreadyCountersigned`, effectively discarding additional distinct proposals without logging them. The parser permits duplicate headers, and the stated reason for adopting the pair identity explicitly acknowledges timestamp collisions.",
+          "suggestion": "Require exactly one matching proposed entry when no logged entry exists, and return a conflict for duplicate identities. On the idempotent path, only remove the proposed entry if there is exactly one matching residual copy; otherwise return a repair-required conflict.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/external/org/org-chart.ts",
+          "line": 56,
+          "finding": "parseOrgChart` accepts an array for `leads` because arrays satisfy `typeof obj.leads === \"object\"`. It then converts its numeric array indexes into a `Record<string, OrgChartLeadView>`, returning a value that does not meet the declared structural mirror (`leads: Record<id, ...>`). For example, `{\"version\":1,\"po\":\"x\",\"leads\":[]}` is accepted instead of rejected as malformed.",
+          "suggestion": "Reject `Array.isArray(obj.leads)` before iterating it, and add malformed-chart coverage for array-valued `leads`.  Overall assessment: ship-with-fixes. The core route structure and lock work are substantial, but the named org-chart read bypasses the required filesystem security boundary and several observable contract edge cases remain. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-17T09:14:05.218702+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: security  \n  Severity: high  \n  File: `server/src/external/org/org-chart.ts:77`  \n  Finding: The named org-chart endpoint directly `join`s and `readFileSync`s `org-chart.json` with no `lstat` symlink rejection or `realPathGuard` containment validation. A symlinked `~/.claude/leads/org-chart.json` can therefore cause this authenticated route to read an arbitrary external JSON file; if it happens to satisfy the lightweight chart shape, its contents are returned successfully. This violates the specification’s named-endpoint symlink/realpath-defense requirement.  \n  Suggestion: Resolve and validate the target against `leadsRoot`, reject a symlink final component before reading, and apply realpath containment before serving it. Add tests for a final-component symlink and a parent-directory symlink escape.\n\n- Category: spec  \n  Severity: medium  \n  File: `server/src/external/org/file-write.ts:207`  \n  Finding: `PUT` to a missing `decisions-proposed.md` succeeds because the locked branch calls `withDecisionsLock`, whose `ensureFile` creates the target before `performWrite` performs its edit-existing check. The specification explicitly requires generic PUT to be edit-existing-only, mirroring `write.ts`; this creates a new allowlisted document instead of returning `404`. The accompanying test explicitly codifies this unsupported asymmetry.  \n  Suggestion: Preserve the pre-lock existence state and return `404` for a missing target, while arranging lock acquisition without treating lock-target creation as permission to create the document (for example, use a separate lock bootstrap strategy or restore/delete the bootstrap file when the target did not previously exist).\n\n- Category: spec  \n  Severity: medium  \n  File: `server/src/external/org/countersign.ts:111`  \n  Finding: The countersign handler only checks that `timestamp` and `leadId` are non-empty strings. It accepts and transfers entries with arbitrary values such as `{ timestamp: \"T1\", leadId: \" […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-17T08:21:55.759567+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-17T08:18:39.520791+00:00",
+      "disposition": "opus-plan-reviewer sub-step was not spawned earlier in this autonomous session before Branch A external review ran; noticed only at Step 7 review-record init, by which point build was already complete. External plan review (Branch A, both providers, revise->addressed) plus the Step 8 cascade below carry equivalent scrutiny going forward.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

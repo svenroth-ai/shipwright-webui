@@ -61,6 +61,7 @@ import { createTasksRouter } from "./tasks/routes.js";
 import { createLaunchRouter } from "./launch/routes.js";
 import { createPrStatusRouter } from "./pr-status/routes.js";
 import { createDesignReviewRouter } from "./design-review/routes.js";
+import { createOrgRouter, type OrgRouterDeps } from "./org/routes.js";
 
 // Back-compat re-exports — 14+ sibling test files + downstream consumers
 // import these from `./routes.js` directly. Sources of truth post-C2:
@@ -163,6 +164,14 @@ export function createExternalRoutes(args: {
      */
     peekTerminalText?(taskId: string): string | null;
   };
+  /** FR-04.38 — `/api/external/org/*` (leadwright's org dir, not a project).
+   *  Mounted only when `honoHost` + `leadsRoot` are both provided (mirrors
+   *  the `getProjectById`-gated mission-context mount above). */
+  honoHost?: string;
+  leadsRoot?: string;
+  leadsRouteSecret?: string;
+  orgLstatSync?: OrgRouterDeps["lstatSync"];
+  orgWithDecisionsLock?: OrgRouterDeps["withDecisionsLock"];
 }) {
   const {
     store,
@@ -174,6 +183,11 @@ export function createExternalRoutes(args: {
     scrollbackClearBestEffort,
     snapshotClearBestEffort,
     ptyManager,
+    honoHost,
+    leadsRoot,
+    leadsRouteSecret,
+    orgLstatSync,
+    orgWithDecisionsLock,
   } = args;
   // iterate-2026-05-08 v0.8.7 AC-1 — runtime guard (external code review
   // openai medium): TypeScript-only requirement is bypassable in plain
@@ -296,6 +310,20 @@ export function createExternalRoutes(args: {
   // shell:false (iterate-2026-05-30-pr-card-status). Stateless; uses the
   // default gh runner + in-memory TTL cache from core/pr-status.ts.
   app.route("/", createPrStatusRouter());
+
+  // FR-04.38 — own host-allowlist + shared-secret gate (see org/routes.ts).
+  if (honoHost && leadsRoot) {
+    app.route(
+      "/",
+      createOrgRouter({
+        honoHost,
+        leadsRoot,
+        leadsRouteSecret,
+        lstatSync: orgLstatSync,
+        withDecisionsLock: orgWithDecisionsLock,
+      }),
+    );
+  }
 
   return app;
 }
