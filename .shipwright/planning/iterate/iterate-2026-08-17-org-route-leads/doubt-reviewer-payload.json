@@ -1,0 +1,73 @@
+{
+  "stage": "doubt",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "boundary-and-contract",
+      "file": "server/src/external/org/decisions-lock.ts",
+      "line": 35,
+      "claim_under_doubt": "PROPOSED_HEADER_RE and LOGGED_HEADER_RE correctly detect every header line in decision_log.md / decisions-proposed.md.",
+      "disproof_attempt": "JS `.` never matches `\\r` (LineTerminator exclusion); `raw.split(\"\\n\")` leaves a trailing `\\r` on each line of a CRLF-terminated file, and a bare `(.+)$` can never reach `$` on such a line — every header silently fails to match, so nextLoggedNumber([]) always returns 1 and mints duplicate ADR numbers. Repro given: parseLoggedEntries(\"## ADR-0001 [2026-01-01T00:00:00Z] pete\\r\\nbody\\r\\n\") returned [] instead of 1 entry.",
+      "what_would_resolve_it": "Make both header regexes tolerant of an optional trailing \\r without touching splitBlocks' byte offsets (which must stay keyed to the original raw string).",
+      "disposition": "fixed",
+      "fix": "Both regexes changed to `(.+?)\\r?$` (lazy capture + optional trailing \\r before end-of-string) — offsets, splitBlocks, and toLoggedBlock's slicing are all unchanged, since the fix is purely regex-level, not a normalize-then-reparse. Verified with the exact repro plus a parseProposedEntries + toLoggedBlock CRLF round-trip, all in decisions-lock.test.ts. toLoggedBlock's reconstructed header line is now bare-LF while the body's own \\r\\n is preserved verbatim (documented in the new test, not silently changed)."
+    },
+    {
+      "severity": "medium-high",
+      "lens": "concurrency-and-ordering",
+      "file": "server/src/external/org/decisions-lock.ts",
+      "line": 231,
+      "claim_under_doubt": "assertNotSymlink on both paths, run once before lockfile.lock(), is sufficient TOCTOU defense for the whole critical section.",
+      "disproof_attempt": "lockfile.lock() retries up to ~2.75s under contention (8 retries, 50ms\u2192500ms backoff). A co-resident writer could swap either path for a symlink AFTER the pre-check ran but BEFORE this call actually holds the lock, and nothing re-checks before fn() runs.",
+      "what_would_resolve_it": "Re-run assertNotSymlink on both paths immediately after lock acquisition succeeds, before invoking fn.",
+      "disposition": "fixed",
+      "fix": "withDecisionsLock now re-runs assertNotSymlink(proposedPath) and assertNotSymlink(loggedPath) immediately inside the try block, right after release := await lockfile.lock(...) resolves and before fn(ctx) is called. This closes the specific retry-window gap raised. A residual gap (a swap occurring DURING fn's own execution, e.g. mid-write) is not closed and is accepted as out of scope: fn's execution is bounded and synchronous-per-call in this route's real usage (countersign, file-write), and re-lstat'ing on every internal read/write would be excessive for a route whose only writers are this process and leadwright's daemon, both honoring the same lock — documented in the function's own docstring rather than silently left unaddressed."
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary-and-contract",
+      "file": "server/src/external/org/countersign.ts",
+      "line": 119,
+      "claim_under_doubt": "A lock-acquisition failure (ELOCKED) on countersign or the locked-kind PUT path falls through to an undifferentiated 500, unlike the repo's established CLAUDE.md DO-NOT #6 convention (\"PATCH surfaces ELOCKED as 409\").",
+      "disproof_attempt": "Traced the actual propagation path: neither handler's catch blocks intercept a plain rethrown Error, so ELOCKED reaches Hono's async error path uncaught \u2014 which is caught by app.onError(errorHandler) registered on the TOP-LEVEL app in server/src/index.ts:103. middleware/error-handler.ts:44 already maps any error with .code === \"ELOCKED\" to the SAME retryable 409 body every other multi-writer state file uses, and org routes are mounted onto that same app via app.route(\"/\", ...) with no shadowing onError anywhere in external/. Confirmed proper-lockfile itself throws Object.assign(new Error(...), {code:'ELOCKED'}) on contention (node_modules/proper-lockfile/lib/lockfile.js:53,68).",
+      "what_would_resolve_it": "An integration-level regression test proving the full chain (mocked ELOCKED \u2192 409) actually works end to end, since the doubt-reviewer had no visibility into the global middleware wiring from the org/ directory alone; plus a separate, genuinely-uncaught symlink gap discovered while tracing this.",
+      "disposition": "rebutted (with test) + one adjacent bug fixed",
+      "fix": "REBUTTAL: ELOCKED\u2192409 was already correct via the existing global errorHandler \u2014 no lock-catching code was needed in either route. Added integration tests in countersign.test.ts and file-write-decisions-lock.test.ts that wire the REAL app.onError(errorHandler), inject a withDecisionsLock stub throwing {code:'ELOCKED'}, and assert 409 \u2014 proving the full chain, not just the two halves in isolation. SEPARATE BUG found while tracing this and fixed: file-write.ts's LOCKED_KINDS branch had no try/catch at all, so an OrgSymlinkEscapeError thrown by withDecisionsLock's OWN symlink check (which checks BOTH decision_log.md and decisions-proposed.md regardless of which one is being PUT) fell through to the generic 500 instead of the family's 403 symlink_forbidden \u2014 the exact class of bug countersign.ts had already been fixed for at code-review. Now wrapped in a try/catch mirroring countersign.ts, with its own regression test."
+    },
+    {
+      "severity": "medium",
+      "lens": "correctness",
+      "file": "server/src/external/org/__tests__/symlink-lock-unification.test.ts",
+      "line": 50,
+      "claim_under_doubt": "The test proves realpath:true (proper-lockfile's option, set explicitly in withDecisionsLock) is what unifies a junction-aliased lock path.",
+      "disproof_attempt": "The test only ever calls withDecisionsLock, which hardcodes realpath:true \u2014 there is no realpath:false control on the SAME junction fixture, so the observed unification could equally be explained by the OS/Node fs layer already treating a Windows junction as transparent at the syscall level, independent of proper-lockfile's own option.",
+      "what_would_resolve_it": "Add a realpath:false variant against the identical junction fixture, calling proper-lockfile directly (bypassing withDecisionsLock's hardcoded option), and observe whether unification still happens.",
+      "disposition": "fixed (test added, findings documented honestly)",
+      "fix": "Added a third test calling lockfile.lock() directly with realpath:false on the same realRoot/aliasLeadsRoot junction fixture. Empirical result on this platform: unification STILL occurs without realpath:true (observed via either full non-overlap ordering or an ELOCKED rejection on the second lock attempt) \u2014 meaning on Windows junctions, proper-lockfile's raw string-keyed lock path is already unified by OS-level junction transparency, and withDecisionsLock's explicit realpath:true is defense-in-depth / cross-platform contract-explicitness (matches what leadwright's daemon must also set) rather than the sole mechanism on THIS platform. The original test's claim is narrowed in its own docstring to what was actually measured, not asserted beyond it."
+    },
+    {
+      "severity": "low-medium",
+      "lens": "correctness",
+      "file": "server/src/external/org/__tests__/two-process-lock.test.ts",
+      "line": 71,
+      "claim_under_doubt": "The two-process test's 250ms hold duration and non-overlap assertion give a reliable proof, not a lucky pass that would also occur with the lock silently broken.",
+      "disproof_attempt": "The test asserts non-overlap AND sequential numbering, but never demonstrates what the SAME harness reports when the lock is actually absent \u2014 an assertion can look discriminating on paper while actually having enough slack (process-startup jitter, etc.) to pass regardless of whether the lock works.",
+      "what_would_resolve_it": "A falsification control: run the identical two-process race with the lock deliberately bypassed, and confirm the harness DOES detect the resulting overlap/duplicate-numbering \u2014 turning the claim from asserted-by-construction into empirically demonstrated.",
+      "disposition": "fixed",
+      "fix": "lock-race-worker.ts gained a `mode=nolock` protocol option that bypasses withDecisionsLock and runs the identical read-sleep-append sequence unguarded. A new test in two-process-lock.test.ts runs both workers with mode=nolock and asserts (a) they compute the SAME next number (duplicate ADR, the exact defect the lock exists to prevent) and (b) their critical sections DO overlap. This empirically proves the harness's original two assertions would have caught a broken/deleted lock \u2014 verified by actually running the broken configuration, per this session's own falsification-harness convention, rather than assuming discriminating power."
+    },
+    {
+      "severity": "low-medium",
+      "lens": "boundary-and-contract",
+      "file": "server/src/external/org/_helpers.ts",
+      "line": 61,
+      "claim_under_doubt": "The host allowlist + single shared secret, with no rate limiting and no minimum secret length, is a sufficient authorization boundary for this route family.",
+      "disproof_attempt": "There is no floor on SHIPWRIGHT_LEADS_ROUTE_SECRET's length or entropy, and no throttling of repeated invalid-secret attempts \u2014 an operator could unknowingly configure a short/guessable secret with no signal, and the route would accept unlimited attempts against it.",
+      "what_would_resolve_it": "Either enforce a minimum secret length / add rate limiting, or record this as a deliberate, reasoned accepted risk.",
+      "disposition": "rebutted (rate limiting) + fixed (weak-secret signal)",
+      "fix": "REBUTTAL on rate limiting: not added, by design \u2014 documented in routes.ts's own docstring. This family's only trust boundary beyond the secret is the host allowlist (loopback or the operator's OWN Tailscale tailnet, PO decision 2026-08-16); an attacker already needs a foothold on that tailnet or the local machine before a guessed secret matters, and rate-limiting a single-operator local tool would add its own multi-writer-state problems (counters, a clock, a ban-list) for a threat model this route does not have. FIXED separately: createOrgRouter now logs a boot-time WARNING (not a hard failure \u2014 a startup validation error on a locally-generated secret is a worse availability failure than a weak one) when leadsRouteSecret is configured but shorter than 20 characters, matching this codebase's established boot-time-coherence-check pattern (CLAUDE.md's Preview-capability precedence section)."
+    }
+  ],
+  "all_doubts_addressed": true,
+  "verification": "npx tsc --noEmit clean; npx vitest run src/external/org/ -> 120/120 passed (was 112 before code-review fixes, 117 after CRLF+re-check+atomicWrite fixes, 120 after the ELOCKED/symlink-gap integration tests, +8 net new regression tests for this round); npx vitest run (full server suite) -> 305 files / 3513 tests passed, 1 pre-existing skip, 0 failures; npx oxlint . clean on every touched file; bloat anti-ratchet check exit 0, no new baseline entries needed (largest touched file is decisions-lock.ts at 269/300 lines)."
+}

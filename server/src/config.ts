@@ -84,6 +84,20 @@ export interface ServerConfig {
    * factory does not have to thread a `ServerConfig` reference.
    */
   terminalNoFlicker: boolean;
+  /**
+   * iterate-2026-08-17-org-route-leads (FR-04.38) — root directory for the
+   * leadwright org-document route (`external/org/routes.ts`). NOT a
+   * Shipwright project root; lives outside `registryDir` on purpose (it is
+   * leadwright's directory, not ours). Overridable for tests.
+   */
+  leadsRoot: string;
+  /**
+   * Shared secret the `/api/external/org/*` routes require on every
+   * request (header `X-Shipwright-Leads-Secret`). Unset ⇒ the routes
+   * fail closed (503 `leads_route_not_configured`) rather than silently
+   * accepting unauthenticated calls.
+   */
+  leadsRouteSecret: string | undefined;
 }
 
 function clampPositiveInt(raw: string | undefined, fallback: number): number {
@@ -167,5 +181,9 @@ export function getConfig(): ServerConfig {
     // Issue #37283 remains open; revisit when DECSET 2026 is emitted
     // by Claude itself.
     terminalNoFlicker: process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER !== "0",
+    leadsRoot:
+      process.env.SHIPWRIGHT_LEADS_ROOT ??
+      path.join(os.homedir(), ".claude", "leads"),
+    leadsRouteSecret: process.env.SHIPWRIGHT_LEADS_ROUTE_SECRET || undefined,
   };
 }

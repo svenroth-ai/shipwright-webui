@@ -1,0 +1,144 @@
+{
+  "run_id": "iterate-2026-08-17-org-route-leads",
+  "date": "2026-08-17T09:32:09.959042Z",
+  "event_at": "2026-08-16T22:29:25.560207+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/org-route-leads",
+  "spec": ".shipwright/planning/iterate/2026-08-17-org-route-leads.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-17-org-route-leads",
+  "declared_removals": [],
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Host allowlist rejects a non-loopback/non-Tailscale bind host (403 host_not_allowed), checked before the secret",
+        "disposition": "tested",
+        "evidence": "routes.test.ts \u2014 5 endpoints x disallowed-host case, all 403; F0.5 real-server probe"
+      },
+      {
+        "behavior": "Secret gate: unconfigured secret -> 503; missing/wrong header -> 401; correct header reaches the handler",
+        "disposition": "tested",
+        "evidence": "routes.test.ts 503/401/200 cases across all 5 endpoints; F0.5 'no secret -> 401' / 'wrong secret -> 401' probes"
+      },
+      {
+        "behavior": "Tailscale-range host (100.64.0.0/10) is allowed through, matching the PO's 2026-08-16 decision",
+        "disposition": "tested",
+        "evidence": "routes.test.ts 'Tailscale-range host is allowed through the gate'; F0.5 ran the whole probe against the resolved Tailscale IP (100.105.29.88), exercising the branch live"
+      },
+      {
+        "behavior": "GET /file returns raw bytes with an ETag for an allowlisted path",
+        "disposition": "tested",
+        "evidence": "file-read-write.test.ts existing suite; F0.5 'GET conventions.md -> 200'"
+      },
+      {
+        "behavior": "PUT /file edit-existing-only: a missing target 404s rather than auto-vivifying (external-review fix)",
+        "disposition": "tested",
+        "evidence": "file-write-decisions-lock.test.ts 'PUT on a missing LOCKED_KINDS file returns 404 and does not create it'; F0.5 'PUT missing decisions-proposed.md -> 404 (external-review fix)'"
+      },
+      {
+        "behavior": "PUT /file to a LOCKED_KINDS target (decision_log.md / decisions-proposed.md) is serialized through withDecisionsLock \u2014 an unlocked write via the generic route can no longer bypass the lock (plan-review HIGH finding 1)",
+        "disposition": "tested",
+        "evidence": "file-write-decisions-lock.test.ts \u2014 writes to both locked kinds go through the injected lock spy"
+      },
+      {
+        "behavior": "PUT /file symlink escape on the resolved target is rejected 403 symlink_forbidden, not silently written through",
+        "disposition": "tested",
+        "evidence": "file-write-decisions-lock.test.ts new symlink-in-LOCKED_KINDS integration test (injected OrgSymlinkEscapeError -> 403)"
+      },
+      {
+        "behavior": "A write blocked by lock contention on decisions files surfaces as 409, not a 500 or a hang (global errorHandler contract)",
+        "disposition": "tested",
+        "evidence": "file-write-decisions-lock.test.ts + countersign.test.ts \u2014 real app.onError(errorHandler) + injected withDecisionsLock throwing {code:'ELOCKED'} -> 409"
+      },
+      {
+        "behavior": "GET /org-chart parses and returns org-chart.json for a well-formed file",
+        "disposition": "tested",
+        "evidence": "org-chart.test.ts existing suite; F0.5 'GET org-chart -> 200', body contains the seeded lead"
+      },
+      {
+        "behavior": "GET /org-chart rejects a malformed file (leads as an array, not an object) rather than accepting a half structure",
+        "disposition": "tested",
+        "evidence": "org-chart.test.ts new array-valued-leads rejection test (empty array + array-of-valid-lead-shaped-objects)"
+      },
+      {
+        "behavior": "GET /org-chart rejects a symlinked org-chart.json (403 symlink_forbidden), matching file-write's symlink posture (plan-review HIGH finding 4)",
+        "disposition": "tested",
+        "evidence": "org-chart.test.ts new symlinked-org-chart.json test"
+      },
+      {
+        "behavior": "GET /leads/:leadId/usage returns {measured:false} when usage.json does not exist yet (contract queryable before leadwright's own producer ships), and validates leadId to reject a traversal attempt (plan-review HIGH finding 5)",
+        "disposition": "tested",
+        "evidence": "usage.test.ts existing suite (missing-file -> measured:false, 200; invalid leadId -> 400); F0.5 'GET usage (unmeasured) -> 200'"
+      },
+      {
+        "behavior": "POST /decisions/countersign happy path: matches a proposed entry by {timestamp, leadId}, mints the next ADR-NNNN number inside the lock's critical section, moves the entry to decision_log.md, removes it from decisions-proposed.md",
+        "disposition": "tested",
+        "evidence": "countersign.test.ts existing suite; F0.5 'POST countersign -> 200' + disk check 'decision_log.md written to disk with ADR-0001'"
+      },
+      {
+        "behavior": "Countersign request body format is validated before any filesystem access (400 timestamp_invalid / leadId_invalid)",
+        "disposition": "tested",
+        "evidence": "countersign.test.ts new format-rejection tests"
+      },
+      {
+        "behavior": "Countersign keys on {timestamp, leadId} together, not timestamp alone, and rejects an ambiguous match (>1 proposed entry with the same identity) as 409 duplicate_proposal_identity instead of silently picking the first (plan-review MEDIUM finding 2)",
+        "disposition": "tested",
+        "evidence": "countersign.test.ts two new duplicate_identity tests \u2014 initial-match path and the idempotent-retry path"
+      },
+      {
+        "behavior": "Countersign is crash-atomic across the two-file move: a retry after a crash between the decision_log append and the decisions-proposed rewrite is idempotent (reuses the existing entry's number, returns 200, does not double-log) (plan-review HIGH/MEDIUM finding 3)",
+        "disposition": "tested",
+        "evidence": "countersign.test.ts existing idempotent-retry suite (pre-existing entry in decision_log.md with matching identity)"
+      },
+      {
+        "behavior": "decisions-lock parses CRLF-terminated proposed/logged entry headers without corrupting byte offsets used for splicing (doubt-review fix \u2014 JS regex '.' never matches \\r)",
+        "disposition": "tested",
+        "evidence": "decisions-lock.test.ts 3 new CRLF regression tests (parseLoggedEntries, parseProposedEntries, toLoggedBlock round-trip)"
+      },
+      {
+        "behavior": "decisions-lock re-checks both paths for a symlink AFTER the lock is actually held, not only before acquiring it (doubt-review TOCTOU fix)",
+        "disposition": "tested",
+        "evidence": "decisions-lock.test.ts existing assertNotSymlink suite now exercised via the post-lock call path; code inspection confirms the check runs inside the try block after lockfile.lock() resolves"
+      },
+      {
+        "behavior": "The junction-based lock-unification test has genuine discriminating power \u2014 a realpath:false control against the same fixture still shows unification on this platform, so the claim is accurately scoped rather than assumed",
+        "disposition": "tested",
+        "evidence": "symlink-lock-unification.test.ts new realpath:false negative-control test"
+      },
+      {
+        "behavior": "The two-process countersign lock test actually proves serialization \u2014 bypassing the lock demonstrably produces overlapping critical sections and a duplicate ADR number",
+        "disposition": "tested",
+        "evidence": "two-process-lock.test.ts new falsification-control test (mode='nolock' worker protocol) \u2014 confirms overlap + duplicate when unlocked, confirms non-overlap + N/N+1 numbers when locked"
+      },
+      {
+        "behavior": "A configured secret shorter than 20 chars logs a boot-time weak-secret warning to the operator; a secret at/above the floor logs nothing (rate-limiting itself deliberately rejected \u2014 written rebuttal in routes.ts, not a silent gap)",
+        "disposition": "tested",
+        "evidence": "routes.test.ts 2 new tests \u2014 spies on console.warn for both the <20-char and >=20-char cases"
+      },
+      {
+        "behavior": "The two-process concurrency proof uses a real child process, not same-process Promise.all (which would be a false green given write.ts's fully-synchronous fs pattern)",
+        "disposition": "tested",
+        "evidence": "two-process-lock.test.ts spawns fixtures/lock-race-worker.ts as an actual child_process"
+      }
+    ],
+    "counts": {
+      "testable": 22,
+      "tested": 22,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 22,
+      "covered_acs": 22
+    }
+  },
+  "surface_verification": {
+    "surface": "api",
+    "tests_run": 10,
+    "exit_code": 0,
+    "justification": "This is a server-only, no-client-delta iterate (the client Org page is a separate, explicitly out-of-scope item), so 'web' is not the right surface \u2014 the real runtime surface is the new Hono route family itself, unreachable from the existing unit suite's mocked-fs style. Verified with real HTTP requests against a live Hono server (npx tsx src/index.ts, PORT=3849) bound to the machine's actual resolved host (this shell has SHIPWRIGHT_NETWORK_PROFILE=tailscale set ambiently, so the probe incidentally ran against the real Tailscale-range host branch rather than only loopback): secret gate (no header -> 401, wrong header -> 401), GET org-chart -> 200 with the seeded lead in the body, GET usage (unmeasured) -> 200, PUT on a missing LOCKED_KINDS file -> 404 (the external-review auto-vivify fix, proven against the real filesystem, not a mock), and a full POST countersign round trip -> 200 with ADR-0001 both in the response body and written to decision_log.md on disk. Script: f05-api-probe.sh (self-contained, trap-cleanup on exit). See surface_verification.log for the raw PASS lines.",
+    "evidence_path": ".shipwright/runs/iterate-2026-08-17-org-route-leads/surface_verification.log"
+  }
+}

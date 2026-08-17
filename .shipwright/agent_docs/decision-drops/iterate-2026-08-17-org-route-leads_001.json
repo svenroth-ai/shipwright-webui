@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-17-org-route-leads",
+  "date": "2026-08-17",
+  "section": "Iterate — feature: org-route-leads",
+  "title": "Leads org route — host+secret gated /api/external/org/* family",
+  "context": "leadwright (a separate tool) needs to read/update ~/.claude/leads/** (conventions, charter, org chart, decision log, usage) from its own process; no webui route exposed that directory, and the launch card specifies an HTTP-shaped surface, not a CLI.",
+  "decision": "Add a 5-endpoint /api/external/org/* family (GET/PUT file, org-chart, usage, countersign) behind a host-bind allowlist (loopback/Tailscale) + shared secret; the one racing write (countersign) is serialized via proper-lockfile over decisions-proposed.md, mirroring write.ts's symlink/path-guard posture.",
+  "consequences": "New external write surface into another repo's data (~/.claude/leads/**). Plan-review (11 findings) + external code review (5 findings) both fully adopted before commit; see spec-ref for the tables. Zero client/src changes; zero write into shipwright's own runtime state.",
+  "rationale": "Models write.ts's allowlist/path-guard/realpath-guard/atomic-write pattern -- closest existing precedent -- adding only what write.ts didn't need: host gate, secret gate, cross-process lock. Org-chart gets a named typed read so malformed input errors rather than serving a half structure.",
+  "rejected": "A local CLI instead of a route (deepseek, Architecture Review) -- the launch card specifies an HTTP-shaped surface with a host-BIND allowlist, already PO-decided 2026-08-16; not re-litigated. Deferring the usage endpoint until a producer exists (both reviewers) -- the triage doc pre-empts this; kept in scope.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-08-17-org-route-leads.md"
+}

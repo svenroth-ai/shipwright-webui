@@ -70,6 +70,8 @@ import { createNodeWebSocket } from "@hono/node-ws";
 const config = getConfig();
 const startTime = Date.now();
 
+const honoHost = resolveHonoHost(process.env); // resolved once — org-router gate (FR-04.38) + serve() below
+
 export const app = new Hono();
 
 // Iterate v0.8.4 — CORS origin gate now defers to
@@ -562,6 +564,9 @@ if (isMainModule) {
             peekTerminalText: (taskId: string) =>
               ptyManager.peekTerminalText(taskId),
           },
+          honoHost, // FR-04.38 org-directory route family
+          leadsRoot: config.leadsRoot,
+          leadsRouteSecret: config.leadsRouteSecret,
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
@@ -791,9 +796,7 @@ if (isMainModule) {
       // a non-zero exit instead of a silent half-startup. No probe
       // before bind — that would be TOCTOU-racy on Windows.
       // Default = 127.0.0.1 (loopback). HONO_HOST=true binds dual-stack
-      // (`::`); HONO_HOST=<addr> binds that interface. See resolveHonoHost.ts
-      // and docs/guide.md §9.1 for the full contract.
-      const honoHost = resolveHonoHost(process.env);
+      // (`::`); HONO_HOST=<addr> binds that interface — resolveHonoHost.ts.
       // ADR-08X exposure warning. Two paths (mirrors vite.config.ts):
       //   1. SHIPWRIGHT_NETWORK_PROFILE=open — emits exact AC-3 wording.
       //   2. Explicit HONO_HOST=true/0.0.0.0/:: with profile NOT set —

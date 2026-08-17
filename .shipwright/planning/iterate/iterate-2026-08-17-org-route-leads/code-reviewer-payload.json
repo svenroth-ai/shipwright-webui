@@ -1,0 +1,64 @@
+{
+  "section": "2026-08-17-org-route-leads",
+  "review": [
+    {
+      "severity": "high",
+      "category": "security",
+      "file": "server/src/external/org/decisions-lock.ts",
+      "line": 170,
+      "finding": "ensureFile() wrote decisions-proposed.md via existsSync+writeFileSync BEFORE assertNotSymlink() ran on it. A dangling symlink at that path caused existsSync to report false and writeFileSync to write through the symlink to its target, including outside leadsRoot.",
+      "suggestion": "Reorder to lstat-check first, or replace existsSync+writeFileSync with writeFileSync(path, \"\", { flag: \"wx\" }).",
+      "disposition": "fixed",
+      "fix": "ensureFile now uses writeFileSync with { flag: \"wx\" } (O_CREAT|O_EXCL), which fails EEXIST against any pre-existing path (including a dangling symlink) without following it. assertNotSymlink still runs immediately after and rejects a real symlink. Verified by a new non-clobber regression test (decisions-lock.test.ts); a real-OS dangling-symlink variant is blocked on this Windows dev host (fs.symlinkSync requires elevation), documented in the test."
+    },
+    {
+      "severity": "medium",
+      "category": "security",
+      "file": "server/src/external/org/_helpers.ts",
+      "line": 87,
+      "finding": "checkOrgSecret returned \"invalid\" on a.length !== b.length before ever calling timingSafeEqual, reintroducing a timing side-channel revealing whether a guess's length matches the real secret's length.",
+      "suggestion": "Normalize both buffers to a fixed length before comparing so timingSafeEqual is always reached.",
+      "disposition": "fixed",
+      "fix": "Both inputs are now SHA-256 hashed to a fixed 32-byte digest before timingSafeEqual; the length check is gone entirely."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "server/src/external/org/file-read.ts",
+      "line": 48,
+      "finding": "Docstring claimed 403 symlink_forbidden but the handler only called stat() (follows symlinks) + realPathGuard() (containment only) — it never lstat-checked, so a final-component symlink resolving under leadsRoot was silently served 200.",
+      "suggestion": "Add an lstat-based isSymbolicLink() check before stat(), mirroring file-write.ts.",
+      "disposition": "fixed",
+      "fix": "Added an injectable lstat check before stat(), returning 403 symlink_forbidden — same shape and same injectable-lstatSync pattern as file-write.ts. New GET-side symlink test added to file-read-write.test.ts."
+    },
+    {
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "server/src/external/org/__tests__/usage.test.ts",
+      "line": 1,
+      "finding": "usage.ts's symlink_forbidden branch was never exercised by a test; lstatSync wasn't dependency-injectable so it could only be covered by a real OS symlink.",
+      "suggestion": "Add a real-symlink test asserting 403 symlink_forbidden.",
+      "disposition": "fixed",
+      "fix": "Made usage.ts's lstatSync injectable (matching file-write.ts/countersign.ts's established seam pattern) and added a mocked-lstat symlink test."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/external/org/countersign.ts",
+      "line": 118,
+      "finding": "registerCountersignRoute had no try/catch around countersign(); an OrgSymlinkEscapeError fell through to the generic global errorHandler as an uncaught 500 instead of the family's typed 403 symlink_forbidden.",
+      "suggestion": "Catch OrgSymlinkEscapeError and return the same 403 symlink_forbidden shape file-write.ts uses.",
+      "disposition": "fixed",
+      "fix": "Added a try/catch around the countersign() call catching OrgSymlinkEscapeError specifically and returning 403 symlink_forbidden; the existing symlink test updated from expecting 500 to expecting 403."
+    }
+  ],
+  "positives": [
+    "Two-process lock test (two-process-lock.test.ts + fixtures/lock-race-worker.ts) is a genuinely strong concurrency proof — real child processes, explicit non-overlap assertion on captured intervals.",
+    "symlink-lock-unification.test.ts correctly proves realpath:true unifies a junction-aliased path for locking, with a documented negative-control case.",
+    "countersign.ts's crash-safety ordering and idempotent-retry are implemented exactly as specified and tested end-to-end.",
+    "atomicWrite's tmp-file naming correctly includes randomBytes(4) alongside pid+timestamp.",
+    "The host-allowlist/secret-gate matrix (routes.test.ts) is thorough across every endpoint x every gate-failure combination."
+  ],
+  "all_findings_fixed": true,
+  "verification": "npx tsc --noEmit clean; npx vitest run src/external/org/ -> 112/112 passed (was 109, +3 new regression tests for the fixes); npx oxlint clean on all touched files."
+}

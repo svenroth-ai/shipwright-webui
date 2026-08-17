@@ -5,8 +5,8 @@
     "captured_by": "iterate-2026-05-26-campaign-C-C2-external-routes-split / runner",
     "purpose": "Pre-split API contract snapshot — empirical anchor for the C2 contract sweep. Every endpoint, method, documented status code + response key set listed in source order. Post-split contract sweep MUST reproduce every row.",
     "extraction_method": "hand-curated from a thorough read of server/src/external/routes.ts (lines 371-2516); cross-validated against client/src/lib/externalApi.ts wrapper signatures.",
-    "endpoint_count": 25,
-    "documented_status_codes": [200, 400, 404, 405, 409, 413, 415, 500, 501]
+    "endpoint_count": 30,
+    "documented_status_codes": [200, 400, 401, 403, 404, 405, 409, 413, 415, 500, 501, 503]
   },
   "endpoints": [
     {
@@ -419,6 +419,127 @@
       "future_sub_router": "transcript",
       "expected_behavior": "Two parallel fetches with same fromByte + expectFingerprint return identical bytes. Server holds NO per-session byte-offset state.",
       "invariant_load_bearing": "CLAUDE.md rule 4 + plan-d-double-prime hard rule #2 ('Server is stateless on transcript reads'). Multi-tab works by construction."
+    },
+    {
+      "id": "org.file_get",
+      "method": "GET",
+      "path": "/api/external/org/file",
+      "query": ["path"],
+      "source_lines": "org/routes.ts + org/file-read.ts",
+      "future_sub_router": "org",
+      "client_consumer": "leadwright (external caller, not this webui's own client)",
+      "success": {"status": 200, "body_type": "raw markdown text", "headers": ["ETag", "Content-Type: text/markdown; charset=utf-8"]},
+      "error_branches": [
+        {"code": "host_not_allowed", "status": 403},
+        {"code": "leads_route_not_configured", "status": 503},
+        {"code": "invalid_secret", "status": 401},
+        {"code": "path_required", "status": 400},
+        {"code": "not_allowlisted", "status": 403},
+        {"code": "path_traversal", "status": 400},
+        {"code": "not_found", "status": 404},
+        {"code": "not_a_file", "status": 400},
+        {"code": "file_stat_failed", "status": 500},
+        {"code": "file_read_failed", "status": 500}
+      ],
+      "invariant_load_bearing": "FR-04.38 — host-allowlist (loopback ∪ Tailscale 100.64.0.0/10) then shared-secret gate precede every handler; org-chart.json is deliberately absent from this allowlist (read-only via its own typed endpoint)."
+    },
+    {
+      "id": "org.file_put",
+      "method": "PUT",
+      "path": "/api/external/org/file",
+      "query": ["path"],
+      "source_lines": "org/routes.ts + org/file-write.ts",
+      "future_sub_router": "org",
+      "client_consumer": "leadwright (external caller, not this webui's own client)",
+      "success": {"status": 200, "keys": ["written", "fingerprint", "size"]},
+      "error_branches": [
+        {"code": "host_not_allowed", "status": 403},
+        {"code": "leads_route_not_configured", "status": 503},
+        {"code": "invalid_secret", "status": 401},
+        {"code": "path_required", "status": 400},
+        {"code": "not_allowlisted", "status": 403},
+        {"code": "path_traversal", "status": 400},
+        {"code": "payload_too_large", "status": 413},
+        {"code": "not_found", "status": 404},
+        {"code": "symlink_forbidden", "status": 403},
+        {"code": "not_a_file", "status": 400},
+        {"code": "precondition_required", "status": 400},
+        {"code": "fingerprint_mismatch", "status": 409, "extra_keys": ["currentFingerprint"]},
+        {"code": "file_stat_failed", "status": 500},
+        {"code": "file_read_failed", "status": 500},
+        {"code": "write_failed", "status": 500}
+      ],
+      "invariant_load_bearing": "iterate-2026-08-17-org-route-leads plan-review fix — PUT to decision_log.md / decisions-proposed.md routes through the SAME FR-04.28 withDecisionsLock the countersign action uses; the other 4 allowlisted kinds are If-Match-only (no cross-process contender). External-review fix: a pre-lock lstat existence probe keeps ALL SIX kinds edit-existing-only — withDecisionsLock's own ensureFile() (needed so proper-lockfile has a target) no longer leaks into this endpoint's contract as a silent create-on-missing for decisions-proposed.md."
+    },
+    {
+      "id": "org.org_chart",
+      "method": "GET",
+      "path": "/api/external/org/org-chart",
+      "source_lines": "org/routes.ts + org/org-chart.ts",
+      "future_sub_router": "org",
+      "client_consumer": "leadwright + a future webui org-chart page (Item 3, out of scope for this route)",
+      "success": {"status": 200, "shape": "typed OrgChartView (structural mirror of leadwright/lib/org-chart.ts)"},
+      "error_branches": [
+        {"code": "host_not_allowed", "status": 403},
+        {"code": "leads_route_not_configured", "status": 503},
+        {"code": "invalid_secret", "status": 401},
+        {"code": "symlink_forbidden", "status": 403},
+        {"code": "org_chart_missing", "status": 404},
+        {"code": "org_chart_invalid", "status": 502},
+        {"code": "org_chart_stat_failed", "status": 500},
+        {"code": "org_chart_read_failed", "status": 500}
+      ],
+      "invariant_load_bearing": "org-chart.json is READ-ONLY across this whole route family — no PUT/POST path exists for it anywhere under /api/external/org/*."
+    },
+    {
+      "id": "org.usage",
+      "method": "GET",
+      "path": "/api/external/org/leads/:leadId/usage",
+      "source_lines": "org/routes.ts + org/usage.ts",
+      "future_sub_router": "org",
+      "client_consumer": "leadwright + a future webui consumption view (Punkt 8's read interface)",
+      "success": {
+        "status": 200,
+        "shape": "discriminated union on `measured`",
+        "variants": [
+          {"measured_field": false, "keys": ["leadId", "measured"]},
+          {"measured_field": true, "keys": ["leadId", "measured", "costUsd", "runCount", "windowDays", "asOf"]}
+        ]
+      },
+      "error_branches": [
+        {"code": "host_not_allowed", "status": 403},
+        {"code": "leads_route_not_configured", "status": 503},
+        {"code": "invalid_secret", "status": 401},
+        {"code": "invalid_lead_id", "status": 400},
+        {"code": "symlink_forbidden", "status": 403},
+        {"code": "path_traversal", "status": 400},
+        {"code": "usage_invalid", "status": 502},
+        {"code": "usage_read_failed", "status": 500}
+      ],
+      "invariant_load_bearing": "A missing usage.json is the steady pre-producer state (measured:false, 200), NOT an error — contrast org.org_chart, where a missing file IS an error."
+    },
+    {
+      "id": "org.countersign",
+      "method": "POST",
+      "path": "/api/external/org/decisions/countersign",
+      "source_lines": "org/routes.ts + org/countersign.ts",
+      "future_sub_router": "org",
+      "client_consumer": "leadwright's daemon (the FR-04.28 counterparty on decisions-proposed.md / decision_log.md)",
+      "success": {"status": 200, "keys": ["countersigned", "alreadyCountersigned", "number", "adr"]},
+      "error_branches": [
+        {"code": "host_not_allowed", "status": 403},
+        {"code": "leads_route_not_configured", "status": 503},
+        {"code": "invalid_secret", "status": 401},
+        {"code": "invalid_json", "status": 400},
+        {"code": "timestamp_required", "status": 400},
+        {"code": "leadId_required", "status": 400},
+        {"code": "timestamp_invalid", "status": 400},
+        {"code": "leadId_invalid", "status": 400},
+        {"code": "proposal_not_found", "status": 404, "extra_keys": ["timestamp", "leadId"]},
+        {"code": "duplicate_proposal_identity", "status": 409, "extra_keys": ["timestamp", "leadId", "count"]},
+        {"code": "symlink_forbidden", "status": 403, "extra_keys": ["path"]}
+      ],
+      "invariant_load_bearing": "Idempotent + crash-safe: the logged entry is written BEFORE the proposed entry is removed, and a retry against an already-logged {timestamp,leadId} pair returns the EXISTING number rather than minting a new one. External-review fix: (timestamp,leadId) disambiguates but does not GUARANTEE uniqueness — 2+ proposed entries sharing the same pair is a 409 conflict, never a silent discard of every match past the first."
     }
   ],
   "_invariants_summary": [
@@ -430,6 +551,7 @@
     {"id": "rule-13-phase-task-launch", "ref": "CLAUDE.md rule 13", "endpoint": "tasks.launch (phaseTaskRef branch)"},
     {"id": "rule-15-schema-v3", "ref": "CLAUDE.md rule 15", "endpoint": "tasks.create + tasks.get + tasks.list"},
     {"id": "rule-16-stale-detection", "ref": "CLAUDE.md rule 16", "endpoint": "phase-task-launch (run-config timestamps only)"},
-    {"id": "gitignore-directory-form", "ref": "commit 5c7f539", "endpoint": "projects.tree"}
+    {"id": "gitignore-directory-form", "ref": "commit 5c7f539", "endpoint": "projects.tree"},
+    {"id": "fr-04-38-org-route-host-and-secret-gate", "ref": "FR-04.38 / iterate-2026-08-17-org-route-leads", "endpoint": "org.file_get + org.file_put + org.org_chart + org.usage + org.countersign"}
   ]
 }
