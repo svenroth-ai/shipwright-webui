@@ -50,6 +50,13 @@ type ShellKind = NonNullable<SocketLike["shellKind"]>;
 export interface UseAutoLaunchOptions {
   /** Active task — reset triggers on every change (different pty). */
   taskId: string;
+  /**
+   * The task's lifecycle state (iterate-2026-08-16-task-lifecycle-ux-fixes).
+   * A `done` -> non-`done` transition (Re-open) re-arms the one-shot guard,
+   * mirroring the `terminalReset` re-arm below — see the doc comment on
+   * `EmbeddedTerminalProps.taskState` for the full "why".
+   */
+  taskState?: string;
   /** WS facade. */
   socket: SocketLike;
   /** Launch coordinator (`useLaunchCoordinator()` result). */
@@ -82,7 +89,7 @@ export interface UseAutoLaunchResult {
 }
 
 export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
-  const { taskId, socket, coord, gate, onBeforeDispatch, dispatchReady = true } = opts;
+  const { taskId, taskState, socket, coord, gate, onBeforeDispatch, dispatchReady = true } = opts;
 
   // Latest-ref so the async auto-inject closure never captures a stale
   // callback across parent re-renders (same pattern as socketSend in
@@ -133,6 +140,26 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
       setManualSendPending(null);
     }
   }, [socket.terminalReset]);
+
+  // Re-open re-arm (iterate-2026-08-16-task-lifecycle-ux-fixes) — a
+  // `done` -> non-`done` transition means the user just told the system
+  // "this task is live again" (the ⋯-menu Reopen, or a board drag out of
+  // Done). EmbeddedTerminal stays mounted across that transition (the
+  // task-detail page never remounts it), so without this the one-shot
+  // guard keeps whatever it last armed to — very likely `true`, since a
+  // `done` task almost always had a real prior session write to its pty —
+  // and the next Resume silently parks behind manual "Send to terminal"
+  // instead of auto-running. Same re-arm shape as terminalReset above;
+  // ONLY the trigger differs (a lifecycle edge, not a server signal).
+  const prevTaskStateRef = useRef(taskState);
+  useEffect(() => {
+    const prev = prevTaskStateRef.current;
+    prevTaskStateRef.current = taskState;
+    if (prev === "done" && taskState !== "done") {
+      launchInjectedThisPtyLifetimeRef.current = false;
+      setManualSendPending(null);
+    }
+  }, [taskState]);
 
   // ADR-068-A1 auto-launch effect.
   useEffect(() => {

@@ -445,6 +445,7 @@ function TaskDetailPageBody() {
                     <EmbeddedTerminal
                       ref={terminalRef}
                       taskId={taskId}
+                      taskState={task.state}
                       active={terminalActive}
                       layoutRevision={compact ? "compact" : "desktop"}
                       onReadyChange={handleTerminalReady}

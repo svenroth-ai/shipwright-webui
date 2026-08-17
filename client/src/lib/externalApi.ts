@@ -414,13 +414,11 @@ export async function assignTaskProject(
 }
 
 /**
- * iterate-2026-05-18-edit-task-dialog — the Edit Task dialog's save
- * patch. A field PRESENT here is an update; an OMITTED key is left
- * untouched server-side. To CLEAR an optional field send `""` (scalar /
- * enum) or `[]` (array). `title` / `domain` / `tags` / `blockedBy` /
- * `poFeedback` may be patched in any task state; `description` / `phase` /
- * `priority` / `complexityHint` are rejected (`409 field_not_editable`)
- * once the task has started — see `lib/taskEditability.ts`.
+ * iterate-2026-05-18-edit-task-dialog — the Edit Task dialog's save patch.
+ * A field PRESENT here is an update; OMITTED is untouched server-side.
+ * `""` / `[]` clears an optional scalar/array. `title` / `domain` / `tags`
+ * / `blockedBy` / `poFeedback` patch in any state; the rest freeze once
+ * started — see `lib/taskEditability.ts`.
  */
 export interface TaskUpdatePatch {
   title?: string;
@@ -431,6 +429,7 @@ export interface TaskUpdatePatch {
   domain?: string;
   tags?: string[];
   blockedBy?: string[];
+  autonomy?: "guided" | "autonomous"; // always set; no clear-to-empty
   poFeedback?: string;
 }
 

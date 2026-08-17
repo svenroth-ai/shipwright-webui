@@ -65,7 +65,7 @@ export const PALETTE: Record<Mode, ModePalette> = {
   },
 };
 
-export function resolveMode(action: ActionDefinition | null): Mode {
+export function resolveMode(action: Pick<ActionDefinition, "id"> | null): Mode {
   if (!action) return "new-task";
   if (action.id === "new-task") return "new-task";
   if (action.id === "new-pipeline") return "new-pipeline";

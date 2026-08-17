@@ -80,13 +80,6 @@
       "adr": null
     },
     {
-      "path": "client/src/components/external/EditTaskModal.tsx",
-      "limit": 300,
-      "current": 445,
-      "state": "grandfathered",
-      "adr": "iterate-2026-08-13-task-description-length-cap"
-    },
-    {
       "path": "client/src/components/external/FolderTree.tsx",
       "limit": 300,
       "current": 394,
@@ -215,10 +208,10 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
       "limit": 300,
-      "current": 299,
+      "current": 300,
       "state": "grandfathered",
       "adr": "iterate-2026-07-01-terminal-title-wrap-smear",
-      "note": "backpressure-resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the shell wires useBackpressureResync + the drain-queue overflow hook. Wire types moved OUT to hooks/terminalWsContract.ts to keep this bump to the seam itself"
+      "note": "backpressure-resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the shell wires useBackpressureResync + the drain-queue overflow hook. Wire types moved OUT to hooks/terminalWsContract.ts to keep this bump to the seam itself. iterate-2026-08-16-task-lifecycle-ux-fixes: taskState prop plumbing (Reopen re-arm) + a 1-line destructure formatting fix (code-review finding) landed exactly at the 300 hard limit"
     },
     {
       "path": "client/src/components/terminal/xtermAddons.atlas.test.ts",
@@ -602,10 +595,10 @@
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1266,
+      "current": 1284,
       "state": "exception",
       "adr": "ADR-101",
-      "note": "forceRedraw (post-replay redraw nudge, iterate-2026-07-27) — cohesive in-place addition to the pty lifecycle owner; ADR-101 exception stands"
+      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) — small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands"
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
