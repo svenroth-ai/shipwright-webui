@@ -14,6 +14,7 @@ import {
   readFileSync,
   mkdirSync,
   lstatSync,
+  openSync,
 } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
@@ -212,9 +213,9 @@ describe("GET/PUT /api/external/org/file", () => {
   });
 
   it(
-    "code-review fix: GET rejects a final-component symlink (mocked lstat) 403, " +
-      "never serving its content — GET previously only stat()-ed (follows symlinks) " +
-      "and never lstat-checked, unlike PUT above",
+    "code-review fix: GET rejects a final-component symlink 403, never serving " +
+      "its content — GET previously only stat()-ed (follows symlinks) and never " +
+      "lstat-checked, unlike PUT above",
     async () => {
       const p = path.join(leadsRoot, "conventions.md");
       writeFileSync(p, "# secret elsewhere\n", "utf8");
@@ -222,10 +223,17 @@ describe("GET/PUT /api/external/org/file", () => {
       const a = new Hono();
       registerOrgFileRead(a, {
         leadsRoot,
-        lstatSync: (pp) =>
-          path.basename(pp) === "conventions.md"
-            ? { isSymbolicLink: () => true }
-            : lstatSync(pp),
+        // CodeQL js/file-system-race fix: the real defense is opening with
+        // O_NOFOLLOW (a single atomic syscall — no separate check-then-read
+        // window to race). Simulate the kernel's ELOOP for a mocked
+        // final-component symlink here rather than creating a REAL symlink,
+        // which needs elevated privileges on Windows CI.
+        openSync: ((p2: string, flags?: number | string, mode?: number) =>
+          path.basename(p2) === "conventions.md"
+            ? (() => {
+                throw Object.assign(new Error("ELOOP"), { code: "ELOOP" });
+              })()
+            : openSync(p2, flags ?? "r", mode)) as typeof openSync,
       });
 
       const res = await a.request(url("conventions.md"));

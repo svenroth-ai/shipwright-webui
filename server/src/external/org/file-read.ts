@@ -18,8 +18,7 @@
  */
 
 import type { Hono } from "hono";
-import { lstatSync, readFileSync } from "node:fs";
-import { stat } from "node:fs/promises";
+import { closeSync, constants as fsConstants, fstatSync, openSync, readFileSync } from "node:fs";
 
 import { realPathGuard } from "../../core/path-guard.js";
 import { resolveOrgAllowlistedTarget } from "./_helpers.js";
@@ -27,12 +26,18 @@ import { fileFingerprint } from "../file/_helpers.js";
 
 export interface OrgFileReadDeps {
   leadsRoot: string;
-  lstatSync?: (path: string) => { isSymbolicLink(): boolean };
+  /**
+   * Test seam for the O_NOFOLLOW open below (e.g. to simulate an ELOOP a
+   * mocked final-component symlink would produce, without needing a REAL
+   * symlink on disk — those require elevated privileges on Windows CI).
+   * Defaults to the real `openSync`.
+   */
+  openSync?: typeof openSync;
 }
 
 export function registerOrgFileRead(app: Hono, deps: OrgFileReadDeps): void {
   const { leadsRoot } = deps;
-  const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
+  const open = deps.openSync ?? openSync;
 
   app.get("/api/external/org/file", async (c) => {
     const relpath = c.req.query("path");
@@ -47,31 +52,27 @@ export function registerOrgFileRead(app: Hono, deps: OrgFileReadDeps): void {
       return c.json({ error: err, detail: target.reason }, status);
     }
 
-    // Code-review fix: lstat BEFORE stat() — stat() follows symlinks, so a
-    // final-component symlink that happens to resolve back under leadsRoot
-    // was silently served 200 despite the docstring promising 403
-    // symlink_forbidden (the same defense file-write.ts already applies).
-    try {
-      if (lstat(target.absolute).isSymbolicLink()) {
-        return c.json({ error: "symlink_forbidden", path: relpath }, 403);
-      }
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code !== "ENOENT") {
-        return c.json(
-          { error: "file_stat_failed", detail: String(err).slice(0, 200) },
-          500,
-        );
-      }
+    const realGuard = realPathGuard(leadsRoot, target.absolute);
+    if (!realGuard.ok) {
+      return c.json({ error: "path_traversal", detail: realGuard.reason }, 400);
     }
 
-    let st;
+    // CodeQL js/file-system-race fix: a separate lstat-check + stat + read
+    // (each its own syscall against the PATH) leaves a window where the
+    // final component could be swapped for a symlink between checks. Open
+    // ONCE with O_NOFOLLOW — the kernel atomically refuses a symlinked final
+    // component (ELOOP), so there is no gap left to race — then fstat/read
+    // the SAME fd, so what gets served is provably what got checked.
+    let fd: number;
     try {
-      st = await stat(target.absolute);
+      fd = open(target.absolute, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
     } catch (err) {
       const code = (err as NodeJS.ErrnoException)?.code;
       if (code === "ENOENT") {
         return c.json({ error: "not_found", path: relpath }, 404);
+      }
+      if (code === "ELOOP") {
+        return c.json({ error: "symlink_forbidden", path: relpath }, 403);
       }
       return c.json(
         { error: "file_stat_failed", detail: String(err).slice(0, 200) },
@@ -79,33 +80,23 @@ export function registerOrgFileRead(app: Hono, deps: OrgFileReadDeps): void {
       );
     }
 
-    if (!st.isFile()) {
-      return c.json({ error: "not_a_file", path: relpath }, 400);
-    }
-
-    const realGuard = realPathGuard(leadsRoot, target.absolute);
-    if (!realGuard.ok) {
-      return c.json({ error: "path_traversal", detail: realGuard.reason }, 400);
-    }
-
-    let body: Buffer;
     try {
-      body = readFileSync(target.absolute);
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        return c.json({ error: "not_found", path: relpath }, 404);
+      if (!fstatSync(fd).isFile()) {
+        return c.json({ error: "not_a_file", path: relpath }, 400);
       }
+      const body = readFileSync(fd);
+      c.header("Content-Type", "text/markdown; charset=utf-8");
+      c.header("X-Content-Type-Options", "nosniff");
+      c.header("ETag", `"${fileFingerprint(body)}"`);
+      c.header("Cache-Control", "private, max-age=0, must-revalidate");
+      return c.body(new Uint8Array(body));
+    } catch (err) {
       return c.json(
         { error: "file_read_failed", detail: String(err).slice(0, 200) },
         500,
       );
+    } finally {
+      closeSync(fd);
     }
-
-    c.header("Content-Type", "text/markdown; charset=utf-8");
-    c.header("X-Content-Type-Options", "nosniff");
-    c.header("ETag", `"${fileFingerprint(body)}"`);
-    c.header("Cache-Control", "private, max-age=0, must-revalidate");
-    return c.body(new Uint8Array(body));
   });
 }
