@@ -20,7 +20,7 @@
     "@lydell/node-pty": "^1.1.0",
     "@xterm/addon-serialize": "0.14.0",
     "@xterm/headless": "6.0.0",
-    "hono": "^4.12.25",
+    "hono": "^4.12.34",
     "ignore": "^5.3.2",
     "p-queue": "^9.2.0",
     "proper-lockfile": "^4.1.0",
