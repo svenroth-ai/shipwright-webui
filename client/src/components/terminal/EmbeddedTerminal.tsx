@@ -74,6 +74,7 @@ export const EmbeddedTerminal = forwardRef<
   {
     taskId,
     active,
+    taskState,
     layoutRevision,
     socketUrlOverride,
     socketEnabled = true,
@@ -118,7 +119,7 @@ export const EmbeddedTerminal = forwardRef<
   const { syncSizeNow, onReplaySettled } = useTerminalSizeSync({ containerRef, termRef, fitAddonRef, disposedRef, socketSend: socket.send, role: socket.role, active });
   syncSizeRef.current = onReplaySettled;
   const { manualSendCommand, previewCommand, handleManualSend, dismissManualSend } =
-    useAutoLaunch({ taskId, socket, coord, gate, onBeforeDispatch: syncSizeNow, dispatchReady: active });
+    useAutoLaunch({ taskId, taskState, socket, coord, gate, onBeforeDispatch: syncSizeNow, dispatchReady: active });
 
   usePasteImage({
     taskId,

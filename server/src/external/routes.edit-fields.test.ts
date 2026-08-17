@@ -124,6 +124,23 @@ describe("PATCH /api/external/tasks/:id — widened fields (AC-1/AC-4)", () => {
     expect(t.tags).toEqual(["x", "y"]);
   });
 
+  it("sets autonomy on a never-started task (iterate-2026-08-16-task-lifecycle-ux-fixes)", async () => {
+    const taskId = await createTask();
+    const res = await patch(taskId, { autonomy: "autonomous" });
+    expect(res.status).toBe(200);
+    expect(store.get(taskId)!.autonomy).toBe("autonomous");
+  });
+
+  it("rejects an invalid autonomy value with 400", async () => {
+    const taskId = await createTask();
+    const res = await patch(taskId, { autonomy: "yolo" });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: string }).error).toBe(
+      "invalid_autonomy",
+    );
+    expect(store.get(taskId)!.autonomy).toBeUndefined();
+  });
+
   it("title-only PATCH still works (regression — FR-01.09)", async () => {
     const taskId = await createTask();
     const res = await patch(taskId, { title: "renamed" });
@@ -243,6 +260,17 @@ describe("PATCH — lifecycle gate (AC-2/AC-4 — field_not_editable)", () => {
     store.patch(taskId, { launchedAt: "2026-05-18T00:00:00.000Z" });
     const res = await patch(taskId, { phase: "build" });
     expect(res.status).toBe(409);
+  });
+
+  it("rejects an autonomy edit on a started task with 409 (iterate-2026-08-16-task-lifecycle-ux-fixes)", async () => {
+    const taskId = await createTask();
+    store.patch(taskId, { state: "active", autonomy: "guided" });
+    const res = await patch(taskId, { autonomy: "autonomous" });
+    expect(res.status).toBe(409);
+    const json = (await res.json()) as { error: string; fields: string[] };
+    expect(json.error).toBe("field_not_editable");
+    expect(json.fields).toContain("autonomy");
+    expect(store.get(taskId)!.autonomy).toBe("guided");
   });
 
   it("still allows domain + tags + title on a started task", async () => {

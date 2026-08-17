@@ -73,10 +73,18 @@ export function parseLaunchBody(
     typeof body.description === "string" && body.description.length > 0
       ? body.description
       : task.description;
-  const autonomy =
+  // Once-set-always-used, same as actionId/phase/phaseLabel/description
+  // above (iterate-2026-08-16-task-lifecycle-ux-fixes — this fallback was
+  // missing: useLaunchTask's Resume/Launch CTAs POST a bare `{ resume }`,
+  // so every launch past the very first (which came from NewIssueModal
+  // and DID set body.autonomy explicitly) silently lost the task's
+  // persisted autonomy and fell back to Claude's own default instead of
+  // what the task was created — or edited — to run as).
+  const bodyAutonomy =
     body.autonomy === "autonomous" || body.autonomy === "guided"
       ? (body.autonomy as "autonomous" | "guided")
       : undefined;
+  const autonomy = bodyAutonomy ?? task.autonomy;
 
   // iterate/launch-cli-parameters § 5 — body parameters validation.
   let userParams: Record<string, string | boolean> | undefined;

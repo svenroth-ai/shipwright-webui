@@ -82,12 +82,29 @@ export interface PtySpawnOpts {
 export interface AttachResult {
   role: "writer" | "reader";
   /**
-   * iterate-2026-05-27-fix-pty-reused-prewarm-race — `true` iff a
-   * writer had EVER attached BEFORE this call. Atomic snapshot taken
-   * inside `attach()` so back-to-back upgrades resolve sequentially.
-   * Routes layer emits as `ready.ptyReused`. Distinct from
-   * `ptyManager.get() !== undefined` (which still feeds ADR-104
-   * `terminalReset`) — split to prevent re-conflation.
+   * iterate-2026-05-27-fix-pty-reused-prewarm-race, refined
+   * iterate-2026-08-16-task-lifecycle-ux-fixes — `true` iff this pty had
+   * EVER received real input (keystroke or auto-injected launch command)
+   * before this call. Atomic snapshot inside `attach()`. Routes layer
+   * emits as `ready.ptyReused`, read by the client's one-shot
+   * auto-inject guard as "don't auto-run — something may already be
+   * live in here."
+   *
+   * Sourced from `entry.hadDataWritten`, NOT a writer-attach latch — a
+   * writer-attach-based signal would go true on the FIRST passive attach
+   * (EmbeddedTerminal connects on mount regardless of Launch state), so
+   * revisiting a never-launched Backlog task once already looked "reused"
+   * and its first real Launch silently fell back to manual "Send to
+   * terminal". Distinct from `ptyManager.get() !== undefined` (still
+   * feeds ADR-104 `terminalReset`) — split to prevent re-conflation.
+   *
+   * KNOWN RESIDUAL GAP (doubt-review, iterate-2026-08-16-task-lifecycle-
+   * ux-fixes, triage trg-cdf2bade): `hadDataWritten` latches on ANY real
+   * write, not specifically a launch command — an unrelated keystroke or
+   * paste typed into a never-launched task's terminal, followed by a
+   * revisit/reconnect, can still trigger the same false "reused" read.
+   * Closing it needs a launch-vs-ordinary-write distinction at the WS wire
+   * level; deliberately deferred rather than folded into this run.
    */
   hadPriorWriter: boolean;
 }
@@ -229,9 +246,10 @@ interface PtyEntry {
   connSubs: Map<unknown, ConnectionSubscription>;
   /** First connection becomes writer; null when no writer is currently bound. */
   writer: unknown | null;
-  /** iterate-2026-05-27-fix-pty-reused-prewarm-race — latched-true once
-   *  any writer has attached. Surfaced via `AttachResult.hadPriorWriter`. */
-  hadWriterAttach: boolean;
+  /** iterate-2026-08-16-task-lifecycle-ux-fixes — latched-true on the
+   *  first real write() (keystroke / auto-injected launch). Source for
+   *  `AttachResult.hadPriorWriter` — see that doc comment for why. */
+  hadDataWritten: boolean;
   /**
    * Iterate v0.8.6 AC-2 — last (cols, rows) handed to pty.resize().
    * Used to dedupe no-op resizes that otherwise trigger PowerShell to
@@ -465,7 +483,7 @@ export class PtyManager {
       dataSubs: new Set(),
       connSubs: new Map(),
       writer: null,
-      hadWriterAttach: false,
+      hadDataWritten: false,
       lastResizeCols: null,
       lastResizeRows: null,
       pendingByConn: new Map(),
@@ -568,6 +586,9 @@ export class PtyManager {
     const entry = this.entries.get(taskId);
     if (!entry) return;
     this.touchIdle(entry);
+    // The one signal for "no longer virgin" — set on real input, never
+    // at attach-time (iterate-2026-08-16-task-lifecycle-ux-fixes).
+    entry.hadDataWritten = true;
     entry.pty.write(data);
   }
 
@@ -776,16 +797,14 @@ export class PtyManager {
     // Atomic snapshot BEFORE mutation — closes the race a separate
     // public read would expose against concurrent attach() calls
     // (external review HIGH, iterate-2026-05-27-fix-pty-reused-prewarm-race).
-    const hadPriorWriter = entry.hadWriterAttach;
+    // Sourced from hadDataWritten — see AttachResult.hadPriorWriter's doc comment.
+    const hadPriorWriter = entry.hadDataWritten;
     let role: "writer" | "reader";
     if (entry.writer === null) {
       entry.writer = conn;
-      entry.hadWriterAttach = true;
       role = "writer";
     } else if (entry.writer === conn) {
-      // Re-attach by the same conn — keep its writer role + latch
-      // (this conn IS a prior writer; idempotent).
-      entry.hadWriterAttach = true;
+      // Re-attach by the same conn — keep its writer role (idempotent).
       role = "writer";
     } else {
       role = "reader";
@@ -1043,7 +1062,6 @@ export class PtyManager {
       if (!next.done) {
         const promoted = next.value;
         entry.writer = promoted;
-        entry.hadWriterAttach = true; // defensive latch (openai #3 medium)
         const sub = entry.connSubs.get(promoted);
         if (sub?.onPromoteToWriter) {
           try {

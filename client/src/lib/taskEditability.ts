@@ -10,7 +10,9 @@
  *   - description = the first prompt Claude sees
  *   - phase       = drives the slash command
  *   - priority / complexityHint = triage inputs the user set up-front
- * These four freeze once started. `title` / `projectId` / `domain` /
+ *   - autonomy    = embedded as `--autonomous` in the launch command itself
+ *     (iterate-2026-08-16-task-lifecycle-ux-fixes)
+ * These five freeze once started. `title` / `projectId` / `domain` /
  * `tags` / `blockedBy` are never frozen.
  *
  * `FROZEN_WHEN_STARTED` is a VERBATIM mirror of
@@ -30,6 +32,7 @@ export const FROZEN_WHEN_STARTED = [
   "phase",
   "priority",
   "complexityHint",
+  "autonomy",
 ] as const;
 
 export type FrozenField = (typeof FROZEN_WHEN_STARTED)[number];

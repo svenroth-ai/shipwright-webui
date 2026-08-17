@@ -5,9 +5,11 @@
  * OMITTED key is untouched; `""` / `null` clears a scalar/enum; `[]`
  * clears an array.
  *
- * Lifecycle gate (fail fast, before per-field validation): the four
- * launch-shaping fields (description / phase / priority / complexityHint)
- * freeze once the task has started — see `core/task-editability.ts`.
+ * Lifecycle gate (fail fast, before per-field validation): the five
+ * launch-shaping fields (description / phase / priority / complexityHint /
+ * autonomy) freeze once the task has started — see
+ * `core/task-editability.ts`. Unlike the other four, `autonomy` has no
+ * clear-to-empty state — it is always `guided` | `autonomous`.
  *
  * CLAUDE.md rule 6 — concurrent writers serialized by `proper-lockfile`;
  * on lock contention → 409 `sdk-sessions.json is locked, retry`.
@@ -40,6 +42,7 @@ const PATCHABLE = [
   "domain",
   "tags",
   "blockedBy",
+  "autonomy",
 ];
 
 export function registerTasksPatch(
@@ -206,6 +209,21 @@ export function registerTasksPatch(
       patch.blockedBy = normalizeStringArray(body.blockedBy).filter(
         (id) => id !== task.taskId,
       );
+    }
+
+    if ("autonomy" in body) {
+      const a = body.autonomy;
+      if (a === "guided" || a === "autonomous") {
+        patch.autonomy = a;
+      } else {
+        return c.json(
+          {
+            error: "invalid_autonomy",
+            detail: "autonomy must be guided or autonomous",
+          },
+          400,
+        );
+      }
     }
 
     store.patch(task.taskId, patch);

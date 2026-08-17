@@ -43,7 +43,7 @@ const ACTIONS: ResolvedProjectActions = {
     { id: "new-plain", label: "Plain Claude", kind: "external_launch", modal_fields: ["title", "description"] },
   ],
   phases: [
-    { id: "build", label: "Build" },
+    { id: "build", label: "Build", supports_autonomy: true },
     { id: "plan", label: "Plan" },
   ],
   defaults: { autonomy: "guided" },
@@ -231,6 +231,55 @@ describe("EditTaskModal — stale-dialog 409 (external review)", () => {
       /started/i,
     );
     expect(invalidateSpy).toHaveBeenCalled();
+  });
+});
+
+describe("EditTaskModal — Autonomy toggle (iterate-2026-08-16-task-lifecycle-ux-fixes)", () => {
+  it("shows the toggle when the selected phase supports autonomy, defaulting to Guided", () => {
+    renderModal(baseTask({ phase: "build" }));
+    expect(screen.getByTestId("autonomy-toggle")).toBeInTheDocument();
+    expect(screen.getByTestId("autonomy-guided")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  it("hides the toggle when the selected phase does not support autonomy", () => {
+    renderModal(baseTask({ phase: "plan" }));
+    expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+  });
+
+  it("hides the toggle when the task has no phase set at all", () => {
+    renderModal(baseTask());
+    expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+  });
+
+  it("switching to Autonomous and saving includes autonomy in the patch diff", async () => {
+    const user = userEvent.setup();
+    renderModal(baseTask({ phase: "build" }));
+    await user.click(screen.getByTestId("autonomy-autonomous"));
+    await user.click(screen.getByTestId("edit-task-save"));
+    expect(mutateAsync).toHaveBeenCalledWith({
+      taskId: "task-1",
+      patch: { autonomy: "autonomous" },
+    });
+  });
+
+  it("does not include autonomy in the diff when left unchanged", async () => {
+    const user = userEvent.setup();
+    renderModal(baseTask({ phase: "build", autonomy: "guided" }));
+    await user.click(screen.getByTestId("edit-task-save"));
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("on a started task, renders autonomy read-only instead of the toggle", () => {
+    renderModal(
+      baseTask({ state: "active", phase: "build", autonomy: "autonomous" }),
+    );
+    expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+    expect(screen.getByTestId("edit-task-readonly-autonomy")).toHaveTextContent(
+      "Autonomous",
+    );
   });
 });
 

@@ -1,7 +1,9 @@
 /*
- * Segmented <button role="radio"> pair for the NewIssueModal's autonomy
- * selector (pipeline + iterate modals only — FR-03.72 means the task
- * modal does NOT render this).
+ * Segmented <button role="radio"> pair for the autonomy selector. Shared by
+ * NewIssueModal (pipeline/iterate always; task modal only for a phase with
+ * `supports_autonomy`, per `useNewIssueFormDerived.ts`'s `showAutonomyToggle`)
+ * and EditTaskModal (`useEditTaskForm.ts`, same visibility rule — see
+ * iterate-2026-08-16-task-lifecycle-ux-fixes).
  *
  * Values:
  *   guided    — Claude pauses at every AskUser; user answers in terminal.

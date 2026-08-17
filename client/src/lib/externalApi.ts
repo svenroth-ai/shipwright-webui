@@ -419,9 +419,7 @@ export async function assignTaskProject(
  * patch. A field PRESENT here is an update; an OMITTED key is left
  * untouched server-side. To CLEAR an optional field send `""` (scalar /
  * enum) or `[]` (array). `title` / `domain` / `tags` / `blockedBy` may be
- * patched in any task state; `description` / `phase` / `priority` /
- * `complexityHint` are rejected (`409 field_not_editable`) once the task
- * has started — see `lib/taskEditability.ts`.
+ * patched in any state; the rest freeze once started — see `taskEditability.ts`.
  */
 export interface TaskUpdatePatch {
   title?: string;
@@ -432,6 +430,7 @@ export interface TaskUpdatePatch {
   domain?: string;
   tags?: string[];
   blockedBy?: string[];
+  autonomy?: "guided" | "autonomous"; // always set; no clear-to-empty
 }
 
 /**
