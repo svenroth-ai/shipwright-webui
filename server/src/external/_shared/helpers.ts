@@ -162,6 +162,30 @@ export function normalizeDescription(
 }
 
 /**
+ * iterate-2026-08-16-v1-lead-fields-tag-filter — poFeedback normalization.
+ * Structurally mirrors `normalizeDescription` (same trim + cap rule, same
+ * `DESCRIPTION_MAX_LENGTH` constant per the assignment) but is NOT built by
+ * parameterizing that function — `normalizeDescription`'s exact error
+ * string is pinned by `routes.description-length-cap.test.ts` + spec.md.
+ */
+export function normalizePoFeedback(
+  raw: unknown,
+): { ok: true; value: string | undefined } | { ok: false; error: string } {
+  if (raw === null || raw === undefined) return { ok: true, value: undefined };
+  if (typeof raw !== "string") {
+    return { ok: false, error: "poFeedback must be a string" };
+  }
+  if (raw.length > DESCRIPTION_MAX_LENGTH) {
+    return {
+      ok: false,
+      error: `poFeedback exceeds ${DESCRIPTION_MAX_LENGTH} characters`,
+    };
+  }
+  const trimmed = raw.trim();
+  return { ok: true, value: trimmed.length > 0 ? trimmed : undefined };
+}
+
+/**
  * D22 / F27 — canonical task-title validation, shared by PATCH /tasks/:id
  * (setting a title), POST /tasks, and POST /tasks/:id/fork so all three
  * enforce the SAME rule set with identical error strings. Mirrors the
@@ -212,12 +236,13 @@ export function normalizeStringArray(raw: unknown[]): string[] {
 // ---------------------------------------------------------------------------
 
 /**
- * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+ * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1,
+ * widened 2026-08-16 (+leadParentTaskId, triage-v1-v4a.md Item 1b).
  *
- * Read + soft-drop the 5 user-creatable leadwright fields from a create
+ * Read + soft-drop the 6 user-creatable leadwright fields from a create
  * or launch body. Mirrors `validateExternalTask`'s per-field tolerance:
  * malformed shapes are filtered out, the rest survive. Daemon-owned
- * fields are NOT read here.
+ * fields (including `poFeedback` — PATCH-only) are NOT read here.
  */
 export function readLeadCreateFields(body: Record<string, unknown>): {
   domain?: string;
@@ -225,10 +250,14 @@ export function readLeadCreateFields(body: Record<string, unknown>): {
   complexityHint?: "small" | "medium" | "large";
   tags?: string[];
   blockedBy?: string[];
+  leadParentTaskId?: string;
 } {
   const out: ReturnType<typeof readLeadCreateFields> = {};
   if (typeof body.domain === "string" && body.domain.length > 0) {
     out.domain = body.domain;
+  }
+  if (typeof body.leadParentTaskId === "string" && body.leadParentTaskId.length > 0) {
+    out.leadParentTaskId = body.leadParentTaskId;
   }
   if (
     body.priority === "P0" ||

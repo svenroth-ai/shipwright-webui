@@ -80,15 +80,14 @@ export interface ExternalTask {
   /**
    * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
    *
-   * Verbatim mirror of `server/src/core/sdk-sessions-store.ts`'s
-   * ExternalTask extension. Canonical source: leadwright/lib/
-   * lead-task-extension.ts (separate repo). Drift between this mirror
-   * and the server side is caught by the cross-package import guard.
+   * Verbatim mirror of `server/src/core/sdk-sessions-store.ts`'s ExternalTask
+   * extension (canonical: leadwright/lib/lead-task-extension.ts, separate
+   * repo; drift caught by the cross-package import guard).
    *
-   * User-creatable: domain, priority, complexityHint, tags, blockedBy.
-   * Daemon-owned (NOT writable via webui POST routes): leadParentTaskId,
-   * poFeedback, claimToken, claimedBy, claimedAt, claimPid, leadHandoff,
-   * promotedFromTriageId. All optional + additive.
+   * User-creatable: domain, priority, complexityHint, tags, blockedBy,
+   * leadParentTaskId. PATCH-only: poFeedback. Daemon-owned (not
+   * webui-writable at all): claimToken, claimedBy, claimedAt, claimPid,
+   * leadHandoff, promotedFromTriageId. All optional + additive.
    */
   domain?: string;
   priority?: "P0" | "P1" | "P2" | "P3";
@@ -415,11 +414,11 @@ export async function assignTaskProject(
 }
 
 /**
- * iterate-2026-05-18-edit-task-dialog — the Edit Task dialog's save
- * patch. A field PRESENT here is an update; an OMITTED key is left
- * untouched server-side. To CLEAR an optional field send `""` (scalar /
- * enum) or `[]` (array). `title` / `domain` / `tags` / `blockedBy` may be
- * patched in any state; the rest freeze once started — see `taskEditability.ts`.
+ * iterate-2026-05-18-edit-task-dialog — the Edit Task dialog's save patch.
+ * A field PRESENT here is an update; OMITTED is untouched server-side.
+ * `""` / `[]` clears an optional scalar/array. `title` / `domain` / `tags`
+ * / `blockedBy` / `poFeedback` patch in any state; the rest freeze once
+ * started — see `lib/taskEditability.ts`.
  */
 export interface TaskUpdatePatch {
   title?: string;
@@ -431,6 +430,7 @@ export interface TaskUpdatePatch {
   tags?: string[];
   blockedBy?: string[];
   autonomy?: "guided" | "autonomous"; // always set; no clear-to-empty
+  poFeedback?: string;
 }
 
 /**

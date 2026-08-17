@@ -25,6 +25,7 @@ import {
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
   normalizeDescription,
+  normalizePoFeedback,
   normalizeStringArray,
   normalizeTitle,
   validateProjectIdOrError,
@@ -43,6 +44,7 @@ const PATCHABLE = [
   "tags",
   "blockedBy",
   "autonomy",
+  "poFeedback",
 ];
 
 export function registerTasksPatch(
@@ -224,6 +226,14 @@ export function registerTasksPatch(
           400,
         );
       }
+    }
+
+    if ("poFeedback" in body) {
+      const r = normalizePoFeedback(body.poFeedback);
+      if (!r.ok) {
+        return c.json({ error: "invalid_po_feedback", detail: r.error }, 400);
+      }
+      patch.poFeedback = r.value;
     }
 
     store.patch(task.taskId, patch);

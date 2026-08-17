@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-16-v1-lead-fields-tag-filter",
+  "date": "2026-08-17",
+  "section": "FR-01.01 (Task list / create, Task edit / delete)",
+  "title": "Lead fields: poFeedback PATCH, leadParentTaskId create, ?tag= filter",
+  "context": "leadwright's daemon needed three narrow External Task API extensions to close its V1 lead-review loop: a PO-feedback channel, a parent-task link set at creation, and a cheap tag lookup that avoids scanning every session's JSONL.",
+  "decision": "PATCH /tasks/:id accepts poFeedback (6000-char cap like description, never frozen once started, clear-vs-omit contract). POST /tasks accepts leadParentTaskId with the same soft-drop-on-empty-string pattern as domain; poFeedback stays PATCH-only, never in the create path. GET /tasks gains an exact-match, case-sensitive ?tag= filter applied before the findManyByUuid filesystem walk, intersecting with ?projectId=; no tag index was built.",
+  "consequences": "ExternalTask now has 6 user-creatable / 7 daemon-owned fields (was 5/8); ADR-100's count amended. ?tag= is documented as a cheap lookup, not an atomic/idempotent check-and-create — a caller needing duplicate-prevention across concurrent daemon writers must still do its own check, unlike the existing findByPhaseTaskId() synchronous check before store.create().",
+  "rationale": "",
+  "rejected": "A tag index (explicitly out of scope per the source triage spec). Treating ?tag= as an idempotency primitive (doubt-review Stage 3 finding — the original leadwright spec wording overclaimed this; corrected in both the comment and the iterate spec's own Goal section).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-08-16-v1-lead-fields-tag-filter.md"
+}
