@@ -116,7 +116,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | FR-01.06 | PLT | Settings | Must | A minimal settings page. Most settings now live inside the user's own Claude client (model, autonomy, plugins); the Command Center keeps only its own display preferences, saved safely so two tabs can't corrupt them. | crawl+enrichment |
 | FR-01.31 | PLT | Network access profile | Should | By default the app's servers are reachable only from the same machine, for safety. Reaching them from other devices on your LAN or over Tailscale is opt-in: one network-profile setting flips both halves of the app to a matching, coherent access mode at once. | backfill (iterate-2026-05-16) |
 | FR-01.49 | PLT | npx installer / updater | Should | One installer command that both installs and updates the whole system (the Shipwright plugins and the Command Center), first run and every run after. It checks prerequisites up front and refuses loudly if a required tool (Claude, Python, Node, git) is missing, rather than leaving a broken install. It never starts a Claude session; if the app is already running it attaches to a same-or-newer one, safely swaps an older one, and leaves an unrelated program on the port untouched. | iterate-2026-07-10-npx-bootstrapper |
-| FR-01.70 | PLT | Leads org route | Should | A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file. | iterate-2026-08-17-org-route-leads |
+| FR-01.70 | PLT | Leads org route | Should | A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file.<br>**Updates:** Gained the runtime-store half of the leadwright coordination contract — a release action for a hung beat-register entry (mirrors leadwright's own recovery contract exactly, one audit line per release, idempotent on retry), a per-lead last-run timestamp with server-computed staleness (3× that lead's own cron cadence, never a hardcoded interval), and an open-register finding (clear / open / fault-on-duplicate-sessionId). | iterate-2026-08-17-org-route-leads + iterate-2026-08-18-org-route-beat-register |
 
 ## FR-Fold-Map
 
@@ -1059,6 +1059,55 @@ write surface; gated, path-guarded, and concurrency-safe.
   the guided wizard + register-manually next to "Open board", while the scoped-iterate
   promptbox stays the primary in-body intent; every create-CTA trigger rides
   `.btn-primary`/`.btn-primary-split` (the guard registry now includes ShipsLogPage).
+
+### FR-01.70 Leads org route
+
+- (A) **(iterate-2026-08-17-org-route-leads)** Five host+secret-gated routes
+  under `/api/external/org/*` let the separate leadwright tool read and
+  write a handful of organization files (a lead's `conventions.md` +
+  `charter.md`, the shared `decision_log.md`, `principal.md`, `AGENTS.md`,
+  `decisions-proposed.md`, and per-lead `usage.json`) on this machine or the
+  operator's own Tailscale network. Every request is gated by BOTH the bind
+  host allowlist (loopback ∪ Tailscale `100.64.0.0/10`, never a bare
+  `0.0.0.0`) and a constant-time shared-secret check. `PUT` targets a
+  six-entry allowlist (five literal org documents + the `<lead-id>/charter.md`
+  pattern); `org-chart.json` is read-only via its own typed endpoint. One
+  write action — a lead recording a proposed decision — coordinates with
+  leadwright's own background process via `proper-lockfile` so the two
+  processes never corrupt the same file.
+- (B) **(iterate-2026-08-18-org-route-beat-register)** A release action, `POST
+  /api/external/org/leads/:leadId/beat-register/release`, is the ONE
+  permitted write against leadwright's runtime beat-register store: given an
+  open register entry (`closedAt === null`) for the given `sessionId`, when
+  released with a reason, then the entry is force-closed and exactly one
+  `beat_recovered` line is appended to that lead's `audit.jsonl`; a second
+  release call against the same (now-closed) entry is a no-op that appends
+  no further audit line. The response never claims the lead can run again
+  immediately — leadwright's separate `.beat.lock` is untouched by this
+  action and may still deny the lead for up to its own stale window. A
+  register file that was never created for the lead (nothing to release)
+  reports 404 without creating one as a side effect. A duplicate
+  `sessionId` (D)'s fault case reaches through the write path too: release
+  refuses outright — no mutation, no audit line — rather than silently
+  acting on whichever matching entry it finds first.
+- (C) **(iterate-2026-08-18-org-route-beat-register)** `GET
+  /api/external/org/leads/:leadId/last-run` reports a lead's last-run
+  timestamp with a server-computed staleness state — `fresh`, `stale`, or
+  `unknown` — derived from that lead's own `triggers.cron` cadence (never a
+  hardcoded interval): given a `last-run.json` older than 3× the lead's
+  configured cadence, staleness is `stale`; one within that window is
+  `fresh`, with the boundary itself (`age === 3×cadence`) still `fresh`. A
+  lead with no `last-run.json` at all reports `measured: false` (not
+  measured), a distinct state from `measured: true, staleness: "unknown"`
+  (a timestamp exists but the cadence can't be resolved — missing org chart,
+  lead not present in it, or an unparseable cron expression).
+- (D) **(iterate-2026-08-18-org-route-beat-register)** `GET
+  /api/external/org/leads/:leadId/beat-register` reports that lead's
+  open-register finding: `clear` when no entry is open, `open` with the
+  entry when exactly one is, and `fault` (`duplicate-session-id`) when two
+  entries share the same `sessionId` — a fault the server never resolves by
+  picking one. Display and the release action from (B) live at the same
+  route family.
 
 ## Quality Requirements
 

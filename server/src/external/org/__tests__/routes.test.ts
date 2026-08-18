@@ -12,6 +12,9 @@ const ALL_ENDPOINTS: Array<{ method: string; path: string }> = [
   { method: "GET", path: "/api/external/org/org-chart" },
   { method: "GET", path: "/api/external/org/leads/acme-lead/usage" },
   { method: "POST", path: "/api/external/org/decisions/countersign" },
+  { method: "GET", path: "/api/external/org/leads/acme-lead/last-run" },
+  { method: "GET", path: "/api/external/org/leads/acme-lead/beat-register" },
+  { method: "POST", path: "/api/external/org/leads/acme-lead/beat-register/release" },
 ];
 
 describe("createOrgRouter — host + secret gates", () => {

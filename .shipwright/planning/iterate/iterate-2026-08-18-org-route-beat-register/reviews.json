@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-18-org-route-beat-register",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-18T15:56:04.011953+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter(openai+deepseek)",
+      "completed_at": "2026-08-18T15:33:21.212439+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[deepseek] Findings: security/high - :leadId validation before path construction not spelled out in prose (LEAD_ID_RE was already planned but not stated explicitly); TOCTOU risk from lstat-before-containment. edge-case/medium - missing beat-register.json on POST /release: define as 404 not-found, do not create the file. risk/medium - release write must preserve unknown/extra fields via narrow merge (mutate in place), not reconstruction. dependency/medium - package-lock.json not named alongside package.json in file list. security/medium - org-chart-lookup collapses symlink/containment failures into the same 'unknown' bucket as missing/invalid, inconsistent with org-chart.ts's 403 policy for the same condition. edge-case/medium - beat_recovered audit JSONL schema/timestamp format under-specified; copy leadwright's AuditEntry shape exactly. security/medium - release sequence needs an explicit post-lock-acquisition recheck of the canonical path before read-modify-write. dependency/risk/medium - leadsRoot must resolve to the same absolute directory leadwright uses; not re-verified by this plan (inherited from 2A). edge-case/low - multiple distinct open entries (not duplicate sessionId) aren't flagged as fault by evaluateRegisterHealth, only the first is reported; align with leadwright's own function exactly. Overall: tri-state staleness model and route-family extension are sound; write path and filesystem boundary need concrete fixes before implementation especially strict lead-id validation, missing-register release behavior, exact audit shape, and preservation of the beat-register file during atomic writes. SHIPWRIGHT_VERDICT: revise\n\n[openai] 1. Category: edge-case, Severity: high. Finding: The release behavior for a register in fault state (duplicate sessionId) is not defined; POST plan only says locate an entry and close it. Suggestion: validate register health before recovery; refuse recovery for structural faults. 2. Category: risk, Severity: high. Finding: register mutation and audit append are not atomic; audit appended after lock release. Suggestion: document failure semantics, consider appending while lock held. 3. Category: security, Severity: high. Finding: symlink/containment protections described for beat-register.json but not for the audit write target; no post-lock revalidation. Suggestion: apply same lstat+containment to audit path, recheck after lock acquisition. 4. Category: approach, Severity: medium. Finding: cronIntervalMs via next-two-occurrences is unstable for irregular cron (monthly/DST); timezone unspecified. Suggestion: define reference point explicitly, specify timezone, disclose approximation for irregular schedules. 5. Category: edge-case, Severity: medium. Finding: POST /release would ensureFile a new register for an unknown-session request. Suggestion: treat missing register as not-found without creating it. 6. Category: dependency, Severity: medium. Finding: 'local mirror'/'shape-check' underspecified re version/malformed fields/timestamps. Suggestion: validate version:1 + entry field types explicitly; 502 on invalid rather than guessed health. 7. Category: risk, Severity: low. Finding: lock-acquisition failure (ELOCKED) had no defined mapping, would 500. Suggestion: map to 409/503 explicitly. Overall: route structure, gate reuse, narrow chart lookup, and matching lock defaults are sound; release path needs corrupted-register, multi-file-write, and filesystem-safety semantics tightened before implementation. SHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "unknown",
+        "deepseek": "unknown"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/org/beat-register.ts",
+          "line": 125,
+          "finding": "guardExistingTarget's lstat had no ENOENT tolerance, so a register file deleted between the caller's existsSync check and this lstat call (the register has a real second writer -- leadwright's own daemon) propagated as an unhandled exception into a bare 500 instead of a graceful 404.",
+          "suggestion": "Fixed: guardExistingTarget now catches ENOENT and returns a new {ok:false, status:404, error:\"vanished\"} variant; performRelease's preGuard/postGuard map it to the same not-found ReleaseOutcome the existsSync check already produces. Regression test added (mocked lstat throwing ENOENT).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "server/src/external/org/beat-register-release-core.ts",
+          "line": 71,
+          "finding": "A second, independent OrgSymlinkEscapeError class duplicated the one already exported from decisions-lock.ts and reused by countersign.ts/file-write.ts -- structurally identical but a different type, so an instanceof check against the wrong import would silently fail to match.",
+          "suggestion": "Fixed: removed the local class, import and re-export OrgSymlinkEscapeError from decisions-lock.ts instead, matching countersign.ts's existing pattern.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/org/__tests__/routes.test.ts",
+          "line": 9,
+          "finding": "ALL_ENDPOINTS (the list proving every /api/external/org/* route shares the same host+secret gate) was not updated to include the three new endpoints; none of the new route test files exercise createOrgRouter, so nothing would catch a future regression where one of the three routes stops being covered by the shared middleware.",
+          "suggestion": "Fixed: added GET last-run, GET beat-register, and POST beat-register/release to ALL_ENDPOINTS. All parametrized gate cases pass for the three new routes (38 tests total in routes.test.ts, up from 20).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/org/beat-register-release-core.ts",
+          "line": 154,
+          "finding": "performRelease was ~82 lines, over the 50-line guideline (advisory, not blocking) -- reviewer noted no action required unless it grows further.",
+          "suggestion": "It did grow further (to ~115 lines) picking up the vanished-guard and duplicate-fault fixes, so applied the reviewer's own suggested extraction: pre-lock existence/guard check moved to checkRegisterReachable(), post-release audit append moved to recordRecoveryAudit(), leaving only the lock-acquire/critical-section/release in performRelease's body.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-18T16:13:07.610441+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "concurrency",
+          "file": "server/src/external/org/beat-register-release-core.ts",
+          "line": 237,
+          "finding": "Claim under doubt: The two TOCTOU vanish-windows already guarded (existsSync-to-lstat, and post-lock-acquire re-check) close every gap where the register file can disappear mid-request. — Read proper-lockfile's actual source: with realpath:true (the default here), lockfile.lock() calls fs.realpath(file) FIRST, before this code's own post-acquire guardExistingTarget re-check ever runs. A THIRD vanish-window exists strictly between checkRegisterReachable's pass and the lock() call itself -- if the register (a file with a real second writer, leadwright's own daemon) disappears there, proper-lockfile's realpath rejects with ENOENT, which the route handler's catch block (recognizing only OrgSymlinkEscapeError, BeatRegisterInvalidError, and code===\"ELOCKED\") did not handle, falling through to an uncaught 500 instead of the graceful 404 the other two windows already produce. Confirmed genuine by reading server/node_modules/proper-lockfile/lib/lockfile.js directly, and reproduced empirically via `node -e` against a real deleted file.",
+          "suggestion": "Wrap the lockfile.lock() call in its own try/catch mapping ENOENT to {ok:false, reason:\"not-found\"}, rethrowing everything else (including ELOCKED) unchanged. Fixed and regression-tested (beat-register-release-guards.test.ts, mocking proper-lockfile's lock() via vi.mock to reject with ENOENT for one call -- ESM module namespaces can't be vi.spyOn'd directly).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/org/beat-register-release.ts",
+          "line": 36,
+          "finding": "Claim under doubt: sessionId validation (UUID_RE) and register entry matching agree on what counts as the same session. — UUID_RE used the case-insensitive /i flag, so an uppercase-but-otherwise-valid UUID passes validation. Entry matching in beat-register-release-core.ts (`e.sessionId === sessionId`) is an exact, unnormalized string comparison. leadwright's writer always produces crypto.randomUUID(), which is lowercase by definition, so a differently-cased input that passes validation can never match the real (lowercase) entry -- it silently returns 404 not-found for a session that genuinely has an open beat.",
+          "suggestion": "Remove the /i flag so a differently-cased input is rejected up front as 400 sessionId_invalid rather than silently mismatching downstream. Fixed and regression-tested.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/external/org/beat-register-release-core.ts",
+          "line": 237,
+          "finding": "Claim under doubt: Fixing the lock()-ENOENT vanish-window closes every risk in that window. — A symlink-swap during the same pre-lock window could make lockfile.lock() briefly lock an attacker-chosen realpath, creating a transient stray lock directory before the subsequent postGuard rejects it as a symlink. This is a genuine residual gap, not fully closed by the ENOENT fix.",
+          "suggestion": "Disclosed, not fixed -- assessed as within the already-accepted local-machine/Tailscale threat model this host+secret-gated route family operates under (single-operator machine, not a multi-tenant server). Flagged for the record only.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-18T16:36:48.849188+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/external/org/beat-register-release.ts:100-109",
+          "line": null,
+          "finding": "appendAuditLine` guards only when `existsSync(auditPath)` is true. `existsSync` follows symlinks and returns false for a dangling symlink, so a malicious or stale dangling `audit.jsonl` symlink bypasses `guardExistingTarget`; `openSync(auditPath, \"a\")` then follows it and can create/append to the symlink target outside `leadsRoot`.",
+          "suggestion": "Use `lstat` to distinguish a genuinely absent audit file from a dangling symlink. Treat `ENOENT` from `lstat` as the fresh-file case, and reject every existing symlink before opening the file.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/external/org/beat-register-release.ts:174-190",
+          "line": null,
+          "finding": "The FR-01.70(D) acceptance criterion says a duplicate-`sessionId` register is a fault “the server never resolves by picking one,” but release uses `.find()` and closes the first matching entry. For a duplicate where the first entry is already closed and a later entry remains open, every release becomes a no-op and the open entry can no longer be recovered through this endpoint.",
+          "suggestion": "Detect duplicate `sessionId` entries before mutation and return a conflict/fault response without changing the register. If parity with leadwright is intentionally more important, the adopted AC must be changed because the implementation does not meet its current wording.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/external/org/beat-register-release.ts:188-218",
+          "line": null,
+          "finding": "The register is durably closed before the audit append occurs, and the append happens after releasing the register lock. If the process crashes or `appendAuditLine` fails, the request returns/terminates with a recovered-but-unaudited entry; a retry sees `closedAt !== null` and deliberately performs no audit append. This violates the required one `beat_recovered` audit line per successful recovery.",
+          "suggestion": "Add durable reconciliation for closed entries missing their recovery audit event, such as a recovery transaction/journal or an idempotency marker that allows a retry to append the missing event. Add a test that forces the audit append to fail and verifies retries can restore the required audit record.  Overall assessment: ship-with-fixes. The main route behavior is implemented, but the audit-file symlink bypass and fault-state/recovery consistency gaps leave security and acceptance-criterion failures. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-18T16:13:34.804824+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: security\n- Severity: medium\n- File: `server/src/external/org/beat-register-release.ts:100-109`\n- Finding: `appendAuditLine` guards only when `existsSync(auditPath)` is true. `existsSync` follows symlinks and returns false for a dangling symlink, so a malicious or stale dangling `audit.jsonl` symlink bypasses `guardExistingTarget`; `openSync(auditPath, \"a\")` then follows it and can create/append to the symlink target outside `leadsRoot`.\n- Suggestion: Use `lstat` to distinguish a genuinely absent audit file from a dangling symlink. Treat `ENOENT` from `lstat` as the fresh-file case, and reject every existing symlink before opening the file.\n\n- Category: spec\n- Severity: medium\n- File: `server/src/external/org/beat-register-release.ts:174-190`\n- Finding: The FR-01.70(D) acceptance criterion says a duplicate-`sessionId` register is a fault “the server never resolves by picking one,” but release uses `.find()` and closes the first matching entry. For a duplicate where the first entry is already closed and a later entry remains open, every release becomes a no-op and the open entry can no longer be recovered through this endpoint.\n- Suggestion: Detect duplicate `sessionId` entries before mutation and return a conflict/fault response without changing the register. If parity with leadwright is intentionally more important, the adopted AC must be changed because the implementation does not meet its current wording.\n\n- Category: bug\n- Severity: medium\n- File: `server/src/external/org/beat-register-release.ts:188-218`\n- Finding: The register is durably closed before the audit append occurs, and the append happens after releasing the register lock. If the process crashes or `appendAuditLine` fails, the request returns/terminates with a recovered-but-unaudited entry; a retry sees `closedAt !== null` and deliberately performs no audit append. This violates the required one `beat_recovered` audit line per successful recovery.\n- Suggestion: Add durable rec […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-18T15:59:38.228153+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "PR-1's adopted fix says the audit.jsonl append gets 'the same lstat+realPathGuard guard as the register file' -- but this reads as a READ-oriented guard pattern (lstat, then realPathGuard, which internally calls realpathSync and must be called only when the path is known to exist) applied onto audit.jsonl, a file the release action may be the first-ever writer for. realPathGuard returns ok:false on any lead whose audit.jsonl doesn't exist yet -- the happy-path recovery would fail after the register file has already been mutated inside the lock and the lock released, turning the disclosed rare-crash limitation into a deterministic split-brain outcome.",
+          "suggestion": "For the audit path specifically, mirror decisions-lock.ts's write-guard (ensureFile-then-lstat-only), not usage.ts's read-guard. Add an explicit test: fresh tmpdir with ONLY beat-register.json (no audit.jsonl) -- release still returns recovered:true and creates audit.jsonl with exactly one line. Verified against the actual code (not just the prose): beat-register-release.ts's appendAuditLine already gates the guard behind existsSync(auditPath) -- when the file doesn't exist yet, the guard is skipped and open(path,\"a\") creates it fresh; the guard only runs, safely, on a subsequent append. No code change was needed; the spec prose describing the guard was corrected, and the requested test was added.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "Mini-plan step 5's prose did not restate the lstat-first-then-404 ordering for a missing beat-register.json on POST /release -- an implementer building strictly from the mini-plan could reintroduce that bug.",
+          "suggestion": "Update mini-plan step 5's prose to spell out the lstat-first-then-404 ordering explicitly, not just cross-reference the spec's review table. Fixed: mini-plan step 5 rewritten to state the ordering explicitly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "Decision 4's 'guarded like org-chart.ts/usage.ts' cited two routes with different guard strength -- org-chart.ts has no realPathGuard call at all, usage.ts does.",
+          "suggestion": "State explicitly that readLeadOrgInfo should follow usage.ts's stronger pattern. Verified against the actual code: org-chart-lookup.ts already uses usage.ts's stronger pattern. Fixed: decision 4's wording tightened.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "Decision 5 claims the release lock mirrors leadwright's withLock DEFAULTS exactly but omitted the update (heartbeat) parameter -- proper-lockfile's own default when omitted is stale/2 (150s here), not leadwright's actual 1000ms.",
+          "suggestion": "Add update:1000 explicitly. Fixed: update:1_000 added to DEFAULT_LOCK_OPTIONS.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "No lock-contention test was listed for the ELOCKED to 409 mapping despite the test-strategy section committing to real file locks.",
+          "suggestion": "Add an explicit lock-contention test. Fixed: added to the mini-plan's POST /release test list.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The beat_recovered audit entry's field list was not pinned to leadwright's own payload -- beat_id (from the recovered entry) was missing.",
+          "suggestion": "Spell out the literal field list, mirroring recoverRegisterEntry's payload verbatim. Fixed: beat_id: entry.beatId added to the appended entry and the ReleaseOutcome type.  Overall: The plan was well-reasoned and most prior (external) review findings were genuinely fixed. The one high finding concerned prose ambiguity, not a code defect -- verified against the actual implementation, which already handled the case correctly. Five lower-severity documentation/completeness gaps were fixed in both code and docs. Known limitations correctly disclosed and left unchanged: duplicate-sessionId fault ambiguity on release, register-write/audit-append non-atomicity, two-distinct-open-entries not flagged as fault, the cron interval approximation for irregular schedules, and leadsRoot cross-repo path-identity (inherited from 2A) -- all are genuine, reasoned mirrors of leadwright's own shipped contract. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-18T15:42:08.412961+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": "structured",
+      "raw_excerpt": "Category: architecture\nSeverity: high\nFinding: PR-1's adopted fix says the audit.jsonl append gets 'the same lstat+realPathGuard guard as the register file' -- but this reads as a READ-oriented guard pattern (lstat, then realPathGuard, which internally calls realpathSync and must be called only when the path is known to exist) applied onto audit.jsonl, a file the release action may be the first-ever writer for. realPathGuard returns ok:false on any lead whose audit.jsonl doesn't exist yet -- the happy-path recovery would fail after the register file has already been mutated inside the lock and the lock released, turning the disclosed rare-crash limitation into a deterministic split-brain outcome.\nSuggestion: For the audit path specifically, mirror decisions-lock.ts's write-guard (ensureFile-then-lstat-only), not usage.ts's read-guard. Add an explicit test: fresh tmpdir with ONLY beat-register.json (no audit.jsonl) -- release still returns recovered:true and creates audit.jsonl with exactly one line.\nVerified against the actual code (not just the prose): beat-register-release.ts's appendAuditLine already gates the guard behind existsSync(auditPath) -- when the file doesn't exist yet, the guard is skipped and open(path,\"a\") creates it fresh; the guard only runs, safely, on a subsequent append. No code change was needed; the spec prose describing the guard was corrected, and the requested test was added.\n\nCategory: completeness\nSeverity: medium\nFinding: Mini-plan step 5's prose did not restate the lstat-first-then-404 ordering for a missing beat-register.json on POST /release -- an implementer building strictly from the mini-plan could reintroduce that bug.\nSuggestion: Update mini-plan step 5's prose to spell out the lstat-first-then-404 ordering explicitly, not just cross-reference the spec's review table.\nFixed: mini-plan step 5 rewritten to state the ordering explicitly.\n\nCategory: architecture\nSeverity: medium\nFinding: Decision 4's 'guarded like org-chart.ts/usage.ts' cited two routes with different guard strength -- org-chart.ts has no realPathGuard call at all, usage.ts does.\nSuggestion: State explicitly that readLeadOrgInfo should follow usage.ts's stronger pattern.\nVerified against the actual code: org-chart-lookup.ts already uses usage.ts's stronger pattern. Fixed: decision 4's wording tightened.\n\nCategory: completeness\nSeverity: low\nFinding: Decision 5 claims the release lock mirrors leadwright's withLock DEFAULTS exactly but omitted the update (heartbeat) parameter -- proper-lockfile's own default when omitted is stale/2 (150s here), not leadwright's actual 1000ms.\nSuggestion: Add update:1000 explicitly.\nFixed: update:1_000 added to DEFAULT_LOCK_OPTIONS.\n\nCategory: completeness\nSeverity: low\nFinding: No lock-contention test was listed for the ELOCKED to 409 mapping despite the test-strategy section committing to real file locks.\nSuggestion: Add an explicit lock-contention test.\nFixed: added to the mini-plan's POST /release test list.\n\nCategory: completeness\nSeverity: low\nFinding: The beat_recovered audit entry's field list was not pinned to leadwright's own payload -- beat_id (from the recovered entry) was missing.\nSuggestion: Spell out the literal field list, mirroring recoverRegisterEntry's payload verbatim.\nFixed: beat_id: entry.beatId added to the appended entry and the ReleaseOutcome type.\n\nOverall: The plan was well-reasoned and most prior (external) review findings were genuinely fixed. The one high finding concerned prose ambiguity, not a code defect -- verified against the actual implementation, which already handled the case correctly. Five lower-severity documentation/completeness gaps were fixed in both code and docs. Known limitations correctly disclosed and left unchanged: duplicate-sessionId fault ambiguity on release, register-write/audit-append non-atomicity, two-distinct-open-entries not flagged as fault, the cron interval approximation for irregular schedules, and leadsRoot cross-repo pa […truncated]"
+    }
+  }
+}

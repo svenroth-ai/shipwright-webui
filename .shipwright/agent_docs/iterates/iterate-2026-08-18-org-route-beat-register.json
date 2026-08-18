@@ -1,0 +1,31 @@
+{
+  "run_id": "iterate-2026-08-18-org-route-beat-register",
+  "date": "2026-08-18T16:59:15.125272Z",
+  "event_at": "2026-08-18T16:58:12.662963+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/org-route-beat-register",
+  "spec": ".shipwright/planning/iterate/2026-08-18-org-route-beat-register.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-18-org-route-beat-register",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 20,
+      "tested": 20,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "surface_verification": {
+    "surface": "api",
+    "exit_code": 0,
+    "tests_run": 15,
+    "evidence_path": ".shipwright/runs/iterate-2026-08-18-org-route-beat-register/surface_verification.log"
+  }
+}

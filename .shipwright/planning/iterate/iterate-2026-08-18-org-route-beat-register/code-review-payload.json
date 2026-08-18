@@ -1,0 +1,67 @@
+{
+  "section": "2026-08-18-org-route-beat-register",
+  "review": [
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "server/src/external/org/beat-register.ts",
+      "line": 125,
+      "finding": "guardExistingTarget's lstat had no ENOENT tolerance, so a register file deleted between the caller's existsSync check and this lstat call (the register has a real second writer -- leadwright's own daemon) propagated as an unhandled exception into a bare 500 instead of a graceful 404.",
+      "suggestion": "Fixed: guardExistingTarget now catches ENOENT and returns a new {ok:false, status:404, error:\"vanished\"} variant; performRelease's preGuard/postGuard map it to the same not-found ReleaseOutcome the existsSync check already produces. Regression test added (mocked lstat throwing ENOENT).",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "architecture",
+      "file": "server/src/external/org/beat-register-release-core.ts",
+      "line": 71,
+      "finding": "A second, independent OrgSymlinkEscapeError class duplicated the one already exported from decisions-lock.ts and reused by countersign.ts/file-write.ts -- structurally identical but a different type, so an instanceof check against the wrong import would silently fail to match.",
+      "suggestion": "Fixed: removed the local class, import and re-export OrgSymlinkEscapeError from decisions-lock.ts instead, matching countersign.ts's existing pattern.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "server/src/external/org/__tests__/routes.test.ts",
+      "line": 9,
+      "finding": "ALL_ENDPOINTS (the list proving every /api/external/org/* route shares the same host+secret gate) was not updated to include the three new endpoints; none of the new route test files exercise createOrgRouter, so nothing would catch a future regression where one of the three routes stops being covered by the shared middleware.",
+      "suggestion": "Fixed: added GET last-run, GET beat-register, and POST beat-register/release to ALL_ENDPOINTS. All parametrized gate cases pass for the three new routes (38 tests total in routes.test.ts, up from 20).",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/external/org/beat-register-release-core.ts",
+      "line": 154,
+      "finding": "performRelease was ~82 lines, over the 50-line guideline (advisory, not blocking) -- reviewer noted no action required unless it grows further.",
+      "suggestion": "It did grow further (to ~115 lines) picking up the vanished-guard and duplicate-fault fixes, so applied the reviewer's own suggested extraction: pre-lock existence/guard check moved to checkRegisterReachable(), post-release audit append moved to recordRecoveryAudit(), leaving only the lock-acquire/critical-section/release in performRelease's body.",
+      "outcome": "fixed"
+    }
+  ],
+  "external_cascade_findings": [
+    {
+      "severity": "medium",
+      "category": "security",
+      "file": "server/src/external/org/beat-register-release.ts (now beat-register-release-core.ts) appendAuditLine",
+      "finding": "existsSync-gated guard skipped entirely for a dangling audit.jsonl symlink (existsSync follows symlinks and reports a dangling one as absent); openSync(path,'a') would then create/write through it outside leadsRoot.",
+      "suggestion": "Fixed: replaced with ensureAuditFile (wx flag, O_CREAT|O_EXCL -- fails EEXIST against ANY pre-existing path including a dangling symlink, without following it) + an UNCONDITIONAL guardExistingTarget call after, mirroring decisions-lock.ts's own already-reviewed ensureFile pattern verbatim.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "spec",
+      "file": "server/src/external/org/beat-register-release-core.ts performRelease",
+      "finding": "A duplicate-sessionId fault where the FIRST matching entry is closed and a SECOND is open made release silently no-op on the open entry forever (find() picked the first match), contradicting FR-01.70(D)'s 'never resolved by picking one' principle applied only to reads.",
+      "suggestion": "Fixed: release now checks for >1 match on the requested sessionId BEFORE any mutation and returns 409 {ok:false, reason:\"fault\"} without touching the register or writing an audit line -- extends the existing read-side fault principle to the write path without inventing new leadwright-side recovery semantics.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "bug",
+      "file": "server/src/external/org/beat-register-release-core.ts performRelease",
+      "finding": "Register close and audit append are non-atomic (audit append happens after the lock is released); a crash between them leaves a recovered-but-unaudited entry with no retry path to add the missing audit line.",
+      "suggestion": "Disclosed, not fixed. This is the SAME limitation already identified and explicitly decided across two prior review rounds (Plan Review PR-9, Internal Plan Review) specifically to mirror leadwright's own recoverRegisterEntry ordering -- the task brief instructs mirroring that contract rather than inventing a divergent (un-mirrored) recovery mechanism leadwright itself doesn't have. Re-affirmed rather than re-litigated; see the iterate spec's Plan Review + Internal Plan Review sections and the MIRRORED LIMITATION comment on recordRecoveryAudit.",
+      "outcome": "no_change_needed"
+    }
+  ]
+}

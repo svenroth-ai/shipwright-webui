@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "1. Category: edge-case, Severity: high. Finding: The release behavior for a register in fault state (duplicate sessionId) is not defined; POST plan only says locate an entry and close it. Suggestion: validate register health before recovery; refuse recovery for structural faults. 2. Category: risk, Severity: high. Finding: register mutation and audit append are not atomic; audit appended after lock release. Suggestion: document failure semantics, consider appending while lock held. 3. Category: security, Severity: high. Finding: symlink/containment protections described for beat-register.json but not for the audit write target; no post-lock revalidation. Suggestion: apply same lstat+containment to audit path, recheck after lock acquisition. 4. Category: approach, Severity: medium. Finding: cronIntervalMs via next-two-occurrences is unstable for irregular cron (monthly/DST); timezone unspecified. Suggestion: define reference point explicitly, specify timezone, disclose approximation for irregular schedules. 5. Category: edge-case, Severity: medium. Finding: POST /release would ensureFile a new register for an unknown-session request. Suggestion: treat missing register as not-found without creating it. 6. Category: dependency, Severity: medium. Finding: 'local mirror'/'shape-check' underspecified re version/malformed fields/timestamps. Suggestion: validate version:1 + entry field types explicitly; 502 on invalid rather than guessed health. 7. Category: risk, Severity: low. Finding: lock-acquisition failure (ELOCKED) had no defined mapping, would 500. Suggestion: map to 409/503 explicitly. Overall: route structure, gate reuse, narrow chart lookup, and matching lock defaults are sound; release path needs corrupted-register, multi-file-write, and filesystem-safety semantics tightened before implementation. SHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": "Findings: security/high - :leadId validation before path construction not spelled out in prose (LEAD_ID_RE was already planned but not stated explicitly); TOCTOU risk from lstat-before-containment. edge-case/medium - missing beat-register.json on POST /release: define as 404 not-found, do not create the file. risk/medium - release write must preserve unknown/extra fields via narrow merge (mutate in place), not reconstruction. dependency/medium - package-lock.json not named alongside package.json in file list. security/medium - org-chart-lookup collapses symlink/containment failures into the same 'unknown' bucket as missing/invalid, inconsistent with org-chart.ts's 403 policy for the same condition. edge-case/medium - beat_recovered audit JSONL schema/timestamp format under-specified; copy leadwright's AuditEntry shape exactly. security/medium - release sequence needs an explicit post-lock-acquisition recheck of the canonical path before read-modify-write. dependency/risk/medium - leadsRoot must resolve to the same absolute directory leadwright uses; not re-verified by this plan (inherited from 2A). edge-case/low - multiple distinct open entries (not duplicate sessionId) aren't flagged as fault by evaluateRegisterHealth, only the first is reported; align with leadwright's own function exactly. Overall: tri-state staleness model and route-family extension are sound; write path and filesystem boundary need concrete fixes before implementation especially strict lead-id validation, missing-register release behavior, exact audit shape, and preservation of the beat-register file during atomic writes. SHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
+  },
+  "note": "Verbatim-condensed transcript of the first (uncontaminated) external_review.py --mode iterate call. A second confirmatory call was run afterward but disregarded for recording purposes: by that point the iterate spec already contained this call's own findings/dispositions in its '## Plan Review' section, which external_review.py reads as --spec-file, so that second call was handed the answer key and is not an independent review."
+}

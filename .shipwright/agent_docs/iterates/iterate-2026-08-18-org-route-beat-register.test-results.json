@@ -1,0 +1,144 @@
+{
+  "last_updated": "2026-08-18",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-18-org-route-beat-register",
+    "date": "2026-08-18",
+    "unit": "PASS \u2014 server 3594 passed / 1 skipped (313 files, incl. 200 in the new org route family); client typecheck clean, no client suite run (no client/** delta in this diff)",
+    "integration": "n/a \u2014 new routes have no DB/service-boundary; the cross-process proper-lockfile contention contract is covered as e2e/surface below, not integration",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 see surface_verification (real HTTP probes against a live Hono server + real filesystem-backed leadsRoot)",
+    "design_fidelity": "n/a \u2014 no UI change (server-only; client Org page remains a separate, explicitly out-of-scope item)",
+    "smoke": "n/a \u2014 no existing route's behaviour changed; this iterate only adds new routes to the existing family",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Release: an open entry is force-closed and exactly one beat_recovered audit line is appended, mirroring leadwright's recoverRegisterEntry",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'releases an open entry: 200 recovered:true, register closed, exactly one audit line'; F0.5 real-disk assertion"
+        },
+        {
+          "behavior": "Release: a second call on the same (now-closed) entry is a no-op \u2014 200 recovered:false, no duplicate audit line",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'second call on an already-closed entry'; F0.5 idempotent-retry real-disk assertion"
+        },
+        {
+          "behavior": "Release: a duplicate sessionId (one closed, one open) on the WRITE path refuses outright \u2014 409 fault, no mutation, no audit line",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'a duplicate sessionId where the FIRST match is closed and the SECOND is still open returns 409 fault'"
+        },
+        {
+          "behavior": "Release: unknown sessionId with an existing register -> 404 not-found",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'unknown sessionId with an existing register: 404 not-found'"
+        },
+        {
+          "behavior": "Release: register file absent entirely -> 404 not-found, nothing created as a side effect",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'unknown sessionId, register file absent entirely'"
+        },
+        {
+          "behavior": "Release: a symlinked register file is rejected 403, no write attempted",
+          "disposition": "tested",
+          "evidence": "beat-register-release-guards.test.ts 'rejects a symlinked register file'"
+        },
+        {
+          "behavior": "Release: register vanishes between existsSync and the pre-lock lstat (TOCTOU #1) -> graceful 404, not 500",
+          "disposition": "tested",
+          "evidence": "beat-register-release-guards.test.ts 'a register that vanishes between existsSync and the pre-lock lstat'"
+        },
+        {
+          "behavior": "Release: register vanishes between the pre-lock guard's PASS and lockfile.lock() itself (TOCTOU #3, doubt-review Stage 3 HIGH fix) -> graceful 404, not 500",
+          "disposition": "tested",
+          "evidence": "beat-register-release-guards.test.ts 'a register that vanishes between the pre-lock guard's PASS and lockfile.lock() itself'; vi.mock(proper-lockfile) forcing one ENOENT"
+        },
+        {
+          "behavior": "Release: real proper-lockfile contention on an already-locked register -> 409 beat_register_locked",
+          "disposition": "tested",
+          "evidence": "beat-register-release-guards.test.ts '409s with beat_register_locked when the register is already locked (real proper-lockfile contention)'"
+        },
+        {
+          "behavior": "Release: a symlinked audit.jsonl is rejected 403, never written through, even though the register mutation already committed (disclosed non-atomicity)",
+          "disposition": "tested",
+          "evidence": "beat-register-release-guards.test.ts 'a symlinked audit.jsonl ... is rejected, never written through'"
+        },
+        {
+          "behavior": "Release: a differently-cased-but-otherwise-valid UUID no longer passes validation (doubt-review Stage 3 MEDIUM fix)",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'an uppercase-but-otherwise-valid UUID no longer passes validation'"
+        },
+        {
+          "behavior": "Release: parent_lead_id resolves from org-chart.json when available, null (not an error) when it can't be read",
+          "disposition": "tested",
+          "evidence": "beat-register-release.test.ts 'resolves parent_lead_id from org-chart.json when available' + '... to null when org-chart.json can't be read'"
+        },
+        {
+          "behavior": "last-run: fresh/stale boundary is correct at exactly 3x cadence (boundary itself stays fresh), plus ordinary fresh/stale cases",
+          "disposition": "tested",
+          "evidence": "last-run.test.ts boundary-case suite (12 tests)"
+        },
+        {
+          "behavior": "last-run: measured:false (no last-run.json) is distinct from measured:true+staleness:unknown, with 3 distinct unknown-cadence causes (missing org-chart, lead absent from it, unparseable cron)",
+          "disposition": "tested",
+          "evidence": "last-run.test.ts three unknown-cadence-cause tests + cron.test.ts (8 tests)"
+        },
+        {
+          "behavior": "last-run: symlinked target rejected, malformed last-run.json payload handled",
+          "disposition": "tested",
+          "evidence": "last-run.test.ts symlink + malformed-payload cases"
+        },
+        {
+          "behavior": "beat-register GET: clear/open/fault(duplicate-session-id) findings, malformed register, unsupported version, symlinked target",
+          "disposition": "tested",
+          "evidence": "beat-register.test.ts evaluateRegisterHealth unit tests + GET route tests (12 tests)"
+        },
+        {
+          "behavior": "org-chart lookup: well-formed lookup, null reportsTo, cross-lead tolerance, symlink rejection, all documented failure reasons",
+          "disposition": "tested",
+          "evidence": "org-chart-lookup.test.ts (8 tests)"
+        },
+        {
+          "behavior": "Producer/consumer round-trip across the last-run and beat-register route modules against the same real filesystem fixture; a real Promise.all concurrent-lock race (not a same-process false-green); embedded-newline/unicode round-trip; UTF-8 BOM-prefixed org-chart.json",
+          "disposition": "tested",
+          "evidence": "beat-register-confidence-probes.test.ts (4 adversarial probes, Confidence Calibration mandatory pass)"
+        },
+        {
+          "behavior": "All three new routes (last-run, beat-register, beat-register/release) share the SAME host-allowlist + shared-secret gate as the rest of the /api/external/org/* family",
+          "disposition": "tested",
+          "evidence": "routes.test.ts ALL_ENDPOINTS parametrized gate suite, extended from 20 to 38 tests"
+        },
+        {
+          "behavior": "End-to-end: all of the above proven against a live Hono server + real filesystem-backed leadsRoot, not just mocked-fs unit tests",
+          "disposition": "tested",
+          "evidence": "F0.5 surface_verification (surface: api) \u2014 15/15 real-HTTP checks, incl. real on-disk register/audit-file state assertions"
+        }
+      ],
+      "counts": {
+        "testable": 20,
+        "tested": 20,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "api",
+      "runner": ".shipwright/runs/iterate-2026-08-18-org-route-beat-register/f05-beat-register-probe.sh",
+      "exit_code": 0,
+      "tests_run": 15,
+      "evidence_path": ".shipwright/runs/iterate-2026-08-18-org-route-beat-register/surface_verification.log",
+      "justification": "Server-only, no-client-delta iterate (same classification as the sibling 2A iterate-2026-08-17-org-route-leads this run extends) -- 'web' is not the right surface, the real runtime surface is the /api/external/org/* Hono route family itself, unreachable from the existing unit suite's mocked-fs style. Verified with real HTTP requests against a live Hono server (npx tsx src/index.ts, PORT=3849, SHIPWRIGHT_NETWORK_PROFILE=local for a deterministic loopback bind) against a real filesystem-backed leadsRoot (mktemp -d): secret gate (no header -> 401), GET last-run -> 200 tri-state stale, GET beat-register -> 200 open, POST release with an unknown sessionId -> 404 not-found, POST release with the real open sessionId -> 200 recovered:true with the register file ACTUALLY closed on disk and exactly one real beat_recovered audit.jsonl line (parent_lead_id correctly resolved from a seeded org-chart.json), a second POST release on the same (now-closed) sessionId -> 200 recovered:false with NO duplicate audit line (idempotency proven against real disk state, not a mock), and a final GET beat-register -> clear. All 15 checks PASS."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-18-org-route-beat-register",
+    "commit": "54fc797ada70d5dc78ca43fb02dea3ba96d9c12d",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
