@@ -72,10 +72,14 @@ describe("readLeadOrgInfo", () => {
     expect(result).toEqual({ ok: true, cron: "0 9 * * *", reportsTo: null });
   });
 
-  it("reports org_chart_symlink for a symlinked org-chart.json (injected lstat)", () => {
+  it("reports org_chart_symlink for a symlinked org-chart.json (injected ELOOP open)", () => {
     writeChart({ leads: { "acme-lead": { triggers: { cron: "0 9 * * *" }, reports_to: null } } });
-    const fakeLstat = () => ({ isSymbolicLink: () => true });
-    const result = readLeadOrgInfo(leadsRoot, "acme-lead", fakeLstat);
+    const fakeOpen = (() => {
+      const err = new Error("ELOOP: too many symbolic links encountered") as NodeJS.ErrnoException;
+      err.code = "ELOOP";
+      throw err;
+    }) as unknown as typeof import("node:fs").openSync;
+    const result = readLeadOrgInfo(leadsRoot, "acme-lead", fakeOpen);
     expect(result).toEqual({ ok: false, reason: "org_chart_symlink" });
   });
 });

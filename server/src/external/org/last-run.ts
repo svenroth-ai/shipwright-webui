@@ -133,7 +133,7 @@ export function registerLastRunRoute(app: Hono, deps: LastRunRouteDeps): void {
     const { lastRunAt, sessionId } = parsed;
     const nowValue = now();
 
-    const orgInfo = readLeadOrgInfo(leadsRoot, leadId, lstat);
+    const orgInfo = readLeadOrgInfo(leadsRoot, leadId);
     if (!orgInfo.ok) {
       const body: LastRunResponse = {
         leadId,

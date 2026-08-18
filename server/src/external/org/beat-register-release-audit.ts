@@ -75,8 +75,8 @@ function appendAuditLine(
 /** Design decision 6: best-effort — never lets an org-chart problem block
  *  the release action itself. `null` means "couldn't resolve", not
  *  necessarily "reports to the PO". */
-function resolveParentLeadId(leadsRoot: string, leadId: string, lstat: LstatFn): string | null {
-  const info = readLeadOrgInfo(leadsRoot, leadId, lstat);
+function resolveParentLeadId(leadsRoot: string, leadId: string): string | null {
+  const info = readLeadOrgInfo(leadsRoot, leadId);
   return info.ok ? info.reportsTo : null;
 }
 
@@ -107,7 +107,7 @@ export function recordRecoveryAudit(
     ts: deps.now().toISOString(),
     kind: "beat_recovered",
     lead_id: leadId,
-    parent_lead_id: resolveParentLeadId(deps.leadsRoot, leadId, deps.lstat),
+    parent_lead_id: resolveParentLeadId(deps.leadsRoot, leadId),
     beat_id: beatId,
     summary: `register entry recovered: session ${sessionId}`,
     data: { sessionId, reason },

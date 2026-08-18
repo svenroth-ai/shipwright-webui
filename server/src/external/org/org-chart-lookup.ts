@@ -18,12 +18,18 @@
  * on this condition; this reader can't 403 (it isn't a route), but callers
  * must be able to tell the two apart rather than collapsing both into a
  * generic "unknown".
+ *
+ * CodeQL js/file-system-race fix: a separate lstat-check + a later,
+ * independent readFileSync(path) leaves a window where the final path
+ * component could be swapped for a symlink between the two syscalls —
+ * mirrors `file-read.ts`'s fix. Open ONCE with O_NOFOLLOW (the kernel
+ * atomically refuses a symlinked final component with ELOOP, closing the
+ * gap) and fstat/read the SAME fd, so what gets parsed is provably what
+ * got checked.
  */
 
-import { readFileSync, lstatSync } from "node:fs";
+import { closeSync, constants as fsConstants, fstatSync, openSync, readFileSync } from "node:fs";
 import path from "node:path";
-
-import { realPathGuard } from "../../core/path-guard.js";
 
 export type LeadOrgInfoReason =
   | "org_chart_missing"
@@ -35,41 +41,40 @@ export type LeadOrgInfoResult =
   | { ok: true; cron: string; reportsTo: string | null }
   | { ok: false; reason: LeadOrgInfoReason };
 
-type LstatFn = (p: string) => { isSymbolicLink(): boolean };
-
 export function readLeadOrgInfo(
   leadsRoot: string,
   leadId: string,
-  lstatSyncFn: LstatFn = lstatSync,
+  /** Test seam for the O_NOFOLLOW open below (e.g. to simulate an ELOOP a
+   *  mocked final-component symlink would produce, without needing a REAL
+   *  symlink on disk). Defaults to the real `openSync`. */
+  openSyncFn: typeof openSync = openSync,
 ): LeadOrgInfoResult {
   const target = path.join(leadsRoot, "org-chart.json");
 
-  let lst;
+  let fd: number;
   try {
-    lst = lstatSyncFn(target);
+    fd = openSyncFn(target, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
   } catch (err) {
-    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
       return { ok: false, reason: "org_chart_missing" };
     }
+    if (code === "ELOOP") {
+      return { ok: false, reason: "org_chart_symlink" };
+    }
     return { ok: false, reason: "org_chart_invalid" };
-  }
-  if (lst.isSymbolicLink()) {
-    return { ok: false, reason: "org_chart_symlink" };
-  }
-
-  const containment = realPathGuard(leadsRoot, target);
-  if (!containment.ok) {
-    return { ok: false, reason: "org_chart_symlink" };
   }
 
   let raw: string;
   try {
-    raw = readFileSync(target, "utf8");
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
-      return { ok: false, reason: "org_chart_missing" };
+    if (!fstatSync(fd).isFile()) {
+      return { ok: false, reason: "org_chart_invalid" };
     }
+    raw = readFileSync(fd, "utf8");
+  } catch {
     return { ok: false, reason: "org_chart_invalid" };
+  } finally {
+    closeSync(fd);
   }
 
   let parsed: unknown;
