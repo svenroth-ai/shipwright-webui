@@ -44,6 +44,9 @@ import { registerOrgFileWrite, type OrgFileWriteDeps } from "./file-write.js";
 import { registerOrgChartRoute } from "./org-chart.js";
 import { registerUsageRoute } from "./usage.js";
 import { registerCountersignRoute } from "./countersign.js";
+import { registerLastRunRoute } from "./last-run.js";
+import { registerBeatRegisterHealthRoute } from "./beat-register.js";
+import { registerBeatRegisterReleaseRoute } from "./beat-register-release.js";
 
 const SECRET_HEADER = "x-shipwright-leads-secret";
 const MIN_SECRET_LENGTH = 20;
@@ -97,6 +100,9 @@ export function createOrgRouter(deps: OrgRouterDeps): Hono {
     leadsRoot: deps.leadsRoot,
     lstatSync: deps.lstatSync,
   });
+  registerLastRunRoute(app, { leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync });
+  registerBeatRegisterHealthRoute(app, { leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync });
+  registerBeatRegisterReleaseRoute(app, { leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync });
 
   return app;
 }

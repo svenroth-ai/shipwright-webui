@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-17T07:55:43.872460+00:00",
-  "provider": "openrouter",
-  "findings_count": 17,
+  "timestamp": "2026-08-18T15:33:21.215444+00:00",
+  "provider": "openrouter(openai+deepseek)",
+  "findings_count": 0,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "findings could not be itemized from the reviewer's prose \u2014 the count (0) is NOT a clean-review result",
   "review_mode": "iterate",
   "marker_schema": 3,
   "verdicts": {
-    "openai": "revise",
-    "deepseek": "revise"
+    "openai": "unknown",
+    "deepseek": "unknown"
   },
   "contradiction": {
     "detected": false,
-    "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "verdict could not be read for: deepseek, openai (deepseek=unknown, openai=unknown)"
   },
   "contradiction_resolution": null
 }

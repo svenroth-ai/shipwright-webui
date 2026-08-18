@@ -1,0 +1,32 @@
+{
+  "stage": "doubt",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "concurrency",
+      "file": "server/src/external/org/beat-register-release-core.ts",
+      "line": 237,
+      "claim_under_doubt": "The two TOCTOU vanish-windows already guarded (existsSync-to-lstat, and post-lock-acquire re-check) close every gap where the register file can disappear mid-request.",
+      "disproof_attempt": "Read proper-lockfile's actual source: with realpath:true (the default here), lockfile.lock() calls fs.realpath(file) FIRST, before this code's own post-acquire guardExistingTarget re-check ever runs. A THIRD vanish-window exists strictly between checkRegisterReachable's pass and the lock() call itself -- if the register (a file with a real second writer, leadwright's own daemon) disappears there, proper-lockfile's realpath rejects with ENOENT, which the route handler's catch block (recognizing only OrgSymlinkEscapeError, BeatRegisterInvalidError, and code===\"ELOCKED\") did not handle, falling through to an uncaught 500 instead of the graceful 404 the other two windows already produce. Confirmed genuine by reading server/node_modules/proper-lockfile/lib/lockfile.js directly, and reproduced empirically via `node -e` against a real deleted file.",
+      "what_would_resolve_it": "Wrap the lockfile.lock() call in its own try/catch mapping ENOENT to {ok:false, reason:\"not-found\"}, rethrowing everything else (including ELOCKED) unchanged. Fixed and regression-tested (beat-register-release-guards.test.ts, mocking proper-lockfile's lock() via vi.mock to reject with ENOENT for one call -- ESM module namespaces can't be vi.spyOn'd directly)."
+    },
+    {
+      "severity": "medium",
+      "lens": "correctness",
+      "file": "server/src/external/org/beat-register-release.ts",
+      "line": 36,
+      "claim_under_doubt": "sessionId validation (UUID_RE) and register entry matching agree on what counts as the same session.",
+      "disproof_attempt": "UUID_RE used the case-insensitive /i flag, so an uppercase-but-otherwise-valid UUID passes validation. Entry matching in beat-register-release-core.ts (`e.sessionId === sessionId`) is an exact, unnormalized string comparison. leadwright's writer always produces crypto.randomUUID(), which is lowercase by definition, so a differently-cased input that passes validation can never match the real (lowercase) entry -- it silently returns 404 not-found for a session that genuinely has an open beat.",
+      "what_would_resolve_it": "Remove the /i flag so a differently-cased input is rejected up front as 400 sessionId_invalid rather than silently mismatching downstream. Fixed and regression-tested."
+    },
+    {
+      "severity": "low",
+      "lens": "security",
+      "file": "server/src/external/org/beat-register-release-core.ts",
+      "line": 237,
+      "claim_under_doubt": "Fixing the lock()-ENOENT vanish-window closes every risk in that window.",
+      "disproof_attempt": "A symlink-swap during the same pre-lock window could make lockfile.lock() briefly lock an attacker-chosen realpath, creating a transient stray lock directory before the subsequent postGuard rejects it as a symlink. This is a genuine residual gap, not fully closed by the ENOENT fix.",
+      "what_would_resolve_it": "Disclosed, not fixed -- assessed as within the already-accepted local-machine/Tailscale threat model this host+secret-gated route family operates under (single-operator machine, not a multi-tenant server). Flagged for the record only."
+    }
+  ]
+}

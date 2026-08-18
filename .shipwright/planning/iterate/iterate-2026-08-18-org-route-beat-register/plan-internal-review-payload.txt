@@ -1,0 +1,38 @@
+Category: architecture
+Severity: high
+Finding: PR-1's adopted fix says the audit.jsonl append gets 'the same lstat+realPathGuard guard as the register file' -- but this reads as a READ-oriented guard pattern (lstat, then realPathGuard, which internally calls realpathSync and must be called only when the path is known to exist) applied onto audit.jsonl, a file the release action may be the first-ever writer for. realPathGuard returns ok:false on any lead whose audit.jsonl doesn't exist yet -- the happy-path recovery would fail after the register file has already been mutated inside the lock and the lock released, turning the disclosed rare-crash limitation into a deterministic split-brain outcome.
+Suggestion: For the audit path specifically, mirror decisions-lock.ts's write-guard (ensureFile-then-lstat-only), not usage.ts's read-guard. Add an explicit test: fresh tmpdir with ONLY beat-register.json (no audit.jsonl) -- release still returns recovered:true and creates audit.jsonl with exactly one line.
+Verified against the actual code (not just the prose): beat-register-release.ts's appendAuditLine already gates the guard behind existsSync(auditPath) -- when the file doesn't exist yet, the guard is skipped and open(path,"a") creates it fresh; the guard only runs, safely, on a subsequent append. No code change was needed; the spec prose describing the guard was corrected, and the requested test was added.
+
+Category: completeness
+Severity: medium
+Finding: Mini-plan step 5's prose did not restate the lstat-first-then-404 ordering for a missing beat-register.json on POST /release -- an implementer building strictly from the mini-plan could reintroduce that bug.
+Suggestion: Update mini-plan step 5's prose to spell out the lstat-first-then-404 ordering explicitly, not just cross-reference the spec's review table.
+Fixed: mini-plan step 5 rewritten to state the ordering explicitly.
+
+Category: architecture
+Severity: medium
+Finding: Decision 4's 'guarded like org-chart.ts/usage.ts' cited two routes with different guard strength -- org-chart.ts has no realPathGuard call at all, usage.ts does.
+Suggestion: State explicitly that readLeadOrgInfo should follow usage.ts's stronger pattern.
+Verified against the actual code: org-chart-lookup.ts already uses usage.ts's stronger pattern. Fixed: decision 4's wording tightened.
+
+Category: completeness
+Severity: low
+Finding: Decision 5 claims the release lock mirrors leadwright's withLock DEFAULTS exactly but omitted the update (heartbeat) parameter -- proper-lockfile's own default when omitted is stale/2 (150s here), not leadwright's actual 1000ms.
+Suggestion: Add update:1000 explicitly.
+Fixed: update:1_000 added to DEFAULT_LOCK_OPTIONS.
+
+Category: completeness
+Severity: low
+Finding: No lock-contention test was listed for the ELOCKED to 409 mapping despite the test-strategy section committing to real file locks.
+Suggestion: Add an explicit lock-contention test.
+Fixed: added to the mini-plan's POST /release test list.
+
+Category: completeness
+Severity: low
+Finding: The beat_recovered audit entry's field list was not pinned to leadwright's own payload -- beat_id (from the recovered entry) was missing.
+Suggestion: Spell out the literal field list, mirroring recoverRegisterEntry's payload verbatim.
+Fixed: beat_id: entry.beatId added to the appended entry and the ReleaseOutcome type.
+
+Overall: The plan was well-reasoned and most prior (external) review findings were genuinely fixed. The one high finding concerned prose ambiguity, not a code defect -- verified against the actual implementation, which already handled the case correctly. Five lower-severity documentation/completeness gaps were fixed in both code and docs. Known limitations correctly disclosed and left unchanged: duplicate-sessionId fault ambiguity on release, register-write/audit-append non-atomicity, two-distinct-open-entries not flagged as fault, the cron interval approximation for irregular schedules, and leadsRoot cross-repo path-identity (inherited from 2A) -- all are genuine, reasoned mirrors of leadwright's own shipped contract.
+SHIPWRIGHT_VERDICT: revise
