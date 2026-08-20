@@ -1,0 +1,1 @@
+Mission activity feed visual redesign: per-kind icons on a connecting line, status pills for test/spec/review outcomes, mono-font file/command chips, bordered code blocks for real output excerpts, and a real unresolved question with its options (Mission still answers nothing itself, via the existing jump-to-terminal CTA).

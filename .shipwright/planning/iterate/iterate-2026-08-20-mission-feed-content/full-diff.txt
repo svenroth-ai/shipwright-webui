@@ -1,0 +1,1425 @@
+diff --git a/client/e2e/flows/mission-feed-content.spec.ts b/client/e2e/flows/mission-feed-content.spec.ts
+new file mode 100644
+index 00000000..7417c6ec
+--- /dev/null
++++ b/client/e2e/flows/mission-feed-content.spec.ts
+@@ -0,0 +1,168 @@
++/*
++ * iterate-2026-08-20-mission-feed-content — the Activity feed narrates real
++ * content on every card kind, through the REAL JSONL → reducer → DOM chain.
++ *
++ * `mission-narrative-prose.spec.ts` targets `mission-narration`
++ * (`OperationLive`), a component `MissionBody.tsx` no longer mounts as of
++ * `894efb22` ("MIS-2: replace Mission narrator with activity feed", #363,
++ * predates this run) — so it exercises nothing reachable from the current
++ * app. This file is the first real-browser coverage of the CURRENT
++ * `mission-activity-feed` (`MissionActivityFeed.tsx`).
++ *
++ * Deliberately scoped to the transcript-driven cards (user-input, test) —
++ * exactly where this run's real bug lived (an external code reviewer caught
++ * that the question block rendered options/CTA/answer but never the actual
++ * question text) and exactly the wiring a synthetic ActivityCard-fixture
++ * unit test cannot exercise: real JSONL bytes through the real reducer. The
++ * MissionContext-driven delivery/PR-link card was verified separately
++ * against real production task data (screenshot evidence, not fixtures).
++ *
++ * @covers FR-01.66
++ */
++
++import { test, expect } from "@playwright/test";
++import {
++  cleanupProject,
++  cleanupTask,
++  seedProject,
++  seedTask,
++  setActiveProject,
++  type SeededProject,
++} from "../helpers/fixtures";
++import { writeFiles } from "../helpers/temp-dir";
++import { seedClaudeJsonlEvents } from "../helpers/claude-jsonl";
++
++const RUN_ID = "iterate-2026-07-18-mission-e2e-feed";
++
++const SPEC_DOC = `# Mission feed — E2E fixture
++
++This iterate touches FR-01.66 (the Mission view) and nothing else.
++
++## Affected Boundaries
++
++The mission-context resolver response shape.
++`;
++
++function pointer(sessionUuid: string, mainRoot: string): string {
++  return JSON.stringify({
++    run_id: RUN_ID,
++    slug: "mission-e2e-feed",
++    branch: "iterate/mission-e2e-feed",
++    main_root: mainRoot,
++    session_id: sessionUuid,
++    created_at: "2026-07-18T10:00:00Z",
++  });
++}
++
++const tool = (id: string, name: string, input: Record<string, unknown>) => ({
++  type: "assistant",
++  message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] },
++});
++const toolResult = (id: string, content: string, isError = false) => ({
++  type: "user",
++  message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: isError }] },
++});
++const askQuestion = (id: string, question: string, options: string[]) => tool(id, "AskUserQuestion", {
++  questions: [{ question, header: "Choice", options: options.map((label) => ({ label })), multiSelect: false }],
++});
++
++test.describe("Mission activity feed — real content through the real chain", () => {
++  test.describe.configure({ timeout: 120_000 });
++
++  let project: SeededProject;
++  let taskId: string;
++
++  test.beforeEach(async ({ page, request }) => {
++    project = await seedProject(request, { name: "MissionFeedE2E", adopted: true });
++    await setActiveProject(page, project.projectId);
++  });
++
++  test.afterEach(async ({ request }) => {
++    if (taskId) await cleanupTask(request, taskId);
++    if (project) await cleanupProject(request, project);
++  });
++
++  async function openTaskMission(page: import("@playwright/test").Page, id: string) {
++    await page.goto(`/tasks/${id}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
++    await page.getByTestId("mission-tab-mission").click();
++    const feed = page.getByTestId("mission-activity-feed");
++    await expect(feed).toBeVisible({ timeout: 15_000 });
++    return feed;
++  }
++
++  test("an unresolved question shows the real question, its options, and the terminal CTA", async ({
++    page,
++    request,
++  }) => {
++    const task = await seedTask(request, { title: "Ask about the platform", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [askQuestion("ask1", "Which platform should this ship to first?", ["Web App", "Mobile App"])],
++    });
++
++    const feed = await openTaskMission(page, taskId);
++
++    // The real question — the bug this run's external review caught: the
++    // block rendered options/CTA/answer but never the actual question text.
++    await expect(feed).toContainText("Which platform should this ship to first?");
++    await expect(feed).toContainText("Web App");
++    await expect(feed).toContainText("Mobile App");
++    await expect(feed.getByTestId("askuser-answer-in-terminal")).toBeVisible();
++  });
++
++  test("a resolved question marks the matched option picked and hides the CTA", async ({ page, request }) => {
++    const task = await seedTask(request, { title: "Ask and answer", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [
++        askQuestion("ask1", "Which platform should this ship to first?", ["Web App", "Mobile App"]),
++        toolResult("ask1", "Web App"),
++      ],
++    });
++
++    const feed = await openTaskMission(page, taskId);
++    await expect(feed).toContainText("Which platform should this ship to first?");
++    await expect(feed.getByTestId("askuser-answer-in-terminal")).toHaveCount(0);
++    const picked = feed.locator(".mc-feed-qa-opt", { hasText: "Web App" });
++    await expect(picked).toHaveAttribute("data-picked", "true");
++  });
++
++  test("a failing test command shows a status pill and a bounded real-output excerpt", async ({
++    page,
++    request,
++  }) => {
++    const task = await seedTask(request, { title: "Run the suite", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [
++        tool("t1", "Bash", { command: "npx vitest run" }),
++        toolResult("t1", "FAIL src/auth.test.ts\nexpect(received).toEqual(expected)\nextra line dropped by the bound", true),
++      ],
++    });
++
++    const feed = await openTaskMission(page, taskId);
++    const testCard = feed.locator('[data-kind="test"]');
++    await expect(testCard).toContainText("needs attention");
++    await expect(testCard).toContainText("FAIL src/auth.test.ts");
++    await expect(testCard).toContainText("expect(received).toEqual(expected)");
++    await expect(testCard.locator(".mc-feed-pill")).toBeVisible();
++  });
++});
+diff --git a/client/src/components/external/ToolOutputBlock.tsx b/client/src/components/external/ToolOutputBlock.tsx
+index ee4e2349..db7baf5a 100644
+--- a/client/src/components/external/ToolOutputBlock.tsx
++++ b/client/src/components/external/ToolOutputBlock.tsx
+@@ -10,6 +10,7 @@
+  */
+ 
+ import stripAnsi from "strip-ansi";
++import { stripControl } from "../../lib/proofLines";
+ 
+ interface Props {
+   text: string;
+@@ -35,12 +36,3 @@ export function ToolOutputBlock({ text, isError = false }: Props) {
+   );
+ }
+ 
+-/**
+- * Strip control characters (other than tab, newline, CR) that survive
+- * `strip-ansi` — e.g. BEL (\u0007), backspace (\u0008), form feed (\u000C).
+- * These confuse text rendering and serve no purpose in a transcript.
+- */
+-function stripControl(s: string): string {
+-  // Allow LF (0x0A), CR (0x0D), TAB (0x09); strip the rest in 0x00–0x1F + 0x7F.
+-  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+-}
+diff --git a/client/src/components/external/mission/MissionActivityFeed.test.tsx b/client/src/components/external/mission/MissionActivityFeed.test.tsx
+index 1f2516ba..99943e77 100644
+--- a/client/src/components/external/mission/MissionActivityFeed.test.tsx
++++ b/client/src/components/external/mission/MissionActivityFeed.test.tsx
+@@ -6,6 +6,20 @@ import { MissionActivityFeed } from "./MissionActivityFeed";
+ import type { ActivityFeed } from "../../../lib/missionActivityFeed";
+ import { deriveActivityFeed } from "../../../lib/missionActivityFeed";
+ import { fixtureContext, longIterateFixture } from "../../../lib/missionActivityFeed.fixtures";
++import type { CommitArtifact } from "../../../lib/missionContextApi";
++import type { ExternalTask } from "../../../lib/externalApi";
++
++const mutateAsync = vi.fn().mockResolvedValue({ commands: { posix: "claude --resume x", powershell: "claude --resume x" } });
++vi.mock("../../../hooks/useLaunchTask", () => ({
++  useLaunchTask: () => ({ mutateAsync, isPending: false }),
++}));
++
++const TASK = { taskId: "task-mission-feed", projectId: "p1" } as unknown as ExternalTask;
++
++const COMMIT_ARTIFACT: CommitArtifact = {
++  kind: "commit", label: "Delivery", state: "available", summary: null, receipt: null,
++  detail: { type: "commit", commit: "abc123", message: 'fix(mission): real content in every card kind', prNumber: 367, prUrl: "https://github.com/x/y/pull/367", merge: "merged" },
++};
+ 
+ const renderedLongIterateFixture: ActivityFeed = {
+   goal: "Make the Mission view evidence-based",
+@@ -26,7 +40,7 @@ describe("MissionActivityFeed", () => {
+   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
+     const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"), "Make the Mission view evidence-based");
+     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
+-    render(<MissionActivityFeed feed={renderedLongIterateFixture} />);
++    render(<MissionActivityFeed feed={renderedLongIterateFixture} commitArtifact={null} task={TASK} />);
+     const timeline = screen.getByTestId("mission-activity-feed");
+     expect(timeline).toHaveAttribute("role", "log");
+     expect(timeline).toHaveAttribute("tabindex", "0");
+@@ -45,14 +59,22 @@ describe("MissionActivityFeed", () => {
+     expect(screen.getByTestId("mission-feed-goal").parentElement).not.toBe(timeline);
+   }, 20_000);
+ 
++  // Preserved affordance (internal + external review): the artifact-open CTA's
++  // accessible name and click wiring must survive the markup rewrite unchanged.
+   it("opens durable evidence from a card", async () => {
+     const onArtifactClick = vi.fn();
+-    render(<MissionActivityFeed feed={{ ...renderedLongIterateFixture, cards: [{ kind: "delivery", text: "Delivered", commands: [], artifact: "commit" }] }} onArtifactClick={onArtifactClick} />);
++    render(<MissionActivityFeed
++      feed={{ ...renderedLongIterateFixture, cards: [{ kind: "delivery", text: "Delivered", commands: [], artifact: "commit" }] }}
++      onArtifactClick={onArtifactClick}
++      commitArtifact={null}
++      task={TASK}
++    />);
+     await userEvent.click(screen.getByRole("button", { name: "Open commit" }));
+     expect(onArtifactClick).toHaveBeenCalledWith("commit");
+   });
+ 
+-  // Content-safety constraint (external review, iterate-2026-08-13-mission-mobile-visual):
++  // Content-safety constraint (external review, iterate-2026-08-13-mission-mobile-visual,
++  // extended by iterate-2026-08-20-mission-feed-content to `detail`/`question.*`):
+   // card.text can carry a turn's own assistant prose (assistant-influenced content), so it
+   // must render through the same safe markdown path as the rest of the transcript, never a
+   // raw <p>/dangerouslySetInnerHTML — HTML-like text must never become a real element.
+@@ -61,8 +83,90 @@ describe("MissionActivityFeed", () => {
+       goal: "g",
+       outcome: "In progress",
+       cards: [{ kind: "implement", text: '<img src=x onerror="window.__pwned=true">Edited the login handler.', commands: [] }],
+-    }} />);
++    }} commitArtifact={null} task={TASK} />);
+     expect(container.querySelector("img")).toBeNull();
+     expect(screen.getByText(/Edited the login handler/)).toBeInTheDocument();
+   });
++
++  it("renders HTML-like raw-output detail as inert literal text, never a real element", () => {
++    const { container } = render(<MissionActivityFeed feed={{
++      goal: "g",
++      outcome: "In progress",
++      cards: [{ kind: "blocker", text: "A command needs attention before work can continue.", commands: ["Bash: npm test"], status: "err", detail: '<img src=x onerror="window.__pwned=true">FAIL src/x.test.ts' }],
++    }} commitArtifact={null} task={TASK} />);
++    expect(container.querySelector("img")).toBeNull();
++    expect(screen.getByText(/FAIL src\/x\.test\.ts/)).toBeInTheDocument();
++  });
++
++  it("renders a status pill and a bounded error excerpt for a failing test card", () => {
++    render(<MissionActivityFeed feed={{
++      goal: "g", outcome: "In progress",
++      cards: [{ kind: "test", text: "This test command needs attention.", commands: ["Bash: vitest run"], status: "err", detail: "FAIL slice3-sources.test.ts\nexpect(received).toEqual(expected)" }],
++    }} commitArtifact={null} task={TASK} />);
++    expect(screen.getByText("Failing")).toBeInTheDocument();
++    expect(screen.getByText(/FAIL slice3-sources\.test\.ts/)).toBeInTheDocument();
++  });
++
++  describe("question resolution (three branches)", () => {
++    const base = { kind: "user-input" as const, text: "A decision is needed.", commands: [] };
++
++    it("shows the terminal CTA while unresolved", () => {
++      render(<MissionActivityFeed feed={{
++        goal: "g", outcome: "In progress",
++        cards: [{ ...base, question: { text: "Which platform?", options: ["Web", "Mobile"], resolved: false } }],
++      }} commitArtifact={null} task={TASK} />);
++      expect(screen.getByTestId("askuser-answer-in-terminal")).toBeInTheDocument();
++      expect(screen.getByText("Which platform?")).toBeInTheDocument();
++      expect(screen.queryByText("Web")).toBeInTheDocument();
++      expect(screen.queryByText("Mobile")).toBeInTheDocument();
++    });
++
++    it("marks the matched option picked and hides the CTA once resolved", () => {
++      render(<MissionActivityFeed feed={{
++        goal: "g", outcome: "In progress",
++        cards: [{ ...base, question: { text: "Which platform?", options: ["Web", "Mobile"], resolved: true, picked: "Web" } }],
++      }} commitArtifact={null} task={TASK} />);
++      expect(screen.queryByTestId("askuser-answer-in-terminal")).not.toBeInTheDocument();
++      expect(screen.getByText("Which platform?")).toBeInTheDocument();
++      const picked = screen.getByText("Web");
++      expect(picked.closest(".mc-feed-qa-opt")).toHaveAttribute("data-picked", "true");
++    });
++
++    it("shows the free-text answer, not the CTA, when resolved but unmatched", () => {
++      render(<MissionActivityFeed feed={{
++        goal: "g", outcome: "In progress",
++        cards: [{ ...base, question: { text: "Which platform?", options: ["Web", "Mobile"], resolved: true, answer: "Both, actually" } }],
++      }} commitArtifact={null} task={TASK} />);
++      expect(screen.queryByTestId("askuser-answer-in-terminal")).not.toBeInTheDocument();
++      expect(screen.getByText("Which platform?")).toBeInTheDocument();
++      expect(screen.getByText("Both, actually")).toBeInTheDocument();
++    });
++  });
++
++  it("renders a PR-link card for delivery when a merged commit artifact is available", () => {
++    render(<MissionActivityFeed feed={{
++      goal: "g", outcome: "Completed run",
++      cards: [{ kind: "delivery", text: 'Merged as "fix(mission): real content in every card kind".', commands: [], artifact: "commit" }],
++    }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
++    expect(screen.getByText("#367")).toBeInTheDocument();
++    expect(screen.getByText("merged")).toBeInTheDocument();
++  });
++
++  it("omits the PR-link card gracefully when no commit artifact is available", () => {
++    render(<MissionActivityFeed feed={{
++      goal: "g", outcome: "Completed run",
++      cards: [{ kind: "delivery", text: "This completed run is recorded through durable artifacts.", commands: [] }],
++    }} commitArtifact={null} task={TASK} />);
++    expect(screen.queryByText(/merged/i)).not.toBeInTheDocument();
++  });
++
++  // Preserved affordance: command chip content (the label text) must survive
++  // the plain-<li> -> icon-chip markup swap unchanged.
++  it("keeps command chip label text after the chip-treatment rewrite", () => {
++    render(<MissionActivityFeed feed={{
++      goal: "g", outcome: "In progress",
++      cards: [{ kind: "implement", text: "Edited the login handler.", commands: ["Edit: src/auth/login.ts"] }],
++    }} commitArtifact={null} task={TASK} />);
++    expect(screen.getByText("Edit: src/auth/login.ts")).toBeInTheDocument();
++  });
+ });
+diff --git a/client/src/components/external/mission/MissionActivityFeed.tsx b/client/src/components/external/mission/MissionActivityFeed.tsx
+index a4d332a3..f5a272a1 100644
+--- a/client/src/components/external/mission/MissionActivityFeed.tsx
++++ b/client/src/components/external/mission/MissionActivityFeed.tsx
+@@ -1,9 +1,59 @@
++import type { CSSProperties } from "react";
+ import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
+-import type { ActivityFeed } from "../../../lib/missionActivityFeed";
++import { AnswerInTerminalButton } from "../BubbleTranscript/AnswerInTerminalButton";
++import type { ActivityCard, ActivityFeed } from "../../../lib/missionActivityFeed";
++import type { CommitArtifact, MergeState } from "../../../lib/missionContextApi";
++import type { ExternalTask } from "../../../lib/externalApi";
++import { CheckIcon, FeedIcon, FileChipIcon, XIcon } from "./MissionFeedIcons";
+ 
+-interface Props { feed: ActivityFeed; onArtifactClick?: (artifact: string) => void; }
++interface Props {
++  feed: ActivityFeed;
++  onArtifactClick?: (artifact: string) => void;
++  commitArtifact: CommitArtifact | null;
++  task: ExternalTask;
++}
++
++const KIND_LABEL: Record<ActivityCard["kind"], string> = {
++  goal: "Goal",
++  investigate: "Investigate",
++  spec: "Spec",
++  implement: "Implement",
++  test: "Test",
++  review: "Review",
++  "user-input": "Question",
++  blocker: "Blocker",
++  delivery: "Delivered",
++  system: "System",
++};
++
++/** Icon/node accent — always derived from `card.kind`/`card.status`
++ * (MissionContext-sourced), never string-matched from `card.text`. */
++function kindAccent(card: ActivityCard): { color: string; line: string } {
++  if (card.kind === "blocker") return { color: "var(--err)", line: "var(--err-line)" };
++  if (card.kind === "test") {
++    return card.status === "ok" ? { color: "var(--ok)", line: "var(--ok-line)" }
++      : card.status === "err" ? { color: "var(--err)", line: "var(--err-line)" }
++      : card.status === "warn" ? { color: "var(--warn)", line: "var(--warn-line)" }
++      : { color: "var(--muted)", line: "var(--line-strong)" };
++  }
++  if (card.kind === "investigate" || card.kind === "system") return { color: "var(--muted)", line: "var(--line-strong)" };
++  return { color: "var(--accent)", line: "var(--accent-line)" };
++}
++
++function pillLabel(card: ActivityCard): string | null {
++  if (!card.status) return null;
++  if (card.kind === "test") return card.status === "ok" ? "Passing" : card.status === "err" ? "Failing" : "Unclear";
++  if (card.kind === "blocker") return "Needs attention";
++  if (card.kind === "spec") return "Recorded";
++  if (card.kind === "review") return "Passed";
++  return null;
++}
+ 
+-export function MissionActivityFeed({ feed, onArtifactClick }: Props) {
++function mergeStateLabel(merge: MergeState): string {
++  return merge === "merged" ? "merged" : merge === "pending" ? "pending merge" : "merge state unknown";
++}
++
++export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, task }: Props) {
+   return <section className="mc-op mc-feed" data-testid="operation-card" data-live="true">
+     <header className="mc-feed-pinned">
+       <span className="mc-feed-label">Goal</span>
+@@ -13,16 +63,102 @@ export function MissionActivityFeed({ feed, onArtifactClick }: Props) {
+     <div className="mc-feed-scroll" role="log" aria-label="Activity feed" tabIndex={0} data-testid="mission-activity-feed">
+       {feed.cards.length === 0 ? (
+         <div className="mc-hero-empty">Waiting — nothing reliable has appeared yet.</div>
+-      ) : feed.cards.map((card, index) => (
+-        <article className="mc-feed-card" key={`${card.kind}-${index}`} data-kind={card.kind}>
+-          {/* card.text can carry a turn's own assistant prose (deriveActivityFeed) —
+-              assistant/user-influenced content, so it renders through the SAME
+-              safe markdown path as the rest of the transcript, never a raw <p>. */}
+-          <MarkdownChunk content={card.text} />
+-          {card.artifact && onArtifactClick ? <button type="button" className="mc-story-link" onClick={() => onArtifactClick(card.artifact!)}>Open {card.artifact}</button> : null}
+-          {card.commands.length ? <details><summary>Ran commands</summary><ul>{card.commands.map((command) => <li key={command}>{command}</li>)}</ul></details> : null}
+-        </article>
+-      ))}
++      ) : feed.cards.map((card, index) => {
++        const isSystem = card.kind === "system";
++        const accent = kindAccent(card);
++        const pill = pillLabel(card);
++        // Gate on artifact === "commit", not just kind === "delivery" (code
++        // review catch): a pipeline-finished delivery card links `artifact:
++        // "phase"`, not a specific commit — rendering the PR-link card there
++        // would surface an unrelated/stale commit's PR from MissionContext.
++        const prDetail = card.kind === "delivery" && card.artifact === "commit" ? commitArtifact?.detail : null;
++        return (
++          <div className="mc-feed-entry" key={`${card.kind}-${index}`}>
++            <div
++              className="mc-feed-node"
++              data-dashed={isSystem ? "true" : undefined}
++              style={{ "--kind": accent.color, "--kind-line": accent.line } as CSSProperties}
++            >
++              <FeedIcon kind={card.kind} />
++            </div>
++            <article className="mc-feed-card" data-kind={card.kind}>
++              {!isSystem && (
++                <div className="mc-feed-head">
++                  <span className="mc-feed-kind" style={{ "--kind": accent.color } as CSSProperties}>{KIND_LABEL[card.kind]}</span>
++                  {pill && (
++                    <span className="mc-feed-pill" data-status={card.status}>
++                      {card.status === "ok" ? <CheckIcon /> : card.status === "err" ? <XIcon /> : null}
++                      {pill}
++                    </span>
++                  )}
++                </div>
++              )}
++              {/* card.text can carry a turn's own assistant prose (deriveActivityFeed) —
++                  assistant/user-influenced content, so it renders through the SAME
++                  safe markdown path as the rest of the transcript, never a raw <p>. */}
++              <MarkdownChunk content={card.text} />
++
++              {card.question && (
++                <div className="mc-feed-qa">
++                  {/* The real question prose (external-review catch: options/CTA/
++                      answer rendered without ever showing what was actually
++                      asked). Assistant-authored, so it goes through the same
++                      safe markdown path as card.text — never a raw <p>. */}
++                  <div className="mc-feed-qa-question"><MarkdownChunk content={card.question.text} /></div>
++                  {card.question.options.length > 0 && (
++                    <div className="mc-feed-qa-options">
++                      {card.question.options.map((option) => {
++                        const picked = card.question!.resolved && card.question!.picked === option;
++                        return (
++                          <span key={option} className="mc-feed-qa-opt" data-picked={picked ? "true" : undefined}>
++                            {picked && <CheckIcon strokeWidth={2.5} />}
++                            {option}
++                          </span>
++                        );
++                      })}
++                    </div>
++                  )}
++                  {!card.question.resolved ? (
++                    <div className="mc-feed-qa-cta"><AnswerInTerminalButton task={task} /></div>
++                  ) : !card.question.picked && card.question.answer ? (
++                    <div className="mc-feed-qa-answer">{card.question.answer}</div>
++                  ) : null}
++                </div>
++              )}
++
++              {/* card.detail is a bounded, sanitized raw-output excerpt — real tool/
++                  terminal content, so it renders as a literal text node (never
++                  MarkdownChunk): Markdown-parsing arbitrary terminal output can
++                  itself mis-render, and this is never HTML either way. */}
++              {card.detail && (
++                <div className="mc-feed-code">
++                  <pre>{card.detail}</pre>
++                </div>
++              )}
++
++              {prDetail && (prDetail.prNumber != null || prDetail.prUrl) && (
++                <div className="mc-feed-pr">
++                  <span className="mc-feed-pr-icon"><FeedIcon kind="delivery" /></span>
++                  <span className="mc-feed-pr-body">
++                    <span className="mc-feed-pr-title">{prDetail.message ?? "Merged"}</span>
++                    <span className="mc-feed-pr-meta">
++                      {prDetail.prNumber != null && <span>#{prDetail.prNumber}</span>}
++                      <span data-merged={prDetail.merge === "merged" ? "true" : undefined}>{mergeStateLabel(prDetail.merge)}</span>
++                    </span>
++                  </span>
++                </div>
++              )}
++
++              {card.artifact && onArtifactClick ? <button type="button" className="mc-story-link" onClick={() => onArtifactClick(card.artifact!)}>Open {card.artifact}</button> : null}
++              {card.commands.length ? (
++                <div className="mc-feed-chip-row">
++                  {card.commands.map((command) => <span className="mc-feed-chip" key={command}><FileChipIcon />{command}</span>)}
++                </div>
++              ) : null}
++            </article>
++          </div>
++        );
++      })}
+     </div>
+   </section>;
+ }
+diff --git a/client/src/components/external/mission/MissionBody.compact.test.tsx b/client/src/components/external/mission/MissionBody.compact.test.tsx
+index 03a22c2d..7c9bd651 100644
+--- a/client/src/components/external/mission/MissionBody.compact.test.tsx
++++ b/client/src/components/external/mission/MissionBody.compact.test.tsx
+@@ -145,7 +145,7 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
+       },
+     }));
+     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
+-    const group = within(screen.getByTestId("mission-activity-feed")).getByText("Ran commands");
++    const group = within(screen.getByTestId("mission-activity-feed")).getByText("Edit: /project/.shipwright/planning/iterate/mobile.md");
+     fireEvent.click(group);
+     expect(screen.getByTestId("mission-compact-tab-activity")).toHaveAttribute("aria-selected", "true");
+     expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
+diff --git a/client/src/components/external/mission/MissionBody.tsx b/client/src/components/external/mission/MissionBody.tsx
+index 3c65a155..0029a429 100644
+--- a/client/src/components/external/mission/MissionBody.tsx
++++ b/client/src/components/external/mission/MissionBody.tsx
+@@ -20,6 +20,7 @@
+ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+ 
+ import type { ExternalTask } from "../../../lib/externalApi";
++import type { CommitArtifact } from "../../../lib/missionContextApi";
+ import { useMissionLive } from "../../../hooks/useMissionLive";
+ import { useMissionContext } from "../../../hooks/useMissionContext";
+ import {
+@@ -104,8 +105,9 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props)
+   // A work-completed run can truthfully be terminal before its commit/PR has
+   // been recorded. The final feed card still opens that delivery detail (which
+   // explains the missing receipt) even though hide-empty omits it from the rail.
++  const commitArtifact = (context?.artifacts.find((a) => a.kind === "commit") as CommitArtifact | undefined) ?? null;
+   const activeArtifact = artifacts?.find((a) => a.kind === activeNode)
+-    ?? (activeNode === "commit" ? context?.artifacts.find((a) => a.kind === "commit") ?? null : null);
++    ?? (activeNode === "commit" ? commitArtifact : null);
+ 
+   const activeRecordNode =
+     activeNode && !artifacts
+@@ -238,10 +240,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props)
+           ) : completed ? (
+             <div className="mc-op-stack" data-testid="mission-completed-stack">
+               <OperationCard task={task} context={context} />
+-              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} />
++              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} />
+             </div>
+           ) : (
+-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} />
++            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} />
+           )}
+         </div>
+         <div
+diff --git a/client/src/components/external/mission/MissionFeedIcons.tsx b/client/src/components/external/mission/MissionFeedIcons.tsx
+new file mode 100644
+index 00000000..46420f7f
+--- /dev/null
++++ b/client/src/components/external/mission/MissionFeedIcons.tsx
+@@ -0,0 +1,103 @@
++/*
++ * Small inline SVG icon set for the Mission activity feed's per-kind node
++ * (iterate-2026-08-20-mission-feed-content). Kept as its own file so
++ * MissionActivityFeed.tsx stays readable — Canvas/WebGL would be overkill
++ * for a fixed set of tiny line-icons.
++ */
++
++import type { ReactElement } from "react";
++import type { ActivityKind } from "../../../lib/missionActivityFeed";
++
++const commonProps = {
++  viewBox: "0 0 24 24",
++  fill: "none",
++  stroke: "currentColor",
++  strokeWidth: 1.75,
++  strokeLinecap: "round" as const,
++  strokeLinejoin: "round" as const,
++};
++
++const PATHS: Record<ActivityKind, ReactElement> = {
++  goal: <circle cx="12" cy="12" r="8" />,
++  investigate: (
++    <>
++      <circle cx="11" cy="11" r="7" />
++      <path d="M21 21l-4.3-4.3" />
++    </>
++  ),
++  "user-input": <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />,
++  spec: (
++    <>
++      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
++      <path d="M14 2v6h6" />
++      <path d="M9 13h6M9 17h6" />
++    </>
++  ),
++  implement: (
++    <>
++      <path d="M12 20h9" />
++      <path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z" />
++    </>
++  ),
++  test: (
++    <>
++      <circle cx="12" cy="12" r="9" />
++      <path d="M12 8v5M12 16h.01" />
++    </>
++  ),
++  review: (
++    <>
++      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
++      <circle cx="12" cy="12" r="3" />
++    </>
++  ),
++  blocker: (
++    <>
++      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
++      <path d="M12 9v4M12 17h.01" />
++    </>
++  ),
++  delivery: (
++    <>
++      <circle cx="18" cy="18" r="3" />
++      <circle cx="6" cy="6" r="3" />
++      <path d="M6 9v6a3 3 0 003 3h6" />
++      <path d="M18 9V6" />
++    </>
++  ),
++  system: (
++    <>
++      <circle cx="12" cy="12" r="3" />
++      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
++    </>
++  ),
++};
++
++export function FeedIcon({ kind }: { kind: ActivityKind }) {
++  return <svg {...commonProps} aria-hidden="true">{PATHS[kind]}</svg>;
++}
++
++export function CheckIcon({ strokeWidth = 2.5 }: { strokeWidth?: number }) {
++  return (
++    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
++      <path d="M20 6L9 17l-5-5" />
++    </svg>
++  );
++}
++
++export function XIcon() {
++  return (
++    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
++      <path d="M6 18L18 6M6 6l12 12" />
++    </svg>
++  );
++}
++
++export function FileChipIcon() {
++  return (
++    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
++      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
++      <path d="M14 2v6h6" />
++    </svg>
++  );
++}
+diff --git a/client/src/lib/missionActivityFeed.ts b/client/src/lib/missionActivityFeed.ts
+index 6e619fac..5a323a7d 100644
+--- a/client/src/lib/missionActivityFeed.ts
++++ b/client/src/lib/missionActivityFeed.ts
+@@ -1,14 +1,32 @@
+-import { assistantText, isOnlyToolResults, toolResults, toolUses, userText, type ParsedEvent } from "../external/session-parser";
+-import type { ArtifactKind, MissionContext } from "./missionContextApi";
+-import { sanitizeProofText } from "./proofLines";
++import { askUserQuestionSummary, assistantText, toolResults, toolUses, type ParsedEvent } from "../external/session-parser";
++import type { ArtifactKind, CommitArtifact, MissionContext } from "./missionContextApi";
++import { clean, commandDetail, commandLabel, excerpt, isCompactionMarker, meaningfulRequest, resolveQuestionAnswer } from "./missionActivityFeedText";
+ 
+ export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "blocker" | "system" | "delivery";
+ 
++export interface ActivityQuestion {
++  text: string;
++  options: string[];
++  /** Separates "genuinely still pending" from "answered" — the unresolved
++   * CTA renders only while this is false, independent of whether the
++   * answer matched a listed option. */
++  resolved: boolean;
++  picked?: string;
++  answer?: string;
++}
++
+ export interface ActivityCard {
+   kind: ActivityKind;
+   text: string;
+   commands: string[];
+   artifact?: ArtifactKind;
++  /** Bounded, sanitized raw-output excerpt — real transcript content, never
++   * a gate verdict (MissionContext stays the sole verdict source). */
++  detail?: string;
++  /** Pill state, always derived from MissionContext — never string-matched
++   * from `text`. */
++  status?: "ok" | "err" | "warn";
++  question?: ActivityQuestion;
+ }
+ 
+ export interface ActivityFeed {
+@@ -17,61 +35,21 @@ export interface ActivityFeed {
+   cards: ActivityCard[];
+ }
+ 
+-const ignored = ["Base directory for this skill:", "Context automatically compacted", "This session is being continued", "<task-notification>", "<local-command"];
+-const clean = (value: string) => sanitizeProofText(value.split("\n")[0] ?? "", 280);
+-const valueFlags = new Set(["--type", "--complexity", "--campaign", "--sub-iterate-id"]);
+-
+-function iterateArgs(raw: string): string {
+-  const tokens = raw.trim().split(/\s+/);
+-  let index = 0;
+-  while (tokens[index]?.startsWith("-")) index += valueFlags.has(tokens[index]) ? 2 : 1;
+-  return tokens.slice(index).join(" ");
+-}
+-
+-function meaningfulRequest(events: readonly ParsedEvent[]): string | null {
+-  for (const event of events) {
+-    if (event.kind === "slash-command" && /^shipwright-iterate(?::iterate)?$/.test(event.commandName.replace(/^\//, ""))) {
+-      const text = clean(iterateArgs(event.args ?? ""));
+-      if (text.length >= 5 && !ignored.some((prefix) => text.startsWith(prefix))) return text;
+-    }
+-    if (event.kind !== "user" || isOnlyToolResults(event)) continue;
+-    const text = clean(userText(event));
+-    if (text.length < 5 || ignored.some((prefix) => text.startsWith(prefix))) continue;
+-    return text;
+-  }
+-  return null;
+-}
+-
+-function isCompactionMarker(event: ParsedEvent): boolean {
+-  return event.kind === "system" && (
+-    /compact/i.test(event.subtype ?? "") || /context automatically compacted/i.test(event.text)
+-  );
+-}
+-
+-function commandDetail(input: unknown): string {
+-  const value = input as Record<string, unknown> | undefined;
+-  return typeof value?.command === "string" ? value.command
+-    : typeof value?.file_path === "string" ? value.file_path
+-    : typeof value?.description === "string" ? value.description
+-    : typeof value?.pattern === "string" ? value.pattern : "";
+-}
+-
+-function commandLabel(name: string, input: unknown): string {
+-  const detail = commandDetail(input);
+-  return detail ? `${name}: ${sanitizeProofText(detail, 180)}` : `Used ${name}`;
+-}
+-
+ function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
+   return context?.artifacts.some((item) => item.kind === kind && item.state === "available") ?? false;
+ }
+ 
+-/** Typed-event reducer for the calm Mission activity feed. It deliberately does
+- * not read tool output: only durable MissionContext may prove a completed gate.
+- * Per-card text prefers the turn's own `assistantText()` explanation over the
+- * generic bucket sentence when Claude wrote one (iterate-2026-08-13-mission-
+- * mobile-visual) — rendered by the caller through the same safe markdown path
+- * as the rest of the transcript (`MarkdownChunk`), never raw HTML, since it is
+- * assistant-influenced content. */
++/** Typed-event reducer for the calm Mission activity feed. `MissionContext`
++ * stays the SOLE source for any gate verdict (tests pass/fail, artifact
++ * availability) — raw `toolResults()` content is permitted only as bounded,
++ * sanitized `detail`/`question.answer` text on `blocker`/`test`/`user-input`
++ * cards (iterate-2026-08-20-mission-feed-content, narrowing the prior
++ * "no raw tool output" constraint). Per-card text prefers the turn's own
++ * `assistantText()` explanation over the generic bucket sentence when Claude
++ * wrote one (iterate-2026-08-13-mission-mobile-visual) — rendered by the
++ * caller through the same safe markdown/text path as the rest of the
++ * transcript (`MarkdownChunk` for prose, a literal text node for raw
++ * excerpts), never raw HTML, since it is assistant/tool-influenced content. */
+ export function deriveActivityFeed(
+   events: readonly ParsedEvent[],
+   context: MissionContext | null,
+@@ -84,13 +62,13 @@ export function deriveActivityFeed(
+   const testCards: ActivityCard[] = [];
+   const unresolvedBlockers = new Map<string, { card: ActivityCard; bucket: ActivityKind }>();
+   const pendingTools = new Map<string, { bucket: ActivityKind; card: ActivityCard; commandKey: string; label: string; background: boolean }>();
+-  const add = (kind: ActivityKind, text: string, command: string, artifact?: ArtifactKind, coalesce = true) => {
++  const add = (kind: ActivityKind, text: string, command: string, artifact?: ArtifactKind, coalesce = true): ActivityCard => {
+     const previous = cards[cards.length - 1];
+     if (coalesce && previous?.kind === kind && previous.text === text && previous.artifact === artifact) {
+       if (!previous.commands.includes(command)) previous.commands.push(command);
+       return previous;
+     }
+-    const card = { kind, text, commands: [command], artifact };
++    const card: ActivityCard = { kind, text, commands: [command], artifact };
+     cards.push(card);
+     return card;
+   };
+@@ -104,16 +82,43 @@ export function deriveActivityFeed(
+         if (!pending) continue;
+         pendingTools.delete(result.tool_use_id);
+         if (pending.bucket === "user-input") {
+-          if (!result.is_error) pending.card.text = "The requested user input was received and work could continue.";
++          // Only a non-error resolution counts as an actual answer (mini-plan,
++          // code review catch): an errored/cancelled prompt sets `resolved`
++          // here too would permanently hide `AnswerInTerminalButton` (FR-01.63)
++          // even though nothing was actually decided.
++          if (pending.card.question && !result.is_error) {
++            pending.card.question.resolved = true;
++            const resolved = resolveQuestionAnswer(result.content, pending.card.question.options);
++            pending.card.question.picked = resolved.picked;
++            pending.card.question.answer = resolved.answer;
++            pending.card.text = "The requested user input was received and work could continue.";
++          }
+         } else if (pending.bucket === "test") {
+           if (result.is_error) {
+             pending.card.text = "This test command needs attention.";
++            pending.card.status = "err";
++            pending.card.detail = excerpt(result.content);
+             unresolvedTest = pending.card;
+           } else if (pending.background) {
+             // A shell acknowledgement is not proof that the spawned job ended.
+             // Keep the card pending until MissionContext records its result.
+-          } else if (unresolvedTest && context?.tests?.gate === "pass") {
+-            unresolvedTest.text = "Tests recovered and have a recorded passing result.";
++          } else if (unresolvedTest) {
++            // A locally-observed successful retry is real recovery evidence
++            // for THIS attempt, independent of whether MissionContext.tests.gate
++            // has caught up yet — merging it here regardless of `gate` (external
++            // review catch, high) closes a duplicate-card leak: leaving
++            // `unresolvedTest` set until `gate === "pass"` let the OLD failed
++            // card linger in the feed forever whenever the gate stayed
++            // fail/unknown, and let the final reconciliation below attach that
++            // lagging gate's status to the NEW card next to text already
++            // claiming completion. The PILL stays gate-derived either way (the
++            // final reconciliation still runs unconditionally); only this
++            // sentence's wording stays conservative about what was RECORDED.
++            unresolvedTest.text = context?.tests?.gate === "pass"
++              ? "Tests recovered and have a recorded passing result."
++              : "This test command completed after an earlier failure.";
++            unresolvedTest.status = undefined;
++            unresolvedTest.detail = undefined;
+             if (!unresolvedTest.commands.includes(pending.label)) unresolvedTest.commands.push(pending.label);
+             cards.splice(cards.indexOf(pending.card), 1);
+             testCards.splice(testCards.indexOf(pending.card), 1);
+@@ -124,11 +129,20 @@ export function deriveActivityFeed(
+         } else if (result.is_error) {
+           pending.card.kind = "blocker";
+           pending.card.text = "A command needs attention before work can continue.";
++          pending.card.status = "err";
++          // `add()` coalesces same-kind/text/artifact cards across several
++          // tool_use ids (the "many-files-in-a-row" case) — attaching this
++          // one command's error excerpt would misattribute it to a card
++          // whose `commands` chip list still names other, unrelated,
++          // non-erroring commands. Only attach when unambiguous.
++          if (pending.card.commands.length === 1) pending.card.detail = excerpt(result.content);
+           unresolvedBlockers.set(pending.commandKey, { card: pending.card, bucket: pending.bucket });
+         } else if (unresolvedBlockers.has(pending.commandKey)) {
+           const blocker = unresolvedBlockers.get(pending.commandKey)!;
+           blocker.card.kind = blocker.bucket;
+           blocker.card.text = "A command error recovered after a successful retry.";
++          blocker.card.status = undefined;
++          blocker.card.detail = undefined;
+           if (!blocker.card.commands.includes(pending.label)) blocker.card.commands.push(pending.label);
+           cards.splice(cards.indexOf(pending.card), 1);
+           unresolvedBlockers.delete(pending.commandKey);
+@@ -171,6 +185,14 @@ export function deriveActivityFeed(
+         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+       } else if (bucket === "user-input") {
+         const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false);
++        // Always set `card.question` — even the `fallback` shape carries a
++        // real (if generic) placeholder question. Gating this on
++        // `!summary.fallback` (code review catch) silently dropped the
++        // terminal CTA for a genuinely unparseable AskUserQuestion payload,
++        // since the whole question block — CTA included — renders only when
++        // `card.question` is truthy.
++        const summary = askUserQuestionSummary(tool.input);
++        card.question = { text: summary.question, options: summary.options, resolved: false };
+         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+       } else {
+         const card = bucket === "review" ? add("review", prose || "Review work is in progress.", label, artifact(context, "review") ? "review" : undefined)
+@@ -184,25 +206,55 @@ export function deriveActivityFeed(
+ 
+   if (cards.some((card) => card.kind === "test") || artifact(context, "tests")) {
+     const gate = context?.tests?.gate;
++    const status: ActivityCard["status"] = gate === "pass" ? "ok" : gate === "fail" ? "err" : "warn";
+     const latest = testCards.at(-1);
++    // An earlier test still genuinely open must never be silently hidden
++    // behind a later completed/recovered one (pre-existing) — surfaced via
++    // `latest`'s text below even when `latest` itself already settled.
+     const pendingTest = testCards.some((card) => /awaiting a result/i.test(card.text));
+     if (!latest) {
+       const text = gate === "pass" ? "Tests have a recorded passing result."
+         : gate === "fail" ? "Tests have a recorded failing result." : "No reliable test result is recorded.";
+-      cards.push({ kind: "test", text, commands: [], artifact: artifact(context, "tests") ? "tests" : undefined });
++      cards.push({ kind: "test", text, commands: [], artifact: artifact(context, "tests") ? "tests" : undefined, status });
+     } else if (pendingTest) {
+       latest.text = "The latest test attempt needs attention.";
+-    } else if (!unresolvedTest) {
+-      if (gate === "pass" && latest.text === "This test command completed.") latest.text = "Tests have a recorded passing result.";
+-      if (gate === "fail") latest.text = "Tests have a recorded failing result.";
+-      if (gate === "unknown") latest.text = "No reliable test result is recorded.";
++      // A real "fail" gate still escalates the pill (code review catch: a
++      // hardcoded "warn" could under-claim a genuine failure), but "pass"
++      // cannot claim "ok" here (doubt-review catch, high): something in
++      // this run is still unresolved, so a green pill next to "needs
++      // attention" text would be self-contradictory.
++      latest.status = gate === "fail" ? "err" : "warn";
++    } else {
++      // The status PILL follows `gate` unconditionally — even when the
++      // transcript's own retry-tracking left the last observed attempt
++      // unresolved (`unresolvedTest`), the pill must never contradict the
++      // recorded gate (external review catch: a stale local "err" from an
++      // unretried failure was surviving past a `gate: "pass"` reconcile).
++      // The prose TEXT stays conservative under that same guard — it is
++      // local-transcript colour commentary, not the verdict itself, and
++      // "needs attention" text next to a real recorded pass is deliberate:
++      // this transcript never proved the recovery it would be claiming.
++      latest.status = status;
++      if (!unresolvedTest) {
++        if (gate === "pass" && latest.text === "This test command completed.") latest.text = "Tests have a recorded passing result.";
++        if (gate === "fail") latest.text = "Tests have a recorded failing result.";
++        if (gate === "unknown") latest.text = "No reliable test result is recorded.";
++      } else if (status === "ok") {
++        // The gate overrode an unretried local failure back to ok (this
++        // attempt was never locally proven to recover — code review catch,
++        // high) — the stale FAIL excerpt must not keep rendering under a
++        // pill that now says "Passing". An "unknown" gate leaves the pill at
++        // "warn" and INTENTIONALLY keeps the detail: the local failure is
++        // still the best evidence available, not contradicted by anything.
++        latest.detail = undefined;
++      }
+     }
+   }
+   for (const kind of ["spec", "requirement", "decisions"] as const) {
+     if (artifact(context, kind) && !cards.some((card) => card.artifact === kind)) {
+       const text = kind === "spec" ? "Specification evidence is available."
+         : kind === "requirement" ? "Requirement evidence is available." : "A recorded decision is available.";
+-      cards.push({ kind: "spec", text, commands: [], artifact: kind });
++      cards.push({ kind: "spec", text, commands: [], artifact: kind, status: "ok" });
+     }
+   }
+   if (artifact(context, "review")) {
+@@ -210,8 +262,9 @@ export function deriveActivityFeed(
+     if (review) {
+       review.text = "The recorded review evidence is available.";
+       review.artifact = "review";
++      review.status = "ok";
+     } else {
+-      cards.push({ kind: "review", text: "The recorded review evidence is available.", commands: [], artifact: "review" });
++      cards.push({ kind: "review", text: "The recorded review evidence is available.", commands: [], artifact: "review", status: "ok" });
+     }
+   }
+   const pipelinePhase = context?.artifacts.find((item) => item.kind === "phase");
+@@ -231,7 +284,11 @@ export function deriveActivityFeed(
+   const finished = iterateFinished || pipelineFinished;
+   if (finished) {
+     const link: ArtifactKind = pipelineFinished ? "phase" : "commit";
+-    cards.push({ kind: "delivery", text: "This completed run is recorded through durable artifacts.", commands: [], artifact: link });
++    const commit = context?.artifacts.find((item) => item.kind === "commit") as CommitArtifact | undefined;
++    const text = !pipelineFinished && commit?.detail?.message
++      ? `Merged as "${commit.detail.message}".`
++      : "This completed run is recorded through durable artifacts.";
++    cards.push({ kind: "delivery", text, commands: [], artifact: link });
+   }
+   const outcome = finished ? "Completed run" : context?.runLive ? "In progress" : "Waiting for reliable evidence";
+   return { goal, outcome, cards };
+diff --git a/client/src/lib/missionActivityFeedFields.test.ts b/client/src/lib/missionActivityFeedFields.test.ts
+new file mode 100644
+index 00000000..833bf116
+--- /dev/null
++++ b/client/src/lib/missionActivityFeedFields.test.ts
+@@ -0,0 +1,218 @@
++/*
++ * iterate-2026-08-20-mission-feed-content — real per-kind content plus the
++ * new `detail`/`status`/`question` fields. Split out of
++ * `missionActivityFeed.test.ts` once that file crossed the project's
++ * 300-line convention; shares the same small event-builder helpers by
++ * design (they are ~10 lines each, not worth a shared module for two
++ * test files).
++ */
++import { describe, expect, it } from "vitest";
++import { parseSessionJsonl } from "../external/session-parser";
++import { deriveActivityFeed } from "./missionActivityFeed";
++import type { MissionContext } from "./missionContextApi";
++
++const event = (value: unknown) => JSON.stringify(value);
++const tool = (id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] } });
++const result = (id: string, isError = false) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "output", is_error: isError }] } });
++const errorResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: true }] } });
++const okResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: false }] } });
++
++const context = (gate: "pass" | "fail" | "unknown", live = true): MissionContext => ({ schemaVersion: 1, scenario: "iterate", missionTabVisible: true, runId: "iterate-x", runLive: live, servesFrId: null, sourceRev: "x", tests: { passed: gate === "pass" ? 12 : null, total: gate === "pass" ? 12 : null, skipped: 0, gate }, artifacts: [
++  { kind: "spec", label: "Spec", state: "available", summary: null, receipt: null, detail: null },
++  { kind: "tests", label: "Tests", state: "available", summary: null, receipt: null, detail: null },
++  { kind: "commit", label: "Delivery", state: "available", summary: null, receipt: null, detail: null },
++] });
++
++describe("deriveActivityFeed — real content + detail/status/question fields", () => {
++  it("attaches a bounded real-output excerpt and an err status to a failing test card", () => {
++    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "FAIL src/x.test.ts\nexpect(received).toEqual(expected)")].join("\n")).events;
++    const card = deriveActivityFeed(events, context("fail"), "Test work").cards.find((c) => c.kind === "test");
++    expect(card?.status).toBe("err");
++    expect(card?.detail).toBe("FAIL src/x.test.ts\nexpect(received).toEqual(expected)");
++  });
++
++  it("never lets an unretried local failure contradict a recorded passing gate (external review catch, high)", () => {
++    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "FAIL src/x.test.ts")].join("\n")).events;
++    const card = deriveActivityFeed(events, context("pass"), "Test work").cards.find((c) => c.kind === "test");
++    // The pill follows the gate unconditionally...
++    expect(card?.status).toBe("ok");
++    // ...while the prose stays conservative: this transcript never proved
++    // the recovery a "recorded passing result" sentence would claim.
++    expect(card?.text).toMatch(/needs attention/i);
++    // ...and the stale FAIL excerpt from the unretried attempt must not keep
++    // rendering under a pill that no longer says "Failing" (code review
++    // catch, high — the gate override cleared status but not detail).
++    expect(card?.detail).toBeUndefined();
++  });
++
++  it("derives the pending-test pill from the recorded gate instead of hardcoding warn (code review catch)", () => {
++    const events = parseSessionJsonl([
++      tool("first", "Bash", { command: "npm test" }), result("first"),
++      tool("second", "Bash", { command: "npm test" }),
++    ].join("\n")).events;
++    const card = deriveActivityFeed(events, context("fail"), "Test work").cards.filter((c) => c.kind === "test").at(-1);
++    expect(card?.status).toBe("err");
++  });
++
++  it("shows a warn pill, not err, when a locally-observed failure has no recorded gate (external review catch)", () => {
++    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "FAIL src/x.test.ts")].join("\n")).events;
++    const card = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test");
++    expect(card?.status).toBe("warn");
++  });
++
++  it("never shows a false-reassuring ok pill while an unrelated test card is still pending, even for a recovered gate:pass card (doubt-review catch, high)", () => {
++    const events = parseSessionJsonl([
++      tool("first", "Bash", { command: "npm test suiteA" }), // never resolves — stays "awaiting a result"
++      tool("second", "Bash", { command: "npm test suiteB" }), errorResult("second", "FAIL suiteB"),
++      tool("retry", "Bash", { command: "npm test suiteB" }), result("retry"),
++    ].join("\n")).events;
++    const cards = deriveActivityFeed(events, context("pass"), "Test work").cards.filter((c) => c.kind === "test");
++    // The still-open suiteA card means the run's test picture is not fully
++    // settled, so the aggregate-latest card must not claim "ok"/Passing —
++    // a green pill next to "needs attention" text would be a
++    // self-contradiction (the original bug: this scenario used to overwrite
++    // the just-recovered card's status straight from the gate, producing
++    // exactly that false-reassuring pill).
++    expect(cards.some((c) => c.status === "ok")).toBe(false);
++    expect(cards.find((c) => c.text === "The latest test attempt needs attention.")?.status).toBe("warn");
++  });
++
++  it("preserves a bounded multi-line excerpt instead of collapsing it to one line (external review catch)", () => {
++    const longOutput = ["FAIL src/x.test.ts", "  expect(received).toEqual(expected)", "  - Expected: 1", "  + Received: 2", "  extra ignored line"].join("\n");
++    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longOutput)].join("\n")).events;
++    const detail = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test")?.detail;
++    expect(detail?.split("\n")).toHaveLength(4);
++    expect(detail).not.toContain("extra ignored line");
++  });
++
++  it("marks a line-count-truncated excerpt with an ellipsis so a partial output is never silent (doubt-review catch)", () => {
++    const longOutput = ["FAIL src/x.test.ts", "  line 2", "  line 3", "  line 4", "  line 5 dropped"].join("\n");
++    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longOutput)].join("\n")).events;
++    const detail = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test")?.detail;
++    expect(detail?.endsWith("…")).toBe(true);
++    expect(detail?.split("\n")).toHaveLength(4);
++  });
++
++  it("hard-caps a single long line to 320 chars with an ellipsis (Confidence Calibration probe)", () => {
++    const longLine = "F".repeat(400);
++    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longLine)].join("\n")).events;
++    const detail = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test")?.detail;
++    expect(detail).toHaveLength(321);
++    expect(detail?.endsWith("…")).toBe(true);
++  });
++
++  it("clears the stale status/detail pill when a blocker recovers (internal plan review, finding 7)", () => {
++    const events = parseSessionJsonl([
++      tool("first", "Bash", { command: "npm run build" }), errorResult("first", "Error: something broke"),
++      tool("retry", "Bash", { command: "npm run build" }), result("retry"),
++    ].join("\n")).events;
++    const recovered = deriveActivityFeed(events, context("unknown"), "Build work").cards.find((card) => /recovered/i.test(card.text));
++    expect(recovered?.status).toBeUndefined();
++    expect(recovered?.detail).toBeUndefined();
++  });
++
++  it("clears the stale status/detail pill when a failing test recovers (internal plan review, finding 7)", () => {
++    const events = parseSessionJsonl([
++      tool("first", "Bash", { command: "npm test" }), errorResult("first", "FAIL something"),
++      tool("retry", "Bash", { command: "npm test" }), result("retry"),
++    ].join("\n")).events;
++    const recovered = deriveActivityFeed(events, context("pass"), "Test work").cards.filter((c) => c.kind === "test").at(-1);
++    expect(recovered?.text).toMatch(/recovered/i);
++    expect(recovered?.status).toBe("ok");
++    expect(recovered?.detail).toBeUndefined();
++  });
++
++  it("does not misattribute one command's error excerpt to a coalesced multi-command card (internal plan review, finding 8)", () => {
++    const events = parseSessionJsonl([
++      tool("a", "Read", { file_path: "a.ts" }),
++      tool("b", "Read", { file_path: "b.ts" }),
++      errorResult("a", "Some read error"),
++    ].join("\n")).events;
++    const blocker = deriveActivityFeed(events, context("unknown"), "Read work").cards.find((card) => card.kind === "blocker");
++    expect(blocker?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
++    expect(blocker?.status).toBe("err");
++    expect(blocker?.detail).toBeUndefined();
++  });
++
++  it("never shares a test card between two distinct failing test commands (external review catch, verified non-issue)", () => {
++    // Unlike blocker/implement/etc., every `test`-bucket tool_use pushes its
++    // own fresh card rather than going through add()'s coalescing — so the
++    // single-command misattribution guard blocker cards need does not apply
++    // here. This probe confirms it, rather than taking that on faith.
++    const events = parseSessionJsonl([
++      tool("a", "Bash", { command: "npm test suiteA" }), errorResult("a", "FAIL suiteA"),
++      tool("b", "Bash", { command: "npm test suiteB" }), errorResult("b", "FAIL suiteB"),
++    ].join("\n")).events;
++    const cards = deriveActivityFeed(events, context("unknown"), "Test work").cards.filter((c) => c.kind === "test");
++    expect(cards).toHaveLength(2);
++    expect(cards[0].detail).toBe("FAIL suiteA");
++    expect(cards[1].detail).toBe("FAIL suiteB");
++  });
++
++  it("attaches a single command's error excerpt when the card represents exactly one command", () => {
++    const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), errorResult("a", "ENOENT: a.ts not found")].join("\n")).events;
++    const blocker = deriveActivityFeed(events, context("unknown"), "Read work").cards.find((card) => card.kind === "blocker");
++    expect(blocker?.detail).toBe("ENOENT: a.ts not found");
++  });
++
++  it("shows the real merged PR title on the delivery card when the commit artifact carries one", () => {
++    const withCommitDetail = {
++      ...context("pass", false),
++      artifacts: context("pass", false).artifacts.map((item) => item.kind === "commit"
++        ? { ...item, detail: { type: "commit" as const, commit: "abc123", message: "fix(mission): real content", prNumber: 367, prUrl: "https://x/367", merge: "merged" as const } }
++        : item),
++    };
++    const feed = deriveActivityFeed([], withCommitDetail, "Ship it");
++    expect(feed.cards.find((card) => card.kind === "delivery")?.text).toBe('Merged as "fix(mission): real content".');
++  });
++
++  it("keeps the generic delivery sentence when no commit message is available", () => {
++    const feed = deriveActivityFeed([], context("pass", false), "Ship it");
++    expect(feed.cards.find((card) => card.kind === "delivery")?.text).toBe("This completed run is recorded through durable artifacts.");
++  });
++
++  it("matches a plain-text resolution against a listed option (real CLI shape, askuser-roundtrip.jsonl)", () => {
++    const events = parseSessionJsonl([
++      tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", header: "Platform", options: [{ label: "Web App" }, { label: "Mobile App" }], multiSelect: false }] }),
++      okResult("ask", "Web App"),
++    ].join("\n")).events;
++    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
++    expect(card?.question?.resolved).toBe(true);
++    expect(card?.question?.picked).toBe("Web App");
++  });
++
++  it("keeps a resolved-but-unmatched answer as free text, not a picked option (external review catch)", () => {
++    const events = parseSessionJsonl([
++      tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }, { label: "Mobile App" }] }] }),
++      okResult("ask", "Both, actually"),
++    ].join("\n")).events;
++    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
++    expect(card?.question?.resolved).toBe(true);
++    expect(card?.question?.picked).toBeUndefined();
++    expect(card?.question?.answer).toBe("Both, actually");
++  });
++
++  it("keeps a question pending when its tool_result is an error, not a real answer (code review catch, mini-plan)", () => {
++    const events = parseSessionJsonl([
++      tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }] }] }),
++      errorResult("ask", "cancelled"),
++    ].join("\n")).events;
++    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
++    expect(card?.question?.resolved).toBe(false);
++  });
++
++  it("keeps an unresolved question's CTA-gating field false until a tool_result resolves it", () => {
++    const events = parseSessionJsonl(tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }] }] })).events;
++    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
++    expect(card?.question?.resolved).toBe(false);
++  });
++
++  it("marks a spec/review artifact card status ok so the pill has a MissionContext-derived source", () => {
++    const reviewContext = {
++      ...context("unknown"),
++      artifacts: [...context("unknown").artifacts, { kind: "review" as const, label: "Review", state: "available" as const, summary: null, receipt: null, detail: null }],
++    };
++    const events = parseSessionJsonl(tool("review", "Task", { description: "Review the change" })).events;
++    expect(deriveActivityFeed(events, reviewContext, "Review").cards.find((card) => card.kind === "review")?.status).toBe("ok");
++  });
++});
+diff --git a/client/src/lib/missionActivityFeedText.ts b/client/src/lib/missionActivityFeedText.ts
+new file mode 100644
+index 00000000..0f26fc76
+--- /dev/null
++++ b/client/src/lib/missionActivityFeedText.ts
+@@ -0,0 +1,99 @@
++/**
++ * Text-extraction helpers for `missionActivityFeed.ts`'s reducer: goal
++ * derivation, per-card command labels, and the bounded raw-output excerpt +
++ * question-answer matching that back the new `detail`/`question` fields
++ * (iterate-2026-08-20-mission-feed-content). Split out of the reducer file
++ * itself once it crossed the project's 300-line convention — pure text
++ * transforms with no dependency on the reducer's mutation state machine.
++ */
++import stripAnsi from "strip-ansi";
++import { isOnlyToolResults, userText, type ParsedEvent } from "../external/session-parser";
++import { sanitizeProofText, stripControl } from "./proofLines";
++
++const ignored = ["Base directory for this skill:", "Context automatically compacted", "This session is being continued", "<task-notification>", "<local-command"];
++export const clean = (value: string) => sanitizeProofText(value.split("\n")[0] ?? "", 280);
++const valueFlags = new Set(["--type", "--complexity", "--campaign", "--sub-iterate-id"]);
++
++function iterateArgs(raw: string): string {
++  const tokens = raw.trim().split(/\s+/);
++  let index = 0;
++  while (tokens[index]?.startsWith("-")) index += valueFlags.has(tokens[index]) ? 2 : 1;
++  return tokens.slice(index).join(" ");
++}
++
++export function meaningfulRequest(events: readonly ParsedEvent[]): string | null {
++  for (const event of events) {
++    if (event.kind === "slash-command" && /^shipwright-iterate(?::iterate)?$/.test(event.commandName.replace(/^\//, ""))) {
++      const text = clean(iterateArgs(event.args ?? ""));
++      if (text.length >= 5 && !ignored.some((prefix) => text.startsWith(prefix))) return text;
++    }
++    if (event.kind !== "user" || isOnlyToolResults(event)) continue;
++    const text = clean(userText(event));
++    if (text.length < 5 || ignored.some((prefix) => text.startsWith(prefix))) continue;
++    return text;
++  }
++  return null;
++}
++
++export function isCompactionMarker(event: ParsedEvent): boolean {
++  return event.kind === "system" && (
++    /compact/i.test(event.subtype ?? "") || /context automatically compacted/i.test(event.text)
++  );
++}
++
++export function commandDetail(input: unknown): string {
++  const value = input as Record<string, unknown> | undefined;
++  return typeof value?.command === "string" ? value.command
++    : typeof value?.file_path === "string" ? value.file_path
++    : typeof value?.description === "string" ? value.description
++    : typeof value?.pattern === "string" ? value.pattern : "";
++}
++
++export function commandLabel(name: string, input: unknown): string {
++  const detail = commandDetail(input);
++  return detail ? `${name}: ${sanitizeProofText(detail, 180)}` : `Used ${name}`;
++}
++
++/**
++ * Bounded, sanitized raw-output excerpt: its own multi-line truncation, not
++ * `sanitizeProofText` (which single-line-truncates and would collapse a
++ * multi-line failure back to one line, defeating the point).
++ */
++export function excerpt(content: string, maxLines = 4, maxChars = 320): string {
++  const allLines = stripControl(stripAnsi(content))
++    .split("\n")
++    .map((line) => line.trim())
++    .filter((line) => line.length > 0);
++  const lines = allLines.slice(0, maxLines);
++  if (lines.length === 0) return "";
++  const joined = lines.join("\n");
++  if (joined.length > maxChars) return `${joined.slice(0, maxChars)}…`;
++  // Line-count truncation is otherwise silent (doubt-review catch): dropping
++  // lines beyond `maxLines` with no marker left a reader unable to tell a
++  // partial excerpt from the complete output. Appended to the last line
++  // (not a new line) so a `split("\n")` line count still matches `maxLines`.
++  return allLines.length > maxLines ? `${joined}…` : joined;
++}
++
++const normalizeForMatch = (value: string) => value.trim().toLowerCase();
++
++/**
++ * Real CLI resolution content is plain text matching one option's label
++ * verbatim (confirmed against a captured real transcript fixture,
++ * `askuser-roundtrip.jsonl`). A resolution routed through the webui's own
++ * multi-question answer serialization (`askUserPayload.ts`
++ * `serializePartAnswers`) instead uses `## header\nbody` blocks — handled
++ * defensively since `askUserQuestionSummary()` only surfaces the FIRST
++ * question (existing precedent), matching that shape's first block.
++ */
++export function resolveQuestionAnswer(rawContent: string, options: string[]): { picked?: string; answer?: string } {
++  const trimmed = rawContent.trim();
++  const direct = options.find((option) => normalizeForMatch(option) === normalizeForMatch(trimmed));
++  if (direct) return { picked: direct };
++  const block = /^##\s*.+\n([\s\S]*?)(?:\n\n##|$)/.exec(trimmed);
++  const body = (block ? block[1] : trimmed).trim();
++  const bodyMatch = options.find((option) => normalizeForMatch(option) === normalizeForMatch(body));
++  if (bodyMatch) return { picked: bodyMatch };
++  const excerpted = excerpt(body || trimmed);
++  return excerpted ? { answer: excerpted } : {};
++}
+diff --git a/client/src/lib/proofLines.ts b/client/src/lib/proofLines.ts
+index 690be414..d5607330 100644
+--- a/client/src/lib/proofLines.ts
++++ b/client/src/lib/proofLines.ts
+@@ -104,6 +104,20 @@ export function deriveVerdict(input: { facts: ProofFacts | null }): OperationVer
+   return { outcome: "neutral", heldGate: null };
+ }
+ 
++/**
++ * Strip control characters (other than tab, newline, CR) that survive
++ * `strip-ansi` — e.g. BEL, backspace, form feed (control codepoints U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+007F).
++ * These confuse text rendering and serve no purpose in a transcript. Lives
++ * here (not a component file) so a pure lib text-transform module can reuse
++ * it without a lib→components dependency inversion (code review catch,
++ * iterate-2026-08-20-mission-feed-content) — `ToolOutputBlock.tsx` and
++ * `missionActivityFeedText.ts` both import it from here.
++ */
++export function stripControl(s: string): string {
++  // Allow LF (0x0A), CR (0x0D), TAB (0x09); strip the rest in 0x00–0x1F + 0x7F.
++  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
++}
++
+ /**
+  * Event-log strings are UNTRUSTED display data (the runId, the FR) — the proof
+  * summary must not become a place raw log payloads leak control/bidi characters or
+diff --git a/client/src/styles/mission-operation.css b/client/src/styles/mission-operation.css
+index 70c4862a..7d26aa2a 100644
+--- a/client/src/styles/mission-operation.css
++++ b/client/src/styles/mission-operation.css
+@@ -65,16 +65,67 @@
+ }
+ .mc-story-link:hover { text-decoration-color: currentColor; }
+ .mc-story-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 3px; }
++/* ── the activity feed (iterate-2026-08-20-mission-feed-content) ──────────
++   Icon-node + connecting-spine timeline, per the approved high-fidelity
++   mockup. Every rule below reuses the SAME --ink/--body/--muted/--card/
++   --ok/--err/--warn/--accent/--line family the rest of this file already
++   defines (light base here, redefined by the on-photo dark scope below) —
++   no new colors. `.mc-feed-card` and its text children now carry an
++   explicit `color`, which they never did before (the card simply inherited
++   ambient color) — needed for the real content this run adds to actually
++   read on the on-photo dark ground, not a standalone fix of a separately-
++   tracked bug. */
+ .mc-feed { gap: 10px; }
+ .mc-feed-pinned { display: grid; gap: 4px; flex: 0 0 auto; font-size: 13px; color: var(--body); }
+ .mc-feed-pinned strong { color: var(--ink); font-size: 15px; line-height: 1.35; }
+ .mc-feed-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+-.mc-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px; display: grid; align-content: start; gap: 9px; }
++.mc-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px; position: relative; }
+ .mc-feed-scroll:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
+-.mc-feed-card { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: color-mix(in srgb, var(--card) 88%, transparent); font-size: 13px; line-height: 1.5; }
++.mc-feed-scroll:has(.mc-feed-entry)::before {
++  content: ""; position: absolute; left: 19px; top: 4px; bottom: 4px; width: 1.5px;
++  background: linear-gradient(var(--line-strong), var(--line) 85%, transparent);
++}
++.mc-feed-entry { position: relative; display: grid; grid-template-columns: 34px 1fr; column-gap: 12px; padding-bottom: 9px; }
++.mc-feed-entry:last-child { padding-bottom: 0; }
++.mc-feed-node {
++  position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%;
++  display: flex; align-items: center; justify-content: center;
++  background: var(--card); border: 1.5px solid var(--kind-line, var(--line-strong));
++  color: var(--kind, var(--muted));
++}
++.mc-feed-node svg { width: 15px; height: 15px; }
++.mc-feed-node[data-dashed="true"] { border-style: dashed; }
++.mc-feed-card { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: color-mix(in srgb, var(--card) 88%, transparent); font-size: 13px; line-height: 1.5; color: var(--body); }
+ .mc-feed-card p { margin: 0 0 7px; }.mc-feed-card p:last-child { margin-bottom: 0; }
+-.mc-feed-card details { margin-top: 8px; color: var(--muted); }.mc-feed-card summary { cursor: pointer; font-weight: 600; }.mc-feed-card ul { margin: 6px 0 0; padding-left: 18px; }
+-.mc-feed-card[data-kind="system"] { border-style: dashed; background: transparent; color: var(--muted); font-size: 12px; }
++.mc-feed-card b, .mc-feed-card strong { color: var(--ink); font-weight: 600; }
++.mc-feed-card code { font-family: var(--mono); font-size: .92em; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--accent); }
++.mc-feed-card[data-kind="system"] { border-style: dashed; background: transparent; color: var(--faint); font-size: 12px; }
++.mc-feed-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
++.mc-feed-kind { font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--kind, var(--muted)); }
++.mc-feed-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
++.mc-feed-pill[data-status="ok"] { background: var(--ok-tint); border: 1px solid var(--ok-line); color: var(--ok); }
++.mc-feed-pill[data-status="err"] { background: var(--err-tint); border: 1px solid var(--err-line); color: var(--err); }
++.mc-feed-pill[data-status="warn"] { background: var(--warn-tint); border: 1px solid var(--warn-line); color: var(--warn); }
++.mc-feed-pill svg { width: 11px; height: 11px; }
++.mc-feed-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
++.mc-feed-chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .03); }
++.mc-feed-chip svg { width: 11px; height: 11px; flex-shrink: 0; }
++.mc-feed-code { margin-top: 9px; border: 1px solid var(--err-line); background: var(--err-tint); border-radius: 8px; overflow: hidden; }
++.mc-feed-code pre { margin: 0; padding: 9px 11px; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; color: var(--err); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
++.mc-feed-qa-question { margin-top: 9px; font-size: 13px; font-weight: 600; color: var(--ink); }
++.mc-feed-qa-options { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
++.mc-feed-qa-opt { font-size: 12.5px; padding: 5px 11px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .02); }
++.mc-feed-qa-opt[data-picked="true"] { color: var(--ok); border-color: var(--ok-line); background: var(--ok-tint); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
++.mc-feed-qa-opt svg { width: 11px; height: 11px; }
++.mc-feed-qa-answer { margin-top: 9px; font-size: 12.5px; color: var(--body); }
++.mc-feed-qa-cta { margin-top: 9px; }
++.mc-feed-pr { margin-top: 9px; border: 1px solid var(--accent-line); background: var(--accent-tint); border-radius: 9px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; }
++.mc-feed-pr-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(95, 201, 180, .18); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
++.mc-feed-pr-icon svg { width: 14px; height: 14px; }
++.mc-feed-pr-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
++.mc-feed-pr-title { color: var(--ink); font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
++.mc-feed-pr-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; gap: 8px; }
++.mc-feed-pr-meta [data-merged="true"] { color: var(--ok); }
+ .mc-hero .t { color: #5fc9b4; }
+ .mc-hero .p { color: #3fbf9a; }
+ .mc-hero .r { color: #f08772; }
+@@ -113,7 +164,7 @@
+   --ok: #3fbf9a; --ok-tint: rgba(63, 191, 154, .16); --ok-line: rgba(63, 191, 154, .4);
+   --err: #f08772; --err-tint: rgba(240, 135, 114, .16); --err-line: rgba(240, 135, 114, .4);
+   --warn: #e0ac5c; --warn-tint: rgba(224, 172, 92, .16); --warn-line: rgba(224, 172, 92, .4);
+-  --accent: #5fc9b4; --accent-line: rgba(95, 201, 180, .45);
++  --accent: #5fc9b4; --accent-tint: rgba(95, 201, 180, .16); --accent-line: rgba(95, 201, 180, .45);
+   --focus: 0 0 0 4px rgba(95, 201, 180, .32);
+ }
+ .on-photo .mc-op:not([data-state="designgate"]) .mc-missionline,

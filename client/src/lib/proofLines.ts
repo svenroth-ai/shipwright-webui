@@ -105,6 +105,20 @@ export function deriveVerdict(input: { facts: ProofFacts | null }): OperationVer
 }
 
 /**
+ * Strip control characters (other than tab, newline, CR) that survive
+ * `strip-ansi` — e.g. BEL, backspace, form feed (control codepoints U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+007F).
+ * These confuse text rendering and serve no purpose in a transcript. Lives
+ * here (not a component file) so a pure lib text-transform module can reuse
+ * it without a lib→components dependency inversion (code review catch,
+ * iterate-2026-08-20-mission-feed-content) — `ToolOutputBlock.tsx` and
+ * `missionActivityFeedText.ts` both import it from here.
+ */
+export function stripControl(s: string): string {
+  // Allow LF (0x0A), CR (0x0D), TAB (0x09); strip the rest in 0x00–0x1F + 0x7F.
+  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
+}
+
+/**
  * Event-log strings are UNTRUSTED display data (the runId, the FR) — the proof
  * summary must not become a place raw log payloads leak control/bidi characters or
  * unbounded text (touches_io_boundary). React escapes HTML, but not C0/C1 controls,

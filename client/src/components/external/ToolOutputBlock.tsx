@@ -10,6 +10,7 @@
  */
 
 import stripAnsi from "strip-ansi";
+import { stripControl } from "../../lib/proofLines";
 
 interface Props {
   text: string;
@@ -35,12 +36,3 @@ export function ToolOutputBlock({ text, isError = false }: Props) {
   );
 }
 
-/**
- * Strip control characters (other than tab, newline, CR) that survive
- * `strip-ansi` — e.g. BEL (\u0007), backspace (\u0008), form feed (\u000C).
- * These confuse text rendering and serve no purpose in a transcript.
- */
-function stripControl(s: string): string {
-  // Allow LF (0x0A), CR (0x0D), TAB (0x09); strip the rest in 0x00–0x1F + 0x7F.
-  return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
-}

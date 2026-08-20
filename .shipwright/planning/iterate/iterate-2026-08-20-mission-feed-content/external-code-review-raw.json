@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: high\n- File: client/src/components/external/mission/MissionActivityFeed.tsx:93-112\n- Finding: `card.question.text` is never rendered. User-input cards render the generic `card.text`, options, and possibly an answer/CTA, but not the actual question captured from `askUserQuestionSummary()`. This fails the requirement that user-input cards show the real question and real options.\n- Suggestion: Render `card.question.text` in the question block through `MarkdownChunk` or as a literal text node, and add a DOM test that asserts the real question is visible.\n\n- Category: spec\n- Severity: high\n- File: client/src/lib/missionActivityFeed.ts:90-94\n- Finding: A failing tool result directly sets `test` card `status = \"err\"` regardless of `MissionContext.tests.gate`. This makes raw transcript output, rather than MissionContext, determine the rendered failing verdict/pill, directly violating the sole-gate-source constraint. In particular, an erroring command with `gate: \"pass\"` remains marked Failing because the later gate reconciliation is skipped while `unresolvedTest` is set.\n- Suggestion: Derive test status exclusively from `context.tests.gate`; retain raw output only in `detail`. Reconcile an erroring attempt with a recorded pass/fail/unknown gate consistently, including when `unresolvedTest` exists.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeed.ts:90-94\n- Finding: Unlike the blocker path, the test-error path attaches an excerpt to a potentially coalesced card without checking that it represents one command. Two distinct test commands with the same initial text coalesce via `add()`, so one command's failure output can be displayed beneath chips for unrelated test commands.\n- Suggestion: Apply the same single-command guard used for blockers before assigning `pending.card.detail`, or split coalesced cards once an individual command produces an error.\n\n- Category: test\n- Severity: medium\n- File: client/src/lib/missionActivityFeed.test.ts:203-321\n- Finding: The new tests encode the invalid raw-result-derived test status (`context(\"unknown\")` plus an error result expects `status: \"err\"`), so they reinforce rather than detect the MissionContext verdict-source violation. There is no test for a failing raw test command when `MissionContext.tests.gate` is `pass` or `unknown`.\n- Suggestion: Add cases proving that the pill/verdict follows `MissionContext.tests.gate` for error output under pass, fail, and unknown gates, while the raw output is only rendered as detail.\n\n- Category: test\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeed.test.tsx:106-138\n- Finding: The question-resolution rendering tests assert options, CTA, and answers but never assert that the actual question is displayed. Consequently, the current implementation\u2014which entirely omits `question.text`\u2014passes all added UI tests.\n- Suggestion: Assert that \u201cWhich platform?\u201d is present for unresolved and resolved question cards, using the extracted question rather than only the generic card narration.\n\n- Category: test\n- Severity: medium\n- File: client/src/lib/missionActivityFeed.test.ts:203-321\n- Finding: The required \u201creal content for all nine kinds\u201d fixture/test coverage was not added. `missionActivityFeed.fixtures.ts` is unchanged, and the added tests cover test, blocker, user-input, review status, and delivery only; they do not establish real-content behavior for investigate, spec, implement, system, or a complete nine-kind matrix.\n- Suggestion: Extend the fixture and add assertions for each non-goal kind, including its real transcript/artifact-derived text and applicable structured details.\n\n- Category: spec\n- Severity: low\n- File: client/src/styles/mission-operation.css:65-137\n- Finding: The specification requires regenerated Linux visual-regression baselines for `task-detail-mission.png`, `task-detail-mission-live.png`, and shifted baselines. No baseline updates are included despite a substantial layout rewrite.\n- Suggestion: Run the Linux visual-regression pipeline and commit the updated baseline assets, or provide the expected generated changes.\n\nOverall assessment: ship-with-fixes. The feed has the intended presentation and much of the extraction work, but it omits the actual question text and allows raw test output to determine a gate verdict, both of which conflict with core acceptance criteria.  \nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": null,
+      "via": "openrouter",
+      "status": "degraded",
+      "reason": "provider returned an empty reply"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "unavailable"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "degraded"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
+  }
+}
