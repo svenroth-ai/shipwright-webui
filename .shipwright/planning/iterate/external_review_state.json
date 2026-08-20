@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-18T15:33:21.215444+00:00",
-  "provider": "openrouter(openai+deepseek)",
-  "findings_count": 0,
+  "timestamp": "2026-08-20T12:57:53.286891+00:00",
+  "provider": "openrouter",
+  "findings_count": 15,
   "self_review_fallback_ran": false,
-  "reason": "findings could not be itemized from the reviewer's prose \u2014 the count (0) is NOT a clean-review result",
+  "reason": null,
   "review_mode": "iterate",
   "marker_schema": 3,
   "verdicts": {
-    "openai": "unknown",
+    "openai": "revise",
     "deepseek": "unknown"
   },
   "contradiction": {
     "detected": false,
     "comparable": false,
     "requires_resolution": true,
-    "reason": "verdict could not be read for: deepseek, openai (deepseek=unknown, openai=unknown)"
+    "reason": "verdict could not be read for: deepseek (deepseek=unknown, openai=revise)"
   },
-  "contradiction_resolution": null
+  "contradiction_resolution": "deepseek's prose lacked a parseable SHIPWRIGHT_VERDICT line (parsed as unknown) but its findings substantively matched openai's revise verdict (missing per-kind source matrix, question-resolution shape, excerpt truncation, status derivation, commit-artifact threading, content-safety disclosure); treated as revise by content. All findings were addressed by revising the mini-plan before this record was written."
 }

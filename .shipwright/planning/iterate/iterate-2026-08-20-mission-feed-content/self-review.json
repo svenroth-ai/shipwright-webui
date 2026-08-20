@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All nine ActivityCard kinds now source real transcript content; the raw-tool-output constraint is narrowed exactly as specced (detail on blocker/test/user-input only, MissionContext stays sole gate-verdict source); no extra features (timestamps, diff-stat chips, collapsible blocks) were added beyond the mockup, matching Out of Scope."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "Pure client-side derivation with no new I/O boundary; excerpt()/resolveQuestionAnswer() are total functions over string input with no throw paths, and every new field is optional so a missing/malformed tool_result content degrades to the prior generic-sentence behavior rather than crashing."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input reaches SQL/HTML directly — this is a read-only transcript-derivation surface; new detail/question text renders through the same MarkdownChunk/literal-text path as existing card.text (never dangerouslySetInnerHTML), verified by two dedicated HTML-injection regression tests; no secrets/tokens introduced."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New tests assert on rendered/derived outcomes (card.status, card.detail, card.question, DOM text/attributes), not internal state; every new behavior has both a happy-path and a failure/edge-path test (e.g. recovery-clears alongside the original error-attaches, matched-option alongside unmatched-free-text)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "No DB/N+1 concerns (client-side only); the reducer still runs once per transcript poll tick over the same event list as before, with O(1) additional work per event (a bounded excerpt() call, not an unbounded scan); no new unbounded list rendering (card counts already bounded by the reducer's coalescing)."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "missionActivityFeed.ts crossed the project's 300-line convention (332 lines, flagged live by the PostToolUse size hook); fixed by extracting the pure text-transform helpers (goal derivation, command labels, excerpt(), resolveQuestionAnswer()) into a new missionActivityFeedText.ts, leaving the reducer file at 247 lines and the new module at 95. missionActivityFeed.test.ts (321 lines) stays over 300 — a straight test-file split was judged lower value than the source split (would fragment one reducer's test coverage across two files) and is flagged to the user as an optional follow-up rather than forced here."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "Raw tool-result content becomes UI-displayable text for the first time on this surface (documented explicitly in the iterate spec's Affected Boundaries section), but it is not a new SERIALIZED format with a producer/consumer pair — no round-trip probe applies; touches_io_boundary did not fire. The genuinely new empirical risk (reducer mutation correctness under coalescing/recovery) was probed via the Internal Plan Review + the added Confidence Calibration boundary test, not this checklist item."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reports no findings; no skip/fixme/only introduced in either test file touched this run."
+    }
+  ]
+}

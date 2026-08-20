@@ -1,0 +1,377 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-20-mission-feed-content",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-20T20:06:50.159996+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 15,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The mini-plan does not define transcript-derived `text` for all nine card kinds. It specifies real `detail`/`question` content for `user-input`, `blocker`, and `test`, and PR data for `delivery`, but does not say how `investigate`, `spec`, `implement`, `review`, `system`, or even the primary `delivery` text stop being fixed fallback sentences. If those are already implemented elsewhere, that is not stated; if not, AC-1 is at risk.",
+          "suggestion": "Add a per-kind mapping table to the plan showing exactly which transcript event / artifact / `MissionContext` field supplies `card.text` for all nine kinds. Confirm that every current hardcoded sentence has a replacement path, and include a test assertion per kind.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "excerpt()` is described as taking up to 4 lines / 320 chars and then running through `sanitizeProofText`. But `sanitizeProofText` is already described as truncating to ~280 chars / first non-empty line, so applying it after line selection may collapse a multi-line test or blocker failure back to one line, defeating the multi-line excerpt requirement.",
+          "suggestion": "Make `excerpt()` the single truncation policy: ANSI-strip, split lines, take up to N non-empty lines, then char-truncate/sanitize without reapplying `sanitizeProofText`’s single-line truncation. Add a unit test proving a multi-line failure remains a bounded multi-line excerpt.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Status pills for `test`/`spec`/`review` are required, but the plan is unresolved on how status is derived. It calls reading `card.text` heuristically “fragile,” then suggests possibly adding `card.status`, but the data-model section only adds `detail` and `question`.",
+          "suggestion": "Decide before implementation to derive an optional `card.status` in `deriveActivityFeed` from the same `MissionContext` gate/artifact state that controls verdicts. Avoid string heuristics, update the type/schema plan, and test pass/fail/warn outcomes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "user-input` resolution assumes `result.content.trim()` is an exact plain-text match for one of the options. If the `ask_user` tool result is JSON, quoted, or contains extra formatting, the picked option will not be marked and the card may fall back to showing raw resolution text.",
+          "suggestion": "Confirm the actual `toolResults()` shape for `ask_user` resolution. If it is structured JSON, extract the decision/answer field explicitly. Normalize whitespace/quotes before matching, and add fixtures for JSON, matched-option, and unmatched-option cases.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The `delivery` PR-link card depends on commit artifact data, and the plan says `MissionActivityFeed` “may need” a new `commitArtifact` prop threaded from `MissionBody.tsx`. This is left as a build-time confirmation, but it is a prerequisite that can affect props, tests, and docs. Missing/partial commit artifacts are also not handled.",
+          "suggestion": "Verify current context/prop access before starting the presentation rewrite. If prop threading is needed, include the `MissionBody` change explicitly in the plan, and specify a fallback rendering for delivery cards when `commit`, `prUrl`, or `prNumber` is absent.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Adding optional `detail`/`question` fields will change derived card objects for any existing fixture that includes `user-input`, `blocker`, or failing-`test` events. The plan assumes existing snapshots/fixtures are only affected where fallback sentence text is asserted, but deep-equality and component snapshots may also shift from the new fields.",
+          "suggestion": "Expect and review snapshot/equality diffs for existing fixtures that exercise those card kinds, ensuring the only changes are the intended new optional fields rather than unintended behavior changes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "excerpt(result.content)` assumes `toolResults()[].content` is a string. Depending on the tool result shape, `content` may be empty, missing, an array of content blocks, or already structured.",
+          "suggestion": "Add a narrow type/empty guard before excerpting, and unit-test missing, empty, and non-string content so the card rendering falls back safely.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The plan strips ANSI, but terminal output can also contain other control sequences such as OSC hyperlinks or backspace/overwrite sequences. These are not XSS, but they can produce surprising rendered text if the shared sanitizer only removes ANSI escapes.",
+          "suggestion": "Use or extend a terminal-output sanitizer that removes control characters beyond ANSI, and add a content-safety test for raw `detail` containing control-sequence/HTML-like content rendering as inert literal text.  The overall direction is sound: keep `MissionContext` as the verdict source, reuse data extraction rather than foreign BubbleTranscript chrome, and render raw detail through the existing safe text path. But the plan needs to specify all nine card-content sources and resolve truncation, status, ask-result shape, and commit-artifact dependencies before implementation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not yet account for the requirement that all nine card kinds replace fallback narration with transcript-derived content. It specifies extraction behavior only for `user-input`, `blocker`, and failed `test` tool results; it leaves `investigate`, `spec`, `implement`, `review`, `delivery`, and `system` as an implied implementation detail. Keeping fixed “lead-in” copy is reasonable, but each card needs a defined real-content source and fallback when that source is absent.",
+          "suggestion": "Before implementation, document a source matrix for all nine kinds: event/tool-use fields used for primary text, applicable `MissionContext` facts, optional structured detail, and empty/missing-data fallback. Make the tests enumerate that matrix rather than merely asserting that nine fixture cards render.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed user-question resolution logic conflates “no option was matched” with “question is unresolved.” A resolved free-form answer, an answer containing explanatory text, a multi-select answer, or a tool-result format that is not exactly an option string would leave `picked: null`; the UI would then render `AnswerInTerminalButton` even though the terminal question has already been answered. This violates the resolved-question acceptance criterion.",
+          "suggestion": "Model resolution separately from option selection, for example `question: { text, options, resolved: boolean, picked?: string, answer?: string }`. Use the actual AskUser/tool-result contract to identify the response and preserve it as a safe, bounded answer when it cannot be matched to one option. Render the CTA only when the question is genuinely pending; render the selected option when matched, otherwise render the actual resolved answer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Several essential contracts are deferred to “confirm at build time”: the ANSI-strip helper import and behavior, `askUserQuestionSummary()` option shape, association of a `tool_result` with its originating question/card, PR artifact availability and prop path, and status-pill derivation. These are not cosmetic decisions; each can change the data model or render behavior. In particular, deriving pills heuristically from `card.text` would be brittle and conflicts with the goal of replacing fixed text.",
+          "suggestion": "Resolve these contracts in the implementation design first. Add an explicit derived status field if existing stable card/context state cannot unambiguously drive `test`, `spec`, and `review` pills. Prefer reading the existing context in the component via its established context hook over adding a one-use prop path, if that hook is available. Define a graceful delivery-card fallback for missing `prUrl`/`prNumber` rather than assuming a commit artifact always has PR metadata.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The test-output requirement is narrower than the planned extraction description. The acceptance criteria require raw output only as accompanying detail when `MissionContext.tests.gate === \"fail\"`, while the plan says to attach detail in a “test card pending-error branch.” Depending on transcript ordering, a transient/error tool result could be shown even after the authoritative gate becomes pass, or a final failed gate could lack an attached excerpt if it is not represented by that specific branch.",
+          "suggestion": "Gate the rendered test failure excerpt on the final/current `MissionContext.tests.gate === \"fail\"` as well as a correlated failing test result. Keep the test verdict and pill entirely context-derived. Add regression cases for: failing result followed by passing gate, failed gate with missing output, and multiple test runs where only the relevant/latest failed output is shown.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "ANSI stripping, truncation, and safe React rendering prevent markup execution, but they do not address disclosure risks from raw terminal output. Error output commonly includes access tokens, authorization headers, signed URLs, environment values, customer data, or local filesystem paths. This change intentionally widens the audience for that content from transcript/tool data to the Mission feed.",
+          "suggestion": "Verify that Mission-feed viewers have the same authorization boundary as transcript viewers. Apply the project’s existing secret-redaction/sanitization utility before excerpting if one exists; otherwise add a narrowly scoped redaction pass for common credentials and remove control/terminal escape sequences comprehensively before display. Test a representative token/header and an OSC/control-sequence payload in addition to HTML-like text.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "excerpt()` is underspecified for the stated multi-line error-block behavior. “First N non-empty lines” can omit the meaningful failure line when tools emit progress/banner lines first, while applying `sanitizeProofText` “the same way” may re-collapse the result to its first non-empty line if that helper has the documented current behavior. It also needs a defined truncation marker and normalization policy so the rendered code block is stable and understandable.",
+          "suggestion": "Define a dedicated bounded-output contract: strip ANSI/control sequences, normalize line endings, retain up to four meaningful lines within a total character budget, append `…` on truncation, and preserve newlines in a literal `<pre>` text node. Reuse shared sanitization primitives, but do not reuse a first-line-only helper in a way that defeats the multi-line requirement. Include tests for blank/progress-prefixed output, oversized first lines, CRLF, and truncation marker behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The Mission-native presentation decision is sound and avoids introducing an incompatible token family, but the proposed “full rewrite” of card markup raises regression risk for existing artifact links, command interactions, accessibility semantics, and the pending-question CTA. The plan names visual snapshots but does not explicitly preserve or test these behavioral affordances.",
+          "suggestion": "Keep existing card interaction wiring where possible and add focused component assertions for artifact/PR link `href` and accessible name, command-chip content, icon/pill labels where meaningful, and the CTA’s existing navigation/action behavior. Use literal text in the new code block rather than Markdown parsing unless markdown formatting is specifically required there.  Overall, the data-only reuse and Mission-native rendering approach are appropriate, but the implementation needs firmer source/status contracts, correct resolved-question state handling, and explicit raw-output disclosure controls before it is safe to build. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-20T12:57:53.285149+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - **Category:** approach  \n  **Severity:** high  \n  **Finding:** The mini-plan does not define transcript-derived `text` for all nine card kinds. It specifies real `detail`/`question` content for `user-input`, `blocker`, and `test`, and PR data for `delivery`, but does not say how `investigate`, `spec`, `implement`, `review`, `system`, or even the primary `delivery` text stop being fixed fallback sentences. If those are already implemented elsewhere, that is not stated; if not, AC-1 is at risk.  \n  **Suggestion:** Add a per-kind mapping table to the plan showing exactly which transcript event / artifact / `MissionContext` field supplies `card.text` for all nine kinds. Confirm that every current hardcoded sentence has a replacement path, and include a test assertion per kind.\n\n- **Category:** edge-case  \n  **Severity:** medium  \n  **Finding:** `excerpt()` is described as taking up to 4 lines / 320 chars and then running through `sanitizeProofText`. But `sanitizeProofText` is already described as truncating to ~280 chars / first non-empty line, so applying it after line selection may collapse a multi-line test or blocker failure back to one line, defeating the multi-line excerpt requirement.  \n  **Suggestion:** Make `excerpt()` the single truncation policy: ANSI-strip, split lines, take up to N non-empty lines, then char-truncate/sanitize without reapplying `sanitizeProofText`’s single-line truncation. Add a unit test proving a multi-line failure remains a bounded multi-line excerpt.\n\n- **Category:** approach  \n  **Severity:** medium  \n  **Finding:** Status pills for `test`/`spec`/`review` are required, but the plan is unresolved on how status is derived. It calls reading `card.text` heuristically “fragile,” then suggests possibly adding `card.status`, but the data-model section only adds `detail` and `question`.  \n  **Suggestion:** Decide before implementation to derive an optional `card.status` in `deriveActivityFeed` from the same `MissionContext` gate […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The plan does not yet account for the requirement that *all nine* card kinds replace fallback narration with transcript-derived content. It specifies extraction behavior only for `user-input`, `blocker`, and failed `test` tool results; it leaves `investigate`, `spec`, `implement`, `review`, `delivery`, and `system` as an implied implementation detail. Keeping fixed “lead-in” copy is reasonable, but each card needs a defined real-content source and fallback when that source is absent.  \n   **Suggestion:** Before implementation, document a source matrix for all nine kinds: event/tool-use fields used for primary text, applicable `MissionContext` facts, optional structured detail, and empty/missing-data fallback. Make the tests enumerate that matrix rather than merely asserting that nine fixture cards render.\n\n2. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** The proposed user-question resolution logic conflates “no option was matched” with “question is unresolved.” A resolved free-form answer, an answer containing explanatory text, a multi-select answer, or a tool-result format that is not exactly an option string would leave `picked: null`; the UI would then render `AnswerInTerminalButton` even though the terminal question has already been answered. This violates the resolved-question acceptance criterion.  \n   **Suggestion:** Model resolution separately from option selection, for example `question: { text, options, resolved: boolean, picked?: string, answer?: string }`. Use the actual AskUser/tool-result contract to identify the response and preserve it as a safe, bounded answer when it cannot be matched to one option. Render the CTA only when the question is genuinely pending; render the selected option when matched, otherwise render the actual resolved answer.\n\n3. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** Several essential contracts are def […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unknown"
+      },
+      "contradiction_resolution": "deepseek's prose lacked a parseable SHIPWRIGHT_VERDICT line (parsed as unknown) but its findings substantively matched openai's revise verdict (missing per-kind source matrix, question-resolution shape, excerpt truncation, status derivation, commit-artifact threading, content-safety disclosure); treated as revise by content. All findings were addressed by revising the mini-plan before this record was written."
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": 225,
+          "finding": "The final test-reconciliation block sets latest.status unconditionally from the gate but never cleared latest.detail. A test that failed locally with no observed retry, whose gate later resolves to pass, rendered a green Passing pill directly above a red error-excerpt code block.",
+          "suggestion": "Clear latest.detail when the gate overrides an unretried local failure back to ok.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": 213,
+          "finding": "The pendingTest branch hardcoded latest.status to warn regardless of context.tests.gate, unlike every sibling branch which derives status from gate.",
+          "suggestion": "Derive status from gate here too.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": 86,
+          "finding": "question.resolved was set unconditionally on any AskUserQuestion tool_result including is_error true, contradicting the mini-plan's stated design (on non-error, set resolved=true).",
+          "suggestion": "Gate question.resolved and the resolution parse on !result.is_error.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/styles/mission-operation.css",
+          "line": 102,
+          "finding": "Dead .mc-feed-card details/summary/ul CSS rules from the retired <details> markup this diff replaced with .mc-feed-chip-row.",
+          "suggestion": "Delete the orphaned selector.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/proofLines.ts",
+          "line": 107,
+          "finding": "The sanitizeProofText doc comment sat above the newly-relocated stripControl function instead of the function it documents.",
+          "suggestion": "Reorder so each doc comment sits above its own function.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-20T21:11:12.712862+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "concurrency-and-ordering",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": null,
+          "finding": "Claim under doubt: The pendingTest reconciliation branch safely derives the pill from context/gate for the LATEST card only. — The branch fires when ANY test card is still open, not just latest, so an unrelated still-pending card (e.g. a background watcher) could clobber a DIFFERENT, already-recovered latest card's status straight from the gate, producing a false ok/Passing pill next to needs-attention text and undoing the retry-recovery fix.",
+          "suggestion": "Stop the branch from ever claiming ok while any test is pending.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden-coupling-and-blast-radius",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": null,
+          "finding": "Claim under doubt: The unresolvedBlockers Map cleanly tracks one failing command through to its retry-recovery so an entry is never orphaned. — The map is keyed by command TEXT not tool_use id, so two concurrent tool_use calls sharing the same command could have the second overwrite the first's map entry, orphaning the first's card if only the second is retried.",
+          "suggestion": "Key the map by an array/set of pending cards per commandKey.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-and-contract",
+          "file": "client/src/lib/missionActivityFeedText.ts",
+          "line": null,
+          "finding": "Claim under doubt: excerpt()'s truncation is honestly bounded -- the reader can trust a shown excerpt is either complete or visibly marked as cut. — Line-count truncation (dropping lines beyond maxLines) was silent -- no ellipsis when the truncation was line-count-driven rather than char-count-driven.",
+          "suggestion": "Append an ellipsis whenever line-count truncation occurred, matching the char-cap marker convention.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-20T21:24:38.726591+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionActivityFeed.tsx:93-112",
+          "line": null,
+          "finding": "card.question.text` is never rendered. User-input cards render the generic `card.text`, options, and possibly an answer/CTA, but not the actual question captured from `askUserQuestionSummary()`. This fails the requirement that user-input cards show the real question and real options.",
+          "suggestion": "Render `card.question.text` in the question block through `MarkdownChunk` or as a literal text node, and add a DOM test that asserts the real question is visible.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "client/src/lib/missionActivityFeed.ts:90-94",
+          "line": null,
+          "finding": "A failing tool result directly sets `test` card `status = \"err\"` regardless of `MissionContext.tests.gate`. This makes raw transcript output, rather than MissionContext, determine the rendered failing verdict/pill, directly violating the sole-gate-source constraint. In particular, an erroring command with `gate: \"pass\"` remains marked Failing because the later gate reconciliation is skipped while `unresolvedTest` is set.",
+          "suggestion": "Derive test status exclusively from `context.tests.gate`; retain raw output only in `detail`. Reconcile an erroring attempt with a recorded pass/fail/unknown gate consistently, including when `unresolvedTest` exists.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeed.ts:90-94",
+          "line": null,
+          "finding": "Unlike the blocker path, the test-error path attaches an excerpt to a potentially coalesced card without checking that it represents one command. Two distinct test commands with the same initial text coalesce via `add()`, so one command's failure output can be displayed beneath chips for unrelated test commands.",
+          "suggestion": "Apply the same single-command guard used for blockers before assigning `pending.card.detail`, or split coalesced cards once an individual command produces an error.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/lib/missionActivityFeed.test.ts:203-321",
+          "line": null,
+          "finding": "The new tests encode the invalid raw-result-derived test status (`context(\"unknown\")` plus an error result expects `status: \"err\"`), so they reinforce rather than detect the MissionContext verdict-source violation. There is no test for a failing raw test command when `MissionContext.tests.gate` is `pass` or `unknown`.",
+          "suggestion": "Add cases proving that the pill/verdict follows `MissionContext.tests.gate` for error output under pass, fail, and unknown gates, while the raw output is only rendered as detail.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx:106-138",
+          "line": null,
+          "finding": "The question-resolution rendering tests assert options, CTA, and answers but never assert that the actual question is displayed. Consequently, the current implementation—which entirely omits `question.text`—passes all added UI tests.",
+          "suggestion": "Assert that “Which platform?” is present for unresolved and resolved question cards, using the extracted question rather than only the generic card narration.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/lib/missionActivityFeed.test.ts:203-321",
+          "line": null,
+          "finding": "The required “real content for all nine kinds” fixture/test coverage was not added. `missionActivityFeed.fixtures.ts` is unchanged, and the added tests cover test, blocker, user-input, review status, and delivery only; they do not establish real-content behavior for investigate, spec, implement, system, or a complete nine-kind matrix.",
+          "suggestion": "Extend the fixture and add assertions for each non-goal kind, including its real transcript/artifact-derived text and applicable structured details.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/styles/mission-operation.css:65-137",
+          "line": null,
+          "finding": "The specification requires regenerated Linux visual-regression baselines for `task-detail-mission.png`, `task-detail-mission-live.png`, and shifted baselines. No baseline updates are included despite a substantial layout rewrite.",
+          "suggestion": "Run the Linux visual-regression pipeline and commit the updated baseline assets, or provide the expected generated changes.  Overall assessment: ship-with-fixes. The feed has the intended presentation and much of the extraction work, but it omits the actual question text and allows raw test output to determine a gate verdict, both of which conflict with core acceptance criteria. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-20T20:27:05.481571+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: spec\n- Severity: high\n- File: client/src/components/external/mission/MissionActivityFeed.tsx:93-112\n- Finding: `card.question.text` is never rendered. User-input cards render the generic `card.text`, options, and possibly an answer/CTA, but not the actual question captured from `askUserQuestionSummary()`. This fails the requirement that user-input cards show the real question and real options.\n- Suggestion: Render `card.question.text` in the question block through `MarkdownChunk` or as a literal text node, and add a DOM test that asserts the real question is visible.\n\n- Category: spec\n- Severity: high\n- File: client/src/lib/missionActivityFeed.ts:90-94\n- Finding: A failing tool result directly sets `test` card `status = \"err\"` regardless of `MissionContext.tests.gate`. This makes raw transcript output, rather than MissionContext, determine the rendered failing verdict/pill, directly violating the sole-gate-source constraint. In particular, an erroring command with `gate: \"pass\"` remains marked Failing because the later gate reconciliation is skipped while `unresolvedTest` is set.\n- Suggestion: Derive test status exclusively from `context.tests.gate`; retain raw output only in `detail`. Reconcile an erroring attempt with a recorded pass/fail/unknown gate consistently, including when `unresolvedTest` exists.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeed.ts:90-94\n- Finding: Unlike the blocker path, the test-error path attaches an excerpt to a potentially coalesced card without checking that it represents one command. Two distinct test commands with the same initial text coalesce via `add()`, so one command's failure output can be displayed beneath chips for unrelated test commands.\n- Suggestion: Apply the same single-command guard used for blockers before assigning `pending.card.detail`, or split coalesced cards once an individual command produces an error.\n\n- Category: test\n- Severity: medium\n- File: client/src […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-20T20:34:17.248762+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-20T12:57:59.424095+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}

@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
+import type { CommitArtifact } from "../../../lib/missionContextApi";
 import { useMissionLive } from "../../../hooks/useMissionLive";
 import { useMissionContext } from "../../../hooks/useMissionContext";
 import {
@@ -104,8 +105,9 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   // A work-completed run can truthfully be terminal before its commit/PR has
   // been recorded. The final feed card still opens that delivery detail (which
   // explains the missing receipt) even though hide-empty omits it from the rail.
+  const commitArtifact = (context?.artifacts.find((a) => a.kind === "commit") as CommitArtifact | undefined) ?? null;
   const activeArtifact = artifacts?.find((a) => a.kind === activeNode)
-    ?? (activeNode === "commit" ? context?.artifacts.find((a) => a.kind === "commit") ?? null : null);
+    ?? (activeNode === "commit" ? commitArtifact : null);
 
   const activeRecordNode =
     activeNode && !artifacts
@@ -238,10 +240,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           ) : completed ? (
             <div className="mc-op-stack" data-testid="mission-completed-stack">
               <OperationCard task={task} context={context} />
-              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} />
+              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} />
             </div>
           ) : (
-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} />
           )}
         </div>
         <div

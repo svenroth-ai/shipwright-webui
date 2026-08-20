@@ -145,7 +145,7 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
       },
     }));
     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
-    const group = within(screen.getByTestId("mission-activity-feed")).getByText("Ran commands");
+    const group = within(screen.getByTestId("mission-activity-feed")).getByText("Edit: /project/.shipwright/planning/iterate/mobile.md");
     fireEvent.click(group);
     expect(screen.getByTestId("mission-compact-tab-activity")).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();

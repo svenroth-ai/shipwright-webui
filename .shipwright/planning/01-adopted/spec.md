@@ -1032,6 +1032,31 @@ write surface; gated, path-guarded, and concurrency-safe.
   line says so, so its counts are never mistaken for the whole story. That second case
   is not hypothetical — it is true of every record written today, and it is why this
   same summary was quietly leaving out a blocking review before this criterion existed.
+- (R) **(iterate-2026-08-20-mission-feed-content)** The Activity feed narrates what
+  actually happened, in all nine `ActivityCard` kinds. Previously only four of nine
+  (`implement`, `investigate`, `spec`/`decisions`, `commit`) rendered real transcript
+  content — `test`, `blocker`, `user-input`, `review`, and `delivery` always showed one
+  of a handful of fixed generic sentences regardless of what actually ran. Three
+  additive fields close that gap without moving MissionContext off its role as the
+  SOLE source of pass/fail gate verdicts: `status` (`ok`/`err`/`warn`, derived only
+  from MissionContext-backed signals, never a text heuristic over transcript prose),
+  `detail` (a bounded, sanitized excerpt — up to 4 lines / 320 chars, ANSI/control
+  stripped — of the actual raw tool output backing a `blocker`/`test` card, or a
+  resolved `user-input` question's plain-text answer), and `question`
+  (`{text, options, resolved, picked?, answer?}`, matching a captured `tool_result`
+  against the asked options, falling back to a `## header` block parse, then a
+  bounded free-text answer). This NARROWS, but does not repeal, the "Mission never
+  reads raw tool output" rule: a bounded sanitized excerpt may now appear as
+  accompanying detail on these three kinds, while MissionContext remains the ONLY
+  source for pass/fail verdicts anywhere in Mission. The presentational layer
+  (`MissionActivityFeed.tsx`) was rewritten to an approved high-fidelity mockup — an
+  icon+spine timeline, status pills, chip rows, a literal (never markdown-rendered)
+  code block for `detail`, a question block that reuses the EXISTING
+  `AnswerInTerminalButton` CTA while unresolved (FR-01.63: Mission still answers
+  nothing itself) and shows the matched option or free-text answer once resolved, and
+  a PR-link card sourced from the existing commit artifact. No raw-HTML render path
+  was added: `detail` and `question` text render through the same safe markdown /
+  literal-text path `text` already used, so HTML-like transcript content stays inert.
 
 - (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Task Board
   "New" split-button in single-project mode, when its dropdown opens, then it leads

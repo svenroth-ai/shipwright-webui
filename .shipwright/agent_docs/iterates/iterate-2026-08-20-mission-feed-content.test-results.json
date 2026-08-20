@@ -1,0 +1,218 @@
+{
+  "last_updated": "2026-08-20",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-20-mission-feed-content",
+    "date": "2026-08-20",
+    "unit": {
+      "status": "passed",
+      "passed": 6958,
+      "total": 6959,
+      "skipped": 1,
+      "detail": "client 3364 passed (357 files); server 3594 passed / 1 skipped (313 files)"
+    },
+    "integration": {
+      "status": "not_run",
+      "reason": "no CRUD or service-boundary change; purely client-side reducer + presentation"
+    },
+    "pgtap": {
+      "status": "not_run",
+      "reason": "no RLS or schema change"
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "total": 3,
+      "detail": "real isolated-stack browser (client/e2e/flows/mission-feed-content.spec.ts); see surface_verification"
+    },
+    "design_fidelity": "PARTIAL \u2014 visual redesign verified against the approved mockup via the real-browser E2E pass (icons/spine/pills/chips/PR-card render and assert correctly); Linux-only visual regression baselines (task-detail-mission.png / task-detail-mission-live.png) regenerate post-push per the documented CI pipeline, not locally",
+    "smoke": {
+      "status": "not_run",
+      "reason": "no server behaviour change"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "test card: real bounded error excerpt + err status",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts \"attaches a bounded real-output excerpt and an err status to a failing test card\""
+        },
+        {
+          "behavior": "excerpt() bounds a multi-line failure to 4 lines, not 1",
+          "disposition": "tested",
+          "evidence": "same file, \"preserves a bounded multi-line excerpt instead of collapsing it to one line\""
+        },
+        {
+          "behavior": "excerpt() hard-caps a single long line to 320 chars + \u2026",
+          "disposition": "tested",
+          "evidence": "same file, \"hard-caps a single long line to 320 chars with an ellipsis\""
+        },
+        {
+          "behavior": "Blocker recovery clears stale status/detail (plan-review finding 7)",
+          "disposition": "tested",
+          "evidence": "same file, \"clears the stale status/detail pill when a blocker recovers\""
+        },
+        {
+          "behavior": "Test recovery clears stale status/detail, keeps recovered text (plan-review finding 7)",
+          "disposition": "tested",
+          "evidence": "same file, \"clears the stale status/detail pill when a failing test recovers\""
+        },
+        {
+          "behavior": "Coalesced multi-command card never misattributes one command's error detail to the group (plan-review finding 8)",
+          "disposition": "tested",
+          "evidence": "same file, \"does not misattribute one command's error excerpt to a coalesced multi-command card\""
+        },
+        {
+          "behavior": "Single-command card DOES attach its own error detail",
+          "disposition": "tested",
+          "evidence": "same file, \"attaches a single command's error excerpt when the card represents exactly one command\""
+        },
+        {
+          "behavior": "delivery card shows the real commit message when the commit artifact carries one",
+          "disposition": "tested",
+          "evidence": "same file, \"shows the real merged PR title on the delivery card when the commit artifact carries one\""
+        },
+        {
+          "behavior": "delivery card falls back to the generic sentence when no message is available",
+          "disposition": "tested",
+          "evidence": "same file, \"keeps the generic delivery sentence when no commit message is available\""
+        },
+        {
+          "behavior": "user-input question resolves against a matched option (real CLI plain-text shape)",
+          "disposition": "tested",
+          "evidence": "same file, \"matches a plain-text resolution against a listed option (real CLI shape, askuser-roundtrip.jsonl)\""
+        },
+        {
+          "behavior": "user-input question resolved-but-unmatched falls back to free text, not a false picked",
+          "disposition": "tested",
+          "evidence": "same file, \"keeps a resolved-but-unmatched answer as free text, not a picked option\""
+        },
+        {
+          "behavior": "user-input question stays resolved:false until a tool_result answers it",
+          "disposition": "tested",
+          "evidence": "same file, \"keeps an unresolved question's CTA-gating field false until a tool_result resolves it\""
+        },
+        {
+          "behavior": "spec/requirement/decisions/review artifact cards get a MissionContext-derived status:ok",
+          "disposition": "tested",
+          "evidence": "same file, \"marks a spec/review artifact card status ok so the pill has a MissionContext-derived source\""
+        },
+        {
+          "behavior": "Card text (existing) and new detail both render as inert markdown/literal text, never real HTML",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx \"renders HTML-like card text as inert markdown...\" + \"renders HTML-like raw-output detail as inert literal text...\""
+        },
+        {
+          "behavior": "Status pill + bounded error excerpt actually render in the DOM for a failing test card",
+          "disposition": "tested",
+          "evidence": "same file, \"renders a status pill and a bounded error excerpt for a failing test card\""
+        },
+        {
+          "behavior": "Unresolved question renders the existing AnswerInTerminalButton CTA (FR-01.63)",
+          "disposition": "tested",
+          "evidence": "same file, \"shows the terminal CTA while unresolved\""
+        },
+        {
+          "behavior": "Resolved-matched question marks the picked option and hides the CTA",
+          "disposition": "tested",
+          "evidence": "same file, \"marks the matched option picked and hides the CTA once resolved\""
+        },
+        {
+          "behavior": "Resolved-unmatched question shows the free-text answer, not the CTA",
+          "disposition": "tested",
+          "evidence": "same file, \"shows the free-text answer, not the CTA, when resolved but unmatched\""
+        },
+        {
+          "behavior": "delivery renders a PR-link card when a merged commit artifact with a PR is available",
+          "disposition": "tested",
+          "evidence": "same file, \"renders a PR-link card for delivery when a merged commit artifact is available\""
+        },
+        {
+          "behavior": "delivery omits the PR-link card gracefully with no commit artifact",
+          "disposition": "tested",
+          "evidence": "same file, \"omits the PR-link card gracefully when no commit artifact is available\""
+        },
+        {
+          "behavior": "Command chip label text is unchanged by the plain-li to icon-chip markup swap",
+          "disposition": "tested",
+          "evidence": "same file, \"keeps command chip label text after the chip-treatment rewrite\" (regression)"
+        },
+        {
+          "behavior": "Compact-panel command-chip click stays on Activity, does not open Detail",
+          "disposition": "tested",
+          "evidence": "MissionBody.compact.test.tsx \"an Activity command group stays available without changing compact panels\""
+        },
+        {
+          "behavior": "Visual presentation actually matches the approved mockup (icon/spine/pills/chips/PR-card geometry, contrast)",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "evidence": "Covered by the real-browser E2E pass plus the pending Linux-only visual-regression baseline regen (design_fidelity above); not a unit assertion"
+        },
+        {
+          "behavior": "A gate override to ok clears the stale detail from an unretried local failure, not just its status (code review catch, high)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedFields.test.ts \"never lets an unretried local failure contradict a recorded passing gate\" (extended to also assert detail is cleared)"
+        },
+        {
+          "behavior": "The pending-test pill derives from context.tests.gate, not a hardcoded warn (code review catch)",
+          "disposition": "tested",
+          "evidence": "same file, \"derives the pending-test pill from the recorded gate instead of hardcoding warn\""
+        },
+        {
+          "behavior": "An errored/cancelled AskUserQuestion tool_result never marks the question resolved (code review catch)",
+          "disposition": "tested",
+          "evidence": "same file, \"keeps a question pending when its tool_result is an error, not a real answer\""
+        },
+        {
+          "behavior": "Real JSONL -> reducer -> DOM: unresolved question shows real text/options/CTA",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/mission-feed-content.spec.ts, real-browser, isolated stack"
+        },
+        {
+          "behavior": "Real JSONL -> reducer -> DOM: resolved question marks the picked option, hides the CTA",
+          "disposition": "tested",
+          "evidence": "same file"
+        },
+        {
+          "behavior": "Real JSONL -> reducer -> DOM: failing test shows a status pill + bounded real-output excerpt",
+          "disposition": "tested",
+          "evidence": "same file"
+        },
+        {
+          "behavior": "An unrelated still-pending test card never lets the aggregate-latest card show a false ok pill (doubt-review catch, high)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedFields.test.ts \"never shows a false-reassuring ok pill while an unrelated test card is still pending\""
+        },
+        {
+          "behavior": "excerpt() marks a line-count-truncated excerpt with an ellipsis (doubt-review catch)",
+          "disposition": "tested",
+          "evidence": "same file, \"marks a line-count-truncated excerpt with an ellipsis so a partial output is never silent\""
+        }
+      ],
+      "counts": {
+        "testable": 30,
+        "tested": 30,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 4,
+      "exit_code": 0,
+      "justification": "Real transcript-derived content only becomes trustworthy end-to-end through the actual chain: JSONL fixture -> deriveActivityFeed() -> React render -> DOM. Ran client/e2e/flows/mission-feed-content.spec.ts against a real isolated Hono+Vite stack in headless Chromium: an unresolved AskUserQuestion shows the real question/options/terminal-CTA, a resolved one marks the matched option picked and hides the CTA, and a failing test command shows a status pill plus the bounded real-output excerpt (FAIL src/auth.test.ts, the assertion text). Attempt 1 hit one transient ECONNRESET on POST /api/projects (network flake, not an app defect); attempt 2 passed 3/3 cleanly via the orchestrator's own retry."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-20-mission-feed-content",
+    "commit": "926607393d8150dda2de727f4f37bcd39634a3b1",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
