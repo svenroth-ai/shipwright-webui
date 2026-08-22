@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-22-npx-bin-main-guard",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T08:20:05.830043+00:00",
+      "disposition": null,
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T08:31:11.966106+00:00",
+      "disposition": "no mini-plan: small BUG (plan is medium+)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "bootstrapper/bin/shipwright.mjs",
+          "line": null,
+          "finding": "catch swallows all realpathSync errors but comment implied ENOENT-only",
+          "suggestion": "document swallow-all — ADDRESSED: comment now names ENOENT/EACCES/ELOOP and the never-crash-on-import rationale",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "bootstrapper/test/bin-main-guard.test.mjs",
+          "line": null,
+          "finding": "module-level CI hard-fail assumed CI is always Linux, inconsistent with the e2e Windows carve-out",
+          "suggestion": "gate on !IS_WIN — ADDRESSED: hard-fail now `!CAN_SYMLINK && IS_CI && !IS_WIN`",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-22T08:25:29.373518+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "bootstrapper/test/bin-main-guard.test.mjs",
+          "line": null,
+          "finding": "Claim under doubt: the tests prove `npx @svenroth-ai/shipwright` will run main() on the real published artifact — The mechanism tests use hand-made symlinks to the working-tree bin, not the real npm-pack->install->.bin-symlink path — exactly the class that let this green-but-broken bug ship. RESOLVED: added a hermetic test that `npm pack --ignore-scripts` -> extracts -> invokes the PACKED bin (bin/+lib/ via the files whitelist) through a node_modules/.bin symlink and asserts --version prints; plus the mandated post-publish `npx @next --version` smoke on macOS before announcing.",
+          "suggestion": "hermetic pack+install+invoke smoke OR documented post-publish npx smoke — both now in place",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "bootstrapper/bin/shipwright.mjs",
+          "line": null,
+          "finding": "Claim under doubt: the fix covers all package managers a user might launch the bin through — Yarn Berry PnP (`yarn dlx`) has no node_modules symlink; realpathSync on a virtualized PnP path may throw, and the old per-side norm then fell back to path.resolve on ONE side while the other realpath'd — a mixed branch that mismatches and re-introduces the silent no-op. RESOLVED: isMainModule now realpaths BOTH sides in one try and, on ANY throw, falls back to path.resolve on BOTH — no mixed branch. (Advertised surface is npx; PnP is defense-in-depth.)",
+          "suggestion": "symmetric fallback — done",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-22T08:32:04.014673+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T08:31:12.233708+00:00",
+      "disposition": "external code review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T08:22:17.038209+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T08:31:12.093520+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

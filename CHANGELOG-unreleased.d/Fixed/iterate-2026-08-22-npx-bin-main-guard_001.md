@@ -1,0 +1,1 @@
+The `npx @svenroth-ai/shipwright` bootstrapper no longer exits silently doing nothing on macOS/Linux: its entry-point check now resolves the npm `.bin` symlink to its target so the installer actually runs (it was a no-op under npx on POSIX; Windows was unaffected).
