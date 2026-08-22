@@ -1,0 +1,1 @@
+`npx @svenroth-ai/shipwright` no longer crashes on a fresh install: the published package now declares `cron-parser` (a runtime dependency the server gained but the installer manifest had not), and a dependency-drift test keeps the two manifests in sync so this class of cold-start breakage can't recur.

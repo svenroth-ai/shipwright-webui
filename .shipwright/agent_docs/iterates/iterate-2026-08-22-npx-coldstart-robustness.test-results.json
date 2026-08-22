@@ -1,0 +1,87 @@
+{
+  "last_updated": "2026-08-22T00:00:00Z",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-22-npx-coldstart-robustness",
+    "date": "2026-08-22",
+    "complexity": "small",
+    "unit": {
+      "status": "passed",
+      "passed": 230,
+      "total": 233
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "cron-parser is declared in the published package so a fresh npx install resolves it (the ERR_MODULE_NOT_FOUND crash)",
+          "disposition": "tested",
+          "evidence": "bootstrapper/test/dep-drift.test.mjs 'cron-parser specifically is declared' + 'every server/ dependency is present in bootstrapper/' — PASSED; empirically probed the exact import (CronExpressionParser.parse) resolves in the package node_modules layout"
+        },
+        {
+          "behavior": "dep-drift guard keeps the mirror total: every server runtime dep present with identical range; no optional/peer deps missed; overrides parity",
+          "disposition": "tested",
+          "evidence": "bootstrapper/test/dep-drift.test.mjs 5 cases (subset, range-parity, cron-parser sentinel, no optional/peer, overrides parity) — PASSED"
+        },
+        {
+          "behavior": "the detached server boot routes stdout+stderr to bootLogPath(); degrades to 'ignore' only when the log cannot open (never blocks boot)",
+          "disposition": "tested",
+          "evidence": "bootstrapper/test/server.test.mjs 'resolveBootStdio routes stdout+stderr to the log fd' + 'degrades to ignore' + 'bootLogPath is ~/.shipwright-webui/server-manual.log' — PASSED"
+        },
+        {
+          "behavior": "the boot readiness-timeout error names bootLogPath() — the same log the boot actually writes (single source of truth)",
+          "disposition": "tested",
+          "evidence": "bootstrapper/test/server.test.mjs 'the boot readiness-timeout error names bootLogPath()' — PASSED"
+        },
+        {
+          "behavior": "serverBootDecision: prereqs-missing (plugin phase skipped, not webui-only) => no boot; plugins-only => no boot; webui-only or prereqs-present => boot",
+          "disposition": "tested",
+          "evidence": "bootstrapper/test/bin.test.mjs serverBootDecision truth-table (4 cases) — PASSED"
+        },
+        {
+          "behavior": "main() hard-stop wiring: ensureServer NEVER called + non-zero exit + install guidance when prereqs missing; boots under --webui-only; boots normally when prereqs present",
+          "disposition": "tested",
+          "evidence": "bootstrapper/test/bin.test.mjs main() wiring (3 cases, injected pluginPhase/ensureServer seams) — PASSED"
+        },
+        {
+          "behavior": "manifest and lockfile stay in sync so CI `npm ci` in bootstrapper-checks succeeds (the doubt-review HIGH)",
+          "disposition": "tested",
+          "evidence": "regenerated bootstrapper/package-lock.json with cron-parser; `npm ci --dry-run` reports in-sync (empirical); the CI npm ci step is the standing enforcement"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    }
+  }
+}

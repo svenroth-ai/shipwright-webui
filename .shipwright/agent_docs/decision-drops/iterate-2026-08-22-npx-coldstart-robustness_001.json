@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-22-npx-coldstart-robustness",
+  "date": "2026-08-22",
+  "section": "Iterate — bug: npx cold-start crash + undiagnosable boot + pluginless boot",
+  "title": "Fix the npx cold-start: ship cron-parser (+ dep-drift guard), write the server boot log, and hard-stop when prerequisites are missing",
+  "context": "A fresh `npx @svenroth-ai/shipwright` crashed with ERR_MODULE_NOT_FOUND for cron-parser: bootstrapper/package.json hand-mirrors server/package.json runtime deps and cron-parser@^5.5.0 (added to the server in #376) was never copied. The boot spawned with stdio:'ignore' so the log the timeout error named was never written, and a missing Claude/Python still booted a pluginless Command Center.",
+  "decision": "Declare cron-parser in the published package + add dep-drift.test.mjs asserting server runtime deps are a subset of bootstrapper deps (identical ranges, no optional/peer/overrides drift). Route the detached boot's stdout+stderr to bootLogPath() (single source shared with the error). Add serverBootDecision + a main() hard-stop that refuses to boot pluginless when a hard prerequisite is missing (--webui-only stays the opt-out).",
+  "consequences": "Cold start resolves cron-parser on a fresh install; the dep-mirror can no longer drift silently (2nd occurrence after hono #374). Boot failures are diagnosable. A prereq-less run stops with install guidance instead of an empty WebUI. Lockfile regenerated so CI npm ci stays green.",
+  "rationale": "The published package ships server/dist but no server/node_modules, so its declared dependencies ARE the server's runtime resolution set; a subset guard is the mechanical mirror the hand-maintained lists lacked.",
+  "rejected": "Fixing only cron-parser (leaves the class open); bundling server/node_modules (bloats the tarball, defeats npm dedupe).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

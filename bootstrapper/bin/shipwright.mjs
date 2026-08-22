@@ -142,7 +142,32 @@ export function printSummary(log, { plugin, server, port }) {
   log(`========================================`);
 }
 
-export async function main(argv = process.argv.slice(2), log = (m) => console.log(m)) {
+/**
+ * Decide whether to boot the Command Center after the plugin phase.
+ *
+ * The cold-start failure this closes: when a hard prerequisite (Claude / uv /
+ * Python) is missing, the plugin phase is correctly SKIPPED — but the bin then
+ * booted the Command Center anyway, i.e. a WebUI that launches a Claude with NO
+ * `/shipwright-*` commands. That is useless, so the default flow now STOPS.
+ * `--webui-only` is the explicit opt-out (it never runs the plugin phase, so
+ * `pluginSkipped` is false there and it still boots).
+ *
+ * @param {{ pluginsOnly: boolean, webuiOnly: boolean, pluginSkipped: boolean }} s
+ * @returns {{ boot: boolean, reason: "plugins-only" | "prereqs-missing" | "ok" }}
+ */
+export function serverBootDecision({ pluginsOnly, webuiOnly, pluginSkipped }) {
+  if (pluginsOnly) return { boot: false, reason: "plugins-only" };
+  if (pluginSkipped && !webuiOnly) return { boot: false, reason: "prereqs-missing" };
+  return { boot: true, reason: "ok" };
+}
+
+export async function main(argv = process.argv.slice(2), log = (m) => console.log(m), deps = {}) {
+  // Seams (default to the real implementations) so main's control flow — the
+  // prereqs-missing hard-stop especially — is unit-testable without a real
+  // toolchain or a live :3847.
+  const runPluginPhase = deps.pluginPhase ?? pluginPhase;
+  const runEnsureServer = deps.ensureServer ?? ensureServer;
+
   const args = parseArgs(argv);
   if (args.version) { log(SELF_VERSION); return 0; }
   if (args.help) { log(HELP); return 0; }
@@ -161,13 +186,32 @@ export async function main(argv = process.argv.slice(2), log = (m) => console.lo
   let server = null;
 
   if (!args.webuiOnly) {
-    plugin = await pluginPhase(log);
+    plugin = await runPluginPhase(log);
     exitCode = Math.max(exitCode, plugin.exitCode ?? 0);
   }
 
-  if (!args.pluginsOnly) {
+  const bootDecision = serverBootDecision({
+    pluginsOnly: args.pluginsOnly,
+    webuiOnly: args.webuiOnly,
+    pluginSkipped: plugin?.skipped === true,
+  });
+
+  if (bootDecision.reason === "prereqs-missing") {
+    // Hard-stop: a Command Center with no plugins would launch a Claude with no
+    // /shipwright-* commands. The per-tool install hints already printed above
+    // (renderVerdict); here we say why we stopped and how to override.
+    log(`\n${MARK.fail} Not starting the Command Center — required tools are missing.`);
+    log(`      Shipwright needs Claude Code, Python 3.11+ with uv, and git installed first;`);
+    log(`      without them the plugins cannot install and the Command Center would be empty.`);
+    log(`      Install whichever tools are marked missing above, then re-run  npx @svenroth-ai/shipwright@latest`);
+    log(`      (To start the Command Center anyway, without plugins: add --webui-only.)`);
+    printSummary(log, { plugin, server: null, port: null });
+    return Math.max(exitCode, 1);
+  }
+
+  if (bootDecision.boot) {
     try {
-      server = await ensureServer({ port, pkgRoot: PKG_ROOT, packageVersion: SELF_VERSION, noOpen: args.noOpen, log });
+      server = await runEnsureServer({ port, pkgRoot: PKG_ROOT, packageVersion: SELF_VERSION, noOpen: args.noOpen, log });
     } catch (e) {
       log(`${MARK.fail} ${String(e?.message ?? e)}`);
       exitCode = Math.max(exitCode, 1);
