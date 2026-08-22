@@ -30,10 +30,31 @@
  * mirror.
  */
 
-import { execFile } from "node:child_process";
 import { existsSync as fsExistsSync, readdirSync as fsReaddirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+
+import { installHint } from "./readiness-install-hints.js";
+import {
+  compareVersions,
+  defaultRun,
+  extractVersion,
+  resolvePython,
+  type RunFn,
+  type RunResult,
+} from "./readiness-probe-run.js";
+
+// Re-export the probe RUN + version primitives (moved to readiness-probe-run.ts
+// for the 300-LOC guideline) so every existing importer keeps its path stable.
+export {
+  compareVersions,
+  defaultRun,
+  extractVersion,
+  resolvePython,
+  PROBE_TIMEOUT_MS,
+  type RunFn,
+  type RunResult,
+} from "./readiness-probe-run.js";
 
 /** The one command that repairs every not-ready check (installs plugins + syncs the cache). */
 export const READINESS_REPAIR_COMMAND = "npx @svenroth-ai/shipwright@latest";
@@ -53,6 +74,10 @@ export interface ReadinessCheck {
   why: string;
   /** A door is pointless without it. All six are critical today. */
   critical: boolean;
+  /** OS-aware install command for a missing TOOLCHAIN check (claude/uv/python/
+   *  git). Absent when the check passes and on plugins/cache — `repairCommand`
+   *  (npx) installs those, but never the toolchain. */
+  hint?: string;
 }
 
 export interface ReadinessReport {
@@ -63,86 +88,13 @@ export interface ReadinessReport {
   repairCommand: string;
 }
 
-export interface RunResult {
-  ok: boolean;
-  stdout: string;
-  stderr: string;
-}
-export type RunFn = (cmd: string, args?: string[]) => Promise<RunResult>;
-
-/** Per-probe timeout. A `--version` that hangs longer than this is treated as
- *  "not found" — the process is killed, and because the runner is ASYNC the
- *  event loop is never blocked while it waits. */
-export const PROBE_TIMEOUT_MS = 8000;
-
-/**
- * Default runner: `<cmd> --version` and report whether it actually RAN — ASYNC.
- *
- * `execFile` (NOT `spawnSync`) so the probe never blocks the event loop: the
- * `/api/readiness` handler shares the single-threaded loop with the live
- * embedded-terminal WebSockets and the 1s transcript poll, so a tool that hangs
- * on `--version` must not freeze every open connection. shell:false (execFile
- * default) — no shell process, no injection surface. The probed tools (`uv`,
- * `python*`, `git`) are real executables, so Windows resolves them by bare name
- * (appends `.exe`; verified git/python/py/uv all run). This is deliberately NOT
- * the bootstrapper preflight.mjs case, which shells out ONLY to resolve `.cmd`
- * shims (claude/npm/gh) — none of those are probed here.
- */
-export function defaultRun(cmd: string, args: string[] = ["--version"]): Promise<RunResult> {
-  return new Promise((resolve) => {
-    execFile(
-      cmd,
-      args,
-      { encoding: "utf-8", timeout: PROBE_TIMEOUT_MS, windowsHide: true },
-      (error, stdout, stderr) => {
-        const out = String(stdout ?? "");
-        const err = String(stderr ?? "");
-        // execFile sets `error` on a non-zero exit, a spawn failure (ENOENT) OR
-        // a timeout (killed) — all of which mean "did not run cleanly". A real
-        // tool exits 0 (no error) AND prints a version; the MS-Store python3 stub
-        // exits non-zero, so requiring no-error + a digit-bearing line rejects it
-        // (the whole reason this is not `command -v`).
-        const ok = !error && /\d+\.\d+/.test(out + err);
-        resolve({ ok, stdout: out, stderr: err });
-      },
-    );
-  });
-}
-
-/** First `\d+.\d+(.\d+)?` token in a `--version` blob, or "". */
-export function extractVersion(out: string): string {
-  const m = /(\d+\.\d+(?:\.\d+)?)/.exec(String(out ?? ""));
-  return m ? m[1] : "";
-}
-
-/** Numeric semver-ish compare: -1 / 0 / 1. Missing segments are 0. */
-export function compareVersions(a: string, b: string): number {
-  const pa = a.split(".").map((x) => parseInt(x, 10) || 0);
-  const pb = b.split(".").map((x) => parseInt(x, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
-    if (d !== 0) return d < 0 ? -1 : 1;
-  }
-  return 0;
-}
-
-/**
- * Resolve ONE working Python by TEST-RUNNING `--version` (python3 → python →
- * py). The MS-Store stub fails `run().ok` and is skipped.
- */
-export async function resolvePython(run: RunFn): Promise<{ bin: string; version: string } | null> {
-  for (const bin of ["python3", "python", "py"]) {
-    const r = await run(bin, ["--version"]);
-    if (r.ok) return { bin, version: extractVersion(r.stdout + r.stderr) };
-  }
-  return null;
-}
-
 export interface ProbeDeps {
   run?: RunFn;
   existsFn?: (p: string) => boolean;
   readdirFn?: (p: string) => string[];
   homeDir?: string;
+  /** OS for the install hints (test seam); defaults to `process.platform`. */
+  platform?: NodeJS.Platform;
   /** Claude CLI verdict from the shared cli-compat probe (already resolved). */
   claude: { supported: boolean; raw: string; minSupported: string };
 }
@@ -163,18 +115,23 @@ export const DOOR_REQUIRED_PLUGINS = ["shipwright-adopt", "shipwright-grade"] as
 /**
  * Run the readiness probe — ASYNC. Pure over its seams; the route calls it with
  * the real fs + execFile + the live cli-compat verdict. The three independent
- * tool probes (uv · python · git) run in parallel (Promise.all), so the whole
- * gate is bounded by the slowest single probe, not their sum.
+ * tool arms (uv · python · git) run in parallel (Promise.all); the python arm
+ * itself may run up to 3 sequential probes (python3 → python → py) plus the
+ * one-shot uv-managed fallback, so the gate is bounded by the SLOWEST ARM (not
+ * the sum of arms). The event loop is never blocked (execFile is async) and each
+ * probe is timeout-capped, so a hanging binary slows only the first uncached read.
  */
 export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> {
   const run = deps.run ?? defaultRun;
   const existsFn = deps.existsFn ?? fsExistsSync;
   const readdirFn = deps.readdirFn ?? ((p: string) => fsReaddirSync(p));
   const homeDir = deps.homeDir ?? os.homedir();
+  const platform = deps.platform ?? process.platform;
   const cacheRoot = shipwrightCacheRoot(homeDir);
 
-  // Fire the independent toolchain probes concurrently — the event loop is free
-  // the whole time (execFile is async), and the total wait is max(uv, py, git).
+  // Fire the independent toolchain arms concurrently — the event loop is free
+  // the whole time (execFile is async). The python arm may run up to 3 sequential
+  // probes internally (resolvePython), so the wait is max(uv, PYTHON-ARM, git).
   const [uv, py, git] = await Promise.all([
     run("uv", ["--version"]),
     resolvePython(run),
@@ -195,6 +152,7 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
         : "not found",
     why: "the engine the Command Center drives",
     critical: true,
+    hint: deps.claude.supported ? undefined : installHint("claude", platform),
   });
 
   // Shipwright plugins installed — the marketplace cache holds one dir per plugin.
@@ -244,21 +202,40 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
     detail: uv.ok ? extractVersion(uv.stdout + uv.stderr) : "not found",
     why: "every plugin hook runs through it",
     critical: true,
+    hint: uv.ok ? undefined : installHint("uv", platform),
   });
 
   // python — TEST-RUN probe (Store-stub trap), require >= 3.11 (probed above).
-  const pyOk = py != null && compareVersions(py.version, MIN_PYTHON) >= 0;
+  // The stack runs every hook via `uv run`, which resolves a uv-MANAGED
+  // interpreter — so a system python3 >= 3.11 satisfies the gate, but so does uv
+  // being able to PROVIDE 3.11+ (the common Mac case where `uv python install
+  // 3.11` left system `python3` at 3.9). Mirrors preflight.mjs's python gate.
+  const sysPyOk = py != null && compareVersions(py.version, MIN_PYTHON) >= 0;
+  let pyOk = sysPyOk;
+  let pyDetail = py
+    ? sysPyOk
+      ? `${py.version} (${py.bin})`
+      : `${py.version} (need >= ${MIN_PYTHON})`
+    : "not found (tried python3, python, py)";
+  if (!pyOk && uv.ok) {
+    // `uv python find >=3.11` locates an installed 3.11+ WITHOUT downloading.
+    // Gate on EXIT CODE, not the version-shaped `ok`: it prints a PATH, and a
+    // decimal-less path (e.g. a `/usr/local/bin/python3` symlink) would fail the
+    // `\d+\.\d+` test despite a clean exit. uv exits 0 on a hit, 2 on a miss.
+    const uvPy = await run("uv", ["python", "find", ">=3.11"]);
+    if (uvPy.code === 0) {
+      pyOk = true;
+      pyDetail = `${extractVersion(uvPy.stdout + uvPy.stderr) || "3.11+"} (uv-managed)`;
+    }
+  }
   checks.push({
     key: "python",
     label: "Python",
     ok: pyOk,
-    detail: py
-      ? pyOk
-        ? `${py.version} (${py.bin})`
-        : `${py.version} (need >= ${MIN_PYTHON})`
-      : "not found (tried python3, python, py)",
+    detail: pyDetail,
     why: "the shared scripts run on it",
     critical: true,
+    hint: pyOk ? undefined : installHint("python", platform),
   });
 
   // git — the SDLC plugins are git-based (probed above, in parallel).
@@ -269,6 +246,7 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
     detail: git.ok ? extractVersion(git.stdout + git.stderr) : "not found",
     why: "",
     critical: true,
+    hint: git.ok ? undefined : installHint("git", platform),
   });
 
   const ready = checks.every((c) => c.ok || !c.critical);
