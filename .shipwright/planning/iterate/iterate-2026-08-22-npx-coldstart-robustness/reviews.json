@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-22-npx-coldstart-robustness",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T09:51:29.472666+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T10:03:43.684885+00:00",
+      "disposition": "mini-plan + external plan review are medium+ only; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "bootstrapper/test/dep-drift.test.mjs",
+          "line": 40,
+          "finding": "dep-drift guard read only `dependencies`; a future optionalDependencies/peerDependencies or an overrides floor divergence on server/ could false-pass the mirror.",
+          "suggestion": "Assert server declares no optional/peer deps and that shared overrides ranges match — ADDRESSED in this diff (hardening tests added).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "correctness",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": 186,
+          "finding": "defaultBootServer has no try/catch around spawn, so a synchronous spawn throw would leak the opened log fd and skip closeSync.",
+          "suggestion": "No change: spawn(process.execPath,...) does not throw synchronously (launch failures surface async) and the npx process exits regardless; leak is unreachable.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-22T09:57:27.790637+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: declaring cron-parser completes the fix and the change is shippable — SURVIVED: package-lock.json was not regenerated, so CI's `npm ci` in bootstrapper-checks aborts on manifest/lockfile drift before any test runs; the dep-drift guard never executes. End-user runtime unaffected (lockfile not shipped).",
+          "suggestion": "regenerate + commit package-lock.json; confirm npm ci in sync",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the boot-timeout error always names a log that was written — partial: if the log dir is unwritable, resolveBootStdio degrades to 'ignore' and the error still names the (empty/absent) path",
+          "suggestion": "hedge the message",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the hard-stop guidance matches the condition (claude/uv/python) — partial: pluginPhaseOk also requires git.ok, so git-missing triggers the stop but the message omitted git",
+          "suggestion": "add git to the message",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-22T10:03:27.573638+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T10:03:43.945111+00:00",
+      "disposition": "external code review is medium+ only; this run is small (cascade spec+code+doubt ran)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T09:53:30.303370+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T10:03:43.806740+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

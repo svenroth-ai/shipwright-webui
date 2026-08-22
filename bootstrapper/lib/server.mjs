@@ -16,7 +16,7 @@
 
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, openSync, closeSync, mkdirSync } from "node:fs";
 import os from "node:os";
 
 import { compareSemver } from "./util.mjs";
@@ -149,7 +149,52 @@ function runPlan(plan) {
   return child.pid ?? null;
 }
 
-const defaultBootServer = (port, pkgRoot) => runPlan(bootSpawnPlan(port, pkgRoot));
+/**
+ * The file the DETACHED packaged server's stdout+stderr is redirected to — and
+ * the SAME path the boot readiness-timeout error tells the user to read. Kept as
+ * one exported function so the two can never drift apart again: the boot used to
+ * spawn with `stdio:"ignore"` (output discarded) while the error pointed the
+ * user at this log, which nothing wrote — an undiagnosable dead end.
+ */
+export function bootLogPath() {
+  return path.join(os.homedir(), ".shipwright-webui", "server-manual.log");
+}
+
+/** Open the boot log for append, creating its dir. Returns an fd, or null when
+ * it cannot be opened — logging is best-effort and must NEVER block the boot. */
+function defaultOpenBootLog() {
+  try {
+    mkdirSync(path.dirname(bootLogPath()), { recursive: true });
+    return openSync(bootLogPath(), "a");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve the `stdio` for the detached boot: route BOTH stdout and stderr at the
+ * log fd when it opens, else fall back to `"ignore"` (the pre-fix behaviour, now
+ * only the degraded path). Pure over its `open` seam so both branches are
+ * unit-testable without touching the filesystem.
+ * @param {() => number | null} [open]
+ */
+export function resolveBootStdio(open = defaultOpenBootLog) {
+  const fd = open();
+  return fd == null ? "ignore" : ["ignore", fd, fd];
+}
+
+const defaultBootServer = (port, pkgRoot) => {
+  const plan = bootSpawnPlan(port, pkgRoot);
+  const stdio = resolveBootStdio();
+  const child = spawn(plan.command, plan.args, { ...plan.options, stdio });
+  child.unref();
+  // The child dups the fd at spawn time; drop the parent's copy so the
+  // short-lived npx process leaves no handle open (both slots share one fd).
+  if (Array.isArray(stdio) && typeof stdio[1] === "number") {
+    try { closeSync(stdio[1]); } catch { /* already gone — nothing to do */ }
+  }
+  return child.pid ?? null;
+};
 const defaultSpawnSwapper = (port, pkgRoot) => runPlan(swapperSpawnPlan(port, pkgRoot));
 
 /** Default: read the swapper's durable verdict (pid + ok) if present. */
@@ -279,7 +324,8 @@ export async function ensureServer(opts) {
     if (!ready.ok) {
       throw new Error(
         `the packaged server did not become ready on ${url} within ${timeoutMs} ms — ` +
-          `check ~/.shipwright-webui/server-manual.log`,
+          `check ${bootLogPath()} (if that file is empty or absent, its directory was unwritable — ` +
+          `re-run from a terminal to see the server's output directly)`,
       );
     }
     result = { ...result, pid, version: ready.probe.version };

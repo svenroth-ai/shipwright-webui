@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseArgs, validateArgs, resolvePort, printSummary, main } from "../bin/shipwright.mjs";
+import { parseArgs, validateArgs, resolvePort, printSummary, main, serverBootDecision } from "../bin/shipwright.mjs";
 
 const SELF = JSON.parse(
   readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json"), "utf-8"),
@@ -45,6 +45,78 @@ describe("bin — parseArgs", () => {
     const code = await main(["--plugins-only", "--webui-only"], c.log);
     expect(code).toBe(2);
     expect(c.text()).toMatch(/mutually exclusive/);
+  });
+});
+
+describe("bin — serverBootDecision: don't boot a pluginless Command Center", () => {
+  // The cold-start complaint: with Claude/Python missing, the plugin phase is
+  // skipped (correctly) but the bin booted the Command Center anyway — a WebUI
+  // with no /shipwright-* commands, which is useless. The default flow must now
+  // STOP when the plugin phase was skipped for a missing hard prerequisite.
+  it("prereqs missing (plugin phase skipped) → do NOT boot; reason names the cause", () => {
+    const d = serverBootDecision({ pluginsOnly: false, webuiOnly: false, pluginSkipped: true });
+    expect(d.boot).toBe(false);
+    expect(d.reason).toBe("prereqs-missing");
+  });
+
+  it("--webui-only is the explicit opt-out → boots even though there was no plugin phase", () => {
+    // webui-only never runs the plugin phase, so pluginSkipped is false; the user
+    // asked for the server alone and gets it.
+    const d = serverBootDecision({ pluginsOnly: false, webuiOnly: true, pluginSkipped: false });
+    expect(d.boot).toBe(true);
+    expect(d.reason).toBe("ok");
+  });
+
+  it("prereqs present (plugin phase ran) → boots normally", () => {
+    const d = serverBootDecision({ pluginsOnly: false, webuiOnly: false, pluginSkipped: false });
+    expect(d.boot).toBe(true);
+    expect(d.reason).toBe("ok");
+  });
+
+  it("--plugins-only never boots the server (unchanged) and says so", () => {
+    const d = serverBootDecision({ pluginsOnly: true, webuiOnly: false, pluginSkipped: false });
+    expect(d.boot).toBe(false);
+    expect(d.reason).toBe("plugins-only");
+  });
+});
+
+describe("bin — main() hard-stops (no server) when prerequisites are missing", () => {
+  const skippedPhase = { skipped: true, exitCode: 1 };
+
+  it("default flow + prereqs missing → ensureServer is NEVER called; exit non-zero; guidance printed", async () => {
+    const c = capture();
+    let bootCalls = 0;
+    const code = await main([], c.log, {
+      pluginPhase: async () => skippedPhase,
+      ensureServer: async () => { bootCalls++; return { action: "boot" }; },
+    });
+    expect(bootCalls).toBe(0);
+    expect(code).toBeGreaterThan(0);
+    expect(c.text()).toContain("Not starting the Command Center");
+    expect(c.text()).toContain("--webui-only");
+  });
+
+  it("--webui-only + prereqs missing → boots anyway (explicit opt-out, plugin phase never ran)", async () => {
+    const c = capture();
+    let bootCalls = 0;
+    const code = await main(["--webui-only"], c.log, {
+      pluginPhase: async () => { throw new Error("plugin phase must not run under --webui-only"); },
+      ensureServer: async () => { bootCalls++; return { action: "boot", url: "http://localhost:3847" }; },
+    });
+    expect(bootCalls).toBe(1);
+    expect(code).toBe(0);
+    expect(c.text()).not.toContain("Not starting the Command Center");
+  });
+
+  it("prereqs present → boots the Command Center normally", async () => {
+    const c = capture();
+    let bootCalls = 0;
+    const code = await main([], c.log, {
+      pluginPhase: async () => ({ skipped: false, cacheOk: true, outcome: { results: [], failures: [], pluginsChanged: false }, exitCode: 0 }),
+      ensureServer: async () => { bootCalls++; return { action: "boot", url: "http://localhost:3847" }; },
+    });
+    expect(bootCalls).toBe(1);
+    expect(code).toBe(0);
   });
 });
 

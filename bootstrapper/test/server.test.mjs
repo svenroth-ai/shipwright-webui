@@ -11,6 +11,8 @@ import {
   openBrowserPlan,
   defaultOpenBrowser,
   checkNativePty,
+  bootLogPath,
+  resolveBootStdio,
 } from "../lib/server.mjs";
 
 const PKG_VERSION = "0.23.0";
@@ -48,6 +50,39 @@ describe("server — AC1c: the swapper spawn PLAN is detached, carries --port, t
     expect(plan.options.env.SHIPWRIGHT_STATIC_DIR).toMatch(/client[\\/]dist$/);
     expect(plan.options.env.SHIPWRIGHT_PROFILES_DIR).toMatch(/server[\\/]profiles$/);
     expect(plan.args[0]).toMatch(/server[\\/]dist[\\/]index\.js$/);
+  });
+});
+
+describe("server — the detached boot writes to the log the failure message names", () => {
+  it("bootLogPath is ~/.shipwright-webui/server-manual.log (the path the error tells the user to read)", () => {
+    expect(bootLogPath()).toMatch(/[\\/]\.shipwright-webui[\\/]server-manual\.log$/);
+  });
+
+  it("resolveBootStdio routes stdout+stderr to the log fd when the log opens", () => {
+    // The bug: bootSpawnPlan shipped stdio:'ignore', so the server's crash output
+    // (e.g. ERR_MODULE_NOT_FOUND cron-parser) went nowhere and the named log was
+    // never written. With a real fd, stdout AND stderr must both target it.
+    expect(resolveBootStdio(() => 7)).toEqual(["ignore", 7, 7]);
+  });
+
+  it("resolveBootStdio degrades to 'ignore' when the log cannot be opened (logging is best-effort, never blocks boot)", () => {
+    expect(resolveBootStdio(() => null)).toBe("ignore");
+  });
+
+  it("the boot readiness-timeout error names bootLogPath() — the log that is now actually written", async () => {
+    // A boot whose server never becomes ready must point the user at the SAME
+    // path the boot spawn writes to. Before this fix the message hardcoded a
+    // path that nothing produced.
+    await expect(
+      ensureServer({
+        port: 3847, pkgRoot: "/pkg", packageVersion: PKG_VERSION, timeoutMs: 50,
+        probeFn: async () => ({ reachable: false, shipwright: false, version: null }),
+        bootServer: () => 111,
+        spawnSwapper: () => 999,
+        openBrowser: () => {},
+        nativePtyCheck: async () => ({ ok: true, error: null }),
+      }),
+    ).rejects.toThrow(bootLogPath());
   });
 });
 
