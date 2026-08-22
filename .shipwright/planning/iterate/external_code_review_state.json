@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-20T20:27:05.488198+00:00",
+  "timestamp": "2026-08-22T20:42:59.678395+00:00",
   "provider": "openrouter",
   "findings_count": 7,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (7) may understate what was found",
+  "reason": null,
   "review_mode": "code",
   "marker_schema": 3,
   "verdicts": {
     "openai": "revise",
-    "deepseek": "unavailable"
+    "deepseek": "revise"
   },
   "contradiction": {
     "detected": false,
-    "comparable": false,
-    "requires_resolution": true,
-    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
   },
   "contradiction_resolution": null
 }

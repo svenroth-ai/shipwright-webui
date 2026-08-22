@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-22-mission-feed-fixes",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T20:21:04.599635+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The proposed `looksLikeInvocationOf()` helper treats shell syntax as delimiter-separated text by splitting on `&&`, `||`, `;`, and `|`. Those characters can occur inside quoted arguments, heredocs, JSON payloads, regexes, or command substitutions. For example, `echo \"investigate with npx vitest\"` could be split into a segment beginning with `npx vitest` and be incorrectly bucketed as a test invocation.",
+          "suggestion": "Implement a conservative token scan that recognizes only a command’s actual initial executable position while respecting basic shell quoting/escaping, or avoid splitting altogether and inspect the first executable after known control operators with quote-aware tokenization. Add regressions for quoted `&&`, `;`, and `|` text containing `vitest`, `pytest`, or review CLI names.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The Task classification wording is ambiguous about whether `subagent_type` and `description` are both evaluated. “`subagent_type` first” could cause a normal structured type such as `general-purpose` to suppress a review-specific description, incorrectly classifying a genuine review Task as `implement`. Conversely, `/review/i` against arbitrary description text can still over-match words such as “preview” or references to review-related filenames.",
+          "suggestion": "Define the rule explicitly: classify as `review` when either populated declared-purpose field contains a review word/token (for example, a bounded `review`/`reviewer` match), otherwise `implement`. Test (a) `subagent_type: general-purpose` plus `description: \"Review the change\"`, (b) a non-review description mentioning `preview` or `reviews.json`, and (c) absent/empty purpose fields.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The post-hoc fallback relies on `commands.length === 1`, but the plan describes this as potentially representing “one distinct command” after coalescing. If `commands` is deduplicated, repeated executions of the same command could still have length one even though the card represents multiple events. Replacing its generic aggregate sentence with a singular sentence would violate the stated “exactly one command” requirement.",
+          "suggestion": "Confirm whether `commands` preserves event cardinality rather than unique values. If it deduplicates, track/use an event count on the card for this decision. Add a regression for repeated identical `Read` or Bash calls that coalesce into one card: it should retain the generic sentence when more than one tool event contributed.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The identity-recovery plan says it “excludes only tool-result-bearing lines,” but the actual proposed filter drops every line containing `\"type\":\"user\"`. That also excludes ordinary user prompt records, not just records carrying a `tool_result`; it is broader than the acceptance criterion and silently changes previous recovery behavior for transcripts whose only marker is in a user-originated record.",
+          "suggestion": "Filter for the combination that identifies an actual tool-result record, such as a line with the user wrapper and a `tool_result` content/type marker in the JSONL representation used by this application. If the production format cannot be reliably recognized with a textual predicate, parse each JSONL line defensively and inspect its message/content type. Add tests for a normal user message containing a footer, a tool-result message containing a quoted footer, and malformed/non-JSON lines.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The revised recovery heuristic still accepts any surviving assistant-record occurrence and uses the last one. An assistant narration can quote a previous footer while summarizing history, and an untrusted transcript can contain assistant-shaped data depending on the transcript producer. This means the specific tool-result bug is fixed, but a later quoted assistant-text occurrence can still select the wrong run.",
+          "suggestion": "At minimum, add a regression using the actual assistant-message JSONL shape for a narration that quotes an older footer, and decide whether that is intentionally authoritative. If it is not, constrain matching to known assistant tool-use/narration fields after defensive JSON parsing; if it is accepted as a known limitation, document it near `findRunIdFooter()` so future callers do not treat this heuristic as a trustworthy identity binding.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The Spec Impact says the Mission view’s `Updates:` line gains this run’s `run_id`, but no mini-plan step identifies the renderer/model for that line or adds a test for it. The listed changes to run-ID recovery may affect the Delivered card without ensuring the `Updates:` presentation requirement is met.",
+          "suggestion": "Locate the `Updates:` line’s data path and explicitly confirm whether it already consumes recovered run identity. If not, include the minimal model/rendering change and an assertion that the resolved current run ID appears there while a quoted tool-result run ID does not.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Tool-derived fallback text may surface full command labels in card body text. Commands can contain credentials, bearer tokens, private paths, or long user-provided arguments; moving them from a compact chip to prominent narrative text can increase accidental exposure and degrade the feed.",
+          "suggestion": "Reuse the same redaction, normalization, and truncation behavior as `commandLabel()` exactly, and verify it is safe for displayed shell input. Add a test with a command containing a token-like argument and ensure the derived sentence uses the existing safe/redacted representation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The GOAL cleanup correctly covers the immediate component and hook call sites, but the plan only explicitly greps the CSS class. `ActivityFeed.goal` may also appear in fixtures, story/test feed literals, exported consumer code, or serialization boundaries outside the named tests.",
+          "suggestion": "Perform a repository-wide symbol search for `.goal`, `explicitGoal`, and `deriveActivityFeed(` before removal, then rely on type-checking to catch stale `ActivityFeed` object literals. Preserve tests for the retained outcome-only pinned header.  Overall, the direction is sound and the revised post-hoc fallback appropriately preserves the reducer’s coalescing behavior. The shell invocation parser, exact Task predicate, and tool-result-only identity filter need tightening before implementation to avoid replacing the reported false positives with nearby classification and recovery regressions. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-22T20:00:23.843660+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] 1. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** The proposed `looksLikeInvocationOf()` helper treats shell syntax as delimiter-separated text by splitting on `&&`, `||`, `;`, and `|`. Those characters can occur inside quoted arguments, heredocs, JSON payloads, regexes, or command substitutions. For example, `echo \"investigate with npx vitest\"` could be split into a segment beginning with `npx vitest` and be incorrectly bucketed as a test invocation.  \n   **Suggestion:** Implement a conservative token scan that recognizes only a command’s actual initial executable position while respecting basic shell quoting/escaping, or avoid splitting altogether and inspect the first executable after known control operators with quote-aware tokenization. Add regressions for quoted `&&`, `;`, and `|` text containing `vitest`, `pytest`, or review CLI names.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The Task classification wording is ambiguous about whether `subagent_type` and `description` are both evaluated. “`subagent_type` first” could cause a normal structured type such as `general-purpose` to suppress a review-specific description, incorrectly classifying a genuine review Task as `implement`. Conversely, `/review/i` against arbitrary description text can still over-match words such as “preview” or references to review-related filenames.  \n   **Suggestion:** Define the rule explicitly: classify as `review` when either populated declared-purpose field contains a review *word/token* (for example, a bounded `review`/`reviewer` match), otherwise `implement`. Test (a) `subagent_type: general-purpose` plus `description: \"Review the change\"`, (b) a non-review description mentioning `preview` or `reviews.json`, and (c) absent/empty purpose fields.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The post-hoc fallback relies on `commands.length === 1`, but the plan describes this as potentially repres […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/run-id-recovery.ts",
+          "line": 87,
+          "finding": "USER_TYPE_LINE was a bare substring match, not anchored to the line's own top-level type field; an assistant line embedding literal \"type\":\"user\" text as data could be wrongly excluded.",
+          "suggestion": "Anchor via real JSON.parse of the line's own type field instead of a whole-line substring scan.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedClassify.ts",
+          "line": 53,
+          "finding": "tokenize()'s VAR=value stripping regex was not quote-aware — a quoted assignment value containing an internal space truncated mid-value.",
+          "suggestion": "Extend the VAR=value regex to account for a quoted value.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": 66,
+          "finding": "cardEventCounts was a WeakMap for a counter that only lives for one deriveActivityFeed() call — no retention/GC concern motivates a weak reference.",
+          "suggestion": "Use a plain Map.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/missionActivityFeedReconcile.ts",
+          "line": 9,
+          "finding": "Type-level circular import between missionActivityFeed.ts and missionActivityFeedReconcile.ts (harmless today, type-only, erased at compile time).",
+          "suggestion": "Consider hoisting ActivityCard/ActivityFeed into a neutral types module.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-22T20:35:14.963459+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T20:35:25.282299+00:00",
+      "disposition": "diff touches only synchronous text/regex classification logic (client reducer + server transcript scan) — no migrations, async/concurrency, cross-plugin imports, or irreversible ops per iteration-reviews.md Stage 3 trigger",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedClassify.ts:55 (invocationTarget) and the caller isReviewInvocation",
+          "line": null,
+          "finding": "When the review CLI is invoked with `python record_review_pass.py`, `invocationTarget` returns `\"python\"` rather than the script name, because only `uv run`, `npx`, etc. are recognised as runner prefixes. Consequently the card is not bucketed as `review`, breaking the specification’s requirement to match the binary/script name regardless of the interpreter.",
+          "suggestion": "Extend `invocationTarget` to treat `python`/`python3` as a runner prefix (e.g., `if (a === \"python\" || a === \"python3\") return b;`) so that `record_review_pass.py` is correctly identified.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedClassify.ts:28 (splitTopLevel function)",
+          "line": null,
+          "finding": "The quote-state machine does not handle backslash-escaped quotes (e.g., `\\\"` inside a double-quoted string). A command containing an escaped quote could toggle the quote state incorrectly, break the chain-separator split, and cause a false-positive or false-negative bucket classification.",
+          "suggestion": "Add escape handling: when a backslash precedes the current quote character (and matches the open quote), skip both characters without toggling the quote state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/lib/missionActivityFeedClassify.test.ts (missing case for `python record_review_pass.py`)",
+          "line": null,
+          "finding": "No test verifies that `python record_review_pass.py` is classified as a review invocation; only `uv run` and direct script calls are covered, leaving the implementation’s gap untested.",
+          "suggestion": "Add a test case for `python record_review_pass.py` to ensure the review bucket is assigned.  Overall assessment: The bulk of the specification is correctly implemented, but two functional bugs in the classify logic (missed `python` prefix for review scripts and missing escape handling in the quote splitter) would cause real misclassifications in production. Fix those before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/core/mission-context/run-id-recovery.ts",
+          "line": 109,
+          "finding": "The user-line exclusion is applied only after truncating the transcript to its final `MAX_SCAN_CHARS`. If the tail begins in the middle of a large `\"type\":\"user\"` JSONL record, its outer `\"type\":\"user\"` field is outside the retained tail, so `stripUserTypeLines()` does not remove it. A quoted `Run-ID:` near the end of a large tool result can therefore still be accepted and recover the wrong run identity—the defect this change is intended to close.",
+          "suggestion": "Ensure filtering operates on complete JSONL records. At minimum, when the scan window starts mid-line, discard that partial first line before applying `USER_TYPE_LINE`; alternatively, extend the scan backward to the preceding real newline solely to identify and exclude the containing record.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/mission-context/run-id-recovery.ts",
+          "line": 92,
+          "finding": "USER_TYPE_LINE` searches for `\"type\":\"user\"` anywhere in a JSONL record, rather than recognizing the record's outer type field. An assistant-authored record containing a nested tool input such as `input: { type: \"user\" }` is incorrectly excluded, even though it may contain the assistant-authored footer that must remain eligible. This contradicts the requirement to exclude user lines, not arbitrary nested JSON properties.",
+          "suggestion": "Match the top-level record type (for the known JSONL shape, anchor to the opening object and its `type` property), or minimally distinguish the outer record prefix from nested fields. Add a regression test for an outer assistant record containing a nested unescaped `{\"type\":\"user\"}` object and a valid footer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedClassify.ts:23-42",
+          "line": null,
+          "finding": "The quote-aware command splitter does not handle shell escapes. For example, `git commit -m \"message with \\\"quotes\\\"\" && vitest run` is a valid chained shell command, but the escaped quote closes the parser’s quote state early and the later quote reopens it; consequently `&& vitest run` is treated as quoted and the actual test invocation is missed. This regresses valid commands that the prior broad detection recognized.",
+          "suggestion": "Track backslash escapes while inside quoted strings (with shell-appropriate handling for double versus single quotes), and add regression coverage for an escaped quote in a quoted argument followed by a real test/review command chain.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/lib/missionActivityFeed.test.ts:182-214",
+          "line": null,
+          "finding": "The new second-tier fallback tests cover only `investigate` (`Read`) and `implement` (`TodoWrite`). They do not validate the required fallback behavior for `review` or `spec`, so an implementation that omitted either kind from the post-coalescing condition would still pass these tests despite failing the “each of these four kinds” acceptance criterion.",
+          "suggestion": "Add tool-only, single-command fixtures that classify into `review` and `spec` and assert each receives a sentence derived from its command label; retain a multi-event coalescing assertion for at least one of those kinds if their coalescing path differs.  Block until the run-ID filtering is made safe for truncated JSONL records; otherwise the primary wrong-identity defect remains bypassable. The rest of the approach is directionally sound but needs the identified parsing and coverage fixes before shipping. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-22T20:42:59.678395+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedClassify.ts:55 (invocationTarget) and the caller isReviewInvocation\n- Finding: When the review CLI is invoked with `python record_review_pass.py`, `invocationTarget` returns `\"python\"` rather than the script name, because only `uv run`, `npx`, etc. are recognised as runner prefixes. Consequently the card is not bucketed as `review`, breaking the specification’s requirement to match the binary/script name regardless of the interpreter.\n- Suggestion: Extend `invocationTarget` to treat `python`/`python3` as a runner prefix (e.g., `if (a === \"python\" || a === \"python3\") return b;`) so that `record_review_pass.py` is correctly identified.\n\n- Category: bug\n- Severity: low\n- File: client/src/lib/missionActivityFeedClassify.ts:28 (splitTopLevel function)\n- Finding: The quote-state machine does not handle backslash-escaped quotes (e.g., `\\\"` inside a double-quoted string). A command containing an escaped quote could toggle the quote state incorrectly, break the chain-separator split, and cause a false-positive or false-negative bucket classification.\n- Suggestion: Add escape handling: when a backslash precedes the current quote character (and matches the open quote), skip both characters without toggling the quote state.\n\n- Category: test\n- Severity: low\n- File: client/src/lib/missionActivityFeedClassify.test.ts (missing case for `python record_review_pass.py`)\n- Finding: No test verifies that `python record_review_pass.py` is classified as a review invocation; only `uv run` and direct script calls are covered, leaving the implementation’s gap untested.\n- Suggestion: Add a test case for `python record_review_pass.py` to ensure the review bucket is assigned.\n\nOverall assessment: The bulk of the specification is correctly implemented, but two functional bugs in the classify logic (missed `python` prefix for review scripts and missing escape handling in the quote splitter) would cause real […truncated]\n\n[openai] - Category: security\n- Severity: high\n- File: `server/src/core/mission-context/run-id-recovery.ts:109`\n- Finding: The user-line exclusion is applied only after truncating the transcript to its final `MAX_SCAN_CHARS`. If the tail begins in the middle of a large `\"type\":\"user\"` JSONL record, its outer `\"type\":\"user\"` field is outside the retained tail, so `stripUserTypeLines()` does not remove it. A quoted `Run-ID:` near the end of a large tool result can therefore still be accepted and recover the wrong run identity—the defect this change is intended to close.\n- Suggestion: Ensure filtering operates on complete JSONL records. At minimum, when the scan window starts mid-line, discard that partial first line before applying `USER_TYPE_LINE`; alternatively, extend the scan backward to the preceding real newline solely to identify and exclude the containing record.\n\n- Category: bug\n- Severity: medium\n- File: `server/src/core/mission-context/run-id-recovery.ts:92`\n- Finding: `USER_TYPE_LINE` searches for `\"type\":\"user\"` anywhere in a JSONL record, rather than recognizing the record's outer type field. An assistant-authored record containing a nested tool input such as `input: { type: \"user\" }` is incorrectly excluded, even though it may contain the assistant-authored footer that must remain eligible. This contradicts the requirement to exclude user *lines*, not arbitrary nested JSON properties.\n- Suggestion: Match the top-level record type (for the known JSONL shape, anchor to the opening object and its `type` property), or minimally distinguish the outer record prefix from nested fields. Add a regression test for an outer assistant record containing a nested unescaped `{\"type\":\"user\"}` object and a valid footer.\n\n- Category: bug\n- Severity: medium\n- File: `client/src/lib/missionActivityFeedClassify.ts:23-42`\n- Finding: The quote-aware command splitter does not handle shell escapes. For example, `git commit -m \"message with \\\"quotes\\\"\" && vitest run` is a val […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T20:24:35.795955+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-22T19:50:31.798713+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

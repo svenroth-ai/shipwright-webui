@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-22-mission-feed-fixes",
+  "date": "2026-08-22",
+  "section": "Iterate — change: mission feed fixes",
+  "title": "Mission activity-feed classification and identity-recovery fixes",
+  "context": "PR #377 claimed real transcript content for every ActivityCard kind; a screenshot review found most cards still generic, plus the Delivered card could show an unrelated run's commit message.",
+  "decision": "Narrow the test/review bucket regexes to real invocation shapes, gate Task-review bucketing on the subagent's own declared purpose, add a single-command label-derived text fallback, exclude \"type\":\"user\" JSONL lines from the Run-ID footer scan, and drop the GOAL header.",
+  "consequences": "Fewer false test/review cards; investigate/implement/review/spec cards show real derived text when the turn has no prose; Delivered no longer latches onto a quoted older Run-ID; GOAL header removed from the feed.",
+  "rationale": "Root-caused each defect against real transcripts rather than patching symptoms; the run-ID fix specifically targets tool_result/human-prompt quotation, the one path proven to smuggle a stale footer.",
+  "rejected": "Keeping the broad substring regexes with an allowlist of excluded paths (fragile, grows forever); parsing message boundaries to fully close the assistant-narrates-an-older-footer case (deliberately out of scope, documented as a known limitation).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md"
+}

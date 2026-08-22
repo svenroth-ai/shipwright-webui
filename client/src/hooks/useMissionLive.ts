@@ -164,7 +164,7 @@ export function deriveMissionLive(input: {
     stageActivity,
     stageComplete: completed,
     narration: { summary: transcript.summary, activity: transcript.activity },
-    feed: input.feed ?? deriveActivityFeed([], null, taskTitle),
+    feed: input.feed ?? deriveActivityFeed([], null),
     nodes: deriveRecordNodes({ missionState, facts: run }),
     campaign,
   };
@@ -213,8 +213,8 @@ export function useMissionLive(
     [events, scenario, phase],
   );
   const feed = useMemo(
-    () => deriveActivityFeed(events, stageOptions?.context ?? null, task?.title ?? null, task?.description),
-    [events, stageOptions?.context, task?.title, task?.description],
+    () => deriveActivityFeed(events, stageOptions?.context ?? null),
+    [events, stageOptions?.context],
   );
 
   // Campaign awareness (FR-01.67): the existing 3 s campaign poll, enabled ONLY
