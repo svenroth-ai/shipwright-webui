@@ -1,0 +1,103 @@
+{
+  "last_updated": "2026-08-22T00:00:00Z",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-22-bootstrapper-prereq-detection",
+    "date": "2026-08-22",
+    "complexity": "small",
+    "unit": {
+      "status": "passed",
+      "passed": 241,
+      "total": 244,
+      "skipped": 3
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "probeEnv appends ~/.local/bin + /opt/homebrew/bin + /usr/local/bin (POSIX) / %USERPROFILE%\\.local\\bin (Windows) to the lookup PATH — appended not prepended, deduped",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs probeEnv POSIX order + dedup tests — PASSED"
+        },
+        {
+          "behavior": "probeEnv collapses Windows path-cased keys to a single canonical PATH while preserving every other env var (ComSpec/PATHEXT/HOME/etc.)",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs 'Windows: single path key + ComSpec preserved' — PASSED; live verdict ran all tools through the reconstructed env"
+        },
+        {
+          "behavior": "resolvePosixBin resolves a bare name to an absolute executable via PATH (isFile + X_OK), falling back to the bare name (ENOENT verdict) when unresolvable",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs real-OS defaultRun: 'node' resolves+runs, absent tool clean ok:false — PASSED"
+        },
+        {
+          "behavior": "defaultRun spawns every probe with the augmented env on both platforms",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs real-OS defaultRun tests + live verdict on Windows — PASSED"
+        },
+        {
+          "behavior": "Python gate accepts a uv-provided 3.11+ when system python3 is <3.11, gated on `uv python find >=3.11` EXIT CODE (not the version-shaped ok)",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs 'system 3.9 + uv provides >=3.11 → OK' + 'uv find exit 0 but decimal-less path still OK' — PASSED; uv exit codes verified empirically (0 hit / 2 miss)"
+        },
+        {
+          "behavior": "A working system python >=3.11 short-circuits — uv is NOT consulted",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs 'short-circuits — uv is NOT consulted' — PASSED"
+        },
+        {
+          "behavior": "Python gate fails with a uv-naming hint when uv cannot provide 3.11 and system python is <3.11",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs 'uv cannot provide 3.11 → fails, hint names uv' — PASSED"
+        },
+        {
+          "behavior": "installHint returns actionable OS-aware commands for claude (install.sh|bash / install.ps1) and python (uv-first)",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs installHint claude/python per-OS tests — PASSED"
+        },
+        {
+          "behavior": "renderVerdict appends an OS-aware 'open a new terminal / source your rc' note when a hard prerequisite is missing, and omits it when all pass",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs renderVerdict PATH-refresh note (linux+win present, all-good absent) — PASSED"
+        },
+        {
+          "behavior": "the >=3.11 arg survives the win32 resolveSpawn composed path under shell:false",
+          "disposition": "tested",
+          "evidence": "preflight.test.mjs 'win32: the >=3.11 uv-find arg survives' — PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      }
+    }
+  }
+}

@@ -15,8 +15,10 @@
  */
 
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 
 import { MIN_NODE, compareSemver, installHint, isWindows } from "./util.mjs";
+import { probeEnv, resolvePosixBin } from "./probe-path.mjs";
 import { resolveSpawn } from "./win32-spawn.mjs";
 
 /**
@@ -31,7 +33,9 @@ import { resolveSpawn } from "./win32-spawn.mjs";
  * `cmd.exe /d /s /c` instead (see lib/win32-spawn.mjs).
  *
  * CALLER INVARIANT, still load-bearing: `cmd` is a fixed internal literal
- * (claude / uv / python3 / python / py / git / gh) and `args` is `["--version"]`.
+ * (claude / uv / python3 / python / py / git / gh) and `args` is a fixed internal
+ * literal too — `["--version"]` for every probe, plus the one `["python",
+ * "find", ">=3.11"]` uv-can-supply-Python predicate. NO caller passes user input.
  * NOTHING here validates that — `defaultRun` is exported from a published `lib/`
  * and reaches the cmd.exe wrap with no charset gate of its own (unlike
  * `claude-cli.mjs`, which has `SAFE_ARG`). Only `runPreflight`'s call sites
@@ -48,9 +52,17 @@ import { resolveSpawn } from "./win32-spawn.mjs";
  * @param {string} cmd @param {string[]} [args]
  * @returns {{ ok: boolean, stdout: string, stderr: string, code: number | null }}
  */
-export function defaultRun(cmd, args = ["--version"]) {
+export function defaultRun(cmd, args = ["--version"], deps = {}) {
+  const platform = deps.platform ?? process.platform;
+  const homedir = deps.homedir ?? os.homedir();
+  const env = probeEnv(platform, homedir, deps.env ?? process.env);
   try {
-    const plan = resolveSpawn([cmd, ...args]);
+    // Windows resolves shims via PATHEXT against the augmented `env`; POSIX
+    // resolves the absolute path itself so the augmented PATH actually applies.
+    const plan =
+      platform === "win32"
+        ? resolveSpawn([cmd, ...args], { platform, env })
+        : { command: resolvePosixBin(cmd, env), args };
     // UNREACHABLE as of iterate-2026-07-31 (win32-spawn divergence 5: an
     // unresolvable bare name comes back as itself). `spawnSync` does NOT throw
     // for a missing binary — it returns `{ error: ENOENT, status: null }` — so
@@ -63,6 +75,7 @@ export function defaultRun(cmd, args = ["--version"]) {
       encoding: "utf-8",
       shell: false,
       timeout: 8000,
+      env,
       windowsVerbatimArguments: plan.windowsVerbatimArguments,
     });
     const stdout = (r.stdout ?? "").toString();
@@ -132,13 +145,33 @@ export function runPreflight(deps = {}) {
     hard: true,
   });
 
-  // python — TEST-RUN probe (Store-stub trap), require >= 3.11.
+  // python — the stack runs every hook via `uv run`, which resolves a
+  // uv-MANAGED interpreter. So a working system python3 >= 3.11 satisfies the
+  // gate, but so does uv being able to PROVIDE 3.11+ — the common Mac case where
+  // `uv python install 3.11` left system `python3` at 3.9. System probe first
+  // (TEST-RUN, Store-stub trap); only fall through to uv when it is short.
   const py = resolvePython(run);
-  const pyOk = py != null && compareSemver(py.version, "3.11.0") >= 0;
+  const sysOk = py != null && compareSemver(py.version, "3.11.0") >= 0;
+  let pyOk = sysOk;
+  let pyDetail = py ? `${py.version} (${py.bin})` : "not found (tried python3, python, py)";
+  if (!pyOk && uv.ok) {
+    // `uv python find` locates an installed 3.11+ WITHOUT downloading — a clean,
+    // side-effect-free predicate for "uv can supply Python for the hooks".
+    const uvPy = run("uv", ["python", "find", ">=3.11"]);
+    // Gate on EXIT CODE, not defaultRun's version-shaped `ok`: `uv python find`
+    // prints a PATH, and a resolved interpreter whose path carries no decimal
+    // (e.g. a `/usr/local/bin/python3` symlink) would fail the `\d+\.\d+` output
+    // test despite a clean exit — re-introducing the very false "not found" this
+    // change removes. uv exits 0 on a hit, 2 on a miss (verified 2026-08-22).
+    if (uvPy.code === 0) {
+      pyOk = true;
+      pyDetail = `${extractVersion(uvPy.stdout + uvPy.stderr) || "3.11+"} (uv-managed)`;
+    }
+  }
   checks.push({
     name: "python",
     ok: pyOk,
-    detail: py ? `${py.version} (${py.bin})` : "not found (tried python3, python, py)",
+    detail: pyDetail,
     hint: pyOk ? undefined : installHint("python", platform),
     hard: true,
   });
@@ -203,6 +236,17 @@ export function renderVerdict(result, mark) {
     const glyph = c.ok ? mark.pass : c.optional ? mark.skip : mark.fail;
     lines.push(`  ${glyph} ${c.name}: ${c.detail}`);
     if (!c.ok && c.hint) lines.push(`        -> ${c.hint}`);
+  }
+  // A just-installed tool lands in ~/.local/bin but the running shell's PATH was
+  // captured before the install — so "not found" here is often really "not on
+  // PATH yet". Say so, once, OS-aware, whenever a hard prerequisite is missing.
+  if (result.checks.some((c) => c.hard && !c.ok)) {
+    lines.push("");
+    lines.push(
+      result.isWindows
+        ? "  Note: if you JUST installed one of these, open a NEW terminal so it lands on your PATH, then re-run."
+        : "  Note: if you JUST installed one of these, open a new terminal (or `source ~/.zshrc` / `~/.bashrc`) so it lands on your PATH, then re-run.",
+    );
   }
   return lines.join("\n");
 }

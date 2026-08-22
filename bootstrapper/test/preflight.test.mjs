@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { runPreflight, resolvePython, extractVersion, renderVerdict, defaultRun } from "../lib/preflight.mjs";
-import { MARK } from "../lib/util.mjs";
+import { probeEnv } from "../lib/probe-path.mjs";
+import { resolveSpawn } from "../lib/win32-spawn.mjs";
+import { MARK, installHint } from "../lib/util.mjs";
 
 /** Build an injected `run` from a { cmd: {ok, out} } table. */
 function runner(table) {
@@ -140,4 +142,147 @@ describe("preflight — defaultRun really starts a process, with no platform she
       expect(extractVersion(r.stdout + r.stderr)).toMatch(/^\d+\.\d+/);
     },
   );
+});
+
+describe("preflight — probeEnv augments the lookup PATH (freshly-installed tools)", () => {
+  // ROOT CAUSE (Mac cold-start 2026-08-22): the uv/claude installers drop their
+  // binaries in ~/.local/bin and only APPEND that to the shell rc. The running
+  // npx process still carries the PATH captured before the install, so the probe
+  // spawn (shell:false) reported perfectly-installed tools as "not found".
+  it("POSIX: appends ~/.local/bin, /opt/homebrew/bin, /usr/local/bin", () => {
+    const env = probeEnv("linux", "/home/dev", { PATH: "/usr/bin:/bin", HOME: "/home/dev" });
+    const dirs = env.PATH.split(":");
+    expect(dirs).toContain("/usr/bin"); // original preserved, and FIRST
+    expect(dirs.indexOf("/usr/bin")).toBeLessThan(dirs.indexOf("/home/dev/.local/bin"));
+    expect(dirs).toContain("/home/dev/.local/bin");
+    expect(dirs).toContain("/opt/homebrew/bin");
+    expect(dirs).toContain("/usr/local/bin");
+    expect(env.HOME).toBe("/home/dev"); // other vars untouched
+  });
+
+  it("does not duplicate a dir already on PATH", () => {
+    const env = probeEnv("linux", "/home/dev", { PATH: "/home/dev/.local/bin:/usr/bin" });
+    const dirs = env.PATH.split(":").filter((d) => d === "/home/dev/.local/bin");
+    expect(dirs.length).toBe(1);
+  });
+
+  it("Windows: adds %USERPROFILE%\\.local\\bin and collapses to a SINGLE path key", () => {
+    // process.env on Windows is case-insensitive; a plain spread is not. probeEnv
+    // must not hand spawn both `Path` (stale) and `PATH` (augmented).
+    const env = probeEnv("win32", "C:\\Users\\dev", { Path: "C:\\Windows", ComSpec: "C:\\Windows\\System32\\cmd.exe" });
+    const pathKeys = Object.keys(env).filter((k) => k.toLowerCase() === "path");
+    expect(pathKeys).toEqual(["PATH"]);
+    expect(env.PATH.split(";")).toContain("C:\\Users\\dev\\.local\\bin");
+    expect(env.PATH.split(";")).toContain("C:\\Windows"); // original preserved
+    expect(env.ComSpec).toBe("C:\\Windows\\System32\\cmd.exe");
+  });
+});
+
+describe("preflight — Python gate is coupled to uv, not system python3", () => {
+  // ROOT CAUSE #2: `uv python install 3.11` installs a uv-MANAGED interpreter
+  // that is never `python3` on PATH. The whole stack runs via `uv run`, so a
+  // system python3 of 3.9 is irrelevant when uv can supply 3.11.
+  it("system python is 3.9 but uv provides >=3.11 → python OK (uv-managed)", () => {
+    const run = (cmd, args = []) => {
+      if (cmd === "uv" && args[0] === "python" && args[1] === "find") {
+        return { ok: true, stdout: "/home/dev/.local/share/uv/python/cpython-3.11.9-linux/bin/python3.11", stderr: "", code: 0 };
+      }
+      const table = {
+        claude: "2.1.0 (Claude Code)",
+        uv: "uv 0.4.0",
+        python3: "Python 3.9.6",
+        git: "git version 2.44.0",
+      };
+      return cmd in table ? { ok: true, stdout: table[cmd], stderr: "", code: 0 } : { ok: false, stdout: "", stderr: "", code: 1 };
+    };
+    const r = runPreflight({ run, nodeVersion: "v20.12.0", platform: "linux" });
+    const py = r.checks.find((c) => c.name === "python");
+    expect(py.ok).toBe(true);
+    expect(py.detail).toMatch(/uv/i);
+    expect(r.hasPython).toBe(true);
+    expect(r.pluginPhaseOk).toBe(true);
+    expect(r.exitCode).toBe(0);
+  });
+
+  it("system python 3.9 AND uv cannot provide 3.11 → python fails, hint names uv", () => {
+    const run = (cmd, args = []) => {
+      if (cmd === "uv" && args[0] === "python" && args[1] === "find") return { ok: false, stdout: "", stderr: "no interpreter", code: 1 };
+      const table = { claude: "2.1.0", uv: "uv 0.4.0", python3: "Python 3.9.6", git: "2.44.0" };
+      return cmd in table ? { ok: true, stdout: table[cmd], stderr: "", code: 0 } : { ok: false, stdout: "", stderr: "", code: 1 };
+    };
+    const r = runPreflight({ run, nodeVersion: "v20.12.0", platform: "linux" });
+    const py = r.checks.find((c) => c.name === "python");
+    expect(py.ok).toBe(false);
+    expect(py.hint).toMatch(/uv python install/i);
+  });
+
+  it("uv find succeeds (exit 0) but its path carries no decimal → still OK (gate on exit code, not version regex)", () => {
+    // Regression for the code-review MEDIUM: `uv python find` prints a PATH, not
+    // a version. A resolved `/usr/local/bin/python3` symlink has no `\d+\.\d+`,
+    // so gating on defaultRun's version-shaped `ok` would re-introduce a false
+    // "not found" despite a clean exit. Gate on exit code instead.
+    const run = (cmd, args = []) => {
+      if (cmd === "uv" && args[0] === "python" && args[1] === "find") {
+        return { ok: false, stdout: "/usr/local/bin/python3", stderr: "", code: 0 }; // exit 0, no decimal → ok:false
+      }
+      const table = { claude: "2.1.0", uv: "uv 0.4.0", python3: "Python 3.9.6", git: "2.44.0" };
+      return cmd in table ? { ok: true, stdout: table[cmd], stderr: "", code: 0 } : { ok: false, stdout: "", stderr: "", code: 1 };
+    };
+    const r = runPreflight({ run, nodeVersion: "v20.12.0", platform: "linux" });
+    const py = r.checks.find((c) => c.name === "python");
+    expect(py.ok).toBe(true);
+    expect(py.detail).toContain("uv-managed"); // detail falls back to "3.11+" when no decimal
+  });
+
+  it("win32: the >=3.11 uv-find arg survives cmd.exe quoting under shell:false", () => {
+    // The literal `>` is a cmd.exe redirect char; win32-spawn must quote it so it
+    // reaches uv as an argument, not a redirection. uv.exe is a real executable so
+    // it spawns directly, but assert the composed argv keeps `>=3.11` intact.
+    const plan = resolveSpawn(["uv", "python", "find", ">=3.11"], {
+      platform: "win32",
+      env: { PATH: "C:\\nonexistent", PATHEXT: ".EXE;.CMD" },
+    });
+    // uv is unresolvable here → bare-name CreateProcess fallback keeps args verbatim.
+    expect(plan.args).toContain(">=3.11");
+  });
+
+  it("a working system python >=3.11 short-circuits — uv is NOT consulted", () => {
+    let uvPythonCalled = false;
+    const run = (cmd, args = []) => {
+      if (cmd === "uv" && args[0] === "python") uvPythonCalled = true;
+      const table = { claude: "2.1.0", uv: "uv 0.4.0", python3: "Python 3.11.5", git: "2.44.0" };
+      return cmd in table ? { ok: true, stdout: table[cmd], stderr: "", code: 0 } : { ok: false, stdout: "", stderr: "", code: 1 };
+    };
+    const r = runPreflight({ run, nodeVersion: "v20.12.0", platform: "linux" });
+    expect(r.hasPython).toBe(true);
+    expect(uvPythonCalled).toBe(false);
+    const py = r.checks.find((c) => c.name === "python");
+    expect(py.detail).toContain("python3");
+  });
+});
+
+describe("preflight — install hints are actionable, OS-aware commands", () => {
+  it("claude hint is a copy-pasteable command per OS (not just a doc URL)", () => {
+    expect(installHint("claude", "darwin")).toContain("claude.ai/install.sh");
+    expect(installHint("claude", "linux")).toContain("| bash");
+    expect(installHint("claude", "win32")).toContain("claude.ai/install.ps1");
+  });
+
+  it("python hint leads with the uv path", () => {
+    expect(installHint("python", "darwin")).toMatch(/uv python install/i);
+    expect(installHint("python", "win32")).toMatch(/uv python install/i);
+    expect(installHint("python", "win32")).toMatch(/Microsoft Store/i); // stub warning kept
+  });
+
+  it("renderVerdict appends an OS-aware PATH-refresh note when a hard tool is missing", () => {
+    const missing = runPreflight({ run: runner({ ...ALL_GOOD, uv: { ok: false } }), nodeVersion: "v20.12.0", platform: "linux" });
+    expect(renderVerdict(missing, MARK)).toMatch(/new terminal|source/i);
+
+    const winMissing = runPreflight({ run: runner({ ...ALL_GOOD, claude: { ok: false } }), nodeVersion: "v20.12.0", platform: "win32" });
+    expect(renderVerdict(winMissing, MARK)).toMatch(/new terminal/i);
+
+    // all good → no note
+    const good = runPreflight({ run: runner(ALL_GOOD), nodeVersion: "v20.12.0", platform: "linux" });
+    expect(renderVerdict(good, MARK)).not.toMatch(/new terminal|source/i);
+  });
 });
