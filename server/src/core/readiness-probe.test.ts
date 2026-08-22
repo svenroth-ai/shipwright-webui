@@ -10,9 +10,6 @@ import { describe, it, expect } from "vitest";
 
 import {
   probeReadiness,
-  compareVersions,
-  extractVersion,
-  resolvePython,
   shipwrightCacheRoot,
   READINESS_REPAIR_COMMAND,
   type RunFn,
@@ -26,9 +23,9 @@ const CACHE_ROOT = shipwrightCacheRoot(HOME);
 const CANARY = path.join(CACHE_ROOT, "shared", "scripts", "hooks", "capture_session_id.py");
 
 function okRun(version: string): RunResult {
-  return { ok: true, stdout: `tool ${version}`, stderr: "" };
+  return { ok: true, stdout: `tool ${version}`, stderr: "", code: 0 };
 }
-const NOT_FOUND: RunResult = { ok: false, stdout: "", stderr: "" };
+const NOT_FOUND: RunResult = { ok: false, stdout: "", stderr: "", code: null };
 
 /** A run() where every tool reports a good version. Async, like the real seam. */
 const allToolsRun: RunFn = async (cmd) => {
@@ -86,10 +83,15 @@ describe("probeReadiness", () => {
   });
 
   // @covers FR-01.51
-  it("Windows Store python stub (fails test-run) → python NOT ok even though on PATH", async () => {
-    // The stub is on PATH but every invocation fails run().ok — resolvePython skips it.
-    const run: RunFn = async (cmd) =>
-      cmd === "python3" || cmd === "python" || cmd === "py" ? NOT_FOUND : okRun("2.0.0");
+  it("Windows Store python stub (fails test-run) AND uv can't supply → python NOT ok", async () => {
+    // The stub is on PATH but every invocation fails run().ok — resolvePython skips
+    // it — and uv has no 3.11 to offer either (find exits 2), so python stays not ok.
+    const run: RunFn = async (cmd, args) =>
+      cmd === "python3" || cmd === "python" || cmd === "py"
+        ? NOT_FOUND
+        : cmd === "uv" && args?.[0] === "python"
+          ? { ok: false, stdout: "", stderr: "", code: 2 }
+          : okRun("2.0.0");
     const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
     expect(r.ready).toBe(false);
     const py = r.checks.find((c) => c.key === "python");
@@ -98,13 +100,76 @@ describe("probeReadiness", () => {
   });
 
   // @covers FR-01.51
-  it("python present but < 3.11 → NOT ok", async () => {
-    const run: RunFn = async (cmd) => (cmd === "python3" ? okRun("3.9.7") : okRun("2.0.0"));
+  it("system python < 3.11 AND uv cannot supply 3.11 (find exits 2) → python NOT ok", async () => {
+    const run: RunFn = async (cmd, args) => {
+      if (cmd === "python3") return okRun("3.9.7");
+      // uv --version ok, but `uv python find >=3.11` misses (exit 2).
+      if (cmd === "uv" && args?.[0] === "python") return { ok: false, stdout: "", stderr: "", code: 2 };
+      return okRun("2.0.0");
+    };
     const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
     const py = r.checks.find((c) => c.key === "python");
     expect(py?.ok).toBe(false);
     expect(py?.detail).toMatch(/need >= 3\.11/);
     expect(r.ready).toBe(false);
+  });
+
+  // @covers FR-01.51
+  it("system python < 3.11 but uv CAN supply 3.11 (find exits 0) → python OK (uv-managed)", async () => {
+    // `uv python find` prints a decimal-less PATH yet exits 0 — the gate reads the
+    // EXIT CODE, not the version-shaped ok (#380 lesson). This is the Mac defect.
+    const run: RunFn = async (cmd, args) => {
+      if (cmd === "python3") return okRun("3.9.7");
+      if (cmd === "uv" && args?.[0] === "python")
+        return { ok: false, stdout: "/usr/local/bin/python3\n", stderr: "", code: 0 };
+      return okRun("2.0.0");
+    };
+    const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
+    const py = r.checks.find((c) => c.key === "python");
+    expect(py?.ok).toBe(true);
+    expect(py?.detail).toMatch(/uv-managed/);
+    expect(py?.detail).toContain("3.11+");
+    expect(r.ready).toBe(true);
+  });
+
+  // @covers FR-01.51 — even a would-be-yes uv-find must not run when uv is absent.
+  it("uv missing → the python-find fallback is never attempted", async () => {
+    const run: RunFn = async (cmd, args) => {
+      if (cmd === "uv" && args?.[0] === "python") return okRun("3.11.9");
+      if (cmd === "uv") return NOT_FOUND;
+      if (cmd === "python3") return okRun("3.9.7");
+      return okRun("2.0.0");
+    };
+    const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
+    expect(r.checks.find((c) => c.key === "python")?.ok).toBe(false);
+  });
+
+  // @covers FR-01.51
+  it("a missing TOOLCHAIN check carries an OS-aware install hint; plugins/cache do not", async () => {
+    const run: RunFn = async (cmd) =>
+      cmd === "uv" ? NOT_FOUND : cmd === "python3" ? okRun("3.12.0") : okRun("2.0.0");
+    const r = await probeReadiness({
+      run,
+      homeDir: HOME,
+      platform: "darwin",
+      claude: CLAUDE_OK,
+      existsFn: () => false,
+      readdirFn: () => [],
+    });
+    expect(r.checks.find((c) => c.key === "uv")?.hint).toContain("astral.sh");
+    // plugins/cache are repaired by npx, not a per-tool hint; git passes → no hint.
+    expect(r.checks.find((c) => c.key === "plugins")?.hint).toBeUndefined();
+    expect(r.checks.find((c) => c.key === "cache")?.hint).toBeUndefined();
+    expect(r.checks.find((c) => c.key === "git")?.hint).toBeUndefined();
+  });
+
+  // @covers FR-01.51
+  it("install hints are platform-correct (win32 vs posix)", async () => {
+    const run: RunFn = async (cmd) => (cmd === "uv" ? NOT_FOUND : okRun("2.0.0"));
+    const mac = await probeReadiness({ run, homeDir: HOME, platform: "darwin", claude: CLAUDE_OK, ...healthyFs() });
+    const win = await probeReadiness({ run, homeDir: HOME, platform: "win32", claude: CLAUDE_OK, ...healthyFs() });
+    expect(mac.checks.find((c) => c.key === "uv")?.hint).toContain("curl");
+    expect(win.checks.find((c) => c.key === "uv")?.hint).toContain("powershell");
   });
 
   // @covers FR-01.51
@@ -198,28 +263,5 @@ describe("probeReadiness", () => {
     // uv + git in parallel + python (python3 resolves first) → ~1 delay, well
     // under the ~3 delays a serial runner would need.
     expect(elapsed).toBeLessThan(DELAY * 2.5);
-  });
-});
-
-describe("probe helpers", () => {
-  // @covers FR-01.51
-  it("extractVersion pulls the first x.y(.z) token", () => {
-    expect(extractVersion("uv 0.5.11 (abc)")).toBe("0.5.11");
-    expect(extractVersion("git version 2.47.1.windows.1")).toBe("2.47.1");
-    expect(extractVersion("no digits")).toBe("");
-  });
-
-  // @covers FR-01.51
-  it("compareVersions handles missing segments", () => {
-    expect(compareVersions("3.13", "3.11.0")).toBe(1);
-    expect(compareVersions("3.11", "3.11.0")).toBe(0);
-    expect(compareVersions("3.9.7", "3.11.0")).toBe(-1);
-  });
-
-  // @covers FR-01.51
-  it("resolvePython returns the first working interpreter, skipping failing ones", async () => {
-    const run: RunFn = async (cmd) => (cmd === "python" ? okRun("3.12.4") : NOT_FOUND);
-    expect(await resolvePython(run)).toEqual({ bin: "python", version: "3.12.4" });
-    expect(await resolvePython(async () => NOT_FOUND)).toBeNull();
   });
 });

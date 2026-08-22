@@ -34,6 +34,17 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
   // cannot prove readiness, so we treat it as not-ready (never assume success).
   const bad = report ? report.checks.filter((c) => !c.ok) : [];
   const repair = report?.repairCommand ?? "npx @svenroth-ai/shipwright@latest";
+  // npx installs the Shipwright PLUGINS + CACHE — never the toolchain. So show
+  // the repair command when a check it actually fixes is failing (plugins/cache);
+  // a missing tool (claude/uv/python/git) is repaired by its own per-check hint,
+  // not by re-running npx (the defect Sven reported: "updating shipwright does not
+  // install a missing Python"). On a probe ERROR (no report at all) we can't tell
+  // WHAT is wrong, so keep npx as the generic recovery — it also restarts the
+  // Command Center, which is often the actual fix for an unreachable probe.
+  const npxFixes = !report || bad.some((c) => c.key === "plugins" || c.key === "cache");
+  // A just-installed tool stays invisible until a new shell — and this server —
+  // pick up the changed PATH. Say so once, when a tool with an install hint fails.
+  const anyToolHint = bad.some((c) => c.hint);
 
   return (
     <div
@@ -50,30 +61,50 @@ export function ReadinessGate({ state }: { state: ReadinessState }) {
         </div>
       ) : null}
       {bad.map((c) => (
-        <div
-          key={c.key}
-          data-testid={`readiness-missing-${c.key}`}
-          style={{ display: "flex", gap: 9, alignItems: "baseline", padding: "3px 0" }}
-        >
-          <AlertTriangle size={14} style={{ color: "var(--warn)", flexShrink: 0 }} />
-          <span style={{ fontSize: 13, color: "var(--ink)" }}>
-            <b>{c.label}</b> — {c.detail}
-            {c.why ? <span style={{ color: "var(--muted)" }}> · {c.why}</span> : null}
-          </span>
+        <div key={c.key} data-testid={`readiness-missing-${c.key}`} style={{ padding: "3px 0" }}>
+          <div style={{ display: "flex", gap: 9, alignItems: "baseline" }}>
+            <AlertTriangle size={14} style={{ color: "var(--warn)", flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: "var(--ink)" }}>
+              <b>{c.label}</b> — {c.detail}
+              {c.why ? <span style={{ color: "var(--muted)" }}> · {c.why}</span> : null}
+            </span>
+          </div>
+          {c.hint ? (
+            <div
+              className="mono"
+              data-testid={`readiness-hint-${c.key}`}
+              style={{
+                fontFamily: "var(--mono)",
+                fontSize: 12,
+                color: "var(--body)",
+                margin: "3px 0 0 23px",
+              }}
+            >
+              {c.hint}
+            </div>
+          ) : null}
         </div>
       ))}
-      <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}>
-        <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 5 }}>
-          One command repairs all of it:
+      {anyToolHint ? (
+        <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>
+          Just installed one of these? Open a new terminal so it’s on your PATH, then restart the
+          Command Center.
         </div>
-        <div
-          className="mono"
-          data-testid="readiness-repair-command"
-          style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink)" }}
-        >
-          {repair}
+      ) : null}
+      {npxFixes ? (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}>
+          <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 5 }}>
+            Install the Shipwright plugins and sync the cache:
+          </div>
+          <div
+            className="mono"
+            data-testid="readiness-repair-command"
+            style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink)" }}
+          >
+            {repair}
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
