@@ -90,14 +90,24 @@ describe("IntentWizard — door picker + readiness gate", () => {
     await waitFor(() => expect(loc).toBe("/projects?new=1"));
   });
 
-  // @covers FR-01.51
-  it("when NOT ready the doors are inert and the gate names what's missing + the repair command", async () => {
+  // @covers FR-01.51 — a missing TOOL shows its own install command; the npx
+  // repair line is NOT shown (npx installs plugins/cache, never the toolchain —
+  // the defect Sven reported: "updating shipwright does not install a Python").
+  it("when a TOOL is missing the gate shows its install command, not the npx line", async () => {
     mockReadiness({
       ready: false,
       repairCommand: "npx @svenroth-ai/shipwright@latest",
       checks: [
         { key: "claude", label: "Claude CLI", ok: true, detail: "2.1.9", why: "", critical: true },
-        { key: "uv", label: "uv", ok: false, detail: "not found", why: "every plugin hook runs through it", critical: true },
+        {
+          key: "uv",
+          label: "uv",
+          ok: false,
+          detail: "not found",
+          why: "every plugin hook runs through it",
+          critical: true,
+          hint: "curl -LsSf https://astral.sh/uv/install.sh | sh",
+        },
       ],
     });
     renderWizard();
@@ -107,17 +117,20 @@ describe("IntentWizard — door picker + readiness gate", () => {
     expect(screen.getByTestId("wizard-door-adopt")).toBeDisabled();
     expect(screen.getByTestId("readiness-missing-uv")).toHaveTextContent("uv");
     expect(screen.getByTestId("readiness-missing-uv")).toHaveTextContent("every plugin hook runs through it");
-    expect(screen.getByTestId("readiness-repair-command")).toHaveTextContent(
-      "npx @svenroth-ai/shipwright@latest",
-    );
+    // The per-tool install command is shown…
+    expect(screen.getByTestId("readiness-hint-uv")).toHaveTextContent("astral.sh");
+    // …and the npx repair line is absent (it does not install uv).
+    expect(screen.queryByTestId("readiness-repair-command")).toBeNull();
   });
 
   // @covers FR-01.51
-  it("a probe error is treated as NOT ready — never assume success", async () => {
+  it("a probe error is treated as NOT ready, with npx offered as generic recovery", async () => {
     server.use(http.get("/api/readiness", () => HttpResponse.error()));
     renderWizard();
     await screen.findByTestId("readiness-not-ready");
     expect(screen.getByTestId("wizard-door-grade")).toBeDisabled();
+    // We can't tell WHAT is wrong, so the npx line stays as the generic fix.
+    expect(screen.getByTestId("readiness-repair-command")).toHaveTextContent("npx");
   });
 });
 

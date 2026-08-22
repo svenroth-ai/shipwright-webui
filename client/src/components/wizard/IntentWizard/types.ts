@@ -128,6 +128,9 @@ export interface ReadinessCheck {
   detail: string;
   why: string;
   critical: boolean;
+  /** OS-aware install command for a missing TOOLCHAIN check (claude/uv/python/
+   *  git); absent when the check passes and on plugins/cache (npx repairs those). */
+  hint?: string;
 }
 
 export interface ReadinessReport {

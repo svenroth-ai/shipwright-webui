@@ -1,0 +1,83 @@
+{
+  "run_id": "iterate-2026-08-22-readiness-gate-fixes",
+  "date": "2026-08-22T20:33:30.493194Z",
+  "event_at": "2026-08-22T20:32:58.058028+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/readiness-gate-fixes",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-08-22-readiness-gate-fixes",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "system python<3.11 but 'uv python find >=3.11' exits 0 -> python OK (uv-managed), gating on exit code not the version-shaped ok",
+        "disposition": "tested",
+        "evidence": "server/src/core/readiness-probe.test.ts 'system python < 3.11 but uv CAN supply 3.11 (find exits 0) -> python OK (uv-managed)' PASSED"
+      },
+      {
+        "behavior": "system python<3.11 AND 'uv python find' exits 2 (miss) -> python NOT ok",
+        "disposition": "tested",
+        "evidence": "server/src/core/readiness-probe.test.ts 'system python < 3.11 AND uv cannot supply 3.11 (find exits 2) -> python NOT ok' PASSED"
+      },
+      {
+        "behavior": "uv --version missing -> the python-find fallback is never attempted",
+        "disposition": "tested",
+        "evidence": "server/src/core/readiness-probe.test.ts 'uv missing -> the python-find fallback is never attempted' PASSED"
+      },
+      {
+        "behavior": "defaultRun sets a real exit code: 0 for a working tool, null for a missing binary (the code-gate contract)",
+        "disposition": "tested",
+        "evidence": "server/src/core/readiness-probe-run.test.ts 'defaultRun reports a real exit code: 0 for a working tool, null for a missing binary' PASSED"
+      },
+      {
+        "behavior": "a missing toolchain check (claude/uv/python/git) carries an OS-aware install hint; plugins/cache and passing checks carry none",
+        "disposition": "tested",
+        "evidence": "server/src/core/readiness-probe.test.ts 'a missing TOOLCHAIN check carries an OS-aware install hint; plugins/cache do not' PASSED"
+      },
+      {
+        "behavior": "install hints are platform-correct (win32 powershell vs posix curl)",
+        "disposition": "tested",
+        "evidence": "server/src/core/readiness-probe.test.ts 'install hints are platform-correct (win32 vs posix)' PASSED"
+      },
+      {
+        "behavior": "banner: a missing tool shows its per-tool install command inline, and the npx repair line is absent (npx does not install the toolchain)",
+        "disposition": "tested",
+        "evidence": "client IntentWizard.test.tsx 'when a TOOL is missing the gate shows its install command, not the npx line' PASSED"
+      },
+      {
+        "behavior": "banner: missing plugins -> the npx repair command IS shown (npx repairs plugins/cache)",
+        "disposition": "tested",
+        "evidence": "client FirstContact.test.tsx 'when the PLUGINS are missing the gate names the npx repair command' PASSED"
+      },
+      {
+        "behavior": "banner: a probe error (no report) -> npx shown as generic recovery, doors inert",
+        "disposition": "tested",
+        "evidence": "client IntentWizard.test.tsx 'a probe error is treated as NOT ready, with npx offered as generic recovery' PASSED"
+      },
+      {
+        "behavior": "on-photo: .iw-card is in the rule-2 solid-surface reset :is() list and the banner uses flipping ink tokens (structural contrast fix)",
+        "disposition": "tested",
+        "evidence": "client ReadinessGate.legibility.test.ts 'on-photo.css resets .iw-card to dark-on-white' + 'the banner uses the FLIPPING ink tokens' PASSED"
+      },
+      {
+        "behavior": "banner text meets AA contrast (pixel-level) on the First-Contact photo hero",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "jsdom cannot measure computed contrast on the photo backdrop; the authoritative proof is the Linux visual baseline the orchestrator eyeballs (per on-photo-legibility.test.ts). Structural membership is pinned by the class fence above."
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  },
+  "declared_removals": []
+}

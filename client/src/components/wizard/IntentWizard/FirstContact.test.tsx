@@ -101,13 +101,14 @@ describe("FirstContact — the hero", () => {
     await waitFor(() => expect(currentLocation).toBe("/projects?new=1"));
   });
 
-  // @covers FR-01.51 — the readiness GATE is reused, not rebuilt.
-  it("when NOT ready the doors are inert and the gate names the fix", async () => {
+  // @covers FR-01.51 — the readiness GATE is reused, not rebuilt. When a check
+  // npx DOES repair (plugins) is missing, the npx repair line is shown.
+  it("when the PLUGINS are missing the gate names the npx repair command", async () => {
     mockReadiness({
       ready: false,
       repairCommand: "npx @svenroth-ai/shipwright@latest",
       checks: [
-        { key: "uv", label: "uv", ok: false, detail: "not found", why: "every plugin hook runs through it", critical: true },
+        { key: "plugins", label: "Shipwright plugins", ok: false, detail: "none installed", why: "without them there are no /shipwright-* commands at all", critical: true },
       ],
     });
     renderFirstContact();
