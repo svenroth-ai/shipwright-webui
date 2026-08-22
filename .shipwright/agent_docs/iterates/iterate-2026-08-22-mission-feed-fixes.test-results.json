@@ -1,0 +1,146 @@
+{
+  "last_updated": "2026-08-22",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-22-mission-feed-fixes",
+    "date": "2026-08-22",
+    "unit": {
+      "status": "passed",
+      "passed": 7021,
+      "total": 7022,
+      "skipped": 1,
+      "detail": "client 3388/3388 passed (358 files); server 3633 passed / 1 skipped (314 files)"
+    },
+    "integration": {
+      "status": "not_run",
+      "reason": "no CRUD or service-boundary change"
+    },
+    "pgtap": {
+      "status": "not_run",
+      "reason": "no RLS or schema change"
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "total": 3,
+      "detail": "client/e2e/flows/mission-feed-content.spec.ts, 3/3, real Chromium via e2e/isolated-stack.mjs"
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "reason": "no visual/layout change (header removal is content-only, no baseline shift)"
+    },
+    "smoke": {
+      "status": "not_run",
+      "reason": "no server startup/behaviour surface change"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Quote-aware test/review invocation split (chain separators inside quoted args)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts (quoted-&&-chain cases)"
+        },
+        {
+          "behavior": "Test-bucket over-matching (file path substring)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts"
+        },
+        {
+          "behavior": "Review-bucket over-matching (file path substring)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts"
+        },
+        {
+          "behavior": "npm test/t/run-test* prefix forms",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts"
+        },
+        {
+          "behavior": "Task subagent_type/description review classification (incl. word-boundary preview exclusion)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts"
+        },
+        {
+          "behavior": "Single-command label-derived fallback text for investigate/implement/review/spec",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts (solo Read/TodoWrite/Task/Write cases)"
+        },
+        {
+          "behavior": "Coalesced multi-command card keeps generic sentence (event-count map, not commands.length)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts (same-label two-event case)"
+        },
+        {
+          "behavior": "Token-like argument renders identically in chip and promoted sentence",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts"
+        },
+        {
+          "behavior": "\"type\":\"user\" line exclusion in findRunIdFooter (tool_result + human prompt)",
+          "disposition": "tested",
+          "evidence": "run-id-recovery-user-lines.test.ts"
+        },
+        {
+          "behavior": "Real footer on assistant line survives when an older footer is quoted in a user-type line",
+          "disposition": "tested",
+          "evidence": "run-id-recovery-user-lines.test.ts"
+        },
+        {
+          "behavior": "Truncation-boundary tool_result fragment cannot smuggle a stale footer past the exclusion",
+          "disposition": "tested",
+          "evidence": "run-id-recovery-user-lines.test.ts (dropLeadingPartialLine, 3 cases; external review, high)"
+        },
+        {
+          "behavior": "Escaped double-quote inside a quoted argument does not close quote state early",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts (2 escaped-quote cases; external review, both reviewers)"
+        },
+        {
+          "behavior": "Bare python/python3 prefix resolves to the review script name",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedClassify.test.ts (external review, medium)"
+        },
+        {
+          "behavior": "GOAL header removed from rendered markup",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx (mission-feed-outcome testid replaces mission-feed-goal)"
+        },
+        {
+          "behavior": "ActivityFeed.goal / explicitGoal / meaningfulRequest() removed without dead references",
+          "disposition": "tested",
+          "evidence": "repo-wide grep (.goal, explicitGoal, deriveActivityFeed() + tsc --noEmit, both clean"
+        },
+        {
+          "behavior": "Real question/answer/test-output cards render correctly through the real JSONL->reducer->DOM chain",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mission-feed-content.spec.ts, 3/3 real-browser"
+        }
+      ],
+      "counts": {
+        "testable": 16,
+        "tested": 16,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node e2e/isolated-stack.mjs e2e/flows/mission-feed-content.spec.ts --project=chromium --reporter=line",
+      "exit_code": 0,
+      "tests_run": 3,
+      "evidence_path": "client/e2e/flows/mission-feed-content.spec.ts (3 passed, isolated-stack.mjs orchestrator, real browser)"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-22-mission-feed-fixes",
+    "commit": "1df99bf1dc6c13cf7f74625760ff3a9eb87eec86",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

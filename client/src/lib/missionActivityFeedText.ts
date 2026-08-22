@@ -1,39 +1,16 @@
 /**
- * Text-extraction helpers for `missionActivityFeed.ts`'s reducer: goal
- * derivation, per-card command labels, and the bounded raw-output excerpt +
- * question-answer matching that back the new `detail`/`question` fields
+ * Text-extraction helpers for `missionActivityFeed.ts`'s reducer: per-card
+ * command labels, and the bounded raw-output excerpt + question-answer
+ * matching that back the `detail`/`question` fields
  * (iterate-2026-08-20-mission-feed-content). Split out of the reducer file
  * itself once it crossed the project's 300-line convention — pure text
  * transforms with no dependency on the reducer's mutation state machine.
  */
 import stripAnsi from "strip-ansi";
-import { isOnlyToolResults, userText, type ParsedEvent } from "../external/session-parser";
+import type { ParsedEvent } from "../external/session-parser";
 import { sanitizeProofText, stripControl } from "./proofLines";
 
-const ignored = ["Base directory for this skill:", "Context automatically compacted", "This session is being continued", "<task-notification>", "<local-command"];
 export const clean = (value: string) => sanitizeProofText(value.split("\n")[0] ?? "", 280);
-const valueFlags = new Set(["--type", "--complexity", "--campaign", "--sub-iterate-id"]);
-
-function iterateArgs(raw: string): string {
-  const tokens = raw.trim().split(/\s+/);
-  let index = 0;
-  while (tokens[index]?.startsWith("-")) index += valueFlags.has(tokens[index]) ? 2 : 1;
-  return tokens.slice(index).join(" ");
-}
-
-export function meaningfulRequest(events: readonly ParsedEvent[]): string | null {
-  for (const event of events) {
-    if (event.kind === "slash-command" && /^shipwright-iterate(?::iterate)?$/.test(event.commandName.replace(/^\//, ""))) {
-      const text = clean(iterateArgs(event.args ?? ""));
-      if (text.length >= 5 && !ignored.some((prefix) => text.startsWith(prefix))) return text;
-    }
-    if (event.kind !== "user" || isOnlyToolResults(event)) continue;
-    const text = clean(userText(event));
-    if (text.length < 5 || ignored.some((prefix) => text.startsWith(prefix))) continue;
-    return text;
-  }
-  return null;
-}
 
 export function isCompactionMarker(event: ParsedEvent): boolean {
   return event.kind === "system" && (
@@ -52,6 +29,18 @@ export function commandDetail(input: unknown): string {
 export function commandLabel(name: string, input: unknown): string {
   const detail = commandDetail(input);
   return detail ? `${name}: ${sanitizeProofText(detail, 180)}` : `Used ${name}`;
+}
+
+/**
+ * Turns an already-sanitized `commandLabel()` chip ("Tool: detail") into a
+ * short standalone sentence ("Tool detail.") — reuses the exact same
+ * sanitized/truncated text already shown in the command chip, never a new
+ * raw-text exposure path.
+ */
+export function sentenceFromLabel(label: string): string {
+  const colonIndex = label.indexOf(": ");
+  const sentence = colonIndex === -1 ? label : `${label.slice(0, colonIndex)} ${label.slice(colonIndex + 2)}`;
+  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
 }
 
 /**

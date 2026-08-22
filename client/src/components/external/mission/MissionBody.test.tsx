@@ -101,7 +101,7 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     });
     setup(transcript);
     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
-    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("implementation was updated");
+    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit /x/login.tsx.");
     expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
     expect(screen.queryByText(/No run data yet/i)).not.toBeInTheDocument();
     // The left panel shows the business summary + the inferred stage.

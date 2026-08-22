@@ -22,7 +22,6 @@ const COMMIT_ARTIFACT: CommitArtifact = {
 };
 
 const renderedLongIterateFixture: ActivityFeed = {
-  goal: "Make the Mission view evidence-based",
   outcome: "In progress",
   cards: Array.from({ length: 905 }, (_, index) => ({
     kind: "investigate" as const,
@@ -38,7 +37,7 @@ describe("MissionActivityFeed", () => {
   // at ~5000ms twice on shipwright-webui#366, pre-existing and unrelated to
   // that PR's diff).
   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
-    const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"), "Make the Mission view evidence-based");
+    const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"));
     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
     render(<MissionActivityFeed feed={renderedLongIterateFixture} commitArtifact={null} task={TASK} />);
     const timeline = screen.getByTestId("mission-activity-feed");
@@ -56,7 +55,7 @@ describe("MissionActivityFeed", () => {
     timeline.scrollTop = 240;
     fireEvent.wheel(timeline, { deltaY: 240 });
     expect(timeline.scrollTop).toBe(240);
-    expect(screen.getByTestId("mission-feed-goal").parentElement).not.toBe(timeline);
+    expect(screen.getByTestId("mission-feed-outcome").parentElement).not.toBe(timeline);
   }, 20_000);
 
   // Preserved affordance (internal + external review): the artifact-open CTA's
@@ -80,7 +79,6 @@ describe("MissionActivityFeed", () => {
   // raw <p>/dangerouslySetInnerHTML — HTML-like text must never become a real element.
   it("renders HTML-like card text as inert markdown, never a real element", () => {
     const { container } = render(<MissionActivityFeed feed={{
-      goal: "g",
       outcome: "In progress",
       cards: [{ kind: "implement", text: '<img src=x onerror="window.__pwned=true">Edited the login handler.', commands: [] }],
     }} commitArtifact={null} task={TASK} />);
@@ -90,7 +88,6 @@ describe("MissionActivityFeed", () => {
 
   it("renders HTML-like raw-output detail as inert literal text, never a real element", () => {
     const { container } = render(<MissionActivityFeed feed={{
-      goal: "g",
       outcome: "In progress",
       cards: [{ kind: "blocker", text: "A command needs attention before work can continue.", commands: ["Bash: npm test"], status: "err", detail: '<img src=x onerror="window.__pwned=true">FAIL src/x.test.ts' }],
     }} commitArtifact={null} task={TASK} />);
@@ -100,7 +97,7 @@ describe("MissionActivityFeed", () => {
 
   it("renders a status pill and a bounded error excerpt for a failing test card", () => {
     render(<MissionActivityFeed feed={{
-      goal: "g", outcome: "In progress",
+      outcome: "In progress",
       cards: [{ kind: "test", text: "This test command needs attention.", commands: ["Bash: vitest run"], status: "err", detail: "FAIL slice3-sources.test.ts\nexpect(received).toEqual(expected)" }],
     }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("Failing")).toBeInTheDocument();
@@ -112,7 +109,7 @@ describe("MissionActivityFeed", () => {
 
     it("shows the terminal CTA while unresolved", () => {
       render(<MissionActivityFeed feed={{
-        goal: "g", outcome: "In progress",
+        outcome: "In progress",
         cards: [{ ...base, question: { text: "Which platform?", options: ["Web", "Mobile"], resolved: false } }],
       }} commitArtifact={null} task={TASK} />);
       expect(screen.getByTestId("askuser-answer-in-terminal")).toBeInTheDocument();
@@ -123,7 +120,7 @@ describe("MissionActivityFeed", () => {
 
     it("marks the matched option picked and hides the CTA once resolved", () => {
       render(<MissionActivityFeed feed={{
-        goal: "g", outcome: "In progress",
+        outcome: "In progress",
         cards: [{ ...base, question: { text: "Which platform?", options: ["Web", "Mobile"], resolved: true, picked: "Web" } }],
       }} commitArtifact={null} task={TASK} />);
       expect(screen.queryByTestId("askuser-answer-in-terminal")).not.toBeInTheDocument();
@@ -134,7 +131,7 @@ describe("MissionActivityFeed", () => {
 
     it("shows the free-text answer, not the CTA, when resolved but unmatched", () => {
       render(<MissionActivityFeed feed={{
-        goal: "g", outcome: "In progress",
+        outcome: "In progress",
         cards: [{ ...base, question: { text: "Which platform?", options: ["Web", "Mobile"], resolved: true, answer: "Both, actually" } }],
       }} commitArtifact={null} task={TASK} />);
       expect(screen.queryByTestId("askuser-answer-in-terminal")).not.toBeInTheDocument();
@@ -145,7 +142,7 @@ describe("MissionActivityFeed", () => {
 
   it("renders a PR-link card for delivery when a merged commit artifact is available", () => {
     render(<MissionActivityFeed feed={{
-      goal: "g", outcome: "Completed run",
+      outcome: "Completed run",
       cards: [{ kind: "delivery", text: 'Merged as "fix(mission): real content in every card kind".', commands: [], artifact: "commit" }],
     }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
     expect(screen.getByText("#367")).toBeInTheDocument();
@@ -154,7 +151,7 @@ describe("MissionActivityFeed", () => {
 
   it("omits the PR-link card gracefully when no commit artifact is available", () => {
     render(<MissionActivityFeed feed={{
-      goal: "g", outcome: "Completed run",
+      outcome: "Completed run",
       cards: [{ kind: "delivery", text: "This completed run is recorded through durable artifacts.", commands: [] }],
     }} commitArtifact={null} task={TASK} />);
     expect(screen.queryByText(/merged/i)).not.toBeInTheDocument();
@@ -164,7 +161,7 @@ describe("MissionActivityFeed", () => {
   // the plain-<li> -> icon-chip markup swap unchanged.
   it("keeps command chip label text after the chip-treatment rewrite", () => {
     render(<MissionActivityFeed feed={{
-      goal: "g", outcome: "In progress",
+      outcome: "In progress",
       cards: [{ kind: "implement", text: "Edited the login handler.", commands: ["Edit: src/auth/login.ts"] }],
     }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("Edit: src/auth/login.ts")).toBeInTheDocument();

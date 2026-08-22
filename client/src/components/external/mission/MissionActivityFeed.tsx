@@ -56,9 +56,7 @@ function mergeStateLabel(merge: MergeState): string {
 export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, task }: Props) {
   return <section className="mc-op mc-feed" data-testid="operation-card" data-live="true">
     <header className="mc-feed-pinned">
-      <span className="mc-feed-label">Goal</span>
-      <strong data-testid="mission-feed-goal">{feed.goal ?? "No goal has been recorded yet."}</strong>
-      <span>{feed.outcome}</span>
+      <span data-testid="mission-feed-outcome">{feed.outcome}</span>
     </header>
     <div className="mc-feed-scroll" role="log" aria-label="Activity feed" tabIndex={0} data-testid="mission-activity-feed">
       {feed.cards.length === 0 ? (

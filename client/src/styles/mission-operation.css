@@ -77,8 +77,6 @@
    tracked bug. */
 .mc-feed { gap: 10px; }
 .mc-feed-pinned { display: grid; gap: 4px; flex: 0 0 auto; font-size: 13px; color: var(--body); }
-.mc-feed-pinned strong { color: var(--ink); font-size: 15px; line-height: 1.35; }
-.mc-feed-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .mc-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 2px; position: relative; }
 .mc-feed-scroll:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
 .mc-feed-scroll:has(.mc-feed-entry)::before {

@@ -26,14 +26,14 @@ const context = (gate: "pass" | "fail" | "unknown", live = true): MissionContext
 describe("deriveActivityFeed — real content + detail/status/question fields", () => {
   it("attaches a bounded real-output excerpt and an err status to a failing test card", () => {
     const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "FAIL src/x.test.ts\nexpect(received).toEqual(expected)")].join("\n")).events;
-    const card = deriveActivityFeed(events, context("fail"), "Test work").cards.find((c) => c.kind === "test");
+    const card = deriveActivityFeed(events, context("fail")).cards.find((c) => c.kind === "test");
     expect(card?.status).toBe("err");
     expect(card?.detail).toBe("FAIL src/x.test.ts\nexpect(received).toEqual(expected)");
   });
 
   it("never lets an unretried local failure contradict a recorded passing gate (external review catch, high)", () => {
     const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "FAIL src/x.test.ts")].join("\n")).events;
-    const card = deriveActivityFeed(events, context("pass"), "Test work").cards.find((c) => c.kind === "test");
+    const card = deriveActivityFeed(events, context("pass")).cards.find((c) => c.kind === "test");
     // The pill follows the gate unconditionally...
     expect(card?.status).toBe("ok");
     // ...while the prose stays conservative: this transcript never proved
@@ -50,13 +50,13 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("first", "Bash", { command: "npm test" }), result("first"),
       tool("second", "Bash", { command: "npm test" }),
     ].join("\n")).events;
-    const card = deriveActivityFeed(events, context("fail"), "Test work").cards.filter((c) => c.kind === "test").at(-1);
+    const card = deriveActivityFeed(events, context("fail")).cards.filter((c) => c.kind === "test").at(-1);
     expect(card?.status).toBe("err");
   });
 
   it("shows a warn pill, not err, when a locally-observed failure has no recorded gate (external review catch)", () => {
     const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "FAIL src/x.test.ts")].join("\n")).events;
-    const card = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test");
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test");
     expect(card?.status).toBe("warn");
   });
 
@@ -66,7 +66,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("second", "Bash", { command: "npm test suiteB" }), errorResult("second", "FAIL suiteB"),
       tool("retry", "Bash", { command: "npm test suiteB" }), result("retry"),
     ].join("\n")).events;
-    const cards = deriveActivityFeed(events, context("pass"), "Test work").cards.filter((c) => c.kind === "test");
+    const cards = deriveActivityFeed(events, context("pass")).cards.filter((c) => c.kind === "test");
     // The still-open suiteA card means the run's test picture is not fully
     // settled, so the aggregate-latest card must not claim "ok"/Passing —
     // a green pill next to "needs attention" text would be a
@@ -80,7 +80,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
   it("preserves a bounded multi-line excerpt instead of collapsing it to one line (external review catch)", () => {
     const longOutput = ["FAIL src/x.test.ts", "  expect(received).toEqual(expected)", "  - Expected: 1", "  + Received: 2", "  extra ignored line"].join("\n");
     const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longOutput)].join("\n")).events;
-    const detail = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test")?.detail;
+    const detail = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test")?.detail;
     expect(detail?.split("\n")).toHaveLength(4);
     expect(detail).not.toContain("extra ignored line");
   });
@@ -88,7 +88,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
   it("marks a line-count-truncated excerpt with an ellipsis so a partial output is never silent (doubt-review catch)", () => {
     const longOutput = ["FAIL src/x.test.ts", "  line 2", "  line 3", "  line 4", "  line 5 dropped"].join("\n");
     const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longOutput)].join("\n")).events;
-    const detail = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test")?.detail;
+    const detail = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test")?.detail;
     expect(detail?.endsWith("…")).toBe(true);
     expect(detail?.split("\n")).toHaveLength(4);
   });
@@ -96,7 +96,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
   it("hard-caps a single long line to 320 chars with an ellipsis (Confidence Calibration probe)", () => {
     const longLine = "F".repeat(400);
     const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longLine)].join("\n")).events;
-    const detail = deriveActivityFeed(events, context("unknown"), "Test work").cards.find((c) => c.kind === "test")?.detail;
+    const detail = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test")?.detail;
     expect(detail).toHaveLength(321);
     expect(detail?.endsWith("…")).toBe(true);
   });
@@ -106,7 +106,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("first", "Bash", { command: "npm run build" }), errorResult("first", "Error: something broke"),
       tool("retry", "Bash", { command: "npm run build" }), result("retry"),
     ].join("\n")).events;
-    const recovered = deriveActivityFeed(events, context("unknown"), "Build work").cards.find((card) => /recovered/i.test(card.text));
+    const recovered = deriveActivityFeed(events, context("unknown")).cards.find((card) => /recovered/i.test(card.text));
     expect(recovered?.status).toBeUndefined();
     expect(recovered?.detail).toBeUndefined();
   });
@@ -116,7 +116,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("first", "Bash", { command: "npm test" }), errorResult("first", "FAIL something"),
       tool("retry", "Bash", { command: "npm test" }), result("retry"),
     ].join("\n")).events;
-    const recovered = deriveActivityFeed(events, context("pass"), "Test work").cards.filter((c) => c.kind === "test").at(-1);
+    const recovered = deriveActivityFeed(events, context("pass")).cards.filter((c) => c.kind === "test").at(-1);
     expect(recovered?.text).toMatch(/recovered/i);
     expect(recovered?.status).toBe("ok");
     expect(recovered?.detail).toBeUndefined();
@@ -128,7 +128,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("b", "Read", { file_path: "b.ts" }),
       errorResult("a", "Some read error"),
     ].join("\n")).events;
-    const blocker = deriveActivityFeed(events, context("unknown"), "Read work").cards.find((card) => card.kind === "blocker");
+    const blocker = deriveActivityFeed(events, context("unknown")).cards.find((card) => card.kind === "blocker");
     expect(blocker?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
     expect(blocker?.status).toBe("err");
     expect(blocker?.detail).toBeUndefined();
@@ -143,7 +143,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("a", "Bash", { command: "npm test suiteA" }), errorResult("a", "FAIL suiteA"),
       tool("b", "Bash", { command: "npm test suiteB" }), errorResult("b", "FAIL suiteB"),
     ].join("\n")).events;
-    const cards = deriveActivityFeed(events, context("unknown"), "Test work").cards.filter((c) => c.kind === "test");
+    const cards = deriveActivityFeed(events, context("unknown")).cards.filter((c) => c.kind === "test");
     expect(cards).toHaveLength(2);
     expect(cards[0].detail).toBe("FAIL suiteA");
     expect(cards[1].detail).toBe("FAIL suiteB");
@@ -151,7 +151,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
 
   it("attaches a single command's error excerpt when the card represents exactly one command", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), errorResult("a", "ENOENT: a.ts not found")].join("\n")).events;
-    const blocker = deriveActivityFeed(events, context("unknown"), "Read work").cards.find((card) => card.kind === "blocker");
+    const blocker = deriveActivityFeed(events, context("unknown")).cards.find((card) => card.kind === "blocker");
     expect(blocker?.detail).toBe("ENOENT: a.ts not found");
   });
 
@@ -162,12 +162,12 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
         ? { ...item, detail: { type: "commit" as const, commit: "abc123", message: "fix(mission): real content", prNumber: 367, prUrl: "https://x/367", merge: "merged" as const } }
         : item),
     };
-    const feed = deriveActivityFeed([], withCommitDetail, "Ship it");
+    const feed = deriveActivityFeed([], withCommitDetail);
     expect(feed.cards.find((card) => card.kind === "delivery")?.text).toBe('Merged as "fix(mission): real content".');
   });
 
   it("keeps the generic delivery sentence when no commit message is available", () => {
-    const feed = deriveActivityFeed([], context("pass", false), "Ship it");
+    const feed = deriveActivityFeed([], context("pass", false));
     expect(feed.cards.find((card) => card.kind === "delivery")?.text).toBe("This completed run is recorded through durable artifacts.");
   });
 
@@ -176,7 +176,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", header: "Platform", options: [{ label: "Web App" }, { label: "Mobile App" }], multiSelect: false }] }),
       okResult("ask", "Web App"),
     ].join("\n")).events;
-    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
     expect(card?.question?.resolved).toBe(true);
     expect(card?.question?.picked).toBe("Web App");
   });
@@ -186,7 +186,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }, { label: "Mobile App" }] }] }),
       okResult("ask", "Both, actually"),
     ].join("\n")).events;
-    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
     expect(card?.question?.resolved).toBe(true);
     expect(card?.question?.picked).toBeUndefined();
     expect(card?.question?.answer).toBe("Both, actually");
@@ -197,13 +197,13 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }] }] }),
       errorResult("ask", "cancelled"),
     ].join("\n")).events;
-    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
     expect(card?.question?.resolved).toBe(false);
   });
 
   it("keeps an unresolved question's CTA-gating field false until a tool_result resolves it", () => {
     const events = parseSessionJsonl(tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }] }] })).events;
-    const card = deriveActivityFeed(events, context("unknown"), "Ask").cards.find((c) => c.kind === "user-input");
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
     expect(card?.question?.resolved).toBe(false);
   });
 
@@ -213,6 +213,6 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       artifacts: [...context("unknown").artifacts, { kind: "review" as const, label: "Review", state: "available" as const, summary: null, receipt: null, detail: null }],
     };
     const events = parseSessionJsonl(tool("review", "Task", { description: "Review the change" })).events;
-    expect(deriveActivityFeed(events, reviewContext, "Review").cards.find((card) => card.kind === "review")?.status).toBe("ok");
+    expect(deriveActivityFeed(events, reviewContext).cards.find((card) => card.kind === "review")?.status).toBe("ok");
   });
 });

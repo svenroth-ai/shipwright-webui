@@ -64,6 +64,68 @@ const RUN_ID_FOOTER =
   /Run-ID:[ \t]*(iterate-\d{4}-\d{2}-\d{2}-[A-Za-z0-9][A-Za-z0-9._-]{0,90})[ \t]*(?=\\[nr"]|"|\r|\n|$)/g;
 
 /**
+ * A JSONL line wrapping a `"type":"user"` record — both a `tool_result`
+ * (the output of `git log`, `cat`, `grep`, a file `Read`, ...) and a
+ * genuine human-typed prompt land here. Either way this is INVESTIGATION
+ * content being read back, never this session's own claim of identity —
+ * a footer is legitimately authored only on an assistant-side line (a
+ * `git commit` tool_use, or the assistant's own narration), never here.
+ *
+ * Split on real newlines, then each line's OWN top-level `type` field is
+ * checked via a real `JSON.parse` — not a whole-line substring match
+ * (internal code review, medium): a single assistant record can bundle
+ * text plus several tool_use blocks on one line, and if that content
+ * happens to contain the literal characters `"type":"user"` as DATA (e.g.
+ * writing or editing a JSON/JSONL fixture — exactly the shape this fix's
+ * own test file uses), a substring scan would wrongly strip that line and
+ * lose a legitimate, current footer riding along on it. A line that fails
+ * to parse (truncated by the bounded-tail window, or genuinely malformed)
+ * is kept rather than excluded — the same "never guess" posture as the
+ * rest of this module: an unreadable line is not evidence either way, and
+ * excluding it on a guess could hide the one line carrying this session's
+ * real footer.
+ *
+ * KNOWN, DISCLOSED LIMITATION: an assistant turn that merely narrates or
+ * quotes an OLDER run's footer in prose (not inside a `git commit` command)
+ * still lands on a surviving, non-`user` line and can still be picked as
+ * "last surviving line". Closing that needs message-boundary-aware
+ * extraction (which command/text produced the footer), not just which
+ * JSONL role wrote the line — deliberately out of scope for this fix.
+ */
+function isUserTypeLine(line: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(line);
+    return typeof parsed === "object" && parsed !== null && (parsed as { type?: unknown }).type === "user";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * `dropLeadingPartialLine` closes a truncation-boundary gap (external code
+ * review, high): `findRunIdFooter` slices the transcript to its final
+ * `MAX_SCAN_CHARS` BEFORE this function ever runs, a byte cut with no
+ * regard for JSONL line boundaries. When that cut lands inside a large
+ * `"type":"user"` record (a big tool_result is exactly the shape likely to
+ * be cut), the record's own `"type"` field is sliced away with the part
+ * before the cut, so the surviving fragment fails to parse as JSON and
+ * `isUserTypeLine` — correctly "never guessing" on genuinely malformed
+ * content — keeps it, defeating the exclusion for precisely the record
+ * this fix exists to exclude. The one line that can be a byte-cut
+ * fragment is always the FIRST line of an actually-truncated tail (every
+ * later line is bounded by two real `\n`s from the original file), so
+ * that line alone is dropped outright rather than classified — accepting
+ * a narrow "declines to identify" cost in exchange for closing the
+ * wrong-identity path, consistent with this module's "no half answer, no
+ * guess" posture elsewhere (e.g. a marker itself cut by the window).
+ */
+function stripUserTypeLines(text: string, dropLeadingPartialLine: boolean): string {
+  const lines = text.split(/\r?\n/);
+  if (dropLeadingPartialLine && lines.length > 1) lines.shift();
+  return lines.filter((line) => !isUserTypeLine(line)).join("\n");
+}
+
+/**
  * The LAST qualifying `Run-ID` in `transcript`, or null.
  *
  * LAST, not first: a long session legitimately contains several iterates (a
@@ -76,8 +138,9 @@ const RUN_ID_FOOTER =
  */
 export function findRunIdFooter(transcript: string): string | null {
   if (typeof transcript !== "string" || transcript.length === 0) return null;
-  const text =
-    transcript.length > MAX_SCAN_CHARS ? transcript.slice(-MAX_SCAN_CHARS) : transcript;
+  const truncated = transcript.length > MAX_SCAN_CHARS;
+  const tail = truncated ? transcript.slice(-MAX_SCAN_CHARS) : transcript;
+  const text = stripUserTypeLines(tail, truncated);
 
   let last: string | null = null;
   RUN_ID_FOOTER.lastIndex = 0;

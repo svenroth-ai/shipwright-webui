@@ -30,8 +30,13 @@ import { _clearEventIndexCache } from "./iterate-record.js";
 
 const RUN = "iterate-2026-07-20-mission-context-async-git";
 
-/** The footer as it really appears inside a JSONL record (escaped newline). */
-function footerLine(runId: string): string {
+/**
+ * The footer as it really appears inside a JSONL record (escaped newline).
+ * Exported for `run-id-recovery-user-lines.test.ts`
+ * (iterate-2026-08-22-mission-feed-fixes) — same fixture shape, split into
+ * its own file once this one crossed the project's 300-line convention.
+ */
+export function footerLine(runId: string): string {
   return `{"text":"fix(mission): something\\n\\nRun-ID: ${runId}\\nCo-Authored-By: Claude <noreply@anthropic.com>"}`;
 }
 

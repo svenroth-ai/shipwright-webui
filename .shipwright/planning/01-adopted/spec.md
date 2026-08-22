@@ -1058,6 +1058,26 @@ write surface; gated, path-guarded, and concurrency-safe.
   was added: `detail` and `question` text render through the same safe markdown /
   literal-text path `text` already used, so HTML-like transcript content stays inert.
 
+- (R) **(iterate-2026-08-22-mission-feed-fixes)** The prior iterate's "real content
+  on all nine kinds" claim only partially held up under a screenshot-driven review:
+  the `test`/`review` bucket classifiers matched a bare substring anywhere in a shell
+  command (misreading `git checkout -- shipwright_test_results.json` as a test run),
+  every `Task` subagent spawn was unconditionally bucketed as `review` regardless of
+  its actual purpose, and `investigate`/`implement`/`review`/`spec` cards almost
+  always fell back to one of four fixed sentences because the common case (a tool
+  call with no narrated prose) never reached real content. All three are fixed:
+  bucket classification now requires a real invocation shape (quote-aware, through
+  runner prefixes), `Task` bucketing reads the subagent's own declared purpose, and
+  a card representing exactly one command derives its sentence from that command's
+  own input when no prose is available — a coalesced multi-command card still keeps
+  the generic sentence. Separately, the Delivered card could show an **unrelated
+  older run's** commit message: the server-side Run-ID-footer recovery kept the LAST
+  occurrence anywhere in the transcript, including one quoted inside a
+  `"type":"user"` JSONL line (a `tool_result` or a human prompt) — never how a
+  footer is legitimately authored. The scan now excludes every `"type":"user"` line
+  via real JSON parsing of each line's own type field, including at the scan
+  window's truncation boundary. The GOAL header (a poorly-derived first-sentence
+  summary) was also dropped per explicit user request; the outcome line stays.
 - (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Task Board
   "New" split-button in single-project mode, when its dropdown opens, then it leads
   with a "Guided — Intent Wizard" item (marked *recommended*, under a "Start
