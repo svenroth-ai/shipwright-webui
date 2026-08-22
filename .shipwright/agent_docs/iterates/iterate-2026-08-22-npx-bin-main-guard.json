@@ -1,0 +1,51 @@
+{
+  "run_id": "iterate-2026-08-22-npx-bin-main-guard",
+  "date": "2026-08-22T08:36:06.692846Z",
+  "event_at": "2026-08-20T21:46:27.067789+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/npx-bin-main-guard",
+  "spec": "npx bootstrapper main-module guard realpaths both sides; runs main() under a .bin symlink",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-22-npx-bin-main-guard",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "isMainModule() returns true when argv[1] is a SYMLINK to the module (the npx .bin case the old guard missed)",
+        "disposition": "tested",
+        "evidence": "bootstrapper/test/bin-main-guard.test.mjs 'true when argv[1] is a SYMLINK to the module' (CI-Linux; skipped on Windows without symlink privilege)"
+      },
+      {
+        "behavior": "isMainModule() true for the real module path; false for undefined/empty and unrelated paths (import stays side-effect-free)",
+        "disposition": "tested",
+        "evidence": "bin-main-guard.test.mjs unit cases: real-path true, no-argv false, unrelated-path false — PASSED"
+      },
+      {
+        "behavior": "symmetric fallback: a non-realpath-able argv[1] resolves via path.resolve on BOTH sides (no mixed realpath/resolve branch that would re-introduce the silent no-op)",
+        "disposition": "tested",
+        "evidence": "bin-main-guard.test.mjs 'false for an unrelated path' passes a does-not-exist path, exercising the catch/path.resolve branch -> false; PASSED"
+      },
+      {
+        "behavior": "the bin executed THROUGH a symlink runs main() and prints --version (the field npx invocation the old guard silently made a no-op)",
+        "disposition": "tested",
+        "evidence": "bin-main-guard.test.mjs 'node <symlink-to-bin> --version prints the version' (CI-Linux)"
+      },
+      {
+        "behavior": "the PACKED tarball (bin/ + lib/ via the files whitelist) runs main() through a node_modules/.bin symlink",
+        "disposition": "tested",
+        "evidence": "bin-main-guard.test.mjs 'npm pack -> extract -> node <.bin symlink> --version' (CI-Linux); pack/extract/run mechanics cross-checked on Windows without the symlink step"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  }
+}

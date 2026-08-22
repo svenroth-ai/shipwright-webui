@@ -13,7 +13,7 @@
  * the installed plugin set changed.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -178,8 +178,39 @@ export async function main(argv = process.argv.slice(2), log = (m) => console.lo
   return exitCode;
 }
 
+/**
+ * True when this module is the process entry point — INCLUDING when it is
+ * invoked through a symlink. npm/npx install the executable as a symlink in
+ * `node_modules/.bin/`, so on macOS/Linux `process.argv[1]` is that symlink
+ * while Node realpaths the entry for `import.meta.url` (the real file). A plain
+ * `path.resolve` comparison of the two therefore never matches and `main()`
+ * never runs — the bootstrapper exits 0 having done NOTHING (the silent-no-op
+ * bug: `npx @svenroth-ai/shipwright` printed nothing on the Mac). Windows hid it
+ * because its npm `.cmd` shim invokes node with the REAL path, not a symlink.
+ *
+ * Fix: realpath BOTH sides before comparing, so a symlink and its target compare
+ * equal. The realpath is applied SYMMETRICALLY: if EITHER side cannot be
+ * realpath'd (`realpathSync` throws — ENOENT from an odd launcher, or a
+ * virtualized path such as Yarn PnP that has no on-disk realpath, or EACCES /
+ * ELOOP), BOTH sides fall back to plain `path.resolve`. A mixed branch — one
+ * side realpath'd, the other only resolved — would spuriously mismatch and
+ * re-introduce the very silent-no-op this fixes; symmetry rules that out. An
+ * entry-point guard must also never crash the bootstrapper on import, hence the
+ * catch. The real npx entry always has an existing argv[1], so both sides
+ * realpath and canonicalize identically.
+ */
+export function isMainModule(argv1, metaUrl) {
+  if (!argv1) return false;
+  const self = fileURLToPath(metaUrl);
+  try {
+    return realpathSync(argv1) === realpathSync(self);
+  } catch {
+    return path.resolve(argv1) === path.resolve(self);
+  }
+}
+
 // Run only when invoked as a script — importing (tests) stays side-effect free.
-if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
+if (isMainModule(process.argv[1], import.meta.url)) {
   main().then((code) => process.exit(code)).catch((e) => {
     console.error(`[shipwright] fatal: ${String(e?.stack ?? e)}`);
     process.exit(1);
