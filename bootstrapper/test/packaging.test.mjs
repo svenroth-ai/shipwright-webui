@@ -5,6 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { stagedServerPackageJson } from "../scripts/build-package.mjs";
+
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PKG = path.resolve(HERE, "..");
 
@@ -87,5 +89,29 @@ describe("AC7 — the `files` whitelist ships the build, excludes sources/specs/
   it("references no npm token / publish secret anywhere in package.json", () => {
     const raw = readFileSync(path.join(PKG, "package.json"), "utf-8");
     expect(raw).not.toMatch(/NPM_TOKEN|prepublishOnly|_authToken/);
+  });
+});
+
+describe("the staged server/package.json is stamped with the PUBLISHED version", () => {
+  const serverPkg = JSON.stringify({ name: "server", version: "0.24.6", private: true }, null, 2);
+
+  it("overwrites the committed triple with a -next.N publish version (the swap signal)", () => {
+    const out = JSON.parse(stagedServerPackageJson(serverPkg, "0.24.7-next.1"));
+    // This is what /api/diagnostics reports as app.version — it MUST carry the
+    // -next tail so a republished @next is a different version than the running
+    // build and the bootstrapper swaps instead of attaching to the stale server.
+    expect(out.version).toBe("0.24.7-next.1");
+  });
+
+  it("is a no-op for a latest release (versions already in lockstep)", () => {
+    expect(JSON.parse(stagedServerPackageJson(serverPkg, "0.24.6")).version).toBe("0.24.6");
+  });
+
+  it("preserves the file's other fields and ends with a trailing newline", () => {
+    const raw = stagedServerPackageJson(serverPkg, "1.2.3-next.0");
+    const out = JSON.parse(raw);
+    expect(out.name).toBe("server");
+    expect(out.private).toBe(true);
+    expect(raw.endsWith("\n")).toBe(true);
   });
 });
