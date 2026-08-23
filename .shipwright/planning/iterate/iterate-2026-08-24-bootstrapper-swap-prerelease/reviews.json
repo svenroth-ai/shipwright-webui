@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-24-bootstrapper-swap-prerelease",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T23:20:25.402656+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T23:21:54.568648+00:00",
+      "disposition": "bug-fix iterate: no separate mini-plan phase (plan/plan_internal n/a); Claude-only review, no external LLM key in scope (external_code not_run)",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "bootstrapper/test/util.test.mjs",
+          "line": 72,
+          "finding": "No test pinned +build metadata handling, alphanumeric ASCII order, shorter-prefix-wins, or a mixed numeric/alpha identifier at the same position — the code handles all four but nothing guarded them against regression.",
+          "suggestion": "Add cases. FIXED: added +build, alphanumeric ASCII, longer-list-wins, and numeric-below-alphanumeric cases to util.test.mjs.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "bootstrapper/lib/util.mjs",
+          "line": 57,
+          "finding": "comparePrereleaseIds JSDoc phrase 'rank below the same-valued nothing but below any alphanumeric' is garbled.",
+          "suggestion": "Reword. FIXED: reworded to name the three SemVer 11.4 rules plainly.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "bootstrapper/lib/util.mjs",
+          "line": 73,
+          "finding": "Number(ai) - Number(bi) loses precision above 2^53.",
+          "suggestion": "Irrelevant for -next.N counters. ACCEPTED: no action.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-23T23:21:28.919774+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "bootstrapper/scripts/build-package.mjs + server/src/routes/diagnostics.ts",
+          "line": null,
+          "finding": "Claim under doubt: the swap comparison correctly distinguishes the running vs published build — compareSemverFull makes the -next tail load-bearing across TWO independently-bumped sources: SELF_VERSION (bootstrapper/package.json, the packageVersion in decideAction) vs the running server's app.version (server/package.json via /api/diagnostics). Staged verbatim, server/package.json carried the committed release triple (no -next.N), so successive @next builds reported the SAME app.version and the stale server was ATTACHED to instead of swapped; and the readiness poll (=== 0) could false-fail even on a successful swap.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": null,
+          "finding": "Claim under doubt: a republished @next always swaps — The fix keys off a differing version string; a same-version-string republish (same bytes bumped or not) compares === 0 -> attach.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility / legacy state",
+          "file": "bootstrapper/lib/util.mjs",
+          "line": null,
+          "finding": "Claim under doubt: every stale incumbent is now swappable — An incumbent reporting app.version 'unknown' (predates version-shipping / garbled) yields compareSemverFull -> 0 -> attach, never swap.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-23T23:21:29.044364+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T23:21:54.568648+00:00",
+      "disposition": "bug-fix iterate: no separate mini-plan phase (plan/plan_internal n/a); Claude-only review, no external LLM key in scope (external_code not_run)",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T23:21:28.791077+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T23:21:54.568648+00:00",
+      "disposition": "bug-fix iterate: no separate mini-plan phase (plan/plan_internal n/a); Claude-only review, no external LLM key in scope (external_code not_run)",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
