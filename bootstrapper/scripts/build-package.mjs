@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * build-package.mjs — stage the npm tarball contents.
  *
@@ -11,7 +10,7 @@
  * `prepublishOnly`, so this can never trigger a publish.
  */
 
-import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,6 +63,41 @@ function stageFile(srcAbs, dstRel) {
   log(`staged ${dstRel}`);
 }
 
+/**
+ * Rewrite the staged `server/package.json` so its `version` equals the version
+ * this package is being PUBLISHED as (the bootstrapper's version at build time —
+ * publish.mjs has already set it, including a `-next.N` tail).
+ *
+ * The server reports `server/package.json.version` as diagnostics `app.version`,
+ * and that string is the bootstrapper's attach-vs-swap SIGNAL. Staged verbatim,
+ * it carried the committed release triple (no `-next.N`), so two successive
+ * `@next` builds reported the SAME version and the running (stale) server was
+ * ATTACHED to instead of swapped out (verified 2026-08-23: new client, old
+ * server code). Aligning it with the published version — together with the
+ * pre-release-aware `compareSemverFull` in lib/server.mjs — makes a republished
+ * `@next` reliably swap. For a `latest` release the two are already in lockstep,
+ * so this is a no-op there.
+ *
+ * Pure over its inputs so it is unit-testable without a real build. Preserves
+ * key order and returns the trailing-newline JSON text to write.
+ * @param {string} serverPkgRaw @param {string} publishedVersion @returns {string}
+ */
+export function stagedServerPackageJson(serverPkgRaw, publishedVersion) {
+  const pkg = JSON.parse(serverPkgRaw);
+  pkg.version = publishedVersion;
+  return JSON.stringify(pkg, null, 2) + "\n";
+}
+
+/** The version this package is being published as (bootstrapper/package.json). */
+function readPublishedVersion() {
+  const raw = readFileSync(path.join(PKG, "package.json"), "utf-8");
+  const v = JSON.parse(raw).version;
+  if (typeof v !== "string" || v.length === 0) {
+    throw new Error("bootstrapper/package.json has no usable version — cannot stamp the server's app.version");
+  }
+  return v;
+}
+
 function main() {
   ensureBuilt("server", "dist");
   ensureBuilt("client", "dist");
@@ -75,8 +109,19 @@ function main() {
   // The server reads its OWN version from `server/package.json` at runtime
   // (diagnostics `app.version` — the bootstrapper's attach-vs-swap signal).
   // Without this file the packaged server reports "unknown" and every update
-  // silently no-ops. Ship it (external-review HIGH).
-  stageFile(path.join(REPO, "server", "package.json"), "server/package.json");
+  // silently no-ops. Ship it (external-review HIGH) — and stamp it with the
+  // version being PUBLISHED (not the committed triple) so a `@next` republish
+  // is a DIFFERENT app.version than the running build and actually swaps.
+  const publishedVersion = readPublishedVersion();
+  const serverPkgSrc = path.join(REPO, "server", "package.json");
+  if (!existsSync(serverPkgSrc)) {
+    throw new Error(`expected source missing: ${serverPkgSrc}`);
+  }
+  const stagedServerPkg = stagedServerPackageJson(readFileSync(serverPkgSrc, "utf-8"), publishedVersion);
+  const serverPkgDst = path.join(PKG, "server", "package.json");
+  mkdirSync(path.dirname(serverPkgDst), { recursive: true });
+  writeFileSync(serverPkgDst, stagedServerPkg);
+  log(`staged server/package.json (app.version stamped ${publishedVersion})`);
 
   // The detached swap runtime (driven by lib/server.mjs). Shipped as-is; the
   // swapper — not the bootstrapper — owns the kill, and it runs detached.
@@ -88,4 +133,8 @@ function main() {
   log("done — run `npm pack --dry-run` to inspect the tarball.");
 }
 
-main();
+// Only run when invoked as a script (`npm run build` / `prepack`) — importing it
+// (tests of the pure `stagedServerPackageJson` helper) must stay side-effect free.
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))) {
+  main();
+}

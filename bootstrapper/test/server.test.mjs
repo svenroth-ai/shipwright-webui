@@ -33,6 +33,39 @@ describe("server — AC1c/AC4: decideAction", () => {
   it("foreign process → foreign", () => {
     expect(decideAction({ reachable: true, shipwright: false, version: null }, PKG_VERSION)).toBe("foreign");
   });
+
+  // Regression (verified 2026-08-23): two `@next` builds share a triple and
+  // differ only in `-next.N`. A triple-only compare called them equal and
+  // ATTACHED to the stale server, so the freshly published build never ran
+  // (new client served, old server code in memory). The swap decision must
+  // honour the pre-release tail.
+  it("newer -next.N at the SAME triple → swap (was the stale-attach bug)", () => {
+    expect(
+      decideAction({ reachable: true, shipwright: true, version: "0.24.7-next.0" }, "0.24.7-next.1"),
+    ).toBe("swap");
+  });
+  it("same -next.N → attach (genuinely already this build)", () => {
+    expect(
+      decideAction({ reachable: true, shipwright: true, version: "0.24.7-next.1" }, "0.24.7-next.1"),
+    ).toBe("attach");
+  });
+  it("older -next.N running → attach (never downgrade to an earlier next)", () => {
+    expect(
+      decideAction({ reachable: true, shipwright: true, version: "0.24.7-next.2" }, "0.24.7-next.1"),
+    ).toBe("attach");
+  });
+  it("a release running vs a -next package of the same triple → attach (no downgrade)", () => {
+    // 0.24.7 (running) outranks 0.24.7-next.9 (package) → never replace the
+    // released server with a pre-release of the same triple.
+    expect(
+      decideAction({ reachable: true, shipwright: true, version: "0.24.7" }, "0.24.7-next.9"),
+    ).toBe("attach");
+  });
+  it("a -next running vs its release package of the same triple → swap (finish the release)", () => {
+    expect(
+      decideAction({ reachable: true, shipwright: true, version: "0.24.7-next.3" }, "0.24.7"),
+    ).toBe("swap");
+  });
 });
 
 describe("server — AC1c: the swapper spawn PLAN is detached, carries --port, targets deploy-swap", () => {
@@ -144,6 +177,31 @@ describe("server — ensureServer orchestration", () => {
     expect(r.previousVersion).toBe("0.22.0");
     expect(r.version).toBe("0.23.0");        // asserted on version, not "browser opened"
     expect(r.newPid).toBe(222);              // a PID change
+  });
+
+  it("swap fires for a newer -next.N at the SAME triple, and readiness needs the EXACT next", async () => {
+    // The stale-attach regression, end to end: republishing `@next` at the same
+    // triple must drive a real swap, and the swap must not report ready until the
+    // port serves the exact `-next.N` (a lingering next.0 must NOT satisfy it).
+    const s = spies();
+    let n = 0;
+    const r = await ensureServer({
+      port: 3847, pkgRoot: "/pkg", packageVersion: "0.24.7-next.1", timeoutMs: 3000,
+      probeFn: async () => {
+        n++;
+        if (n === 1) return { reachable: true, shipwright: true, version: "0.24.7-next.0" }; // decide → swap
+        if (n === 2) return { reachable: true, shipwright: true, version: "0.24.7-next.0" }; // still stale — NOT ready
+        return { reachable: true, shipwright: true, version: "0.24.7-next.1" };              // swapped in
+      },
+      readDeployStatus: () => ({ ok: true, pid: 333 }),
+      ...s,
+    });
+    expect(r.action).toBe("swap");
+    expect(s.calls.swap).toBe(1);
+    expect(s.calls.boot).toBe(0);
+    expect(r.previousVersion).toBe("0.24.7-next.0");
+    expect(r.version).toBe("0.24.7-next.1");
+    expect(n).toBeGreaterThanOrEqual(3); // the stale next.0 poll did not count as ready
   });
 
   it("boot is REFUSED when @lydell/node-pty can't load (never start a terminal-less server)", async () => {

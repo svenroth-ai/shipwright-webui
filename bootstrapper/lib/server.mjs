@@ -19,7 +19,7 @@ import { spawn } from "node:child_process";
 import { readFileSync, openSync, closeSync, mkdirSync } from "node:fs";
 import os from "node:os";
 
-import { compareSemver } from "./util.mjs";
+import { compareSemverFull } from "./util.mjs";
 import { tcpOccupied, checkNativePty } from "./probes.mjs";
 import { win32CmdWrap } from "./win32-spawn.mjs";
 
@@ -86,7 +86,11 @@ export function decideAction(probe, packageVersion) {
   if (!probe.shipwright) return "foreign";
   // Older running server → swap (a naive attach serves the OLD UI: silent
   // no-op update). Same or newer → attach (never needlessly restart or downgrade).
-  return compareSemver(probe.version ?? "", packageVersion) < 0 ? "swap" : "attach";
+  // Full compare (pre-release tail included): successive `@next` builds share a
+  // triple and differ only in `-next.N`; a triple-only compare would call them
+  // equal and ATTACH to the stale server, leaving the freshly published build
+  // un-run (verified 2026-08-23 — new client served, old server code in memory).
+  return compareSemverFull(probe.version ?? "", packageVersion) < 0 ? "swap" : "attach";
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -337,7 +341,11 @@ export async function ensureServer(opts) {
     // let an unexpected newer instance winning the race masquerade as our swap.
     const ready = await pollUntil(
       probeFn,
-      (p) => p.shipwright && compareSemver(p.version ?? "", opts.packageVersion) === 0,
+      // Full compare: readiness is the port serving EXACTLY the package version,
+      // pre-release tail included — otherwise a stale `@next` at the same triple
+      // (the very thing we are swapping away from) would satisfy `=== 0` and the
+      // swap would report success while the old server still holds the port.
+      (p) => p.shipwright && compareSemverFull(p.version ?? "", opts.packageVersion) === 0,
       { timeoutMs: Math.max(timeoutMs, 20000) },
     );
     const status = readDeployStatus();
