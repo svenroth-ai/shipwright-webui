@@ -109,14 +109,16 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     id: "wizard-adopt",
     path: "/wizard/adopt",
     description: "Intent wizard — adopt door, step 1 (repo pick)",
-    status: "baselined",
+    status: "pending",
+    owner: "iterate-2026-08-24-wizard-new-door-back-button",
   },
   {
     id: "wizard-grade",
     path: "/wizard/grade",
     description:
       "Intent wizard — grade door: the REAL Control-Grade result card, rendered from a deterministic /api/wizard/grade fixture (A09b)",
-    status: "baselined",
+    status: "pending",
+    owner: "iterate-2026-08-24-wizard-new-door-back-button",
   },
   {
     id: "design-gate",
