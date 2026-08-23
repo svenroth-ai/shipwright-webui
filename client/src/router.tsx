@@ -31,8 +31,8 @@ export const router = createBrowserRouter([
       // backdrop (SceneBackdrop BACKDROPS['first-contact']), exempt from deck-golden.
       { path: 'first-contact', element: <FirstContact /> },
       // Intent Wizard (A08, FR-01.51) — the guided front door, BEFORE the expert
-      // ProjectWizard. /wizard = door picker; /wizard/adopt|grade land inside the
-      // respective flow at step 1 (AC4). Additive: the expert create stays reachable.
+      // ProjectWizard. /wizard = door picker; /wizard/new|adopt|grade land inside
+      // the respective flow at step 1 (AC4). Additive: the expert create stays reachable.
       { path: 'wizard', element: <IntentWizardPage /> },
       { path: 'wizard/:door', element: <IntentWizardPage /> },
       { path: 'tasks/:taskId', element: <TaskDetailPage /> },

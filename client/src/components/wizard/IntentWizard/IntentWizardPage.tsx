@@ -17,6 +17,7 @@ import "./intent-wizard-panels.css";
 import "./flightplan-mobile.css";
 
 function doorFromParam(seg: string | undefined): WizardDoor | null {
+  if (seg === "new") return "new";
   if (seg === "adopt") return "adopt";
   if (seg === "grade") return "grade";
   return null;

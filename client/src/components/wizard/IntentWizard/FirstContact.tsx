@@ -26,8 +26,10 @@ import "./intent-wizard.css";
 import "./intent-wizard-panels.css";
 import "./first-contact.css";
 
-/** Deep-link route for a door (Build new → /wizard, Adopt → /wizard/adopt,
- *  Grade → /wizard/grade). */
+/** Deep-link route for a door (Build new → /wizard/new, Adopt → /wizard/adopt,
+ *  Grade → /wizard/grade). Each lands INSIDE its flow at step 1, never the
+ *  picker — clicking "Build something new" must show the first question, not
+ *  re-open the door list. */
 function doorRoute(id: WizardDoor): string {
   return DOORS.find((d) => d.id === id)?.route ?? "/wizard";
 }

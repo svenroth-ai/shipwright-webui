@@ -33,7 +33,7 @@ export const DOORS: DoorDef[] = [
     icon: "sparkles",
     label: "Build something new",
     desc: "From an idea to a spec, tests, and code.",
-    route: "/wizard",
+    route: "/wizard/new",
   },
   {
     id: "adopt",

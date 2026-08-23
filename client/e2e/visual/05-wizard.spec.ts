@@ -171,6 +171,10 @@ test.describe("visual: intent wizard", () => {
   // Entry screens (step 1) — deterministic, machine-independent.
   const ENTRY_ROUTES = [
     { id: "wizard", path: "/wizard", ready: /What do you want to do\?/i },
+    // /wizard/new lands INSIDE the new-build flow at step 1 — the first question,
+    // not the door picker (iterate-2026-08-24). Also baselines the legible
+    // WzOutline "Back" button (was white-on-white) on the photo backdrop.
+    { id: "wizard-new", path: "/wizard/new", ready: /Describe it like you'd tell a friend/i },
     { id: "wizard-adopt", path: "/wizard/adopt", ready: /Where does the repo live\?/i },
   ] as const;
 
