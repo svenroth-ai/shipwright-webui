@@ -83,8 +83,10 @@ describe("FirstContact — the hero", () => {
   });
 
   // @covers FR-01.51 — the doors DEEP-LINK into the wizard flow (Rule 1: navigate only).
+  // "new" → /wizard/new (NOT /wizard): clicking "Build something new" must land on
+  // the first question, not re-open the door picker (iterate-2026-08-24).
   it.each([
-    ["new", "/wizard"],
+    ["new", "/wizard/new"],
     ["adopt", "/wizard/adopt"],
     ["grade", "/wizard/grade"],
   ])("the %s door navigates to %s", async (door, route) => {

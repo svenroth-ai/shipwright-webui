@@ -33,6 +33,7 @@ import type { WizardLaunchRequest } from "./contract";
 import type { WizardDoor, WizardState } from "./types";
 
 function initState(initialDoor: WizardDoor | null): WizardState {
+  if (initialDoor === "new") return { ...INITIAL_STATE, door: "new", step: 1 };
   if (initialDoor === "adopt") return { ...INITIAL_STATE, door: "adopt", step: 1 };
   if (initialDoor === "grade") return { ...INITIAL_STATE, door: "grade", step: 1 };
   return INITIAL_STATE;

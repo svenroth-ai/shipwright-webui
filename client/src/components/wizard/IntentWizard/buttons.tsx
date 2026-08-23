@@ -19,6 +19,9 @@ const base: React.CSSProperties = {
   border: "1px solid transparent",
 };
 
+// WzPrimary rides #fff on var(--accent) (readable under both on-photo token
+// arms), so it needs no `.wz-outline` reset hook — WzPrimary's test asserts that
+// absence. className flows through ...rest (no hard-coded className to merge).
 export function WzPrimary({ children, style, disabled, ...rest }: Props) {
   return (
     <button
@@ -39,10 +42,14 @@ export function WzPrimary({ children, style, disabled, ...rest }: Props) {
   );
 }
 
-export function WzOutline({ children, style, ...rest }: Props) {
+export function WzOutline({ children, style, className, ...rest }: Props) {
   return (
     <button
       type="button"
+      // `wz-outline` is the on-photo rule-2 reset hook: this is a SOLID
+      // var(--card) reading surface, so --ink must stay dark. Without the class
+      // .on-photo rule-1 flips --ink white → white-on-white "Back" button.
+      className={className ? `wz-outline ${className}` : "wz-outline"}
       style={{
         ...base,
         background: "var(--card)",

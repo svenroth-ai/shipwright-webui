@@ -199,11 +199,18 @@ describe("IntentWizard — deep links (AC4)", () => {
   beforeEach(() => mockReadiness(READY));
 
   // @covers FR-01.51
-  it("/wizard (picker), /wizard/adopt, /wizard/grade land on the right entry", async () => {
+  it("/wizard (picker), /wizard/new, /wizard/adopt, /wizard/grade land on the right entry", async () => {
     const { unmount } = renderWizard(null);
     await doorsReady();
     expect(screen.getByTestId("wizard-door-picker")).toBeInTheDocument();
     unmount();
+
+    // A "new"-door deep-link lands INSIDE the flow at step 1 (the first
+    // question), NOT the door picker (iterate-2026-08-24).
+    renderWizard("new");
+    expect(await screen.findByTestId("wizard-question-brief")).toBeInTheDocument();
+    expect(screen.queryByTestId("wizard-door-picker")).toBeNull();
+    cleanup();
 
     renderWizard("adopt");
     expect(await screen.findByTestId("wizard-pick-adopt")).toBeInTheDocument();

@@ -99,6 +99,13 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     status: "baselined",
   },
   {
+    id: "wizard-new",
+    path: "/wizard/new",
+    description:
+      "Intent wizard — build-new door, step 1 (the first question), reached by deep-link so 'Build something new' lands here, not the picker (iterate-2026-08-24)",
+    status: "baselined",
+  },
+  {
     id: "wizard-adopt",
     path: "/wizard/adopt",
     description: "Intent wizard — adopt door, step 1 (repo pick)",
