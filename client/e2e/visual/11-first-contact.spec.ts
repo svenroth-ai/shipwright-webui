@@ -35,7 +35,7 @@ test.describe("visual: first contact", () => {
   // @covers FR-01.51
   test("first-contact", async ({ page }) => {
     await page.goto("/first-contact");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Say what you want.", {
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Choose your first step.", {
       timeout: 15_000,
     });
     // All three doors present + the lighthouse plate resolved before the shot.

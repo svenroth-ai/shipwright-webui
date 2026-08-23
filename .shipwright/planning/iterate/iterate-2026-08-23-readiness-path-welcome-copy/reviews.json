@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-23-readiness-path-welcome-copy",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T20:24:12.991474+00:00",
+      "disposition": "7-point self-review complete: root cause (non-augmented PATH in server defaultRun) fixed by mirroring probe-path.mjs; tests green; copy change locked",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T20:35:11.407057+00:00",
+      "disposition": "mini-plan/external plan review is medium+ (and FEATURE-only at small); this run is a small BUG",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "maintainability",
+          "file": "server/src/core/readiness-probe-path.ts",
+          "line": 1,
+          "finding": "Verbatim mirror of bootstrapper/lib/probe-path.mjs has no automated drift guard; non-blocking, module is tiny and both copies were introduced together.",
+          "suggestion": "Optionally add a *-sync.test.ts drift guard later; acknowledged as low.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-23T20:29:23.067986+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary",
+          "file": "server/src/core/readiness-probe-run.ts",
+          "line": null,
+          "finding": "Claim under doubt: The fix repairs the Windows cold-start case, where win32 relies on execFile honouring options.env.PATH — the behavior the code calls unreliable on POSIX — with no end-to-end test. — The asymmetry is real and correct: POSIX execvp resolves against the PARENT environ (so we resolve absolutely via resolvePosixBin), while libuv win32 search_path reads PATH from the CHILD env block. Verified empirically: a copied node.exe placed only in a temp dir, with the process PATH excluding it, is found via options.env.PATH.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling",
+          "file": "server/src/core/readiness-probe.ts",
+          "line": null,
+          "finding": "Claim under doubt: PATH-augmentation is the actual root cause of the 3.9.6-instead-of-3.11 symptom, vs uv-find returning non-zero. — System python3 is 3.9.6 on the shared machine; had it been 3.11+ sysPyOk would report it directly. Preflight (identical find-logic) reported 3.11, which can ONLY have come from the uv-managed fallback (uv python find), proving a uv-managed 3.11 is installed — so once the server resolves uv, uv python find >=3.11 returns 0. The two surfaces share the exact fallback gate.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-23T20:34:42.602695+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T20:35:11.667880+00:00",
+      "disposition": "external code review is advisory at small; the internal 3-stage cascade (spec/code/doubt) ran instead",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T20:26:15.126038+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-23T20:35:11.526333+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

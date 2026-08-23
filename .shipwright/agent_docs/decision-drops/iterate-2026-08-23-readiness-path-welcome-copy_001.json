@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-23-readiness-path-welcome-copy",
+  "date": "2026-08-23",
+  "section": "FR-01.51 readiness gate",
+  "title": "Server readiness probe augments its lookup PATH (mirror of preflight)",
+  "context": "On macOS/Windows cold-start the webui readiness gate reported system python3 3.9.6 though uv could supply 3.11. The server probe execFiled uv/python/git with the un-augmented process PATH; uv installed in ~/.local/bin was ENOENT, so the uv-managed-Python fallback never ran. The npx bootstrapper preflight had already solved this in probe-path.mjs; the server surface lacked the mirror.",
+  "decision": "Mirror bootstrapper/lib/probe-path.mjs into server/src/core/readiness-probe-path.ts (probeEnv + resolvePosixBin) and use it in defaultRun: augment PATH with ~/.local/bin (+ Homebrew on POSIX), resolve POSIX bins absolutely, pass the augmented env to execFile. A verbatim mirror, not a cross-package import (DO-NOT #7).",
+  "consequences": "The gate now accepts a uv-managed Python without a terminal restart on both platforms. defaultRun gained a deps test seam. The claude-only boot PATH self-heal is unchanged.",
+  "rationale": "",
+  "rejected": "Broadening the boot-time selfHealClaudePath to uv (it only prepends where claude lives, missing uv elsewhere); importing preflight.mjs (violates DO-NOT #7).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

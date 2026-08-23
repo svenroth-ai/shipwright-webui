@@ -1,0 +1,99 @@
+{
+  "run_id": "iterate-2026-08-23-readiness-path-welcome-copy",
+  "date": "2026-08-23T20:40:19.840418Z",
+  "event_at": "2026-08-23T20:39:42.990210+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/readiness-path-welcome-copy",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-08-23-readiness-path-welcome-copy",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "probeEnv APPENDS ~/.local/bin + Homebrew dirs on POSIX with the real PATH winning (fallback last)",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'APPENDS ~/.local/bin + Homebrew dirs on POSIX' PASSED"
+      },
+      {
+        "behavior": "probeEnv does not duplicate a dir already on PATH",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'does not duplicate a dir already on PATH' PASSED"
+      },
+      {
+        "behavior": "probeEnv appends only ~/.local/bin on win32 using the ; separator",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'appends only ~/.local/bin on win32' PASSED"
+      },
+      {
+        "behavior": "probeEnv collapses every path-cased key into a single canonical PATH (win32)",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'collapses every path-cased key into a single canonical PATH' PASSED"
+      },
+      {
+        "behavior": "probeEnv drops undefined env values and tolerates a missing PATH",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'drops undefined env values and tolerates a missing PATH' PASSED"
+      },
+      {
+        "behavior": "resolvePosixBin returns a name that already contains a slash unchanged",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'returns a name that already contains a slash unchanged' PASSED"
+      },
+      {
+        "behavior": "resolvePosixBin returns the bare name unchanged when nothing on PATH resolves",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'returns the bare name unchanged when nothing on PATH resolves' PASSED"
+      },
+      {
+        "behavior": "resolvePosixBin resolves a bin found on the augmented PATH to its absolute path (POSIX)",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-path.test.ts 'resolves a bin found on the augmented PATH to its absolute path' PASSED on CI Linux (skipped on Windows)"
+      },
+      {
+        "behavior": "defaultRun (POSIX) finds a binary in ~/.local/bin even when it is NOT on the process PATH",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-run.test.ts 'finds a binary installed in ~/.local/bin even when it is NOT on the process PATH' PASSED on CI Linux (skipped on Windows)"
+      },
+      {
+        "behavior": "defaultRun (win32) finds a .exe in ~/.local/bin via the augmented options.env.PATH even when it is NOT on the process PATH",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-run.test.ts 'finds a .exe in %USERPROFILE%/.local/bin even when it is NOT on the process PATH' PASSED on Windows (skipped on Linux); also verified empirically via a standalone node probe"
+      },
+      {
+        "behavior": "defaultRun still reports a real exit code (0 for a working tool, null for a missing binary) with the augmented env",
+        "disposition": "tested",
+        "evidence": "server readiness-probe-run.test.ts 'defaultRun reports a real exit code' PASSED"
+      },
+      {
+        "behavior": "FirstContact renders the new welcome copy (Welcome to Shipwright / We're glad to have you. / Choose your first step.) and the explanatory lead paragraph is absent",
+        "disposition": "tested",
+        "evidence": "client FirstContact.test.tsx 'renders the lighthouse-hero welcome copy + the three canonical doors' PASSED (positive copy + negative assertion on the removed paragraph)"
+      },
+      {
+        "behavior": "FirstContact readiness GATE behavior is preserved (doors disabled + repair command named when a prerequisite is missing)",
+        "disposition": "tested",
+        "reason_code": "covered-by-existing-test",
+        "evidence": "client FirstContact.test.tsx readiness-gate cases unchanged and PASSED"
+      },
+      {
+        "behavior": "pixel-level appearance of the new welcome copy on the First-Contact photo hero",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "jsdom cannot measure rendered pixels; the authoritative proof is the Linux visual baseline first-contact.png regenerated in the pinned CI container and eyeballed by the orchestrator."
+      }
+    ],
+    "counts": {
+      "testable": 13,
+      "tested": 13,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  }
+}

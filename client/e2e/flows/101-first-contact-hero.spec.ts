@@ -16,8 +16,8 @@ test.describe("First Contact hero — always reachable at /first-contact", () =>
   test("renders the lighthouse hero, welcome copy, and the three doors", async ({ page }) => {
     await page.goto("/first-contact");
     await expect(page.getByTestId("first-contact")).toBeVisible();
-    await expect(page.getByText("Welcome to the Command Center")).toBeVisible();
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Say what you want.");
+    await expect(page.getByText("Welcome to Shipwright")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Choose your first step.");
     await expect(page.getByTestId("wizard-door-new")).toBeVisible();
     await expect(page.getByTestId("wizard-door-adopt")).toBeVisible();
     await expect(page.getByTestId("wizard-door-grade")).toBeVisible();
@@ -49,7 +49,7 @@ test.describe("First Contact hero — empty-registry root", () => {
   test('an empty registry makes "/" land on First Contact, not the board', async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("first-contact")).toBeVisible();
-    await expect(page.getByText("Welcome to the Command Center")).toBeVisible();
+    await expect(page.getByText("Welcome to Shipwright")).toBeVisible();
     // The redirect resolves the lighthouse backdrop (not the board's deck-golden).
     await expect(page).toHaveURL(/\/first-contact$/);
     await expect(page.getByTestId("task-board-page")).toHaveCount(0);

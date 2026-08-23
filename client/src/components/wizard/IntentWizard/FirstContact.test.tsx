@@ -65,13 +65,14 @@ describe("FirstContact — the hero", () => {
   it("renders the lighthouse-hero welcome copy + the three canonical doors", async () => {
     renderFirstContact();
     expect(screen.getByTestId("first-contact")).toBeInTheDocument();
-    expect(screen.getByText("Welcome to the Command Center")).toBeInTheDocument();
+    expect(screen.getByText("Welcome to Shipwright")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      /Say what you want\.\s*A competent room takes it from here\./,
+      /We’re glad to have you\.\s*Choose your first step\./,
     );
-    // The lead promise — locked so a silent copy drift from the SSoT is caught.
-    expect(screen.getByText(/You describe the change in normal words\./)).toBeInTheDocument();
-    expect(screen.getByText(/You keep control — and the proof\./)).toBeInTheDocument();
+    // The explanatory lead paragraph was removed (iterate-2026-08-23): on a
+    // door-picker screen the doors themselves state the choices, so no prose
+    // block is needed. Lock its absence so it is not silently re-added.
+    expect(screen.queryByText(/You describe the change in normal words\./)).not.toBeInTheDocument();
     await doorsReady();
     expect(screen.getByTestId("wizard-door-new")).toHaveTextContent("Build something new");
     expect(screen.getByTestId("wizard-door-adopt")).toHaveTextContent(
@@ -142,7 +143,7 @@ describe("FirstContact — reduced motion (A20)", () => {
       }) as unknown as MediaQueryList) as typeof window.matchMedia;
     try {
       renderFirstContact();
-      expect(screen.getByText("Welcome to the Command Center")).toBeVisible();
+      expect(screen.getByText("Welcome to Shipwright")).toBeVisible();
       expect(screen.getByRole("heading", { level: 1 })).toBeVisible();
       await doorsReady();
       expect(screen.getByTestId("wizard-door-new")).toBeVisible();

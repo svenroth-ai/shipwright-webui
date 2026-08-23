@@ -8,6 +8,9 @@
  */
 
 import { execFile } from "node:child_process";
+import os from "node:os";
+
+import { probeEnv, resolvePosixBin } from "./readiness-probe-path.js";
 
 export interface RunResult {
   ok: boolean;
@@ -37,13 +40,40 @@ export const PROBE_TIMEOUT_MS = 8000;
  * (appends `.exe`; verified git/python/py/uv all run). This is deliberately NOT
  * the bootstrapper preflight.mjs case, which shells out ONLY to resolve `.cmd`
  * shims (claude/npm/gh) — none of those are probed here.
+ *
+ * PATH augmentation (iterate-2026-08-23): the probe runs with a lookup PATH
+ * extended by `probeEnv` to include `~/.local/bin` (+ Homebrew on POSIX), because
+ * the uv installer drops its binary there and only appends it to the shell rc —
+ * the server process, spawned before that, would otherwise ENOENT a
+ * perfectly-installed uv and the readiness gate would skip the uv-managed-Python
+ * fallback (report system python3 3.9.6).
+ *
+ * The POSIX vs win32 asymmetry is deliberate and follows from how each platform
+ * resolves a bare name: POSIX `execvp` searches the PARENT process environ, NOT
+ * `options.env`, so the augmented PATH would be ignored — hence on POSIX we
+ * resolve the bare name to an ABSOLUTE path ourselves (`resolvePosixBin`) and
+ * spawn that. On win32, libuv's `search_path` reads PATH from the CHILD env
+ * block, so handing the augmented `env` to execFile is enough and it finds the
+ * .exe (verified end-to-end in readiness-probe-run.test.ts — a .exe present only
+ * in %USERPROFILE%\.local\bin, off the process PATH, is located). The probed
+ * tools are real executables (uv.exe/python.exe/git.exe), never `.cmd` shims, so
+ * no PATHEXT-shim resolution (the bootstrapper's win32-spawn case) is needed
+ * here. `deps` (platform/homedir/env) is a test seam.
  */
-export function defaultRun(cmd: string, args: string[] = ["--version"]): Promise<RunResult> {
+export function defaultRun(
+  cmd: string,
+  args: string[] = ["--version"],
+  deps: { platform?: NodeJS.Platform; homedir?: string; env?: NodeJS.ProcessEnv } = {},
+): Promise<RunResult> {
+  const platform = deps.platform ?? process.platform;
+  const homedir = deps.homedir ?? os.homedir();
+  const env = probeEnv(platform, homedir, deps.env ?? process.env);
+  const target = platform === "win32" ? cmd : resolvePosixBin(cmd, env);
   return new Promise((resolve) => {
     execFile(
-      cmd,
+      target,
       args,
-      { encoding: "utf-8", timeout: PROBE_TIMEOUT_MS, windowsHide: true },
+      { encoding: "utf-8", timeout: PROBE_TIMEOUT_MS, windowsHide: true, env },
       (error, stdout, stderr) => {
         const out = String(stdout ?? "");
         const err = String(stderr ?? "");
