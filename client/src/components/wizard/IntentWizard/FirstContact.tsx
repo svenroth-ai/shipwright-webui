@@ -39,16 +39,12 @@ export default function FirstContact() {
   return (
     <div className="fc-hero" data-testid="first-contact">
       <div className="fc-in">
-        <div className="fc-eyebrow">Welcome to the Command Center</div>
+        <div className="fc-eyebrow">Welcome to Shipwright</div>
         <h1 className="fc-h1">
-          Say what you want.
+          We’re glad to have you.
           <br />
-          A competent room takes it from here.
+          Choose your first step.
         </h1>
-        <p className="fc-lead">
-          You describe the change in normal words. Shipwright plans it, explains what it’s doing
-          and why, and only asks when it genuinely needs you. You keep control — and the proof.
-        </p>
         <DoorGrid readiness={readiness} onPickDoor={(d) => navigate(doorRoute(d))} />
       </div>
     </div>
