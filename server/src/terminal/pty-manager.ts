@@ -592,6 +592,21 @@ export class PtyManager {
     entry.pty.write(data);
   }
 
+  /**
+   * Sibling of `write()` for a `mouse`-tagged SGR report (iterate-2026-08-24-
+   * terminal-readonly-scroll-copy) — the ws-upgrade-handler writer gate lets
+   * BOTH roles reach this, since it is how a reader scrolls/selects inside
+   * Claude's live TUI. Deliberately skips the `hadDataWritten` latch above:
+   * a scroll or selection gesture is not "real input" for the reused-pty
+   * heuristic that latch feeds.
+   */
+  writeMouseReport(taskId: string, data: string): void {
+    const entry = this.entries.get(taskId);
+    if (!entry) return;
+    this.touchIdle(entry);
+    entry.pty.write(data);
+  }
+
   resize(taskId: string, cols: number, rows: number): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;

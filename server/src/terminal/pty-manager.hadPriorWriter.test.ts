@@ -207,4 +207,21 @@ describe("PtyManager — hadPriorWriter (real-input tracking)", () => {
     const b = mgr.attach("t1", { id: "B" }); // simulates a revisit/reconnect
     expect(b.hadPriorWriter).toBe(true);
   });
+
+  // @covers FR-01.28 (iterate-2026-08-24-terminal-readonly-scroll-copy)
+  it("writeMouseReport() forwards to the pty like write() but does NOT latch hadDataWritten — a reader's scroll/copy gesture is not \"real input\"", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    mgr.attach("t1", { id: "A" });
+    mgr.writeMouseReport("t1", "\x1b[<64;30;7M");
+    expect(spawn.lastPty().__writes).toEqual(["\x1b[<64;30;7M"]);
+    const b = mgr.attach("t1", { id: "B" });
+    expect(b.hadPriorWriter).toBe(false); // still virgin — only write() latches it
+  });
+
+  // @covers FR-01.28
+  it("writeMouseReport() to an unknown taskId is a no-op (does not throw)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    expect(() => mgr.writeMouseReport("nope", "\x1b[<64;30;7M")).not.toThrow();
+  });
 });

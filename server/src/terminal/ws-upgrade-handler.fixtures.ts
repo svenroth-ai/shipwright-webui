@@ -86,6 +86,7 @@ export interface MockPtyManager extends PtyManager {
     flushMirrorSnapshot: ReturnType<typeof vi.fn>;
     getRole: ReturnType<typeof vi.fn>;
     write: ReturnType<typeof vi.fn>;
+    writeMouseReport: ReturnType<typeof vi.fn>;
     resize: ReturnType<typeof vi.fn>;
   };
 }
@@ -114,6 +115,7 @@ export function makePtyManager(
   const flushMirrorSnapshot = vi.fn(async () => undefined);
   const getRole = vi.fn(() => attachResult.role);
   const write = vi.fn();
+  const writeMouseReport = vi.fn();
   const resize = vi.fn();
   // Post-replay redraw nudge (iterate-2026-07-27). NOTE the server tsconfig
   // EXCLUDES **/*.test.ts, so a mock missing a real method fails at RUNTIME,
@@ -124,12 +126,12 @@ export function makePtyManager(
     get, spawn, attach, subscribeForConnection,
     pauseForConn, resumeForConn,
     serializeMirrorIfLive, detachAndCount, flushMirrorSnapshot,
-    getRole, write, resize, forceRedraw,
+    getRole, write, writeMouseReport, resize, forceRedraw,
     __mocks: {
       get, spawn, attach, subscribeForConnection,
       pauseForConn, resumeForConn,
       serializeMirrorIfLive, detachAndCount, flushMirrorSnapshot,
-      getRole, write, resize, forceRedraw,
+      getRole, write, writeMouseReport, resize, forceRedraw,
     },
   } as unknown as MockPtyManager;
   return m;

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-24-terminal-readonly-scroll-copy",
+  "date": "2026-08-24",
+  "section": "Iterate — bug: read-only terminal viewer can't scroll or copy",
+  "title": "Reader-role WS connections may send SGR mouse reports to the shared pty",
+  "context": "Claude's live TUI runs alt-screen + any-motion mouse tracking (confirmed on 12 real snapshots), so xterm holds no local scrollback and scroll/select-for-copy are both implemented by Claude reading SGR mouse reports from stdin. The writer gate dropped ALL non-writer data, including these reports, so a read-only viewer was frozen, not read-only. Full detail in spec_ref.",
+  "decision": "Classify an outbound SGR mouse report into its own wire envelope (`{type:\"mouse\"}`) distinct from `{type:\"data\"}`. The server re-validates the payload shape itself and forwards a well-formed report to the shared pty for BOTH roles. A real keystroke still classifies as `{type:\"data\"}` and stays writer-gated.",
+  "consequences": "A reader can now scroll and copy while read-only. Because TUI scroll is server-side pty state, a reader's scroll also moves the writer's view — an accepted, narrowly-scoped trade-off, bounded to well-formed SGR frames only (server re-validated). writeMouseReport does not latch hadDataWritten. Full detail in spec_ref.",
+  "rationale": "Root-caused from real production snapshot evidence rather than assumed; a falsification harness (stash the fix, re-run the new tests) proved the guards are real fences, not vacuously green.",
+  "rejected": "A client-only scrollback buffer was rejected — it cannot exist because xterm carries no rows in alt-screen mode, so there is nothing local to scroll. Relaxing the writer gate for all `{type:\"data\"}` frames was rejected as far too broad — it would let a reader type into the shared shell, not just scroll/copy.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-08-24-terminal-readonly-scroll-copy.md"
+}

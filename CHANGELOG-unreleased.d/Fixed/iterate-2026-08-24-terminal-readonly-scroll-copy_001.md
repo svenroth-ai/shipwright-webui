@@ -1,0 +1,1 @@
+Terminal: a read-only viewer (a task open in a second browser/tab that doesn't hold the writer slot) can now scroll back and copy text inside a live session; only real keystrokes still require the writer slot.
