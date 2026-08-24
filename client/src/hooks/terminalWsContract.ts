@@ -23,9 +23,16 @@
  *     (CUP + CUF cell-skips, which do not erase) keep painting onto the hole and
  *     leave stale characters that never heal. Re-applying the grid is the repair;
  *     it is not another repaint heal (see `useBackpressureResync`).
+ *   - `mouse` carries the SAME bytes as `data` but is reserved for a SGR mouse
+ *     report (`terminal-mouse-report.ts` classifies which is which). Unlike
+ *     `data`, the server honours it for a READER too — Claude's live TUI
+ *     implements scroll + selection-for-copy purely via these reports (see
+ *     that module's header), so blocking them made a read-only viewer unable
+ *     to scroll or copy (iterate-2026-08-24-terminal-readonly-scroll-copy).
  */
 export type TerminalOutbound =
   | { type: "data"; payload: string }
+  | { type: "mouse"; payload: string }
   | { type: "resize"; cols: number; rows: number }
   | { type: "redraw" }
   | { type: "resync" };

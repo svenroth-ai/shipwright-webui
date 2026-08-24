@@ -42,6 +42,18 @@ describe("isWSInbound — inbound parsing discriminator", () => {
       input: { type: "redraw", cols: 80, rows: 24 },
       ok: true,
     },
+    // Reader-scroll/copy exception (iterate-2026-08-24-terminal-readonly-
+    // scroll-copy) — same shape as `data`, distinct discriminator.
+    {
+      desc: "valid mouse frame",
+      input: { type: "mouse", payload: "\x1b[<64;30;7M" },
+      ok: true,
+    },
+    {
+      desc: "mouse with non-string payload",
+      input: { type: "mouse", payload: 42 },
+      ok: false,
+    },
     { desc: "wrong discriminator", input: { type: "ping" }, ok: false },
     {
       desc: "data with non-string payload",
@@ -140,6 +152,49 @@ describe("buildWsHandlers — onMessage routing", () => {
     expect(pm.__mocks.write).not.toHaveBeenCalled();
     const types = readSent(ws).map((s) => (s as { type?: string }).type);
     expect(types).toContain("read_only");
+  });
+
+  // Reader-scroll/copy exception (iterate-2026-08-24-terminal-readonly-
+  // scroll-copy). Claude's live TUI implements scroll + selection-for-copy
+  // via SGR mouse reports (see terminal-mouse-report.ts); the writer gate
+  // above blocked ALL `data`, so a read-only viewer could do neither. A
+  // `mouse` message carries the same bytes but bypasses that gate — the
+  // server re-validates the payload SHAPE itself rather than trusting the
+  // client's tag (isSgrMouseReport), so this is not spoofable via `type`.
+  describe("'mouse' — reader scroll/copy exception", () => {
+    const wheel = { type: "mouse", payload: "\x1b[<64;30;7M" };
+
+    it("writer + valid SGR mouse report → writeMouseReport, no read_only", () => {
+      pm.__mocks.getRole.mockReturnValueOnce("writer");
+      handlers.onMessage?.({ data: JSON.stringify(wheel) } as never, ws as never);
+      expect(pm.__mocks.writeMouseReport).toHaveBeenCalledWith("task-1", wheel.payload);
+      expect(pm.__mocks.write).not.toHaveBeenCalled();
+      const types = readSent(ws).map((s) => (s as { type?: string }).type);
+      expect(types).not.toContain("read_only");
+    });
+
+    it("reader + valid SGR mouse report → writeMouseReport too — the whole point of this exception", () => {
+      pm.__mocks.getRole.mockReturnValueOnce("reader");
+      handlers.onMessage?.({ data: JSON.stringify(wheel) } as never, ws as never);
+      expect(pm.__mocks.writeMouseReport).toHaveBeenCalledWith("task-1", wheel.payload);
+      const types = readSent(ws).map((s) => (s as { type?: string }).type);
+      expect(types).not.toContain("read_only");
+    });
+
+    it("reader + a payload that is NOT actually a SGR mouse report → REJECTED even though the client tagged it 'mouse' (server re-validates the shape, not the client's claim)", () => {
+      pm.__mocks.getRole.mockReturnValueOnce("reader");
+      handlers.onMessage?.(
+        { data: JSON.stringify({ type: "mouse", payload: "rm -rf /\n" }) } as never,
+        ws as never,
+      );
+      expect(pm.__mocks.writeMouseReport).not.toHaveBeenCalled();
+    });
+
+    it("roleless (unattached conn) + mouse → NOT written", () => {
+      pm.__mocks.getRole.mockReturnValueOnce(null as never);
+      handlers.onMessage?.({ data: JSON.stringify(wheel) } as never, ws as never);
+      expect(pm.__mocks.writeMouseReport).not.toHaveBeenCalled();
+    });
   });
 
   it("malformed JSON → silently dropped", () => {

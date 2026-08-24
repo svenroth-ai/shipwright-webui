@@ -230,11 +230,21 @@ export function outboundDataFrames(
  *            window longer than the heartbeat interval quietly flaky rather than
  *            wrong — a cold pty spawn is enough to slip one in.
  *
+ *   mouse  — SGR mouse report (iterate-2026-08-24-terminal-readonly-scroll-copy),
+ *            classified out of the SAME onData stream as `data` by
+ *            `terminal-mouse-report.ts`. Reaches the pty like `data`, but the
+ *            server honours it for a READER too — Claude's live TUI implements
+ *            scroll and selection-for-copy purely via these reports, and gating
+ *            them like real keystrokes left a read-only viewer unable to do
+ *            either. Real keystrokes/paste still classify as `data` and stay
+ *            writer-only.
+ *
  * Anything else appearing on the wire means the client grew a NEW way to talk to
  * the pty that no guard covers.
  */
 export const ALLOWED_OUTBOUND_TYPES = [
   "data",
+  "mouse",
   "resize",
   "redraw",
   "resync",

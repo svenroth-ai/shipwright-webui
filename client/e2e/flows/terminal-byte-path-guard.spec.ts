@@ -13,10 +13,12 @@
  *
  * ── Why the existing terminal corpus does not already cover this ─────────────
  * `__ws_frame_roundtrip.test.ts` pins the SERVER→CLIENT envelopes. Nothing pinned
- * the other direction. The client's whole outbound vocabulary is one envelope —
- * `{type:"data", payload:string}` — funnelled through `socket.send` from
- * useAutoLaunch.ts (auto-execute), EmbeddedTerminal.tsx (onData + key bar). This
- * covers all three doors: auto-execute, keystroke, paste.
+ * the other direction. The client's pty-bound outbound vocabulary is two
+ * envelope shapes — `{type:"data"|"mouse", payload:string}` — both funnelled
+ * through the SAME `socket.send` call in EmbeddedTerminal.tsx's onData handler
+ * (auto-execute, keystroke, paste classify as `data`; a real SGR mouse report,
+ * added iterate-2026-08-24-terminal-readonly-scroll-copy, classifies as `mouse`).
+ * This covers all three doors below: auto-execute, keystroke, paste.
  *
  * ── The fences it asserts, as code rather than prose ─────────────────────────
  *   - Auto-execute is a CLIENT-side WS data-frame, never a server-side pty.write
@@ -162,8 +164,8 @@ test.describe("@smoke A00 — terminal byte path (the A18 invariant)", () => {
     expect(payload.match(/\r/g)?.length, "exactly one CR — no extra submit").toBe(1);
     expect(payload, "must not be newline-terminated as well as CR-terminated").not.toContain("\n");
 
-    // The client's ENTIRE outbound vocabulary is `data` + `resize` (see
-    // ALLOWED_OUTBOUND_TYPES). Asserting nothing else exists is what makes this a
+    // The client's ENTIRE outbound vocabulary is the closed set in
+    // ALLOWED_OUTBOUND_TYPES. Asserting nothing else exists is what makes this a
     // fence rather than a spot-check: a new frame type is a new door to the pty.
     expect(
       outboundUnknownFrames(cap, taskId, clickAt),

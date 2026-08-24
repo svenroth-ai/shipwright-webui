@@ -201,9 +201,10 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
-      "current": 1756,
+      "current": 1770,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-30-terminal-paste-single-sink"
+      "adr": "iterate-2026-06-30-terminal-paste-single-sink",
+      "note": "iterate-2026-08-24-terminal-readonly-scroll-copy: +14 lines -- one new test pinning that a SGR mouse report is tagged 'mouse' on the wire while a real keystroke stays 'data' (the reader-scroll/copy exception)."
     },
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
@@ -619,10 +620,10 @@
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1284,
+      "current": 1299,
       "state": "exception",
       "adr": "ADR-101",
-      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) — small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands"
+      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern"
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
@@ -669,10 +670,10 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 663,
+      "current": 704,
       "state": "exception",
       "adr": "ADR-103",
-      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out"
+      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out. iterate-2026-08-24-terminal-readonly-scroll-copy: added the `mouse` inbound variant (WSMessageMouse + isSgrMouseReport + its onMessage branch, +41 lines) so a read-only reader's scroll/select gestures reach the pty while real keystrokes stay writer-gated -- the writer/role decision this branch reads is the same protected lock set, so it belongs in this module rather than a new one"
     },
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",

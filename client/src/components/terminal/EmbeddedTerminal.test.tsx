@@ -377,6 +377,20 @@ describe("<EmbeddedTerminal>", () => {
     expect(all).toContain("<64;30;7"); // wheel still forwarded
   });
 
+  it("tags SGR mouse reports 'mouse' but keystrokes 'data' on the wire (iterate-2026-08-24-terminal-readonly-scroll-copy — the server honours 'mouse' for a reader so scroll/copy keep working while read-only)", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    const ESC = String.fromCharCode(27);
+    await act(async () => {
+      onDataHandlers[0](ESC + "[<64;30;7M"); // wheel — scroll
+      onDataHandlers[0]("ls\n"); // real keystroke
+    });
+    const envelopes = ws.sent.map((s) => JSON.parse(s));
+    expect(envelopes).toContainEqual({ type: "mouse", payload: ESC + "[<64;30;7M" });
+    expect(envelopes).toContainEqual({ type: "data", payload: "ls\n" });
+  });
+
   it("forwards inbound 'data' envelopes to xterm.write()", async () => {
     render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});

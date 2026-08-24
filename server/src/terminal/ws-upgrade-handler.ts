@@ -55,6 +55,22 @@ interface WSMessageData {
   type: "data";
   payload: string;
 }
+/**
+ * SGR mouse report (iterate-2026-08-24-terminal-readonly-scroll-copy). Wire
+ * mirror of the client's `terminal-mouse-report.ts` classification — carries
+ * the SAME bytes as `data` but is honoured for a READER too (see the writer
+ * gate in `onMessage` below): Claude's live TUI implements scroll and
+ * selection-for-copy purely via these reports (alt-screen + any-motion
+ * tracking, `?1003h`), so gating them like real keystrokes left a read-only
+ * viewer unable to scroll or copy. `isSgrMouseReport` re-validates the shape
+ * server-side rather than trusting the client's tag — only a bounded
+ * button+coordinate SGR frame ever reaches the pty from a non-writer, never
+ * arbitrary text a client could mislabel.
+ */
+interface WSMessageMouse {
+  type: "mouse";
+  payload: string;
+}
 interface WSMessageResize {
   type: "resize";
   cols: number;
@@ -87,6 +103,7 @@ interface WSMessageResync {
 }
 export type WSInbound =
   | WSMessageData
+  | WSMessageMouse
   | WSMessageResize
   | WSMessageRedraw
   | WSMessageResync;
@@ -95,12 +112,24 @@ export function isWSInbound(v: unknown): v is WSInbound {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
   if (o.type === "data" && typeof o.payload === "string") return true;
+  if (o.type === "mouse" && typeof o.payload === "string") return true;
   if (o.type === "resize" && typeof o.cols === "number" && typeof o.rows === "number") {
     return true;
   }
   if (o.type === "redraw") return true;
   if (o.type === "resync") return true;
   return false;
+}
+
+/**
+ * SGR mouse report: ESC [ < Cb ; Cx ; Cy (M|m) — mirror of the client's
+ * `terminal-mouse-report.ts` (no cross-package import, DO-NOT #7). The
+ * server-side re-check on a `mouse` message's payload before it bypasses the
+ * writer gate below.
+ */
+const SGR_MOUSE_REPORT = /^\x1b\[<\d+;\d+;\d+[Mm]$/;
+function isSgrMouseReport(data: string): boolean {
+  return SGR_MOUSE_REPORT.test(data);
 }
 
 // ---------------------------------------------------------------------------
@@ -607,6 +636,18 @@ function buildLiveHandlers(
       // reader. attach() is idempotent for same-conn since the
       // F6 fix, but getRole() is the cheaper + safer entrypoint.
       const actualRole = ctx.ptyManager.getRole(taskId, connToken);
+      // Reader-scroll/copy exception (iterate-2026-08-24-terminal-readonly-
+      // scroll-copy) — honoured for BOTH roles, ahead of the writer gate
+      // below. See WSMessageMouse for why, and isSgrMouseReport for the
+      // server-side re-validation of the client's tag. writeMouseReport()
+      // also skips the `hadDataWritten` latch: scrolling/selecting is not
+      // "real input" for the new-plain-resume heuristic that latch feeds.
+      if (parsed.type === "mouse") {
+        if (actualRole !== null && isSgrMouseReport(parsed.payload)) {
+          ctx.ptyManager.writeMouseReport(taskId, parsed.payload);
+        }
+        return;
+      }
       if (actualRole !== "writer") {
         try {
           ws.send(JSON.stringify({ type: "read_only" }));

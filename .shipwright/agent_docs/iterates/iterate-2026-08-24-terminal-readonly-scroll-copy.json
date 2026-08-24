@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-08-24-terminal-readonly-scroll-copy",
+  "date": "2026-08-24T15:14:30.913068Z",
+  "event_at": "2026-08-23T23:22:57.934470+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/terminal-readonly-scroll-copy",
+  "spec": "FR-01.28",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-24-terminal-readonly-scroll-copy"
+}

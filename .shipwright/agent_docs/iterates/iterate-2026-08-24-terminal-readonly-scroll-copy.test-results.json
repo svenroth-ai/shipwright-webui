@@ -1,0 +1,90 @@
+{
+  "last_updated": "2026-08-24",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-24-terminal-readonly-scroll-copy",
+    "date": "2026-08-24",
+    "unit": "PASS \u2014 client 3410 passed (361 files); server 3654 passed / 3 skipped, pre-existing (316 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change; single new WS message-type covered by unit + real-browser E2E",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 e2e/flows/104-terminal-reader-scroll-copy.spec.ts against the isolated stack (real Chromium, real second WS connection); see surface_verification",
+    "design_fidelity": "n/a \u2014 wire-protocol fix, no visual/CSS change",
+    "smoke": "n/a \u2014 no bootstrapper/production-build change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "a scroll-wheel / selection SGR mouse report classifies onto the wire as {type:\"mouse\"}",
+          "disposition": "tested",
+          "evidence": "terminal-mouse-report.test.ts::classifyOutboundTerminalData wheel-report case"
+        },
+        {
+          "behavior": "a real keystroke still classifies as {type:\"data\"}",
+          "disposition": "tested",
+          "evidence": "terminal-mouse-report.test.ts + EmbeddedTerminal.test.tsx wire-tagging test (\"ls\\n\" -> {type:\"data\"})"
+        },
+        {
+          "behavior": "a right-click mouse report is still dropped entirely (unchanged prior behavior)",
+          "disposition": "tested",
+          "evidence": "terminal-mouse-report.test.ts::isRightButtonMouseReport / classifyOutboundTerminalData returns null"
+        },
+        {
+          "behavior": "server forwards a {type:\"mouse\"} frame to the shared pty for a reader-role connection",
+          "disposition": "tested",
+          "evidence": "ws-upgrade-handler.parse.test.ts new parse-table row; pty-manager.hadPriorWriter.test.ts writeMouseReport-forwards case"
+        },
+        {
+          "behavior": "server still writer-gates a {type:\"data\"} frame on the same reader connection ({type:\"read_only\"})",
+          "disposition": "tested",
+          "evidence": "ws-upgrade-handler.parse.test.ts pre-existing + new reader/data row"
+        },
+        {
+          "behavior": "server rejects a payload merely labeled {type:\"mouse\"} that is not a well-formed SGR report, rather than trusting the client's tag",
+          "disposition": "tested",
+          "evidence": "ws-upgrade-handler.parse.test.ts spoofing-fence test (\"rm -rf /\\n\" tagged mouse -> writeMouseReport NOT called)"
+        },
+        {
+          "behavior": "writeMouseReport forwards bytes to the pty but does not latch hadDataWritten (a scroll/select gesture must not fool the reused-pty had-prior-writer heuristic)",
+          "disposition": "tested",
+          "evidence": "pty-manager.hadPriorWriter.test.ts (2 new cases: forwards, and hadPriorWriter stays false)"
+        },
+        {
+          "behavior": "end-to-end wiring: a genuine second WS connection is handed role=\"reader\"; on that connection a mouse frame bypasses read_only while a data frame does not",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/104-terminal-reader-scroll-copy.spec.ts, real Chromium against the isolated stack (F0.5 surface_verification: exit_code 0, tests_run 1)"
+        },
+        {
+          "behavior": "the new server + client guards are real fences, not vacuously green (falsification)",
+          "disposition": "tested",
+          "evidence": "stashed ws-upgrade-handler.ts + pty-manager.ts, re-ran the 5 new/changed server tests -> all 5 failed (writeMouseReport is not a function; parse-row expected true got false; 0 calls on both spoofing/reader-mouse assertions); git stash pop restored 37/37 green"
+        }
+      ],
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "bash C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/682530c4-7256-4436-b316-c09236d57377/scratchpad/f05-runner.sh",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\terminal-readonly-scroll-copy\\.shipwright\\runs\\iterate-2026-08-24-terminal-readonly-scroll-copy\\surface_verification.log",
+      "timestamp": "2026-08-24T15:06:32.074Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-24-terminal-readonly-scroll-copy",
+    "commit": "28de58f5c28715823db440ced827b23350742618",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
