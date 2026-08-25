@@ -1,0 +1,52 @@
+{
+  "last_updated": "2026-08-26",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-25-blocker-recovery-card-scope",
+    "date": "2026-08-26",
+    "unit": {
+      "status": "passed",
+      "passed": 3436,
+      "total": 3436
+    },
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "n/a \u2014 see surface_verification (surface=none, small BUG fix confined to a pure client reducer)",
+    "design_fidelity": "n/a \u2014 no UI change",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A genuine single-command retry still recovers a blocker card into one finished episode (regression-free good path)",
+          "disposition": "tested",
+          "evidence": "client/src/lib/missionActivityFeed.test.ts::'coalesces a recovered non-test blocker into one finished episode' PASSED"
+        },
+        {
+          "behavior": "A stale unresolvedBlockers entry whose commandKey coincidentally matches a command inside a later, unrelated turn does NOT destroy that turn's coalesced card (other commands + explanation survive)",
+          "disposition": "tested",
+          "evidence": "client/src/lib/missionActivityFeed.explanation.test.ts::'(j) does not let a stale blocker's identical command string swallow a later, unrelated coalesced card' PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 2,
+        "tested": 2,
+        "untestable": 0,
+        "untested_testable": 0
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Small BUG fix confined to a pure client-side reducer (missionActivityFeed.ts) with no new UI surface; behavior is fully exercised by the added/updated Vitest unit tests asserting on the exact card shape the UI renders (commands array, explanation, kind) \u2014 advisory tier at this complexity per the Phase Matrix (E2E only required for feature+UI at small)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-25-blocker-recovery-card-scope",
+    "commit": "a519801c6405202bc868750be48c09478dabe4f7",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

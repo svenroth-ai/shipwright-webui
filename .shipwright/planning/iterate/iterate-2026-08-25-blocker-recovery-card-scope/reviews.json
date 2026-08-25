@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-25-blocker-recovery-card-scope",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:30.365498+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:45.591804+00:00",
+      "disposition": "small-complexity BUG fix skips the mini-plan/external-plan-review step entirely per the Phase Matrix (medium+ only)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:45.726480+00:00",
+      "disposition": "small complexity, no risk flags, 42-line diff, no security-sensitive files: self-review is sufficient per iteration-reviews.md When Self-Review is Sufficient",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:45.855560+00:00",
+      "disposition": "Stage 3 runs only behind a Stage 2 pass; Stage 2 did not fire because this run met none of the code-review trigger thresholds",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:45.983554+00:00",
+      "disposition": "External code-review cascade is medium+ only per iteration-reviews.md Trigger Rule; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:46.115543+00:00",
+      "disposition": "Stage 1 spec-reviewer only runs ahead of an internal code-review cascade, which did not fire at this small complexity with no risk flags",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T21:59:46.264609+00:00",
+      "disposition": "Internal Plan Review sub-step is medium+ only per iteration-planning.md; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

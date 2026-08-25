@@ -141,6 +141,28 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     expect(implementCards[0].explanation).toBeUndefined(); // two turns touched it — must be cleared
   });
 
+  it("(j) does not let a stale blocker's identical command string swallow a later, unrelated coalesced card", () => {
+    const events = parseSessionJsonl([
+      turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),
+      result("p1", true),
+      // A later, unrelated turn whose two tool calls coalesce into ONE
+      // card — one of them happens to reuse the exact same command string
+      // ("git push") that failed above, but this is a fresh, unrelated
+      // command, not a retry of it.
+      turn("Cleaning up branches.\nThis retries the same push as a side effect.",
+        { id: "s1", name: "Bash", input: { command: "git status" } },
+        { id: "s2", name: "Bash", input: { command: "git push" } },
+      ),
+      result("s1"),
+      result("s2"),
+    ].join("\n")).events;
+    const cards = deriveActivityFeed(events, context()).cards;
+    const merged = cards.find((c) => c.commands.includes("Bash: git status"));
+    expect(merged?.commands).toEqual(["Bash: git status", "Bash: git push"]);
+    expect(merged?.explanation).toBe("This retries the same push as a side effect.");
+    expect(cards.some((c) => c.kind === "blocker")).toBe(true);
+  });
+
   it("(h) clears explanation when reconcileArtifactCards rewrites a review card's text from durable evidence", () => {
     const events = parseSessionJsonl(turn(
       "Reviewing the auth diff.\nLooks correct, no findings.",

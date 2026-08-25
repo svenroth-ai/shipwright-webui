@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-08-25-blocker-recovery-card-scope",
+  "date": "2026-08-25T22:03:45.375807Z",
+  "event_at": "2026-08-25T12:47:56.092536+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/blocker-recovery-card-scope",
+  "spec": "none",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-25-blocker-recovery-card-scope"
+}

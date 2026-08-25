@@ -138,13 +138,26 @@ export function deriveActivityFeed(
           unresolvedBlockers.set(pending.commandKey, { card: pending.card, bucket: pending.bucket });
         } else if (unresolvedBlockers.has(pending.commandKey)) {
           const blocker = unresolvedBlockers.get(pending.commandKey)!;
-          blocker.card.kind = blocker.bucket;
-          blocker.card.text = "A command error recovered after a successful retry.";
-          blocker.card.status = undefined;
-          blocker.card.detail = undefined;
-          if (!blocker.card.commands.includes(pending.label)) blocker.card.commands.push(pending.label);
-          cards.splice(cards.indexOf(pending.card), 1);
-          unresolvedBlockers.delete(pending.commandKey);
+          // A stale blocker's commandKey (tool name + detail string, with no
+          // expiry) can coincidentally match a command inside a later,
+          // wholly unrelated turn — one of possibly several tool calls that
+          // `add()` coalesced into the CURRENT card. Only fold this success
+          // into the original blocked card (and discard the current one)
+          // when the current card is unambiguously about nothing but this
+          // recovered command: otherwise the `cards.splice()` below would
+          // destroy that unrelated card's other commands and any
+          // `explanation` it carries (found by doubt-review during
+          // iterate-2026-08-25-mission-feed-progress-narration — pre-existing
+          // gap, out of that iterate's scope).
+          if (pending.card.commands.length === 1) {
+            blocker.card.kind = blocker.bucket;
+            blocker.card.text = "A command error recovered after a successful retry.";
+            blocker.card.status = undefined;
+            blocker.card.detail = undefined;
+            if (!blocker.card.commands.includes(pending.label)) blocker.card.commands.push(pending.label);
+            cards.splice(cards.indexOf(pending.card), 1);
+            unresolvedBlockers.delete(pending.commandKey);
+          }
         }
       }
       continue;
