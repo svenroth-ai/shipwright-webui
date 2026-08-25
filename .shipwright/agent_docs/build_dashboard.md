@@ -1,42 +1,10 @@
 # Project Activity Dashboard
-> Updated: 2026-08-25 12:29 UTC | Session: f9d302a9-1825-4464-adf2-2526ec4ed0ad | Run: iterate-2026-08-25-mission-feed-progress-narration
+> Updated: 2026-08-08 20:38 UTC | Session: b24c7537-4b35-4585-be92-02ee02b3ff6b
 
-## Recent Changes (360 iterations)
+## Recent Changes (328 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| feature | Mission Activity Feed cards show a turn's own words beyond the headline (card.explanation) when exactly one assistant turn contributed to the card | 7089/7092 |  | FR-01.66 | 2026-08-25 |
-| bug | Read-only terminal viewer (second tab/browser without the writer slot) could not scroll or copy inside a live TUI session | 0/9 |  | FR-01.28 | 2026-08-24 |
-| bug | Prerelease-aware attach-vs-swap comparator + stamp the published version into the staged server/package.json so app.version carries the -next tail. | 0/0 | 5246324 | FR-01.49 | 2026-08-23 |
-| bug | Route the new door to /wizard/new so it lands on step 1 (not the picker); add the wz-outline on-photo reset so the Back button is legible. | 0/0 | 6e6bfc9 | FR-01.51 | 2026-08-23 |
-| bug | First-Contact readiness probe augments its lookup PATH (mirror of the bootstrapper preflight) so a uv installed in ~/.local/bin is found and the uv-managed-Python fallback fires; plus refreshed First-Contact welcome copy | 7036/7039 (3 skipped) |  | FR-01.51 | 2026-08-23 |
-| bug | First-Contact readiness gate: accept uv-managed Python, name per-tool OS-aware installs, and make the not-ready banner legible on the photo hero | 6965/6966 (1 skipped) |  | FR-01.51 | 2026-08-22 |
-| change | Mission activity feed: fix bucket-classification over-matching, single-command fallback text, wrong-identity Delivered card, and remove the GOAL header | 7024/7025 (1 skipped) |  | FR-01.66 | 2026-08-22 |
-| bug | cross-platform bootstrapper prerequisite detection (~/.local/bin + Homebrew + Windows) + uv-coupled Python gate + OS-aware install hints | 241/244 (3 skipped) |  | FR-01.49 | 2026-08-22 |
-| change | iterate: fix npx cold-start (cron-parser dep-drift + boot log + prereq hard-stop) | 230/233 |  | infra | 2026-08-22 |
-| change | iterate: fix npx bootstrapper main-module guard (silent no-op under symlink) | 214/217 |  | infra | 2026-08-22 |
-| change | Mission activity feed: all nine ActivityCard kinds now source real transcript content (previously four of nine), plus a visual redesign matching the approved mockup (icons on a connecting line, status pills, mono chips, bordered excerpt blocks, real question/options). | 6961/6962 (1 skipped) |  | FR-01.66 | 2026-08-20 |
-| feature | Org route beat-register release, last-run staleness, open-register finding (V4a-2B) | 3609/3610 (1 skipped) |  | FR-01.70 | 2026-08-18 |
-| bug | Complete the hono CVE fix that PR #374 left half-done: bump bootstrapper/'s hono lockfile to 4.13.2 and raise the declared floor to ^4.12.34 in both server/ and bootstrapper/ package.json, with a regression test per workspace. | 3732/3733 |  | infra | 2026-08-17 |
-| feature | New host-allowlist + secret-gated /api/external/org/* route family for reading/updating leadwright's organization files under ~/.claude/leads/**. | 6856/6857 |  |  | 2026-08-17 |
-| feature | External Task API: PATCH poFeedback, POST leadParentTaskId, GET ?tag= filter (leadwright V1 lead-field support) | 6707/6708 |  | FR-01.01 | 2026-08-16 |
-| change | Split 90-phone-responsive.spec.ts into three files to keep it under the 300-line bloat cap, and fixed trg-9435df9d (a 30s hang in the touch-safe test caused by a locator that never renders in the scoped create-menu flow) | 18/18 |  | tooling | 2026-08-16 |
-| change | iterate: remove retracted .gitignore blanket rule that silently discarded decision-drop ADRs | 0/0 |  | infra | 2026-08-15 |
-| bug | Fix 90-phone-responsive.spec.ts phone-new-project test to assert the locked ProjectContextStrip instead of a project select that never renders on the phone drill-in flow | 3327/3327 |  | tooling | 2026-08-15 |
-| bug | Embedded terminal auto-launch silently timed out for long launch commands because an uncapped command-preview banner squeezed the xterm canvas to zero height. | 6688/6689 |  | FR-01.10 | 2026-08-14 |
-| change | iterate: declare published package manifests for changelog manifest-sync | 210/210 |  | infra | 2026-08-13 |
-| change | Restyle Mission tab's middle section onto the dark surface, retire the Transcript sub-tab, and fix mobile-viewport visual defects across Board/Task Detail/Intent Wizard. | 6684/6685 |  | FR-01.66, FR-01.02, FR-01.38 | 2026-08-13 |
-| bug | Lower and unify the task-description length cap (20,000 -> 6,000); triage-promote now rejects an over-cap description instead of silently truncating it | 6676/6677 |  | FR-01.01, FR-01.30 | 2026-08-13 |
-| change | Make Mission artifacts trustworthy, traceable, and readable | 131/131 |  | FR-01.66 | 2026-08-11 |
-| change | Move model-tier defaults from task cards to the New Iterate start dialog. | 6620/6621 | 3b90550 | FR-01.16 | 2026-08-10 |
-| bug | Stabilize mutable Playwright fixtures behind a disposable registry boundary. | 412/420 |  | tooling | 2026-08-11 |
-| change | Surface read-only project model tiers and supported Iterate override choices. | 3286/3286 |  | tooling | 2026-08-10 |
-| change | reconcile stale compliance findings | 6660/6661 |  | compliance | 2026-08-10 |
-| change | B7 backfill: CI now runs github/codeql-action v4, with the existing regression coverage pinning the action version. | 0/0 | 7694348 | infra | 2026-08-10 |
-| change | B7 backfill: v0.24.0 release commit consolidated the shipped changelog and canonical release markers. | 0/0 | fe9ae48 | docs | 2026-08-10 |
-| bug | Restyle Triage filter chips to match the Board's control chrome; fix Preview button illegibility on the dark project toolbar; fix Preview button rendering without a genuine single-project selection. | 3270/3270 |  | FR-01.17 | 2026-08-09 |
-| bug | Triage reader resolves amend events (Python parity); adds an inline Edit-in-place UI for title/detail/severity; removes the dead LaunchPayloadBlock | 6650/6651 |  | FR-01.30 | 2026-08-08 |
-| change | Track AGENTS.md as the durable Codex operating contract. | 6607/6608 |  | docs | 2026-08-08 |
 | feature | Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. | 6536/6536 |  | FR-01.30 | 2026-08-08 |
 | change | Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure. | 6534/6535 (1 skipped) |  | FR-01.66 | 2026-08-08 |
 | change | Port monorepo P2.03 (CONTRACT_VERSION 2) parked-entry lifecycle: readAllItems gains revisitAt/revisitDue, a CLI-parity envelope projection, a read-only Deferred section in the Triage tab, and an optional Snooze revisit-date field. | 6461/6462 |  | FR-01.30 | 2026-08-05 |
@@ -367,7 +335,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-08-25 | Unit: PASS — client 362 files / 3435 tests passed; server 316 files / 3654 passed, 3 skipped | Integration: n/a — no CRUD or service-boundary change (pure client-side reducer derivation) | pgTAP: n/a — no RLS or schema change | E2E: PASS — mission-feed-explanation.spec.ts, 1/1, real Chromium via isolated-stack.mjs; see surface_verification | Smoke: n/a — no server-side change at all (client-only diff) | (iterate)
+Last run: 2026-07-28 | Unit: PASS — client 3092 passed (331 files); server 3030 passed / 1 skipped (261 files) | Integration: n/a — no CRUD or service-boundary change | pgTAP: n/a — no RLS or schema change | E2E: PASS — real-Chromium mermaid render probe (authoring-time, not a committed spec); see surface_verification | Smoke: n/a — no server behaviour change | (iterate)
 
 ## Pipeline
 
