@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Recovery merge in missionActivityFeed.ts now only fires when the current card is unambiguously about just the recovered command (commands.length === 1), preventing the described splice from destroying an unrelated coalesced card; regression test added per the request."},
+{"name":"Error Handling","verdict":"n/a","note":"Pure in-memory reducer over already-parsed events; no I/O boundary touched."},
+{"name":"Security Basics","verdict":"n/a","note":"No user input reaches SQL/HTML, no secrets involved."},
+{"name":"Test Quality","verdict":"pass","note":"New test asserts on card contents (commands array, explanation, presence of a blocker card) not internal reducer state; covers the exact failure scenario from the bug report."},
+{"name":"Performance Basics","verdict":"pass","note":"Added a single length check inside an existing branch; no new loops or unbounded work."},
+{"name":"Naming & Structure","verdict":"pass","note":"Comment style and guard shape mirror the existing 'Only attach when unambiguous' idiom a few lines above in the same file; missionActivityFeed.ts stays at 277 lines, under the 300-line convention."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized/on-disk format changed; this is a client-side derived-state transform over ParsedEvent[]."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff reported no findings."}
+]}
