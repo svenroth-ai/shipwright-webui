@@ -96,6 +96,20 @@ export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, tas
                   safe markdown path as the rest of the transcript, never a raw <p>. */}
               <MarkdownChunk content={card.text} />
 
+              {/* card.explanation is a turn's OWN words beyond its headline
+                  (iterate-2026-08-25-mission-feed-progress-narration) — a
+                  bounded, sanitized excerpt, not markdown: rendered as a
+                  literal text node reusing `.mc-feed-qa-answer`'s exact
+                  style (same margin/font-size/color), never MarkdownChunk —
+                  `card.text` is always single-line today, so this would be
+                  the first markdown BLOCK content ever shown inside a feed
+                  card, and the feed's CSS supports only inline elements
+                  there (Internal Plan Review finding). `.mc-feed-explanation`
+                  adds only `white-space: pre-wrap` on top of that shared
+                  style, so multi-line text wraps correctly without
+                  touching the existing question-answer rule at all. */}
+              {card.explanation && <div className="mc-feed-explanation">{card.explanation}</div>}
+
               {card.question && (
                 <div className="mc-feed-qa">
                   {/* The real question prose (external-review catch: options/CTA/

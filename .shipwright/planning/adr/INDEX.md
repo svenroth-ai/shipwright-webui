@@ -34,3 +34,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Leads org route](iterate-2026-08-17-org-route-leads.md)
 - [Beat-register release, last-run staleness, and open-register finding](iterate-2026-08-18-org-route-beat-register-release.md)
 - [ADR: Reader-role WS connections may send SGR mouse reports to the shared pty](iterate-2026-08-24-terminal-readonly-scroll-copy.md)
+- [Mission feed: restore a turn's own words, drop the narration toggle](iterate-2026-08-25-mission-feed-progress-narration-explanation-scope.md)

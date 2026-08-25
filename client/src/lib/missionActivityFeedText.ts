@@ -8,7 +8,7 @@
  */
 import stripAnsi from "strip-ansi";
 import type { ParsedEvent } from "../external/session-parser";
-import { sanitizeProofText, stripControl } from "./proofLines";
+import { sanitizeProofText, stripBidiOverrides, stripC1Controls, stripControl } from "./proofLines";
 
 export const clean = (value: string) => sanitizeProofText(value.split("\n")[0] ?? "", 280);
 
@@ -61,6 +61,32 @@ export function excerpt(content: string, maxLines = 4, maxChars = 320): string {
   // lines beyond `maxLines` with no marker left a reader unable to tell a
   // partial excerpt from the complete output. Appended to the last line
   // (not a new line) so a `split("\n")` line count still matches `maxLines`.
+  return allLines.length > maxLines ? `${joined}…` : joined;
+}
+
+/**
+ * Bounded excerpt of assistant-authored prose (a turn's own words beyond
+ * its first line, iterate-2026-08-25-mission-feed-progress-narration) —
+ * rendered as plain text, never markdown, so unlike `excerpt()` this
+ * preserves blank lines (real paragraph breaks in the source text) instead
+ * of filtering them out, and truncates on Unicode code points rather than
+ * UTF-16 units so an emoji/CJK character at the cap is never split into a
+ * lone surrogate. Sanitized the same way `card.text` already is
+ * (`stripAnsi`/`stripControl`/`stripC1Controls`, plus the bidi-override
+ * filter shared with `sanitizeProofText`) minus only the single-line
+ * collapse, which would destroy multi-line structure.
+ */
+export function explanationExcerpt(content: string, maxLines = 6, maxChars = 600): string {
+  const allLines = stripC1Controls(stripBidiOverrides(stripControl(stripAnsi(content))))
+    .split("\n")
+    .map((line) => line.replace(/\s+$/, ""));
+  const lines = allLines.slice(0, maxLines);
+  const joined = lines.join("\n").trim();
+  if (!joined) return "";
+  const codePoints = Array.from(joined);
+  if (codePoints.length > maxChars) return `${codePoints.slice(0, maxChars).join("")}…`;
+  // Same silent-truncation guard as `excerpt()` — appended to the last
+  // line, not a new one, so the line count still matches `maxLines`.
   return allLines.length > maxLines ? `${joined}…` : joined;
 }
 

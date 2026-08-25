@@ -166,4 +166,55 @@ describe("MissionActivityFeed", () => {
     }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("Edit: src/auth/login.ts")).toBeInTheDocument();
   });
+
+  // iterate-2026-08-25-mission-feed-progress-narration.
+  describe("card.explanation", () => {
+    it("renders it as plain text below the headline, reusing the qa-answer style — never MarkdownChunk", () => {
+      const { container } = render(<MissionActivityFeed feed={{
+        outcome: "In progress",
+        cards: [{ kind: "investigate", text: "Checking the auth guard.", commands: [], explanation: "It reads the cookie, then falls back to the header." }],
+      }} commitArtifact={null} task={TASK} />);
+      const node = container.querySelector(".mc-feed-explanation");
+      expect(node).toHaveTextContent("It reads the cookie, then falls back to the header.");
+    });
+
+    it("renders HTML-like explanation text as inert literal text, never a real element (same safety bar as detail)", () => {
+      const { container } = render(<MissionActivityFeed feed={{
+        outcome: "In progress",
+        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [], explanation: '<img src=x onerror="window.__pwned=true">More detail.' }],
+      }} commitArtifact={null} task={TASK} />);
+      expect(container.querySelector("img")).toBeNull();
+      expect(screen.getByText(/More detail\./)).toBeInTheDocument();
+    });
+
+    it("renders no explanation block, and no other card change, when card.explanation is unset (AC-5 parity)", () => {
+      const card = { kind: "investigate" as const, text: "Checking the auth guard.", commands: ["Read: auth.ts"] };
+      const { container } = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [card] }} commitArtifact={null} task={TASK} />);
+      expect(container.querySelector(".mc-feed-explanation")).toBeNull();
+      expect(screen.getByText("Checking the auth guard.")).toBeInTheDocument();
+      expect(screen.getByText("Read: auth.ts")).toBeInTheDocument();
+    });
+
+    // External LLM Review (openai) MEDIUM finding: the two prior assertions
+    // only probe specific substrings, so they would still pass if adding
+    // `explanation` had also touched the surrounding card markup (wrapper
+    // element, chip/pill structure, status UI) for the unpopulated case.
+    // This asserts the FULL card markup is unaffected by toggling
+    // `explanation` on/off, beyond just the one new sibling node.
+    it("adding explanation changes ONLY the new sibling node — the rest of the card's markup is byte-identical (AC-5 parity, stronger)", () => {
+      const base = { kind: "investigate" as const, text: "Checking the auth guard.", status: "ok" as const, commands: ["Read: auth.ts"] };
+      const without = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [base] }} commitArtifact={null} task={TASK} />);
+      const withoutHtml = without.container.querySelector('[data-kind="investigate"]')!.outerHTML;
+      without.unmount();
+
+      const withExplanation = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [{ ...base, explanation: "It reads the cookie first." }] }} commitArtifact={null} task={TASK} />);
+      const withHtml = withExplanation.container.querySelector('[data-kind="investigate"]')!.outerHTML;
+      const explanationNode = withExplanation.container.querySelector(".mc-feed-explanation")!.outerHTML;
+      withExplanation.unmount();
+
+      // Removing exactly the new node from the "with" render reproduces the
+      // "without" render's markup — nothing else shifted.
+      expect(withHtml.replace(explanationNode, "")).toBe(withoutHtml);
+    });
+  });
 });

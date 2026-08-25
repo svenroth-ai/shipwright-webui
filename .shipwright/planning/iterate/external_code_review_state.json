@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-22T20:42:59.678395+00:00",
+  "timestamp": "2026-08-25T12:19:50.969825+00:00",
   "provider": "openrouter",
-  "findings_count": 7,
+  "findings_count": 4,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "revise (ship-with-fixes) - all 4 findings addressed: 1 HIGH correctness fix (turn-provenance undercounting), 1 MEDIUM test-rigor fix (AC-5 markup parity), 1 LOW style fix (delete vs undefined), 1 MEDIUM declined with rebuttal (AC-4 fixture-pattern precedent match, not a gap) \u2014 only some provider legs could be itemized \u2014 the count (4) may understate what was found",
   "review_mode": "code",
   "marker_schema": 3,
   "verdicts": {
     "openai": "revise",
-    "deepseek": "revise"
+    "deepseek": "unavailable"
   },
   "contradiction": {
     "detected": false,
-    "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
   },
   "contradiction_resolution": null
 }

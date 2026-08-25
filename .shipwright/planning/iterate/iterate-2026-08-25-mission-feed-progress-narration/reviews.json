@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-25-mission-feed-progress-narration",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T11:54:21.069373+00:00",
+      "disposition": null,
+      "recorded_by": "claude-self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan derives `proseRest` from the whole originating turn’s `assistantText()` and clears `card.explanation` only when events coalesce into one card (`cardEventCounts !== 1`). If one assistant turn contains multiple tool-use events that do not coalesce into one card — e.g. different action kinds or artifacts — each resulting card can receive the same turn-wide explanation text. That is the same misattribution problem the guard is intended to prevent, but the guard only covers coalesced cards.",
+          "suggestion": "Guard on the source-turn tool-use count as well: clear or never set `explanation` when the originating turn contains more than one tool-use event, regardless of whether those events coalesce into one card. Alternatively, derive explanation text per tool-use event/adjacent assistant segment rather than per turn.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan describes `proseRest` as “joined from the line AFTER the first non-empty one onward,” but does not explicitly require preserving newline boundaries. If the lines are joined with spaces or normalized, markdown structures such as bullet lists, numbered lists, code fences, and headings will be mangled.",
+          "suggestion": "Specify `proseRest` as `linesAfterFirstNonEmpty.join('\\n')` and add a unit fixture with markdown list/code-fence content asserting exact line preservation, not just plain sentences.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "explanationExcerpt()` deliberately skips both `stripAnsi` and `stripControl`, but ANSI escape sequences are not markdown-significant and can still appear in model-authored text if Claude copied or echoed terminal/tool output. Rendering them through `MarkdownChunk` may produce visible escape artifacts or hidden cursor sequences.",
+          "suggestion": "Use a targeted ANSI escape-sequence strip rather than skipping all control handling; preserve markdown-relevant controls such as newlines and tabs. Add a fixture containing ANSI escapes to demonstrate the chosen behavior is safe.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan introduces a new `mc-feed-explanation` class but does not modify any stylesheet or identify the exact existing secondary style token/class it reuses. A component test that only checks a card without `explanation` will not catch missing or incorrect styling on the new explanation block.",
+          "suggestion": "Reuse an existing muted/secondary text class directly, or if a new class is necessary, include a style assertion covering the explanation block’s computed class/type scale/color.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The change extends the existing post-processing sweep that already handles label-derived text and `blocker`/`test` detail gating. Interleaving the new `explanation` cleanup there risks accidentally altering existing behavior if the sweep has control-flow or early-return assumptions.",
+          "suggestion": "Make the `explanation` cleanup an additive, separate pass after the existing sweep, and add regression assertions that existing label fallback and `detail` gating still behave exactly as before.  Overall assessment: The client-only, derivation-based approach is sound and correctly scoped, but the per-turn text provenance needs tightening before implementation so multi-event turns cannot leak the same explanation onto multiple cards. The remaining findings are refinements around line preservation, terminal-control handling, styling, and regression isolation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The extraction rule for `proseRest` needs to be defined more precisely around blank lines and whitespace-only remainders. “Lines after the first non-empty line” can produce a remainder consisting only of blank lines, or preserve a leading blank line that makes the explanation render as an unintended empty paragraph. This could result in `explanation: \"\"` or a visually empty explanation block.",
+          "suggestion": "Find the index of the exact first non-whitespace line used for `card.text`, slice only after that index, and require `proseRest.trim().length > 0` before calling the excerpt helper or setting the field. Preserve meaningful internal blank lines after that point. Add tests for leading blank lines, blank lines immediately after the headline, and whitespace-only remaining content.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan relies on a new `mc-feed-explanation` class “reusing existing” typography and spacing, but does not identify the existing selectors/tokens it will share. A separate class with independently duplicated values is the most likely way this small visual addition drifts from the established feed styling over time, undermining the explicit parity requirement.",
+          "suggestion": "Reuse the existing headline/feed-text class or shared typography/spacing selector directly, with only the minimal modifier needed for the lower emphasis. For example, apply the existing feed prose class plus a narrowly scoped weight/margin modifier rather than recreating font, line-height, color, and markdown child-element rules in a new standalone style block. Verify lists, paragraphs, links, and code emitted by `MarkdownChunk` inherit the intended feed styles.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The proposed E2E assertion that the “visual chrome … is unchanged from a card with no explanation” is underspecified and can be misleading. Adding explanation text necessarily changes vertical positions and potentially viewport clipping of the icon, status pill, chips, and subsequent cards. A screenshot or geometry equality comparison between populated and unpopulated cards would fail for expected reasons or become fragile.",
+          "suggestion": "Keep the E2E focused on the actual end-to-end behavior: load a fixed fixture, verify headline and explanation render, and verify the expected existing icon/pill/chips are present with their existing classes/content. Reserve the no-explanation parity assertion for a component DOM/snapshot test of the same card input before and after this change, where the conditional block is absent.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Arbitrary line/character truncation of assistant-authored Markdown can cut through markdown constructs such as a link destination, emphasis delimiter, list item, or fenced code block. `MarkdownChunk` should still make this safe, but malformed partial prose can render unexpectedly and the ellipsis may be absorbed into an open construct.",
+          "suggestion": "Preserve the bounded-excerpt requirement, but make truncation semantics explicit: append the ellipsis after truncating content, ensure the marker is included within the maximum output budget if that is a contract, and add a rendering test with a truncated markdown link or fenced block. No markdown “repair” abstraction is necessary unless real fixtures demonstrate a material readability problem.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "This introduces a second rendering location for untrusted assistant text. The plan correctly uses `MarkdownChunk`, but its safety is asserted rather than verified for this new path; markdown links, HTML-like payloads, and unsafe URL schemes should not become executable or navigable unexpectedly.",
+          "suggestion": "Confirm that `MarkdownChunk` uses the project’s established sanitizer/protocol filtering and that this component does not bypass it through a raw HTML prop. Add or reuse a focused component test containing unsafe HTML and a `javascript:`-style link in `explanation`, asserting it is sanitized/disabled according to existing transcript behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The spec explicitly records that the internal plan review must be rerun after the material scope change, but the mini-plan proceeds to Build without recording that result. Also, the fixture/E2E plan assumes an existing recorded JSONL fixture has a qualifying solo-event generic card with multi-line assistant prose; that needs confirmation before the tests are authored.",
+          "suggestion": "Complete and record the required re-review before implementation. During test setup, identify and pin a real fixture containing the required `investigate`/`spec`/`implement`/`review` solo tool event; if none exists, add a minimal captured-format fixture through the existing replay mechanism rather than depending on an incidental session’s classification behavior.  Overall, the core approach is sound and appropriately avoids the dropped cross-cutting narration/settings machinery. The implementation should proceed after tightening extraction semantics, styling reuse, and the stated verification prerequisites.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-25T11:32:25.577478+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] Findings:\n\n- **Category:** edge-case  \n  **Severity:** medium  \n  **Finding:** The plan derives `proseRest` from the whole originating turn’s `assistantText()` and clears `card.explanation` only when events coalesce into one card (`cardEventCounts !== 1`). If one assistant turn contains multiple tool-use events that do *not* coalesce into one card — e.g. different action kinds or artifacts — each resulting card can receive the same turn-wide explanation text. That is the same misattribution problem the guard is intended to prevent, but the guard only covers coalesced cards.  \n  **Suggestion:** Guard on the source-turn tool-use count as well: clear or never set `explanation` when the originating turn contains more than one tool-use event, regardless of whether those events coalesce into one card. Alternatively, derive explanation text per tool-use event/adjacent assistant segment rather than per turn.\n\n- **Category:** edge-case  \n  **Severity:** low  \n  **Finding:** The plan describes `proseRest` as “joined from the line AFTER the first non-empty one onward,” but does not explicitly require preserving newline boundaries. If the lines are joined with spaces or normalized, markdown structures such as bullet lists, numbered lists, code fences, and headings will be mangled.  \n  **Suggestion:** Specify `proseRest` as `linesAfterFirstNonEmpty.join('\\n')` and add a unit fixture with markdown list/code-fence content asserting exact line preservation, not just plain sentences.\n\n- **Category:** edge-case  \n  **Severity:** low  \n  **Finding:** `explanationExcerpt()` deliberately skips both `stripAnsi` and `stripControl`, but ANSI escape sequences are not markdown-significant and can still appear in model-authored text if Claude copied or echoed terminal/tool output. Rendering them through `MarkdownChunk` may produce visible escape artifacts or hidden cursor sequences.  \n  **Suggestion:** Use a targeted ANSI escape-sequence strip rather than skipping all control han […truncated]\n\n[openai] 1. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The extraction rule for `proseRest` needs to be defined more precisely around blank lines and whitespace-only remainders. “Lines after the first non-empty line” can produce a remainder consisting only of blank lines, or preserve a leading blank line that makes the explanation render as an unintended empty paragraph. This could result in `explanation: \"\"` or a visually empty explanation block.  \n   **Suggestion:** Find the index of the exact first non-whitespace line used for `card.text`, slice only after that index, and require `proseRest.trim().length > 0` before calling the excerpt helper or setting the field. Preserve meaningful internal blank lines after that point. Add tests for leading blank lines, blank lines immediately after the headline, and whitespace-only remaining content.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** The plan relies on a new `mc-feed-explanation` class “reusing existing” typography and spacing, but does not identify the existing selectors/tokens it will share. A separate class with independently duplicated values is the most likely way this small visual addition drifts from the established feed styling over time, undermining the explicit parity requirement.  \n   **Suggestion:** Reuse the existing headline/feed-text class or shared typography/spacing selector directly, with only the minimal modifier needed for the lower emphasis. For example, apply the existing feed prose class plus a narrowly scoped weight/margin modifier rather than recreating font, line-height, color, and markdown child-element rules in a new standalone style block. Verify lists, paragraphs, links, and code emitted by `MarkdownChunk` inherit the intended feed styles.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** The proposed E2E assertion that the “visual chrome … is unchanged from a card with no explanation” is underspecified and can be m […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T11:58:52.983921+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T12:08:06.175973+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeed.ts:250-255",
+          "line": null,
+          "finding": "cardTurnCounts` is incremented only for the first card produced by a turn because it is inside `if (!explanationAttachedThisTurn)`. The at-most-one-explanation rule is correct, but provenance must still be recorded for every distinct card a turn contributes to. For example, turn 1 can produce an investigate card and then an implement card; only investigate is counted. If a later turn coalesces into that implement card and has a remainder, the count becomes `1` and its explanation is incorrectly attached even though two assistant turns contributed to the card.",
+          "suggestion": "Track a per-turn `Set<ActivityCard>` of cards already counted. Increment `cardTurnCounts` once for every distinct card encountered in the turn, independently of the separate `explanationAttachedThisTurn` guard that controls which one card receives the explanation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/lib/missionActivityFeed.explanation.test.ts:36-51",
+          "line": null,
+          "finding": "AC-4 specifically requires fixture-based validation using an already-recorded/pre-existing session JSONL. These tests synthesize minimal JSONL strings with the local `turn()` helper instead of parsing a captured fixture, and the diff adds no qualifying fixture-based test. A regression in handling real recorded transcript structure could therefore pass all new derivation tests.",
+          "suggestion": "Add a test that loads an existing captured JSONL fixture from `client/src/test/fixtures/ndjson-transcripts/` (or add a captured fixture through the established fixture mechanism) and asserts the derived qualifying card contains the expected explanation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx:191-196",
+          "line": null,
+          "finding": "The claimed AC-5 “byte-identical” parity test only verifies that no explanation node is present and that the pre-existing headline/chip text can still be found. It would pass if the no-explanation render changed card structure, classes, status UI, spacing-related elements, or other chrome; thus it does not validate the required unchanged rendering for cards without an explanation.",
+          "suggestion": "Render the same baseline card without `explanation` and compare the relevant card/container markup to a stable expected baseline or to an explicitly constructed pre-change-equivalent render, while keeping the populated-explanation test separate.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/lib/missionActivityFeed.ts:168`, `client/src/lib/missionActivityFeed.ts:281`, `client/src/lib/missionActivityFeedReconcile.ts",
+          "line": 85,
+          "finding": "The specification explicitly requires that `explanation` only be assigned when non-empty and not leave an explicit `undefined` key. The clearing paths assign `card.explanation = undefined`, creating an own property on cards that previously lacked it. This is observable to callers using property enumeration or deep equality, even though JSON serialization omits it.",
+          "suggestion": "Use `delete card.explanation` in clearing paths instead of assigning `undefined`.  Overall assessment: ship-with-fixes. The provenance-counting bug can violate the core one-assistant-turn attribution invariant and must be corrected before shipping; the fixture and parity tests should also be strengthened to meet explicit acceptance criteria. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-25T12:19:50.963457+00:00",
+      "disposition": "revise (ship-with-fixes) - all 4 findings addressed: 1 HIGH correctness fix (turn-provenance undercounting), 1 MEDIUM test-rigor fix (AC-5 markup parity), 1 LOW style fix (delete vs undefined), 1 MEDIUM declined with rebuttal (AC-4 fixture-pattern precedent match, not a gap)",
+      "recorded_by": "external-review-openai",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: bug\n- Severity: high\n- File: `client/src/lib/missionActivityFeed.ts:250-255`\n- Finding: `cardTurnCounts` is incremented only for the first card produced by a turn because it is inside `if (!explanationAttachedThisTurn)`. The at-most-one-explanation rule is correct, but provenance must still be recorded for every distinct card a turn contributes to. For example, turn 1 can produce an investigate card and then an implement card; only investigate is counted. If a later turn coalesces into that implement card and has a remainder, the count becomes `1` and its explanation is incorrectly attached even though two assistant turns contributed to the card.\n- Suggestion: Track a per-turn `Set<ActivityCard>` of cards already counted. Increment `cardTurnCounts` once for every distinct card encountered in the turn, independently of the separate `explanationAttachedThisTurn` guard that controls which one card receives the explanation.\n\n- Category: test\n- Severity: medium\n- File: `client/src/lib/missionActivityFeed.explanation.test.ts:36-51`\n- Finding: AC-4 specifically requires fixture-based validation using an already-recorded/pre-existing session JSONL. These tests synthesize minimal JSONL strings with the local `turn()` helper instead of parsing a captured fixture, and the diff adds no qualifying fixture-based test. A regression in handling real recorded transcript structure could therefore pass all new derivation tests.\n- Suggestion: Add a test that loads an existing captured JSONL fixture from `client/src/test/fixtures/ndjson-transcripts/` (or add a captured fixture through the established fixture mechanism) and asserts the derived qualifying card contains the expected explanation.\n\n- Category: test\n- Severity: medium\n- File: `client/src/components/external/mission/MissionActivityFeed.test.tsx:191-196`\n- Finding: The claimed AC-5 “byte-identical” parity test only verifies that no explanation node is present and that the pre-existing headline/chip text […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T11:53:38.320465+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-25T11:32:19.687795+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

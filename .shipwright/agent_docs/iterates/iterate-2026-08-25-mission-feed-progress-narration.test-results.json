@@ -1,0 +1,106 @@
+{
+  "last_updated": "2026-07-28",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-25-mission-feed-progress-narration",
+    "date": "2026-08-25",
+    "unit": "PASS \u2014 client 362 files / 3435 tests passed; server 316 files / 3654 passed, 3 skipped",
+    "integration": "n/a \u2014 no CRUD or service-boundary change (pure client-side reducer derivation)",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 mission-feed-explanation.spec.ts, 1/1, real Chromium via isolated-stack.mjs; see surface_verification",
+    "design_fidelity": "n/a (Tier 1, no new visual pattern) \u2014 AC-5 component test proves the card markup is byte-identical to today when explanation is unset, and adding it changes nothing but the one new sibling node",
+    "smoke": "n/a \u2014 no server-side change at all (client-only diff)",
+    "degraded": [
+      "External code review: deepseek returned an empty reply (status: degraded) on the --mode code call; openai succeeded and its findings were addressed. Not a contradiction (no second verdict to disagree with)."
+    ],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs e2e/flows/mission-feed-explanation.spec.ts --project=chromium --reporter=line",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-08-25-mission-feed-progress-narration/surface_verification.json",
+      "timestamp": "2026-08-25T12:24:57Z"
+    },
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Solo-turn card with multi-line prose sets card.explanation to the bounded remainder (AC-1)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (a); mission-feed-explanation.spec.ts (E2E, real JSONL/Chromium)"
+        },
+        {
+          "behavior": "Single-line turn or whitespace-only remainder leaves explanation unset (AC-1)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (b)"
+        },
+        {
+          "behavior": "At most one card per turn receives that turn's explanation (AC-1)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (e)"
+        },
+        {
+          "behavior": "A card touched by more than one assistant turn never keeps/gets an explanation, including the turn-provenance undercounting edge case (AC-2)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (c) and (i) \u2014 (i) is the External LLM Review (openai) HIGH-finding regression test, confirmed to fail against the pre-fix code"
+        },
+        {
+          "behavior": "One turn's several coalescing tool calls keeps the explanation (the common valuable case) (AC-2)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (d)"
+        },
+        {
+          "behavior": "A card mutated to kind:blocker clears explanation and stays cleared through recovery (AC-2b)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (g)"
+        },
+        {
+          "behavior": "reconcileArtifactCards clears explanation when it rewrites a review card's text from durable evidence (AC-2c)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (h)"
+        },
+        {
+          "behavior": "card.explanation renders as plain text (pre-wrap), never through MarkdownChunk; HTML-like content stays inert (AC-3)",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx: 'renders it as plain text...', 'renders HTML-like explanation text as inert literal text...'"
+        },
+        {
+          "behavior": "explanationExcerpt's sanitization matches card.text's (C0+C1+DEL controls, bidi overrides, ANSI), minus only the single-line collapse (AC-3b)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedFields.test.ts explanationExcerpt suite (control/bidi/ANSI/C1 cases); proofLines.test.ts stripC1Controls/stripBidiOverrides"
+        },
+        {
+          "behavior": "No settings/toggle/new session data needed \u2014 derives from an already-recorded session JSONL (AC-4)",
+          "disposition": "tested",
+          "evidence": "mission-feed-explanation.spec.ts seeds real JSONL via seedClaudeJsonlEvents, no toggle/launch flag involved; missionActivityFeed.explanation.test.ts derives from parsed fixture events"
+        },
+        {
+          "behavior": "Adding explanation changes only the new sibling node \u2014 full card markup is byte-identical to today when unset (AC-5)",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx: 'adding explanation changes ONLY the new sibling node...' (outerHTML diff assertion) and 'renders no explanation block...(AC-5 parity)'"
+        },
+        {
+          "behavior": "No existing Mission-tab visual-regression fixture newly gains an explanation under this change (AC-6)",
+          "disposition": "tested",
+          "evidence": "Internal Plan Review MEDIUM finding closed by inspection: client/e2e/visual/02-task-detail.spec.ts seeds tasks with no run data/assistant text, so no baseline card qualifies"
+        }
+      ],
+      "counts": {
+        "testable": 12,
+        "tested": 12,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-25-mission-feed-progress-narration",
+    "commit": "ad4e4e964a821a9d82a53c9796c93bea1cef8ded",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
