@@ -119,6 +119,41 @@ export function stripControl(s: string): string {
 }
 
 /**
+ * Strips Unicode bidi embeds/overrides/isolates (200E/200F, 202A-202E,
+ * 2066-2069) — code points that can visually reorder a line of otherwise
+ * harmless text. Factored out of `sanitizeProofText` (iterate-2026-08-25-mission-feed-progress-narration)
+ * so `missionActivityFeedText.ts`'s multi-line excerpt path can apply the
+ * same bidi filter without also inheriting `sanitizeProofText`'s
+ * single-line collapse/truncation, which would destroy multi-line prose.
+ */
+export function stripBidiOverrides(s: string): string {
+  let out = "";
+  for (const ch of s) {
+    const cp = ch.codePointAt(0) ?? 0;
+    const isBidi =
+      cp === 0x200e ||
+      cp === 0x200f ||
+      (cp >= 0x202a && cp <= 0x202e) ||
+      (cp >= 0x2066 && cp <= 0x2069);
+    if (!isBidi) out += ch;
+  }
+  return out;
+}
+
+/**
+ * Strips C1 control codepoints (U+0080-U+009F) — the one gap between
+ * `stripControl` (C0 + DEL only, by its own documented scope) and
+ * `sanitizeProofText`'s combined C0+DEL+C1 filter below. Factored out
+ * (iterate-2026-08-25-mission-feed-progress-narration, spec-reviewer catch)
+ * so `missionActivityFeedText.ts`'s multi-line `explanationExcerpt()` can
+ * match `sanitizeProofText`'s control-character coverage for AC-3b, without
+ * adopting its single-line collapse.
+ */
+export function stripC1Controls(s: string): string {
+  return s.replace(/[\x80-\x9F]/g, "");
+}
+
+/**
  * Event-log strings are UNTRUSTED display data (the runId, the FR) — the proof
  * summary must not become a place raw log payloads leak control/bidi characters or
  * unbounded text (touches_io_boundary). React escapes HTML, but not C0/C1 controls,
@@ -128,17 +163,11 @@ export function stripControl(s: string): string {
  */
 export function sanitizeProofText(raw: string, maxLen = 64): string {
   let out = "";
-  for (const ch of raw) {
+  for (const ch of stripBidiOverrides(raw)) {
     const cp = ch.codePointAt(0) ?? 0;
     // C0 (0x00-0x1F, incl. tab/CR/LF) + DEL/C1 (0x7F-0x9F) controls.
     const isControl = cp <= 0x1f || (cp >= 0x7f && cp <= 0x9f);
-    // Bidi embeds/overrides/isolates (200E/200F, 202A-202E, 2066-2069).
-    const isBidi =
-      cp === 0x200e ||
-      cp === 0x200f ||
-      (cp >= 0x202a && cp <= 0x202e) ||
-      (cp >= 0x2066 && cp <= 0x2069);
-    if (!isControl && !isBidi) out += ch;
+    if (!isControl) out += ch;
   }
   out = out.replace(/  +/g, " ").trim(); // collapse multi-space runs
   if (out.length <= maxLen) return out;

@@ -1,6 +1,6 @@
 import { askUserQuestionSummary, assistantText, toolResults, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
-import { clean, commandDetail, commandLabel, excerpt, isCompactionMarker, resolveQuestionAnswer, sentenceFromLabel } from "./missionActivityFeedText";
+import { clean, commandDetail, commandLabel, excerpt, explanationExcerpt, isCompactionMarker, resolveQuestionAnswer, sentenceFromLabel } from "./missionActivityFeedText";
 import { GENERIC_TEXT, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
 import { reconcileArtifactCards } from "./missionActivityFeedReconcile";
 
@@ -25,6 +25,14 @@ export interface ActivityCard {
   /** Bounded, sanitized raw-output excerpt — real transcript content, never
    * a gate verdict (MissionContext stays the sole verdict source). */
   detail?: string;
+  /** Bounded excerpt of the turn's OWN words beyond the first line already
+   * shown in `text` (iterate-2026-08-25-mission-feed-progress-narration).
+   * Assistant-authored prose, rendered as plain text — NEVER conflate with
+   * `detail`, which is raw tool/test output from a different source and
+   * rendered as a literal `<pre>` block. Set only when exactly one
+   * assistant turn contributed to this card (see `cardTurnCounts` below);
+   * never an empty string. */
+  explanation?: string;
   /** Pill state, always derived from MissionContext — never string-matched
    * from `text`. */
   status?: "ok" | "err" | "warn";
@@ -50,7 +58,11 @@ function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
  * wrote one (iterate-2026-08-13-mission-mobile-visual) — rendered by the
  * caller through the same safe markdown/text path as the rest of the
  * transcript (`MarkdownChunk` for prose, a literal text node for raw
- * excerpts), never raw HTML, since it is assistant/tool-influenced content. */
+ * excerpts), never raw HTML, since it is assistant/tool-influenced content.
+ * A card built from exactly one assistant turn additionally carries that
+ * turn's own words beyond its first line in `card.explanation`
+ * (iterate-2026-08-25-mission-feed-progress-narration) — plain text, never
+ * markdown, rendered through the same style as an answered question. */
 export function deriveActivityFeed(
   events: readonly ParsedEvent[],
   context: MissionContext | null,
@@ -66,6 +78,16 @@ export function deriveActivityFeed(
   // not a WeakMap: this only lives for one `deriveActivityFeed()` call, so
   // there is no retention concern a weak reference would address.
   const cardEventCounts = new Map<ActivityCard, number>();
+  // How many distinct ASSISTANT TURNS contributed to a card — deliberately
+  // separate from `cardEventCounts` above (which counts tool-use EVENTS and
+  // stays untouched for its own existing job, the label-derived-sentence
+  // fallback below). A card is misattributed only when MORE THAN ONE turn's
+  // words land on it; one turn issuing several tool calls that coalesce
+  // into a single card is not misattribution and must keep its explanation
+  // (iterate-2026-08-25-mission-feed-progress-narration, Internal Plan
+  // Review HIGH finding — `cardEventCounts === 1` alone would have wrongly
+  // suppressed that common, valuable case).
+  const cardTurnCounts = new Map<ActivityCard, number>();
   const add = (kind: ActivityKind, text: string, command: string, artifact?: ArtifactKind, coalesce = true): ActivityCard => {
     const previous = cards[cards.length - 1];
     if (coalesce && previous?.kind === kind && previous.text === text && previous.artifact === artifact) {
@@ -136,6 +158,14 @@ export function deriveActivityFeed(
           pending.card.kind = "blocker";
           pending.card.text = "A command needs attention before work can continue.";
           pending.card.status = "err";
+          // A blocker's headline/status/detail all come from THIS error —
+          // any explanation excerpted from an earlier, unrelated turn must
+          // not survive the mutation (Internal Plan Review HIGH finding:
+          // the recovery path below pushes a second command label without
+          // touching `cardEventCounts`/`cardTurnCounts`, so a count-based
+          // guard alone would miss this transition — clearing at the
+          // mutation site itself is unconditional and needs no counter).
+          delete pending.card.explanation;
           // `add()` coalesces same-kind/text/artifact cards across several
           // tool_use ids (the "many-files-in-a-row" case) — attaching this
           // one command's error excerpt would misattribute it to a card
@@ -166,7 +196,32 @@ export function deriveActivityFeed(
     // block at all), which keeps every existing fallback-sentence case —
     // including the many-files-in-a-row coalescing the long-iterate test
     // relies on — byte-identical.
-    const prose = clean(assistantText(event).split("\n").find((line) => line.trim().length > 0) ?? "");
+    const assistantLines = assistantText(event).split("\n");
+    const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
+    const prose = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
+    // The turn's own words BEYOND its headline (`prose`) — never a bare
+    // `slice(1)`, which would leak a leading blank line's absence of
+    // content back in as if it were the headline (Internal Plan/External
+    // LLM Review finding). `join("\n")`, never space-joined or
+    // empty-line-filtered like `excerpt()`: this is plain-text-rendered
+    // prose, and blank lines are real paragraph breaks in it.
+    const proseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
+    const proseRest = proseRestRaw.trim().length > 0 ? explanationExcerpt(proseRestRaw) : "";
+    // At most ONE card per turn gets this turn's explanation — a turn whose
+    // tool calls land in two genuinely different (non-coalescing) cards
+    // does not duplicate the same words onto both (External LLM Review,
+    // deepseek). Declared once per assistant event/turn.
+    let explanationAttachedThisTurn = false;
+    // Every DISTINCT card this turn touches must be counted, not only the
+    // first (explanation-receiving) one — a card that was this turn's
+    // SECOND card (so never got an explanation write here) can still be
+    // the FIRST card another, later turn happens to coalesce into, and
+    // that later turn's own `!explanationAttachedThisTurn` write would
+    // have started `cardTurnCounts` from zero for it, undercounting a
+    // genuinely two-turn card down to 1 (External LLM Review, openai HIGH
+    // finding — the provenance count and the explanation-attach gate are
+    // two different questions and must not share one guard).
+    const cardsTouchedThisTurn = new Set<ActivityCard>();
     for (const tool of toolUses(event)) {
       const input = tool.input as Record<string, unknown> | undefined;
       const shell = typeof input?.command === "string" ? input.command : "";
@@ -205,6 +260,14 @@ export function deriveActivityFeed(
           : bucket === "spec" ? add("spec", prose || GENERIC_TEXT.spec, label, artifact(context, "spec") ? "spec" : undefined)
           : bucket === "investigate" ? add("investigate", prose || GENERIC_TEXT.investigate, label)
           : add("implement", prose || GENERIC_TEXT.implement, label);
+        if (!cardsTouchedThisTurn.has(card)) {
+          cardsTouchedThisTurn.add(card);
+          cardTurnCounts.set(card, (cardTurnCounts.get(card) ?? 0) + 1);
+        }
+        if (!explanationAttachedThisTurn) {
+          if (proseRest) card.explanation = proseRest;
+          explanationAttachedThisTurn = true;
+        }
         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
       }
     }
@@ -222,6 +285,16 @@ export function deriveActivityFeed(
     if (card.text !== GENERIC_TEXT[card.kind]) continue;
     if (cardEventCounts.get(card) !== 1) continue;
     card.text = sentenceFromLabel(card.commands[0]);
+  }
+
+  // Deliberately its OWN, separate, unconditional pass — NOT folded into
+  // the sweep above. That sweep's own `card.text !== GENERIC_TEXT[...]`
+  // guard `continue`s past every card that has real prose, which is
+  // exactly every card that could ever carry an explanation; folding this
+  // clear in there would make it a permanent no-op (Internal Plan Review
+  // HIGH finding).
+  for (const card of cards) {
+    if (card.explanation && cardTurnCounts.get(card) !== 1) delete card.explanation;
   }
 
   return reconcileArtifactCards(cards, context, testCards, unresolvedTest);

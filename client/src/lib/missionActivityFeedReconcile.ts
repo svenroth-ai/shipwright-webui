@@ -77,6 +77,13 @@ export function reconcileArtifactCards(
     const review = [...cards].reverse().find((card) => card.kind === "review");
     if (review) {
       review.text = "The recorded review evidence is available.";
+      // A rewritten headline must never sit above an explanation excerpted
+      // from a DIFFERENT turn's own words (iterate-2026-08-25-mission-feed-progress-narration,
+      // Internal Plan Review finding). `test`-kind cards' own text rewrites
+      // above need no equivalent clear — a `test` card never gets
+      // `explanation` in the first place (only investigate/spec/implement/review
+      // cards can).
+      delete review.explanation;
       review.artifact = "review";
       review.status = "ok";
     } else {

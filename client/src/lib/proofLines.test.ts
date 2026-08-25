@@ -4,6 +4,8 @@ import {
   deriveProofLines,
   deriveVerdict,
   sanitizeProofText,
+  stripBidiOverrides,
+  stripC1Controls,
   type ProofFacts,
   type ProofLine,
 } from "./proofLines";
@@ -255,5 +257,34 @@ describe("sanitizeProofText", () => {
     expect(sanitizeProofText("iterate-2026-07-10-missionview-operation")).toBe(
       "iterate-2026-07-10-missionview-operation",
     );
+  });
+});
+
+describe("stripBidiOverrides", () => {
+  // @covers FR-01.66
+  it("strips LRE/RLE/PDF/LRO/RLO (202A-202E), LRM/RLM (200E/200F), and LRI/RLI/FSI/PDI (2066-2069)", () => {
+    const dirty = [0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066, 0x2067, 0x2068, 0x2069]
+      .map((cp) => `a${String.fromCodePoint(cp)}b`)
+      .join("");
+    expect(stripBidiOverrides(dirty)).toBe("ab".repeat(11));
+  });
+
+  // @covers FR-01.66
+  it("preserves ordinary text, including newlines and tabs", () => {
+    expect(stripBidiOverrides("line one\nline\ttwo")).toBe("line one\nline\ttwo");
+  });
+});
+
+describe("stripC1Controls", () => {
+  // @covers FR-01.66
+  it("strips the full C1 range (0x80-0x9F)", () => {
+    const dirty = `a${String.fromCodePoint(0x80)}b${String.fromCodePoint(0x9c)}c${String.fromCodePoint(0x9f)}d`;
+    expect(stripC1Controls(dirty)).toBe("abcd");
+  });
+
+  // @covers FR-01.66
+  it("preserves ordinary text just outside the C1 range", () => {
+    const edges = `${String.fromCodePoint(0x7f)}x${String.fromCodePoint(0xa0)}`;
+    expect(stripC1Controls(edges)).toBe(edges);
   });
 });

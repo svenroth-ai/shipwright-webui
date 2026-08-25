@@ -116,6 +116,12 @@
 .mc-feed-qa-opt[data-picked="true"] { color: var(--ok); border-color: var(--ok-line); background: var(--ok-tint); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
 .mc-feed-qa-opt svg { width: 11px; height: 11px; }
 .mc-feed-qa-answer { margin-top: 9px; font-size: 12.5px; color: var(--body); }
+/* iterate-2026-08-25-mission-feed-progress-narration — identical to
+   .mc-feed-qa-answer above (margin-top/font-size/color), plus pre-wrap so
+   a turn's own multi-line explanation keeps its real line breaks. Kept as
+   its own rule rather than editing .mc-feed-qa-answer so that class's
+   existing, already-shipped rendering stays byte-for-byte untouched. */
+.mc-feed-explanation { margin-top: 9px; font-size: 12.5px; color: var(--body); white-space: pre-wrap; }
 .mc-feed-qa-cta { margin-top: 9px; }
 .mc-feed-pr { margin-top: 9px; border: 1px solid var(--accent-line); background: var(--accent-tint); border-radius: 9px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; }
 .mc-feed-pr-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(95, 201, 180, .18); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }

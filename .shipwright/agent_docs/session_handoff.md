@@ -1,35 +1,49 @@
 ---
 canon_generated: true
-run_id: "changelog-v0.24.0-20260808-1500"
-phase: "changelog"
-reason: "release v0.24.0"
-timestamp: "2026-08-08T20:38:36.160644+00:00"
+run_id: "iterate-2026-08-25-mission-feed-progress-narration"
+phase: "iterate"
+reason: "iterate: mission feed progress narration - restore card.explanation"
+timestamp: "2026-08-25T12:29:31.029426+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-08-08 20:38:36 UTC
+> Auto-generated 2026-08-25 12:29:31 UTC
 
 ## Session Info
 
-- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
-- **Timestamp**: 2026-08-08 20:38:36 UTC
-- **Reason**: release v0.24.0
+- **Session ID**: f9d302a9-1825-4464-adf2-2526ec4ed0ad
+- **Timestamp**: 2026-08-25 12:29:31 UTC
+- **Reason**: iterate: mission feed progress narration - restore card.explanation
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
-- **Date**: 2026-08-08T10:36:25.721563Z
-- **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/tests-total-skip-contract
-- **ADR**: iterate-2026-08-08-tests-total-skip-contract
+- **Run ID**: iterate-2026-08-24-terminal-readonly-scroll-copy
+- **Date**: 2026-08-24T15:14:30.913068Z
+- **Type**: bug
+- **Complexity**: small
+- **Branch**: iterate/terminal-readonly-scroll-copy
+- **ADR**: iterate-2026-08-24-terminal-readonly-scroll-copy
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
+- **Spec**: FR-01.28
+
+## Current Iterate Progress
+
+- **Branch**: iterate/mission-feed-progress-narration
+- **Run ID**: iterate-2026-08-25-mission-feed-progress-narration
+- **Spec**: .shipwright/planning/iterate/2026-08-25-mission-feed-progress-narration.md
+- **Complexity**: medium (overridden from stage-1 estimate `small`, confidence
+- **External Review Marker**: stale (predates spec (2026-08-25T11:32:25))
+- **Review Cascade**: complete
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
-- **Phase**: changelog
+- **Phase**: design
 - **Current Split**: 01-adopted
 - **Current Section**: adopted-baseline
 
@@ -38,8 +52,8 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 ## Git State
 
-- **Branch**: feat/track-model-config-allowlist
-- **Last Commit**: e76e3fc1 chore(release): v0.24.0
+- **Branch**: iterate/mission-feed-progress-narration
+- **Last Commit**: ad4e4e96 fix(terminal): a read-only reader can scroll and copy inside a live session (#386)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -55,17 +69,17 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
-| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
-| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
-| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
-| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
+| evt-a80c5d89 | work_completed | iterate (Mission Activity Feed cards show a turn's own words beyond the headline (card.explanation) when exactly one assistant turn contributed to the card) | 2026-08-25 |
+| evt-b9e88e5a | event_amended | — | 2026-08-24 |
+| evt-4b7fe626 | work_completed | iterate (Read-only terminal viewer (second tab/browser without the writer slot) could not scroll or copy inside a live TUI session) | 2026-08-24 |
+| evt-b633e7cf | work_completed | iterate (Prerelease-aware attach-vs-swap comparator + stamp the published version into the staged server/package.json so app.version carries the -next tail.) | 2026-08-23 |
+| evt-3f5fd08e | work_completed | iterate (Route the new door to /wizard/new so it lands on step 1 (not the picker); add the wz-outline on-photo reset so the Back button is legible.) | 2026-08-23 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 398
-- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
+- **Total work events**: 430
+- **Last iterate**: feature — Mission Activity Feed cards show a turn's own words beyond the headline (card.explanation) when exactly one assistant turn contributed to the card (2026-08-25)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

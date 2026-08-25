@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { parseSessionJsonl } from "../external/session-parser";
 import { deriveActivityFeed } from "./missionActivityFeed";
+import { explanationExcerpt } from "./missionActivityFeedText";
 import type { MissionContext } from "./missionContextApi";
 
 const event = (value: unknown) => JSON.stringify(value);
@@ -214,5 +215,47 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     };
     const events = parseSessionJsonl(tool("review", "Task", { description: "Review the change" })).events;
     expect(deriveActivityFeed(events, reviewContext).cards.find((card) => card.kind === "review")?.status).toBe("ok");
+  });
+});
+
+describe("explanationExcerpt (iterate-2026-08-25-mission-feed-progress-narration)", () => {
+  it("returns empty for empty or whitespace-only input", () => {
+    expect(explanationExcerpt("")).toBe("");
+    expect(explanationExcerpt("   \n  \n\t")).toBe("");
+  });
+
+  it("returns short input unchanged, under both caps", () => {
+    expect(explanationExcerpt("first line\nsecond line")).toBe("first line\nsecond line");
+  });
+
+  it("preserves internal blank lines as paragraph breaks", () => {
+    expect(explanationExcerpt("para one\n\npara two")).toBe("para one\n\npara two");
+  });
+
+  it("truncates past the line cap with a trailing ellipsis on the last kept line", () => {
+    const out = explanationExcerpt(["a", "b", "c", "d", "e", "f", "g"].join("\n"), 3);
+    expect(out).toBe("a\nb\nc…");
+  });
+
+  it("truncates past the char cap on code points, never splitting a surrogate pair", () => {
+    const emoji = "🎉"; // U+1F389, a surrogate pair in UTF-16 (2 code units, 1 code point)
+    const out = explanationExcerpt(emoji.repeat(5), 6, 3);
+    expect(out).toBe(`${emoji.repeat(3)}…`);
+    expect(out.includes("�")).toBe(false);
+  });
+
+  it("strips control and bidi-override characters while preserving newlines/tabs", () => {
+    const dirty = `line\tone${String.fromCodePoint(0x202e)}\nline${String.fromCodePoint(0x07)}two`;
+    expect(explanationExcerpt(dirty)).toBe("line\tone\nlinetwo");
+  });
+
+  it("strips ANSI escape sequences", () => {
+    const esc = String.fromCodePoint(0x1b);
+    expect(explanationExcerpt(`${esc}[31mred${esc}[0m text`)).toBe("red text");
+  });
+
+  it("strips C1 control characters, matching card.text's sanitization (AC-3b, spec-reviewer catch)", () => {
+    const dirty = `line${String.fromCodePoint(0x81)}one\nline${String.fromCodePoint(0x9c)}two`;
+    expect(explanationExcerpt(dirty)).toBe("lineone\nlinetwo");
   });
 });
