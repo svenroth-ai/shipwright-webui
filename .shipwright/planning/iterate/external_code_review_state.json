@@ -1,10 +1,10 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-25T12:19:50.969825+00:00",
+  "timestamp": "2026-08-26T19:45:20.422178+00:00",
   "provider": "openrouter",
-  "findings_count": 4,
+  "findings_count": 7,
   "self_review_fallback_ran": false,
-  "reason": "revise (ship-with-fixes) - all 4 findings addressed: 1 HIGH correctness fix (turn-provenance undercounting), 1 MEDIUM test-rigor fix (AC-5 markup parity), 1 LOW style fix (delete vs undefined), 1 MEDIUM declined with rebuttal (AC-4 fixture-pattern precedent match, not a gap) \u2014 only some provider legs could be itemized \u2014 the count (4) may understate what was found",
+  "reason": "only some provider legs could be itemized \u2014 the count (7) may understate what was found",
   "review_mode": "code",
   "marker_schema": 3,
   "verdicts": {

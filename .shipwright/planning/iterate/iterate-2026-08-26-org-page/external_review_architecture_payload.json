@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "The browser-facing Org page should exist, using option A, but its conditional navigation mechanism is unnecessary permanent complexity.\n\nThe smallest thing that would do \u2014 a narrow in-process `/api/org/*` browser route over the existing org cores, ideally one composite roster read plus narrowly scoped document read/charter write endpoints; keep \u201cOrg\u201d as a static destination and let `/org` show installed, not-installed, or error states.\n\nWhat it costs to keep \u2014 the new browser API/view-model contract and its type-drift guard, plus any conditional-nav state must remain consistent across every future navigation surface.\n\nWhat it forecloses \u2014 conditional navigation turns the currently static destination registry into an availability-dependent system, making future navigation consumers and deep-link/discovery behavior more complex.\n\nCategory: simpler-alternative\nSeverity: medium\nFinding: Hiding \u201cOrg\u201d when `org-chart.json` is absent creates a permanent four-state presence hook, duplicate filtering obligations at every navigation consumer, and a named exception to the static navigation invariant; the page already needs to render the absent and broken states.\nSuggestion: Keep \u201cOrg\u201d in the sidebar and command palette unconditionally, and make the page itself show the existing not-installed or failure state. Retain option A\u2019s narrow in-process browser API, but remove `useOrgChartPresence()` and conditional destination filtering.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": "1. **The question, answered in one sentence.** The Org page should exist, but as a read-only view; the proposed browser write path for `charter.md` and the conditional nav-presence mechanism are both standing machinery the problem does not need yet.\n\n2. **The smallest thing that would do.** Option A cut down to reads: an in-process `/api/org/*` router that calls extracted read-only cores from the existing `external/org` handlers, keeps the host allowlist, and serves one composite roster/status/usage payload plus bounded read-only doc reads. Always show Org in the sidebar/palette and let the page\u2019s own 404/502/empty states handle absence; do not add a PUT proxy or `MarkdownEditorModal` integration.\n\n3. **What it costs to keep.** A new read-only plain-API route family and shared read cores must remain behaviorally identical to the existing secret-gated family as both evolve, and client org types must track server org types. It adds no write surface, no secret holder, and no nav-invariant exception.\n\n4. **What it forecloses.** Browser editing of `charter.md` this iterate, and hiding the Org entry when leadwright is absent; the page\u2019s not-installed state covers absence, and the existing leadwright write path covers editing.\n\n5. **Findings**\n\n- Category: proportionality\n- Severity: high\n- Finding: The new `/api/org/*` `PUT` to `charter.md` adds a browser-reachable write surface to org files to support one edit button in the mockup, but the stated problem is visibility, not browser editing.\n- Suggestion: Ship the Org page read-only this iterate. Remove AC-8/AC-10, the `MarkdownEditorModal` integration, and the file-write extraction from the new surface; leave `external/org/file-write.ts` on its existing gated path.\n\n- Category: simpler-alternative\n- Severity: medium\n- Finding: Making Org the first conditional entry in the nav registries adds a 4-state presence hook read at two call sites and a named exception to the static-nav invariant, simply to hide an entry when org-chart is absent.\n- Suggestion: Always show Org in the sidebar and command palette; the page already has `absent`/`broken` empty states for missing or invalid org-chart. This removes the nav-presence mechanism and the architecture exception entirely.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
+  }
+}

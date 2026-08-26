@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-26-org-page",
+  "date": "2026-08-26",
+  "section": "Iterate — feature: org page",
+  "title": "Org page: plain-surface proxy over the existing secret-gated org routes",
+  "context": "Operator needs to see AI leads (leadwright) inside the Command Center; only a secret-gated /api/external/org/* family existed, unusable from the browser.",
+  "decision": "Mount a new /api/org/* Hono router sharing the existing pure cores in-process (never HTTP); drop only the shared-secret gate, keep the host allowlist; allow exactly one new browser write (PUT charter.md, 403 on any other kind).",
+  "consequences": "One new client hook (useOrgChartPresence, 4-state) gates nav at sidebar+palette; new server/client type mirror (server/src/types/org.ts) needs its own drift guard.",
+  "rationale": "In-process core reuse avoids a second HTTP round trip and keeps the secret-gated family's own tests as the source of truth for those cores' behavior.",
+  "rejected": "Widening the gated route's CORS/auth to allow direct browser calls — rejected, would have exposed the secret-gated surface (incl. decision_log/decisions_proposed writes) to the browser origin.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-08-26-org-page.md"
+}

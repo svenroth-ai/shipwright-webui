@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity, Triangle, PanelLeftClose } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity, Triangle, Users, PanelLeftClose } from 'lucide-react';
 import { SidebarNavItem } from './SidebarNavItem';
 import { InboxBadge } from './InboxBadge';
 import { TriageBadge } from './TriageBadge';
 import { COMPACT_MEDIA_QUERY, useIsCompactViewport } from '../../hooks/useIsCompactViewport';
+import { useOrgChartPresence } from '../../hooks/useOrgChartPresence';
 
 interface SidebarNavProps {
   inboxCount: number;
@@ -50,6 +51,11 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
   // Drawer always shows full labels — the ≤1023 rail (sr-only labels) must not
   // leak into the ≤767 drawer (plan-review H2).
   const railed = drawer ? false : collapsed;
+  // FR-01.71 — "Org" is the first conditional entry in either nav registry
+  // (Design Notes, "Nav presence"): absent ONLY on a confirmed 404 (AC-6a),
+  // still shown while loading/broken so a real failure stays visible (AC-7).
+  const orgPresence = useOrgChartPresence();
+  const showOrg = orgPresence !== 'absent';
 
   const body = (
     <>
@@ -113,6 +119,9 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
           collapsed={railed}
           onSelect={onNavigate}
         />
+        {showOrg && (
+          <SidebarNavItem icon={Users} label="Org" to="/org" collapsed={railed} onSelect={onNavigate} />
+        )}
         <SidebarNavItem icon={Activity} label="Diagnostics" to="/diagnostics" collapsed={railed} onSelect={onNavigate} />
       </nav>
 

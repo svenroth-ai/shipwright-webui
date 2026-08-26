@@ -28,19 +28,9 @@ import type { Hono } from "hono";
 import { readFileSync, lstatSync } from "node:fs";
 import path from "node:path";
 
-export interface OrgChartLeadView {
-  domain: string;
-  name: string;
-  reports_to: string | null;
-  manages: string[];
-  charter_path: string;
-}
+import type { OrgChartLeadView, OrgChartView } from "../../types/org.js";
 
-export interface OrgChartView {
-  version: number;
-  po: string;
-  leads: Record<string, OrgChartLeadView>;
-}
+export type { OrgChartLeadView, OrgChartView } from "../../types/org.js";
 
 function isValidLead(v: unknown): v is OrgChartLeadView {
   if (typeof v !== "object" || v === null) return false;
@@ -92,51 +82,67 @@ export interface OrgChartRouteDeps {
   lstatSync?: (path: string) => { isSymbolicLink(): boolean };
 }
 
-export function registerOrgChartRoute(app: Hono, deps: OrgChartRouteDeps): void {
+export type OrgChartCoreResult =
+  | { status: 200; body: OrgChartView }
+  | { status: 403 | 404 | 500 | 502; body: { error: string; detail?: string } };
+
+/**
+ * Pure core — no Hono dependency, so both the secret-gated
+ * `/api/external/org/org-chart` route AND the plain-surface `/api/org/*`
+ * proxy (browser-facing, no secret, see `server/src/routes/org.ts`) share
+ * this ONE implementation of the symlink/containment/parse guards
+ * (Internal Plan Review fix — the guards previously lived only inside this
+ * handler closure and could not have been reused without duplication).
+ */
+export function orgChartCore(deps: OrgChartRouteDeps): OrgChartCoreResult {
   const { leadsRoot } = deps;
   const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
+  const target = path.join(leadsRoot, "org-chart.json");
 
+  // External-review fix (HIGH, security): this named endpoint previously
+  // went straight to readFileSync (follows symlinks) with no lstat check
+  // and no realpath containment guard — a symlinked org-chart.json could
+  // serve an arbitrary external file's contents through this authenticated
+  // route if it happened to satisfy the lightweight structural shape.
+  try {
+    if (lstat(target).isSymbolicLink()) {
+      return { status: 403, body: { error: "symlink_forbidden" } };
+    }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== "ENOENT") {
+      return {
+        status: 500,
+        body: { error: "org_chart_stat_failed", detail: String(err).slice(0, 200) },
+      };
+    }
+  }
+
+  let raw: string;
+  try {
+    raw = readFileSync(target, "utf8");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
+      return { status: 404, body: { error: "org_chart_missing" } };
+    }
+    return {
+      status: 500,
+      body: { error: "org_chart_read_failed", detail: String(err).slice(0, 200) },
+    };
+  }
+
+  const orgChart = parseOrgChart(raw);
+  if (!orgChart) {
+    return { status: 502, body: { error: "org_chart_invalid" } };
+  }
+
+  return { status: 200, body: orgChart };
+}
+
+export function registerOrgChartRoute(app: Hono, deps: OrgChartRouteDeps): void {
   app.get("/api/external/org/org-chart", async (c) => {
-    const target = path.join(leadsRoot, "org-chart.json");
-
-    // External-review fix (HIGH, security): this named endpoint previously
-    // went straight to readFileSync (follows symlinks) with no lstat check
-    // and no realpath containment guard — a symlinked org-chart.json could
-    // serve an arbitrary external file's contents through this authenticated
-    // route if it happened to satisfy the lightweight structural shape.
-    try {
-      if (lstat(target).isSymbolicLink()) {
-        return c.json({ error: "symlink_forbidden" }, 403);
-      }
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code !== "ENOENT") {
-        return c.json(
-          { error: "org_chart_stat_failed", detail: String(err).slice(0, 200) },
-          500,
-        );
-      }
-    }
-
-    let raw: string;
-    try {
-      raw = readFileSync(target, "utf8");
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        return c.json({ error: "org_chart_missing" }, 404);
-      }
-      return c.json(
-        { error: "org_chart_read_failed", detail: String(err).slice(0, 200) },
-        500,
-      );
-    }
-
-    const orgChart = parseOrgChart(raw);
-    if (!orgChart) {
-      return c.json({ error: "org_chart_invalid" }, 502);
-    }
-
-    return c.json(orgChart);
+    const result = orgChartCore(deps);
+    return c.json(result.body, result.status);
   });
 }

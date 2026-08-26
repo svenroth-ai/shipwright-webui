@@ -53,6 +53,7 @@ const PAGES_DIR = join(CLIENT_SRC, 'pages');
 const TITLE_BAR_ROUTES: Record<string, string[]> = {
   'DiagnosticsPage.tsx': ['pages/DiagnosticsPage.tsx'],
   'InboxPage.tsx': ['pages/InboxPage.tsx'],
+  'OrgPage.tsx': ['pages/OrgPage.tsx'],
   'ProjectsPage.tsx': ['pages/ProjectsPage.tsx'],
   'SettingsPage.tsx': ['pages/SettingsPage.tsx'],
   'ShipsLogPage.tsx': ['pages/ShipsLogPage.tsx'],

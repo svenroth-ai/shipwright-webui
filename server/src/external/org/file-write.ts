@@ -44,27 +44,18 @@
  */
 
 import type { Hono } from "hono";
-import {
-  readFileSync,
-  writeFileSync,
-  renameSync,
-  unlinkSync,
-  existsSync,
-  lstatSync,
-} from "node:fs";
-import { dirname, join } from "node:path";
+import { lstatSync } from "node:fs";
 
-import { realPathGuard } from "../../core/path-guard.js";
 import {
   resolveOrgAllowlistedTarget,
   type OrgAllowlistedKind,
 } from "./_helpers.js";
-import { fileFingerprint, unquoteEtag } from "../file/_helpers.js";
 import {
   withDecisionsLock,
   OrgSymlinkEscapeError,
   type DecisionsLockDeps,
 } from "./decisions-lock.js";
+import { performWrite, type WriteOutcome } from "./file-write-core.js";
 
 /** 2 MiB — org docs are small prose files, same cap as the project markdown write. */
 export const ORG_WRITE_MAX_BYTES = 2 * 1024 * 1024;
@@ -74,184 +65,135 @@ const LOCKED_KINDS: ReadonlySet<OrgAllowlistedKind> = new Set([
   "decisions_proposed",
 ]);
 
-type WriteOutcome =
-  | { ok: true; status: 200; body: { written: true; fingerprint: string; size: number } }
-  | { ok: false; status: number; body: Record<string, unknown> };
-
 export interface OrgFileWriteDeps extends DecisionsLockDeps {
   lstatSync?: (path: string) => { isSymbolicLink(): boolean; isFile(): boolean };
   /** Injectable for tests; production wires the real `withDecisionsLock`. */
   withDecisionsLock?: typeof withDecisionsLock;
 }
 
-function performWrite(
-  absoluteTarget: string,
-  leadsRoot: string,
-  relpath: string,
-  body: string,
-  ifMatch: string | undefined,
-  lstat: (path: string) => { isSymbolicLink(): boolean; isFile(): boolean },
-): WriteOutcome {
-  let lst;
-  try {
-    lst = lstat(absoluteTarget);
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException)?.code;
-    if (code === "ENOENT") {
-      return { ok: false, status: 404, body: { error: "not_found", path: relpath } };
-    }
-    return {
-      ok: false,
-      status: 500,
-      body: { error: "file_stat_failed", detail: String(err).slice(0, 200) },
-    };
-  }
-  if (lst.isSymbolicLink()) {
-    return { ok: false, status: 403, body: { error: "symlink_forbidden", path: relpath } };
-  }
-  if (!lst.isFile()) {
-    return { ok: false, status: 400, body: { error: "not_a_file", path: relpath } };
-  }
+export type OrgFileWriteCoreResult =
+  | { status: 200; body: { written: true; fingerprint: string; size: number } }
+  | { status: 400 | 403 | 404 | 409 | 413 | 500; body: Record<string, unknown> };
 
-  const realGuard = realPathGuard(leadsRoot, absoluteTarget);
-  if (!realGuard.ok) {
-    return {
-      ok: false,
-      status: 400,
-      body: { error: "path_traversal", detail: realGuard.reason },
-    };
-  }
-
-  if (!ifMatch) {
-    return { ok: false, status: 400, body: { error: "precondition_required" } };
-  }
-  let current: Buffer;
-  try {
-    current = readFileSync(absoluteTarget);
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException)?.code;
-    if (code === "ENOENT") {
-      return { ok: false, status: 404, body: { error: "not_found", path: relpath } };
-    }
-    return {
-      ok: false,
-      status: 500,
-      body: { error: "file_read_failed", detail: String(err).slice(0, 200) },
-    };
-  }
-  const currentFingerprint = fileFingerprint(current);
-  if (unquoteEtag(ifMatch) !== currentFingerprint) {
-    return {
-      ok: false,
-      status: 409,
-      body: { error: "fingerprint_mismatch", currentFingerprint },
-    };
-  }
-
-  const nextBuf = Buffer.from(body, "utf8");
-  const tmp = join(dirname(absoluteTarget), `.org-write.tmp-${process.pid}-${Date.now()}`);
-  try {
-    writeFileSync(tmp, nextBuf);
-    renameSync(tmp, absoluteTarget);
-  } catch (err) {
-    try {
-      if (existsSync(tmp)) unlinkSync(tmp);
-    } catch {
-      /* swallow */
-    }
-    return {
-      ok: false,
-      status: 500,
-      body: { error: "write_failed", detail: String(err).slice(0, 200), path: relpath },
-    };
-  }
-
-  return {
-    ok: true,
-    status: 200,
-    body: { written: true, fingerprint: fileFingerprint(nextBuf), size: nextBuf.length },
-  };
+export interface OrgFileWriteParams {
+  relpath: string | undefined;
+  contentLengthHeader: string | undefined;
+  body: string;
+  ifMatch: string | undefined;
 }
 
-export function registerOrgFileWrite(app: Hono, deps: OrgFileWriteDeps): void {
+/**
+ * Pure core — shared by the secret-gated route and the plain-surface proxy.
+ * Kind restriction (e.g. "only `charter` may pass through the browser-facing
+ * proxy") is the CALLER's job, applied against `resolveOrgAllowlistedTarget`'s
+ * `kind` before or after invoking this — this core stays as general as the
+ * existing route (all six allowlisted kinds).
+ */
+export async function orgFileWriteCore(
+  deps: OrgFileWriteDeps,
+  params: OrgFileWriteParams,
+): Promise<OrgFileWriteCoreResult> {
   const { leadsRoot } = deps;
   const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
   const lockFn = deps.withDecisionsLock ?? withDecisionsLock;
+  const { relpath, contentLengthHeader, body, ifMatch } = params;
 
+  if (!relpath || relpath.length === 0) {
+    return { status: 400, body: { error: "path_required" } };
+  }
+
+  const target = resolveOrgAllowlistedTarget(leadsRoot, relpath);
+  if (!target.ok) {
+    const status = target.reason === "not_allowlisted" ? 403 : 400;
+    const err = target.reason === "traversal" ? "path_traversal" : target.reason;
+    return { status, body: { error: err, detail: target.reason } };
+  }
+
+  const declaredLength = Number(contentLengthHeader ?? "");
+  if (Number.isFinite(declaredLength) && declaredLength > ORG_WRITE_MAX_BYTES) {
+    return {
+      status: 413,
+      body: { error: "payload_too_large", maxBytes: ORG_WRITE_MAX_BYTES, size: declaredLength },
+    };
+  }
+
+  const byteLen = Buffer.byteLength(body, "utf8");
+  if (byteLen > ORG_WRITE_MAX_BYTES) {
+    return {
+      status: 413,
+      body: { error: "payload_too_large", maxBytes: ORG_WRITE_MAX_BYTES, size: byteLen },
+    };
+  }
+
+  let outcome: WriteOutcome;
+  if (LOCKED_KINDS.has(target.kind)) {
+    // Pre-lock existence probe (external-review fix) — must run BEFORE
+    // withDecisionsLock, since its own ensureFile() would otherwise
+    // auto-vivify decisions-proposed.md first and hide a genuinely
+    // missing target from performWrite's existence check.
+    try {
+      lstat(target.absolute);
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if (code === "ENOENT") {
+        return { status: 404, body: { error: "not_found", path: relpath } };
+      }
+      return {
+        status: 500,
+        body: { error: "file_stat_failed", detail: String(err).slice(0, 200) },
+      };
+    }
+
+    try {
+      outcome = await lockFn({ leadsRoot, lstatSync: deps.lstatSync }, () =>
+        performWrite(target.absolute, leadsRoot, relpath, body, ifMatch, lstat),
+      );
+    } catch (err) {
+      // Doubt-review fix: `withDecisionsLock` symlink-checks BOTH
+      // decision_log.md and decisions-proposed.md (whichever one this PUT
+      // targets, the OTHER is still checked because it shares the lock) —
+      // uncaught, that 403-shaped condition fell through to the generic
+      // 500 handler instead of the family's typed symlink_forbidden.
+      // ELOCKED is deliberately NOT caught here: it propagates to the
+      // caller (either the app-level errorHandler for the gated route, or
+      // the new router's own catch, both of which map it to the same
+      // retryable 409 every other multi-writer state file uses (CLAUDE.md
+      // DO-NOT #6)).
+      if (err instanceof OrgSymlinkEscapeError) {
+        return { status: 403, body: { error: "symlink_forbidden", path: err.path } };
+      }
+      throw err;
+    }
+  } else {
+    outcome = performWrite(target.absolute, leadsRoot, relpath, body, ifMatch, lstat);
+  }
+
+  return { status: outcome.status, body: outcome.body } as OrgFileWriteCoreResult;
+}
+
+export function registerOrgFileWrite(app: Hono, deps: OrgFileWriteDeps): void {
   app.put("/api/external/org/file", async (c) => {
     const relpath = c.req.query("path");
-    if (!relpath || relpath.length === 0) {
-      return c.json({ error: "path_required" }, 400);
-    }
+    const contentLengthHeader = c.req.header("content-length");
 
-    const target = resolveOrgAllowlistedTarget(leadsRoot, relpath);
-    if (!target.ok) {
-      const status = target.reason === "not_allowlisted" ? 403 : 400;
-      const err = target.reason === "traversal" ? "path_traversal" : target.reason;
-      return c.json({ error: err, detail: target.reason }, status);
-    }
-
-    const declaredLength = Number(c.req.header("content-length") ?? "");
-    if (Number.isFinite(declaredLength) && declaredLength > ORG_WRITE_MAX_BYTES) {
+    // Bail before reading the request body when the declared Content-Length
+    // alone already exceeds the cap — preserved from the pre-extraction
+    // handler so an oversized upload is never buffered into memory just to
+    // be rejected.
+    const declaredLength = Number(contentLengthHeader ?? "");
+    if (relpath && Number.isFinite(declaredLength) && declaredLength > ORG_WRITE_MAX_BYTES) {
       return c.json(
         { error: "payload_too_large", maxBytes: ORG_WRITE_MAX_BYTES, size: declaredLength },
         413,
       );
     }
 
-    const body = await c.req.text();
-    const byteLen = Buffer.byteLength(body, "utf8");
-    if (byteLen > ORG_WRITE_MAX_BYTES) {
-      return c.json(
-        { error: "payload_too_large", maxBytes: ORG_WRITE_MAX_BYTES, size: byteLen },
-        413,
-      );
-    }
-
-    const ifMatch = c.req.header("if-match");
-
-    let outcome: WriteOutcome;
-    if (LOCKED_KINDS.has(target.kind)) {
-      // Pre-lock existence probe (external-review fix) — must run BEFORE
-      // withDecisionsLock, since its own ensureFile() would otherwise
-      // auto-vivify decisions-proposed.md first and hide a genuinely
-      // missing target from performWrite's existence check.
-      try {
-        lstat(target.absolute);
-      } catch (err) {
-        const code = (err as NodeJS.ErrnoException)?.code;
-        if (code === "ENOENT") {
-          return c.json({ error: "not_found", path: relpath }, 404);
-        }
-        return c.json(
-          { error: "file_stat_failed", detail: String(err).slice(0, 200) },
-          500,
-        );
-      }
-
-      try {
-        outcome = await lockFn({ leadsRoot, lstatSync: deps.lstatSync }, () =>
-          performWrite(target.absolute, leadsRoot, relpath, body, ifMatch, lstat),
-        );
-      } catch (err) {
-        // Doubt-review fix: `withDecisionsLock` symlink-checks BOTH
-        // decision_log.md and decisions-proposed.md (whichever one this PUT
-        // targets, the OTHER is still checked because it shares the lock) —
-        // uncaught, that 403-shaped condition fell through to the generic
-        // 500 handler instead of the family's typed symlink_forbidden.
-        // ELOCKED is deliberately NOT caught here: it propagates to the
-        // app-level errorHandler (middleware/error-handler.ts), which already
-        // maps it to the same retryable 409 every other multi-writer state
-        // file uses (CLAUDE.md DO-NOT #6).
-        if (err instanceof OrgSymlinkEscapeError) {
-          return c.json({ error: "symlink_forbidden", path: err.path }, 403);
-        }
-        throw err;
-      }
-    } else {
-      outcome = performWrite(target.absolute, leadsRoot, relpath, body, ifMatch, lstat);
-    }
-
-    return c.json(outcome.body, outcome.status as 200 | 400 | 403 | 404 | 409 | 500);
+    const result = await orgFileWriteCore(deps, {
+      relpath,
+      contentLengthHeader,
+      body: await c.req.text(),
+      ifMatch: c.req.header("if-match"),
+    });
+    return c.json(result.body, result.status as 200 | 400 | 403 | 404 | 409 | 413 | 500);
   });
 }

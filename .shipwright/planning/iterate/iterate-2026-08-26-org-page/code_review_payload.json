@@ -1,0 +1,37 @@
+{
+  "section": "iterate-2026-08-26-org-page (Stage-2 code-reviewer re-review)",
+  "review": [
+    {
+      "severity": "high",
+      "category": "correctness",
+      "file": "client/src/components/org/AuditLogModal.tsx",
+      "line": 42,
+      "finding": "The fix for a previously-reported finding (AuditLogModal's queryFn side effect duplicating rows on background refetch) added refetchOnMount:false/refetchOnReconnect:false/refetchOnWindowFocus:false, but this also disabled the FOREGROUND refetch TanStack Query would do on a genuine remount with cached data. Since LeadCard.tsx conditionally unmounts AuditLogModal on close ({auditOpen && <AuditLogModal .../>}), reopening the same lead's audit log within the default 5-minute gcTime remounts the component with local `pages` state reset to [] while the cached query never re-invokes queryFn (so the side effect that populated `pages` never fires) -- the modal renders a completely blank body with no loading/error/not-found state. 100% reproducible on every close-then-reopen cycle.",
+      "suggestion": "Stop deriving entries from a queryFn side effect. Fetch each page via its own query (e.g. useQueries keyed per cursor) and derive entries directly from each query's data, so a cache hit on remount renders immediately with no side effect required. Add a regression test: open, close (unmount), reopen with the same QueryClient, assert entries are still visible."
+    },
+    {
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "client/e2e/flows/",
+      "line": null,
+      "finding": "The iterate spec's own '## Verification (medium+)' section commits to a Playwright E2E flow at client/e2e/flows/<new-org-page-spec>.spec.ts, and the External-Code-Review Findings section defers (not waives) the suggested present/missing E2E flow to that same Step 11a authoring step. No such file exists yet anywhere in client/e2e/flows/.",
+      "suggestion": "Author client/e2e/flows/<nn>-org-page.spec.ts covering: nav entry hidden + not-installed empty state on a confirmed absent chart (AC-6a/AC-6b); nav entry present + page-level error on a broken/invalid chart (AC-7); the present happy-path chart -> shared docs -> lead cards order (AC-1); the charter edit/save round trip through the real MarkdownEditorModal UI. Run it, per the medium+ convention."
+    },
+    {
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "client/src/pages/OrgPage.tsx",
+      "line": null,
+      "finding": "No component test existed for OrgPage.tsx itself -- the one file implementing AC-1's top-level block order (chart -> shared docs -> lead list) and the page-level presence-state rendering (not-installed, broken-with-error, loading, present). The hook and nav-gating consumers were tested elsewhere, but nothing verified the page's own render logic for each of the 4 presence states.",
+      "suggestion": "Add OrgPage.test.tsx mocking useOrgChartPresence/useOrgChart/useOrgRoster, asserting each presence branch renders its test id and that DOM order holds (org-chart -> org-shared-docs -> org-lead-list) in the present case."
+    },
+    {
+      "severity": "low",
+      "category": "security",
+      "file": "server/src/routes/org.ts",
+      "line": 115,
+      "finding": "The PUT charter route's HIGH external-review fix refuses a syntactically-valid-but-unregistered leadId via an org-chart membership check, but the two GET routes for a lead's learnings.md and audit.jsonl only shape-validated leadId (LEAD_ID_RE) and never checked chart membership -- inconsistent posture; a stale/decommissioned lead directory still on disk would still serve through the browser-facing proxy.",
+      "suggestion": "Add the same chart-membership check to both GET handlers for consistency with the charter PUT route's posture, or explicitly document the narrower scope as intentional (read-only, local-only, host-allowlist-gated)."
+    }
+  ]
+}
