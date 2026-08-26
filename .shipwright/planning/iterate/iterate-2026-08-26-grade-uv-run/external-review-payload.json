@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: test\n- Severity: medium\n- File: `server/src/test/no-direct-python-spawn.test.ts:40-44`\n- Finding: The regression guard can be bypassed by ordinary direct-spawn code, so it does not fully enforce the acceptance criterion that no `server/src/` call site may resolve a raw Python binary and spawn it. For example, `const py = \"python3\"; await spawn(py, [script], opts)` matches neither check, and a new nested file named `readiness-probe.ts` or `readiness-probe-run.ts` is blanket-allowlisted by basename. Such a regression would pass all five guard tests.\n- Suggestion: Use an AST-based scan (or a stricter source rule) that detects interpreter literals assigned to variables and subsequently passed to process-spawn APIs, and allowlist exact known file paths/expressions rather than every file sharing a basename.\n\nThe production invocation changes appear to satisfy the required `uv run --project` and `uv run --python \">=3.11\"` behavior and preserve the required environment layering. However, the required regression guard is incomplete and should be strengthened before shipping.  \nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": null,
+      "via": "openrouter",
+      "status": "degraded",
+      "reason": "provider returned an empty reply"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "unavailable"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "degraded"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered — deepseek did not (deepseek=unavailable, openai=revise)"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "grade-runner.ts and triage-cli-runner.ts spawn via uv run per the reported fix (AUFGABE 1/2); regression guard test added (AUFGABE 4); SHIPWRIGHT_GRADE_COMPLIANCE_ROOT passthrough verified. AUFGABE 3 (reorder resolvePython's own probe order) deliberately out of scope — documented in the iterate spec's Out of Scope section; neither fixed call site uses resolvePython any more, so it closes no vulnerable path."},
+    {"name": "Error Handling", "verdict": "pass", "note": "uv-missing and spawn-failure paths return honest engine-unavailable outcomes with the existing repair command; no unhandled null/undefined introduced."},
+    {"name": "Security Basics", "verdict": "pass", "note": "shell:false preserved (execFile unchanged); the `--` end-of-options separator before the target is preserved; no new user-input path; no secrets."},
+    {"name": "Test Quality", "verdict": "pass", "note": "New/updated tests assert on argv shape, env contents, and outcome status (behavior), not internals; each function has a happy path and an engine-unavailable/error path."},
+    {"name": "Performance Basics", "verdict": "n/a", "note": "No DB/loop/pagination surface touched."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "New uv-runner.ts (59 lines) mirrors readiness-probe-path.ts conventions; every touched file stays under the 300-line guideline."},
+    {"name": "Affected Boundaries", "verdict": "n/a", "note": "No serialized-format change — this changes subprocess invocation (argv/env), not a wire/file format. GradeOutcome and the triage CLI JSON envelope are unchanged."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff: no findings."}
+  ]
+}

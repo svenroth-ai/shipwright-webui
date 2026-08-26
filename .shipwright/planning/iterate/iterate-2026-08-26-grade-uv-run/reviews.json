@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-26-grade-uv-run",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-26T08:34:02.927623+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-26T08:34:12.405794+00:00",
+      "disposition": "autonomous mode: the bug report itself carried a verified root cause and a hand-tested fix design (verified against the live plugin cache before implementation); no separate mini-plan-review round was run this session",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/triage-cli-runner.ts",
+          "line": null,
+          "finding": "triage-cli-runner.ts did not thread deps.homeDir into its resolveUv() calls, unlike the sibling fix in grade-runner.ts which passes homeDir through — an asymmetry between the two runners fixed in the same commit. Currently harmless (no production caller overrides homeDir today) but left the PATH-augmentation env always resolving against the real os.homedir() regardless of an injected homeDir. Fixed in follow-up: both triageWriteAvailability() and runTriageCli() now pass homeDir: deps.homeDir to resolveUv().",
+          "suggestion": "Thread homeDir through for symmetry with grade-runner.ts — done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "documentation",
+          "file": "server/src/routes/grade.ts",
+          "line": null,
+          "finding": "routes/grade.ts's header comment still said 'fixed python binary', stale after the spawn moved to `uv run --project <plugin-root>`. Fixed in follow-up: comment updated to describe the uv run --project spawn.",
+          "suggestion": "Update the stale doc comment — done.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-26T08:46:42.177016+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary-and-contract",
+          "file": "server/src/core/triage-cli-runner.ts",
+          "line": null,
+          "finding": "Claim under doubt: triage-cli-runner's `uv run --python \">=3.11\"` (no --project) runs triage_cli.py in an isolated/ad-hoc environment with no silent-fallback risk. — Without --project/--no-project, uv run walks up from the SPAWNING PROCESS's cwd (never the script's own path) looking for an ambient pyproject.toml to activate. Neither runner sets `cwd` on execFile, so discovery ran from wherever the Node server process started, not from shared/scripts/tools/. Confirmed live: cwd'd into shipwright-grade's own plugin root (which HAS a pyproject.toml) and ran the triage_cli.py invocation from there — it silently succeeded against that ambient project rather than erroring, exactly the accidental-adoption risk described.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/test/no-direct-python-spawn.test.ts",
+          "line": null,
+          "finding": "Claim under doubt: no-direct-python-spawn.test.ts's regex-based scan forecloses the regression class of a new call site spawning a raw python interpreter. — Found two additional bypasses beyond the one the external code-reviewer already caught: (a) a template-literal spawn target (execFile(`python3`, ...)) was invisible to the quote-only regex; (b) a future call site reimplementing the python3->python->py probe LOOP inline (copying the literal array from readiness-probe-run.ts, rather than calling the shared resolvePython()) would trip neither existing check, since its spawn target is a loop variable, not a direct literal or a flat single assignment.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling-and-blast-radius",
+          "file": "server/src/core/grade-runner.ts",
+          "line": null,
+          "finding": "Claim under doubt: Grade's route is read-only; this change doesn't add a write surface. — Confirmed on the real machine that uv run --project writes into the plugin's OWN cache directory (~/.claude/plugins/cache/shipwright/shipwright-grade/<version>/.venv/) on first dependency sync — something the old bare-python spawn never did. Neither the unit tests (mocked spawn) nor the E2E harness (uv-shim execs python directly, bypassing real uv sync) exercise a cold-cache first-grade or two concurrent first-syncs racing the same .venv.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/grade-target.ts",
+          "line": null,
+          "finding": "Claim under doubt: resolveGradePluginRoot()'s \"3 levels up\" assumption could target the wrong directory. — Verified directly against the real cache: shipwright-grade/<version>/pyproject.toml and uv.lock exist exactly 3 dirname() calls up from the resolved grade.py, for the only layout actually observed in the wild. The untested defensive flat-layout fallback is internally consistent, and even a wrong target fails loudly (uv run --project <dir-without-pyproject.toml> errors clearly) rather than silently succeeding against an unintended project.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling-and-blast-radius",
+          "file": "server/src/core/uv-runner.ts",
+          "line": null,
+          "finding": "Claim under doubt: resolveUv()'s presence probe and its bin/env resolution could diverge if a caller supplies mismatched deps. — Traced both production call sites — neither ever supplies deps.homeDir/deps.baseEnv/deps.platform without also supplying a matching run, so in production both computations derive from identical process.env/os.homedir()/process.platform and are provably byte-identical today.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-26T09:02:28.362372+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/test/no-direct-python-spawn.test.ts:40-44",
+          "line": null,
+          "finding": "The regression guard can be bypassed by ordinary direct-spawn code, so it does not fully enforce the acceptance criterion that no `server/src/` call site may resolve a raw Python binary and spawn it. For example, `const py = \"python3\"; await spawn(py, [script], opts)` matches neither check, and a new nested file named `readiness-probe.ts` or `readiness-probe-run.ts` is blanket-allowlisted by basename. Such a regression would pass all five guard tests.",
+          "suggestion": "Use an AST-based scan (or a stricter source rule) that detects interpreter literals assigned to variables and subsequently passed to process-spawn APIs, and allowlist exact known file paths/expressions rather than every file sharing a basename.  The production invocation changes appear to satisfy the required `uv run --project` and `uv run --python \">=3.11\"` behavior and preserve the required environment layering. However, the required regression guard is incomplete and should be strengthened before shipping. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-26T08:55:15.601275+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: test\n- Severity: medium\n- File: `server/src/test/no-direct-python-spawn.test.ts:40-44`\n- Finding: The regression guard can be bypassed by ordinary direct-spawn code, so it does not fully enforce the acceptance criterion that no `server/src/` call site may resolve a raw Python binary and spawn it. For example, `const py = \"python3\"; await spawn(py, [script], opts)` matches neither check, and a new nested file named `readiness-probe.ts` or `readiness-probe-run.ts` is blanket-allowlisted by basename. Such a regression would pass all five guard tests.\n- Suggestion: Use an AST-based scan (or a stricter source rule) that detects interpreter literals assigned to variables and subsequently passed to process-spawn APIs, and allowlist exact known file paths/expressions rather than every file sharing a basename.\n\nThe production invocation changes appear to satisfy the required `uv run --project` and `uv run --python \">=3.11\"` behavior and preserve the required environment layering. However, the required regression guard is incomplete and should be strengthened before shipping.  \nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      },
+      "model_tier": "sonnet"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-26T08:40:52.899909+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-26T08:34:12.517653+00:00",
+      "disposition": "autonomous mode: no internal opus-plan-reviewer arm was spawned this session; the code-review cascade (spec/code/doubt) carries diff-quality review instead",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

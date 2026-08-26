@@ -8,6 +8,12 @@
  * REAL grade.py shapes captured during the A09b confidence-calibration probe
  * (authoritative all-scored + cold all-n/a, schema_version 1.0, fractional
  * dimension scores/weights).
+ *
+ * iterate-2026-08-26-grade-uv-run: the spawn moved from a bare resolved python
+ * binary to `uv run --project <plugin-root>` (the ModuleNotFoundError bug —
+ * grade.py declares `defusedxml` + Python 3.11+ in its own pyproject.toml,
+ * which a bare python3 never sees). `okRun`/`noUv` now stand for uv's own
+ * `--version` presence probe, not python's.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -19,9 +25,9 @@ import {
 } from "./grade-runner.js";
 import { ENV_COMPLIANCE_ROOT } from "./grade-target.js";
 
-/** A working python resolver — resolvePython uses `run(bin, ["--version"])`. */
-const okRun = () => Promise.resolve({ ok: true, stdout: "Python 3.12.13", stderr: "" });
-const noPython = () => Promise.resolve({ ok: false, stdout: "", stderr: "" });
+/** A working uv resolver — resolveUv uses `run("uv", ["--version"])`. */
+const okRun = () => Promise.resolve({ ok: true, stdout: "uv 0.11.9", stderr: "" });
+const noUv = () => Promise.resolve({ ok: false, stdout: "", stderr: "" });
 
 /** A real captured grade.py --format json payload (authoritative, all scored). */
 const AUTH_MODEL = {
@@ -52,7 +58,7 @@ function spawnReturning(result: Partial<SpawnResult>): SpawnGradeFn {
 
 describe("runGrade — the spawn is injection-safe (fixed argv, shell:false)", () => {
   // @covers FR-01.51
-  it("passes the target as a FIXED argv position, never a shell string", async () => {
+  it("runs via `uv run --project <plugin-root>`, target as a FIXED argv position", async () => {
     const spawn = vi.fn<SpawnGradeFn>(async () => ({
       code: 0,
       stdout: JSON.stringify(AUTH_MODEL),
@@ -63,16 +69,32 @@ describe("runGrade — the spawn is injection-safe (fixed argv, shell:false)", (
 
     expect(spawn).toHaveBeenCalledTimes(1);
     const [bin, args, opts] = spawn.mock.calls[0];
-    expect(bin).toBe("python3"); // the fixed-literal python binary
-    // args = [script, "--format", "json", "--", target]. The `--` end-of-options
-    // separator + fixed positional means a `--no-clone`-style target can never be
-    // read as a grade.py flag (argument-injection defence).
-    expect(args.slice(1)).toEqual(["--format", "json", "--", target]);
+    expect(bin).toBe("uv"); // never a bare python binary — see uv-runner.ts
+    // args = ["run", "--project", pluginRoot, script, "--format", "json", "--",
+    // target]. --project resolves grade.py's OWN declared deps (defusedxml,
+    // Python 3.11+) instead of an ambient interpreter. The absolute script
+    // path is a fixed argv slot; the `--` end-of-options separator + fixed
+    // target position means a `--no-clone`-style target can never be read as
+    // a grade.py flag (argument-injection defence).
+    expect(args[0]).toBe("run");
+    expect(args[1]).toBe("--project");
+    expect(args[2]).toBe("/cache/shipwright-grade/0.29.1"); // 3 levels up from scriptOverride
+    expect(args[3]).toBe("/cache/shipwright-grade/0.29.1/scripts/tools/grade.py");
+    expect(args.slice(4)).toEqual(["--format", "json", "--", target]);
     expect(args[args.length - 1]).toBe(target); // the target is the LAST, lone member
     // No arg is a concatenated shell line — the target is its own lone member.
     expect(args.filter((a) => a.includes("--format json"))).toHaveLength(0);
     // The compliance root is injected via env so grade.py's engine resolves.
     expect(opts.env[ENV_COMPLIANCE_ROOT]).toBe("/cache/shipwright-compliance/0.2.2");
+  });
+
+  // @covers FR-01.51
+  it("uv missing → engine-unavailable WITHOUT falling back to a bare python", async () => {
+    const spawn = spawnReturning({});
+    const out = await runGrade({ target: "C:/repo" }, { ...engineDeps(spawn), run: noUv });
+    expect(out.status).toBe("engine-unavailable");
+    expect(out.reason).toMatch(/uv isn't installed/i);
+    expect(spawn).not.toHaveBeenCalled();
   });
 });
 
@@ -102,7 +124,7 @@ describe("runGrade — honest outcome mapping for every grade.py exit", () => {
   });
 
   // @covers FR-01.51
-  it("a spawn failure (python vanished, code -1) → engine-unavailable", async () => {
+  it("a spawn failure (uv vanished, code -1) → engine-unavailable", async () => {
     const spawn = spawnReturning({ code: -1, spawnError: "ENOENT" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
     expect(out.status).toBe("engine-unavailable");
@@ -170,9 +192,9 @@ describe("runGrade — pre-spawn gates (no subprocess when they fail)", () => {
   });
 
   // @covers FR-01.51
-  it("no working python → engine-unavailable WITHOUT spawning", async () => {
+  it("no working uv → engine-unavailable WITHOUT spawning", async () => {
     const spawn = spawnReturning({});
-    const out = await runGrade({ target: "C:/repo" }, { ...engineDeps(spawn), run: noPython });
+    const out = await runGrade({ target: "C:/repo" }, { ...engineDeps(spawn), run: noUv });
     expect(out.status).toBe("engine-unavailable");
     expect(spawn).not.toHaveBeenCalled();
   });

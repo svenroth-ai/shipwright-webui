@@ -2,8 +2,9 @@
  * POST /api/wizard/grade — the read-only Grade door route (A09b, FR-01.53).
  *
  * Runs `shipwright-grade`'s `grade.py <target> --format json` via
- * `core/grade-runner.ts` (shell:false, fixed python binary, validated target)
- * and returns the plugin's real `ReportModel` — or an HONEST degraded state.
+ * `core/grade-runner.ts` (shell:false, `uv run --project <plugin-root>`,
+ * validated target) and returns the plugin's real `ReportModel` — or an
+ * HONEST degraded state.
  * Grade registers NO project and writes NOTHING (a bare grade is read-only);
  * this is a pure observer route, so it is POST only for a request body, never a
  * mutation.
