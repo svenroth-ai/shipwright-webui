@@ -1,0 +1,46 @@
+{
+  "run_id": "iterate-2026-08-26-grade-pill-contrast",
+  "date": "2026-08-26T06:33:22.755083Z",
+  "event_at": "2026-08-26T06:31:25.243550+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/grade-pill-contrast",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-08-26-grade-pill-contrast",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "wizard-grade-band pill text is legible (>=4.5:1 WCAG AA contrast) against its own background under the .on-photo scene",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/grade-pill-legibility.spec.ts \u2014 real Chromium, getComputedStyle color/backgroundColor, ratio computed via WCAG 2.1 relative luminance; PASS with the fix, verified RED (1.09:1) without it"
+      },
+      {
+        "behavior": "the band pill carries a class the .on-photo solid-surface reset (on-photo.css rule 2) targets, so a future edit can't silently drop the reset hook",
+        "disposition": "tested",
+        "evidence": "client/src/styles/on-photo-legibility.test.ts \u2014 new source-scan fence; verified RED without className=\"pill\", GREEN with it"
+      }
+    ],
+    "counts": {
+      "testable": 2,
+      "tested": 2,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/grade-pill-legibility.spec.ts",
+    "exit_code": 0,
+    "tests_run": 1,
+    "evidence_path": ".shipwright/runs/iterate-2026-08-26-grade-pill-contrast/surface_verification.log",
+    "timestamp": "2026-08-26T06:28:38.245Z"
+  },
+  "declared_removals": []
+}
