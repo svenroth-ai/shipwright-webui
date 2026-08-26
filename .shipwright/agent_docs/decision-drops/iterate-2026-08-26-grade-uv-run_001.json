@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-26-grade-uv-run",
+  "date": "2026-08-26",
+  "section": "Bug Fix: Grade/Triage subprocess spawn",
+  "title": "Route grade.py and triage_cli.py through uv run, never a bare system Python",
+  "context": "resolvePython() picked a bare python3/python/py and spawned it to run plugin scripts built for uv run; on a machine lacking defusedxml/Py3.11+, grade.py died with ModuleNotFoundError while /api/readiness kept reporting green.",
+  "decision": "Both call sites now resolve uv via uv-runner.ts::resolveUv() and spawn uv run --project (grade) / uv run --no-project --python \">=3.11\" (triage). uv missing => honest engine-unavailable, never a python fallback. See spec-ref for the regression-guard and review-trail detail.",
+  "consequences": "Grade/triage now depend on uv (already readiness-gated). uv run --project one-time-syncs the plugin's own .venv on first use (uv's own locked mechanism, not a new write surface). --no-project makes triage's isolation structural, not accidental.",
+  "rationale": "",
+  "rejected": "Reordering resolvePython()'s own probe order (AUFGACHE point 3) was rejected: neither runner calls it anymore, so reordering closes no vulnerable path.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-08-26-grade-uv-run-uv-run-spawn.md"
+}

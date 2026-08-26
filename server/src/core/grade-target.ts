@@ -186,6 +186,17 @@ export function resolveGradeScript(
   return resolveVersionedFile("shipwright-grade", ["scripts", "tools", "grade.py"], deps);
 }
 
+/**
+ * The `shipwright-grade` plugin root that owns `resolveGradeScript`'s result —
+ * three levels up from `scripts/tools/grade.py`. This is the plugin's own
+ * `pyproject.toml`/`uv.lock`/`.venv` directory, so `uv run --project
+ * <pluginRoot>` resolves grade.py's declared dependencies (defusedxml, etc.)
+ * instead of whatever bare interpreter happened to answer `--version` first.
+ */
+export function resolveGradePluginRoot(script: string): string {
+  return path.dirname(path.dirname(path.dirname(script)));
+}
+
 /** Resolve the shipwright-compliance plugin root (the dir carrying
  *  `scripts/lib/control_grade.py`), which grade.py's engine_bridge needs. */
 export function resolveComplianceRoot(

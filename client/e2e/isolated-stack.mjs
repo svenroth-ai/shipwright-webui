@@ -291,8 +291,38 @@ print(json.dumps({"operation": operation, "item": item}, separators=(",", ":")))
 `, "utf8");
   const bin = path.join(home, "e2e-bin");
   await mkdir(bin, { recursive: true });
+  // iterate-2026-08-26-grade-uv-run: production now spawns `uv run --project
+  // <dir>|--python <spec> [--no-project] <script> [args...]` instead of a
+  // bare python (the ModuleNotFoundError bug — see uv-runner.ts). The old
+  // fake `uv` only ever had to answer `--version` for the readiness gate; it
+  // never had to actually RUN a script, because nothing spawned it to do so.
+  // Now the triage-write E2Es do. `uv-shim.mjs` keeps the `--version` reply
+  // for readiness and adds a `run` passthrough: strip the leading uv flags
+  // (a fixed VALUE_FLAGS set of value-taking ones — `--project <dir>` /
+  // `--python <spec>` — each consumes its next argv slot; anything else
+  // starting with `--`, e.g. the doubt-review-driven `--no-project`, is a
+  // boolean and consumes none), then exec the remaining `<script> [args...]`
+  // with `python` — the SAME bare-name resolution (bin dir's
+  // `python.cmd`/`python` first, else real PATH) this harness already relied
+  // on before uv sat in front of it.
+  const shim = path.join(bin, "uv-shim.mjs");
+  await writeFile(shim, String.raw`import { spawnSync } from "node:child_process";
+const argv = process.argv.slice(2);
+if (argv[0] === "--version") {
+  process.stdout.write("uv 0.0.0-e2e\n");
+  process.exit(0);
+}
+if (argv[0] === "run") {
+  const VALUE_FLAGS = new Set(["--project", "--python"]);
+  let i = 1;
+  while (i < argv.length && argv[i].startsWith("--")) i += VALUE_FLAGS.has(argv[i]) ? 2 : 1;
+  const result = spawnSync("python", argv.slice(i), { stdio: "inherit", shell: false });
+  process.exit(result.status ?? 1);
+}
+process.exit(1);
+`, "utf8");
   if (process.platform === "win32") {
-    await writeFile(path.join(bin, "uv.cmd"), "@echo off\r\necho uv 0.0.0-e2e\r\n", "utf8");
+    await writeFile(path.join(bin, "uv.cmd"), `@echo off\r\nnode "${shim}" %*\r\n`, "utf8");
     // Codex's bundled Node and Python runtimes are siblings. Do not shadow a
     // developer's working Python with a guessed nonexistent path.
     const bundledPython = path.resolve(path.dirname(process.execPath), "..", "..", "python", "python.exe");
@@ -305,7 +335,7 @@ print(json.dumps({"operation": operation, "item": item}, separators=(",", ":")))
       // discoverable by the fixture process.
     }
   } else {
-    await writeFile(path.join(bin, "uv"), "#!/usr/bin/env sh\necho uv 0.0.0-e2e\n", { encoding: "utf8", mode: 0o755 });
+    await writeFile(path.join(bin, "uv"), `#!/usr/bin/env sh\nexec node "${shim}" "$@"\n`, { encoding: "utf8", mode: 0o755 });
     // CI's python remains on PATH. An explicit override is honoured without
     // relying on Windows-only .cmd resolution.
     if (process.env.SHIPWRIGHT_E2E_PYTHON) {

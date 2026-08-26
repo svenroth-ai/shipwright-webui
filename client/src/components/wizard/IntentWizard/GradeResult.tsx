@@ -157,6 +157,7 @@ export function GradeResult({
               {typeof M.score === "number" ? ` — ${M.score}/100` : ""}
             </h2>
             <span
+              className="pill"
               data-testid="wizard-grade-band"
               style={{
                 fontSize: 11,

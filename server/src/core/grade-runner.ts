@@ -6,19 +6,38 @@
  * + the outcome mapping.
  *
  * ── IO / injection boundary (the reason A09 was split) ──────────────────────
- * `grade.py <target> --format json` is spawned with **shell:false** and a
- * **fixed-literal python binary** (resolved by TEST-RUN, python3→python→py,
- * reusing `readiness-probe.resolvePython`). The target is passed as a **fixed
- * argv position** — never interpolated into a shell string, so no shell
- * metacharacter in a user-entered path/URL can reach a shell (there is none).
- * Mirrors the ADR-044 #9 / `pr-status.ts` spawn discipline. Must NOT trip
- * Semgrep `spawn-shell-true`.
+ * `grade.py` is spawned via `uv run --project <plugin-root> <script>
+ * --format json -- <target>` with **shell:false** (the plugin's OWN declared
+ * environment — grade.py needs `defusedxml` + Python 3.11+, per its
+ * pyproject.toml, and never gets it from an ambient system interpreter; see
+ * `uv-runner.ts`'s header for the incident this replaced). uv is resolved by
+ * TEST-RUN (`resolveUv`, reusing the readiness probe's PATH augmentation) —
+ * missing uv is an honest engine-unavailable, never a silent python fallback.
+ * The target is passed as a **fixed argv position** — never interpolated into
+ * a shell string, so no shell metacharacter in a user-entered path/URL can
+ * reach a shell (there is none). Mirrors the ADR-044 #9 / `pr-status.ts` spawn
+ * discipline. Must NOT trip Semgrep `spawn-shell-true`.
  *
  * READ-ONLY: grade is a pure read of a repo. It registers no project, writes
  * nothing to the graded repo, and never touches `~/.claude/projects/**`,
  * `shipwright_run_config.json` or `run_loop_state.json` (CLAUDE.md rules 1/12).
  * A remote URL is shallow-cloned into a throwaway tempdir *by grade.py* and
  * purged when it exits — webui does not clone.
+ *
+ * "Read-only" is about the GRADED repo and webui's own state, not about
+ * `uv`'s own bookkeeping (Stage-3 doubt review, 2026-08-26): `uv run
+ * --project` DOES write into the plugin's OWN cache directory
+ * (`~/.claude/plugins/cache/shipwright/shipwright-grade/<version>/.venv/`) the
+ * first time it syncs that project's declared dependencies — verified on a
+ * real cache. This is uv's own environment-sync mechanism (cross-process
+ * locked by uv itself), scoped to the plugin's own directory, and one-time
+ * per version; it is not a new write surface this module owns or must guard.
+ *
+ * `uv run --python ">=3.11"` also passes `--no-project` in the
+ * triage-cli-runner sibling (see that module's header) so a bare `--python`
+ * invocation never walks up from the spawning process's cwd looking for an
+ * ambient project to activate; grade-runner's `--project <plugin-root>` is
+ * already explicit and has no such ambient-discovery exposure.
  *
  * Every grade.py outcome maps to an HONEST state (never a fabricated grade):
  *   exit 0 + JSON            → report-ready (raw model; the CLIENT reportShape
@@ -36,20 +55,17 @@
 
 import { execFile } from "node:child_process";
 
-import {
-  defaultRun,
-  READINESS_REPAIR_COMMAND,
-  resolvePython,
-  type RunFn,
-} from "./readiness-probe.js";
+import { defaultRun, READINESS_REPAIR_COMMAND, type RunFn } from "./readiness-probe.js";
 import {
   defaultStatDir,
   ENV_COMPLIANCE_ROOT,
   resolveComplianceRoot,
+  resolveGradePluginRoot,
   resolveGradeScript,
   validateGradeTarget,
   type PluginResolveDeps,
 } from "./grade-target.js";
+import { resolveUv } from "./uv-runner.js";
 
 /** grade.py can shallow-clone + read a whole history; a remote target needs
  *  headroom over a local one. Generous, but bounded (a hung clone is killed). */
@@ -143,7 +159,7 @@ export interface RunGradeInput {
 }
 
 export interface RunGradeDeps {
-  /** `--version` runner used by resolvePython (test seam). */
+  /** `--version` runner used by resolveUv (test seam). */
   run?: RunFn;
   /** grade.py spawn (test seam — CI mocks it; no live grade.py). */
   spawn?: SpawnGradeFn;
@@ -169,9 +185,9 @@ function cleanStderr(stderr: string): string {
 }
 
 /**
- * Validate → resolve engine → spawn `grade.py <target> --format json` → map the
- * outcome to an honest {@link GradeOutcome}. Never throws for a grade failure;
- * only a programming error would reject.
+ * Validate → resolve engine → spawn `uv run --project <plugin-root> grade.py
+ * <target> --format json` → map the outcome to an honest {@link GradeOutcome}.
+ * Never throws for a grade failure; only a programming error would reject.
  */
 export async function runGrade(
   input: RunGradeInput,
@@ -192,8 +208,10 @@ export async function runGrade(
   if (!v.ok) return { status: "grade-failed", reason: v.reason };
   const target = input.target.trim();
 
-  // 2 — resolve the engine: grade.py + a working python. Either missing is an
-  //     honest "engine unavailable — run npx …" (reuse the readiness repair).
+  // 2 — resolve the engine: grade.py + uv. Either missing is an honest
+  //     "engine unavailable — run npx …" (reuse the readiness repair). uv
+  //     missing is NEVER a reason to fall back to a bare system python — that
+  //     silent fallback is the root cause this replaced (uv-runner.ts).
   const script = resolveGradeScript({ ...resolveDeps, scriptOverride: deps.scriptOverride });
   if (!script) {
     return {
@@ -202,11 +220,12 @@ export async function runGrade(
       repairCommand: READINESS_REPAIR_COMMAND,
     };
   }
-  const py = await resolvePython(run);
-  if (!py) {
+  const baseEnv = deps.baseEnv ?? process.env;
+  const uv = await resolveUv({ run, homeDir: deps.homeDir, baseEnv });
+  if (!uv) {
     return {
       status: "engine-unavailable",
-      reason: "No working Python (3.11+) was found.",
+      reason: "uv isn't installed — grade needs it to run in the plugin's own environment.",
       repairCommand: READINESS_REPAIR_COMMAND,
     };
   }
@@ -217,23 +236,25 @@ export async function runGrade(
     ...resolveDeps,
     complianceOverride: deps.complianceOverride,
   });
-  const baseEnv = deps.baseEnv ?? process.env;
-  const env: NodeJS.ProcessEnv = { ...baseEnv };
+  const env: NodeJS.ProcessEnv = { ...uv.env };
   if (complianceRoot) env[ENV_COMPLIANCE_ROOT] = complianceRoot;
 
-  // Fixed argv: options first, then a `--` END-OF-OPTIONS separator, then the
-  // target as the sole positional. shell:false already blocks shell injection;
-  // the `--` additionally blocks ARGUMENT injection — a target like `--no-clone`
-  // or `--allow-network-private` is treated as a path, never a grade.py flag
+  // `uv run --project <plugin-root>` resolves grade.py's own declared deps
+  // (defusedxml, Python 3.11+) instead of an ambient interpreter. Fixed argv:
+  // options first, then a `--` END-OF-OPTIONS separator, then the target as
+  // the sole positional. shell:false already blocks shell injection; the `--`
+  // additionally blocks ARGUMENT injection — a target like `--no-clone` or
+  // `--allow-network-private` is treated as a path, never a grade.py flag
   // (mirrors the pr-status.ts `--` discipline; verified against argparse).
-  const args = [script, "--format", "json", "--", target];
-  const r = await spawn(py.bin, args, { env, timeoutMs });
+  const pluginRoot = resolveGradePluginRoot(script);
+  const args = ["run", "--project", pluginRoot, script, "--format", "json", "--", target];
+  const r = await spawn(uv.bin, args, { env, timeoutMs });
 
   // 4 — map the outcome.
   if (r.code === -1) {
     return {
       status: "engine-unavailable",
-      reason: "Python couldn't start on this machine.",
+      reason: "uv couldn't start on this machine.",
       repairCommand: READINESS_REPAIR_COMMAND,
     };
   }

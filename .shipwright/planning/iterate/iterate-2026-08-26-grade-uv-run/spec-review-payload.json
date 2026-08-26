@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All 5 acceptance criteria in .shipwright/planning/iterate/2026-08-26-grade-uv-run.md are present and faithfully implemented: grade-runner.ts and triage-cli-runner.ts now spawn exclusively via uv (verified argv shapes against AC lines 21-26), uv-absence maps to honest engine-unavailable with the existing repair command at both sites (AC line 27-28), SHIPWRIGHT_GRADE_COMPLIANCE_ROOT still reaches grade.py's env under uv (AC line 29-31, traced through probeEnv), and the new no-direct-python-spawn.test.ts closes the regression class exactly as specified (AC line 32-33). The Out-of-Scope carve-out (resolvePython's own probe ordering left untouched) is consistent with the diff — readiness-probe-run.ts has zero changes and remains the sole spawn-free reader. No scope creep: only the files the ACs name were touched, GradeOutcome/triage JSON envelope shapes are unchanged, and Spec Impact=none holds. Stage 2 (code-reviewer) may proceed."
+}
