@@ -8,6 +8,7 @@ import InboxPage from './pages/InboxPage';
 import TriagePage from './pages/TriagePage';
 import SettingsPage from './pages/SettingsPage';
 import DiagnosticsPage from './pages/DiagnosticsPage';
+import OrgPage from './pages/OrgPage';
 import PreviewPage from './pages/PreviewPage';
 import IntentWizardPage from './components/wizard/IntentWizard/IntentWizardPage';
 import FirstContact from './components/wizard/IntentWizard/FirstContact';
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
       { path: 'projects/:projectId/log', element: <ShipsLogPage /> },
       { path: 'inbox', element: <InboxPage />, handle: { nav: { label: 'Inbox', order: 2 } } },
       { path: 'triage', element: <TriagePage />, handle: { nav: { label: 'Triage', order: 3 } } },
+      // FR-01.71 — conditional visibility (useOrgChartPresence) filters this entry
+      // at both SidebarNav and CommandCenter's read of getNavDestinations(); see
+      // the iterate spec's Design Notes, "Nav presence".
+      { path: 'org', element: <OrgPage />, handle: { nav: { label: 'Org', order: 3.5 } } },
       { path: 'settings', element: <SettingsPage />, handle: { nav: { label: 'Settings', order: 4 } } },
       { path: 'diagnostics', element: <DiagnosticsPage />, handle: { nav: { label: 'Diagnostics', order: 5 } } },
     ],

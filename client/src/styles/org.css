@@ -1,0 +1,120 @@
+/*
+ * org.css — Org page styling, ported from the approved mockup ("Org v0.2:
+ * Chart + Tabs + Diff-Editor" section, artifact 8ffca3cd). Class names and
+ * colors are kept verbatim from the mockup (the source of truth this
+ * iterate builds against — see CLAUDE.md's card-block-order promise);
+ * everything is scoped under `.org-page` to avoid colliding with any other
+ * `.badge`/`.switch`-named class elsewhere in the app.
+ */
+
+.org-page .chartwrap { padding: 18px 18px 4px; background: #FAFAF9; }
+.org-page .pnode {
+  display: flex; align-items: center; gap: 11px; margin: 0 auto 0;
+  max-width: 300px; background: #1C1917; color: #FFFFFF;
+  border-radius: 12px; padding: 11px 15px; box-shadow: 0 6px 20px rgba(0,0,0,.18);
+}
+.org-page .pnode .av {
+  width: 30px; height: 30px; border-radius: 50%; background: #35B8A4; color: #12211f;
+  display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 800;
+  flex: 0 0 auto;
+}
+.org-page .pnode .nm { font-size: 14px; font-weight: 650; }
+.org-page .pnode .ro { font-size: 11px; color: rgba(255,255,255,.6); }
+.org-page .stem { width: 2px; height: 16px; background: #D6D3D1; margin: 0 auto; }
+.org-page .bar { height: 2px; background: #D6D3D1; margin: 0 auto; }
+.org-page .lrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 0; padding-top: 16px; }
+.org-page .lrow > * { position: relative; }
+.org-page .lrow > *::before {
+  content: ""; position: absolute; left: 50%; top: -16px; width: 2px; height: 16px; background: #D6D3D1;
+}
+.org-page .lcard {
+  background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px; padding: 12px 13px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05);
+}
+.org-page .lcard .lt { display: flex; align-items: center; gap: 7px; margin-bottom: 3px; }
+.org-page .lcard .lt .nm { font-size: 13.5px; font-weight: 650; color: #1C1917; }
+.org-page .lcard .sub { font-size: 11.5px; color: #79716B; margin-bottom: 9px; }
+.org-page .lcard .st { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.org-page .lcard .ghost {
+  border: 1.5px dashed #D6D3D1; background: none; box-shadow: none;
+  display: flex; align-items: center; justify-content: center; color: #A8A29E; font-size: 12.5px;
+  cursor: not-allowed;
+}
+
+.org-page .rost { padding: 16px 18px 18px; background: #FAFAF9; }
+.org-page .rost h6 {
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #79716B; margin: 0 0 10px;
+}
+.org-page .doctiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 8px; }
+.org-page .dtile {
+  background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 10px; padding: 9px 11px;
+  display: flex; flex-direction: column; gap: 3px; min-width: 0;
+}
+.org-page .dtile .dn {
+  font-size: 12.5px; font-weight: 600; color: #1C1917;
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.org-page .dtile .dn span.t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.org-page .dtile .dm { font-size: 11px; color: #79716B; }
+.org-page .dtile .da {
+  margin-top: 5px; display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: #0E7A6B; background: none; border: none; padding: 0; cursor: pointer;
+}
+.org-page .dtile .da .pen { color: #A8A29E; font-weight: 500; }
+
+.org-page .rcard2 {
+  background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 12px; overflow: hidden;
+}
+.org-page .rcard2 .rh { display: flex; align-items: center; gap: 10px; padding: 12px 14px 0; flex-wrap: wrap; }
+.org-page .rcard2 .rh .id { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.org-page .rcard2 .rh .av2 {
+  width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  background: #E6F3F0; color: #0E7A6B; flex: 0 0 auto; font-size: 12px; font-weight: 700;
+}
+.org-page .rcard2 .rh .nm2 { font-size: 14.5px; font-weight: 650; color: #1C1917; line-height: 1.2; }
+.org-page .rcard2 .rh .ro2 { font-size: 11.5px; color: #79716B; }
+.org-page .rcard2 .rh .ctl { margin-left: auto; display: flex; align-items: center; gap: 7px; }
+
+.org-page .switch {
+  width: 34px; height: 19px; border-radius: 10px; background: #D6D3D1; position: relative; flex: 0 0 auto;
+  border: none; padding: 0; cursor: not-allowed;
+}
+.org-page .switch i {
+  position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; border-radius: 50%;
+  background: #fff; display: block; box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+
+.org-page .rolebox {
+  margin: 10px 14px 0; padding: 9px 11px; background: #F5F5F4; border-radius: 9px;
+  font-size: 13px; line-height: 1.5; color: #44403C;
+}
+.org-page .rolebox b { color: #1C1917; }
+
+.org-page .nowline {
+  display: flex; align-items: center; gap: 8px; margin: 10px 14px 0; padding: 8px 11px;
+  border-radius: 9px; background: #EFF8FF; border: 1px solid #B2DDFF;
+  font-size: 12.5px; color: #175CD3;
+}
+.org-page .nowline.idle { background: #F5F5F4; border-color: #E7E5E4; color: #79716B; }
+.org-page .nowline.attn { background: #FFFAEB; border-color: #FEDF89; color: #B54708; }
+.org-page .nowline .pulse { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+
+.org-page .statrow {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin: 11px 14px 0; padding-top: 11px; border-top: 1px solid #F5F5F4;
+}
+.org-page .stat .k { font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #A8A29E; }
+.org-page .stat .v { font-size: 13px; font-weight: 600; color: #1C1917; font-variant-numeric: tabular-nums; }
+.org-page .stat .v.hot { color: #B54708; }
+.org-page .stat .v.unmeasured { color: #A8A29E; font-weight: 500; font-variant-numeric: normal; }
+
+.org-page .rcard2 .docs { padding: 12px 14px 14px; }
+
+.org-page .badge {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; background: #F5F5F4; color: #57534E; border: 1px solid #E7E5E4;
+}
+.org-page .badge.acc  { background: #E6F3F0; color: #0E7A6B; border-color: #9fd3ca; }
+.org-page .badge.warn { background: #FFFAEB; color: #B54708; border-color: #FEDF89; }

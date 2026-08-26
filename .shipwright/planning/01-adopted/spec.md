@@ -117,6 +117,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | FR-01.31 | PLT | Network access profile | Should | By default the app's servers are reachable only from the same machine, for safety. Reaching them from other devices on your LAN or over Tailscale is opt-in: one network-profile setting flips both halves of the app to a matching, coherent access mode at once. | backfill (iterate-2026-05-16) |
 | FR-01.49 | PLT | npx installer / updater | Should | One installer command that both installs and updates the whole system (the Shipwright plugins and the Command Center), first run and every run after. It checks prerequisites up front and refuses loudly if a required tool (Claude, Python, Node, git) is missing, rather than leaving a broken install. It never starts a Claude session; if the app is already running it attaches to a same-or-newer one, safely swaps an older one, and leaves an unrelated program on the port untouched. | iterate-2026-07-10-npx-bootstrapper |
 | FR-01.70 | PLT | Leads org route | Should | A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file.<br>**Updates:** Gained the runtime-store half of the leadwright coordination contract — a release action for a hung beat-register entry (mirrors leadwright's own recovery contract exactly, one audit line per release, idempotent on retry), a per-lead last-run timestamp with server-computed staleness (3× that lead's own cron cadence, never a hardcoded interval), and an open-register finding (clear / open / fault-on-duplicate-sessionId). | iterate-2026-08-17-org-route-leads + iterate-2026-08-18-org-route-beat-register |
+| FR-01.71 | PLT | Organization overview for AI leads | Should | The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter. | iterate-2026-08-26-org-page |
 
 ## FR-Fold-Map
 
@@ -1161,6 +1162,47 @@ write surface; gated, path-guarded, and concurrency-safe.
   entries share the same `sessionId` — a fault the server never resolves by
   picking one. Display and the release action from (B) live at the same
   route family.
+
+### FR-01.71 Organization overview for AI leads
+
+- (A) **(iterate-2026-08-26-org-page)** The Org page renders, in fixed
+  order: chart (PO node + one card per lead + a disabled "add lead" ghost
+  card) → shared-documents block (GET/view-only: `org-chart.json`,
+  `conventions.md`, `principal.md`, `decision_log.md`) → one lead card per
+  `org-chart.json` entry. Each lead card renders five blocks, always in
+  the same order — Header, Role, Now (running/resting/needs-attention/
+  not-measured), Stats (cadence, parallel, N-day budget, projects, runs —
+  `parallel`/`projects` permanently "not measured" this iterate), Docs
+  (charter editable, learnings + audit log view-only, audit log
+  bounded/paginated). An unmeasured figure always shows the literal text
+  "not measured" once its query settles, never blank/zero/dash. The pause
+  switch always renders disabled with a stated reason and issues no
+  network request — no route exists yet.
+- (B) **(iterate-2026-08-26-org-page)** With no `org-chart.json` (confirmed
+  404 `org_chart_missing`), neither the sidebar nor the command palette
+  offers "Org", and a direct `/org` visit shows the same "not installed"
+  empty state rather than a 404 or a broken page. With a present-but-invalid
+  `org-chart.json` (502 `org_chart_invalid`) or any other non-404 failure,
+  the nav entries stay present and the page shows a page-level error naming
+  the failure — a real failure must never read as "not installed".
+- (C) **(iterate-2026-08-26-org-page)** A new plain, host-allowlisted
+  `/api/org/*` Hono router (no shared-secret gate — the browser is a
+  first-party caller of its own server) shares the existing
+  `/api/external/org/*` family's extracted pure cores in-process, never over
+  HTTP. The only browser write this iterate is `PUT
+  /api/org/leads/:leadId/charter` — refused with 403 for any other
+  allowlisted kind (in particular `decision_log.md` /
+  `decisions-proposed.md`, which stay reachable only through the existing
+  gated route). Editing a lead's charter opens the existing
+  `MarkdownEditorModal`, loads fresh content, and Save issues a `PUT`
+  carrying an `If-Match` header derived from the loaded ETag/checksum. Every
+  write additionally requires `leadId` to be a real, registered chart entry
+  — a syntactically valid but unregistered or decommissioned lead id is
+  refused (403 `unknown_lead`), including a URL-encoded-slash raw string
+  that would otherwise diverge from its own path-normalized form (refused
+  400 `invalid_lead_id` before any chart-membership check runs). The
+  existing secret-gated `/api/external/org/*` family is unaffected by
+  mounting this new router (still 401/403 without the shared secret).
 
 ## Quality Requirements
 

@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AlertCircle, AlertTriangle, FileText, Info, Loader2, X } from "lucide-react";
+import { AlertCircle, FileText, Loader2, X } from "lucide-react";
 
 import {
   buildEditorExtensions,
@@ -35,6 +35,7 @@ import {
 import { ApiError } from "../../../lib/externalApi";
 import { MarkdownDiffView } from "./MarkdownDiffView";
 import { MarkdownEditorToolbar } from "./MarkdownEditorToolbar";
+import { MarkdownEditorBanners } from "./MarkdownEditorBanners";
 
 interface Props {
   open: boolean;
@@ -44,6 +45,16 @@ interface Props {
   path: string;
   /** Called after a successful write so the parent re-fetches the preview. */
   onSaved: () => void;
+  /**
+   * Optional injected load/save pair — defaults to the project-scoped
+   * `markdownFileApi.ts` (`projectId`+`path`) when omitted. The Org page's
+   * caller passes `orgMarkdownFileApi.ts`'s leadId-bound closures instead,
+   * so this modal has no idea it's editing a lead's `charter.md` rather
+   * than a project file (iterate spec Design Notes, "Markdown modal reuse
+   * — additive, not breaking"). Both must be provided together, or neither.
+   */
+  loadOverride?: () => Promise<{ text: string; fingerprint: string }>;
+  saveOverride?: (text: string, fingerprint: string) => Promise<{ fingerprint: string }>;
 }
 
 type Phase = "loading" | "load_error" | "editing" | "diff" | "saving" | "conflict";
@@ -57,6 +68,8 @@ export function MarkdownEditorModal({
   projectId,
   path,
   onSaved,
+  loadOverride,
+  saveOverride,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -89,7 +102,7 @@ export function MarkdownEditorModal({
     setPhase("loading");
     setErrorMsg(null);
     try {
-      const res = await loadMarkdownForEdit(projectId, path);
+      const res = loadOverride ? await loadOverride() : await loadMarkdownForEdit(projectId, path);
       if (gen !== loadGen.current) return; // superseded (reopen / close / reload)
       original.current = res.text;
       fingerprint.current = res.fingerprint;
@@ -108,7 +121,7 @@ export function MarkdownEditorModal({
       setErrorMsg(msg);
       setPhase("load_error");
     }
-  }, [projectId, path, editor]);
+  }, [projectId, path, editor, loadOverride]);
 
   // Load fresh content each time the modal opens (capturing the on-disk
   // fingerprint atomically). Bumping loadGen on cleanup invalidates any
@@ -136,7 +149,11 @@ export function MarkdownEditorModal({
     setPhase("saving");
     setErrorMsg(null);
     try {
-      await saveMarkdown(projectId, path, edited, fingerprint.current);
+      if (saveOverride) {
+        await saveOverride(edited, fingerprint.current);
+      } else {
+        await saveMarkdown(projectId, path, edited, fingerprint.current);
+      }
       onSaved();
       onOpenChange(false);
     } catch (err) {
@@ -148,7 +165,7 @@ export function MarkdownEditorModal({
       setErrorMsg(msg);
       setPhase("diff"); // stay on the diff with a save-error banner
     }
-  }, [projectId, path, edited, onSaved, onOpenChange]);
+  }, [projectId, path, edited, onSaved, onOpenChange, saveOverride]);
 
   const busy = phase === "saving";
   // Editor + formatting toolbar show in every phase except loading/load_error/diff.
@@ -184,59 +201,12 @@ export function MarkdownEditorModal({
             </Dialog.Close>
           </div>
 
-          {warnings.length > 0 && phase !== "load_error" && (
-            <div
-              className="flex items-start gap-2 border-b border-[var(--color-warning,#D97706)]/30 bg-[var(--color-warning,#D97706)]/10 px-4 py-2 text-[12px]"
-              style={{ color: "var(--color-text, #1a1a1a)" }}
-              data-testid="md-editor-warn"
-            >
-              <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--color-warning, #D97706)" }} aria-hidden="true" />
-              <span>
-                This file contains constructs that may not round-trip cleanly
-                (<span className="font-medium">{warnings.join(", ")}</span>).
-                Review the diff carefully before saving.
-              </span>
-            </div>
-          )}
-
-          {hasFrontmatter && phase !== "load_error" && (
-            <div
-              className="flex items-start gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)]/40 px-4 py-2 text-[12px]"
-              style={{ color: "var(--color-muted, #6b7280)" }}
-              data-testid="md-editor-frontmatter-note"
-            >
-              <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <span>
-                YAML frontmatter is preserved unchanged and is not edited here —
-                only the document body below is editable.
-              </span>
-            </div>
-          )}
-
-          {phase === "conflict" && (
-            <div
-              className="flex items-start gap-2 border-b border-[var(--color-error,#DC2626)]/30 bg-[var(--color-error,#DC2626)]/10 px-4 py-2 text-[12px]"
-              style={{ color: "var(--color-text, #1a1a1a)" }}
-              data-testid="md-editor-conflict"
-            >
-              <AlertCircle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--color-error, #DC2626)" }} aria-hidden="true" />
-              <span>
-                This file changed on disk since you opened it (another process or
-                a Claude session may have edited it). Your edits are kept below —
-                reload to discard them and start from the current file.
-              </span>
-            </div>
-          )}
-
-          {errorMsg && phase === "diff" && (
-            <div
-              className="border-b border-[var(--color-error,#DC2626)]/30 bg-[var(--color-error,#DC2626)]/10 px-4 py-2 text-[12px]"
-              style={{ color: "var(--color-error, #DC2626)" }}
-              data-testid="md-editor-save-error"
-            >
-              Save failed: {errorMsg}
-            </div>
-          )}
+          <MarkdownEditorBanners
+            phase={phase}
+            warnings={warnings}
+            hasFrontmatter={hasFrontmatter}
+            errorMsg={errorMsg}
+          />
 
           {showEditor && <MarkdownEditorToolbar editor={editor} />}
           <div className="min-h-0 flex-1 overflow-auto p-4">

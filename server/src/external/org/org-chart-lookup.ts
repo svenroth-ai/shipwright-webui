@@ -41,14 +41,27 @@ export type LeadOrgInfoResult =
   | { ok: true; cron: string; reportsTo: string | null }
   | { ok: false; reason: LeadOrgInfoReason };
 
-export function readLeadOrgInfo(
+type OrgChartRawResult =
+  | { ok: true; parsed: unknown }
+  | { ok: false; reason: "org_chart_missing" | "org_chart_symlink" | "org_chart_invalid" };
+
+/**
+ * The O_NOFOLLOW-open + fstat + JSON.parse steps, isolated from the
+ * per-lead lookup below — this is the ONE disk read/parse. Split out so
+ * `readAllLeadOrgInfo` can share it across every lead in a single request
+ * instead of `readLeadOrgInfo`'s per-lead re-open+re-parse (external-review
+ * fix, MEDIUM/spec: `GET /api/org/leads` was re-parsing `org-chart.json`
+ * once per lead via this function — see the iterate spec's Design Notes).
+ * The composite route also calls `orgChartCore` separately for the roster
+ * body, so a request still parses the file AT MOST TWICE, never per-lead —
+ * that two-parse ceiling, not a single shared parse, is what this fixes
+ * (code-review fix: the design doc previously overclaimed "parses the
+ * chart once").
+ */
+function readOrgChartRaw(
   leadsRoot: string,
-  leadId: string,
-  /** Test seam for the O_NOFOLLOW open below (e.g. to simulate an ELOOP a
-   *  mocked final-component symlink would produce, without needing a REAL
-   *  symlink on disk). Defaults to the real `openSync`. */
-  openSyncFn: typeof openSync = openSync,
-): LeadOrgInfoResult {
+  openSyncFn: typeof openSync,
+): OrgChartRawResult {
   const target = path.join(leadsRoot, "org-chart.json");
 
   let fd: number;
@@ -87,6 +100,11 @@ export function readLeadOrgInfo(
     return { ok: false, reason: "org_chart_invalid" };
   }
 
+  return { ok: true, parsed };
+}
+
+/** Looks up ONE lead's `triggers.cron` + `reports_to` in an already-parsed chart. */
+function lookupLeadOrgInfo(parsed: unknown, leadId: string): LeadOrgInfoResult {
   const leadsField = (parsed as Record<string, unknown>).leads;
   if (typeof leadsField !== "object" || leadsField === null || Array.isArray(leadsField)) {
     return { ok: false, reason: "org_chart_invalid" };
@@ -116,4 +134,34 @@ export function readLeadOrgInfo(
         : null;
 
   return { ok: true, cron, reportsTo };
+}
+
+export function readLeadOrgInfo(
+  leadsRoot: string,
+  leadId: string,
+  /** Test seam for the O_NOFOLLOW open below (e.g. to simulate an ELOOP a
+   *  mocked final-component symlink would produce, without needing a REAL
+   *  symlink on disk). Defaults to the real `openSync`. */
+  openSyncFn: typeof openSync = openSync,
+): LeadOrgInfoResult {
+  const raw = readOrgChartRaw(leadsRoot, openSyncFn);
+  if (!raw.ok) return raw;
+  return lookupLeadOrgInfo(raw.parsed, leadId);
+}
+
+/**
+ * Reads + parses `org-chart.json` ONCE and returns a lookup callback good
+ * for every lead in the roster — for a composite, multi-lead read where
+ * `readLeadOrgInfo`'s per-call re-open+re-parse would recreate the N+1
+ * pattern the composite endpoint exists to avoid.
+ */
+export function readAllLeadOrgInfo(
+  leadsRoot: string,
+  openSyncFn: typeof openSync = openSync,
+):
+  | { ok: true; forLead: (leadId: string) => LeadOrgInfoResult }
+  | { ok: false; reason: "org_chart_missing" | "org_chart_symlink" | "org_chart_invalid" } {
+  const raw = readOrgChartRaw(leadsRoot, openSyncFn);
+  if (!raw.ok) return raw;
+  return { ok: true, forLead: (leadId: string) => lookupLeadOrgInfo(raw.parsed, leadId) };
 }

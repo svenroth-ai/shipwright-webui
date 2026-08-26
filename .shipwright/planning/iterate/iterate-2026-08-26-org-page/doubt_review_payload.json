@@ -1,0 +1,23 @@
+{
+  "stage": "doubt",
+  "doubts": [
+    {
+      "claim_under_doubt": "requireChartLead's LEAD_ID_RE shape-check, deferring to the downstream core's own re-validation of the same raw leadId string, is a sufficient gate for all three routes it guards (the two GET routes and the PUT charter route).",
+      "disproof_attempt": "False for the PUT route. resolveOrgAllowlistedTarget derives its own, more lenient leadId by slicing the path.resolve()-normalized absolute path, while Hono's route-param decode applies tryDecodeURIComponent (which decodes %2f to a literal '/') but getPath()'s path segmentation uses decodeURI (which leaves %2f encoded). A raw leadId of 'ghost-lead/' (from URL segment 'ghost-lead%2f') fails LEAD_ID_RE (trailing slash), but resolveOrgAllowlistedTarget's path-normalized derivation collapses it to the clean, chart-registered 'acme-lead'-shaped target. Deferring on the LEAD_ID_RE rejection let the PUT proceed with NO chart-membership check at all — an unregistered/decommissioned lead's charter.md could be written through the allowlisted path despite requireChartLead existing specifically to prevent that.",
+      "severity": "HIGH",
+      "lens": "security",
+      "file": "server/src/routes/org.ts",
+      "line": 137,
+      "what_would_resolve_it": "Reject (400 invalid_lead_id) directly on a raw-string LEAD_ID_RE failure instead of deferring to the downstream core, for all three call sites uniformly. LEAD_ID_RE matches only [a-z0-9][a-z0-9-]* (no '/' or '.'), so a raw string that passes it can never diverge from its own path-normalized form — rejecting here closes the whole class, not just the %2f PoC. Verified by reverting the fix and confirming the new regression test (org.test.ts, the '%2f-suffixed leadId' case) failed with a 409 instead of the expected 400; restoring the fix made it pass."
+    },
+    {
+      "claim_under_doubt": "AuditLogModal's per-cursor-page useQueries architecture (the code-review fix for the blank-on-remount regression) is safe against concurrent user interaction with the pagination control.",
+      "disproof_attempt": "Two gaps found. (1) A rapid double-click on 'Load older entries' fires both click handlers before either state update is reflected in a re-render, so both computed the same `next` cursor from the same stale `lastQuery` closure and both appended it — a duplicate cursor entry, meaning a wasted duplicate fetch and (had entries differed page-to-page) a duplicated page of results. (2) Reading only `queries[0]`'s error hid a failure on any page after the first: existing rows just sat there with no error UI and no way to retry the specific page that failed, and the prior loadOlder() logic re-derived the next cursor from `lastQuery.data?.nextCursor` which is undefined on a failed page, silently re-fetching page ONE into a new slot instead of retrying the page that actually failed.",
+      "severity": "MEDIUM",
+      "lens": "correctness",
+      "file": "client/src/components/org/AuditLogModal.tsx",
+      "line": 62,
+      "what_would_resolve_it": "Idempotent cursor push via the functional state updater (prev[prev.length-1] === next ? prev : [...prev, next]) to de-dupe the double-click race; derive `error` from `queries.find(q => q.error)?.error` instead of queries[0] only; and have loadOlder() call `.refetch()` on the failed last page instead of re-deriving a cursor when `lastFailed` is true. Verified via two new regression tests (AuditLogModal.test.tsx, 'doubt-review fixes' describe block) covering the double-click dedup and the per-page-error-then-Retry flow; both pass, and the full 368-file/3469-test client suite remains green."
+    }
+  ]
+}

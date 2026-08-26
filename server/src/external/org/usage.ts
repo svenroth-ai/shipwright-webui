@@ -27,19 +27,10 @@ import path from "node:path";
 
 import { LEAD_ID_RE, LEADS_USAGE_REFRESH_INTERVAL_MS } from "./_helpers.js";
 import { realPathGuard } from "../../core/path-guard.js";
+import type { UsageResponse } from "../../types/org.js";
 
 export { LEADS_USAGE_REFRESH_INTERVAL_MS };
-
-export type UsageResponse =
-  | { leadId: string; measured: false }
-  | {
-      leadId: string;
-      measured: true;
-      costUsd: number;
-      runCount: number;
-      windowDays: number;
-      asOf: string;
-    };
+export type { UsageResponse } from "../../types/org.js";
 
 function isValidUsagePayload(
   v: unknown,
@@ -68,79 +59,88 @@ export interface UsageRouteDeps {
   lstatSync?: (path: string) => { isSymbolicLink(): boolean };
 }
 
-export function registerUsageRoute(app: Hono, deps: UsageRouteDeps): void {
+export type UsageCoreResult =
+  | { status: 200; body: UsageResponse }
+  | { status: 400 | 403 | 500 | 502; body: { error: string; leadId?: string; detail?: string } };
+
+/** Pure core — shared by the secret-gated route and the plain-surface proxy. */
+export function usageCore(deps: UsageRouteDeps, leadId: string): UsageCoreResult {
   const { leadsRoot } = deps;
   const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
 
-  app.get("/api/external/org/leads/:leadId/usage", async (c) => {
-    const leadId = c.req.param("leadId");
-    if (!LEAD_ID_RE.test(leadId)) {
-      return c.json({ error: "invalid_lead_id", leadId }, 400);
-    }
+  if (!LEAD_ID_RE.test(leadId)) {
+    return { status: 400, body: { error: "invalid_lead_id", leadId } };
+  }
 
-    const absolute = path.join(leadsRoot, leadId, "usage.json");
+  const absolute = path.join(leadsRoot, leadId, "usage.json");
 
-    // Existence + symlink check BEFORE any read — a missing lead directory
-    // (steady state pre-producer) is `measured: false`, not an error; a
-    // symlinked final component is rejected before it is ever opened.
-    let lst;
-    try {
-      lst = lstat(absolute);
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        const body: UsageResponse = { leadId, measured: false };
-        return c.json(body, 200);
-      }
-      return c.json(
-        { error: "usage_read_failed", detail: String(err).slice(0, 200) },
-        500,
-      );
+  // Existence + symlink check BEFORE any read — a missing lead directory
+  // (steady state pre-producer) is `measured: false`, not an error; a
+  // symlinked final component is rejected before it is ever opened.
+  let lst;
+  try {
+    lst = lstat(absolute);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
+      return { status: 200, body: { leadId, measured: false } };
     }
-    if (lst.isSymbolicLink()) {
-      return c.json({ error: "symlink_forbidden", leadId }, 403);
-    }
+    return {
+      status: 500,
+      body: { error: "usage_read_failed", detail: String(err).slice(0, 200) },
+    };
+  }
+  if (lst.isSymbolicLink()) {
+    return { status: 403, body: { error: "symlink_forbidden", leadId } };
+  }
 
-    // Parent-directory symlink escape (e.g. the lead directory itself is a
-    // junction pointing outside leadsRoot) — checked BEFORE reading.
-    const containment = realPathGuard(leadsRoot, absolute);
-    if (!containment.ok) {
-      return c.json({ error: "path_traversal", detail: containment.reason }, 400);
-    }
+  // Parent-directory symlink escape (e.g. the lead directory itself is a
+  // junction pointing outside leadsRoot) — checked BEFORE reading.
+  const containment = realPathGuard(leadsRoot, absolute);
+  if (!containment.ok) {
+    return { status: 400, body: { error: "path_traversal", detail: containment.reason } };
+  }
 
-    let raw: string;
-    try {
-      raw = readFileSync(absolute, "utf8");
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        const body: UsageResponse = { leadId, measured: false };
-        return c.json(body, 200);
-      }
-      return c.json(
-        { error: "usage_read_failed", detail: String(err).slice(0, 200) },
-        500,
-      );
+  let raw: string;
+  try {
+    raw = readFileSync(absolute, "utf8");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
+      return { status: 200, body: { leadId, measured: false } };
     }
+    return {
+      status: 500,
+      body: { error: "usage_read_failed", detail: String(err).slice(0, 200) },
+    };
+  }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return c.json({ error: "usage_invalid", leadId }, 502);
-    }
-    if (!isValidUsagePayload(parsed)) {
-      return c.json({ error: "usage_invalid", leadId }, 502);
-    }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { status: 502, body: { error: "usage_invalid", leadId } };
+  }
+  if (!isValidUsagePayload(parsed)) {
+    return { status: 502, body: { error: "usage_invalid", leadId } };
+  }
 
-    const body: UsageResponse = {
+  return {
+    status: 200,
+    body: {
       leadId,
       measured: true,
       costUsd: parsed.costUsd,
       runCount: parsed.runCount,
       windowDays: parsed.windowDays,
       asOf: parsed.asOf,
-    };
-    return c.json(body, 200);
+    },
+  };
+}
+
+export function registerUsageRoute(app: Hono, deps: UsageRouteDeps): void {
+  app.get("/api/external/org/leads/:leadId/usage", async (c) => {
+    const result = usageCore(deps, c.req.param("leadId"));
+    return c.json(result.body, result.status);
   });
 }

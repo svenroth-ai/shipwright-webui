@@ -31,23 +31,11 @@ import path from "node:path";
 
 import { LEAD_ID_RE } from "./_helpers.js";
 import { realPathGuard } from "../../core/path-guard.js";
-import { readLeadOrgInfo, type LeadOrgInfoReason } from "./org-chart-lookup.js";
-import { cronIntervalMs, evaluateStaleness, type Staleness } from "./cron.js";
+import { readLeadOrgInfo, type LeadOrgInfoResult } from "./org-chart-lookup.js";
+import { cronIntervalMs, evaluateStaleness } from "./cron.js";
+import type { LastRunResponse } from "../../types/org.js";
 
-export type CadenceUnresolvedReason = LeadOrgInfoReason | "invalid_cron";
-
-export type LastRunResponse =
-  | { leadId: string; measured: false }
-  | {
-      leadId: string;
-      measured: true;
-      lastRunAt: string;
-      sessionId: string;
-      staleness: Staleness | "unknown";
-      thresholdMs: number | null;
-      cadenceMs: number | null;
-      cadenceUnresolvedReason?: CadenceUnresolvedReason;
-    };
+export type { CadenceUnresolvedReason, LastRunResponse } from "../../types/org.js";
 
 function isValidLastRunPayload(v: unknown): v is { lastRunAt: string; sessionId: string } {
   if (typeof v !== "object" || v === null) return false;
@@ -67,75 +55,87 @@ export interface LastRunRouteDeps {
   lstatSync?: (p: string) => { isSymbolicLink(): boolean };
   /** Injectable for deterministic boundary tests; production wires `() => new Date()`. */
   now?: () => Date;
+  /**
+   * Pre-fetched cron/reports_to lookup for this lead — when supplied,
+   * `lastRunCore` uses it INSTEAD of calling `readLeadOrgInfo` itself.
+   * The composite `/api/org/leads` read passes this (via
+   * `readAllLeadOrgInfo`, one chart parse for the whole roster); the
+   * single-lead secret-gated route omits it and keeps its own self-
+   * contained one-lead read (already O(1), not the N+1 this exists to fix).
+   */
+  orgInfo?: LeadOrgInfoResult;
 }
 
-export function registerLastRunRoute(app: Hono, deps: LastRunRouteDeps): void {
+export type LastRunCoreResult =
+  | { status: 200; body: LastRunResponse }
+  | { status: 400 | 403 | 500 | 502; body: { error: string; leadId?: string; detail?: string } };
+
+/** Pure core — shared by the secret-gated route and the plain-surface proxy. */
+export function lastRunCore(deps: LastRunRouteDeps, leadId: string): LastRunCoreResult {
   const { leadsRoot } = deps;
   const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
   const now = deps.now ?? (() => new Date());
 
-  app.get("/api/external/org/leads/:leadId/last-run", async (c) => {
-    const leadId = c.req.param("leadId");
-    if (!LEAD_ID_RE.test(leadId)) {
-      return c.json({ error: "invalid_lead_id", leadId }, 400);
-    }
+  if (!LEAD_ID_RE.test(leadId)) {
+    return { status: 400, body: { error: "invalid_lead_id", leadId } };
+  }
 
-    const absolute = path.join(leadsRoot, leadId, "last-run.json");
+  const absolute = path.join(leadsRoot, leadId, "last-run.json");
 
-    let lst;
-    try {
-      lst = lstat(absolute);
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        const body: LastRunResponse = { leadId, measured: false };
-        return c.json(body, 200);
-      }
-      return c.json(
-        { error: "last_run_read_failed", detail: String(err).slice(0, 200) },
-        500,
-      );
+  let lst;
+  try {
+    lst = lstat(absolute);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
+      return { status: 200, body: { leadId, measured: false } };
     }
-    if (lst.isSymbolicLink()) {
-      return c.json({ error: "symlink_forbidden", leadId }, 403);
-    }
+    return {
+      status: 500,
+      body: { error: "last_run_read_failed", detail: String(err).slice(0, 200) },
+    };
+  }
+  if (lst.isSymbolicLink()) {
+    return { status: 403, body: { error: "symlink_forbidden", leadId } };
+  }
 
-    const containment = realPathGuard(leadsRoot, absolute);
-    if (!containment.ok) {
-      return c.json({ error: "path_traversal", detail: containment.reason }, 400);
-    }
+  const containment = realPathGuard(leadsRoot, absolute);
+  if (!containment.ok) {
+    return { status: 400, body: { error: "path_traversal", detail: containment.reason } };
+  }
 
-    let raw: string;
-    try {
-      raw = readFileSync(absolute, "utf8");
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        const body: LastRunResponse = { leadId, measured: false };
-        return c.json(body, 200);
-      }
-      return c.json(
-        { error: "last_run_read_failed", detail: String(err).slice(0, 200) },
-        500,
-      );
+  let raw: string;
+  try {
+    raw = readFileSync(absolute, "utf8");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
+      return { status: 200, body: { leadId, measured: false } };
     }
+    return {
+      status: 500,
+      body: { error: "last_run_read_failed", detail: String(err).slice(0, 200) },
+    };
+  }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return c.json({ error: "last_run_invalid", leadId }, 502);
-    }
-    if (!isValidLastRunPayload(parsed)) {
-      return c.json({ error: "last_run_invalid", leadId }, 502);
-    }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { status: 502, body: { error: "last_run_invalid", leadId } };
+  }
+  if (!isValidLastRunPayload(parsed)) {
+    return { status: 502, body: { error: "last_run_invalid", leadId } };
+  }
 
-    const { lastRunAt, sessionId } = parsed;
-    const nowValue = now();
+  const { lastRunAt, sessionId } = parsed;
+  const nowValue = now();
 
-    const orgInfo = readLeadOrgInfo(leadsRoot, leadId);
-    if (!orgInfo.ok) {
-      const body: LastRunResponse = {
+  const orgInfo = deps.orgInfo ?? readLeadOrgInfo(leadsRoot, leadId);
+  if (!orgInfo.ok) {
+    return {
+      status: 200,
+      body: {
         leadId,
         measured: true,
         lastRunAt,
@@ -144,13 +144,15 @@ export function registerLastRunRoute(app: Hono, deps: LastRunRouteDeps): void {
         thresholdMs: null,
         cadenceMs: null,
         cadenceUnresolvedReason: orgInfo.reason,
-      };
-      return c.json(body, 200);
-    }
+      },
+    };
+  }
 
-    const interval = cronIntervalMs(orgInfo.cron, nowValue);
-    if (!interval.ok) {
-      const body: LastRunResponse = {
+  const interval = cronIntervalMs(orgInfo.cron, nowValue);
+  if (!interval.ok) {
+    return {
+      status: 200,
+      body: {
         leadId,
         measured: true,
         lastRunAt,
@@ -159,12 +161,14 @@ export function registerLastRunRoute(app: Hono, deps: LastRunRouteDeps): void {
         thresholdMs: null,
         cadenceMs: null,
         cadenceUnresolvedReason: "invalid_cron",
-      };
-      return c.json(body, 200);
-    }
+      },
+    };
+  }
 
-    const evaluation = evaluateStaleness(lastRunAt, interval.ms, nowValue);
-    const body: LastRunResponse = {
+  const evaluation = evaluateStaleness(lastRunAt, interval.ms, nowValue);
+  return {
+    status: 200,
+    body: {
       leadId,
       measured: true,
       lastRunAt,
@@ -172,7 +176,13 @@ export function registerLastRunRoute(app: Hono, deps: LastRunRouteDeps): void {
       staleness: evaluation.staleness,
       thresholdMs: evaluation.thresholdMs,
       cadenceMs: interval.ms,
-    };
-    return c.json(body, 200);
+    },
+  };
+}
+
+export function registerLastRunRoute(app: Hono, deps: LastRunRouteDeps): void {
+  app.get("/api/external/org/leads/:leadId/last-run", async (c) => {
+    const result = lastRunCore(deps, c.req.param("leadId"));
+    return c.json(result.body, result.status);
   });
 }

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, openSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
-import { readLeadOrgInfo } from "../org-chart-lookup.js";
+import { readLeadOrgInfo, readAllLeadOrgInfo } from "../org-chart-lookup.js";
 
 describe("readLeadOrgInfo", () => {
   let leadsRoot: string;
@@ -81,5 +81,64 @@ describe("readLeadOrgInfo", () => {
     }) as unknown as typeof import("node:fs").openSync;
     const result = readLeadOrgInfo(leadsRoot, "acme-lead", fakeOpen);
     expect(result).toEqual({ ok: false, reason: "org_chart_symlink" });
+  });
+});
+
+// External-review fix (MEDIUM, spec): the composite `/api/org/leads` route
+// must parse `org-chart.json` ONCE for the whole roster, not once per lead
+// (see routes/org-leads-composite.ts + routes/org.ts).
+describe("readAllLeadOrgInfo", () => {
+  let leadsRoot: string;
+
+  beforeEach(() => {
+    leadsRoot = mkdtempSync(path.join(tmpdir(), "org-chart-lookup-all-fixture-"));
+  });
+
+  afterEach(() => {
+    rmSync(leadsRoot, { recursive: true, force: true });
+  });
+
+  function writeChart(chart: unknown): void {
+    writeFileSync(path.join(leadsRoot, "org-chart.json"), JSON.stringify(chart), "utf8");
+  }
+
+  it("reports org_chart_missing when org-chart.json doesn't exist", () => {
+    const result = readAllLeadOrgInfo(leadsRoot);
+    expect(result).toEqual({ ok: false, reason: "org_chart_missing" });
+  });
+
+  it("forLead() matches readLeadOrgInfo()'s per-lead result for every lead, from a SINGLE parse", () => {
+    writeChart({
+      leads: {
+        "acme-lead": { triggers: { cron: "*/15 * * * *" }, reports_to: null },
+        "beta-lead": { triggers: { cron: "0 9 * * *" }, reports_to: "acme-lead" },
+        "broken-lead": { triggers: "not-an-object" },
+      },
+    });
+    const result = readAllLeadOrgInfo(leadsRoot);
+    if (!result.ok) throw new Error("expected ok:true");
+
+    expect(result.forLead("acme-lead")).toEqual({ ok: true, cron: "*/15 * * * *", reportsTo: null });
+    expect(result.forLead("beta-lead")).toEqual({ ok: true, cron: "0 9 * * *", reportsTo: "acme-lead" });
+    expect(result.forLead("broken-lead")).toEqual({ ok: false, reason: "org_chart_invalid" });
+    expect(result.forLead("ghost-lead")).toEqual({ ok: false, reason: "lead_not_found" });
+  });
+
+  it("only opens the file once regardless of how many leads are looked up (the N+1 fix)", () => {
+    writeChart({
+      leads: { "acme-lead": { triggers: { cron: "0 9 * * *" }, reports_to: null } },
+    });
+    let opens = 0;
+    const countingOpen = ((...args: Parameters<typeof openSync>) => {
+      opens++;
+      return openSync(...args);
+    }) as typeof openSync;
+
+    const result = readAllLeadOrgInfo(leadsRoot, countingOpen);
+    if (!result.ok) throw new Error("expected ok:true");
+    result.forLead("acme-lead");
+    result.forLead("acme-lead");
+    result.forLead("acme-lead");
+    expect(opens).toBe(1);
   });
 });

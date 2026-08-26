@@ -15,6 +15,7 @@ describe("getNavDestinations", () => {
       "Projects",
       "Inbox",
       "Triage",
+      "Org",
       "Settings",
       "Diagnostics",
     ]);

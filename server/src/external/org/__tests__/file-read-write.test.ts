@@ -94,6 +94,12 @@ describe("GET/PUT /api/external/org/file", () => {
     expect(readFileSync(target, "utf8")).toBe("# charter v2\n");
   });
 
+  it("GET on a not-yet-bootstrapped allowlisted target 404s not_found, never path_traversal (open-before-realpath ordering)", async () => {
+    const res = await app().request(url("conventions.md"));
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("not_found");
+  });
+
   it("GET rejects org-chart.json — it has its own typed endpoint", async () => {
     writeFileSync(path.join(leadsRoot, "org-chart.json"), "{}", "utf8");
     const res = await app().request(url("org-chart.json"));

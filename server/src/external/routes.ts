@@ -61,7 +61,8 @@ import { createTasksRouter } from "./tasks/routes.js";
 import { createLaunchRouter } from "./launch/routes.js";
 import { createPrStatusRouter } from "./pr-status/routes.js";
 import { createDesignReviewRouter } from "./design-review/routes.js";
-import { createOrgRouter, type OrgRouterDeps } from "./org/routes.js";
+import type { OrgRouterDeps } from "./org/routes.js";
+import { mountOrgRouters } from "./org/mount.js";
 
 // Back-compat re-exports — 14+ sibling test files + downstream consumers
 // import these from `./routes.js` directly. Sources of truth post-C2:
@@ -311,19 +312,15 @@ export function createExternalRoutes(args: {
   // default gh runner + in-memory TTL cache from core/pr-status.ts.
   app.route("/", createPrStatusRouter());
 
-  // FR-04.38 — own host-allowlist + shared-secret gate (see org/routes.ts).
-  if (honoHost && leadsRoot) {
-    app.route(
-      "/",
-      createOrgRouter({
-        honoHost,
-        leadsRoot,
-        leadsRouteSecret,
-        lstatSync: orgLstatSync,
-        withDecisionsLock: orgWithDecisionsLock,
-      }),
-    );
-  }
+  // FR-04.38 — secret-gated `/api/external/org/*` + plain `/api/org/*` proxy
+  // (see org/mount.ts for why both are composed from one call site).
+  mountOrgRouters(app, {
+    honoHost,
+    leadsRoot,
+    leadsRouteSecret,
+    orgLstatSync,
+    orgWithDecisionsLock,
+  });
 
   return app;
 }

@@ -22,19 +22,16 @@ import { randomBytes } from "node:crypto";
 
 import { LEAD_ID_RE } from "./_helpers.js";
 import { realPathGuard } from "../../core/path-guard.js";
+import type { BeatRegisterEntryView, BeatRegisterHealthResponse } from "../../types/org.js";
+
+export type {
+  BeatRegisterEntryView,
+  BeatRegisterHealthResponse,
+} from "../../types/org.js";
 
 // ---------------------------------------------------------------------------
 // Register shapes — JSON-safe mirror of leadwright's BeatRegisterEntry.
 // ---------------------------------------------------------------------------
-
-export interface BeatRegisterEntryView {
-  sessionId: string;
-  beatId: string;
-  leadId: string;
-  pid: number;
-  startedAt: string;
-  closedAt: string | null;
-}
 
 export interface BeatRegisterFile {
   version: 1;
@@ -212,63 +209,62 @@ export function readRegisterFileTolerant(
 // GET /api/external/org/leads/:leadId/beat-register
 // ---------------------------------------------------------------------------
 
-export type BeatRegisterHealthResponse =
-  | { leadId: string; status: "clear" }
-  | { leadId: string; status: "open"; entry: BeatRegisterEntryView }
-  | {
-      leadId: string;
-      status: "fault";
-      reason: "duplicate-session-id";
-      sessionId: string;
-      entries: BeatRegisterEntryView[];
-    };
-
 export interface BeatRegisterRouteDeps {
   leadsRoot: string;
   lstatSync?: LstatFn;
 }
 
-export function registerBeatRegisterHealthRoute(app: Hono, deps: BeatRegisterRouteDeps): void {
+export type BeatRegisterHealthCoreResult =
+  | { status: 200; body: BeatRegisterHealthResponse }
+  | { status: 400 | 403 | 500 | 502; body: { error: string; leadId?: string; detail?: string } };
+
+/** Pure core — shared by the secret-gated route and the plain-surface proxy. */
+export function beatRegisterHealthCore(
+  deps: BeatRegisterRouteDeps,
+  leadId: string,
+): BeatRegisterHealthCoreResult {
   const { leadsRoot } = deps;
   const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
 
+  if (!LEAD_ID_RE.test(leadId)) {
+    return { status: 400, body: { error: "invalid_lead_id", leadId } };
+  }
+
+  const absolute = registerPathFor(leadsRoot, leadId);
+
+  let lst;
+  try {
+    lst = lstat(absolute);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT") {
+      return { status: 200, body: { leadId, status: "clear" } };
+    }
+    return {
+      status: 500,
+      body: { error: "beat_register_read_failed", detail: String(err).slice(0, 200) },
+    };
+  }
+  if (lst.isSymbolicLink()) {
+    return { status: 403, body: { error: "symlink_forbidden", leadId } };
+  }
+  const containment = realPathGuard(leadsRoot, absolute);
+  if (!containment.ok) {
+    return { status: 400, body: { error: "path_traversal", detail: containment.reason } };
+  }
+
+  const read = readRegisterFileTolerant(absolute);
+  if (!read.ok) {
+    return { status: 502, body: { error: "beat_register_invalid", leadId } };
+  }
+
+  const health = evaluateRegisterHealth(read.file);
+  return { status: 200, body: { leadId, ...health } };
+}
+
+export function registerBeatRegisterHealthRoute(app: Hono, deps: BeatRegisterRouteDeps): void {
   app.get("/api/external/org/leads/:leadId/beat-register", async (c) => {
-    const leadId = c.req.param("leadId");
-    if (!LEAD_ID_RE.test(leadId)) {
-      return c.json({ error: "invalid_lead_id", leadId }, 400);
-    }
-
-    const absolute = registerPathFor(leadsRoot, leadId);
-
-    let lst;
-    try {
-      lst = lstat(absolute);
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ENOENT") {
-        const body: BeatRegisterHealthResponse = { leadId, status: "clear" };
-        return c.json(body, 200);
-      }
-      return c.json(
-        { error: "beat_register_read_failed", detail: String(err).slice(0, 200) },
-        500,
-      );
-    }
-    if (lst.isSymbolicLink()) {
-      return c.json({ error: "symlink_forbidden", leadId }, 403);
-    }
-    const containment = realPathGuard(leadsRoot, absolute);
-    if (!containment.ok) {
-      return c.json({ error: "path_traversal", detail: containment.reason }, 400);
-    }
-
-    const read = readRegisterFileTolerant(absolute);
-    if (!read.ok) {
-      return c.json({ error: "beat_register_invalid", leadId }, 502);
-    }
-
-    const health = evaluateRegisterHealth(read.file);
-    const body: BeatRegisterHealthResponse = { leadId, ...health };
-    return c.json(body, 200);
+    const result = beatRegisterHealthCore(deps, c.req.param("leadId"));
+    return c.json(result.body, result.status);
   });
 }

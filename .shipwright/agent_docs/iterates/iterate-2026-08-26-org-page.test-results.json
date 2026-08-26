@@ -1,0 +1,125 @@
+{
+  "last_updated": "2026-08-26",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-26-org-page",
+    "date": "2026-08-26",
+    "unit": "PASS \u2014 client 3469 passed (368 files); server 3698 passed / 3 skipped (319 files)",
+    "integration": "n/a \u2014 no CRUD/service-boundary change beyond the new routes' own unit coverage",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 org-page.spec.ts, 4/4 (absent chart AC-6a/6b, invalid chart AC-7, present-chart DOM order + five-block card, charter Edit->Save round trip AC-8), real Chromium against the isolated-stack harness",
+    "design_fidelity": "deferred \u2014 the operator's own visual UAT is explicitly deferred per standing instruction (\"mein UAT kommt sp\u00e4ter. du gehst durch bis merged.\"); no automated Tier-2 design-fidelity check was run this session",
+    "smoke": "PASS \u2014 server verified up (isolated Hono instance) as part of the E2E harness boot for every org-page.spec.ts run",
+    "degraded": [
+      "Design Fidelity (Tier 2, medium+ UI) not run \u2014 the operator's visual review is deferred to their own later UAT pass, per explicit standing instruction for this run."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "AC-1: chart -> shared docs -> lead cards, fixed DOM order",
+          "disposition": "tested",
+          "evidence": "client/src/pages/OrgPage.test.tsx; org-page.spec.ts 'present, one lead' DOM-order test"
+        },
+        {
+          "behavior": "AC-2: five-block lead card, fixed order",
+          "disposition": "tested",
+          "evidence": "client/src/components/org/LeadCard.test.tsx"
+        },
+        {
+          "behavior": "AC-3: not-measured contract (never blank/zero/dash/spinner once settled)",
+          "disposition": "tested",
+          "evidence": "LeadCard.test.tsx; org-page.spec.ts 'not measured' text assertions"
+        },
+        {
+          "behavior": "AC-4: usage fills budget/runs, non-7 windowDays label",
+          "disposition": "tested",
+          "evidence": "LeadCard.test.tsx non-7-day fixture case"
+        },
+        {
+          "behavior": "AC-5: pause switch disabled, no network request on click",
+          "disposition": "tested",
+          "evidence": "LeadCard.test.tsx"
+        },
+        {
+          "behavior": "AC-6a: absent chart hides nav (sidebar + palette)",
+          "disposition": "tested",
+          "evidence": "SidebarNav.test.tsx, CommandCenter.test.tsx, useOrgChartPresence.test.ts; org-page.spec.ts 'absent chart' test"
+        },
+        {
+          "behavior": "AC-6b: absent chart, direct /org nav shows not-installed",
+          "disposition": "tested",
+          "evidence": "OrgPage.test.tsx; org-page.spec.ts 'absent chart' test"
+        },
+        {
+          "behavior": "AC-7: invalid chart keeps nav, shows page-level error naming the failure",
+          "disposition": "tested",
+          "evidence": "OrgPage.test.tsx; org-page.spec.ts 'invalid chart' test"
+        },
+        {
+          "behavior": "AC-8: Edit -> MarkdownEditorModal -> Save with If-Match",
+          "disposition": "tested",
+          "evidence": "orgMarkdownFileApi.test.ts; org-page.spec.ts Edit-charter round-trip test (asserts the file on disk changed)"
+        },
+        {
+          "behavior": "AC-9: gated /api/external/org/org-chart unaffected by the new router mount",
+          "disposition": "tested",
+          "evidence": "server/src/routes/__tests__/org.test.ts 'AC-9 \u2014 the existing secret-gated family is unaffected'"
+        },
+        {
+          "behavior": "AC-10: PUT to a non-charter path refused 403",
+          "disposition": "tested",
+          "evidence": "org.test.ts 'PUT /api/org/leads/:leadId/charter \u2014 AC-10', incl. the doubt-review %2f-bypass regression"
+        },
+        {
+          "behavior": "AuditLogModal cache-hit remount renders the same entries, never blank (Stage-2 fix)",
+          "disposition": "tested",
+          "evidence": "client/src/components/org/AuditLogModal.test.tsx"
+        },
+        {
+          "behavior": "AuditLogModal rapid-double-click cursor dedup + per-page error/Retry (doubt-review fixes)",
+          "disposition": "tested",
+          "evidence": "AuditLogModal.test.tsx 'doubt-review fixes'"
+        },
+        {
+          "behavior": "requireChartLead rejects a %2f-suffixed raw leadId even with a matching orphaned directory on disk (doubt-review HIGH fix)",
+          "disposition": "tested",
+          "evidence": "org.test.ts; verified non-vacuous by reverting the fix and observing the test fail (409 instead of 400) before restoring it"
+        },
+        {
+          "behavior": "GET learnings/audit routes 403 on a valid-shaped, unregistered leadId (Stage-2 LOW fix)",
+          "disposition": "tested",
+          "evidence": "server/src/routes/__tests__/org-docs.test.ts"
+        },
+        {
+          "behavior": "useOrgChart retryOnMount:false stops the shared-observer retry cascade on an errored chart (E2E-discovered fix)",
+          "disposition": "tested",
+          "evidence": "org-page.spec.ts 'invalid chart' test; the defect only reproduced under three simultaneously-mounted real observers + real network round trips, which a mocked-query unit test cannot recreate, so the E2E run is this behavior's own regression coverage"
+        }
+      ],
+      "counts": {
+        "testable": 16,
+        "tested": 16,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node e2e/isolated-stack.mjs --project=chromium e2e/flows/org-page.spec.ts",
+      "tests_run": 4,
+      "exit_code": 0,
+      "evidence_path": ".shipwright/runs/iterate-2026-08-26-org-page/surface_verification.json"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-26-org-page",
+    "commit": "c1553d8269f0fd629a8bf70c71e0544729e89b18",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
