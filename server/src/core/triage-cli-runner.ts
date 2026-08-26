@@ -3,8 +3,20 @@
  *
  * Triage reads remain native TypeScript because they are latency-sensitive and
  * have no mutual-exclusion requirement. Every transition, however, executes
- * the Python CLI so its FileLock owns the compare-and-swap, residence choice,
- * schema bootstrap and record-boundary handling. There is deliberately no
+ * the Python CLI via `uv run --python ">=3.11"` so its FileLock owns the
+ * compare-and-swap, residence choice, schema bootstrap and record-boundary
+ * handling — in a Python that actually satisfies triage_cli.py's own floor,
+ * not whichever of python3/python/py happened to answer `--version` first
+ * (the grade.py sibling of this bug; see `uv-runner.ts`). triage_cli.py has
+ * no `pyproject.toml` of its own, so this is `--python`, not `--project`
+ * (verified: `uv run --python ">=3.11" triage_cli.py --help` exits 0).
+ * `--no-project` is load-bearing, not decorative (Stage-3 doubt review,
+ * 2026-08-26): without it, `uv run` walks up from the SPAWNING PROCESS's cwd
+ * (never from the script's own path) looking for an ambient `pyproject.toml`
+ * to activate — a webui deployment nested inside another Python-tooled
+ * checkout would otherwise silently run this script against an unrelated
+ * project. `--no-project` makes "no ambient project" structural rather than
+ * an accident of this repo currently having none. There is deliberately no
  * TypeScript append fallback: an unavailable writer disables the UI instead.
  */
 
@@ -13,7 +25,8 @@ import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { defaultRun, READINESS_REPAIR_COMMAND, resolvePython, shipwrightCacheRoot, type RunFn } from "./readiness-probe.js";
+import { READINESS_REPAIR_COMMAND, shipwrightCacheRoot, type RunFn } from "./readiness-probe.js";
+import { resolveUv } from "./uv-runner.js";
 
 export const TRIAGE_CLI_TIMEOUT_MS = 30_000;
 
@@ -108,7 +121,9 @@ function unavailable(reason: string): TriageWriteAvailability {
 
 export async function triageWriteAvailability(deps: TriageCliDeps = {}): Promise<TriageWriteAvailability> {
   if (!resolveTriageCliScript(deps)) return unavailable("The triage write engine isn't installed.");
-  if (!(await resolvePython(deps.run ?? defaultRun))) return unavailable("No working Python (3.11+) was found.");
+  if (!(await resolveUv({ run: deps.run, homeDir: deps.homeDir, baseEnv: deps.baseEnv }))) {
+    return unavailable("uv isn't installed — triage writes need it to run in a managed Python 3.11+.");
+  }
   return { available: true };
 }
 
@@ -123,18 +138,24 @@ export async function runTriageCli(
 ): Promise<TriageCliResult> {
   const script = resolveTriageCliScript(deps);
   if (!script) return { kind: "engine-unavailable", reason: "The triage write engine isn't installed.", repairCommand: READINESS_REPAIR_COMMAND };
-  const python = await resolvePython(deps.run ?? defaultRun);
-  if (!python) return { kind: "engine-unavailable", reason: "No working Python (3.11+) was found.", repairCommand: READINESS_REPAIR_COMMAND };
+  const uv = await resolveUv({ run: deps.run, homeDir: deps.homeDir, baseEnv: deps.baseEnv });
+  if (!uv) {
+    return {
+      kind: "engine-unavailable",
+      reason: "uv isn't installed — triage writes need it to run in a managed Python 3.11+.",
+      repairCommand: READINESS_REPAIR_COMMAND,
+    };
+  }
 
   const spawn = deps.spawn ?? defaultSpawnTriageCli;
   const result = await spawn(
-    python.bin,
-    [script, "--project-root", input.projectRoot, input.operation, input.itemId, ...input.args, "--json"],
-    { timeoutMs: deps.timeoutMs ?? TRIAGE_CLI_TIMEOUT_MS, env: deps.baseEnv ?? process.env },
+    uv.bin,
+    ["run", "--no-project", "--python", ">=3.11", script, "--project-root", input.projectRoot, input.operation, input.itemId, ...input.args, "--json"],
+    { timeoutMs: deps.timeoutMs ?? TRIAGE_CLI_TIMEOUT_MS, env: uv.env },
   );
 
   if (result.code === -1) {
-    return { kind: "engine-unavailable", reason: "Python couldn't start on this machine.", repairCommand: READINESS_REPAIR_COMMAND };
+    return { kind: "engine-unavailable", reason: "uv couldn't start on this machine.", repairCommand: READINESS_REPAIR_COMMAND };
   }
   if (result.code === 3) return { kind: "precondition" };
   if (result.code === 4) return { kind: "not-found" };

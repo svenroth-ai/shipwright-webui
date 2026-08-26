@@ -1,0 +1,51 @@
+{
+  "stage": "doubt-review",
+  "doubts": [
+    {
+      "claim_under_doubt": "triage-cli-runner's `uv run --python \">=3.11\"` (no --project) runs triage_cli.py in an isolated/ad-hoc environment with no silent-fallback risk.",
+      "disproof_attempt": "Without --project/--no-project, uv run walks up from the SPAWNING PROCESS's cwd (never the script's own path) looking for an ambient pyproject.toml to activate. Neither runner sets `cwd` on execFile, so discovery ran from wherever the Node server process started, not from shared/scripts/tools/. Confirmed live: cwd'd into shipwright-grade's own plugin root (which HAS a pyproject.toml) and ran the triage_cli.py invocation from there — it silently succeeded against that ambient project rather than erroring, exactly the accidental-adoption risk described.",
+      "severity": "medium",
+      "lens": "boundary-and-contract",
+      "file": "server/src/core/triage-cli-runner.ts",
+      "resolution": "fixed",
+      "fix": "Added --no-project to the uv run invocation (verified against the real triage_cli.py: uv run --no-project --python \">=3.11\" <script> --help exits 0), making \"no ambient project\" structural rather than an accident of this repo currently having no pyproject.toml anywhere in its tree. Updated the header doc comment, the unit test's expected argv, and the E2E harness's uv-shim.mjs (which assumed every --flag takes a value; --no-project is boolean, so the shim's flag-skipping loop was fixed to only consume a value for --project/--python). Re-verified end-to-end via e2e/flows/triage-amend.spec.ts (2/2 passed)."
+    },
+    {
+      "claim_under_doubt": "no-direct-python-spawn.test.ts's regex-based scan forecloses the regression class of a new call site spawning a raw python interpreter.",
+      "disproof_attempt": "Found two additional bypasses beyond the one the external code-reviewer already caught: (a) a template-literal spawn target (execFile(`python3`, ...)) was invisible to the quote-only regex; (b) a future call site reimplementing the python3->python->py probe LOOP inline (copying the literal array from readiness-probe-run.ts, rather than calling the shared resolvePython()) would trip neither existing check, since its spawn target is a loop variable, not a direct literal or a flat single assignment.",
+      "severity": "medium",
+      "lens": "correctness",
+      "file": "server/src/test/no-direct-python-spawn.test.ts",
+      "resolution": "fixed",
+      "fix": "Widened the raw-spawn regex to accept backtick literals. Added a third scan (PROBE_ARRAY_LITERAL_RE) that flags the exact python3/python/py array literal appearing outside the resolvePython allowlist. Split the guard into two files (no-direct-python-spawn.test.ts for the resolvePython call-site allowlist, no-indirect-python-spawn.test.ts for the three literal/indirection/probe-loop checks) sharing a new python-spawn-guard-util.ts, since the combined file crossed the 300-line guideline. Added sanity tests for both new detections (8 total tests now, up from 5). Full server suite re-verified green (3675/3678, 3 pre-existing skips)."
+    },
+    {
+      "claim_under_doubt": "Grade's route is read-only; this change doesn't add a write surface.",
+      "disproof_attempt": "Confirmed on the real machine that uv run --project writes into the plugin's OWN cache directory (~/.claude/plugins/cache/shipwright/shipwright-grade/<version>/.venv/) on first dependency sync — something the old bare-python spawn never did. Neither the unit tests (mocked spawn) nor the E2E harness (uv-shim execs python directly, bypassing real uv sync) exercise a cold-cache first-grade or two concurrent first-syncs racing the same .venv.",
+      "severity": "low-medium",
+      "lens": "hidden-coupling-and-blast-radius",
+      "file": "server/src/core/grade-runner.ts",
+      "resolution": "rebuttal",
+      "fix": "Not a new write surface this module owns or must guard: it is uv's own environment-sync mechanism, cross-process locked by uv itself, scoped entirely to the plugin's own directory (never the graded repo or any webui-owned state), and one-time per plugin version. Documented explicitly in grade-runner.ts's header so \"read-only\" is understood to mean the graded repo and webui's own state, not uv's internal bookkeeping. No code change; a concurrent-cold-start empirical probe was judged out of proportion for a bug fix whose scope is the spawn mechanism, not uv's own env-sync concurrency guarantees (which are uv's documented responsibility, not this module's)."
+    },
+    {
+      "claim_under_doubt": "resolveGradePluginRoot()'s \"3 levels up\" assumption could target the wrong directory.",
+      "disproof_attempt": "Verified directly against the real cache: shipwright-grade/<version>/pyproject.toml and uv.lock exist exactly 3 dirname() calls up from the resolved grade.py, for the only layout actually observed in the wild. The untested defensive flat-layout fallback is internally consistent, and even a wrong target fails loudly (uv run --project <dir-without-pyproject.toml> errors clearly) rather than silently succeeding against an unintended project.",
+      "severity": "low",
+      "lens": "correctness",
+      "file": "server/src/core/grade-target.ts",
+      "resolution": "no_change_needed",
+      "fix": "Disprove attempt failed to find a live break; informational only, no action taken."
+    },
+    {
+      "claim_under_doubt": "resolveUv()'s presence probe and its bin/env resolution could diverge if a caller supplies mismatched deps.",
+      "disproof_attempt": "Traced both production call sites — neither ever supplies deps.homeDir/deps.baseEnv/deps.platform without also supplying a matching run, so in production both computations derive from identical process.env/os.homedir()/process.platform and are provably byte-identical today.",
+      "severity": "low",
+      "lens": "hidden-coupling-and-blast-radius",
+      "file": "server/src/core/uv-runner.ts",
+      "resolution": "no_change_needed",
+      "fix": "Disproven as a present-day risk; no current caller exercises the divergent case. No action taken."
+    }
+  ],
+  "summary": "Stage-3 doubt review surfaced 2 solid, fixed doubts (triage-cli-runner's implicit no-ancestor-project assumption, closed with --no-project; the regression guard's template-literal and inline-probe-loop bypasses, closed with a widened regex + a third scan + a file split) and 1 plausible-but-benign doubt addressed with a documented rebuttal (uv's own plugin-cache write during first-sync, which is uv's own locked, scoped, one-time mechanism, not a new write surface this module owns). 2 further doubts were actively disproven against the real plugin cache and the real call sites and required no action. All fixes re-verified: tsc --noEmit clean, full server vitest suite 3675/3678 passed (3 pre-existing skips), and the real triage-amend E2E flow (2/2) re-run end-to-end through the corrected --no-project argv and the fixed uv-shim.mjs."
+}

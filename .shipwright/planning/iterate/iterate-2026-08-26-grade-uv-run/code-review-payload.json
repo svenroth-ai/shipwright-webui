@@ -1,0 +1,20 @@
+{
+  "section": "grade-uv-run",
+  "review": [
+    {
+      "finding": "triage-cli-runner.ts did not thread deps.homeDir into its resolveUv() calls, unlike the sibling fix in grade-runner.ts which passes homeDir through — an asymmetry between the two runners fixed in the same commit. Currently harmless (no production caller overrides homeDir today) but left the PATH-augmentation env always resolving against the real os.homedir() regardless of an injected homeDir. Fixed in follow-up: both triageWriteAvailability() and runTriageCli() now pass homeDir: deps.homeDir to resolveUv().",
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/core/triage-cli-runner.ts",
+      "suggestion": "Thread homeDir through for symmetry with grade-runner.ts — done."
+    },
+    {
+      "finding": "routes/grade.ts's header comment still said 'fixed python binary', stale after the spawn moved to `uv run --project <plugin-root>`. Fixed in follow-up: comment updated to describe the uv run --project spawn.",
+      "severity": "low",
+      "category": "documentation",
+      "file": "server/src/routes/grade.ts",
+      "suggestion": "Update the stale doc comment — done."
+    }
+  ],
+  "summary": "PASS. All hard constraints verified: shell:false/execFile everywhere, no shell:true; -- end-of-options separator present in grade-runner.ts ahead of target; target/itemId/args at fixed argv positions in both runners; run/spawn/statDir/existsFn/baseEnv/homeDir test seams preserved and exercised without a real toolchain; exit-code mappings byte-for-byte unchanged; uv-missing paths in both grade-runner.ts and triage-cli-runner.ts return engine-unavailable with repairCommand and never fall back to a bare python. The new no-direct-python-spawn.test.ts guard is well-scoped and correctly excludes test files. Both findings above are low-severity and have been fixed in follow-up edits; re-verified with tsc --noEmit (clean) and 27/27 targeted tests passing. Two informational, non-blocking, pre-existing/out-of-scope notes were left as-is: triage-cli-runner.ts's argv has no `--` separator before positionals (unchanged from before this fix, not a regression), and resolveGradePluginRoot() has no dedicated unit test beyond indirect coverage via grade-runner.test.ts."
+}
