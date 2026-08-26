@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-26-grade-pill-contrast",
+  "date": "2026-08-26",
+  "section": "Iterate — bug: grade-result band pill white-on-white",
+  "title": "Grade-result band pill resets to solid-surface tokens",
+  "context": "The Grade door's head rides bare on the scene photo; the band pill drew --inset bg / --body text inline with no class .on-photo's reset targets.",
+  "decision": "Add className=\"pill\" — the reset hook on-photo.css already reserves for exactly this (per type-scale.css: grade pills).",
+  "consequences": "Band pill text is legible under .on-photo; no visual change outside it (base --body already equals the reset value).",
+  "rationale": ".on-photo flips --body white for bare chrome but never flips --inset, so an unreset pill goes white-on-white; rule 2's reset restores dark-on-light.",
+  "rejected": "A bespoke color pair was rejected — .pill already exists as the intended hook, so a new token pair would duplicate it.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

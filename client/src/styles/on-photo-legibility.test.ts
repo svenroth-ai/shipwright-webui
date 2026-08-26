@@ -102,6 +102,34 @@ describe("on-photo legibility — AC1 flipping-token fence", () => {
   });
 });
 
+describe("on-photo legibility — grade-result band pill resets to solid-surface tokens (iterate-2026-08-26-grade-pill-contrast)", () => {
+  // The GRADE door's head (ring + headline + band pill) rides BARE on the
+  // scene photo, like the surfaces above — it is not wrapped in a `.iw-card`.
+  // The pill draws `background: var(--inset)` / `color: var(--body)` inline.
+  // `--inset` is never in rule 1's bare-chrome flip list, so it stays the
+  // light default even under `.on-photo`; `--body` DOES flip to
+  // `rgba(255,255,255,.9)` there. Without a class rule 2's solid-surface
+  // reset targets, that pairing is white text on a light pill — invisible.
+  // `.pill` is that hook (on-photo.css rule 2's selector list, and the class
+  // `type-scale.css` names for exactly this: "grade pills").
+  it("GradeResult's band pill carries a class the .on-photo solid-surface reset targets", () => {
+    const src = read("components/wizard/IntentWizard/GradeResult.tsx");
+    const band = src.match(/<span\s+className="([^"]*)"\s+data-testid="wizard-grade-band"/);
+    expect(band, "wizard-grade-band span must carry a className before its data-testid").not.toBeNull();
+
+    const onPhotoCss = readFileSync(path.join(SRC, "styles/on-photo.css"), "utf8");
+    const resetRule = onPhotoCss.match(/\.on-photo\s+:is\(([^)]*)\)\s*\{[^}]*--body:/);
+    expect(resetRule, "on-photo.css rule-2 solid-surface reset (targets --body) not found").not.toBeNull();
+    const resetSelectors = (resetRule?.[1] ?? "").split(",").map((s) => s.trim().replace(/^\./, ""));
+
+    const bandClasses = (band?.[1] ?? "").split(/\s+/).filter(Boolean);
+    expect(
+      bandClasses.some((c) => resetSelectors.includes(c)),
+      `wizard-grade-band classes [${bandClasses.join(", ")}] must include one of the .on-photo reset selectors, else --body flips white while --inset stays light`,
+    ).toBe(true);
+  });
+});
+
 describe("on-photo legibility — AC4 no text-shadow on the touched surfaces", () => {
   for (const rel of TOUCHED) {
     it(`${rel} introduces no text-shadow`, () => {
