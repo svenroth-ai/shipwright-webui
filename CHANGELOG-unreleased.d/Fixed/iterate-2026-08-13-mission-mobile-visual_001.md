@@ -1,1 +1,0 @@
-Phone-viewport visual polish: Task Detail header no longer overlaps its status pills, Resume/ViewToggle go icon-only with 44px touch targets, and the Intent Wizard Flight Plan rail collapses to a chip + bottom sheet.

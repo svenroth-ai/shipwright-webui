@@ -1,1 +1,0 @@
-Triage Detail modal gains an inline Edit action (pencil icon) to correct a triage card's title/detail/severity in place, with last-edited provenance and a disclosure banner when the write would land on the tracked store

@@ -1,7 +1,7 @@
 # Compliance Dashboard
 
-Generated: 2026-08-08T10:22:56.851142+00:00
-Source-State: run=iterate-2026-08-08-tests-total-skip-contract base=a93a22c0b468 release=v0.24.0
+Generated: 2026-08-27T12:56:43.609365+00:00
+Source-State: run=iterate-2026-08-27-terminal-replay-reset-reopen-reconnect base=81dcaac0ab13 release=v0.25.0
 Consistency-audit: never run
 Profile: vite-hono
 Scope: full_app
@@ -14,30 +14,30 @@ Scope: full_app
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 27/29 FRs covered; 374/398 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
-| ✅ | Test health | latest full suite 6534/6535 (2026-08-08) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 398/398 changes linked to a commit, ADR or test run | change provenance (SLSA) |
-| ✅ | Change reconciliation | 1/23 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
+| ✅ | Requirement traceability | 28/31 FRs covered; 412/436 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Test health | latest full suite 7171/7174 (2026-08-26) | automated tests pass (OpenSSF Scorecard) |
+| ✅ | Change traceability | 436/436 changes linked to a commit, ADR or test run | change provenance (SLSA) |
+| ✅ | Change reconciliation | 1/27 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
 | ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF) |
-| ✅ | Size / maintainability discipline | ratchet delta -195 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
-| ✅ | Dependency hygiene | 0 unresolved / 70 licenses; 0 copyleft | dependency license & risk (OWASP) |
+| ✅ | Size / maintainability discipline | ratchet delta -579 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
+| ✅ | Dependency hygiene | 0 unresolved / 71 licenses; 0 copyleft | dependency license & risk (OWASP) |
 
 > 📊 **Test-Health · diff-coverage (Control-Grade input · target ≥80%):** not measured this session — per-PR signal; see the CI "Diff coverage" artifact.
 
-Verified from: `shipwright_events.jsonl (398 events, 2026-05-01 → 2026-08-08)`
+Verified from: `shipwright_events.jsonl (436 events, 2026-05-01 → 2026-08-27)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
 ## 🛡️ CI Security (fail-closed gate)
 
-Latest scan: **2026-08-03** · source `security.yml#30802280134` · critical-gate **✅ PASS**
+Latest scan: **2026-08-24** · source `security.yml#32699071818` · critical-gate **✅ PASS**
 
 | Severity | Count |
 |----------|-------|
 | Critical | 0 |
 | High | 0 |
-| Medium | 0 |
-| Low | 0 |
+| Medium | 5 |
+| Low | 1 |
 
 Prompt-injection findings: **0**
 
@@ -67,22 +67,22 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 328 changes | INFO |  |
-| Recent changes traced to an FR | 19/30 (63%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
-| All unit tests passing | 6534/6535 | WARN | 1/6535 not green in last full suite — see test-evidence.md |
-| Architecture decisions | 262 ADRs | INFO |  |
-| Iterate tests passing | 145/222 testable changes tested | WARN | 77 testable change(s) without tests — see test-evidence.md |
-| Dependencies | 70 packages | INFO |  |
+| Work events (iterate) | 366 changes | INFO |  |
+| Recent changes traced to an FR | 23/30 (77%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
+| All unit tests passing | 7171/7174 | WARN | 3/7174 not green in last full suite — see test-evidence.md; +2 change(s) since last full suite |
+| Architecture decisions | 285 ADRs | INFO |  |
+| Iterate tests passing | 167/247 testable changes tested | WARN | 80 testable change(s) without tests — see test-evidence.md |
+| Dependencies | 71 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 9 open | WARN | 9 actionable item(s) — see ../agent_docs/triage_inbox.md |
-| Bloat over-limit (grandfathered) | 85 | INFO |  |
-| Bloat in allowlist | 97 entries | INFO |  |
-| Bloat ratchet delta | -195 lines | PASS |  |
+| Triage open | 6 open | WARN | 6 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Bloat over-limit (grandfathered) | 88 | INFO |  |
+| Bloat in allowlist | 104 entries | INFO |  |
+| Bloat ratchet delta | -579 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 328 changes (2026-05-01 → 2026-08-08)
-- Last activity: 2026-08-08
+- Iterate: 366 changes (2026-05-01 → 2026-08-27)
+- Last activity: 2026-08-27
 
 ## External LLM Review Evidence
 

@@ -1,1 +1,0 @@
-The Edit Task dialog now matches the New Task/New Iterate form's visual design (surface-form tokens, field styling) and, for phases that support it, exposes the same Guided/Autonomous toggle the New form has — locked read-only once the task has started, matching the other launch-shaping fields.

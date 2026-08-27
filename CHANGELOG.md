@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.25.0] - 2026-08-27
+
+### Added
+
+- Triage Detail modal gains an inline Edit action (pencil icon) to correct a triage card's title/detail/severity in place, with last-edited provenance and a disclosure banner when the write would land on the tracked store
+- Show effective project model tiers on task cards and offer supported Iterate review overrides at launch.
+- Declared the published package manifests (bootstrapper, server, client package.json) in a new shipwright_changelog_config.json, so a release keeps the npm-shipped version in lock-step with the tag and CHANGELOG instead of silently shipping a stale version.
+- External Task API: PATCH /api/external/tasks/:id now accepts poFeedback (6000-char cap like description, clear via empty string, stays patchable on a started task)
+- External Task API: POST /api/external/tasks now accepts leadParentTaskId at creation (empty string is dropped, not stored)
+- External Task API: GET /api/external/tasks supports an exact-match ?tag= filter (case-sensitive, intersects with ?projectId=, unknown tag returns an empty list) applied before the per-session filesystem walk
+- New host-allowlist + secret-gated /api/external/org/* API for reading and updating leadwright's organization files (conventions doc, charter, org chart, decision log, per-lead usage) from the operator's own machine or Tailscale network.
+- POST /api/external/org/leads/:leadId/beat-register/release force-closes a stranded open beat-register entry and appends one beat_recovered audit line, mirroring leadwright's own recovery contract; a duplicate-sessionId register refuses the write outright instead of guessing which entry to close.
+- GET /api/external/org/leads/:leadId/last-run reports a lead's last-run staleness (fresh/stale/unknown-cadence) computed server-side from that lead's own cron cadence, never a hardcoded interval.
+- GET /api/external/org/leads/:leadId/beat-register reports a clear/open/fault open-register finding, treating a duplicate sessionId as an unresolvable fault rather than picking a match.
+- Mission Activity Feed cards now show the rest of a turn's own words when it wrote more than one sentence, restoring content that was previously discarded after the first line
+- Org page — organization overview for AI leads (chart, shared docs, per-lead cards with charter/learnings/audit-log access)
+
+### Changed
+
+- Track AGENTS.md as the shared Codex operating contract.
+- Show project model defaults as session-only Plan Review and Review choices when starting an Iterate, instead of on task cards.
+- Reconciled stale compliance audit findings for commit provenance, scope policy, bloat baselines, and CLAUDE.md hygiene.
+- Make Mission requirement, test, decision, and completion artifacts traceable and truthful.
+- Mission tab's middle section restyled: the Transcript sub-tab is retired (MissionActivityFeed now carries the narration), and MissionTopRow gets a redesigned two-row phone header.
+- The Edit Task dialog now matches the New Task/New Iterate form's visual design (surface-form tokens, field styling) and, for phases that support it, exposes the same Guided/Autonomous toggle the New form has — locked read-only once the task has started, matching the other launch-shaping fields.
+- Mission activity feed cards now show real transcript content for all nine card kinds (previously four): real questions and options for user-input, and bounded, sanitized excerpts of real command/test output for blocker and test cards — MissionContext still owns every pass/fail gate verdict.
+- Mission activity feed visual redesign: per-kind icons on a connecting line, status pills for test/spec/review outcomes, mono-font file/command chips, bordered code blocks for real output excerpts, and a real unresolved question with its options (Mission still answers nothing itself, via the existing jump-to-terminal CTA).
+- Removed the GOAL header from the Mission activity feed; the outcome line stays.
+- `npx @svenroth-ai/shipwright` now stops with clear install guidance when Claude Code, Python 3.11+/uv, or git is missing, instead of launching an empty Command Center with no `/shipwright-*` commands. Use `--webui-only` to start the Command Center without the plugin phase.
+- Refreshed the First-Contact welcome copy: "Welcome to Shipwright — We're glad to have you. Choose your first step.", dropping the redundant explanatory paragraph on the door-picker screen.
+
+### Removed
+
+- Removed the informational LaunchPayloadBlock from the Triage Detail modal — dead, Fix-now is the only launch affordance actually used
+
+### Fixed
+
+- Triage reader now resolves amend events (title/detail/severity corrections) instead of silently ignoring them, matching the canonical Python reader
+- Triage filter chips and sort controls now match the Task Board's control chrome (radius, border, hover) instead of a heavier, drifted tinted-pill style
+- Preview button is now legible on the dark project toolbar (info-tint background instead of transparent-on-black)
+- Preview button no longer appears on 'All Projects' or the synthesized 'Unassigned' project — only when a real single project is selected
+- Isolate mutable Playwright runs in a disposable temporary profile and fail closed when the registry escapes it.
+- Clean campaign and fixture-owned E2E resources through their API owner paths, including assertion-failure teardown.
+- Keep genuine live-stack device probes in explicit cleanup-checked quarantine commands.
+- Phone-viewport visual polish: Task Detail header no longer overlaps its status pills, Resume/ViewToggle go icon-only with 44px touch targets, and the Intent Wizard Flight Plan rail collapses to a chip + bottom sheet.
+- Task descriptions are now capped at 6,000 characters (was a miscalibrated 20,000) to stay under the Windows console's interactive line-length limit, which was causing long-description launches to silently fail to start.
+- Promoting a triage finding with an over-length detail now rejects with a clear error instead of silently truncating the resulting task's description.
+- Fixed a bug where launching a task with a long description could silently fail: the terminal's command preview would fill the screen and the launch would never actually reach the running shell. The preview now stays a fixed height and scrolls instead.
+- removed the retracted .gitignore blanket rule that silently discarded every future iterate decision-drop ADR; new decision-drops are tracked again while the generated INDEX.md and *.tmp scratch files stay ignored
+- Corrected the phone new-task E2E test to assert the locked project chip (ProjectContextStrip) instead of a project selector that never renders once the phone create-menu cascade has already scoped the modal to a project
+- phone-responsive E2E touch-safety test no longer hangs 30s on a locator that never renders in the scoped new-task flow (trg-9435df9d)
+- Launching a never-launched Backlog task no longer wrongly parks behind manual "Send to terminal" as if it were a resume just from viewing its terminal pane or reconnecting to it — the pty-reuse guard now tracks real prior input instead of any writer connecting. (A narrower residual case — typing an unrelated command into the pane before the first Launch, then revisiting — can still trigger the same fallback; tracked as trg-cdf2bade.) The Launch route also now falls back to the task's saved autonomy setting instead of dropping it silently.
+- Reopening a task from Task Detail now re-arms the terminal's auto-launch guard immediately, so the very next Resume auto-runs instead of silently requiring a manual page refresh first.
+- npx installer now detects Claude Code and uv right after you install them — previously a freshly-installed tool could be reported as missing until you opened a new terminal.
+- npx installer accepts the Python that uv manages (`uv python install 3.11`) instead of demanding a separate system Python 3.11+.
+- Missing-prerequisite messages now show the exact install command for your operating system and note to reopen your terminal after installing.
+- Mission activity feed no longer misclassifies commands (test/review bucket regexes matched any substring anywhere in a shell command) or every subagent spawn as review work; investigate/implement/review/spec cards now show real derived text for a solo command instead of a fixed generic sentence.
+- The Mission Delivered card no longer shows an unrelated older run's commit message when the transcript quotes a stale Run-ID footer inside a tool result or user prompt.
+- The `npx @svenroth-ai/shipwright` bootstrapper no longer exits silently doing nothing on macOS/Linux: its entry-point check now resolves the npm `.bin` symlink to its target so the installer actually runs (it was a no-op under npx on POSIX; Windows was unaffected).
+- `npx @svenroth-ai/shipwright` no longer crashes on a fresh install: the published package now declares `cron-parser` (a runtime dependency the server gained but the installer manifest had not), and a dependency-drift test keeps the two manifests in sync so this class of cold-start breakage can't recur.
+- When the Command Center server fails to start, its output is now written to `~/.shipwright-webui/server-manual.log` — the exact file the error message tells you to check (previously that log was never written, so the failure was undiagnosable).
+- The First-Contact readiness check no longer closes the doors when the only system Python is older than 3.11. Because the Shipwright hooks run through `uv run` (which resolves a uv-managed interpreter), the check now also accepts Python supplied by uv — it consults `uv python find >=3.11` when the system `python3` is missing or too old, matching the npx bootstrapper's own preflight.
+- The First-Contact "not ready yet" banner is now readable on the welcome photo (it previously rendered as near-invisible light text on a light panel), and it gives the exact, OS-correct command to install each missing tool (Claude CLI, uv, Python, git) instead of only suggesting `npx @svenroth-ai/shipwright@latest` — which installs the Shipwright plugins but cannot install those tools. The npx command is now shown only when it is actually the fix (missing plugins/cache).
+- First-Contact readiness gate no longer reports Python as missing/too-old when it is available through uv: the server probe now augments its lookup PATH with `~/.local/bin` (and Homebrew on macOS) so a uv installed there is found, and the uv-managed-Python fallback fires as it does in the npx installer. Fixes the macOS and Windows cold-start case where the doors stayed locked behind a false "Python 3.9.6" finding (FR-01.51).
+- `npx @svenroth-ai/shipwright` now swaps to a freshly published build instead of attaching to an already-running older server: the attach-vs-swap check compares the full prerelease-aware version (not just the major.minor.patch triple), and the published package now stamps the server manifest with the release version so the running server reports the version it actually is.
+- Terminal: a read-only viewer (a task open in a second browser/tab that doesn't hold the writer slot) can now scroll back and copy text inside a live session; only real keystrokes still require the writer slot.
+- Clicking "Build something new" on the Start screen now lands on the first wizard step instead of reopening the door picker, and the Back button in all three wizard flows is legible again (it was white text on a white background).
+- Mission activity feed no longer loses an unrelated turn's commands and explanation when a stale blocked command's identical text coincidentally recovers inside a different, later coalesced card.
+- Grade result's status pill (e.g. "Partial control") is now legible on the photo backdrop — it rendered white text on a white pill
+- Grade door and Triage writes now run grade.py/triage_cli.py via uv run in the plugin's own declared environment, instead of a bare system Python — fixes a ModuleNotFoundError (missing defusedxml) on machines whose ambient Python lacked the plugin's dependencies
+- Mission activity feed: assistant narration is no longer silently dropped when it lands in its own turn separate from the tool call it explains (the normal shape of a real autonomous session), including when a test run or a clarifying question intervenes.
+- Embedded terminal: a closed task's replayed session no longer leaves mouse-tracking mode stuck on, which was blocking text selection (copy) and normal wheel-scroll
+- Embedded terminal: Reopening or retrying a closed task now reconnects the terminal automatically instead of requiring a full page reload
+
+### Security
+
+- Complete the hono CVE-2026-69207/-71848/-71849/-71850 fix (PR #374 only patched server/): bootstrapper/ (the published `@svenroth-ai/shipwright` npm package, installed via `npx` and by CI's `npm ci`) is now on hono 4.13.2, and both server/ and bootstrapper/ declare a `^4.12.34` floor (the actual fix line) instead of the previous `^4.12.25`, which still admitted every vulnerable patch release.
+
 ## [0.24.0] - 2026-08-08
 
 ### Added

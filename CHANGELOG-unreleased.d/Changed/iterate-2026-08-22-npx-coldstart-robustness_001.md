@@ -1,1 +1,0 @@
-`npx @svenroth-ai/shipwright` now stops with clear install guidance when Claude Code, Python 3.11+/uv, or git is missing, instead of launching an empty Command Center with no `/shipwright-*` commands. Use `--webui-only` to start the Command Center without the plugin phase.

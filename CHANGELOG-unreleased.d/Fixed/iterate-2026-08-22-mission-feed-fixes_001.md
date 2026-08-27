@@ -1,1 +1,0 @@
-Mission activity feed no longer misclassifies commands (test/review bucket regexes matched any substring anywhere in a shell command) or every subagent spawn as review work; investigate/implement/review/spec cards now show real derived text for a solo command instead of a fixed generic sentence.

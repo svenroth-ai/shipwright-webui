@@ -1,1 +1,0 @@
-External Task API: GET /api/external/tasks supports an exact-match ?tag= filter (case-sensitive, intersects with ?projectId=, unknown tag returns an empty list) applied before the per-session filesystem walk

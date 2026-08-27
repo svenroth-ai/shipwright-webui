@@ -1,1 +1,0 @@
-Mission activity feed: assistant narration is no longer silently dropped when it lands in its own turn separate from the tool call it explains (the normal shape of a real autonomous session), including when a test run or a clarifying question intervenes.

@@ -1,1 +1,0 @@
-Mission activity feed cards now show real transcript content for all nine card kinds (previously four): real questions and options for user-input, and bounded, sanitized excerpts of real command/test output for blocker and test cards — MissionContext still owns every pass/fail gate verdict.
