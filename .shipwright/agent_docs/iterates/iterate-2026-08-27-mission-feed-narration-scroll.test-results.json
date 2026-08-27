@@ -1,0 +1,81 @@
+{
+  "last_updated": "2026-08-27",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-27-mission-feed-narration-scroll",
+    "date": "2026-08-27",
+    "unit": "PASS \u2014 client 342 passed (32 files) in the mission-feed suites; full client suite 3502 passed (373 files); tsc --noEmit clean",
+    "integration": "n/a \u2014 no CRUD or service-boundary change",
+    "pgtap": "n/a \u2014 no schema change",
+    "e2e": "n/a \u2014 pure client-side text-derivation logic, no new/changed DOM structure or interaction surface",
+    "design_fidelity": "n/a \u2014 no UI change",
+    "smoke": "n/a \u2014 no server behaviour change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A preceding pure-narration turn's words attach to the very next tool-bearing turn's card (the reported root cause: narration and its tool call always split into two turns in a real session)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"attaches a preceding pure-narration turn's words to the very next tool-bearing turn's card\" PASSED"
+        },
+        {
+          "behavior": "Narration is not duplicated onto a second, unrelated tool-only turn",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"a narration-only turn followed by TWO tool-only turns attaches only to the first\" PASSED"
+        },
+        {
+          "behavior": "Two consecutive narration-only turns: most-recent-wins, not concatenated",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"two consecutive narration-only turns\" PASSED"
+        },
+        {
+          "behavior": "A turn's own same-event text still wins over any pending narration",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"a turn's own text ... still wins\" PASSED"
+        },
+        {
+          "behavior": "Trailing narration with no following tool call is dropped, not leaked onto an unrelated later card",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"trailing narration with no following tool call is dropped\" PASSED"
+        },
+        {
+          "behavior": "Narration survives an intervening test-only turn and still reaches the next real (investigate/implement) turn (code-reviewer catch: neither test nor user-input bucket consumes pending prose, so an unconditional clear silently dropped it)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"narration survives an intervening test-only turn\" PASSED"
+        },
+        {
+          "behavior": "Narration survives an intervening AskUserQuestion-only turn and still reaches the next real turn",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"narration survives an intervening AskUserQuestion-only turn\" PASSED"
+        },
+        {
+          "behavior": "Narration survives two consecutive non-consuming test-only turns (a realistic retry burst)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"narration survives two consecutive non-consuming test-only turns\" PASSED"
+        },
+        {
+          "behavior": "Narration survives THREE consecutive non-consuming test-only turns without being dropped early (second doubt-review catch: the raw MAX_PENDING_NARRATION_CARRY value bridges one fewer turn than its own number)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"narration survives THREE consecutive non-consuming test-only turns\" PASSED"
+        },
+        {
+          "behavior": "Narration is DROPPED, not misattributed, once it outlives the bridgeable number of non-consuming turns \u2014 an unrelated later turn does not inherit stale words (doubt-review catch: unbounded carry-forward risks attaching stale narration to an unrelated pivot)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts::\"narration is DROPPED, not misattributed\" PASSED"
+        },
+        {
+          "behavior": "No regression to the existing 339 mission-feed/mission-component tests, or the wider client suite",
+          "disposition": "tested",
+          "evidence": "npx vitest run src/lib/missionActivityFeed src/components/external/mission -> 32 files, 342 passed; npx vitest run (full client) -> 373 files, 3502 passed"
+        }
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-27-mission-feed-narration-scroll",
+    "commit": "943c4ada8a7a93c22713925be5567b3f1ac22075",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

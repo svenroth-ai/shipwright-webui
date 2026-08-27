@@ -1,0 +1,134 @@
+import { toolResults, type UserEvent } from "../external/session-parser";
+import type { MissionContext } from "./missionContextApi";
+import { excerpt, resolveQuestionAnswer } from "./missionActivityFeedText";
+import type { ActivityCard, ActivityKind } from "./missionActivityFeedTypes";
+
+/** A tool_use id awaiting its matching `tool_result` — set when the card is
+ *  created (deriveActivityFeed), consumed here once the result arrives. */
+export interface PendingTool {
+  bucket: ActivityKind;
+  card: ActivityCard;
+  commandKey: string;
+  label: string;
+  background: boolean;
+}
+
+/** The mutable per-run state `resolveToolResults` reads and updates. Threaded
+ *  in (never module-level) — `deriveActivityFeed` owns it for the lifetime of
+ *  one derivation and nothing here survives past that call. */
+export interface ResolveState {
+  cards: ActivityCard[];
+  testCards: ActivityCard[];
+  pendingTools: Map<string, PendingTool>;
+  unresolvedBlockers: Map<string, { card: ActivityCard; bucket: ActivityKind }>;
+  unresolvedTest: ActivityCard | null;
+}
+
+/** Fold one `user` event's `tool_result` blocks into the cards their matching
+ *  `tool_use` already created — question resolution, test pass/fail/retry,
+ *  and blocker creation/recovery. Extracted verbatim from
+ *  `deriveActivityFeed`'s own `user`-event branch (iterate-2026-08-27
+ *  bloat-ceiling split) — pure state mutation + reassignment, no behavior
+ *  change. Returns the new `unresolvedTest` (the one field the caller must
+ *  reassign; everything else mutates `state`'s own maps/arrays in place). */
+export function resolveToolResults(
+  event: UserEvent,
+  context: MissionContext | null,
+  state: ResolveState,
+): ActivityCard | null {
+  const { cards, testCards, pendingTools, unresolvedBlockers } = state;
+  let unresolvedTest = state.unresolvedTest;
+  for (const result of toolResults(event)) {
+    const pending = pendingTools.get(result.tool_use_id);
+    if (!pending) continue;
+    pendingTools.delete(result.tool_use_id);
+    if (pending.bucket === "user-input") {
+      // Only a non-error resolution counts as an actual answer (mini-plan,
+      // code review catch): an errored/cancelled prompt sets `resolved`
+      // here too would permanently hide `AnswerInTerminalButton` (FR-01.63)
+      // even though nothing was actually decided.
+      if (pending.card.question && !result.is_error) {
+        pending.card.question.resolved = true;
+        const resolved = resolveQuestionAnswer(result.content, pending.card.question.options);
+        pending.card.question.picked = resolved.picked;
+        pending.card.question.answer = resolved.answer;
+        pending.card.text = "The requested user input was received and work could continue.";
+      }
+    } else if (pending.bucket === "test") {
+      if (result.is_error) {
+        pending.card.text = "This test command needs attention.";
+        pending.card.status = "err";
+        pending.card.detail = excerpt(result.content);
+        unresolvedTest = pending.card;
+      } else if (pending.background) {
+        // A shell acknowledgement is not proof that the spawned job ended.
+        // Keep the card pending until MissionContext records its result.
+      } else if (unresolvedTest) {
+        // A locally-observed successful retry is real recovery evidence
+        // for THIS attempt, independent of whether MissionContext.tests.gate
+        // has caught up yet — merging it here regardless of `gate` (external
+        // review catch, high) closes a duplicate-card leak: leaving
+        // `unresolvedTest` set until `gate === "pass"` let the OLD failed
+        // card linger in the feed forever whenever the gate stayed
+        // fail/unknown, and let the final reconciliation below attach that
+        // lagging gate's status to the NEW card next to text already
+        // claiming completion. The PILL stays gate-derived either way (the
+        // final reconciliation still runs unconditionally); only this
+        // sentence's wording stays conservative about what was RECORDED.
+        unresolvedTest.text = context?.tests?.gate === "pass"
+          ? "Tests recovered and have a recorded passing result."
+          : "This test command completed after an earlier failure.";
+        unresolvedTest.status = undefined;
+        unresolvedTest.detail = undefined;
+        if (!unresolvedTest.commands.includes(pending.label)) unresolvedTest.commands.push(pending.label);
+        cards.splice(cards.indexOf(pending.card), 1);
+        testCards.splice(testCards.indexOf(pending.card), 1);
+        unresolvedTest = null;
+      } else {
+        pending.card.text = "This test command completed.";
+      }
+    } else if (result.is_error) {
+      pending.card.kind = "blocker";
+      pending.card.text = "A command needs attention before work can continue.";
+      pending.card.status = "err";
+      // A blocker's headline/status/detail all come from THIS error —
+      // any explanation excerpted from an earlier, unrelated turn must
+      // not survive the mutation (Internal Plan Review HIGH finding:
+      // the recovery path below pushes a second command label without
+      // touching `cardEventCounts`/`cardTurnCounts`, so a count-based
+      // guard alone would miss this transition — clearing at the
+      // mutation site itself is unconditional and needs no counter).
+      delete pending.card.explanation;
+      // `add()` coalesces same-kind/text/artifact cards across several
+      // tool_use ids (the "many-files-in-a-row" case) — attaching this
+      // one command's error excerpt would misattribute it to a card
+      // whose `commands` chip list still names other, unrelated,
+      // non-erroring commands. Only attach when unambiguous.
+      if (pending.card.commands.length === 1) pending.card.detail = excerpt(result.content);
+      unresolvedBlockers.set(pending.commandKey, { card: pending.card, bucket: pending.bucket });
+    } else if (unresolvedBlockers.has(pending.commandKey)) {
+      const blocker = unresolvedBlockers.get(pending.commandKey)!;
+      // A stale blocker's commandKey (tool name + detail string, with no
+      // expiry) can coincidentally match a command inside a later,
+      // wholly unrelated turn — one of possibly several tool calls that
+      // `add()` coalesced into the CURRENT card. Only fold this success
+      // into the original blocked card (and discard the current one)
+      // when the current card is unambiguously about nothing but this
+      // recovered command: otherwise the `cards.splice()` below would
+      // destroy that unrelated card's other commands and any
+      // `explanation` it carries (found by doubt-review during
+      // iterate-2026-08-25-mission-feed-progress-narration — pre-existing
+      // gap, out of that iterate's scope).
+      if (pending.card.commands.length === 1) {
+        blocker.card.kind = blocker.bucket;
+        blocker.card.text = "A command error recovered after a successful retry.";
+        blocker.card.status = undefined;
+        blocker.card.detail = undefined;
+        if (!blocker.card.commands.includes(pending.label)) blocker.card.commands.push(pending.label);
+        cards.splice(cards.indexOf(pending.card), 1);
+        unresolvedBlockers.delete(pending.commandKey);
+      }
+    }
+  }
+  return unresolvedTest;
+}

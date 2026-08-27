@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-27-mission-feed-narration-scroll",
+  "date": "2026-08-27",
+  "section": "Iterate — bug: mission feed narration silently dropped",
+  "title": "Bounded pendingNarration carry-forward across non-consuming turns",
+  "context": "Real /shipwright-iterate transcripts always split an assistant turn's narration from its tool_use call into two consecutive turns. pendingNarration cleared the instant ANY tool-bearing turn ran, even a test/user-input-only turn that never reads it, so narration headed for a later real card was silently lost — the reported both bugs (missing narration, apparent missing feed start).",
+  "decision": "pendingNarration now clears only when a review/spec/investigate/implement bucket tool actually reads it this turn, or is superseded by that turn's own text; otherwise it survives a bounded run of non-consuming turns (MAX_PENDING_NARRATION_CARRY) before being dropped rather than carried indefinitely.",
+  "consequences": "Narration correctly attaches across an intervening test retry or AskUserQuestion. A card beyond the carry bound falls back to the existing generic/label-derived sentence instead of risking a stale, misattributed headline on unrelated later work.",
+  "rationale": "code-reviewer found the unconditional clear dropped narration past test/user-input turns; a follow-up doubt-review found the naive unbounded fix let narration drift onto unrelated later work once several non-consuming turns intervened, so carry-forward was bounded, not left open-ended.",
+  "rejected": "Unbounded carry-forward (doubt-review: misattributes stale narration to an unrelated later pivot with no narration of its own); the original unconditional clear (reintroduces the reported bug).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

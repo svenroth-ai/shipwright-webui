@@ -1,0 +1,72 @@
+{
+  "run_id": "iterate-2026-08-27-mission-feed-narration-scroll",
+  "date": "2026-08-27T11:07:42.967265Z",
+  "event_at": "2026-08-27T11:06:43.636113+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/mission-feed-narration-scroll",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-08-27-mission-feed-narration-scroll",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "narration attaches to the next tool-bearing turn's card",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "no duplication onto a second unrelated tool-only turn",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "consecutive narration-only turns: most-recent-wins",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "own-turn text still wins over pending narration",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "trailing unconsumed narration is dropped, not leaked",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "narration survives an intervening test-only turn",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "narration survives an intervening AskUserQuestion-only turn",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "narration survives two consecutive non-consuming turns",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "narration survives three consecutive non-consuming turns (retry burst)",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "narration is dropped, not misattributed, past the bridgeable bound",
+        "disposition": "tested",
+        "evidence": "missionActivityFeed.splitTurn.test.ts PASSED"
+      },
+      {
+        "behavior": "no regression to existing mission-feed/mission-component/full client suites",
+        "disposition": "tested",
+        "evidence": "vitest run: mission suites 342 passed; full client suite 3502 passed; tsc --noEmit clean"
+      }
+    ]
+  }
+}
