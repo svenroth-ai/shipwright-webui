@@ -31,7 +31,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 |----|------|------|----------|-------------|--------|
 | FR-01.02 | TSK | Task detail — 3-pane viewer | Must | The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode. | enrichment + iterate-2026-08-02-mobile-work-mode |
 | FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. It warns before saving files with tricky content (tables, raw HTML, footnotes).<br>**Updates:** Gained a formatting toolbar. | iterate-2026-06-03, toolbar iterate-2026-06-04 |
-| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding. | iterate-2026-07-31-review-record-tolerant-reader + iterate-2026-08-02-mobile-work-mode + iterate-2026-08-25-mission-feed-progress-narration |
+| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding — though in real sessions the discarding was only partly fixed: a card's headline AND `explanation` then gained the ability to source from the immediately PRECEDING pure-narration turn, since real autonomous sessions almost never combine narration and a tool call in one JSONL event. | iterate-2026-07-31-review-record-tolerant-reader + iterate-2026-08-02-mobile-work-mode + iterate-2026-08-25-mission-feed-progress-narration + iterate-2026-08-27-mission-feed-narration-scroll |
 
 ### Area TRM — Embedded Terminal
 
@@ -1072,7 +1072,10 @@ write surface; gated, path-guarded, and concurrency-safe.
   runner prefixes), `Task` bucketing reads the subagent's own declared purpose, and
   a card representing exactly one command derives its sentence from that command's
   own input when no prose is available — a coalesced multi-command card still keeps
-  the generic sentence. Separately, the Delivered card could show an **unrelated
+  the generic sentence. ("No prose available" narrowed further in
+  iterate-2026-08-27-mission-feed-narration-scroll: FR-01.68 (S) now also checks
+  the immediately preceding turn before falling back here, so this label-derived
+  path fires only when neither turn wrote any.) Separately, the Delivered card could show an **unrelated
   older run's** commit message: the server-side Run-ID-footer recovery kept the LAST
   occurrence anywhere in the transcript, including one quoted inside a
   `"type":"user"` JSONL line (a `tool_result` or a human prompt) — never how a
@@ -1106,13 +1109,34 @@ write surface; gated, path-guarded, and concurrency-safe.
   the guided wizard + register-manually next to "Open board", while the scoped-iterate
   promptbox stays the primary in-body intent; every create-CTA trigger rides
   `.btn-primary`/`.btn-primary-split` (the guard registry now includes ShipsLogPage).
-- (S) **(iterate-2026-08-25-mission-feed-progress-narration)** An
-  `investigate`/`spec`/`implement`/`review` card built from exactly one assistant
-  turn additionally carries `explanation` — a bounded, sanitized excerpt of that
-  turn's own prose beyond its first line, rendered as plain text directly under
-  the existing headline. A card built from two or more turns, or mutated to
-  `blocker`, never carries it. No settings, launch-flag, or server-side change:
-  this is a client-side re-derivation of text the transcript already contains.
+- (S) **(iterate-2026-08-25-mission-feed-progress-narration, amended
+  iterate-2026-08-27-mission-feed-narration-scroll)** An
+  `investigate`/`spec`/`implement`/`review` card's headline and its
+  `explanation` (a bounded, sanitized excerpt of prose beyond the headline,
+  rendered as plain text directly under it) are sourced from prose ONE
+  assistant turn wrote — but that is not always the same turn whose tool
+  call built the card. A real autonomous session almost never combines
+  narration text and a tool call in the same JSONL event: Claude narrates in
+  one turn, then calls tools in the very next. So a card prefers its OWN
+  turn's prose when that turn wrote any (the rarer same-turn shape); failing
+  that, it takes the immediately PRECEDING pure-narration turn's prose
+  instead of falling back to a generic sentence. A `test`- or
+  `user-input`-only turn (a test run, an `AskUserQuestion`) never consumes
+  that borrowed prose, so it survives past one — or a short run of several —
+  such turns to reach the next real card, rather than being dropped the
+  instant any tool-bearing turn intervenes. That survival is bounded, not
+  indefinite: past a small fixed number of consecutive non-consuming turns
+  the borrowed prose is dropped in favor of the existing generic/label-derived
+  fallback rather than being carried forward indefinitely and risking
+  attachment to unrelated later work the agent pivoted to without narrating
+  the pivot itself. Either way the borrowed prose attaches to at most one
+  card — a second consecutive narration-only turn overwrites the first
+  (most-recent-wins, never concatenated), and unconsumed trailing narration
+  at session end is dropped rather than leaking onto an unrelated later card.
+  A card whose headline/explanation were contributed by two or more DISTINCT
+  turns, or a card mutated to `blocker`, never carries `explanation`. No
+  settings, launch-flag, or server-side change: this is a client-side
+  re-derivation of text the transcript already contains.
 
 ### FR-01.70 Leads org route
 

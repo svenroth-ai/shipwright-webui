@@ -96,8 +96,10 @@ export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, tas
                   safe markdown path as the rest of the transcript, never a raw <p>. */}
               <MarkdownChunk content={card.text} />
 
-              {/* card.explanation is a turn's OWN words beyond its headline
-                  (iterate-2026-08-25-mission-feed-progress-narration) — a
+              {/* card.explanation is one turn's own words beyond its headline —
+                  not always the card's own tool-calling turn (it may be the
+                  immediately preceding narration-only turn's, per FR-01.68 (S),
+                  amended iterate-2026-08-27-mission-feed-narration-scroll) — a
                   bounded, sanitized excerpt, not markdown: rendered as a
                   literal text node reusing `.mc-feed-qa-answer`'s exact
                   style (same margin/font-size/color), never MarkdownChunk —
