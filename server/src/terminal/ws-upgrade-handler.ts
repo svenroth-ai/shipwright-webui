@@ -42,6 +42,7 @@ import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
 import {
   buildReplaySnapshotEnvelope,
   tryReadSnapshot as tryReadSnapshotShared,
+  type BuildReplaySnapshotEnvelopeOptions,
 } from "./replay-snapshot.js";
 import { deriveTerminalReset } from "./terminal-reset.js";
 import { startWsHeartbeat } from "./ws-heartbeat.js";
@@ -205,9 +206,10 @@ const resolveReplaySnapshot = async (
 const sendReplaySnapshot = (
   ws: { send(d: string): void },
   rec: SnapshotRecord,
+  opts?: BuildReplaySnapshotEnvelopeOptions,
 ): boolean => {
   try {
-    ws.send(JSON.stringify(buildReplaySnapshotEnvelope(rec)));
+    ws.send(JSON.stringify(buildReplaySnapshotEnvelope(rec, opts)));
     return true;
   } catch {
     return false;
@@ -299,6 +301,9 @@ function buildReplayOnlyHandlers(
           sendReplaySnapshot(
             ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
             snap,
+            // Iterate-2026-08-27 — this attach is final: no live pty will
+            // ever follow up to turn mouse-tracking / alt-scroll back off.
+            { tearDownInteractionModes: true },
           );
         }
         // Close cleanly — no live shell to keep open.
@@ -573,6 +578,20 @@ function buildLiveHandlers(
             sendReplaySnapshot(
               ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
               snap,
+              // doubt-reviewer (HIGH) — `!ptyExistedBeforeAttach` means this
+              // attach just spawned a BARE, unrelated shell; the disk
+              // snapshot being replayed may still encode mouse-tracking /
+              // alt-scroll from whatever last ran (typically Claude's TUI),
+              // and unlike the ptyExistedBeforeAttach=true case, no live pty
+              // will ever follow up to turn those modes back off — the same
+              // dead-scroll/dead-copy defect Bug A's replay-only teardown
+              // exists to fix, reached through this reaped-pty reconnect
+              // path instead. `terminalReset` is NOT the right gate here
+              // (it additionally requires `firstJsonlObservedAt`, which is
+              // orthogonal to whether a live pty exists) — this uses the
+              // same synchronous pre-spawn probe `terminalReset` itself is
+              // derived from.
+              !ptyExistedBeforeAttach ? { tearDownInteractionModes: true } : undefined,
             );
           }
           flushLiveBuffer(ws);

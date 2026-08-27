@@ -130,6 +130,84 @@ describe("buildReplaySnapshotEnvelope", () => {
     expect(env.data).toBe(PREAMBLE + data);
     expect((env.data.match(/\x1b\[\?1006h/g) || []).length).toBe(1);
   });
+
+  /*
+   * iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — a
+   * done/launch_failed replay is one-shot; no live pty ever follows up
+   * to turn interaction modes back off. Without a teardown, mouse
+   * tracking left ON by the snapshot disables native DOM text
+   * selection (copy) and alt-scroll-mode ON turns the wheel into
+   * arrow-key bytes routed nowhere (scroll) — reported by Sven as
+   * "Session ended… aber nichts geht mehr" (scroll AND copy dead).
+   */
+  describe("tearDownInteractionModes", () => {
+    it("is a no-op by default (opts omitted) — live/resync callers must not regress", () => {
+      const data = "cells\x1b[?1000h";
+      const env = buildReplaySnapshotEnvelope({
+        version: "v2",
+        terminalVersion: "6.0.0",
+        cols: 80,
+        rows: 24,
+        data,
+      });
+      expect(env.data).toBe(PREAMBLE + data + "\x1b[?1006h");
+    });
+
+    it("appends a full mouse/alt-scroll teardown after the ?1006h fixup when requested", () => {
+      const data = "cells\x1b[?1000h";
+      const env = buildReplaySnapshotEnvelope(
+        {
+          version: "v2",
+          terminalVersion: "6.0.0",
+          cols: 80,
+          rows: 24,
+          data,
+        },
+        { tearDownInteractionModes: true },
+      );
+      expect(env.data).toBe(
+        PREAMBLE +
+          data +
+          "\x1b[?1006h" +
+          "\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?9l\x1b[?1006l\x1b[?1007l",
+      );
+    });
+
+    it("appends the teardown even when no mouse mode was ever enabled (safe-when-redundant)", () => {
+      const data = "plain cells, no mouse tracking";
+      const env = buildReplaySnapshotEnvelope(
+        {
+          version: "v2",
+          terminalVersion: "6.0.0",
+          cols: 80,
+          rows: 24,
+          data,
+        },
+        { tearDownInteractionModes: true },
+      );
+      expect(env.data).toBe(
+        PREAMBLE +
+          data +
+          "\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?9l\x1b[?1006l\x1b[?1007l",
+      );
+    });
+
+    it("does NOT touch the alt-screen-buffer mode (?1049) — exiting it would swap out the very content being replayed", () => {
+      const data = "\x1b[?1049hclaude tui frame\x1b[?1000h";
+      const env = buildReplaySnapshotEnvelope(
+        {
+          version: "v2",
+          terminalVersion: "6.0.0",
+          cols: 80,
+          rows: 24,
+          data,
+        },
+        { tearDownInteractionModes: true },
+      );
+      expect(env.data).not.toMatch(/\x1b\[\?1049l/);
+      expect(env.data).toContain("\x1b[?1049h");
+    });
+  });
 });
 
 describe("tryReadSnapshot", () => {

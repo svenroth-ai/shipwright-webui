@@ -85,8 +85,53 @@ const MOUSE_SGR_ENCODING = "\x1b[?1006h";
 const CAN = String.fromCharCode(24);
 const PARSER_RESYNC_PREAMBLE = `${CAN}\x1b[H`;
 
+/*
+ * Interaction-mode teardown (iterate-2026-08-27-terminal-replay-reset-
+ * reopen-reconnect, FR-01.28). A `done`/`launch_failed` replay is
+ * ONE-SHOT and final — no live pty will ever follow up with a mode
+ * reset. If the serialized snapshot left mouse tracking (and/or the
+ * VT200 "alternate scroll" translation, `?1007h`) turned ON — which
+ * Claude's TUI does for the whole lifetime of a session — those modes
+ * stay latched in the reader's xterm instance forever:
+ *   - Mouse tracking ON makes xterm disable native DOM text selection
+ *     (`_selectionService.disable()`), so click+drag copy silently
+ *     selects nothing.
+ *   - Alternate-scroll-mode ON makes a wheel event become synthetic
+ *     arrow-key bytes routed through `onData` -> `socket.send`, which
+ *     is a no-op once the WS has closed (replay-only has no live pty
+ *     to receive them) — the wheel LOOKS like it does nothing.
+ * Reported by Sven as "Session ended… aber nichts geht mehr" (neither
+ * scroll nor copy) — this is why. Deliberately does NOT touch the
+ * alt-screen-buffer mode (`?1049`): exiting it would swap the replayed
+ * grid out for whatever the MAIN buffer held before Claude's TUI
+ * entered the alt screen, which is exactly the content the user is
+ * trying to read/copy — that would trade one defect for a worse one.
+ * Safe-when-redundant: disabling an already-off mode is a no-op.
+ *
+ * The `?1006l` here runs right after the ADR-099 fixup above may have just
+ * appended `?1006h` for THIS SAME snapshot — deliberate, not a bug: the
+ * fixup keeps the live-attach/resync callers (which never set this option)
+ * correct, while the replay-only caller wants the opposite final state.
+ * Leaving the fixup unconditional and overriding it here (rather than
+ * skipping it for replay-only) keeps that shared code path single, byte-
+ * identical for both callers up to this point.
+ */
+const INTERACTION_MODE_TEARDOWN =
+  "\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?9l\x1b[?1006l\x1b[?1007l";
+
+export interface BuildReplaySnapshotEnvelopeOptions {
+  /**
+   * Set for a `done`/`launch_failed` (replay-only) attach — see
+   * `INTERACTION_MODE_TEARDOWN` above. Never set for a live attach or
+   * a live resync: those keep the ADR-099 `?1006h` restoration intact
+   * because a live pty is still there to react to further mouse input.
+   */
+  tearDownInteractionModes?: boolean;
+}
+
 export function buildReplaySnapshotEnvelope(
   rec: SnapshotRecord,
+  opts?: BuildReplaySnapshotEnvelopeOptions,
 ): ReplaySnapshotEnvelope {
   let data = rec.data;
   if (MOUSE_TRACKING_ENTER_RE.test(data) && !data.includes(MOUSE_SGR_ENCODING)) {
@@ -94,6 +139,9 @@ export function buildReplaySnapshotEnvelope(
   }
   if (!data.startsWith(PARSER_RESYNC_PREAMBLE)) {
     data = PARSER_RESYNC_PREAMBLE + data;
+  }
+  if (opts?.tearDownInteractionModes) {
+    data = data + INTERACTION_MODE_TEARDOWN;
   }
   return {
     type: "replay_snapshot",
