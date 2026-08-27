@@ -1,1 +1,0 @@
-POST /api/external/org/leads/:leadId/beat-register/release force-closes a stranded open beat-register entry and appends one beat_recovered audit line, mirroring leadwright's own recovery contract; a duplicate-sessionId register refuses the write outright instead of guessing which entry to close.

@@ -1,25 +1,25 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-08T10:22:56.851142+00:00
-Source-State: run=iterate-2026-08-08-tests-total-skip-contract base=a93a22c0b468 release=v0.24.0
+Generated: 2026-08-27T12:56:43.609365+00:00
+Source-State: run=iterate-2026-08-27-terminal-replay-reset-reopen-reconnect base=81dcaac0ab13 release=v0.25.0
 Consistency-audit: never run
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 45 (deduplicated) |
+| Runtime dependencies | 46 (deduplicated) |
 | Dev dependencies | 25 |
-| Total packages | 70 |
-| Licenses resolved | 65 / 70 |
+| Total packages | 71 |
+| Licenses resolved | 66 / 71 |
 | Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 70 packages)
-    "MIT" : 58
+pie title License Distribution (all 71 packages)
+    "MIT" : 59
     "Apache-2.0" : 3
     "OFL-1.1" : 2
     "BSD-3-Clause" : 1
@@ -55,8 +55,9 @@ pie title License Distribution (all 70 packages)
 | @xterm/addon-webgl | 0.19.0 | MIT |
 | @xterm/headless | 6.0.0 | MIT |
 | @xterm/xterm | 6.0.0 | MIT |
+| cron-parser | ^5.5.0 | MIT |
 | diff | ^5.2.2 | BSD-3-Clause |
-| hono | ^4.12.25 | MIT |
+| hono | ^4.12.34 | MIT |
 | ignore | ^5.3.2 | MIT |
 | lucide-react | ^0.400.0 | ISC |
 | mermaid | ^11.15.0 | MIT |

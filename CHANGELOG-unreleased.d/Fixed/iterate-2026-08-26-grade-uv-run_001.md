@@ -1,1 +1,0 @@
-Grade door and Triage writes now run grade.py/triage_cli.py via uv run in the plugin's own declared environment, instead of a bare system Python — fixes a ModuleNotFoundError (missing defusedxml) on machines whose ambient Python lacked the plugin's dependencies

@@ -1,1 +1,0 @@
-New host-allowlist + secret-gated /api/external/org/* API for reading and updating leadwright's organization files (conventions doc, charter, org chart, decision log, per-lead usage) from the operator's own machine or Tailscale network.

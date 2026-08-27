@@ -1,1 +1,0 @@
-Corrected the phone new-task E2E test to assert the locked project chip (ProjectContextStrip) instead of a project selector that never renders once the phone create-menu cascade has already scoped the modal to a project

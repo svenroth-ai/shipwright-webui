@@ -1,1 +1,0 @@
-When the Command Center server fails to start, its output is now written to `~/.shipwright-webui/server-manual.log` — the exact file the error message tells you to check (previously that log was never written, so the failure was undiagnosable).

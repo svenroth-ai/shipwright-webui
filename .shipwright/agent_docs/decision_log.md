@@ -3919,3 +3919,307 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Consequences:** A plain session no longer shows a lifecycle stage (supersedes one shipped E2E assertion, updated deliberately). Pure client-side: no server change, no new endpoint, no second write surface, terminal byte-identical. inferStage/summarizeTranscript delegate to ONE implementation so the rules cannot drift.
 - **Rejected:** TodoWrite as PRIMARY signal (the brief's premise): measured at 9% of real transcripts, free-form text, so it would fabricate a phase. Build gated on a build command only (external review HIGH): 31% vs 76% for product edits. Inlining into narrator-transcript.ts: breaches the 300-LOC ceiling. Full detail in ADR-136.
 - **Details:** [136-mission-honest-lifecycle-stage.md](.shipwright/planning/adr/136-mission-honest-lifecycle-stage.md) - serves FR-01.66
+
+---
+
+### ADR-265: Mission middle restyle and phone-viewport visual fixes
+- **Date:** 2026-08-13
+- **Section:** Iterate — change: Mission tab + mobile visual polish
+- **Run-ID:** iterate-2026-08-13-mission-mobile-visual
+- **Context:** Mission tab's middle section still read as a leftover Transcript/Terminal split, and phone-viewport chrome (header, board toolbar, create menu, Flight Plan rail) had never been polished after the desktop-first Mission/A13 redesign shipped.
+- **Decision:** Retire the Transcript sub-tab (MissionActivityFeed now covers narration); restyle MissionTopRow into a two-row phone header with 44px touch targets; make Resume/ViewToggle icon-only and Flight Plan collapse to a chip+sheet on phone; add a single documented 88px --btn-min-w phone floor.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Bundled as one visual-only iterate per explicit scope (Mission middle + mobile visual fixes); terminal smearing deferred to a separate iterate.
+- **Consequences:** BubbleTranscript stays mounted only via Mission's activity feed reuse, not its own route; phone header height drops by one row; button-standard gains one narrow, single-source exception (buttons.css) instead of per-component drift.
+- **Rejected:** A true fixed bottom-sheet primitive for the phone create-menu drill-down (would fork or refactor three shared menu-row components) — deferred; a plain header band over DropdownMenu.Content ships the same visual read without that risk.
+
+---
+
+### ADR-266: Remove the retracted .gitignore blanket rule for decision-drops/
+- **Date:** 2026-08-15
+- **Section:** Iterate — bug: gitignore blanket rule silently discarded decision-drop ADRs
+- **Run-ID:** iterate-2026-08-15-gitignore-decision-drops
+- **Context:** Root .gitignore line 35 blanket-ignored /.shipwright/agent_docs/decision-drops/, a rule the Shipwright template retracted 2026-08-08. It silently discards every future iterate ADR: the write lands in a gitignored path, F6's git add skips it, worktree remove destroys it. This repo already lost work to it once. Split from trg-a429ac3e; systemic fix is trg-2b1db6b3.
+- **Decision:** Delete the blanket /.shipwright/agent_docs/decision-drops/ line. The narrower, still-canonical INDEX.md and *.tmp rules stay untouched, so ADR files become trackable while derived/transient files in the same directory stay ignored.
+- **Commit:** (assigned post-merge)
+- **Rationale:** gitignore_canon re-adds only CANONICAL template rules on refresh; this rule now lives in the template's SUPERSEDED block, which the tool strips, so a current plugin cache agrees with the deletion and will not silently restore it. If a pre-2026-08-08 plugin cache reintroduces the rule after a future iterate, that is evidence for trg-2b1db6b3, not a reason to delete it a second time by hand.
+- **Consequences:** Future decision-drop ADRs are tracked by default, no git add -f needed. A regression meta-test (gitignore-decision-drops-tracking.test.ts) pins the real git check-ignore behavior for all three cases. Out of scope: ADRs already lost are unrecoverable; the template/canon fix is trg-2b1db6b3.
+
+---
+
+### ADR-267: Assert the locked ProjectContextStrip, not a project select, on the phone drill-in New Task flow
+- **Date:** 2026-08-15
+- **Section:** Iterate — bug: fix phone new-task E2E test assertion
+- **Run-ID:** iterate-2026-08-15-phone-new-project-test-fix
+- **Context:** 90-phone-responsive.spec.ts 'phone + New drills project' asserted a project select that never renders once the phone drill-in cascade has already scoped the modal to a project (useNewIssueFormDerived.ts locks it; SimpleFields.tsx shows ProjectContextStrip instead). Full context: see spec_ref.
+- **Decision:** Fix the test, not the component. Asserts project-context-strip visibility + project-context-name text instead, matching the test's own stated 'scoped modal' intent. See spec_ref for full rationale.
+- **Commit:** (assigned post-merge)
+- **Rationale:** ProjectContextStrip.tsx's own docstring states the read-only-when-scoped contract; re-offering a select after the user already picked a project one step earlier would contradict the flow's own design. See spec_ref for full detail.
+- **Consequences:** Drill-in test passes with a stronger behavioral assertion. A textually-adjacent, unrelated test (touch-safe modal) independently times out on the same testid pattern; confirmed not a cascade, filed separately as trg-9435df9d. See spec_ref.
+- **Rejected:** Giving the strip an override select to change project without closing the modal — a genuine feature, declined for now, out of scope for a test-fix diff.
+- **Details:** [iterate-2026-08-15-phone-new-project-test-fix-phone-new-project-test-fix.md](../planning/adr/iterate-2026-08-15-phone-new-project-test-fix-phone-new-project-test-fix.md)
+
+---
+
+### ADR-268: Split 90-phone-responsive.spec.ts for bloat headroom; fix trg-9435df9d touch-safe hang
+- **Date:** 2026-08-16
+- **Section:** Iterate — change: phone E2E spec bloat headroom + touch-safe hang fix
+- **Run-ID:** iterate-2026-08-16-phone-spec-split-fix
+- **Context:** 90-phone-responsive.spec.ts was already split once (90b, iterate-2026-08-15) after a 307-line crossing whose baseline-registration PR (#369) was blocked as CI self-approval and reverted. That split already resolved the crossing (274 lines on main), leaving two follow-ups: trg-9435df9d's hang in the split-off touch-safe test, and one more clearly-separable block in the main file.
+- **Decision:** Extracted the up-band-guard test (9 lines, different viewport, no shared fixtures) into 90c-phone-up-band-guard.spec.ts and extended testMatch, mirroring the existing 90b split. Dropped new-issue-project-select from the touch-safe test's font-size loop: it never renders once the modal is scoped (ProjectContextStrip replaces it, #369), so evaluate() hung to the 30s timeout instead of failing fast.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Surgical split beats grandfathering: the true crossing was already resolved by the prior 90b split, so a baseline entry would re-introduce the self-approval pattern PR #369's review caught, for a problem that no longer existed. A full 18-test reorg was unneeded for 26 lines of headroom.
+- **Consequences:** All three files are now well under the 300-line cap (266/63/26 lines) with headroom for future tests; no bloat-baseline entry needed. The touch-safe test completes in ~600ms instead of hanging 30s. 18/18 E2E tests verified passing against a real isolated stack.
+- **Rejected:** (a) Grandfather via baseline entry + ADR -- unnecessary, crossing already resolved. (c) Split all 18 tests into several files -- more churn than needed for 26 lines of headroom.
+
+---
+
+### ADR-269: Lead fields: poFeedback PATCH, leadParentTaskId create, ?tag= filter
+- **Date:** 2026-08-17
+- **Section:** FR-01.01 (Task list / create, Task edit / delete)
+- **Run-ID:** iterate-2026-08-16-v1-lead-fields-tag-filter
+- **Context:** leadwright's daemon needed three narrow External Task API extensions to close its V1 lead-review loop: a PO-feedback channel, a parent-task link set at creation, and a cheap tag lookup that avoids scanning every session's JSONL.
+- **Decision:** PATCH /tasks/:id accepts poFeedback (6000-char cap like description, never frozen once started, clear-vs-omit contract). POST /tasks accepts leadParentTaskId with the same soft-drop-on-empty-string pattern as domain; poFeedback stays PATCH-only, never in the create path. GET /tasks gains an exact-match, case-sensitive ?tag= filter applied before the findManyByUuid filesystem walk, intersecting with ?projectId=; no tag index was built.
+- **Commit:** (assigned post-merge)
+- **Consequences:** ExternalTask now has 6 user-creatable / 7 daemon-owned fields (was 5/8); ADR-100's count amended. ?tag= is documented as a cheap lookup, not an atomic/idempotent check-and-create — a caller needing duplicate-prevention across concurrent daemon writers must still do its own check, unlike the existing findByPhaseTaskId() synchronous check before store.create().
+- **Rejected:** A tag index (explicitly out of scope per the source triage spec). Treating ?tag= as an idempotency primitive (doubt-review Stage 3 finding — the original leadwright spec wording overclaimed this; corrected in both the comment and the iterate spec's own Goal section).
+- **Details:** [2026-08-16-v1-lead-fields-tag-filter.md](../planning/iterate/2026-08-16-v1-lead-fields-tag-filter.md)
+
+---
+
+### ADR-270: Complete hono CVE fix: patch bootstrapper/, raise both declared floors
+- **Date:** 2026-08-17
+- **Section:** Security / dependency floors
+- **Run-ID:** iterate-2026-08-17-hono-cve-bootstrapper-followup
+- **Context:** PR #374 fixed server/'s hono lockfile (4.12.27->4.13.2) for CVE-2026-69207/-71848/-71849/-71850 but left two gaps, both verified on main 2026-08-17: bootstrapper/ (the published npx package, installed by CI via npm ci) was never touched and stayed on 4.12.30; and neither package.json raised its declared ^4.12.25 floor, which still admits every vulnerable patch release even after a lockfile bump.
+- **Decision:** Bumped bootstrapper/package-lock.json to hono 4.13.2 (npm install after the manifest edit). Raised the declared floor to ^4.12.34 (the actual fix line, not today's resolved 4.13.2) in both server/ and bootstrapper/ package.json. Added a manifest-range test per workspace (not lockfile-version) so a future lockfile-only fix fails loudly. ws left untouched (already above its own fix line).
+- **Commit:** (assigned post-merge)
+- **Rationale:** This repo's own precedent (PR #180) raises the declared floor on every dependency CVE fix, not just the lockfile -- a lockfile-only fix is exactly how the 4.12.27 pin survived undetected in the first place, since npm ci against a stale lockfile re-resolves under the fix line.
+- **Consequences:** CI (npm ci in bootstrapper/) and any future npx install now resolve to a patched hono floor. End-user blast radius was never real -- npx resolves ^4.12.25 fresh, so published installs already landed on 4.13.x; the fix closes the CI/scanner gap, not a live user exposure. Security merge gate intentionally NOT widened (out of scope, per operator).
+- **Details:** [iterate-2026-08-17-hono-cve-bootstrapper-followup-hono-cve-fix.md](../planning/adr/iterate-2026-08-17-hono-cve-bootstrapper-followup-hono-cve-fix.md)
+
+---
+
+### ADR-271: Leads org route — host+secret gated /api/external/org/* family
+- **Date:** 2026-08-17
+- **Section:** Iterate — feature: org-route-leads
+- **Run-ID:** iterate-2026-08-17-org-route-leads
+- **Context:** leadwright (a separate tool) needs to read/update ~/.claude/leads/** (conventions, charter, org chart, decision log, usage) from its own process; no webui route exposed that directory, and the launch card specifies an HTTP-shaped surface, not a CLI.
+- **Decision:** Add a 5-endpoint /api/external/org/* family (GET/PUT file, org-chart, usage, countersign) behind a host-bind allowlist (loopback/Tailscale) + shared secret; the one racing write (countersign) is serialized via proper-lockfile over decisions-proposed.md, mirroring write.ts's symlink/path-guard posture.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Models write.ts's allowlist/path-guard/realpath-guard/atomic-write pattern -- closest existing precedent -- adding only what write.ts didn't need: host gate, secret gate, cross-process lock. Org-chart gets a named typed read so malformed input errors rather than serving a half structure.
+- **Consequences:** New external write surface into another repo's data (~/.claude/leads/**). Plan-review (11 findings) + external code review (5 findings) both fully adopted before commit; see spec-ref for the tables. Zero client/src changes; zero write into shipwright's own runtime state.
+- **Rejected:** A local CLI instead of a route (deepseek, Architecture Review) -- the launch card specifies an HTTP-shaped surface with a host-BIND allowlist, already PO-decided 2026-08-16; not re-litigated. Deferring the usage endpoint until a producer exists (both reviewers) -- the triage doc pre-empts this; kept in scope.
+- **Details:** [iterate-2026-08-17-org-route-leads.md](../planning/adr/iterate-2026-08-17-org-route-leads.md)
+
+---
+
+### ADR-272: Beat-register release, last-run staleness, open-register finding
+- **Date:** 2026-08-18
+- **Section:** Iterate — feature: org route beat-register release
+- **Run-ID:** iterate-2026-08-18-org-route-beat-register
+- **Context:** Leadwright's beat-register/.beat.lock gate can strand a lead beat-lock-held after a crashed beat, with no recovery path.
+- **Decision:** Add POST beat-register/release (mirrors leadwright's recoverRegisterEntry), GET last-run (tri-state cron staleness), GET beat-register (clear/open/fault) to the existing /api/external/org/* family.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Task brief instructs mirroring leadwright's shipped contract, including its known limitations, over inventing a divergent recovery mechanism.
+- **Consequences:** Release clears only the register half of the gate; .beat.lock stays untouched and the response discloses this. Register-close and audit-append stay non-atomic, mirroring leadwright's own limitation.
+- **Rejected:** Picking first/newest on a duplicate-sessionId fault; making register-close+audit-append atomic; new rate-limiting on this route family.
+- **Details:** [iterate-2026-08-18-org-route-beat-register-release.md](../planning/adr/iterate-2026-08-18-org-route-beat-register-release.md)
+
+---
+
+### ADR-273: Real transcript content for all nine ActivityCard kinds
+- **Date:** 2026-08-20
+- **Section:** Mission Activity Feed
+- **Run-ID:** iterate-2026-08-20-mission-feed-content
+- **Context:** Only 4 of 9 ActivityCard kinds narrated real transcript content; the rest showed fixed generic sentences, and the feed's presentation did not match the approved mockup.
+- **Decision:** All nine kinds now derive real text/detail/status from the transcript or MissionContext, adding bounded, sanitized raw-output detail on blocker/test/user-input cards, plus a real question block and PR-link card, presented via a rewritten icon/spine timeline. MissionContext remains the sole source of gate verdicts; raw tool output narrows the prior 'no raw output' constraint only for accompanying detail text on those three kinds.
+- **Commit:** (assigned post-merge)
+- **Consequences:** Users see real failure excerpts, real questions/options, and real delivery links instead of generic placeholders; the reducer's mutation-based state machine gained several new reconciliation branches, which four review rounds (external, code, code re-review, doubt) each found and fixed one real self-contradictory-pill defect in, in turn.
+- **Rejected:** Rendering raw tool output unconditionally on all card kinds (rejected: violates the sole-verdict-source boundary); keeping the old fixed-sentence presentation (rejected: fails the explicit user request for real content and mockup parity).
+- **Details:** [2026-08-20-mission-feed-content.md](../planning/iterate/2026-08-20-mission-feed-content.md)
+
+---
+
+### ADR-274: Cross-platform prerequisite detection + uv-coupled Python gate
+- **Date:** 2026-08-22
+- **Section:** Iterate — bug: bootstrapper prerequisite detection
+- **Run-ID:** iterate-2026-08-22-bootstrapper-prereq-detection
+- **Context:** npx cold-start on a fresh Mac reported freshly-installed uv/claude (in ~/.local/bin) as 'not found' and demanded a system python3>=3.11 even though the stack runs every hook via `uv run`.
+- **Decision:** Augment the probe's lookup PATH with ~/.local/bin + Homebrew dirs (POSIX) and %USERPROFILE%/.local/bin (Windows), resolve the absolute binary, and accept Python when `uv python find >=3.11` succeeds (gated on exit code) in addition to a system 3.11+. Add OS-aware install hints and a PATH-refresh note. Split the lookup helpers into lib/probe-path.mjs to hold preflight.mjs under 300 lines.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The uv/Claude installers write to ~/.local/bin and only append to the shell rc, so the npx process carries a stale PATH; the stack runs hooks via `uv run`, so a system python3 is neither required nor sufficient. uv python find is a no-download predicate (exit 0 hit / 2 miss).
+- **Consequences:** A just-installed tool is detected without a shell restart; a uv-managed Python satisfies the gate; a missing prerequisite prints the exact per-OS install command and a reopen-your-terminal note.
+- **Rejected:** Prepending the extra dirs (would let ~/.local/bin shadow an explicitly-configured tool); keeping the system-python3>=3.11 requirement (ignores uv-managed Python); auto-installing the missing tools (invasive, out of scope).
+
+---
+
+### ADR-275: Mission activity-feed classification and identity-recovery fixes
+- **Date:** 2026-08-22
+- **Section:** Iterate — change: mission feed fixes
+- **Run-ID:** iterate-2026-08-22-mission-feed-fixes
+- **Context:** PR #377 claimed real transcript content for every ActivityCard kind; a screenshot review found most cards still generic, plus the Delivered card could show an unrelated run's commit message.
+- **Decision:** Narrow the test/review bucket regexes to real invocation shapes, gate Task-review bucketing on the subagent's own declared purpose, add a single-command label-derived text fallback, exclude "type":"user" JSONL lines from the Run-ID footer scan, and drop the GOAL header.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root-caused each defect against real transcripts rather than patching symptoms; the run-ID fix specifically targets tool_result/human-prompt quotation, the one path proven to smuggle a stale footer.
+- **Consequences:** Fewer false test/review cards; investigate/implement/review/spec cards show real derived text when the turn has no prose; Delivered no longer latches onto a quoted older Run-ID; GOAL header removed from the feed.
+- **Rejected:** Keeping the broad substring regexes with an allowlist of excluded paths (fragile, grows forever); parsing message boundaries to fully close the assistant-narrates-an-older-footer case (deliberately out of scope, documented as a known limitation).
+- **Details:** [2026-08-22-mission-feed-fixes.md](../planning/iterate/2026-08-22-mission-feed-fixes.md)
+
+---
+
+### ADR-276: Fix the npx bootstrapper's main-module guard so it runs under a node_modules/.bin symlink
+- **Date:** 2026-08-22
+- **Section:** Iterate — bug: npx bootstrapper silent no-op under a symlink
+- **Run-ID:** iterate-2026-08-22-npx-bin-main-guard
+- **Context:** The published @svenroth-ai/shipwright bin exited 0 doing NOTHING on macOS/Linux: `npx @svenroth-ai/shipwright` (and --version) printed nothing. The entry guard compared path.resolve(process.argv[1]) — the npx .bin symlink — with path.resolve(fileURLToPath(import.meta.url)) — Node's realpath'd target — so they never matched and main() never ran. Windows was masked by its .cmd shim passing the real path.
+- **Decision:** Extract the guard into an exported isMainModule(argv1, metaUrl) that realpaths BOTH sides (symmetric path.resolve fallback when either throws) before comparing; the entry guard calls it. Add tests: isMainModule unit cases incl. a symlink, a real child-process `node <symlink> --version` repro, and a hermetic npm-pack -> extract -> invoke-through-a-.bin-symlink test on the shipped tarball.
+- **Commit:** (assigned post-merge)
+- **Rationale:** realpath mirrors exactly how Node computes import.meta.url under default (non --preserve-symlinks) resolution, so both operands canonicalize through the same syscall and a symlink compares equal to its target.
+- **Consequences:** npx invocation now runs main() on POSIX; the previously-untested npx symlink path is covered, including on the packed artifact. The symmetric fallback removes a Yarn-PnP mixed-branch no-op risk. Symlink-dependent tests run on CI-Linux (hard-fail if a symlink cannot be created there) and skip on Windows, which uses a .cmd shim.
+- **Rejected:** Keeping path.resolve without realpath (the bug); a per-side norm that realpaths one side and resolves the other (the mixed-branch that reintroduces the no-op under PnP).
+
+---
+
+### ADR-277: Fix the npx cold-start: ship cron-parser (+ dep-drift guard), write the server boot log, and hard-stop when prerequisites are missing
+- **Date:** 2026-08-22
+- **Section:** Iterate — bug: npx cold-start crash + undiagnosable boot + pluginless boot
+- **Run-ID:** iterate-2026-08-22-npx-coldstart-robustness
+- **Context:** A fresh `npx @svenroth-ai/shipwright` crashed with ERR_MODULE_NOT_FOUND for cron-parser: bootstrapper/package.json hand-mirrors server/package.json runtime deps and cron-parser@^5.5.0 (added to the server in #376) was never copied. The boot spawned with stdio:'ignore' so the log the timeout error named was never written, and a missing Claude/Python still booted a pluginless Command Center.
+- **Decision:** Declare cron-parser in the published package + add dep-drift.test.mjs asserting server runtime deps are a subset of bootstrapper deps (identical ranges, no optional/peer/overrides drift). Route the detached boot's stdout+stderr to bootLogPath() (single source shared with the error). Add serverBootDecision + a main() hard-stop that refuses to boot pluginless when a hard prerequisite is missing (--webui-only stays the opt-out).
+- **Commit:** (assigned post-merge)
+- **Rationale:** The published package ships server/dist but no server/node_modules, so its declared dependencies ARE the server's runtime resolution set; a subset guard is the mechanical mirror the hand-maintained lists lacked.
+- **Consequences:** Cold start resolves cron-parser on a fresh install; the dep-mirror can no longer drift silently (2nd occurrence after hono #374). Boot failures are diagnosable. A prereq-less run stops with install guidance instead of an empty WebUI. Lockfile regenerated so CI npm ci stays green.
+- **Rejected:** Fixing only cron-parser (leaves the class open); bundling server/node_modules (bloats the tarball, defeats npm dedupe).
+
+---
+
+### ADR-278: Readiness gate accepts uv-managed Python, names per-tool installs, and reads legibly on the photo hero
+- **Date:** 2026-08-22
+- **Section:** Iterate — bug: First-Contact readiness gate (FR-01.51)
+- **Run-ID:** iterate-2026-08-22-readiness-gate-fixes
+- **Context:** On a fresh Mac cold-start the WebUI First-Contact readiness banner had three defects: (1) the server probe closed the doors on system python3 3.9.6 and never consulted uv, though every hook runs via 'uv run' (same class as bootstrapper #380); (2) the not-ready banner rendered white-on-light and unreadable on the .on-photo hero (.iw-card was missing from on-photo.css's solid-surface reset); (3) the repair text was only the npx command, which cannot install a missing Python/uv/git.
+- **Decision:** Mirror the bootstrapper preflight: add RunResult.code and, when system python is absent/<3.11 but uv is present, accept 'uv python find >=3.11' gated on EXIT CODE (not the version-shaped ok). Add OS-aware per-tool install hints (new readiness-install-hints.ts mirroring util.installHint, DO-NOT #7); ReadinessGate renders them inline, npx only when plugins/cache fail. Add .iw-card to on-photo.css rule-2 reset. Extract runner+version primitives to readiness-probe-run.ts (re-exported).
+- **Commit:** (assigned post-merge)
+- **Rationale:** 'uv python find' is a no-download predicate (exit 0 hit / 2 miss); gating on exit code is the #380 MEDIUM lesson (its stdout is a PATH that can carry no decimal). Adding .iw-card to the rule-2 reset makes the panels.css contract true rather than band-aiding one component (DO-NOT #26).
+- **Consequences:** A Mac with only uv-managed Python 3.11+ now opens the doors. A missing tool shows its exact OS-correct install command; npx is shown only when it is the fix. The banner is legible, and the same reset fixes the identical latent defect in GradeResult's ceiling card. The .iw-card reset may shift the Linux-only wizard-grade.png visual baseline (improves it; a Linux regen may be needed — the visual suite is not a merge gate). Guarded by unit tests + ReadinessGate.legibility.test.ts.
+- **Rejected:** Reusing the version-shaped ok for uv-find (false 'not found' on a decimal-less path); a banner-only class fix (leaves GradeResult's identical card broken); hardcoding hex in the banner (breaks the flipping-token discipline).
+
+---
+
+### ADR-279: Server readiness probe augments its lookup PATH (mirror of preflight)
+- **Date:** 2026-08-23
+- **Section:** FR-01.51 readiness gate
+- **Run-ID:** iterate-2026-08-23-readiness-path-welcome-copy
+- **Context:** On macOS/Windows cold-start the webui readiness gate reported system python3 3.9.6 though uv could supply 3.11. The server probe execFiled uv/python/git with the un-augmented process PATH; uv installed in ~/.local/bin was ENOENT, so the uv-managed-Python fallback never ran. The npx bootstrapper preflight had already solved this in probe-path.mjs; the server surface lacked the mirror.
+- **Decision:** Mirror bootstrapper/lib/probe-path.mjs into server/src/core/readiness-probe-path.ts (probeEnv + resolvePosixBin) and use it in defaultRun: augment PATH with ~/.local/bin (+ Homebrew on POSIX), resolve POSIX bins absolutely, pass the augmented env to execFile. A verbatim mirror, not a cross-package import (DO-NOT #7).
+- **Commit:** (assigned post-merge)
+- **Consequences:** The gate now accepts a uv-managed Python without a terminal restart on both platforms. defaultRun gained a deps test seam. The claude-only boot PATH self-heal is unchanged.
+- **Rejected:** Broadening the boot-time selfHealClaudePath to uv (it only prepends where claude lives, missing uv elsewhere); importing preflight.mjs (violates DO-NOT #7).
+
+---
+
+### ADR-280: Reader-role WS connections may send SGR mouse reports to the shared pty
+- **Date:** 2026-08-24
+- **Section:** Iterate — bug: read-only terminal viewer can't scroll or copy
+- **Run-ID:** iterate-2026-08-24-terminal-readonly-scroll-copy
+- **Context:** Claude's live TUI runs alt-screen + any-motion mouse tracking (confirmed on 12 real snapshots), so xterm holds no local scrollback and scroll/select-for-copy are both implemented by Claude reading SGR mouse reports from stdin. The writer gate dropped ALL non-writer data, including these reports, so a read-only viewer was frozen, not read-only. Full detail in spec_ref.
+- **Decision:** Classify an outbound SGR mouse report into its own wire envelope (`{type:"mouse"}`) distinct from `{type:"data"}`. The server re-validates the payload shape itself and forwards a well-formed report to the shared pty for BOTH roles. A real keystroke still classifies as `{type:"data"}` and stays writer-gated.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root-caused from real production snapshot evidence rather than assumed; a falsification harness (stash the fix, re-run the new tests) proved the guards are real fences, not vacuously green.
+- **Consequences:** A reader can now scroll and copy while read-only. Because TUI scroll is server-side pty state, a reader's scroll also moves the writer's view — an accepted, narrowly-scoped trade-off, bounded to well-formed SGR frames only (server re-validated). writeMouseReport does not latch hadDataWritten. Full detail in spec_ref.
+- **Rejected:** A client-only scrollback buffer was rejected — it cannot exist because xterm carries no rows in alt-screen mode, so there is nothing local to scroll. Relaxing the writer gate for all `{type:"data"}` frames was rejected as far too broad — it would let a reader type into the shared shell, not just scroll/copy.
+- **Details:** [iterate-2026-08-24-terminal-readonly-scroll-copy.md](../planning/adr/iterate-2026-08-24-terminal-readonly-scroll-copy.md)
+
+---
+
+### ADR-281: Blocker recovery only folds into the original card when the current card is unambiguously about just that command
+- **Date:** 2026-08-26
+- **Section:** Iterate — bug: Scope Mission activity-feed blocker recovery to the same card
+- **Run-ID:** iterate-2026-08-25-blocker-recovery-card-scope
+- **Context:** missionActivityFeed.ts parks a failed command's commandKey (tool name + detail string) in unresolvedBlockers with no expiry and no scoping to the card it blocked. If that exact command string later succeeds inside a different, unrelated turn whose several tool calls coalesced into one current card, the recovery branch spliced the WHOLE current card out of the feed instead of just the original blocked one, destroying its other commands and any card.explanation.
+- **Decision:** The recovery merge (which mutates the original blocked card and removes the current one) now only runs when the current card's commands array has length 1 — i.e. it represents nothing but the recovered command. An ambiguous match (current card also carries other, unrelated commands) is left alone: neither card is mutated, so no unrelated content is destroyed.
+- **Commit:** (assigned post-merge)
+- **Consequences:** The common good-path (single-command retry) recovers exactly as before, verified by the pre-existing test. A rare edge case (a genuine retry that happens to coalesce with another command in the very same turn) will leave the old blocker card visibly unresolved instead of being merged away — a conservative trade-off: showing a stale blocker beats silently deleting unrelated feed content. A new regression test pins the fixed failure mode.
+- **Details:** [FR-01.66](FR-01.66)
+
+---
+
+### ADR-282: Mission feed: restore a turn's own words, drop the narration toggle
+- **Date:** 2026-08-25
+- **Section:** Iterate — feature: mission feed progress narration
+- **Run-ID:** iterate-2026-08-25-mission-feed-progress-narration
+- **Context:** Mission was meant to replace the Terminal, but discards every line of a turn's own words beyond its headline; the operator flagged this mid-planning as a bigger problem than the original ask.
+- **Decision:** Restore that discarded text as card.explanation (plain text, turn-provenance gated); drop the opt-in narration-toggle mechanism entirely for this iterate.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Two rounds of external Architecture Review (openai+deepseek) rated content restoration higher value/lower risk than a second LLM-narration mechanism; operator confirmed restoration-only with a no-settings constraint.
+- **Consequences:** No settings, launch-path, or server change; look-and-feel is unchanged by construction (AC-5). Multi-turn/tool-only cards still show nothing new; full Terminal parity stays open.
+- **Rejected:** Building both mechanisms (scope inflation); the toggle alone (does not restore lost content); an existing --append-system-prompt custom-action escape hatch covers narration if ever revisited.
+- **Details:** [iterate-2026-08-25-mission-feed-progress-narration-explanation-scope.md](../planning/adr/iterate-2026-08-25-mission-feed-progress-narration-explanation-scope.md)
+
+---
+
+### ADR-283: Grade-result band pill resets to solid-surface tokens
+- **Date:** 2026-08-26
+- **Section:** Iterate — bug: grade-result band pill white-on-white
+- **Run-ID:** iterate-2026-08-26-grade-pill-contrast
+- **Context:** The Grade door's head rides bare on the scene photo; the band pill drew --inset bg / --body text inline with no class .on-photo's reset targets.
+- **Decision:** Add className="pill" — the reset hook on-photo.css already reserves for exactly this (per type-scale.css: grade pills).
+- **Commit:** (assigned post-merge)
+- **Rationale:** .on-photo flips --body white for bare chrome but never flips --inset, so an unreset pill goes white-on-white; rule 2's reset restores dark-on-light.
+- **Consequences:** Band pill text is legible under .on-photo; no visual change outside it (base --body already equals the reset value).
+- **Rejected:** A bespoke color pair was rejected — .pill already exists as the intended hook, so a new token pair would duplicate it.
+
+---
+
+### ADR-284: Route grade.py and triage_cli.py through uv run, never a bare system Python
+- **Date:** 2026-08-26
+- **Section:** Bug Fix: Grade/Triage subprocess spawn
+- **Run-ID:** iterate-2026-08-26-grade-uv-run
+- **Context:** resolvePython() picked a bare python3/python/py and spawned it to run plugin scripts built for uv run; on a machine lacking defusedxml/Py3.11+, grade.py died with ModuleNotFoundError while /api/readiness kept reporting green.
+- **Decision:** Both call sites now resolve uv via uv-runner.ts::resolveUv() and spawn uv run --project (grade) / uv run --no-project --python ">=3.11" (triage). uv missing => honest engine-unavailable, never a python fallback. See spec-ref for the regression-guard and review-trail detail.
+- **Commit:** (assigned post-merge)
+- **Consequences:** Grade/triage now depend on uv (already readiness-gated). uv run --project one-time-syncs the plugin's own .venv on first use (uv's own locked mechanism, not a new write surface). --no-project makes triage's isolation structural, not accidental.
+- **Rejected:** Reordering resolvePython()'s own probe order (AUFGACHE point 3) was rejected: neither runner calls it anymore, so reordering closes no vulnerable path.
+- **Details:** [iterate-2026-08-26-grade-uv-run-uv-run-spawn.md](../planning/adr/iterate-2026-08-26-grade-uv-run-uv-run-spawn.md)
+
+---
+
+### ADR-285: Org page: plain-surface proxy over the existing secret-gated org routes
+- **Date:** 2026-08-26
+- **Section:** Iterate — feature: org page
+- **Run-ID:** iterate-2026-08-26-org-page
+- **Context:** Operator needs to see AI leads (leadwright) inside the Command Center; only a secret-gated /api/external/org/* family existed, unusable from the browser.
+- **Decision:** Mount a new /api/org/* Hono router sharing the existing pure cores in-process (never HTTP); drop only the shared-secret gate, keep the host allowlist; allow exactly one new browser write (PUT charter.md, 403 on any other kind).
+- **Commit:** (assigned post-merge)
+- **Rationale:** In-process core reuse avoids a second HTTP round trip and keeps the secret-gated family's own tests as the source of truth for those cores' behavior.
+- **Consequences:** One new client hook (useOrgChartPresence, 4-state) gates nav at sidebar+palette; new server/client type mirror (server/src/types/org.ts) needs its own drift guard.
+- **Rejected:** Widening the gated route's CORS/auth to allow direct browser calls — rejected, would have exposed the secret-gated surface (incl. decision_log/decisions_proposed writes) to the browser origin.
+- **Details:** [2026-08-26-org-page.md](../planning/iterate/2026-08-26-org-page.md)
+
+---
+
+### ADR-286: Bounded pendingNarration carry-forward across non-consuming turns
+- **Date:** 2026-08-27
+- **Section:** Iterate — bug: mission feed narration silently dropped
+- **Run-ID:** iterate-2026-08-27-mission-feed-narration-scroll
+- **Context:** Real /shipwright-iterate transcripts always split an assistant turn's narration from its tool_use call into two consecutive turns. pendingNarration cleared the instant ANY tool-bearing turn ran, even a test/user-input-only turn that never reads it, so narration headed for a later real card was silently lost — the reported both bugs (missing narration, apparent missing feed start).
+- **Decision:** pendingNarration now clears only when a review/spec/investigate/implement bucket tool actually reads it this turn, or is superseded by that turn's own text; otherwise it survives a bounded run of non-consuming turns (MAX_PENDING_NARRATION_CARRY) before being dropped rather than carried indefinitely.
+- **Commit:** (assigned post-merge)
+- **Rationale:** code-reviewer found the unconditional clear dropped narration past test/user-input turns; a follow-up doubt-review found the naive unbounded fix let narration drift onto unrelated later work once several non-consuming turns intervened, so carry-forward was bounded, not left open-ended.
+- **Consequences:** Narration correctly attaches across an intervening test retry or AskUserQuestion. A card beyond the carry bound falls back to the existing generic/label-derived sentence instead of risking a stale, misattributed headline on unrelated later work.
+- **Rejected:** Unbounded carry-forward (doubt-review: misattributes stale narration to an unrelated later pivot with no narration of its own); the original unconditional clear (reintroduces the reported bug).
+
+---
+
+### ADR-287: Replay-only interaction-mode teardown + Reopen WS reconnect
+- **Date:** 2026-08-27
+- **Section:** Terminal reader lifecycle
+- **Run-ID:** iterate-2026-08-27-terminal-replay-reset-reopen-reconnect
+- **Context:** A closed task's one-shot replay envelope left mouse-tracking mode latched on forever in the reader's real xterm instance (no live pty ever follows up to disable it), breaking native text selection and wheel-scroll. Separately, Reopening a closed task never reconnected the terminal WebSocket; only a full page reload restored it.
+- **Decision:** replay-snapshot.ts appends an opt-in interaction-mode teardown escape sequence after the existing ?1006h fixup on the one-shot replay-only path (and on the live-pty-fresh-attach path, gated on !ptyExistedBeforeAttach), never touching ?1049. useTerminalSocket.ts adds a sessionEnded-driven reconnect: forceReconnectRef + a narrowly-gated edge effect + a socketRef.current !== ws identity guard on every listener, reusing the existing isCurrent(ws) idiom, with no component remount.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A remount (key={taskId} or similar) was rejected because it would destroy xterm scrollback/DOM listeners and reintroduce the one-shot auto-inject guard bug this fix depends on staying stable; the socket-identity-guard pattern was already proven in wsReconnectSchedule.ts.
+- **Consequences:** A reader attaching to a done/launch_failed task gets a scrollable, copyable terminal; Reopen/Retry reconnects live without a page reload. A 14-round review cascade (spec/code/doubt x7 + 2 external LLM calls) fixed 3 downstream per-task/per-pty latch-reset gaps this reconnect newly made reachable. jsonl_missing was investigated and deliberately deferred (see spec).
+- **Rejected:** Remounting EmbeddedTerminal on taskState change (destroys scrollback + reintroduces auto-inject bug); extending jsonl_missing into this iterate's wasEnded/isEnded checks without also fixing the WS-reconnect trigger (would be inert in production, deferred as a documented follow-up).
+- **Details:** [iterate-2026-08-27-terminal-replay-reset-reopen-reconnect.md](../planning/iterate/iterate-2026-08-27-terminal-replay-reset-reopen-reconnect.md)
