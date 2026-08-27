@@ -199,6 +199,14 @@
       "adr": null
     },
     {
+      "path": "client/src/components/terminal/EmbeddedTerminal.reopen-reconnect.test.tsx",
+      "limit": 300,
+      "current": 412,
+      "state": "grandfathered",
+      "adr": "iterate-2026-08-27-terminal-replay-reset-reopen-reconnect",
+      "note": "New file. A FakeWebSocket whose close() fires a genuine 'close' event (unlike the pre-existing reopen-rearm.test.tsx double, which never closes) is the whole point of the test -- Sven's explicit requirement was that the reconnect regression test exercise a real WS close, since the prior (ineffective) fix's own test used a non-closing double and could not have caught the bug it claimed to fix. Five scenarios (stays closed while done, Reopen reconnects without remount, reconnects when Reopen races before ready, reconnects immediately and ignores a later stale close when Reopen races between ready and its close -- the external-review HIGH #1 finding, added after spec-reviewer independently found the same gap -- and a no-Reopen control) each need their own FakeWebSocket choreography; splitting them would duplicate that fixture rather than remove any bloat. +13 lines (code-reviewer, MEDIUM): both reconnecting scenarios now assert `embedded-terminal-replay-only` is showing right before Reopen and gone immediately after -- not just after the new socket's own `ready` arrives -- proving the reset fix in useTerminalSocket.ts actually closes the visible banner-flicker gap it targets."
+    },
+    {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
       "current": 1770,
@@ -209,10 +217,10 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
       "limit": 300,
-      "current": 300,
+      "current": 311,
       "state": "grandfathered",
       "adr": "iterate-2026-07-01-terminal-title-wrap-smear",
-      "note": "backpressure-resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the shell wires useBackpressureResync + the drain-queue overflow hook. Wire types moved OUT to hooks/terminalWsContract.ts to keep this bump to the seam itself. iterate-2026-08-16-task-lifecycle-ux-fixes: taskState prop plumbing (Reopen re-arm) + a 1-line destructure formatting fix (code-review finding) landed exactly at the 300 hard limit"
+      "note": "backpressure-resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the shell wires useBackpressureResync + the drain-queue overflow hook. Wire types moved OUT to hooks/terminalWsContract.ts to keep this bump to the seam itself. iterate-2026-08-16-task-lifecycle-ux-fixes: taskState prop plumbing (Reopen re-arm) + a 1-line destructure formatting fix (code-review finding) landed exactly at the 300 hard limit. iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +11 lines -- derives sessionEnded (undefined when taskState is undefined, else done/launch_failed) and threads it into useTerminalSocket so a Reopen reconnect can be told the task left its terminal state."
     },
     {
       "path": "client/src/components/terminal/xtermAddons.atlas.test.ts",
@@ -280,10 +288,10 @@
     {
       "path": "client/src/hooks/useTerminalSocket.ts",
       "limit": 300,
-      "current": 528,
+      "current": 693,
       "state": "grandfathered",
       "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus",
-      "note": "outbound `redraw` envelope in the send union (iterate-2026-07-27)"
+      "note": "outbound `redraw` envelope in the send union (iterate-2026-07-27). iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +118 lines -- the Reopen-reconnect fix (sessionEnded option, an always-current sessionEndedRef read from the close handler for the reopen-races-the-close case an external review caught, a ref-held forceReconnectRef, and a dedicated edge-detection effect kept separate from the main connect-effect's own deps so an already-live socket is never torn down on an unrelated state tick). Most of the added lines are WHY comments recording two things that are easy to get wrong silently: the strict undefined-vs-false distinction on sessionEnded (a caller with no opinion must never be read as 'confirmed live'), and why this is a second effect rather than one more dependency-array entry (regressed a pre-existing test on the first attempt) -- both already caught real bugs during implementation, so they stay. +24 more lines (external review, openai HIGH #1, independently reconfirmed by spec-reviewer): forceReconnectRef can install a new socket while the prior replay-only socket's own close is still in flight (Reopen racing between `ready` and its close) -- a socket-identity guard (`socketRef.current !== ws`) on every listener (open/message/close/error), mirroring the `isCurrent` check `wsReconnectSchedule`'s own watchdog already used for the identical reason, makes the stale socket's eventual close a no-op instead of nulling out the live replacement and scheduling a spurious third connection. +15 more lines (code-reviewer, MEDIUM): neither reconnect call site (the close handler's inline branch, nor forceReconnectRef) reset envelope-derived state (replayOnly/role/terminalReset/ptyReused/scrollback fields) before reconnecting, so the 'Session ended...' banner kept rendering until the new attach's own `ready` overwrote those fields -- visibly recreating the frozen-looking symptom this iterate exists to fix, right when Reopen is supposed to read as quiet. Both call sites now call the existing `resetSessionState()` helper before their `connect()`. +8 more lines (doubt-reviewer, LOW/advisory, third pass): the `sessionEnded` edge-detection effect's `prevSessionEndedRef` was never resynced on a taskId change, so AC-4/AC-5's no-spurious-reconnect guarantee held only via an untested, undocumented cross-effect-declaration-order dependency on `sessionReplayOnlyRef` already being reset first -- moved the ref's declaration up and reset it in the connect-effect's setup alongside `replayOnlyRef`/`sessionReplayOnlyRef`, removing the implicit ordering dependency structurally rather than leaving it to hold by accident."
     },
     {
       "path": "client/src/lib/externalApi.ts",
@@ -670,10 +678,10 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 704,
+      "current": 723,
       "state": "exception",
       "adr": "ADR-103",
-      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out. iterate-2026-08-24-terminal-readonly-scroll-copy: added the `mouse` inbound variant (WSMessageMouse + isSgrMouseReport + its onMessage branch, +41 lines) so a read-only reader's scroll/select gestures reach the pty while real keystrokes stay writer-gated -- the writer/role decision this branch reads is the same protected lock set, so it belongs in this module rather than a new one"
+      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out. iterate-2026-08-24-terminal-readonly-scroll-copy: added the `mouse` inbound variant (WSMessageMouse + isSgrMouseReport + its onMessage branch, +41 lines) so a read-only reader's scroll/select gestures reach the pty while real keystrokes stay writer-gated -- the writer/role decision this branch reads is the same protected lock set, so it belongs in this module rather than a new one. iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +5 lines -- the replay-only branch's `sendReplaySnapshot` call now passes `{ tearDownInteractionModes: true }` (a closed task's one-shot attach is final: no live pty ever follows up to turn mouse-tracking/alt-scroll back off); the live-attach and resync call sites are unchanged, so this is a one-call, one-comment addition to the same protected branch dispatch, not new surface. +14 more lines (doubt-reviewer, HIGH): the reaped-pty/server-restart branch of `buildLiveHandlers` (no live pty existed before this attach) reads the SAME kind of stale on-disk cell-state snapshot as the replay-only branch and gets attached to a brand-new bare shell that will never turn a latched mouse-tracking/alt-scroll mode back off -- reproducing Bug A's exact defect through this other call site, which the iterate's own root-cause investigation had walked past while discussing the identical `ptyExistedBeforeAttach=false` case for an unrelated reason (the reset banner). Fix: the pre-spawn/live-fallback `sendReplaySnapshot` call now also passes `{ tearDownInteractionModes: true }`, gated on `!ptyExistedBeforeAttach` (the same synchronous probe `terminalReset` is derived from, not `terminalReset` itself, since that flag also requires `firstJsonlObservedAt` and would wrongly skip the teardown on a first-ever-launch edge case). The mid-session `performResync` call site is unchanged (always live-pty-only) -- AC-2 still holds."
     },
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",

@@ -94,7 +94,7 @@ export const EmbeddedTerminal = forwardRef<
   const atlasHealRef = useRef<(() => void) | null>(null);
   // Shell-owned banner state (+ per-task reset) and the transient
   // clipboard-notice state (paste hints + OSC 52 copy-failed).
-  const banners = useTerminalBannerState(taskId);
+  const banners = useTerminalBannerState(taskId, taskState);
   const { readOnlyArmed, resetBannerDismissed, setResetBannerDismissed } = banners;
   const clip = useTerminalClipboard();
 
@@ -107,10 +107,23 @@ export const EmbeddedTerminal = forwardRef<
   const resyncSendRef = useRef<((m: TerminalOutbound) => void) | null>(null);
   const resync = useBackpressureResync({ send: (m) => resyncSendRef.current?.(m), onBackpressure });
   const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled, resync.requestResync);
+  // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — derived
+  // (not the raw `taskState` string) so the socket effect only restarts
+  // on the done/launch_failed <-> live BOUNDARY, not on every ordinary
+  // state tick (draft -> active -> in_progress, …). See useTerminalSocket's
+  // `sessionEnded` option doc for the full "why". `taskState === undefined`
+  // (a caller with no opinion on lifecycle, e.g. some test harnesses) stays
+  // `undefined` rather than collapsing to `false` — the hook treats those
+  // two very differently.
+  const sessionEnded =
+    taskState === undefined
+      ? undefined
+      : taskState === "done" || taskState === "launch_failed";
   const socket = useTerminalSocket({
     taskId,
     urlOverride: socketUrlOverride,
     enabled: socketEnabled,
+    sessionEnded,
     onData: gate.onDataChunk,
     onReplaySnapshot: gate.onReplaySnapshot,
     onBackpressure: resync.onBackpressure,

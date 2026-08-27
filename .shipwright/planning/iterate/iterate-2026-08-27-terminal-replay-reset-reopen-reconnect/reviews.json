@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-27-terminal-replay-reset-reopen-reconnect",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T12:41:51.608983+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed `true → false` effect appears to call `connect()` as soon as a replay-only `ready` has latched, even if the replay-only socket has not yet delivered its expected close event. That can overlap a new live attach with the old replay socket’s imminent close. Since replay-only state is held in a shared ref, a late close from the old socket can incorrectly affect the successor connection (or produce duplicate connects) unless connection ownership is explicitly tracked. The described “check latest `sessionEnded` in the close handler” addresses a reopen before `ready`, but does not by itself make stale close events harmless after a successor connection starts.",
+          "suggestion": "Serialize this transition. On a reopen edge, mark a reconnect as pending and wait for the identified replay-only socket to close; alternatively, deliberately replace it and use a per-connection generation/socket identity in `ready` and `close` handlers. Clear replay-only state only for the connection that set it, and ignore close events from non-current sockets. Add assertions that the ready-before-close reopen race produces exactly one successor connection and that the old socket’s close cannot alter the new socket’s state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "A ref-held `connect()` callable from a close handler/effect must continue to respect hook lifecycle state, not merely current task state. Without explicit guards, a replay-only close that lands after unmount, after `enabled` becomes false, or after `taskId` changes can open a socket for a terminal that is no longer active. This is particularly relevant because the proposed race handling intentionally reacts asynchronously to close events.",
+          "suggestion": "Gate all reconnect paths on current `enabled`, mounted status, and current task/connection generation. Ensure effect cleanup invalidates pending reconnects and closes only the socket generation it created. Although the current `EmbeddedTerminal` caller does not vary `enabled` with task state, `useTerminalSocket` is a reusable hook and these lifecycle conditions are ordinary component behavior, not speculative alternate business flows.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The server unit tests proposed for `buildReplaySnapshotEnvelope` prove byte construction, but do not independently prove that `ws-upgrade-handler` supplies the option only on the replay-only path. A future refactor could accidentally omit the option for `launch_failed`, apply it to live attach, or apply it to resync while all envelope-builder tests remain green. The broad reconnect E2E does not necessarily validate the terminal-mode bytes or all handler branches.",
+          "suggestion": "Add a focused handler-level test covering `done` and `launch_failed` replay-only attaches with the teardown tail, plus live attach and resync assertions that remain byte-for-byte unchanged. Retain the browser E2E assertion for the actual selection/wheel behavior, since raw escape-sequence presence alone does not prove browser terminal behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No new security boundary is introduced by the proposed change: it reuses the existing authorized terminal-attach and reopen paths and appends fixed terminal control bytes rather than accepting new user-controlled input. The main security-adjacent risk is lifecycle correctness: a stale reconnect must not attach using an obsolete task ID after navigation.",
+          "suggestion": "Treat the task/connection-generation guard above as part of the authorization-safety posture, and verify reconnect uses the current task ID rather than a closure captured by the replay-only socket.  Overall, the server-side replay teardown is proportionate and technically sound, and preserving the alt-screen buffer is the correct choice. The client reconnect approach is viable, but it needs explicit connection-generation/serialization safeguards before shipping because its target race condition otherwise creates a realistic stale-close and duplicate-connection hazard. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-27T12:42:26.861523+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] 1. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** The proposed `true → false` effect appears to call `connect()` as soon as a replay-only `ready` has latched, even if the replay-only socket has not yet delivered its expected close event. That can overlap a new live attach with the old replay socket’s imminent close. Since replay-only state is held in a shared ref, a late close from the old socket can incorrectly affect the successor connection (or produce duplicate connects) unless connection ownership is explicitly tracked. The described “check latest `sessionEnded` in the close handler” addresses a reopen before `ready`, but does not by itself make stale close events harmless after a successor connection starts.  \n   **Suggestion:** Serialize this transition. On a reopen edge, mark a reconnect as pending and wait for the identified replay-only socket to close; alternatively, deliberately replace it and use a per-connection generation/socket identity in `ready` and `close` handlers. Clear replay-only state only for the connection that set it, and ignore close events from non-current sockets. Add assertions that the ready-before-close reopen race produces exactly one successor connection and that the old socket’s close cannot alter the new socket’s state.\n\n2. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** A ref-held `connect()` callable from a close handler/effect must continue to respect hook lifecycle state, not merely current task state. Without explicit guards, a replay-only close that lands after unmount, after `enabled` becomes false, or after `taskId` changes can open a socket for a terminal that is no longer active. This is particularly relevant because the proposed race handling intentionally reacts asynchronously to close events.  \n   **Suggestion:** Gate all reconnect paths on current `enabled`, mounted status, and current task/connection generation. Ensure effect cleanup invalidates pending reconnects and c […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/terminal/useAutoLaunch.ts",
+          "line": 161,
+          "finding": "wasEnded/isEnded correctly mirrors EmbeddedTerminal's sessionEnded (done || launch_failed), but that generalization is incomplete: jsonl_missing is treated identically to launch_failed everywhere else a launch-failure recovery flow exists (LaunchFailureRecovery.tsx mounts Retry/Resume for launch_failed OR jsonl_missing; MissionTopRow.tsx and TaskCard.tsx group the two as isLaunchFailure). EmbeddedTerminal mounts unconditionally across all task states, so a jsonl_missing -> active Retry is a real, reachable, same-mounted-instance transition that leaves launchInjectedThisPtyLifetimeRef / ptyReusedGuardEvaluatedRef stale in exactly the way finding 12 just fixed for launch_failed.",
+          "suggestion": "Extend both guards' wasEnded/isEnded to taskState === \"done\" || taskState === \"launch_failed\" || taskState === \"jsonl_missing\" (or derive from a shared helper), and add a jsonl_missing -> active regression test mirroring the new launch_failed -> active ones.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/terminal/useTerminalBannerState.ts",
+          "line": 49,
+          "finding": "Same gap as above: resetBannerDismissed is not cleared on a jsonl_missing -> active Retry, so a dismissal made before the JSONL-missing recovery flow silently suppresses a genuinely new terminalReset banner after Retry/Resume reconnects the socket -- the exact mechanism this file's own comment says it must mirror, just missing one of the two recoverable-failure states.",
+          "suggestion": "Add jsonl_missing to the wasEnded/isEnded set here as well, matching the useAutoLaunch.ts fix.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-27T12:42:10.934713+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T12:42:18.813340+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T12:42:35.832545+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] No concrete defects found. The server teardown is opt-in and restricted to replay-only attaches, preserves live/resync behavior, and the client reconnect logic handles normal reopen plus both documented ready/close race orderings with socket identity guards. The tests exercise the critical lifecycle and end-to-end replay behavior sufficiently.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T12:42:03.270795+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T12:42:43.725143+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}

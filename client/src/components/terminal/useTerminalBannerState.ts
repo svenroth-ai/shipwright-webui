@@ -9,7 +9,7 @@
  * state and the per-task reset.
  */
 
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 export interface TerminalBannerState {
   readOnlyArmed: boolean;
@@ -20,7 +20,10 @@ export interface TerminalBannerState {
   setResetBannerDismissed: Dispatch<SetStateAction<boolean>>;
 }
 
-export function useTerminalBannerState(taskId: string): TerminalBannerState {
+export function useTerminalBannerState(
+  taskId: string,
+  taskState?: string,
+): TerminalBannerState {
   const [readOnlyArmed, setReadOnlyArmed] = useState(false);
   const [reconnectingArmed, setReconnectingArmed] = useState(false);
   const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
@@ -29,6 +32,26 @@ export function useTerminalBannerState(taskId: string): TerminalBannerState {
   useEffect(() => {
     setResetBannerDismissed(false);
   }, [taskId]);
+
+  // doubt-reviewer (MEDIUM, third pass) — a dismissal also belongs to the
+  // pty lifetime it was made on. Reopen (done -> non-done) reconnects the
+  // socket (Bug B's own fix) and can genuinely re-report `terminalReset`
+  // for a NEW reset (e.g. the pty was reaped while closed), but without
+  // this the earlier dismissal silently suppresses that new banner for
+  // the rest of the mounted instance's life. Same edge as useAutoLaunch's
+  // Reopen re-arm — including doubt-reviewer's 6th-pass amendment: mirror
+  // `sessionEnded`'s OR check (EmbeddedTerminal.tsx) so a Retry
+  // (launch_failed -> active) re-arms too, not just Reopen (done -> ...).
+  const prevTaskStateRef = useRef(taskState);
+  useEffect(() => {
+    const prev = prevTaskStateRef.current;
+    prevTaskStateRef.current = taskState;
+    const wasEnded = prev === "done" || prev === "launch_failed";
+    const isEnded = taskState === "done" || taskState === "launch_failed";
+    if (wasEnded && !isEnded) {
+      setResetBannerDismissed(false);
+    }
+  }, [taskState]);
 
   return {
     readOnlyArmed,

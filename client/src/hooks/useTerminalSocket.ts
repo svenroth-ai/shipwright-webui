@@ -54,6 +54,27 @@ export interface UseTerminalSocketOptions {
   urlOverride?: string;
   /** Disables auto-connect (useful for tests). */
   enabled?: boolean;
+  /**
+   * iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — true
+   * while the task is in a `done`/`launch_failed` state. A replay-only
+   * attach is one-shot by server contract (`ready` + `replay_snapshot`,
+   * then a clean close), so this hook latches `sessionReplayOnlyRef` and
+   * never reconnects on its own. Reopen (any of the three menu/board
+   * entry points) flips the task OUT of that state via React Query —
+   * EmbeddedTerminal stays mounted across the transition, so nothing
+   * else would ever notice. A `true -> false` edge on this flag, seen
+   * while a replay-only close is actually latched, force-reconnects
+   * (see the effect below) WITHOUT tearing down an already-live socket —
+   * unlike putting this in the main connect-effect's own dependency
+   * array, which would also reconnect a perfectly healthy live attach on
+   * every ordinary state tick that happens to cross the done boundary.
+   *
+   * Leave `undefined` (do not pass `false`) when the caller has no opinion
+   * on task lifecycle — an explicit `false` is read as "confirmed live,
+   * right now", which un-latches a replay-only close. See the option's
+   * strict-comparison handling in the implementation.
+   */
+  sessionEnded?: boolean;
   /** Called on every inbound `data` envelope; mounted-once expected. */
   onData?: (chunk: string) => void;
   /** Called on inbound `backpressure` envelope. */
@@ -153,6 +174,16 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     taskId,
     urlOverride,
     enabled = true,
+    // Deliberately NOT defaulted to `false` — `undefined` (caller never
+    // wires task lifecycle into this hook, e.g. a raw-hook test) must stay
+    // distinguishable from an explicit `false` ("the caller IS tracking
+    // this, and the task is currently live"). Collapsing the two would make
+    // "nobody is telling us" indistinguishable from "told us it's live",
+    // and the close-handler / edge-effect below would then force-reconnect
+    // a replay-only close whose task was never actually reopened — a
+    // reconnect loop for any caller that doesn't opt in. See the strict
+    // `=== true` / `=== false` comparisons below and in EmbeddedTerminal.tsx.
+    sessionEnded,
     onData,
     onBackpressure,
     onReadOnly,
@@ -212,6 +243,33 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   // effect). Heartbeat + refocus mechanics live in `attachWsLiveness`.
   const sessionReplayOnlyRef = useRef(false);
 
+  // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — set fresh by
+  // the connect-effect below on every run (mount, or taskId/enabled/
+  // urlOverride change) so it always closes over the CURRENT effect
+  // instance's own `connect`/`cancelled`. Called only from the
+  // `sessionEnded` un-latch effect further down, never from render.
+  const forceReconnectRef = useRef<() => void>(() => {});
+
+  // Always-current mirror of `sessionEnded` (external review finding,
+  // openai medium #1) — read from the close handler, NOT from the
+  // `sessionEnded` closure variable captured when the connect-effect last
+  // ran. Reopen can land WHILE a replay-only attach is still in flight
+  // (ready hasn't arrived / close hasn't landed yet): the edge-detection
+  // effect below only reacts to a transition it can observe strictly AFTER
+  // the fact, so if Reopen races the close, nothing would otherwise ever
+  // fire that edge again and the attach would stay stuck closed forever.
+  const sessionEndedRef = useRef(sessionEnded);
+  useEffect(() => {
+    sessionEndedRef.current = sessionEnded;
+  }, [sessionEnded]);
+
+  // doubt-reviewer (LOW/advisory, third pass) — the edge-detection effect
+  // below compares against the PRIOR task's `sessionEnded` unless this is
+  // resynced on every taskId change, same as `replayOnlyRef` /
+  // `sessionReplayOnlyRef` just below. Declared here (not inline in that
+  // effect) so the connect-effect can reset it without a forward reference.
+  const prevSessionEndedRef = useRef(sessionEnded);
+
   /** Clear every per-attach state field (disabled branch + effect teardown). */
   const resetSessionState = useCallback(() => {
     setReady(false);
@@ -246,10 +304,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       resetSessionState();
       replayOnlyRef.current = null;
       sessionReplayOnlyRef.current = false;
+      prevSessionEndedRef.current = sessionEnded;
       return;
     }
     replayOnlyRef.current = null;
     sessionReplayOnlyRef.current = false;
+    prevSessionEndedRef.current = sessionEnded;
     // Per-effect-instance cancelled flag (NOT a shared useRef). Each
     // mount of the effect captures its own `cancelled` in its closures
     // — so a stale close-handler from a previously-unmounted effect
@@ -290,7 +350,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       watchdog.arm(ws);
 
       ws.addEventListener("open", () => {
-        if (cancelled) return;
+        if (cancelled || socketRef.current !== ws) return;
         watchdog.clear();
         setOpen(true);
         attemptsRef.current = 0;
@@ -302,7 +362,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         liveness.onConnected();
       });
       ws.addEventListener("message", (evt) => {
-        if (cancelled) return;
+        if (cancelled || socketRef.current !== ws) return;
         let parsed: unknown;
         try {
           parsed = JSON.parse(typeof evt.data === "string" ? evt.data : "");
@@ -405,7 +465,19 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         // CRITICAL: bail out if this effect-instance was cleaned up.
         // Without this, a stale handler from a previously-unmounted
         // effect would still drive socketRef + scheduleReconnect.
-        if (cancelled) return;
+        //
+        // The `socketRef.current !== ws` half (external review, openai
+        // HIGH #1) covers a DIFFERENT staleness than `cancelled`: within
+        // the SAME effect instance, `forceReconnectRef` (below) can call
+        // `connect()` — installing a brand-new socket into `socketRef` —
+        // while THIS socket's own close is still in flight (Reopen can win
+        // the race against the replay-only attach's own server-initiated
+        // close). Without this check, that late close would null out the
+        // reference to the socket that already replaced it and fall
+        // through to `scheduleReconnect()` (a THIRD, spurious connection),
+        // exactly mirroring the `isCurrent(ws)` guard `wsReconnectSchedule`
+        // already applies to its own reap-timer for the identical reason.
+        if (cancelled || socketRef.current !== ws) return;
         watchdog.clear();
         setOpen(false);
         setReady(false);
@@ -434,11 +506,47 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         const wasReplayOnlyClean =
           replayOnlyRef.current === true && closeCode === 1000;
         replayOnlyRef.current = null;
-        if (wasReplayOnlyClean) return;
+        if (wasReplayOnlyClean) {
+          // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect
+          // (external review, openai medium #1) — Reopen can race this
+          // exact close: the task may have already left done/
+          // launch_failed WHILE this one-shot attach was still in flight
+          // (ready arrived, then this close, with Reopen landing somewhere
+          // in between). The `sessionEnded` edge-detection effect only
+          // reacts to a FUTURE true->false transition; a transition that
+          // already happened before this close settles would never fire
+          // again anywhere else, leaving the attach stuck. This check —
+          // reading the always-current `sessionEndedRef`, not the
+          // `sessionEnded` closure this connect-effect instance captured —
+          // is the other half of that fix: reconnect immediately instead
+          // of latching closed. Strict `=== false` (not falsy/`!`): a
+          // caller that never wires task lifecycle leaves this `undefined`
+          // forever, which must NOT be read as "confirmed live" — that
+          // would force-reconnect (loop) every replay-only close for any
+          // caller that doesn't opt in, including today's `useTerminalSocket`
+          // unit tests that never pass the option at all.
+          if (sessionEndedRef.current === false) {
+            sessionReplayOnlyRef.current = false;
+            // Code-review finding — the finished attach's envelope-derived
+            // state (`replayOnly`, `role`, `terminalReset`, `ptyReused`,
+            // scrollback fields) otherwise survives into the reconnect
+            // window, so `TerminalBanners` keeps showing "Session ended…"
+            // (and, if armed, the read-only banner) until the NEW attach's
+            // `ready` overwrites them — visibly recreating the exact frozen-
+            // looking symptom this iterate exists to fix, right when Reopen
+            // is supposed to read as quiet. `resetSessionState` clears every
+            // one of those fields (plus `ready`/`open`, already unconditional
+            // above, and `reconnecting`/`reconnectStalled`, harmless here).
+            resetSessionState();
+            connect();
+            return;
+          }
+          return;
+        }
         scheduleReconnect();
       });
       ws.addEventListener("error", () => {
-        if (cancelled) return;
+        if (cancelled || socketRef.current !== ws) return;
         setLastError("websocket error");
       });
     };
@@ -484,6 +592,41 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       },
     });
 
+    // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — see the
+    // `sessionEnded` un-latch effect below. Reassigned fresh on every run of
+    // THIS effect so it always closes over the current `connect`/`cancelled`,
+    // never a stale instance from a previous taskId/enabled/urlOverride.
+    forceReconnectRef.current = () => {
+      if (cancelled) return;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      // External-review finding (openai HIGH #1) — Reopen can fire this
+      // before the in-flight replay-only socket's own close has arrived
+      // (the `ready` envelope already latched `sessionReplayOnlyRef`, but
+      // the server's follow-up close — sent essentially back-to-back with
+      // `ready` in the same replay-only branch — is still on the wire).
+      // Deliberately does NOT force-close that socket here: `connect()`
+      // below installs the new socket into `socketRef` synchronously, so
+      // by the time the stale socket's close (or any other event) actually
+      // arrives, the identity guard on every listener above
+      // (`socketRef.current !== ws`) already sees it as superseded and
+      // no-ops — closing it here too would let ITS close handler's own
+      // reconnect branch race this same `connect()` call instead.
+      sessionReplayOnlyRef.current = false;
+      replayOnlyRef.current = null;
+      attemptsRef.current = 0;
+      setReconnectAttempts(0);
+      // Code-review finding — clears the finished attach's envelope-derived
+      // state (`replayOnly`, `role`, `terminalReset`, `ptyReused`, scrollback
+      // fields, plus `reconnecting`/`reconnectStalled`) so the "Session
+      // ended…" / read-only banners don't survive into the reconnect window
+      // and flash back on right when Reopen is supposed to read as quiet.
+      resetSessionState();
+      connect();
+    };
+
     connect();
 
     return () => {
@@ -507,6 +650,28 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       replayOnlyRef.current = null;
     };
   }, [enabled, taskId, urlOverride, resetSessionState]);
+
+  // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — Reopen
+  // un-latch. Deliberately a SEPARATE effect from the one above rather than
+  // adding `sessionEnded` to its dependency array: that would tear down and
+  // reconnect on EVERY done/launch_failed <-> live transition, including one
+  // where the current attach is already a perfectly live, working socket
+  // (e.g. the task flips through `done` transiently) — resetting attempts,
+  // flickering the connection, for no reason. This effect only acts on the
+  // ONE case that actually needs it: a `sessionEnded` FALSE edge (Reopen)
+  // while `sessionReplayOnlyRef` is still latched from a real finished
+  // replay-only close, which — per the close handler above — nothing else
+  // will ever reconnect on its own.
+  useEffect(() => {
+    const prev = prevSessionEndedRef.current;
+    prevSessionEndedRef.current = sessionEnded;
+    // Strict `=== true` / `=== false` — same reasoning as the close-handler
+    // check above: `undefined` (opted-out caller) must never satisfy either
+    // side of this edge.
+    if (prev === true && sessionEnded === false && sessionReplayOnlyRef.current) {
+      forceReconnectRef.current();
+    }
+  }, [sessionEnded]);
 
   return {
     ready,

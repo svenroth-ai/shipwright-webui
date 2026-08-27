@@ -1,25 +1,15 @@
 /*
  * useAutoLaunch — ADR-068-A1 auto-launch + lifecycle guard.
  *
- * Extracted from EmbeddedTerminal.tsx (Campaign C / C5).
- *
- * Owns the launch-side state: the one-shot auto-inject guard, the
- * prompt-readiness handshake, manual-send confirm, the reused-pty +
- * terminalReset lifecycle re-arms. Reads the gate's bookkeeping refs
- * from `useReplayDrainGate` so prompt-readiness lives next to the
- * `onData` writer (Plan-review openai #3 HIGH).
- *
- * Behavioural contract — bit-perfect with the source:
- *   - One-shot auto-inject guard (resume-cta-rework 2026-05-16): the
- *     FIRST launch into a fresh pty auto-injects; the SECOND parks
- *     behind explicit "Send to terminal" confirm.
- *   - Reused-pty guard (fix-resume-guard-survives-reload 2026-05-17):
- *     `ready.ptyReused === true` on the FIRST ready of a task arms
- *     the guard so a post-reload launch can't auto-inject into a
- *     still-running Claude session.
- *   - `terminalReset === true` (ADR-104) re-arms the guard.
- *   - Prompt-readiness handshake: 250 ms quiesce after first data
- *     byte OR 1500 ms silence grace OR 15 s hard cap → cancel.
+ * Extracted from EmbeddedTerminal.tsx (Campaign C / C5). Owns the
+ * launch-side state: the one-shot auto-inject guard (FIRST launch into a
+ * fresh pty auto-injects, SECOND parks behind explicit "Send to terminal"
+ * confirm), the reused-pty guard (re-armed by `ptyReused`/`terminalReset`
+ * so a post-reload launch can't auto-inject into a still-running Claude
+ * session), the prompt-readiness handshake (250 ms quiesce after first
+ * data byte OR 1500 ms silence grace OR 15 s hard cap → cancel), and
+ * manual-send confirm. Reads the gate's bookkeeping refs from
+ * `useReplayDrainGate` (Plan-review openai #3 HIGH).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -43,7 +33,7 @@ type CoordLike = Pick<
 >;
 type SocketLike = Pick<
   UseTerminalSocketResult,
-  "ready" | "role" | "shellKind" | "send" | "terminalReset" | "ptyReused"
+  "ready" | "role" | "shellKind" | "send" | "terminalReset" | "ptyReused" | "replayOnly"
 >;
 type ShellKind = NonNullable<SocketLike["shellKind"]>;
 
@@ -65,16 +55,10 @@ export interface UseAutoLaunchOptions {
   gate: ReplayDrainGateHandle;
   /**
    * Fired synchronously IMMEDIATELY before the launch command data-frame is
-   * written to the pty (both auto-inject + manual-send paths). Used to
-   * fit + emit a `resize` so the pty is at the client's REAL cols/rows
-   * before Claude Code renders its width-sensitive title-pill banner.
-   *
-   * Root cause it closes (iterate-2026-07-01-terminal-title-wrap-smear): the
-   * pty spawns at a hardcoded 120 cols; a half-screen (narrower) xterm whose
-   * resize hasn't reached the pty yet lets Claude render the wrapping title
-   * banner at 120, which auto-wraps one extra row in the narrower grid and
-   * collides the title's first char onto the `>` prompt row ("Der" → "D er").
-   * Same ordered WS ⇒ the resize is applied before the command runs.
+   * written to the pty (both auto-inject + manual-send paths); fits + emits
+   * a `resize` so the pty is at the client's REAL cols/rows before Claude
+   * renders its width-sensitive title-pill banner (closes iterate-2026-07-
+   * 01-terminal-title-wrap-smear: "Der" → "D er").
    */
   onBeforeDispatch?: () => boolean | void;
   /** False while a force-mounted terminal is hidden and cannot be sized. */
@@ -107,58 +91,81 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
   >(null);
 
   // Task-change reset — different task = different pty. Narrow dep list:
-  // depend ONLY on taskId so a fresh `gate` object identity per render
-  // can't silently reset the one-shot guard. `gate.*Ref` are stable
-  // RefObjects independent of `gate` object identity (memoized in
-  // useReplayDrainGate); accessing them inside the effect is safe.
+  // depend ONLY on taskId, `gate.*Ref`s are stable RefObjects independent
+  // of `gate` object identity (memoized in useReplayDrainGate).
+  //
+  // Does NOT call `gate.resetGate()` (code-reviewer HIGH, re-verifying the
+  // 9th finding): `EmbeddedTerminal`'s xterm mount-effect has an empty dep
+  // array and no call site keys it by `taskId`, so navigation between
+  // tasks does NOT remount the Terminal — an old task's still-draining
+  // `replay_snapshot` write can outlive the switch, and `resetGate()`
+  // would clobber it exactly as on the Reopen/terminalReset edge.
   useEffect(() => {
     consumedTokensRef.current = new Set();
     injectionInFlightRef.current = false;
     launchInjectedThisPtyLifetimeRef.current = false;
     ptyReusedGuardEvaluatedRef.current = false;
     setManualSendPending(null);
-    gate.resetGate();
     gate.dataSeenInitiallyRef.current = false;
     gate.lastPtyDataAtRef.current = 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
-  // Reused-pty arming — latched at FIRST ready per task.
+  // Reused-pty arming — latched at FIRST LIVE ready per task.
+  //
+  // spec-reviewer (REJECT) — a replay-only ready's `ptyReused` is always
+  // fabricated `false`, so it must never latch or consume this guard,
+  // regardless of arrival order vs. Reopen's reset below (AC-7 race).
   useEffect(() => {
     if (!socket.ready) return;
+    if (socket.replayOnly === true) return;
     if (ptyReusedGuardEvaluatedRef.current) return;
     ptyReusedGuardEvaluatedRef.current = true;
     if (socket.ptyReused === true) {
       launchInjectedThisPtyLifetimeRef.current = true;
     }
-  }, [socket.ready, socket.ptyReused]);
+  }, [socket.ready, socket.ptyReused, socket.replayOnly]);
 
-  // terminalReset re-arm (ADR-104).
+  // terminalReset re-arm (ADR-104). `terminalReset` is a SERVER-derived
+  // "this pty is genuinely fresh" signal, unlike a raw `taskState` tick —
+  // code-reviewer (MEDIUM, 7th finding) moved the reset off that tick.
+  // doubt-reviewer (HIGH, 5th pass): still must NOT call `gate.resetGate()`
+  // — Reopen never remounts xterm, so an OLD `replay_snapshot` write can
+  // still be draining on the SAME terminal, and clobbering
+  // `replaySnapshotInFlightRef` would apply the new socket's snapshot
+  // immediately instead of parking it, corrupting the buffer. Only the
+  // prompt-readiness refs are ours to reset here.
   useEffect(() => {
     if (socket.terminalReset === true) {
       launchInjectedThisPtyLifetimeRef.current = false;
       setManualSendPending(null);
+      gate.dataSeenInitiallyRef.current = false;
+      gate.lastPtyDataAtRef.current = 0;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socket.terminalReset]);
 
-  // Re-open re-arm (iterate-2026-08-16-task-lifecycle-ux-fixes) — a
-  // `done` -> non-`done` transition means the user just told the system
-  // "this task is live again" (the ⋯-menu Reopen, or a board drag out of
-  // Done). EmbeddedTerminal stays mounted across that transition (the
-  // task-detail page never remounts it), so without this the one-shot
-  // guard keeps whatever it last armed to — very likely `true`, since a
-  // `done` task almost always had a real prior session write to its pty —
-  // and the next Resume silently parks behind manual "Send to terminal"
-  // instead of auto-running. Same re-arm shape as terminalReset above;
-  // ONLY the trigger differs (a lifecycle edge, not a server signal).
+  // Re-open re-arm (iterate-2026-08-16-task-lifecycle-ux-fixes) — a `done`
+  // -> non-`done` transition means "this task is live again" (⋯-menu
+  // Reopen, board drag out of Done); EmbeddedTerminal stays mounted across
+  // it, so without this the one-shot guard keeps whatever it last armed to.
+  // doubt-reviewer (HIGH) also resets `ptyReusedGuardEvaluatedRef` (a real
+  // TRUE latched long before `done` must not survive).
   const prevTaskStateRef = useRef(taskState);
   useEffect(() => {
     const prev = prevTaskStateRef.current;
     prevTaskStateRef.current = taskState;
-    if (prev === "done" && taskState !== "done") {
+    // doubt-reviewer (MEDIUM, 6th pass) — mirror `sessionEnded`'s OR check
+    // (EmbeddedTerminal.tsx): `launch_failed` gets the same one-shot
+    // replay-only contract as `done`, so Retry must re-arm too.
+    const wasEnded = prev === "done" || prev === "launch_failed";
+    const isEnded = taskState === "done" || taskState === "launch_failed";
+    if (wasEnded && !isEnded) {
       launchInjectedThisPtyLifetimeRef.current = false;
+      ptyReusedGuardEvaluatedRef.current = false;
       setManualSendPending(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskState]);
 
   // ADR-068-A1 auto-launch effect.

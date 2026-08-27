@@ -1,0 +1,83 @@
+{
+  "run_id": "iterate-2026-08-27-terminal-replay-reset-reopen-reconnect",
+  "date": "2026-08-27T12:58:22.240169Z",
+  "event_at": "2026-08-27T12:56:43.609365+00:00",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/terminal-replay-reset-reopen-reconnect",
+  "spec": ".shipwright/planning/iterate/iterate-2026-08-27-terminal-replay-reset-reopen-reconnect.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-27-terminal-replay-reset-reopen-reconnect",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Replay-only one-shot envelope tears down mouse-tracking mode after the ?1006h fixup, never touching ?1049 (AC-1/AC-2)",
+        "disposition": "tested",
+        "evidence": "server/src/terminal/replay-snapshot.test.ts (unit, envelope bytes); e2e spec 105 asserts the real xterm instance's modes.mouseTrackingMode === 'none' after a genuine server round trip"
+      },
+      {
+        "behavior": "Live-pty-fresh-attach path also tears down interaction modes, gated on !ptyExistedBeforeAttach only (AC-2)",
+        "disposition": "tested",
+        "evidence": "server/src/terminal/ws-upgrade-handler.replay-teardown.test.ts"
+      },
+      {
+        "behavior": "Byte-for-byte-unchanged on the live-pty-existed and resync paths (AC-2)",
+        "disposition": "tested",
+        "evidence": "server/src/terminal/replay-snapshot.test.ts; the added arg is undefined on those paths, existing assertions unchanged"
+      },
+      {
+        "behavior": "sessionEnded-driven reconnect: no component remount, resetSessionState() before connect() at both reconnect call sites (AC-3)",
+        "disposition": "tested",
+        "evidence": "client/src/hooks/useTerminalSocket.test.ts; e2e spec 105 drives a real Reopen -> reconnect without any page reload"
+      },
+      {
+        "behavior": "Socket-identity guard (socketRef.current !== ws) makes a stale/superseded socket's events structurally inert (AC-4)",
+        "disposition": "tested",
+        "evidence": "client/src/hooks/useTerminalSocket.test.ts"
+      },
+      {
+        "behavior": "sessionEndedRef read from the close handler resolves the race where sessionEnded flips mid-close (AC-5)",
+        "disposition": "tested",
+        "evidence": "client/src/hooks/useTerminalSocket.test.ts"
+      },
+      {
+        "behavior": "Reused-pty guard skips evaluation on a replay-only ready; reopen re-arm clears ptyReusedGuardEvaluatedRef, incl. a stale-ready race (AC-7/AC-8)",
+        "disposition": "tested",
+        "evidence": "client/src/components/terminal/useAutoLaunch.reopen-ptyreused.test.ts (3 scenarios, incl. the falsification-corrected launch_failed -> active Retry case)"
+      },
+      {
+        "behavior": "resetBannerDismissed clears on a done|launch_failed -> !isEnded edge (AC-9)",
+        "disposition": "tested",
+        "evidence": "client/src/components/terminal/useTerminalBannerState.test.ts (4 scenarios)"
+      },
+      {
+        "behavior": "terminalReset/taskId reset effects in useAutoLaunch.ts never call gate.resetGate() (AC-10)",
+        "disposition": "tested",
+        "evidence": "client/src/components/terminal/useAutoLaunch.reopen-gate-reset.test.ts"
+      },
+      {
+        "behavior": "The real (non-mocked) drain gate still parks a new snapshot behind an in-flight old write, and a stray external resetGate() genuinely reintroduces the corruption (AC-10, review-cascade finding 13)",
+        "disposition": "tested",
+        "evidence": "client/src/components/terminal/useReplayDrainGate.inflight-reset-race.test.tsx \u2014 real useReplayDrainGate hook, deferred-callback Terminal double, both directions falsification-verified"
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 10,
+      "covered_acs": 10
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 1,
+    "exit_code": 0,
+    "justification": "Backend-affects-Frontend: this diff touches a WS handler (ws-upgrade-handler.ts) and a message-consuming client hook (useTerminalSocket.ts), so surface=web is mandatory regardless of file-path detection. Ran spec 105 against a real isolated single-process server (temp USERPROFILE/HOME, production client build, loopback-only, no chokidar/production stack touched) and a real Chromium via surface_verification.py's orchestrator: exit 0, 1 test run, both bugs proven end-to-end (mouseTrackingMode torn to 'none' after replay; Reopen reconnects the real WS without a page reload). Bug A's precondition is seeded via a direct <taskId>.snapshot fixture file (documented Windows ConPTY limitation for driving a live pty into that state \u2014 see iterate spec's E2E authoring finding), not a claim about the fix itself; the replay-only branch still reads that exact file through the real SnapshotStore/buildReplaySnapshotEnvelope and sends it over a real WS to a real xterm.js instance."
+  },
+  "declared_removals": []
+}
