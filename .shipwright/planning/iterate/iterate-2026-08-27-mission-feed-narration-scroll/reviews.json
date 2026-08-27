@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-27-mission-feed-narration-scroll",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:31.405864+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:38.885082+00:00",
+      "disposition": "small complexity — plan/external/plan-internal review is medium+ only per SKILL.md Phase Matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:31.682322+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": null,
+          "finding": "Claim under doubt: pendingNarration surviving past a test/user-input-only turn is safe because it only ever reaches the very next real turn. — Concrete transcript: narration -> several test-only retries -> a turn with no narration of its own that pivots to unrelated work (e.g. Write emailTemplate.ts). The unrelated turn's card inherited the stale narration text describing the earlier, unrelated investigation. FIXED: pendingNarration now carries a staleness counter (MAX_PENDING_NARRATION_CARRY) and is dropped in favor of the existing generic/label-derived fallback once it has survived too many non-consuming turns, instead of being carried forward indefinitely.",
+          "suggestion": "Bound the carry-forward with a staleness counter; verified fixed and covered by missionActivityFeed.splitTurn.test.ts's DROPPED-not-misattributed case.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeed.ts",
+          "line": null,
+          "finding": "Claim under doubt: MAX_PENDING_NARRATION_CARRY = 3 bridges 3 consecutive non-consuming turns to a following real turn, as its doc comment claimed. — Hand-traced the arithmetic: the staleness increment and the drop check both happen on the SAME non-consuming turn, so pendingNarration is nulled ON the 3rd such turn, not after it -- the constant actually bridges only 2 turns, one fewer than its own value and one fewer than the comment's 'handful of test turns' claim. FIXED: bumped the constant to 4 (bridging 3 turns, matching a realistic 3-retry test-until-green burst) and corrected the comment to state the bridged count is the constant minus one.",
+          "suggestion": "Corrected the constant and its doc comment; verified fixed and covered by missionActivityFeed.splitTurn.test.ts's 'survives THREE consecutive non-consuming turns' case.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:31.817779+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:39.035548+00:00",
+      "disposition": "small complexity — plan/external/plan-internal review is medium+ only per SKILL.md Phase Matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:31.539022+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-27T11:09:39.170778+00:00",
+      "disposition": "small complexity — plan/external/plan-internal review is medium+ only per SKILL.md Phase Matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
