@@ -67,6 +67,7 @@
         "disposition": "tested",
         "evidence": "vitest run: mission suites 342 passed; full client suite 3502 passed; tsc --noEmit clean"
       }
-    ]
+    ],
+    "counts": { "testable": 11, "tested": 11, "untestable": 0, "untested_testable": 0 }
   }
 }

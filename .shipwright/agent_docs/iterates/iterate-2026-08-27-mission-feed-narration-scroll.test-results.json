@@ -68,7 +68,8 @@
           "disposition": "tested",
           "evidence": "npx vitest run src/lib/missionActivityFeed src/components/external/mission -> 32 files, 342 passed; npx vitest run (full client) -> 373 files, 3502 passed"
         }
-      ]
+      ],
+      "counts": { "testable": 11, "tested": 11, "untestable": 0, "untested_testable": 0 }
     }
   },
   "source_state": {
