@@ -44,11 +44,15 @@ you one place to see every Shipwright project at a glance:
 
 - **Kanban board:** every task, every project, in columns (Backlog → In
   Progress → Done). One scroll, no tab-juggling.
-- **Live transcript per task:** what Claude is doing right now, in
-  chat-style format you can read like a conversation.
-- **Embedded terminal per task:** hit **Launch** and the pre-bound
-  `claude` command auto-runs right there on the task page. No
-  copy-paste, no separate window to babysit.
+- **Mission tab per task:** what Claude is doing right now, as a
+  plain-language activity feed you can read like a running story — not
+  a raw chat log.
+- **Files & Terminal tab per task:** hit **Launch** and the pre-bound
+  `claude` command auto-runs right there on the task page, alongside a
+  live file tree. No copy-paste, no separate window to babysit.
+- **Ship's Log per project:** a project's home page — logbook, current
+  grade, and a scoped `/shipwright-iterate` launcher — one click away
+  from the project list (see [§5.3](#53-youre-ready)).
 - **Inbox:** every "Claude is asking permission for..." pinned in one
   list, regardless of which project. No more missed prompts in
   background terminals.
@@ -114,7 +118,7 @@ editor: the Command Center browser tab:
 
 | Window | What it does |
 |---|---|
-| **Command Center** (browser tab: `localhost:3847` with Path A, `localhost:5173` with Path B) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work, all without leaving the browser. |
+| **Command Center** (browser tab: `localhost:3847` normally, `localhost:5173` if you're running the dev servers from source) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, follow the Mission activity feed, answer inbox prompts, and see Claude work, all without leaving the browser. |
 
 Because the Command Center has its own embedded terminal, you do **not**
 need a separate terminal app.
@@ -123,68 +127,53 @@ need a separate terminal app.
 
 ## 4. Installation
 
-> If the words below feel too "command-line-y", don't worry: these are
-> three commands, and you copy-paste them. There's no scripting.
+> If the words below feel too "command-line-y", don't worry: this is
+> one command, and you copy-paste it. There's no scripting.
 
 ### What you need
 
 - **Node.js 20 or newer:** the runtime the Command Center is built on.
   Download from <https://nodejs.org/>. After install, open a terminal
   and run `node --version`. It should print `v20.x.x` or higher.
-- **Git:** to download the code. <https://git-scm.com/>
+- **Git:** used under the hood. <https://git-scm.com/>
 - **Claude Code CLI 2.1.114 or newer:** the same one you use today.
   Check with `claude --version`.
 
 That's it. No databases, no Docker, no Python, no system services.
 
-### Get the code
+### One command
 
-Open a terminal (Warp, iTerm2, Windows Terminal, your VS Code terminal
-, whatever) in any folder you want the Command Center installed:
+Open a terminal (Warp, iTerm2, Windows Terminal, your VS Code terminal,
+whatever) and run:
+
+```bash
+npx @svenroth-ai/shipwright@latest
+```
+
+This one command installs (and later updates) **both** the
+`/shipwright-*` plugins and the Command Center: it verifies your
+prerequisites, installs every plugin from the marketplace manifest
+(and syncs the plugin cache so their hooks actually run), then boots
+the Command Center on **:3847** and opens it in your browser — or, if
+one is already running, attaches to it (swapping an older one in
+place). Always include `@latest`: a bare `npx` can reuse a stale cached
+copy.
+
+Open <http://localhost:3847/> if it didn't open automatically, and
+register your first project — see [Chapter 5](#5-your-first-project--step-by-step).
+
+On Windows you can have the server start automatically on every login,
+see [§8](#8-autostart-on-windows). That's the smoothest setup for daily use.
+
+### From source (contributors, or an unpublished checkout)
+
+The repo is two independent workspaces with no root `package.json`.
 
 ```bash
 git clone https://github.com/svenroth-ai/shipwright-webui.git
 cd shipwright-webui
-```
-
-That downloads the code into a folder called `shipwright-webui`.
-
-### Install dependencies
-
-```bash
-make install
-```
-
-This downloads everything Node needs to run the Command Center. Takes
-1–2 minutes the first time.
-
-> **No `make` on your system?** (Common on Windows.) Run instead:
->
-> ```bash
-> cd server && npm install
-> cd ../client && npm install
-> ```
-
-### Run it
-
-There are two ways to run the Command Center. Pick the one that matches
-what you're here to do.
-
-#### Path A — Just use it (recommended)
-
-Best for everyday use. You build the app **once**, then run a single
-server. That server serves the dashboard itself, so there's only **one**
-address to remember and **one** process to keep alive (no second
-terminal).
-
-```bash
-make build
-```
-
-This compiles both halves into `server/dist` + `client/dist` (1–2
-minutes). Then start the server:
-
-```bash
+make install        # npm install in both server/ and client/
+make build          # compiles server/dist + client/dist (1-2 min)
 cd server && npm start
 ```
 
@@ -192,17 +181,14 @@ You'll see `Shipwright Command Center listening on
 http://localhost:3847`. Open <http://localhost:3847/> in your browser.
 That's the **whole** dashboard, no Vite / `make dev-client` needed.
 
-> **No `make`?** Run `cd server && npm run build`, then
-> `cd ../client && npm run build`, then `cd ../server && npm start`.
+> **No `make`?** (Common on Windows.) Run the npm scripts directly:
+> `cd server && npm install && npm run build`, then
+> `cd ../client && npm install && npm run build`, then
+> `cd ../server && npm start`.
 
-On Windows you can have this start automatically on every login, see
-[§8](#8-autostart-on-windows). That's the smoothest setup for daily use.
-
-#### Path B — Develop or contribute
-
-Best when you're editing the Command Center's **own** code and want
-hot-reload. This runs the two halves as separate dev servers, in **two
-separate terminal windows**.
+**Developing the Command Center's own code?** Run the two halves as
+separate dev servers with hot-reload, in **two separate terminal
+windows**:
 
 **Terminal 1** (backend):
 
@@ -230,40 +216,60 @@ the Vite port (`5173`), which proxies `/api` to the backend on `3847`.
 
 ## 5. Your first project — step by step
 
-You've got the Command Center open in your browser (`:3847` if you took
-Path A, `:5173` for Path B). Time to register a Shipwright project.
+You've got the Command Center open in your browser (`:3847` normally,
+`:5173` if you're running the dev servers from source). Time to
+register a Shipwright project.
 
 ### 5.1 Open the Projects page
 
 Click **Projects** in the left sidebar. You'll see an empty list and a
-**+ New project** button at the top.
+**Create Project** button at the top.
 
 ### 5.2 Run the wizard
 
-Click **+ New project**. The wizard asks:
+Click **Create Project**. It opens a **door picker**: "What do you want
+to do?" with three choices, plus a "Register a project manually…"
+escape hatch for a classic form (name, path, stack profile, plugin
+directories) if you'd rather skip the guided flow.
 
-1. **Name:** anything human (e.g. "Time tracker SaaS"). Used as the
-   label on the Kanban board.
-2. **Path:** the absolute path to your project folder
-   (e.g. `C:\dev\time-tracker` or `/Users/me/dev/time-tracker`). This
-   is where Claude runs and writes files.
-3. **Stack profile:** the Command Center auto-detects the stack from
-   `package.json`, `pyproject.toml`, etc. You can override.
-4. **Claude plugin directories:** usually leave default.
+- **Build something new** — a fresh project. Answers four plain-language
+  questions (describe it, who's it for, does it need to remember
+  things, where should it run) and derives a stack profile from them —
+  you never pick `supabase-nextjs` or `vite-hono` by name. A plan card
+  then shows the 7 pipeline phases you're about to run and asks for a
+  project **name** and the **folder** to create it in; **Go — build it**
+  hands your answers to `/shipwright-run` as a brief.
+- **Bring Shipwright to an existing repo** — point it at a local folder.
+  It walks the same question-and-plan shape and previews what
+  `/shipwright-adopt` would find and write (the preview is a
+  representative sample, not a live scan of your repo yet — the real
+  scan happens once you launch); confirming hands off to
+  `/shipwright-adopt` as a task.
+- **Grade your repo** — a read-only Control Grade (A–F) for a repo,
+  local or remote, with no commitment to register it at all. Same
+  engine as `/shipwright-grade` run from the terminal, surfaced here as
+  a guided flow, about 60 seconds, no account needed.
 
-Click **Create**. The project appears in the sidebar.
+A **readiness gate** checks your environment first (Claude CLI,
+Shipwright plugins, plugin cache, `uv`, Python, git) and holds back
+**all three doors together** if something's missing — it is not a
+per-door check, so it won't tell you *which* door is affected, only
+that setup needs attention.
 
 ### 5.3 You're ready
 
-The project is now on the Kanban board (currently empty). You can
-register more projects right away; the Command Center watches all of
-them in parallel.
+Once you launch, the project is registered and its first task starts
+running — you'll land on the task detail page, and the project now
+shows up wherever projects are listed (the Projects page, the Kanban
+board's project picker). You can register more projects right away; the
+Command Center watches all of them in parallel.
 
-> Back on the **Projects** page later, clicking a project row jumps you
-> straight to the Kanban board with that project pre-filtered. The gear
-> icon in the **Actions** column opens the Settings dialog (rename,
-> color); the trash icon removes the project from the registry without
-> touching files on disk.
+> Back on the **Projects** page later, clicking a project's card opens
+> that project's **Ship's Log** — its home page, with a logbook, its
+> current grade, and a scoped `/shipwright-iterate` launcher — not the
+> Kanban board directly. The gear icon in the card's footer opens the
+> Settings dialog (rename, color); the trash icon removes the project
+> from the registry without touching files on disk.
 
 ---
 
@@ -321,12 +327,14 @@ For now, click **Launch**.
 
 ### 6.4 Watch it run in the embedded terminal
 
-The task detail page opens with an embedded terminal pane already
-focused on the project folder. The launch command auto-runs there:
-you'll see the shell prompt, then `cd "<your project path>" && claude
-...`, then Claude's first output.
+The task detail page opens on a **Mission | Files & Terminal** switch at
+the top. **Files & Terminal** holds the embedded terminal pane, already
+focused on the project folder: the launch command auto-runs there, you'll
+see the shell prompt, then `cd "<your project path>" && claude ...`, then
+Claude's first output. A file tree sits alongside it so you can check
+what changed without leaving the tab.
 
-The terminal **auto-focuses** when you switch to the Terminal tab, with no
+The terminal **auto-focuses** when you switch to the Files & Terminal tab, with no
 extra click into the canvas before you start typing. On touchscreens, a
 **one-finger drag** scrolls the buffer (xterm.js 6.x's virtualized
 scrollbar listens to wheel events only, so this is a Command-Center
@@ -344,12 +352,12 @@ top-right of the pane: that's your cue to hold **Shift while dragging**
 to bypass mouse-tracking and get a normal selection back. Dismiss the
 badge with the `✕` once you've seen it.
 
-### 6.5 Watch the transcript
+### 6.5 Watch the Mission tab
 
-Back in the browser, the task detail page shows the **live transcript**:
-Claude's messages, tool calls, file edits, all in chat-style. Updates
-every second. You don't need to switch back to the terminal to see what
-Claude is doing.
+Switch to **Mission** and you get a plain-language **activity feed**
+instead of a raw chat log: what Claude just did, narrated turn by turn,
+grouped into cards rather than scrolled as messages. Updates live. You
+don't need to switch back to the terminal to follow along.
 
 If Claude asks a permission question (`Allow this tool?`), it shows up
 in the **Inbox** in the left sidebar. One badge, one number, one
@@ -357,7 +365,7 @@ glance. You answer in the terminal as usual; the inbox updates.
 
 ### 6.6 Done
 
-When Claude finishes, the task moves to **Done**. The transcript stays
+When Claude finishes, the task moves to **Done**. The Mission feed stays
 available; go back any time to read it again.
 
 > **Multi-project parallel:** repeat the loop for as many projects as
@@ -497,7 +505,7 @@ button that activates the campaign and jumps you here.
 
 ### 6.10 Viewing and editing project files
 
-A task detail page isn't only a transcript. Its **file browser**
+A task detail page isn't only Mission and Terminal. Its **file browser**
 (SmartViewer) opens any file under the project root: Markdown renders,
 images and short video play inline, and diffs are syntax-highlighted.
 
@@ -513,7 +521,20 @@ other change.
 
 ## 7. Updating the Command Center
 
-When new versions are released, pull the latest code first:
+**If you installed via `npx` (the recommended path):** re-run the exact
+same command, from anywhere, any time — safe to run even from inside
+the Command Center's own embedded terminal:
+
+```bash
+npx @svenroth-ai/shipwright@latest
+```
+
+It updates the `/shipwright-*` plugins and swaps the running Command
+Center in place: republishing a `@next` build makes it swap onto that
+build automatically rather than reattaching to the stale server it
+found running. There's no clone, no `make`, no `git pull` to remember.
+
+**If you installed from source,** pull the latest code first:
 
 ```bash
 git pull
@@ -523,7 +544,7 @@ make install        # only strictly needed when dependencies changed
 Then restart the half you actually run; it depends on which path you
 picked in [§4](#4-installation):
 
-- **Path A (production):** rebuild, then restart the server.
+- **Production (`npm start`):** rebuild, then restart the server.
   ```bash
   make build
   cd server && npm start      # stop the old one with Ctrl+C first
@@ -540,11 +561,11 @@ picked in [§4](#4-installation):
   start-fresh, and the same best-effort `~/.claude.json` heal). Run it with
   `bash scripts/start-server-production.sh`; stop the server with
   `bash scripts/stop-server.sh`.
-- **Path B (dev):** just stop both dev servers (Ctrl+C) and start them
-  again (`make dev-server` + `make dev-client`). `tsx watch` and Vite
-  run straight from source, so there's no build step.
+- **Dev servers (`make dev-server` / `make dev-client`):** just stop
+  both (Ctrl+C) and start them again. `tsx watch` and Vite run straight
+  from source, so there's no build step.
 
-> **Why Path A needs the rebuild:** the production server runs the
+> **Why the production build needs the rebuild:** the production server runs the
 > compiled output in `server/dist` + `client/dist`. A `git pull` alone
 > updates the source but not those build artefacts, so a merged change
 > stays invisible until you run `make build`. (The dev servers run from

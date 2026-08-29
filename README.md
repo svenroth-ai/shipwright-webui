@@ -174,7 +174,7 @@ dev servers instead (`make dev-server` on `:3847` + `make dev-client` on
 `:5173`, open `:5173`). That flow, plus the standalone-vs-monorepo
 profile loop (`SHIPWRIGHT_MONOREPO_PATH`) and parallel-worktree port
 overrides (`PORT` / `VITE_PORT`), is documented in
-[guide §4 Path B](docs/guide.md#4-installation) and [`CLAUDE.md`](CLAUDE.md).
+[guide §4, "Developing the Command Center's own code?"](docs/guide.md#4-installation) and [`CLAUDE.md`](CLAUDE.md).
 Contributor norms: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Autostart on Windows
