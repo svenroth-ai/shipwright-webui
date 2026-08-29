@@ -1,0 +1,1 @@
+Triage detail popup: file references (evidencePath and free-text mentions like `architecture.md`) now render as clickable links that open the file in a side-by-side viewer, without leaving the browser.

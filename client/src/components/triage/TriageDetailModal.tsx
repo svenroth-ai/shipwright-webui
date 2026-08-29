@@ -14,8 +14,9 @@ import { useStartCampaign } from "../../hooks/useStartCampaign";
 import { CampaignStartCta } from "./CampaignStartCta";
 import { PromoteModal } from "./PromoteModal";
 import { SnoozeRevisitField } from "./SnoozeRevisitField";
-import { TriageAmendForm } from "./TriageAmendForm";
 import { TriageDetailHeader } from "./TriageDetailHeader";
+import { TriageDetailMeta } from "./TriageDetailMeta";
+import { TriageFilePanel } from "./TriageFilePanel";
 import { buildFixNowIntent, type FixNowIntent } from "./fixNowIntent";
 
 interface TriageDetailModalProps {
@@ -70,6 +71,7 @@ export function TriageDetailModal({
   const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [openFilePath, setOpenFilePath] = useState<string | null>(null);
   const writeDisabled = drift.data?.write?.available === false;
   const writeDisabledReason = drift.data?.write?.reason ?? "Triage writing is unavailable.";
 
@@ -77,6 +79,7 @@ export function TriageDetailModal({
     setFixNowFailure(null);
     setStartError(null);
     setEditMode(false);
+    setOpenFilePath(null);
   }, [item.id, open]);
 
   // FR-01.33 — campaign-umbrella branch. A triage item the producer linked to
@@ -174,10 +177,16 @@ export function TriageDetailModal({
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-40" />
           <Dialog.Content
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[640px] max-w-[90vw] max-h-[85vh] overflow-y-auto bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)]"
+            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex max-h-[85vh] overflow-hidden bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] ${
+              openFilePath ? "w-[1100px] max-w-[95vw]" : "w-[640px] max-w-[90vw]"
+            }`}
             data-testid="triage-detail-modal"
           >
-            <div className="p-6">
+            <div
+              className={`w-full min-w-0 overflow-y-auto p-6 md:w-[640px] md:shrink-0 ${
+                openFilePath ? "hidden md:block" : ""
+              }`}
+            >
               <TriageDetailHeader
                 item={displayItem}
                 editMode={editMode}
@@ -186,66 +195,16 @@ export function TriageDetailModal({
                 writeDisabledReason={writeDisabledReason}
               />
 
-              <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
-                <div>
-                  <dt className="text-[var(--color-muted)]">Suggested priority</dt>
-                  <dd className="font-mono">{displayItem.suggestedPriority}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--color-muted)]">Suggested domain</dt>
-                  <dd>{displayItem.suggestedDomain}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--color-muted)]">Kind</dt>
-                  <dd>{displayItem.kind}</dd>
-                </div>
-                <div>
-                  <dt className="text-[var(--color-muted)]">Original ts</dt>
-                  <dd className="font-mono text-[10px]">{displayItem.originalTs}</dd>
-                </div>
-                {displayItem.dedupKey && (
-                  <div className="col-span-2">
-                    <dt className="text-[var(--color-muted)]">Dedup key</dt>
-                    <dd className="font-mono text-[10px] break-all">
-                      {displayItem.dedupKey}
-                    </dd>
-                  </div>
-                )}
-                {displayItem.evidencePath && (
-                  <div className="col-span-2">
-                    <dt className="text-[var(--color-muted)]">Evidence</dt>
-                    <dd className="font-mono text-[10px] break-all">
-                      {displayItem.evidencePath}
-                    </dd>
-                  </div>
-                )}
-              </dl>
-
-              {editMode ? (
-                <div className="border-t border-[var(--color-border)] pt-4">
-                  <TriageAmendForm
-                    projectId={projectId}
-                    item={displayItem}
-                    writesRouteToOutbox={drift.data?.writesRouteToOutbox}
-                    writeDisabled={writeDisabled}
-                    writeDisabledReason={writeDisabledReason}
-                    onCancel={() => setEditMode(false)}
-                    onSaved={() => setEditMode(false)}
-                  />
-                </div>
-              ) : (
-                <div className="border-t border-[var(--color-border)] pt-4">
-                  <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
-                    Detail
-                  </h4>
-                  <p
-                    className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
-                    data-testid="triage-detail-body"
-                  >
-                    {displayItem.detail}
-                  </p>
-                </div>
-              )}
+              <TriageDetailMeta
+                projectId={projectId}
+                item={displayItem}
+                editMode={editMode}
+                onEditDone={() => setEditMode(false)}
+                writesRouteToOutbox={drift.data?.writesRouteToOutbox}
+                writeDisabled={writeDisabled}
+                writeDisabledReason={writeDisabledReason}
+                onOpenFile={setOpenFilePath}
+              />
 
               {isCampaignItem && campaignSlug && (
                 <CampaignStartCta
@@ -351,6 +310,13 @@ export function TriageDetailModal({
                 </div>
               )}
             </div>
+            {openFilePath && (
+              <TriageFilePanel
+                projectId={projectId}
+                path={openFilePath}
+                onClose={() => setOpenFilePath(null)}
+              />
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

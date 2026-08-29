@@ -1,0 +1,6 @@
+{
+  "section": "iterate-2026-08-29-compliance-file-viewer",
+  "review": [],
+  "verdict": "APPROVE",
+  "summary": "Two rounds. Round 1 found 16 issues (2 high, 4 medium, 10 low): mobile clipping regression, a regex boundary bug silently dropping mentions at a sentence-ending period, a null/undefined crash risk, an extension/SmartViewer drift (dead ps1 link), missing doc-sync tokens, a stale bloat-baseline ceiling, plus assorted low-severity readability/a11y/robustness items. All fixed except 5 explicitly-deferred low items (panel height not viewport-driven, no focus-trap/Escape-precedence, no node.js-style stop-list, FileLink/FileMentionText folder-naming convention, CHANGELOG drop deferred to F4) - judged reasonable for a small-tier iterate and none secretly high. Round 2 re-verified every claimed fix by tracing the regex/CSS directly and found one residual MEDIUM (file panel resolved to 0px wide below the 768px breakpoint when opened) plus one trivial LOW (dead label prop on FileLink) - both fixed: left column now hidden md:block while a file is open below md, and label removed. A narrow-viewport (375x812) E2E test was added and passed against the real dev stack (3/3), verifying both the closed-panel and open-panel mobile behavior. No blockers remain."
+}

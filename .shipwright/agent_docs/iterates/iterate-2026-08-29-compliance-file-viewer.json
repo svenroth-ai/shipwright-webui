@@ -1,0 +1,95 @@
+{
+  "run_id": "iterate-2026-08-29-compliance-file-viewer",
+  "date": "2026-08-29T07:24:14.462589Z",
+  "event_at": "2026-08-29T07:22:05.868632+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/compliance-file-viewer",
+  "spec": ".shipwright/planning/iterate/2026-08-29-compliance-file-viewer-miniplan.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-29-compliance-file-viewer",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A bare filename mention in free-text detail (e.g. \"architecture.md\") is detected and linkified",
+        "disposition": "tested",
+        "evidence": "extractFileMentions.test.ts + FileMentionText.test.tsx"
+      },
+      {
+        "behavior": "A multi-segment / dotfile repo path is detected",
+        "disposition": "tested",
+        "evidence": "extractFileMentions.test.ts dot-prefixed deep path case"
+      },
+      {
+        "behavior": "A semver string, bare commit SHA, or ADR reference is NOT linkified",
+        "disposition": "tested",
+        "evidence": "extractFileMentions.test.ts rejection cases"
+      },
+      {
+        "behavior": "A scheme-less or scheme-prefixed URL is NOT linkified",
+        "disposition": "tested",
+        "evidence": "extractFileMentions.test.ts BARE_DOMAIN_RE rejection cases"
+      },
+      {
+        "behavior": "A mention ending a sentence (trailing period) is still detected",
+        "disposition": "tested",
+        "evidence": "extractFileMentions.test.ts sentence-ending-period case"
+      },
+      {
+        "behavior": "Every recognized extension resolves to a SmartViewer-viewable kind",
+        "disposition": "tested",
+        "evidence": "extractFileMentions.viewable.test.ts"
+      },
+      {
+        "behavior": "A structured evidencePath field renders as a clickable FileLink",
+        "disposition": "tested",
+        "evidence": "TriageDetailModal.fileViewer.test.tsx + E2E"
+      },
+      {
+        "behavior": "Clicking a file link opens the real file beside the triage detail column, not a second overlapping Dialog",
+        "disposition": "tested",
+        "evidence": "E2E boundingBox assertion, real seeded project + real file"
+      },
+      {
+        "behavior": "Closing the file panel returns to single-column layout without closing the triage modal",
+        "disposition": "tested",
+        "evidence": "TriageDetailModal.fileViewer.test.tsx + E2E"
+      },
+      {
+        "behavior": "Switching to a different triage item closes a stale open panel",
+        "disposition": "tested",
+        "evidence": "TriageDetailModal.fileViewer.test.tsx rerender case"
+      },
+      {
+        "behavior": "On a phone-width viewport, opening the file panel does not clip either surface",
+        "disposition": "tested",
+        "evidence": "E2E narrow-viewport (375x812) spec"
+      },
+      {
+        "behavior": "Detail text with no file mention renders unchanged",
+        "disposition": "tested",
+        "evidence": "FileMentionText.test.tsx plain-text-unchanged case"
+      }
+    ],
+    "counts": {
+      "testable": 12,
+      "tested": 12,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 12,
+      "covered_acs": 12
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/triage-file-viewer.spec.ts",
+    "exit_code": 0,
+    "tests_run": 3,
+    "evidence_path": ".shipwright/runs/iterate-2026-08-29-compliance-file-viewer/surface_verification.log",
+    "timestamp": "2026-08-29T07:09:56.848Z"
+  }
+}

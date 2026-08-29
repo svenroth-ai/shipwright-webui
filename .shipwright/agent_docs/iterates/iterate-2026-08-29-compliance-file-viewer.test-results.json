@@ -1,0 +1,104 @@
+{
+  "last_updated": "2026-08-29",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-29-compliance-file-viewer",
+    "date": "2026-08-29",
+    "unit": "PASS - client 3565 passed (382 files); server 3725 passed / 3 skipped (323 files)",
+    "integration": "n/a - no CRUD or service-boundary change; SmartViewer's existing path-guarded file-read API is reused as-is",
+    "pgtap": "n/a - no RLS or schema change",
+    "e2e": "PASS - 3/3 real-Chromium specs via isolated-stack.mjs; see surface_verification",
+    "design_fidelity": "n/a - no visual-regression baseline touched; layout correctness (incl. narrow-viewport) verified via E2E boundingBox assertions instead",
+    "smoke": "n/a - no server behaviour change",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A bare filename mention in free-text detail (e.g. \"architecture.md\") is detected and linkified",
+          "disposition": "tested",
+          "evidence": "extractFileMentions.test.ts (offset/path correctness) + FileMentionText.test.tsx (renders FileLink preserving surrounding text)"
+        },
+        {
+          "behavior": "A multi-segment / dotfile repo path (e.g. \".shipwright/agent_docs/architecture.md\") is detected",
+          "disposition": "tested",
+          "evidence": "extractFileMentions.test.ts dot-prefixed deep path case"
+        },
+        {
+          "behavior": "A semver string, bare commit SHA, or ADR reference (no recognized extension) is NOT linkified",
+          "disposition": "tested",
+          "evidence": "extractFileMentions.test.ts semver/SHA/ADR-reference rejection cases"
+        },
+        {
+          "behavior": "A scheme-less or scheme-prefixed URL (e.g. example.com/readme.md, https://...) is NOT linkified",
+          "disposition": "tested",
+          "evidence": "extractFileMentions.test.ts BARE_DOMAIN_RE rejection cases (regression test for spec-reviewer REJECT round 1)"
+        },
+        {
+          "behavior": "A mention ending a sentence (trailing period, nothing after) is still detected",
+          "disposition": "tested",
+          "evidence": "extractFileMentions.test.ts sentence-ending-period case (regression test for HIGH finding #2)"
+        },
+        {
+          "behavior": "Every recognized extension resolves to a SmartViewer-viewable kind (no dead links)",
+          "disposition": "tested",
+          "evidence": "extractFileMentions.viewable.test.ts (imports RECOGNIZED_EXTENSIONS + resolveKind directly, drift guard)"
+        },
+        {
+          "behavior": "A structured evidencePath field renders as a clickable FileLink",
+          "disposition": "tested",
+          "evidence": "TriageDetailModal.fileViewer.test.tsx + E2E \"evidencePath renders as a clickable link\""
+        },
+        {
+          "behavior": "Clicking a file link opens the real file (fetched through the existing path-guarded route) in a panel BESIDE the triage detail column, not a second overlapping Dialog",
+          "disposition": "tested",
+          "evidence": "E2E \"a file mention ... opens the real file beside the triage panel\" - real seeded project + real file, panelBox.x > modalBox.x + modalBox.width/2"
+        },
+        {
+          "behavior": "Closing the file panel returns to the single-column layout without closing the triage modal",
+          "disposition": "tested",
+          "evidence": "TriageDetailModal.fileViewer.test.tsx close-panel case + E2E close assertion"
+        },
+        {
+          "behavior": "Switching to a different triage item closes a stale open panel",
+          "disposition": "tested",
+          "evidence": "TriageDetailModal.fileViewer.test.tsx item.id-change rerender case"
+        },
+        {
+          "behavior": "On a phone-width (375px) viewport, opening the file panel does not clip either surface (closed-panel action row reachable; open-panel width > 200px, not 0)",
+          "disposition": "tested",
+          "evidence": "E2E \"on a narrow (phone-width) viewport ...\" - regression test for two code-review rounds (initial mobile clipping HIGH + follow-up 0px-panel MEDIUM)"
+        },
+        {
+          "behavior": "Detail text with no file mention renders unchanged (no spurious linkification)",
+          "disposition": "tested",
+          "evidence": "FileMentionText.test.tsx plain-text-unchanged case"
+        }
+      ],
+      "counts": {
+        "testable": 12,
+        "tested": 12,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 12,
+        "covered_acs": 12
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/triage-file-viewer.spec.ts",
+      "exit_code": 0,
+      "tests_run": 3,
+      "evidence_path": ".shipwright/runs/iterate-2026-08-29-compliance-file-viewer/surface_verification.log",
+      "timestamp": "2026-08-29T07:09:56.848Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-29-compliance-file-viewer",
+    "commit": "bbcc9d6187055a573ccc76a30ddf71875a27b053",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

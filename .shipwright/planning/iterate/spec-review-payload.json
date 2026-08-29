@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Both prior REJECT findings closed. URL false-positives now genuinely rejected (BARE_DOMAIN_RE) without breaking dotfile or repo paths, and panel-state reset is exercised by two real re-render tests (item.id change; open false->true). No new divergence; TriageDetailModal.tsx is 333 lines against a bloat baseline current of 375. Code-reviewer may proceed."
+}

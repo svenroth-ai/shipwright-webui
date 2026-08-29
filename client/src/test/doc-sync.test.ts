@@ -191,6 +191,13 @@ const REQUIRED_TOKENS = [
   // cli-compat split forced by the anti-ratchet gate.
   'claude-bin-resolver',
   'win32-spawn',
+  // iterate-2026-08-29-compliance-file-viewer — clickable file references in
+  // the Triage detail popup, opening a side panel that reuses SmartViewer.
+  'extractFileMentions',
+  'FileLink',
+  'FileMentionText',
+  'TriageFilePanel',
+  'TriageDetailMeta',
 ] as const;
 
 let claudeMd = '';
