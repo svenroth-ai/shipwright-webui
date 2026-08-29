@@ -223,49 +223,51 @@ register a Shipwright project.
 ### 5.1 Open the Projects page
 
 Click **Projects** in the left sidebar. You'll see an empty list and a
-**+ New project** button at the top.
+**Create Project** button at the top.
 
 ### 5.2 Run the wizard
 
-Click **+ New project**. The wizard opens on a **door picker**: "What do
-you want to do?" with three choices, plus a "Register a project
-manually…" escape hatch for the classic form below.
+Click **Create Project**. It opens a **door picker**: "What do you want
+to do?" with three choices, plus a "Register a project manually…"
+escape hatch for a classic form (name, path, stack profile, plugin
+directories) if you'd rather skip the guided flow.
 
-- **Build new** — a fresh project. Walks you through:
-  1. **Name:** anything human (e.g. "Time tracker SaaS"). Used as the
-     label on the Kanban board.
-  2. **Path:** the absolute path to your project folder
-     (e.g. `C:\dev\time-tracker` or `/Users/me/dev/time-tracker`). This
-     is where Claude runs and writes files.
-  3. **Stack profile:** the Command Center auto-detects the stack from
-     `package.json`, `pyproject.toml`, etc. You can override.
-  4. **Claude plugin directories:** usually leave default.
-- **Adopt** — you already have a codebase. Point the wizard at the
-  local folder; it shows what's already there vs. what
-  `/shipwright-adopt` would write, then launches the adoption as a task
-  once you confirm.
-- **Grade** — you just want a read-only Control Grade (A–F) for a repo,
+- **Build something new** — a fresh project. Answers four plain-language
+  questions (describe it, who's it for, does it need to remember
+  things, where should it run) and derives a stack profile from them —
+  you never pick `supabase-nextjs` or `vite-hono` by name. A plan card
+  then shows the 7 pipeline phases you're about to run and asks for a
+  project **name** and the **folder** to create it in; **Go — build it**
+  hands your answers to `/shipwright-run` as a brief.
+- **Bring Shipwright to an existing repo** — point it at a local folder.
+  It walks the same question-and-plan shape and previews what
+  `/shipwright-adopt` would find and write (the preview is a
+  representative sample, not a live scan of your repo yet — the real
+  scan happens once you launch); confirming hands off to
+  `/shipwright-adopt` as a task.
+- **Grade your repo** — a read-only Control Grade (A–F) for a repo,
   local or remote, with no commitment to register it at all. Same
   engine as `/shipwright-grade` run from the terminal, surfaced here as
-  a guided flow.
+  a guided flow, about 60 seconds, no account needed.
 
-A **readiness gate** runs first and can hold a door back (e.g. Adopt
-needs a real local git repo) rather than let you launch against a path
-that isn't ready.
-
-Click **Create** (Build new) or confirm the launch (Adopt). The project
-appears in the sidebar.
+A **readiness gate** checks your environment first (Claude CLI,
+Shipwright plugins, plugin cache, `uv`, Python, git) and holds back
+**all three doors together** if something's missing — it is not a
+per-door check, so it won't tell you *which* door is affected, only
+that setup needs attention.
 
 ### 5.3 You're ready
 
-The project is now on the Kanban board (currently empty). You can
-register more projects right away; the Command Center watches all of
-them in parallel.
+Once you launch, the project is registered and its first task starts
+running — you'll land on the task detail page, and the project now
+shows up wherever projects are listed (the Projects page, the Kanban
+board's project picker). You can register more projects right away; the
+Command Center watches all of them in parallel.
 
-> Back on the **Projects** page later, clicking a project row opens that
-> project's **Ship's Log** — its home page, with a logbook, its current
-> grade, and a scoped `/shipwright-iterate` launcher — not the Kanban
-> board directly. The gear icon in the **Actions** column opens the
+> Back on the **Projects** page later, clicking a project's card opens
+> that project's **Ship's Log** — its home page, with a logbook, its
+> current grade, and a scoped `/shipwright-iterate` launcher — not the
+> Kanban board directly. The gear icon in the card's footer opens the
 > Settings dialog (rename, color); the trash icon removes the project
 > from the registry without touching files on disk.
 
@@ -332,7 +334,7 @@ see the shell prompt, then `cd "<your project path>" && claude ...`, then
 Claude's first output. A file tree sits alongside it so you can check
 what changed without leaving the tab.
 
-The terminal **auto-focuses** when you switch to the Terminal tab, with no
+The terminal **auto-focuses** when you switch to the Files & Terminal tab, with no
 extra click into the canvas before you start typing. On touchscreens, a
 **one-finger drag** scrolls the buffer (xterm.js 6.x's virtualized
 scrollbar listens to wheel events only, so this is a Command-Center
