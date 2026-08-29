@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-29-compliance-file-viewer",
+  "date": "2026-08-29",
+  "section": "Triage compliance file viewer",
+  "title": "Inline file mentions in the Triage detail popup open a side-by-side viewer",
+  "context": "Compliance triage entries cite files inline (evidencePath, or a plain-text mention like 'architecture.md' inside detail) but the path was inert text - judging a compliance finding required leaving the browser for a separate editor.",
+  "decision": "Detect file-path-like tokens in evidencePath AND free-text detail via a new regex util (extractFileMentions.ts), render each as a clickable FileLink, and open the file in a new TriageFilePanel column reusing the existing path-guarded SmartViewer. The panel renders BESIDE the detail column (widened Dialog.Content, two flex columns), not a second overlapping Dialog, per user direction.",
+  "consequences": "No new server route or write surface - SmartViewer's path-guarded read API is reused as-is. TriageDetailModal.tsx needed a TriageDetailMeta.tsx extraction to stay under its bloat-baseline ceiling. Left column hides below md while a file is open (verified by a narrow-viewport E2E test). Scope excludes the separate Compliance Detail modal (deferred follow-up).",
+  "rationale": "Reusing SmartViewer avoids a second viewer/API surface; free-text scanning (not just evidencePath) was chosen because most compliance findings only cite files in prose - confirmed by user during the interview ('Alle erkannten Datei-Erwähnungen').",
+  "rejected": "A second overlapping Dialog (rejected - user asked for a side-by-side window). Linking only evidencePath (rejected - misses most real mentions). A new file-viewer component (rejected - SmartViewer already exists and is already path-guarded).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-08-29-compliance-file-viewer-miniplan.md"
+}
