@@ -239,7 +239,7 @@
     {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
       "limit": 300,
-      "current": 375,
+      "current": 337,
       "state": "grandfathered",
       "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
     },

@@ -1,0 +1,12 @@
+{
+  "items": [
+    { "name": "spec_compliance", "verdict": "pass", "note": "Implements exactly the user's confirmed scope: regex-detected file mentions + evidencePath become clickable links inside TriageDetailModal only (Compliance detail view explicitly out of scope per user answer), opening a side-by-side panel (not an overlapping modal) reusing SmartViewer." },
+    { "name": "error_handling", "verdict": "n/a", "note": "No new API routes or server code; the reused SmartViewer/file route already handles loading/error/too-large states, unchanged here." },
+    { "name": "security_basics", "verdict": "pass", "note": "Mention text renders as React children (auto-escaped); the file path resolved from a mention is passed to the existing path-guarded (realpath+relative) file route unchanged — no new trust boundary introduced." },
+    { "name": "test_quality", "verdict": "pass", "note": "extractFileMentions.test.ts (10 cases incl. negative cases: semver, commit SHA, ADR reference, empty string), FileMentionText.test.ts (3), TriageDetailModal.test.tsx new describe block (4: evidencePath link, in-text mention, close, no-mention plain text) — all assert on rendered outcome/callback args, not internals." },
+    { "name": "performance_basics", "verdict": "pass", "note": "extractFileMentions is a single regex pass over a short triage message string; no loops of DB/network calls, no unbounded list rendering." },
+    { "name": "naming_structure", "verdict": "pass", "note": "New files under client/src/lib and client/src/components/triage matching existing grouping. TriageDetailModal.tsx net REDUCED 371->333 lines via extraction into TriageDetailMeta.tsx (avoids ratcheting its grandfathered 375-line bloat-baseline entry)." },
+    { "name": "affected_boundaries", "verdict": "n/a", "note": "Read-only feature: no new or changed serialized format (evidencePath/detail are existing TriageItem fields, unchanged shape; no new write path)." },
+    { "name": "test_hygiene_probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff: no findings on the new/changed test files." }
+  ]
+}
