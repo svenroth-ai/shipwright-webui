@@ -212,7 +212,7 @@ The `/triage` route surfaces pre-backlog findings from
 `<project>/.shipwright/triage.jsonl`: items written by Phase-Quality,
 compliance, security/performance/F0.5/drift hooks (the producer pattern
 documented in
-[shipwright/docs/triage-inbox.md](https://github.com/svenroth-ai/shipwright/blob/main/docs/triage-inbox.md)).
+[shipwright/docs/guide.md §4.11](https://github.com/svenroth-ai/shipwright/blob/main/docs/guide.md#411-triage-inbox-cross-cutting-intake)).
 
 For each registered project, the page lists items with `status==triage`
 grouped by source (alphabetical), severity-rank-sorted within each
@@ -240,7 +240,7 @@ aggregated across all registered projects, polling every 30 s with
 exponential backoff on 5xx.
 
 See
-[shipwright/docs/triage-inbox.md](https://github.com/svenroth-ai/shipwright/blob/main/docs/triage-inbox.md)
+[shipwright/docs/guide.md §4.11](https://github.com/svenroth-ai/shipwright/blob/main/docs/guide.md#411-triage-inbox-cross-cutting-intake)
 for the cross-store contract + producer-side details.
 
 ## Contract with Shipwright plugins
