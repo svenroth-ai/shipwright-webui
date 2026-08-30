@@ -20,6 +20,7 @@ import {
   writeFileSync,
   mkdirSync,
   symlinkSync,
+  realpathSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 
@@ -202,5 +203,27 @@ describe("realPathGuard — symlink escape (section 04a, plan § 7 O8)", () => {
     const ghost = path.join(projectDir, "does-not-exist.txt");
     const res = realPathGuard(projectDir, ghost);
     expect(res.ok).toBe(false);
+  });
+
+  it("a precomputed realRoot (batch-caller optimization) still accepts a legit path", () => {
+    const realRoot = realpathSync(path.resolve(projectDir));
+    const abs = path.join(projectDir, "src", "index.ts");
+    const res = realPathGuard(projectDir, abs, realRoot);
+    expect(res.ok).toBe(true);
+  });
+
+  it("a precomputed realRoot still rejects a symlink escaping the root", () => {
+    const realRoot = realpathSync(path.resolve(projectDir));
+    const target = path.join(outsideDir, "sensitive.txt");
+    const linkPath = path.join(projectDir, "sneaky-precomputed.txt");
+    try {
+      symlinkSync(target, linkPath, "file");
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "EPERM") return;
+      throw err;
+    }
+    const res = realPathGuard(projectDir, linkPath, realRoot);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.reason).toBe("symlink_escape");
   });
 });

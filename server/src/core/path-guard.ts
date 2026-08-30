@@ -142,12 +142,20 @@ export function pathGuard(projectRoot: string, relpath: string): PathGuardResult
 export function realPathGuard(
   projectRoot: string,
   absoluteInsideRoot: string,
+  precomputedRealRoot?: string,
 ): PathGuardResult {
   const resolvedRoot = path.resolve(projectRoot);
   let realRoot: string;
   let realTarget: string;
   try {
-    realRoot = realpathSync(resolvedRoot);
+    // A batch caller resolving many targets against the same project root
+    // (e.g. exists-routes.ts) can pass its own once-per-request realpath of
+    // that root here, instead of paying a redundant realpathSync(root) on
+    // every one of up to N iterations (doubt-review finding,
+    // iterate-2026-08-30-triage-file-viewer-followups). Single-path callers
+    // are unaffected — the parameter is optional and falls back to the
+    // original per-call resolution.
+    realRoot = precomputedRealRoot ?? realpathSync(resolvedRoot);
     realTarget = realpathSync(absoluteInsideRoot);
   } catch {
     // If either side can't be realpath'd (permissions, race), refuse

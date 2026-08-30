@@ -1,4 +1,6 @@
 import type { TriageItem } from "../../lib/triageApi";
+import { extractFileMentions } from "../../lib/extractFileMentions";
+import { useFileExistence } from "../../hooks/useFileExistence";
 import { FileLink } from "./FileLink";
 import { FileMentionText } from "./FileMentionText";
 import { TriageAmendForm } from "./TriageAmendForm";
@@ -30,6 +32,15 @@ export function TriageDetailMeta({
   writeDisabledReason,
   onOpenFile,
 }: Props) {
+  // iterate-2026-08-30-triage-file-viewer-followups — only a path confirmed
+  // to exist under the project renders as a clickable link; a mention of a
+  // planned-but-not-yet-built or deleted file stays plain text.
+  const candidatePaths = [
+    ...(item.evidencePath ? [item.evidencePath] : []),
+    ...extractFileMentions(item.detail).map((m) => m.path),
+  ];
+  const existingPaths = useFileExistence(projectId, candidatePaths);
+
   return (
     <>
       <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
@@ -59,7 +70,11 @@ export function TriageDetailMeta({
           <div className="col-span-2">
             <dt className="text-[var(--color-muted)]">Evidence</dt>
             <dd className="text-[10px] break-all">
-              <FileLink path={item.evidencePath} onOpen={onOpenFile} />
+              {existingPaths?.has(item.evidencePath) ? (
+                <FileLink path={item.evidencePath} onOpen={onOpenFile} />
+              ) : (
+                item.evidencePath
+              )}
             </dd>
           </div>
         )}
@@ -86,7 +101,7 @@ export function TriageDetailMeta({
             className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
             data-testid="triage-detail-body"
           >
-            <FileMentionText text={item.detail} onOpen={onOpenFile} />
+            <FileMentionText text={item.detail} onOpen={onOpenFile} existingPaths={existingPaths} />
           </p>
         </div>
       )}

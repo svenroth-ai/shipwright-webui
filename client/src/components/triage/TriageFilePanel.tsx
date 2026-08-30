@@ -13,11 +13,23 @@ interface Props {
  * Dialog/overlay — it nests inside TriageDetailModal's existing
  * Dialog.Content, appearing beside the triage details rather than stacking
  * another backdrop on top of them.
+ *
+ * The outer container needs `min-h-0` + `min-w-0` (iterate-2026-08-30
+ * follow-up): as a flex item it otherwise grows to its content's natural
+ * size on either axis instead of shrinking to the space Dialog.Content
+ * allotted it, which then clips the overflow with its own `overflow-hidden`
+ * instead of a scrollbar. This alone is NOT sufficient, though: percentage
+ * heights (`h-full`) only resolve against an ancestor with a genuinely
+ * DEFINITE `height` (not `max-height`, and not a size merely produced by
+ * flex-grow) — Dialog.Content therefore switches from `max-h-[85vh]` to a
+ * real `h-[85vh]` while a file is open (see TriageDetailModal.tsx), giving
+ * this panel's own `h-full` something real to resolve against, which then
+ * cascades correctly down through SmartViewer and CodeRenderer.
  */
 export function TriageFilePanel({ projectId, path, onClose }: Props) {
   return (
     <div
-      className="flex h-full min-w-0 flex-1 flex-col border-l border-[var(--color-border)]"
+      className="flex h-full min-h-0 min-w-0 flex-1 flex-col border-l border-[var(--color-border)]"
       data-testid="triage-file-panel"
       role="region"
       aria-label={`File preview: ${path}`}
