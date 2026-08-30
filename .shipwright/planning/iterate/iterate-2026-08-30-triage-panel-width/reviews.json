@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-30-triage-panel-width",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:46:57.570965+00:00",
+      "disposition": "self-review completed; see .shipwright/planning/iterate/iterate-2026-08-30-triage-panel-width/self-review.md",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:47:20.850056+00:00",
+      "disposition": "Mini-Plan is FEATURE-only at small complexity; this is a CHANGE",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:47:20.567332+00:00",
+      "disposition": "Full Code Review is 'only if risk flags' at small; risk_flags=[] (classify_complexity.py)",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:47:20.638275+00:00",
+      "disposition": "doubt-reviewer runs only after code-reviewer at small when risk-flagged; not triggered here",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:47:20.782247+00:00",
+      "disposition": "External LLM code review is medium+ only per phase matrix; this run is small",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:47:20.711898+00:00",
+      "disposition": "Stage-1 spec-reviewer gates the review cascade, not triggered at small with zero risk flags",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-30T21:47:20.917150+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

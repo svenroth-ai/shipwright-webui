@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-30-triage-panel-width",
+  "date": "2026-08-30",
+  "section": "Iterate — change: triage file-viewer panel width",
+  "title": "Widen the triage file-viewer panel to 1440px total modal width",
+  "context": "Sven reported (2026-08-30, follow-up to #395/#397) that the file panel opened from a triage file mention is too narrow (~460px at 1100px total modal width), forcing most linked files into excessive vertical scrolling.",
+  "decision": "Raise the file-open modal width in TriageDetailModal.tsx from w-[1100px] to w-[1440px] (max-w-[95vw] unchanged; left detail pane stays a fixed md:w-[640px]), growing the file panel's flex-1 share from ~460px to ~800px.",
+  "consequences": "The open file panel is now meaningfully wider on desktop; narrow viewports still clamp via max-w-[95vw], unaffected by the existing narrow-viewport E2E test which uses different fixed-width classes below the md breakpoint. No component/data-flow/test-shape change beyond the one width value.",
+  "rationale": "Measured empirically against real repo files (not guessed): a real ADR needs ~800px to cut vertical scroll ~33%; a real 190-line TS file needs ~717px to avoid horizontal scroll. 1440px total clears both. See spec-ref for full numbers.",
+  "rejected": "A dynamic/content-aware width was rejected as disproportionate for a single-value tweak; sizing off an 84KB outlier file was rejected as it would over-justify an unreasonably wide panel for the common case.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-08-30-triage-panel-width-panel-width.md"
+}

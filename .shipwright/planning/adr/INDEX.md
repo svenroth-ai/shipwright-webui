@@ -36,3 +36,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [ADR: Reader-role WS connections may send SGR mouse reports to the shared pty](iterate-2026-08-24-terminal-readonly-scroll-copy.md)
 - [Mission feed: restore a turn's own words, drop the narration toggle](iterate-2026-08-25-mission-feed-progress-narration-explanation-scope.md)
 - [ADR: Route grade.py and triage_cli.py through `uv run`, never a bare system Python](iterate-2026-08-26-grade-uv-run-uv-run-spawn.md)
+- [ADR detail — Widen the triage file-viewer panel](iterate-2026-08-30-triage-panel-width-panel-width.md)
