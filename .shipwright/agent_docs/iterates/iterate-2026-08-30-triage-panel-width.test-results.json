@@ -1,0 +1,52 @@
+{
+  "last_updated": "2026-08-30",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-30-triage-panel-width",
+    "date": "2026-08-30",
+    "unit": "PASS \u2014 client 3578 passed (385 files); server untouched, not re-run (no server file in this diff)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change; single client-side layout constant",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 5/5, real-Chromium isolated-stack run of client/e2e/flows/triage-file-viewer.spec.ts (Playwright, chromium project), including one new width-regression assertion",
+    "design_fidelity": "n/a \u2014 a width value change, not a visual-design change; no baseline shift expected or observed",
+    "smoke": "n/a \u2014 no server-wide behaviour change; no server file touched",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "The open file panel is meaningfully wider than before on a typical desktop viewport (regression guard against silently narrowing back)",
+          "disposition": "tested",
+          "evidence": "E2E: triage-file-viewer.spec.ts 'a file mention...opens the real file beside the triage panel' asserts panelBox.width > 520 at the suite's default 1280px viewport (up from the old ~460px)"
+        },
+        {
+          "behavior": "Narrow (phone-width) viewport does not clip either surface when the file panel opens (unaffected by the wider desktop modal)",
+          "disposition": "tested",
+          "evidence": "E2E: 'on a narrow (phone-width) viewport...' (pre-existing, re-verified green; different fixed-width classes below the md breakpoint)"
+        },
+        {
+          "behavior": "A long, wide .py file still scrolls both vertically and horizontally instead of being clipped, at the new width",
+          "disposition": "tested",
+          "evidence": "E2E: 'a long, wide .py file scrolls both vertically and horizontally...' (pre-existing, re-verified green)"
+        },
+        {
+          "behavior": "The wider modal does not regress any other existing triage/file-viewer behaviour",
+          "disposition": "tested",
+          "evidence": "Full client suite (3578 tests) + tsc --noEmit + oxlint all pass unchanged; only pre-existing, unrelated lint warnings remain"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 5,
+      "exit_code": 0,
+      "justification": "The reported problem (excessive vertical scrolling in the file viewer) is a real-layout/content-wrapping behavior invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/triage-file-viewer.spec.ts), and the target width itself was chosen from live scrollHeight/clientHeight/scrollWidth/clientWidth measurements against real repo files, not guessed."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-30-triage-panel-width",
+    "commit": "11e5a612fb4378cc01ac2d35cd6912cf8c9a9fbd",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

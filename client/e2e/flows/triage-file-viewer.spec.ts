@@ -127,6 +127,13 @@ test.describe("Triage compliance file viewer", () => {
     expect(panelBox).not.toBeNull();
     if (modalBox && panelBox) {
       expect(panelBox.x).toBeGreaterThan(modalBox.x + modalBox.width / 2);
+      // Regression guard (iterate-2026-08-30-triage-panel-width): the panel
+      // was widened because most linked files needed excessive vertical
+      // scrolling at the old width. At this suite's default 1280px viewport,
+      // max-w-[95vw] clamps the modal to 1216px, so the panel goes from
+      // ~460px (old 1100px modal) to ~576px (new 1440px modal) — assert
+      // comfortably above the old width without pinning the exact number.
+      expect(panelBox.width).toBeGreaterThan(520);
     }
 
     await page.getByTestId("triage-file-panel-close").click();
