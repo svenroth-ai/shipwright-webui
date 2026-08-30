@@ -177,8 +177,8 @@ export function TriageDetailModal({
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-40" />
           <Dialog.Content
-            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex max-h-[85vh] overflow-hidden bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] ${
-              openFilePath ? "w-[1100px] max-w-[95vw]" : "w-[640px] max-w-[90vw]"
+            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex overflow-hidden bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] ${
+              openFilePath ? "h-[85vh] w-[1100px] max-w-[95vw]" : "max-h-[85vh] w-[640px] max-w-[90vw]"
             }`}
             data-testid="triage-detail-modal"
           >

@@ -38,6 +38,19 @@ vi.mock("../external/SmartViewer", () => ({
   ),
 }));
 
+// iterate-2026-08-30-triage-file-viewer-followups — a link now only renders
+// once the batched existence check confirms the path is real. Default: every
+// requested path "exists", so the pre-existing wiring tests below stay
+// async-but-otherwise-unchanged; the dedicated broken-link test overrides
+// this per-call to resolve false for one path.
+vi.mock("../../lib/fileExistsApi", () => ({
+  checkFilesExist: vi.fn(async (_projectId: string, paths: string[]) =>
+    Object.fromEntries(paths.map((p) => [p, true])),
+  ),
+}));
+import { checkFilesExist } from "../../lib/fileExistsApi";
+const mockedCheckFilesExist = vi.mocked(checkFilesExist);
+
 function makeWrapper() {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -102,11 +115,11 @@ describe("TriageDetailModal — file viewer panel (iterate-2026-08-29-compliance
     );
   }
 
-  it("evidencePath renders as a clickable link that opens the file panel", () => {
+  it("evidencePath renders as a clickable link that opens the file panel", async () => {
     renderModal({ evidencePath: "client/src/pages/TaskBoardPage.tsx" });
     expect(screen.queryByTestId("triage-file-panel")).toBeNull();
 
-    fireEvent.click(screen.getByTestId("triage-file-link"));
+    fireEvent.click(await screen.findByTestId("triage-file-link"));
 
     const panel = screen.getByTestId("triage-file-panel");
     expect(panel).toBeTruthy();
@@ -115,18 +128,18 @@ describe("TriageDetailModal — file viewer panel (iterate-2026-08-29-compliance
     );
   });
 
-  it("a file mention detected inside the detail text opens the same panel", () => {
+  it("a file mention detected inside the detail text opens the same panel", async () => {
     renderModal({
       evidencePath: null,
       detail: "architecture.md has no shipwright:architecture marker",
     });
-    fireEvent.click(screen.getByTestId("triage-file-link"));
+    fireEvent.click(await screen.findByTestId("triage-file-link"));
     expect(screen.getByTestId("smart-viewer-mock")).toHaveTextContent("architecture.md");
   });
 
-  it("closing the panel returns to the single-column layout", () => {
+  it("closing the panel returns to the single-column layout", async () => {
     renderModal({ evidencePath: "CLAUDE.md" });
-    fireEvent.click(screen.getByTestId("triage-file-link"));
+    fireEvent.click(await screen.findByTestId("triage-file-link"));
     expect(screen.getByTestId("triage-file-panel")).toBeTruthy();
 
     fireEvent.click(screen.getByTestId("triage-file-panel-close"));
@@ -141,7 +154,14 @@ describe("TriageDetailModal — file viewer panel (iterate-2026-08-29-compliance
     );
   });
 
-  it("switching to a different triage item closes any file panel left open on the previous one", () => {
+  it("an evidencePath that does NOT resolve to a real file renders as plain text, never a link", async () => {
+    mockedCheckFilesExist.mockResolvedValueOnce({ "shipwright_ac_coverage_baseline.json": false });
+    renderModal({ evidencePath: "shipwright_ac_coverage_baseline.json" });
+    await screen.findByText(/shipwright_ac_coverage_baseline\.json/);
+    expect(screen.queryByTestId("triage-file-link")).toBeNull();
+  });
+
+  it("switching to a different triage item closes any file panel left open on the previous one", async () => {
     const Wrapper = makeWrapper();
     const { rerender } = render(
       <Wrapper>
@@ -153,7 +173,7 @@ describe("TriageDetailModal — file viewer panel (iterate-2026-08-29-compliance
         />
       </Wrapper>,
     );
-    fireEvent.click(screen.getByTestId("triage-file-link"));
+    fireEvent.click(await screen.findByTestId("triage-file-link"));
     expect(screen.getByTestId("triage-file-panel")).toBeTruthy();
 
     rerender(
@@ -169,7 +189,7 @@ describe("TriageDetailModal — file viewer panel (iterate-2026-08-29-compliance
     expect(screen.queryByTestId("triage-file-panel")).toBeNull();
   });
 
-  it("closing and reopening the modal on the same item does not resurrect the previous file panel", () => {
+  it("closing and reopening the modal on the same item does not resurrect the previous file panel", async () => {
     const Wrapper = makeWrapper();
     const item = { ...baseItem, evidencePath: "CLAUDE.md" };
     const { rerender } = render(
@@ -177,7 +197,7 @@ describe("TriageDetailModal — file viewer panel (iterate-2026-08-29-compliance
         <TriageDetailModal open={true} onOpenChange={vi.fn()} projectId="proj-a" item={item} />
       </Wrapper>,
     );
-    fireEvent.click(screen.getByTestId("triage-file-link"));
+    fireEvent.click(await screen.findByTestId("triage-file-link"));
     expect(screen.getByTestId("triage-file-panel")).toBeTruthy();
 
     rerender(

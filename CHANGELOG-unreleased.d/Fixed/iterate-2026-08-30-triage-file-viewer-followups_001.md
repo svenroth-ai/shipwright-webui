@@ -1,0 +1,1 @@
+Triage file viewer: long files now scroll both vertically and horizontally instead of being clipped, and a mention of a file that no longer exists (or never did) renders as plain text instead of a dead link.

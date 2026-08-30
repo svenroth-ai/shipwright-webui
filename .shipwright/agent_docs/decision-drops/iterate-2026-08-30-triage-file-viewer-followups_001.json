@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-30-triage-file-viewer-followups",
+  "date": "2026-08-30",
+  "section": "Iterate - bug: triage file viewer follow-ups",
+  "title": "Definite Dialog height + max-content pre width fix triage file-viewer scroll; batched existence check gates file links",
+  "context": "Triage file viewer had no vertical scrollbar (long files grew past the modal), code was clipped on the right with no horizontal scrollbar, and file mentions linked to nonexistent paths.",
+  "decision": "Dialog.Content switches max-h-[85vh] to a real h-[85vh] when a file panel is open, giving descendant h-full chains a definite height to resolve against. .smart-viewer-code pre gets width:max-content + min-width:100% so overflow-x:auto can detect real content width. A new batched GET /files/exist route (reusing pathGuard/realPathGuard) resolves which mentions are real files; only those render as FileLink.",
+  "consequences": "Vertical/horizontal scrolling now works in the file panel; a mention of a deleted or never-built file renders as plain text instead of a dead link. Follow-up code-review found a comma-delimiter collision in the batch query (fixed via double percent-encoding) and a per-path realpathSync amplification (fixed by resolving the project root's realpath once per request); the client also caps a batch at 50 distinct paths so an unusually verbose item degrades partially instead of losing every link.",
+  "rationale": "max-height alone never establishes a definite size for descendant percentage-height resolution in CSS flexbox, regardless of the box's own correctly-bounded pixel size; a block <pre> defaults to width:auto (fill container), so unwrapped long lines paint as invisible overflow no ancestor overflow-x:auto detects until the pre's own box is grown to content width.",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

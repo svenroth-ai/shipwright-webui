@@ -18,6 +18,18 @@ import { tmpdir } from "node:os";
 
 const REAL_FILE_BODY = "# Architecture\n\nSome real file content for the viewer to render.\n";
 
+// iterate-2026-08-30-triage-file-viewer-followups: a long-identifier .py file
+// that overflows BOTH axes of the panel — long enough to require vertical
+// scroll, and containing at least one line wide enough to require
+// horizontal scroll (code is monospace, so a long single identifier alone
+// reliably overflows a ~400px-wide panel).
+const LONG_PY_BODY =
+  Array.from(
+    { length: 80 },
+    (_, i) => `def some_function_number_${i}(argument_one, argument_two, argument_three):`,
+  ).join("\n") +
+  "\n    return argument_one_that_is_extremely_long_and_will_not_wrap_in_a_monospace_pre_block + argument_two\n";
+
 function appendLine(id: string, title: string, extra: Record<string, unknown> = {}): string {
   return JSON.stringify({
     event: "append",
@@ -44,6 +56,7 @@ async function seedProject(
   request: import("@playwright/test").APIRequestContext,
   slug: string,
   lines: string[],
+  extraFiles: Record<string, string> = {},
 ): Promise<{ projectDir: string; projectId: string }> {
   const projectDir = path.join(tmpdir(), `${slug}-${Date.now()}`);
   mkdirSync(path.join(projectDir, ".shipwright"), { recursive: true });
@@ -53,6 +66,9 @@ async function seedProject(
     "utf-8",
   );
   writeFileSync(path.join(projectDir, "architecture.md"), REAL_FILE_BODY, "utf-8");
+  for (const [rel, body] of Object.entries(extraFiles)) {
+    writeFileSync(path.join(projectDir, rel), body, "utf-8");
+  }
   const created = await request.post("/api/projects", {
     data: { name: slug, path: projectDir.split(path.sep).join("/") },
   });
@@ -178,5 +194,87 @@ test.describe("Triage compliance file viewer", () => {
       expect(panelBox.width).toBeGreaterThan(200);
     }
     await expect(page.getByTestId("triage-file-panel-close")).toBeInViewport();
+  });
+
+  test("a long, wide .py file scrolls both vertically and horizontally instead of being clipped (iterate-2026-08-30-triage-file-viewer-followups)", async ({
+    page,
+    request,
+  }) => {
+    ({ projectDir, projectId } = await seedProject(
+      request,
+      "triage-file-viewer-scroll",
+      [
+        appendLine("trg-fv0004", "Long code file scroll check", {
+          evidencePath: "long_module.py",
+        }),
+      ],
+      { "long_module.py": LONG_PY_BODY },
+    ));
+
+    await page.goto("/triage");
+    await expect(page.getByTestId("triage-item-trg-fv0004")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("triage-item-trg-fv0004").click();
+
+    const modal = page.getByTestId("triage-detail-modal");
+    await expect(modal).toBeVisible();
+    await modal.locator('[data-file-path="long_module.py"]').click();
+
+    const code = page.getByTestId("smart-viewer-code");
+    await expect(code).toBeVisible();
+    await expect(code).toContainText("some_function_number_0");
+
+    const metrics = await code.evaluate((el) => ({
+      scrollHeight: el.scrollHeight,
+      clientHeight: el.clientHeight,
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+    expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth);
+
+    // The panel itself must never grow past the Dialog's own bound — this is
+    // the regression this test exists to catch (it grew past the Dialog's
+    // clipped box with no internal scrollbar before the fix).
+    const panel = page.getByTestId("triage-file-panel");
+    const modalBox = await modal.boundingBox();
+    const panelBox = await panel.boundingBox();
+    expect(modalBox).not.toBeNull();
+    expect(panelBox).not.toBeNull();
+    if (modalBox && panelBox) {
+      expect(panelBox.height).toBeLessThanOrEqual(modalBox.height + 1);
+    }
+
+    await page.screenshot({ path: "test-results/triage-file-viewer-scroll.png" });
+  });
+
+  test("a mention of a file that does not exist under the project renders as plain text, never a clickable link (iterate-2026-08-30-triage-file-viewer-followups)", async ({
+    page,
+    request,
+  }) => {
+    ({ projectDir, projectId } = await seedProject(request, "triage-file-viewer-broken-link", [
+      appendLine("trg-fv0005", "REQ3.04c broken-link check", {
+        detail:
+          "shipwright_ac_coverage_baseline.json is stale; see shared/scripts/lib/anti_ratchet.py for the resolver",
+        evidencePath: "shipwright_ac_coverage_baseline.json",
+      }),
+    ]));
+
+    await page.goto("/triage");
+    await expect(page.getByTestId("triage-item-trg-fv0005")).toBeVisible({ timeout: 15000 });
+    await page.getByTestId("triage-item-trg-fv0005").click();
+
+    const modal = page.getByTestId("triage-detail-modal");
+    await expect(modal).toBeVisible();
+
+    // The nonexistent path never becomes a link — plain text only, both as
+    // the evidence line and inline in the detail body (two separate mentions
+    // of the same broken filename: the structured evidencePath, and the
+    // inline mention inside `detail`).
+    await expect(modal.getByText("shipwright_ac_coverage_baseline.json")).toHaveCount(2);
+    await expect(modal.locator('[data-file-path="shipwright_ac_coverage_baseline.json"]')).toHaveCount(0);
+    // Give the async existence check a moment to settle either way, then
+    // re-assert no link ever appeared for the broken path.
+    await page.waitForTimeout(500);
+    await expect(modal.locator('[data-file-path="shipwright_ac_coverage_baseline.json"]')).toHaveCount(0);
   });
 });

@@ -182,6 +182,26 @@
   scroll-margin-top: 12px;
 }
 
+/* CodeRenderer's fenced <pre> (iterate-2026-08-30-triage-file-viewer-followups)
+ * is NOT wrapped in `.markdown-body` — MarkdownRenderer's DocumentMarkdown is,
+ * which is why long lines already scrolled there via the `.markdown-body pre`
+ * rule above. A block element defaults to `width: auto`, which means "fill
+ * the container", NOT "size to content" — so even with `white-space: pre`
+ * (no wrapping), a long unwrapped line just paints past the box's own fixed
+ * width as ink overflow. Confirmed via live-browser measurement: neither the
+ * pre's own box NOR any ancestor (including `.smart-viewer-code`'s
+ * `overflow-x: auto`) ever reported `scrollWidth > clientWidth` for a
+ * genuinely ~790px-wide line — a "fill container" box never grows to expose
+ * that overflow to anything watching for it. `width: max-content` (with
+ * `min-width: 100%` so short files still fill the pane) makes the <pre>'s
+ * OWN box grow to its real content width, which is what finally lets
+ * `.smart-viewer-code`'s `overflow-x: auto` detect and scroll it. */
+.smart-viewer-code pre {
+  overflow-x: auto;
+  width: max-content;
+  min-width: 100%;
+}
+
 /* Horizontal rule — prominent separator. */
 .markdown-body hr {
   height: 0;
