@@ -1,7 +1,7 @@
 {
   "run_id": "iterate-2026-08-30-triage-panel-width",
-  "date": "2026-08-30T21:49:26.264338Z",
-  "event_at": "2026-08-29T07:22:05.868632+00:00",
+  "date": "2026-08-30T21:52:53.976893Z",
+  "event_at": "2026-08-30T21:49:26.409055+00:00",
   "type": "change",
   "complexity": "small",
   "branch": "iterate/triage-panel-width",

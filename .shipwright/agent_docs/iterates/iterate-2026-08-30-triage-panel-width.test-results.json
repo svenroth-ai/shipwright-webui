@@ -33,7 +33,13 @@
           "disposition": "tested",
           "evidence": "Full client suite (3578 tests) + tsc --noEmit + oxlint all pass unchanged; only pre-existing, unrelated lint warnings remain"
         }
-      ]
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      }
     },
     "surface_verification": {
       "surface": "web",
@@ -44,7 +50,7 @@
   },
   "source_state": {
     "run_id": "iterate-2026-08-30-triage-panel-width",
-    "commit": "11e5a612fb4378cc01ac2d35cd6912cf8c9a9fbd",
+    "commit": "818d1fe237c708b591b4705451d3decb618ff7af",
     "dirty": true,
     "base": null,
     "release": null
