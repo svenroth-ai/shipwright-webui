@@ -4,14 +4,14 @@
     {
       "path": "client/e2e/flows/73-embedded-terminal.spec.ts",
       "limit": 300,
-      "current": 454,
+      "current": 419,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "client/e2e/flows/75-launch-matrix-and-session-persistence.spec.ts",
       "limit": 300,
-      "current": 456,
+      "current": 454,
       "state": "grandfathered",
       "adr": null
     },
@@ -25,21 +25,21 @@
     {
       "path": "client/e2e/flows/82-v0.8.6-terminal-reattach-smoke.spec.ts",
       "limit": 300,
-      "current": 319,
+      "current": 313,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "client/e2e/flows/83-v0.8.7-scrollback-hygiene.spec.ts",
       "limit": 300,
-      "current": 366,
+      "current": 324,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts",
       "limit": 300,
-      "current": 563,
+      "current": 535,
       "state": "grandfathered",
       "adr": null,
       "note": "AC-2 now asserts the served payload carries the parser-resync preamble (iterate-2026-07-30); the extra lines are the control-byte constant plus why it exists"
@@ -47,7 +47,7 @@
     {
       "path": "client/e2e/flows/v0-9-5-task-type-matrix.spec.ts",
       "limit": 300,
-      "current": 672,
+      "current": 641,
       "state": "grandfathered",
       "adr": null
     },
@@ -131,7 +131,7 @@
     {
       "path": "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
       "limit": 300,
-      "current": 301,
+      "current": 271,
       "state": "grandfathered",
       "adr": "iterate-2026-06-12-compliance-bloat-g2-reconcile"
     },
@@ -145,7 +145,7 @@
     {
       "path": "client/src/components/external/TaskCard.tsx",
       "limit": 300,
-      "current": 479,
+      "current": 476,
       "state": "grandfathered",
       "adr": null
     },
@@ -296,7 +296,7 @@
     {
       "path": "client/src/lib/externalApi.ts",
       "limit": 300,
-      "current": 862,
+      "current": 861,
       "state": "grandfathered",
       "adr": null
     },
@@ -317,14 +317,14 @@
     {
       "path": "client/src/pages/TaskDetailPage.test.tsx",
       "limit": 300,
-      "current": 362,
+      "current": 286,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "client/src/pages/TaskDetailPage.tsx",
       "limit": 300,
-      "current": 673,
+      "current": 560,
       "state": "grandfathered",
       "adr": null
     },
@@ -483,13 +483,6 @@
       "adr": "iterate-2026-08-08-triage-amend-reader"
     },
     {
-      "path": "server/src/core/triage-write.test.ts",
-      "limit": 300,
-      "current": 373,
-      "state": "grandfathered",
-      "adr": "iterate-2026-06-12-compliance-bloat-g2-reconcile"
-    },
-    {
       "path": "server/src/external/__tests__/api-contract-probes.ts",
       "limit": 300,
       "current": 327,
@@ -536,14 +529,14 @@
     {
       "path": "server/src/external/routes.edit-fields.test.ts",
       "limit": 300,
-      "current": 388,
+      "current": 378,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "server/src/external/routes.test.ts",
       "limit": 300,
-      "current": 843,
+      "current": 840,
       "state": "grandfathered",
       "adr": null
     },
@@ -570,23 +563,9 @@
       "adr": null
     },
     {
-      "path": "server/src/routes/triage.real-lock.test.ts",
-      "limit": 300,
-      "current": 308,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
-      "path": "server/src/routes/triage.test.ts",
-      "limit": 300,
-      "current": 902,
-      "state": "grandfathered",
-      "adr": "iterate-2026-06-03-start-campaign-action"
-    },
-    {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 692,
+      "current": 581,
       "state": "grandfathered",
       "adr": "iterate-2026-08-08-triage-amend-reader"
     },
@@ -621,7 +600,7 @@
     {
       "path": "server/src/terminal/pty-manager.test.ts",
       "limit": 300,
-      "current": 600,
+      "current": 519,
       "state": "grandfathered",
       "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
@@ -745,6 +724,48 @@
       "state": "grandfathered",
       "adr": "iterate-2026-08-05-triage-deferred-envelope",
       "note": "The 310-line fixture generator remains the single deterministic CLI-parity source for the prior Deferred-triage decision; splitting it would duplicate serialization and fixture ordering rules."
+    },
+    {
+      "path": "client/src/components/external/mission/MissionSlice2Details.tsx",
+      "limit": 300,
+      "current": 306,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/lib/missionContextApi.ts",
+      "limit": 300,
+      "current": 301,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/mission-context/resolver.ts",
+      "limit": 300,
+      "current": 327,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/mission-context/types.ts",
+      "limit": 300,
+      "current": 307,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/mission-context/routes.ts",
+      "limit": 300,
+      "current": 301,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/replay-snapshot.test.ts",
+      "limit": 300,
+      "current": 340,
+      "state": "grandfathered",
+      "adr": null
     }
   ]
 }
