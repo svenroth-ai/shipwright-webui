@@ -8,12 +8,15 @@
  *   1. custom_actions — a VALIDATED custom-actions project → HIDE the Mission
  *      tab entirely (only Files & Terminal).
  *   2. iterate        — a VALIDATED `iterate_active` pointer, or the persisted
- *      association once that pointer has been pruned.
+ *      association once that pointer has been pruned — UNLESS a corroborated
+ *      transcript footer (below) names a different, newer run, which
+ *      supersedes a stale association (iterate-2026-08-31-mission-feed-gaps).
  *   3. pipeline       — phaseTaskId + runId (run-config v2 phase_tasks).
  *   4. campaign       — a `campaign:<slug>` title AND a real campaign record.
  *   5. iterate        — a CORROBORATED `Run-ID` footer in this session's own
- *      transcript (run-id-recovery.ts). Last resort, and deliberately ranked
- *      below pipeline/campaign — see `recoverTranscriptRunId`.
+ *      transcript (run-id-recovery.ts). Last resort when NO association
+ *      exists, and deliberately ranked below pipeline/campaign — see
+ *      `recoverTranscriptRunId`.
  *   6. plain          — everything else (scenarios 1/4): narration, no rail.
  *
  * Two DECIDED asymmetries, both "fail toward showing the tab":
@@ -27,6 +30,7 @@
 
 import type { MissionContextAssociation, MissionScenario } from "./types.js";
 import type { ReadPointerResult } from "./pointer.js";
+import { isProvablyNewerRunId } from "./run-id-recovery.js";
 
 /** The four builtin action ids. Anything else is a user-defined custom action. */
 export const BUILTIN_ACTION_IDS: ReadonlySet<string> = new Set([
@@ -74,17 +78,18 @@ export interface ScenarioInputs {
    * A run id recovered from this session's OWN transcript and already
    * corroborated by the project's records (`run-id-recovery.ts`).
    *
-   * The last-resort identification source, for the tasks that ran before this
-   * build shipped: measured 2026-07-21, only 19 of this project's 150 sessions
-   * could be identified from a pointer or an association, because the pointer is
-   * pruned at Finalize and the association is only written while the Mission tab
-   * is open during the run.
+   * The last-resort identification source when NO association exists, for the
+   * tasks that ran before this build shipped: measured 2026-07-21, only 19 of
+   * this project's 150 sessions could be identified from a pointer or an
+   * association, because the pointer is pruned at Finalize and the
+   * association is only written while the Mission tab is open during the run.
    *
-   * Ranked BELOW pipeline and campaign, unlike the association: an association
-   * is a SERVER-OBSERVED fact (this session really was running that iterate),
-   * whereas the footer is text the session happens to contain. Measured, a
+   * Ranked BELOW pipeline and campaign in THAT (no-association) branch: a
    * campaign session quotes its sub-iterates' footers — ranking this higher
-   * would demote a genuine campaign to `iterate`.
+   * there would demote a genuine campaign to `iterate`. Rule 2b (above) also
+   * consults this thunk, but only to check whether a corroborated footer
+   * SUPERSEDES an existing, possibly stale, association — never to out-rank
+   * pipeline/campaign, since 2b's own branch is reached before 3/4 regardless.
    *
    * A THUNK, not a value, and that is the whole point (internal code review of
    * PR #309, PERF). Computing it eagerly meant a campaign- or pipeline-resolved
@@ -92,7 +97,10 @@ export interface ScenarioInputs {
    * the record lookup on every poll forever: it never reached rule 5, so nothing
    * ever persisted, and the negative memo does not cover a POSITIVE find.
    * Deferring removes that work instead of remembering it, and makes this table
-   * the single place that decides whether the footer matters at all.
+   * the single place that decides whether the footer matters at all. The
+   * resolver additionally rate-limits its OWN invocation from rule 2b by
+   * transcript content, so a stable association is not re-scanned on every
+   * poll either (resolver.ts).
    */
   recoverTranscriptRunId?: (() => string | null) | null;
   /** Actions catalog facts, resolved SERVER-side from the project. */
@@ -167,7 +175,10 @@ export interface ScenarioDecision {
    * pointer and the transcript, never for the one it read back from the store —
    * deriving that from `pointer.status` plus a separately-computed candidate is
    * how the two could disagree (they did: the association branch reported
-   * `transcript_run_id` beside a null id).
+   * `transcript_run_id` beside a null id). `"transcript"` now also covers rule
+   * 2b's supersession case — a corroborated footer overriding a stale
+   * association is exactly as persistence-worthy as one identifying a session
+   * with no association at all.
    */
   runIdSource: "pointer" | "association" | "transcript" | null;
   /** Set when a pointer existed but could not be trusted (§5.1e) → `unavailable`. */
@@ -209,6 +220,39 @@ export function detectScenario(inputs: ScenarioInputs): ScenarioDecision {
   // validation is a signal something is wrong, and quietly resolving via a
   // stored id would mask it.
   if (inputs.pointer.status === "absent" && inputs.association?.runId) {
+    // Before trusting the stored value, give the transcript one chance to
+    // SUPERSEDE it (iterate-2026-08-31-mission-feed-gaps). The association is
+    // only ever refreshed by catching a LIVE pointer (rule 2) — a narrow
+    // window that only opens while a worktree exists, between setup and
+    // Finalize. A task whose Mission tab is not open during that window keeps
+    // whatever association it last caught, forever, even after several more
+    // iterates finish: production evidence (a `new-plain` task with 9+
+    // completed PRs after its one caught association) showed a stale
+    // association can outlive the run it names by weeks.
+    //
+    // `recoverTranscriptRunId` finds the LAST `Run-ID:` footer in the
+    // transcript, corroborated against this project's OWN completed-run
+    // records (run-id-recovery.ts) — the same evidence rule 5 below trusts
+    // enough to identify a run with NO association at all. It is therefore
+    // not "quoted text" here either: when it names a DIFFERENT, corroborated,
+    // and PROVABLY NEWER run than the one on file (`isProvablyNewerRunId` —
+    // same-day or unparseable is not proof, external code review, openai
+    // MEDIUM), that is proof a newer run finished. The resolver rate-limits
+    // the actual scan per (session, association, transcript-content) so this
+    // does not reintroduce the "every poll forever" cost PR #309 removed (see
+    // resolver.ts), and the route persists the correction (association.ts
+    // `supersedeMissionContext`) so it survives instead of re-proving itself
+    // every poll.
+    const recovered = inputs.recoverTranscriptRunId?.() ?? null;
+    if (recovered && recovered !== inputs.association.runId && isProvablyNewerRunId(recovered, inputs.association.runId)) {
+      return {
+        scenario: "iterate",
+        missionTabVisible: true,
+        runId: recovered,
+        runIdSource: "transcript",
+        pointerInvalidReason: null,
+      };
+    }
     return {
       scenario: "iterate",
       missionTabVisible: true,

@@ -240,10 +240,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           ) : completed ? (
             <div className="mc-op-stack" data-testid="mission-completed-stack">
               <OperationCard task={task} context={context} />
-              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} />
+              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
             </div>
           ) : (
-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
           )}
         </div>
         <div

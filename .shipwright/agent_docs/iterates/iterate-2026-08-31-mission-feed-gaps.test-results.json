@@ -1,0 +1,158 @@
+{
+  "last_updated": "2026-08-31",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-31-mission-feed-gaps",
+    "date": "2026-08-31",
+    "unit": "PASS — client 3590 passed (387 files); server 3763 passed / 3 skipped (329 files)",
+    "integration": "n/a — no CRUD or service-boundary change; the concurrency fix is an internal compare-and-set guard within the existing mission-context association write path",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "PASS — 3/3, real-Chromium isolated-stack run of client/e2e/flows/mission-feed-content.spec.ts (Playwright, chromium project)",
+    "design_fidelity": "n/a — no visual/layout design change; timestamp/tooltip/scroll-target additions reuse existing Mission-tab styling",
+    "smoke": "n/a — no server-wide behavioural change; fix is scoped to the mission-context association resolver and Mission tab feed rendering",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "a stale association is superseded when the transcript corroborates a DIFFERENT, newer run",
+          "disposition": "tested",
+          "evidence": "scenario.supersession.test.ts::'SUPERSEDES the association when the transcript corroborates a DIFFERENT, newer run' PASSED"
+        },
+        {
+          "behavior": "the association is kept (no churn) when the transcript confirms the SAME run id",
+          "disposition": "tested",
+          "evidence": "scenario.supersession.test.ts::'keeps the association when the transcript confirms the SAME run (no supersession, no churn)' PASSED"
+        },
+        {
+          "behavior": "the association is kept when the recovery thunk finds nothing this poll",
+          "disposition": "tested",
+          "evidence": "scenario.supersession.test.ts::'keeps the association when recovery finds nothing this poll' PASSED"
+        },
+        {
+          "behavior": "the association is kept when no recovery thunk is wired at all (defensive default)",
+          "disposition": "tested",
+          "evidence": "scenario.supersession.test.ts::'keeps the association when no recovery thunk is wired at all' PASSED"
+        },
+        {
+          "behavior": "end-to-end: resolveMissionContext supersedes a stale association and reports the fresh id to persist",
+          "disposition": "tested",
+          "evidence": "recovery-schedule.resolver.test.ts::'a STALE association is SUPERSEDED once the transcript corroborates a newer run' PASSED"
+        },
+        {
+          "behavior": "the supersession-check scan is paid once per (session, association, transcript-content), not once per poll",
+          "disposition": "tested",
+          "evidence": "recovery-schedule.resolver.test.ts::'an already-ASSOCIATED task checks freshness ONCE per poll cycle, not forever' PASSED; recovery-schedule.test.ts (table-level 'is the thunk consulted' case) PASSED"
+        },
+        {
+          "behavior": "pipeline/campaign sessions never consult the recovery thunk even when a corroborated footer is present",
+          "disposition": "tested",
+          "evidence": "recovery-schedule.resolver.test.ts::'a CAMPAIGN session quoting a corroborated footer never scans at all' and '...PIPELINE session...' PASSED (pre-existing regression, unaffected by this run's rule 2b change)"
+        },
+        {
+          "behavior": "ActivityCard carries the creating JSONL event's own timestamp",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts::'sets the timestamp from the creating event...' PASSED"
+        },
+        {
+          "behavior": "a card's timestamp is set once at creation and does not move when a later event coalesces into it",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts::'keeps the FIRST event's timestamp when a later event coalesces...' PASSED"
+        },
+        {
+          "behavior": "a card's timestamp is absent (never fabricated) when the source event carried none",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts::'is absent when the source event carried no timestamp...' PASSED"
+        },
+        {
+          "behavior": "MissionActivityFeed renders a relative-time label with a full-date tooltip for a card that has a timestamp",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx::describe('card.timestamp') (2 tests) PASSED"
+        },
+        {
+          "behavior": "the /shipwright-iterate intro banner gets its own dedicated goal card instead of feeding generic narration-carry",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts::'gets its OWN goal card instead of silently feeding the next tool-bearing turn's generic sentence' PASSED"
+        },
+        {
+          "behavior": "the banner turn's own prose (the ==== border) never leaks into the next tool-bearing card's headline",
+          "disposition": "tested",
+          "evidence": "same test as above — asserts implement?.text does not match /={5,}/ and falls back to the ordinary label sentence"
+        },
+        {
+          "behavior": "banner recognition requires a standalone (trimmed) line, not a mid-sentence substring — a false positive found by external review (openai MEDIUM) and fixed",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts::'does NOT fire on ordinary prose that merely mentions the banner phrase mid-sentence (external code review, openai MEDIUM)' PASSED — asserts goal is undefined, was previously asserting the false positive"
+        },
+        {
+          "behavior": "a SECOND poll landing with the SAME stale association (before the caller persists the superseding one) still reports the superseded run, never reverting to the stale one",
+          "disposition": "tested",
+          "evidence": "recovery-schedule.resolver.test.ts::'a SECOND poll with the SAME stale association still reports the superseding run, not a reverted fallback (external code review, openai HIGH)' PASSED"
+        },
+        {
+          "behavior": "a system card (e.g. compaction marker) still renders its timestamp despite skipping the kind-label/pill header",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx::'still shows a relative time for a system card, which has no kind label' PASSED"
+        },
+        {
+          "behavior": "no goal card appears when the banner was never printed in the transcript",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts::'does not appear at all when the transcript never printed the banner' PASSED"
+        },
+        {
+          "behavior": "MissionActivityFeed scrolls to the bottom (latest activity) on mount when cards exist",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx scroll-to-bottom test (stubbed scrollHeight + waitFor(scrollTop===scrollHeight)) PASSED"
+        },
+        {
+          "behavior": "MissionActivityFeed keeps following new cards as they append, while a user who has scrolled away is not yanked back",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "this is useAutoScroll's own contract (mount + not-detached follow, detach-on-scroll-up), already covered by its dedicated suite (client/src/hooks/useAutoScroll.test.ts, untouched by this run) and reused here rather than reimplemented (CLAUDE.md DO-NOT #2)"
+        },
+        {
+          "behavior": "the supersession memo's content fingerprint distinguishes two transcripts that share length and final 256 characters but differ earlier in the tail (external code review, openai MEDIUM)",
+          "disposition": "tested",
+          "evidence": "resolver-parts.supersession-fingerprint.test.ts::'a memoized result for one transcript is NOT served for a different transcript that shares length and final 256 characters...' PASSED"
+        },
+        {
+          "behavior": "supersedeMissionContext performs true compare-and-set: the write is skipped when the store's current association no longer matches what the caller's decision was based on (external code review openai MEDIUM + doubt-reviewer HIGH)",
+          "disposition": "tested",
+          "evidence": "association.test.ts::'SKIPS the write when the store's current value no longer matches expectedPrevious' PASSED"
+        },
+        {
+          "behavior": "persistMissionAssociation does not regress the store when a concurrent poll already superseded past the resolve-time snapshot (the lost-update/TOCTOU race, doubt-reviewer HIGH)",
+          "disposition": "tested",
+          "evidence": "association-write.test.ts::'does NOT regress the store when a concurrent poll already superseded past the snapshot' PASSED"
+        },
+        {
+          "behavior": "the timestamp's full local date/time is exposed as a title tooltip on the relative-time element, not just the relative text (external code review, openai LOW)",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx::'carries the full local date/time as a title tooltip on the relative-time element' PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 23,
+        "tested": 22,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 3,
+      "exit_code": 0,
+      "justification": "The four reported defects (feed staleness past the first delivery, missing timestamps, generic fallback banner text, wrong scroll direction) are all rendered-DOM/real-browser behaviors; ran the existing real-Chromium Mission activity feed E2E spec (client/e2e/flows/mission-feed-content.spec.ts) via the project's isolated-stack harness against the real server+client stack to confirm no regression in the feed-rendering chain. 3/3 tests passed. The four specific fixes are additionally covered by direct unit/component tests (association.test.ts, association-write.test.ts, resolver-parts.supersession-fingerprint.test.ts, MissionActivityFeed.test.tsx, missionActivityFeed.timestampAndBanner.test.ts) exercising jsdom-observable behavior precisely."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-30-triage-file-viewer-followups",
+    "commit": "5c760bdb8d15b846f48899576d1219f284047bfb",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

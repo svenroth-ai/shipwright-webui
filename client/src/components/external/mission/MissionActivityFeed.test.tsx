@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { MissionActivityFeed } from "./MissionActivityFeed";
@@ -216,5 +216,77 @@ describe("MissionActivityFeed", () => {
       // "without" render's markup — nothing else shifted.
       expect(withHtml.replace(explanationNode, "")).toBe(withoutHtml);
     });
+  });
+
+  // iterate-2026-08-31-mission-feed-gaps.
+  describe("card.timestamp", () => {
+    it("shows a relative time next to the kind label when the card carries one", () => {
+      render(<MissionActivityFeed feed={{
+        outcome: "In progress",
+        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [], timestamp: new Date(Date.now() - 5 * 60_000).toISOString() }],
+      }} commitArtifact={null} task={TASK} />);
+      expect(screen.getByText("5m ago")).toBeInTheDocument();
+    });
+
+    // External code review (openai) LOW finding, iterate-2026-08-31-mission-feed-gaps:
+    // the relative-time test above would still pass with FeedTime's `title`
+    // tooltip removed entirely — this pins the full-date tooltip itself, the
+    // behavior a reader actually depends on to see the exact timestamp.
+    it("carries the full local date/time as a title tooltip on the relative-time element", () => {
+      const at = "2026-08-31T09:15:00.000Z";
+      render(<MissionActivityFeed feed={{
+        outcome: "In progress",
+        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [], timestamp: at }],
+      }} commitArtifact={null} task={TASK} />);
+      const el = document.querySelector(".mc-feed-time");
+      expect(el).not.toBeNull();
+      expect(el?.getAttribute("title")).toBe(new Date(at).toLocaleString());
+    });
+
+    it("shows no time text at all when the card carries none (older transcripts)", () => {
+      const { container } = render(<MissionActivityFeed feed={{
+        outcome: "In progress",
+        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [] }],
+      }} commitArtifact={null} task={TASK} />);
+      expect(container.querySelector(".mc-feed-time")).toBeNull();
+    });
+
+    // external code review, openai MEDIUM: a `system` card skips the kind
+    // label + pill entirely, and that gate used to hide its timestamp too —
+    // leaving issue #2 unfixed for compaction-marker cards specifically.
+    it("still shows a relative time for a system card, which has no kind label", () => {
+      render(<MissionActivityFeed feed={{
+        outcome: "In progress",
+        cards: [{ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: new Date(Date.now() - 2 * 60_000).toISOString() }],
+      }} commitArtifact={null} task={TASK} />);
+      expect(screen.getByText("2m ago")).toBeInTheDocument();
+    });
+  });
+
+  // iterate-2026-08-31-mission-feed-gaps: switching to the Mission tab must
+  // open on the LATEST activity, not the earliest — this container had no
+  // scroll management at all before this fix. `scrollHeight` must be
+  // stubbed BEFORE mount (via the prototype, not the instance) so the real
+  // mount-time effect reads a non-zero value — jsdom does no layout, so an
+  // unstubbed `scrollHeight` is always 0 and a no-op `scrollTop = 0` would
+  // pass unconditionally, exactly the vacuous-test trap to avoid here.
+  it("scrolls to the bottom on mount instead of defaulting to the top", async () => {
+    const restore = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollHeight");
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", { configurable: true, value: 5_000 });
+    try {
+      const manyCards: ActivityFeed = {
+        outcome: "In progress",
+        cards: Array.from({ length: 50 }, (_, index) => ({
+          kind: "investigate" as const,
+          text: `Recorded activity ${index + 1}`,
+          commands: [],
+        })),
+      };
+      render(<MissionActivityFeed feed={manyCards} commitArtifact={null} task={TASK} />);
+      const timeline = screen.getByTestId("mission-activity-feed");
+      await waitFor(() => expect(timeline.scrollTop).toBe(5_000));
+    } finally {
+      if (restore) Object.defineProperty(HTMLElement.prototype, "scrollHeight", restore);
+    }
   });
 });

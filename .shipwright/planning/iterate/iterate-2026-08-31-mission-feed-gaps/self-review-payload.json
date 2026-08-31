@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Implements exactly the 4 reported gaps (stale association supersession, card timestamps, banner recognition as its own goal card, auto-scroll-to-bottom); no extra features."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "New association/timestamp fields are optional and null-safe throughout (optional chaining, no fabricated 'now' timestamps); no new API routes, DB calls, or unguarded boundaries added."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input reaches SQL/HTML; transcript content is only read and pattern-matched (already-covered boundary), never executed; no secrets or new auth-gated surfaces."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New/updated tests assert on outcomes (scenario/runId, card.timestamp, card.text, real scrollTop via a stubbed scrollHeight) with both happy and edge cases per fix (same-run vs. different-run supersession, banner present/mid-sentence/absent, timestamp present/coalesced/absent)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "The new supersession memo is content-fingerprinted and capped (512 entries, clear-on-overflow) so it cannot grow unbounded, and it re-uses the existing PR #309 lazy-thunk discipline rather than re-scanning every poll."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "resolver.ts was already over the 300-line convention pre-existing (327 lines, unbaselined) before this run. Rather than leave that debt unresolved, the ITERATE-scenario body (the whole `resolveMissionContext` continuation once scenario=iterate) was split into a new resolver-iterate.ts (248 lines), and the throttle-wiring block into resolver-parts.ts (236 lines) — a genuine cohesive split along the file's own existing phase boundary (scenario detection + non-iterate early-return vs. the iterate-scenario body), not a per-handler slice or line-count game. resolver.ts is now 111 lines; all three files are under 300 and clean on typecheck/lint/tests (543/543 mission-context tests pass)."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No touches_io_boundary risk flag; the only serialized format touched is the JSONL transcript, read-only, via the already-covered run-id-recovery.ts parsing path — no new producer/consumer pair introduced."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reported 'no findings' over the full changed-file set (server + client)."
+    }
+  ]
+}

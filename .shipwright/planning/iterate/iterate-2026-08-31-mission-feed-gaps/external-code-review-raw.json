@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug  \n  Severity: medium  \n  File: server/src/core/mission-context/resolver-parts.ts:130  \n  Finding: The \u201ccontent-fingerprinted\u201d supersession memo is not actually a content fingerprint: it uses only transcript length and the final 256 characters. Distinct bounded transcript snapshots can have the same length and suffix while containing a different later corroborated `Run-ID:` footer earlier in the tail. In that case `buildRecoveryThunk` replays a previously recovered run without re-scanning, so the Mission context can remain on the wrong run and fail the stale-association recovery behavior.  \n  Suggestion: Use a collision-resistant fingerprint of the complete transcript snapshot (for example a hash), or include a reliable transcript revision/offset supplied by the reader. Do not reuse a recovery result based only on length plus a short suffix.\n\n- Category: bug  \n  Severity: medium  \n  File: server/src/core/mission-context/association.ts:99  \n  Finding: `supersedeMissionContext` overwrites whichever association is currently stored, without checking that it is still the stale association from which the resolver made its decision. A concurrent request can update the task association after resolution (for example, from a newer live pointer), and this delayed supersession can then overwrite that newer association with an older transcript-derived result.  \n  Suggestion: Pass the expected previous association into `supersedeMissionContext` and compare its run ID and `observedAt` before patching. If it no longer matches, skip the write and let the next resolve operate on the current association.\n\n- Category: test  \n  Severity: low  \n  File: client/src/components/external/mission/MissionActivityFeed.test.tsx:220  \n  Finding: The timestamp UI tests validate relative-time text and absence, but do not validate the required full-date tooltip. Removing the `title={new Date(at).toLocaleString()}` behavior from `FeedTime` would still leave all newly added client timestamp tests passing.  \n  Suggestion: Assert that a timestamped card\u2019s `.mc-feed-time` element has a non-empty `title` representing the event timestamp, preferably with a deterministic locale/time-zone setup.\n\nOverall assessment: ship-with-fixes. The four requested behaviors are substantially implemented and covered, but the supersession cache can return stale run identity for distinct transcript content, and the association update needs a compare-before-write guard to avoid clobbering concurrent updates.  \nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": null,
+      "via": "openrouter",
+      "status": "degraded",
+      "reason": "provider returned an empty reply"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "unavailable"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "degraded"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
+  }
+}

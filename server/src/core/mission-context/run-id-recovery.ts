@@ -153,6 +153,31 @@ export function findRunIdFooter(transcript: string): string | null {
   return last;
 }
 
+/** The `YYYY-MM-DD` embedded in a canonical `iterate-<date>-<slug>` run id, or null. */
+function runIdDate(runId: string): string | null {
+  const m = /^iterate-(\d{4}-\d{2}-\d{2})-/.exec(runId);
+  return m ? m[1] : null;
+}
+
+/**
+ * True only when `candidate` is PROVABLY newer than `current` by its embedded
+ * date — a same-day or unparseable id is NOT proof either way, and the caller
+ * (scenario.ts rule 2b) must fail toward the server-observed association
+ * rather than an ambiguous comparison (external code review, openai MEDIUM).
+ * This is what closes the KNOWN LIMITATION disclosed above `isUserTypeLine`:
+ * an assistant turn that merely NARRATES an older run's footer in prose can
+ * still survive `stripUserTypeLines` and be picked as "last" — previously
+ * that could only promote a session with NO association at all (rule 5, low
+ * stakes), but without this check it could DOWNGRADE a correct,
+ * server-observed association back to an older run.
+ */
+export function isProvablyNewerRunId(candidate: string, current: string): boolean {
+  const candidateDate = runIdDate(candidate);
+  const currentDate = runIdDate(current);
+  if (!candidateDate || !currentDate) return false;
+  return candidateDate > currentDate;
+}
+
 /**
  * Does THIS project's own record set know `runId`?
  *
@@ -210,11 +235,14 @@ export function _clearRecoveryMemo(): void {
 /**
  * The recovered run id for this session, or null.
  *
- * Called ONLY from rule 5 of the ordered scenario table (scenario.ts), i.e. only
- * once rules 1-4 — custom-actions, pointer, association, pipeline, campaign —
- * have all missed. Every caller that reaches it therefore RESOLVES on the
- * answer, and the route persists that answer, so the scan is paid once per task
- * rather than once per poll.
+ * Called from rule 5 of the ordered scenario table (scenario.ts) once rules
+ * 1-4 — custom-actions, pointer, association, pipeline, campaign — have all
+ * missed, AND from rule 2b to check whether a stale association has been
+ * superseded (iterate-2026-08-31-mission-feed-gaps). Rule 5's caller RESOLVES
+ * on the answer and the route persists it, so that path pays the scan once
+ * per task. Rule 2b's use is separately throttled by transcript content in
+ * resolver-parts.ts (`buildRecoveryThunk`), so it likewise does not re-pay the
+ * scan on every unchanged poll.
  *
  * It was not always so: until iterate-2026-07-21-mission-recovery-memo-perf the
  * resolver computed this BEFORE the table, so a campaign- or pipeline-resolved

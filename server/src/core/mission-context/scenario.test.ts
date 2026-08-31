@@ -229,12 +229,6 @@ describe("association fallback after the pointer is pruned", () => {
 describe("transcript-recovered run id — precedence", () => {
   const transcriptRunId = "iterate-2026-07-20-recovered";
   const recoverTranscriptRunId = () => transcriptRunId;
-  const association = {
-    kind: "iterate" as const,
-    runId: "iterate-2026-07-18-demo",
-    observedAt: "2026-07-18T10:00:00.000Z",
-    source: "iterate_active_pointer" as const,
-  };
 
   it("resolves an ITERATE when nothing else can identify the run", () => {
     const d = detectScenario(inputs({ pointer: { status: "absent" }, recoverTranscriptRunId }));
@@ -247,12 +241,9 @@ describe("transcript-recovered run id — precedence", () => {
     expect(d.runId).toBe("iterate-2026-07-18-demo");
   });
 
-  it("loses to the stored association (a server-observed fact outranks quoted text)", () => {
-    const d = detectScenario(
-      inputs({ pointer: { status: "absent" }, association, recoverTranscriptRunId }),
-    );
-    expect(d.runId).toBe("iterate-2026-07-18-demo");
-  });
+  // Supersession behavior — a different, corroborated recovered run id now
+  // OVERRIDES a stale association instead of always losing to it — moved to
+  // its own file: scenario.supersession.test.ts (iterate-2026-08-31-mission-feed-gaps).
 
   it("loses to PIPELINE — unlike the association, which outranks it", () => {
     const d = detectScenario(

@@ -1,7 +1,7 @@
 import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
 import { clean, commandDetail, commandLabel, explanationExcerpt, isCompactionMarker, sentenceFromLabel } from "./missionActivityFeedText";
-import { GENERIC_TEXT, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { containsIterateBanner, GENERIC_TEXT, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
 import { reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
 import type { ActivityCard, ActivityFeed, ActivityKind } from "./missionActivityFeedTypes";
@@ -93,21 +93,30 @@ export function deriveActivityFeed(
   // green burst (a handful of `test` turns) or a single clarifying question,
   // not for an open-ended run of unrelated intervening turns.
   let pendingNarration: { prose: string; proseRest: string; staleness: number } | null = null;
-  const add = (kind: ActivityKind, text: string, command: string, artifact?: ArtifactKind, coalesce = true): ActivityCard => {
+  const add = (
+    kind: ActivityKind,
+    text: string,
+    command: string,
+    artifact?: ArtifactKind,
+    coalesce = true,
+    timestamp?: string,
+  ): ActivityCard => {
     const previous = cards[cards.length - 1];
     if (coalesce && previous?.kind === kind && previous.text === text && previous.artifact === artifact) {
       if (!previous.commands.includes(command)) previous.commands.push(command);
       cardEventCounts.set(previous, (cardEventCounts.get(previous) ?? 1) + 1);
       return previous;
     }
-    const card: ActivityCard = { kind, text, commands: [command], artifact };
+    // `timestamp` is set ONLY at creation — a card reused via coalescing above
+    // keeps marking when the activity STARTED, not each event folded into it.
+    const card: ActivityCard = { kind, text, commands: [command], artifact, timestamp };
     cards.push(card);
     cardEventCounts.set(card, 1);
     return card;
   };
   for (const event of events) {
     if (isCompactionMarker(event)) {
-      cards.push({ kind: "system", text: "Context automatically compacted.", commands: [] });
+      cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
     }
     if (event.kind === "user") {
       unresolvedTest = resolveToolResults(event, context, {
@@ -139,7 +148,26 @@ export function deriveActivityFeed(
       // A pure-narration turn — the common real-world shape. Its words are
       // not lost: they wait for the next tool-bearing turn (below), which is
       // where a human reader actually expects them to show up.
-      if (ownProse) pendingNarration = { prose: ownProse, proseRest: ownProseRest, staleness: 0 };
+      //
+      // The one exception: the /shipwright-iterate intro banner is exactly
+      // this shape (SKILL.md prints it with no tool call), so left to the
+      // rule above it never surfaced as its own moment — it just became
+      // whatever generic sentence the NEXT tool-bearing turn's bucket picked
+      // (iterate-2026-08-31-mission-feed-gaps). Give it its own card instead
+      // of relying on the narration-carry heuristic to make it visible.
+      const isBannerTurn = containsIterateBanner(assistantLines);
+      if (isBannerTurn) {
+        cards.push({
+          kind: "goal",
+          text: "Started a /shipwright-iterate run.",
+          commands: [],
+          timestamp: event.timestamp,
+        });
+      }
+      // The banner turn's own "prose" is its `====` border line, not real
+      // explanatory narration — it must not become the next tool-bearing
+      // turn's headline (the goal card above already carries the meaning).
+      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseRest: ownProseRest, staleness: 0 };
       continue;
     }
     // This turn called tools. Prefer ITS OWN text when it wrote any (the
@@ -189,12 +217,13 @@ export function deriveActivityFeed(
           text: "This test command needs attention: it is awaiting a result.",
           commands: [label],
           artifact: artifact(context, "tests") ? "tests" : undefined,
+          timestamp: event.timestamp,
         };
         cards.push(card);
         testCards.push(card);
         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
       } else if (bucket === "user-input") {
-        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false);
+        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp);
         // Always set `card.question` — even the `fallback` shape carries a
         // real (if generic) placeholder question. Gating this on
         // `!summary.fallback` (code review catch) silently dropped the
@@ -205,10 +234,10 @@ export function deriveActivityFeed(
         card.question = { text: summary.question, options: summary.options, resolved: false };
         pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
       } else {
-        const card = bucket === "review" ? add("review", prose || GENERIC_TEXT.review, label, artifact(context, "review") ? "review" : undefined)
-          : bucket === "spec" ? add("spec", prose || GENERIC_TEXT.spec, label, artifact(context, "spec") ? "spec" : undefined)
-          : bucket === "investigate" ? add("investigate", prose || GENERIC_TEXT.investigate, label)
-          : add("implement", prose || GENERIC_TEXT.implement, label);
+        const card = bucket === "review" ? add("review", prose || GENERIC_TEXT.review, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp)
+          : bucket === "spec" ? add("spec", prose || GENERIC_TEXT.spec, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp)
+          : bucket === "investigate" ? add("investigate", prose || GENERIC_TEXT.investigate, label, undefined, true, event.timestamp)
+          : add("implement", prose || GENERIC_TEXT.implement, label, undefined, true, event.timestamp);
         proseConsumedThisTurn = true;
         if (!cardsTouchedThisTurn.has(card)) {
           cardsTouchedThisTurn.add(card);
