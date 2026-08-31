@@ -23,5 +23,27 @@
       "fixtures",
       "__fixtures__"
     ]
+  },
+  "last_audit": {
+    "ran_at": "2026-08-31T05:32:55.449138+00:00",
+    "verdict": "pass",
+    "scope": "B",
+    "checks": {
+      "total": 7,
+      "pass": 3,
+      "fail": 0,
+      "skip": 4
+    }
+  },
+  "last_full_audit": {
+    "ran_at": "2026-08-31T05:23:06.686662+00:00",
+    "verdict": "pass",
+    "scope": "full",
+    "checks": {
+      "total": 53,
+      "pass": 41,
+      "fail": 0,
+      "skip": 12
+    }
   }
 }

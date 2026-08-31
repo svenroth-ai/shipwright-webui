@@ -1,0 +1,67 @@
+{
+  "last_updated": "2026-08-31",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-31-compliance-bloat-event-reconcile",
+    "date": "2026-08-31",
+    "unit": "PASS \u2014 client 3578 passed (385 files); server 3735 passed / 3 skipped (324 files); full re-run at F0 for this compliance-data-only change (no test files modified)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change; pure shipwright_bloat_baseline.json / shipwright_events.jsonl reconciliation",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "n/a \u2014 no UI/route change; nothing to exercise end-to-end",
+    "design_fidelity": "n/a \u2014 no UI change",
+    "smoke": "n/a \u2014 no server-wide behaviour change; no route/handler touched",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "B7: commit cf00a9c26e247985a1f27893fb9b1d176ba76550 (PR #397) has a matching work_completed event",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B: B7 status pass (\"6 commit(s) since v0.25.0 ... 3 matched events\")"
+        },
+        {
+          "behavior": "H1: the 6 newly-oversize tracked files are listed in shipwright_bloat_baseline.json",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only H: H1 status pass (\"all 100 oversize file(s) are listed in baseline\")"
+        },
+        {
+          "behavior": "H2: no baseline entry's recorded current exceeds the file's real on-disk line count",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only H: H2 status pass (\"baseline current matches on-disk LOC for all entries\")"
+        },
+        {
+          "behavior": "H6: every remaining baseline entry resolves to a file that exists on disk",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only H: H6 status pass (\"all baseline entries resolve on disk\")"
+        },
+        {
+          "behavior": "No other compliance check regresses as a side effect of the baseline/event-log edits",
+          "disposition": "tested",
+          "evidence": "run_audit.py (full, all groups): 53 findings, 0 fail"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Data-only reconciliation of shipwright_bloat_baseline.json / shipwright_events.jsonl; no client/server route, component, or handler touched, so there is no web/API surface to exercise end-to-end. Verification is the audit tool itself (run_audit.py), which re-reads these exact files and reports pass/fail deterministically \u2014 see test_completeness above."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-31-compliance-bloat-event-reconcile",
+    "commit": "329d2d37c494cdb2546ed32ef0e417e9f34a7b85",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
