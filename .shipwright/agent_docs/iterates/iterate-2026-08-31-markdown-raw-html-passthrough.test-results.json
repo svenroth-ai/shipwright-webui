@@ -1,0 +1,222 @@
+{
+  "last_updated": "2026-08-31",
+  "iterate_latest": {
+    "run_id": "iterate-2026-08-31-markdown-raw-html-passthrough",
+    "date": "2026-08-31",
+    "unit": "PASS \u2014 client 3613 passed (389 files); server 3763 passed / 3 skipped (329 files)",
+    "integration": "n/a \u2014 self-contained TipTap editor extension change, no cross-component/service-boundary machinery touched (no cross_component risk flag)",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 7/7, real-Chromium isolated-stack run of client/e2e/flows/markdown-editor.spec.ts (Playwright, chromium project)",
+    "design_fidelity": "n/a \u2014 the new raw-HTML chip reuses MarkdownEditorBanners' existing muted visual language (no new tokens); no visual baseline exists for this surface",
+    "smoke": "n/a \u2014 no server-wide behaviour change; change is scoped to the client markdown editor lib",
+    "degraded": [
+      "Inter-block whitespace (blank-line count between a raw HTML block and adjacent prose) can still normalise on save \u2014 a pre-existing, editor-wide StarterKit behavior, now also disclosed for this node; the block's own bytes still round-trip exactly (AC-1 is scoped to the block, not the whole file).",
+      "A top-level block tag not followed by a blank line (CommonMark html_block rules 6/7) absorbs following prose into the same opaque, non-editable chip \u2014 content is preserved byte-for-byte but that prose's editability changes; disclosed trade-off, not a regression.",
+      "encodePayload's per-byte String.fromCharCode loop runs on every parse/renderHTML with no memoization; bounded by SmartViewer's existing file-size ceiling so not unbounded, but not load-tested against a pathological single block (doubt-review LOW finding, accepted-not-fixed)."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Top-level raw HTML block (CTA link, style attr) round-trips byte-for-byte",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::preserves a styled CTA link block... PASSED"
+        },
+        {
+          "behavior": "Block with no attributes round-trips byte-for-byte",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::round-trips a block with no attributes at all PASSED"
+        },
+        {
+          "behavior": "Multi-line block round-trips byte-for-byte",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::round-trips a multi-line raw HTML block PASSED"
+        },
+        {
+          "behavior": "Block sandwiched between prose paragraphs preserves the block AND the prose",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::round-trips a raw HTML block that sits between two prose paragraphs PASSED"
+        },
+        {
+          "behavior": "Round-trip is idempotent for a doc containing a raw HTML block",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::is idempotent for a document containing a raw HTML block PASSED"
+        },
+        {
+          "behavior": "Raw HTML renders as inert text, never executes (<script> payload)",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::renders the raw HTML as inert TEXT... PASSED"
+        },
+        {
+          "behavior": "Nested (blockquote/list) raw HTML \u2014 out of scope, does not crash, unchanged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::still round-trips a raw HTML block nested... PASSED"
+        },
+        {
+          "behavior": "Block-level javascript: anchor \u2014 deliberate write-verbatim asymmetry",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::writes a block-level javascript: scheme link back verbatim PASSED"
+        },
+        {
+          "behavior": "Pre-existing inline <a href> fix unaffected (4 cases)",
+          "disposition": "tested",
+          "evidence": "markdownTiptap.test.ts 'raw inline HTML links survive the round-trip' suite, unmodified, 4/4 PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: inline anchor with non-href attr still flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::flags an inline anchor carrying a non-href attribute... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: top-level HTML comment no longer flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::does NOT flag a top-level (block) HTML comment... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: inline HTML comment still flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::still flags an INLINE HTML comment... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: top-level CTA-link block no longer flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::does NOT flag a top-level raw HTML block... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: nested raw HTML still flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::still flags a raw HTML block NESTED... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: href-only safe-protocol inline anchor no longer flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::does NOT flag an inline anchor whose sole attribute is href... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: inline anchor with target/rel still flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::still flags an inline anchor with target/rel/class... PASSED"
+        },
+        {
+          "behavior": "detectLossyConstructs: inline <span> still flagged",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::still flags an inline <span>... PASSED"
+        },
+        {
+          "behavior": "UI: raw-HTML block renders as a visible, labeled, non-editable chip",
+          "disposition": "tested",
+          "evidence": "markdown-editor.spec.ts::CTA block file... E2E (real Chromium) PASSED"
+        },
+        {
+          "behavior": "UI: no lossy-warning banner shown for a doc whose only raw HTML is the CTA block",
+          "disposition": "tested",
+          "evidence": "same E2E, md-editor-warn asserted hidden, PASSED"
+        },
+        {
+          "behavior": "UI: unedited raw-HTML doc reports 'No changes' in the diff, Save disabled",
+          "disposition": "tested",
+          "evidence": "same E2E, PASSED"
+        },
+        {
+          "behavior": "UI: an edit elsewhere in the doc saves the raw-HTML block byte-identical alongside it",
+          "disposition": "tested",
+          "evidence": "same E2E, PASSED"
+        },
+        {
+          "behavior": "Regression: existing 'blog file' inline-link E2E stays correct under the new (more accurate) warning classification",
+          "disposition": "tested",
+          "evidence": "markdown-editor.spec.ts::blog file... \u2014 assertion updated to match the fixed false-positive, PASSED"
+        },
+        {
+          "behavior": "Full existing client suite has no regressions",
+          "disposition": "tested",
+          "evidence": "npx vitest run \u2014 389 files / 3613 tests, all PASSED (final re-run)"
+        },
+        {
+          "behavior": "Client typechecks",
+          "disposition": "tested",
+          "evidence": "npx tsc --noEmit \u2014 0 errors (final re-run)"
+        },
+        {
+          "behavior": "Client lints clean (no new warnings)",
+          "disposition": "tested",
+          "evidence": "npx oxlint . \u2014 0 new findings (final re-run)"
+        },
+        {
+          "behavior": "The chip cannot be wrapped in a blockquote or bullet list via the toolbar at all \u2014 the schema itself refuses the wrap",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::cannot be wrapped in a blockquote or bullet list via the toolbar... PASSED (doubt-reviewer HIGH finding, fixed structurally via RawHtmlBlockDocument)"
+        },
+        {
+          "behavior": "serialize() applies its delimiter once PER LINE against the real prosemirror-markdown MarkdownSerializerState",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::serialize() applies its delimiter once PER LINE... PASSED"
+        },
+        {
+          "behavior": "Prose immediately following a raw HTML block with no blank line is absorbed into the same opaque chip, content preserved byte-for-byte",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::absorbs immediately-following prose into the SAME opaque chip... PASSED (code-reviewer MEDIUM finding)"
+        },
+        {
+          "behavior": "A non-absorbing top-level construct (HTML comment, rule 2) adjacent to prose with no blank line inserts a visible blank line the user didn't type \u2014 the block's own bytes still survive",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::normalises inter-block spacing... PASSED (doubt-reviewer MEDIUM finding, rebutted + pinned)"
+        },
+        {
+          "behavior": "E2E suite (real Chromium, route-mocked) has no regressions",
+          "disposition": "tested",
+          "evidence": "node e2e/isolated-stack.mjs --project=chromium --grep SmartViewer.markdown.editor \u2014 7/7 PASSED (final re-run)",
+          "category": "integration"
+        },
+        {
+          "behavior": "A nested marker-shaped element with real content is never swallowed as a bogus decoded marker",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::does NOT swallow real content sitting inside a NESTED... PASSED (doubt-reviewer MEDIUM finding \u2014 marker provenance)"
+        },
+        {
+          "behavior": "A top-level marker-shaped element whose payload lacks MARKER_MAGIC (mojibake/empty) is never treated as our own marker",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.test.ts::does NOT produce mojibake or a silently-empty chip... PASSED (doubt-reviewer MEDIUM finding, via ProseMirror's own DOMParser directly)"
+        },
+        {
+          "behavior": "The warn-banner detector classifies the same text the editor actually renders (env.core, not the raw file incl. frontmatter)",
+          "disposition": "tested",
+          "evidence": "MarkdownEditorModal.test.tsx (existing suite, unaffected) + one-line fix re-run PASSED"
+        },
+        {
+          "behavior": "Inline anchor: href-only, single-quoted/unquoted/relative/fragment/protocol-relative \u2014 not flagged (matches Link mark's own isAllowedUri)",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::does NOT flag an href-only inline anchor using single quotes... PASSED (external review finding)"
+        },
+        {
+          "behavior": "Inline anchor: dangerous scheme (javascript:/data:) \u2014 still flagged even href-only",
+          "disposition": "tested",
+          "evidence": "markdownRawHtmlBlock.detect.test.ts::still flags an href-only inline anchor with a dangerous scheme... PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 33,
+        "tested": 33,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 7,
+      "exit_code": 0,
+      "justification": "Whether raw HTML round-trips byte-for-byte through the real TipTap load->serialize->save path, whether the chip renders visibly and non-editably, and whether the lossy-warning banner correctly stays hidden are DOM/editor-runtime behaviors invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/markdown-editor.spec.ts). 7/7 tests passed (full existing suite, including the CTA-block case added for this iterate)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-08-31-markdown-raw-html-passthrough",
+    "commit": "1e66182d43fb1ece879070582ce24f735d111f4c",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

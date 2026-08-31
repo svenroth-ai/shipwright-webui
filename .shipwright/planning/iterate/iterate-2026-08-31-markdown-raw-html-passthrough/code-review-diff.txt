@@ -1,0 +1,1316 @@
+diff --git a/.shipwright/planning/01-adopted/spec.md b/.shipwright/planning/01-adopted/spec.md
+index 319273de..edb0ecfb 100644
+--- a/.shipwright/planning/01-adopted/spec.md
++++ b/.shipwright/planning/01-adopted/spec.md
+@@ -30,7 +30,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
+ | ID | Area | Name | Priority | Description | Origin |
+ |----|------|------|----------|-------------|--------|
+ | FR-01.02 | TSK | Task detail — 3-pane viewer | Must | The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode. | enrichment + iterate-2026-08-02-mobile-work-mode |
+-| FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. It warns before saving files with tricky content (tables, raw HTML, footnotes).<br>**Updates:** Gained a formatting toolbar. | iterate-2026-06-03, toolbar iterate-2026-06-04 |
++| FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. Block-level raw HTML (e.g. a styled call-to-action) is preserved byte-for-byte; it still warns before saving files with other tricky content (tables, inline HTML it can't represent losslessly, footnotes).<br>**Updates:** Gained a formatting toolbar. Raw HTML BLOCKS now round-trip byte-for-byte instead of being silently rewritten. | iterate-2026-06-03, toolbar iterate-2026-06-04, raw-html-passthrough iterate-2026-08-31 |
+ | FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding — though in real sessions the discarding was only partly fixed: a card's headline AND `explanation` then gained the ability to source from the immediately PRECEDING pure-narration turn, since real autonomous sessions almost never combine narration and a tool call in one JSONL event. | iterate-2026-07-31-review-record-tolerant-reader + iterate-2026-08-02-mobile-work-mode + iterate-2026-08-25-mission-feed-progress-narration + iterate-2026-08-27-mission-feed-narration-scroll |
+ 
+ ### Area TRM — Embedded Terminal
+@@ -708,9 +708,20 @@ write surface; gated, path-guarded, and concurrency-safe.
+   pre-populated from the file's CURRENT on-disk content; StarterKit prose
+   (heading/bold/italic/lists/code/blockquote/link/HR) round-trips
+   (`markdownToEditor`∘`editorToMarkdown` is a stable fixed point).
+-- (E) Given the source has YAML frontmatter / raw HTML / footnotes / GFM tables /
+-  task-lists, when the editor opens, then a non-blocking warn banner
+-  (`[data-testid="md-editor-warn"]`) is shown; given none, no banner.
++- (E) Given the source has YAML frontmatter / inline raw HTML the schema can't
++  fully represent / footnotes / GFM tables / task-lists, when the editor opens,
++  then a non-blocking warn banner (`[data-testid="md-editor-warn"]`) is shown;
++  given none, no banner.
++- (E) **(iterate-2026-08-31-markdown-raw-html-passthrough)** Given the source
++  contains a block-level raw-HTML construct (a markdown line opening a block
++  tag, e.g. a styled CTA link), when the editor opens, then it renders as a
++  distinct, non-editable region (`[data-testid="raw-html-block-chip"]`)
++  showing the raw markup as inert text; on save the block round-trips
++  byte-for-byte (attributes the schema doesn't model — `style`, `class`,
++  `id`, `data-*` — survive), and no lossy-HTML warning fires for it. A raw
++  HTML construct NESTED inside a blockquote/list, or any inline (mid-line)
++  raw HTML the schema can't losslessly represent, remains out of scope and
++  keeps the warn-banner behavior above.
+ - (E) Given edits, when the user clicks **Review changes**, then a unified
+   line-diff (`[data-testid="markdown-diff"]`) of original-vs-serialized markdown
+   is shown (rendered as escaped plain text); Save is reachable only from there
+diff --git a/client/e2e/flows/markdown-editor.fixtures.ts b/client/e2e/flows/markdown-editor.fixtures.ts
+index b79b42e1..72d42fa1 100644
+--- a/client/e2e/flows/markdown-editor.fixtures.ts
++++ b/client/e2e/flows/markdown-editor.fixtures.ts
+@@ -98,6 +98,44 @@ export async function mockFrontmatterFile(page: Page): Promise<{ putBody: string
+   return captured;
+ }
+ 
++// The reported bug's exact scenario: a blog article whose CTA link is raw
++// HTML with inline styling, meant to render as styled HTML in a third-party
++// system (iterate-2026-08-31-markdown-raw-html-passthrough).
++export const CTA_BLOCK =
++  '<p><strong><a href="https://example.com/shipwright" style="color: #4A7C59; font-size: 1.15em;">→ Explore Shipwright</a></strong></p>';
++export const CTA_DOC = [
++  "---",
++  'title: "Five Roles of AI-Native Teams"',
++  'slug: "five-roles-ai-native-teams"',
++  "---",
++  "",
++  "Great content about AI-native teams.",
++  "",
++  CTA_BLOCK,
++  "",
++].join(NL);
++
++export async function mockCtaBlockFile(page: Page): Promise<{ putBody: string | null }> {
++  const captured: { putBody: string | null } = { putBody: null };
++  await page.route("**/api/external/projects/**/file**", async (route) => {
++    if (route.request().method() === "PUT") {
++      captured.putBody = route.request().postData();
++      return route.fulfill({
++        status: 200,
++        contentType: "application/json",
++        body: JSON.stringify({ written: true, fingerprint: "sha256:cta2", size: CTA_DOC.length }),
++      });
++    }
++    return route.fulfill({
++      status: 200,
++      contentType: "text/markdown; charset=utf-8",
++      headers: { ETag: '"sha256:cta1"' },
++      body: CTA_DOC,
++    });
++  });
++  return captured;
++}
++
+ export async function mockBlogFile(page: Page): Promise<{ putBody: string | null }> {
+   const captured: { putBody: string | null } = { putBody: null };
+   await page.route("**/api/external/projects/**/file**", async (route) => {
+diff --git a/client/e2e/flows/markdown-editor.spec.ts b/client/e2e/flows/markdown-editor.spec.ts
+index e8812ee6..f1a7b0c4 100644
+--- a/client/e2e/flows/markdown-editor.spec.ts
++++ b/client/e2e/flows/markdown-editor.spec.ts
+@@ -15,9 +15,11 @@ import { test, expect } from "@playwright/test";
+ 
+ import {
+   NL,
++  CTA_BLOCK,
+   mockApi,
+   mockFrontmatterFile,
+   mockBlogFile,
++  mockCtaBlockFile,
+ } from "./markdown-editor.fixtures";
+ 
+ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
+@@ -191,9 +193,12 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
+     const surface = page.getByTestId("md-editor-surface");
+     await expect(surface).toContainText("Built with Shipwright");
+ 
+-    // Raw HTML present → the lossy-construct banner nudges the user to the diff
+-    // (the link is normalised to markdown, not dropped).
+-    await expect(page.getByTestId("md-editor-warn")).toBeVisible();
++    // No lossy-HTML warning: an href-only inline anchor with a safe protocol
++    // round-trips losslessly to its markdown-link equivalent (verified below),
++    // so it is no longer misclassified as lossy
++    // (iterate-2026-08-31-markdown-raw-html-passthrough tightened the
++    // detector to be attribute-aware instead of "any raw HTML tag present").
++    await expect(page.getByTestId("md-editor-warn")).toBeHidden();
+ 
+     // Merely opening + saving recovers the link (the round-trip differs from the
+     // on-disk HTML, so Save is enabled with no keystroke needed).
+@@ -214,4 +219,53 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
+ 
+     await page.screenshot({ path: testInfo.outputPath("md-editor-htmllink-recovered.png"), fullPage: true });
+   });
++
++  // Regression: iterate-2026-08-31-markdown-raw-html-passthrough. A styled CTA
++  // link authored as a raw HTML BLOCK (for a third-party renderer that honors
++  // inline styling) used to be silently rewritten to a plain markdown link on
++  // save, dropping the `style` attribute with no warning. AC-3/AC-1 (agent).
++  test("CTA block file: a raw HTML block renders as a preserved chip and saves byte-identical", async ({ page }, testInfo) => {
++    const captured = await mockCtaBlockFile(page);
++    await page.goto("/preview?projectId=proj-x&path=20260831/post.md");
++
++    await page.getByTestId("smart-viewer-edit").click();
++    await expect(page.getByTestId("markdown-editor-modal")).toBeVisible();
++
++    // AC-3 — a distinct, non-editable region shows the raw markup is present
++    // and will be preserved, instead of silently vanishing into prose.
++    const chip = page.getByTestId("raw-html-block-chip");
++    await expect(chip).toBeVisible();
++    await expect(chip).toContainText("→ Explore Shipwright");
++    await expect(chip).toContainText("style=");
++
++    // No lossy-HTML warning for a block that is now preserved verbatim.
++    await expect(page.getByTestId("md-editor-warn")).toBeHidden();
++
++    // Review with NO edit — the block round-trips byte-identically, so there
++    // is nothing to save; the diff must report no changes.
++    await page.getByTestId("md-editor-review").click();
++    await expect(page.getByTestId("markdown-diff")).toBeVisible();
++    await expect(page.getByTestId("markdown-diff-summary")).toHaveText("No changes");
++    await expect(page.getByTestId("md-editor-save")).toBeDisabled();
++
++    // A real edit elsewhere in the doc still enables Save, and the CTA block
++    // must survive that save byte-identical (AC-1-agent).
++    await page.getByTestId("md-editor-back").click();
++    const surface = page.getByTestId("md-editor-surface");
++    await surface.click();
++    await page.keyboard.press("ControlOrMeta+Home");
++    await page.keyboard.type("EDITED ");
++
++    await page.getByTestId("md-editor-review").click();
++    await page.getByTestId("md-editor-save").click();
++    await expect(page.getByTestId("markdown-editor-modal")).toBeHidden();
++
++    expect(captured.putBody).not.toBeNull();
++    const saved = captured.putBody as string;
++    expect(saved).toContain(CTA_BLOCK); // byte-identical raw HTML block
++    expect(saved).toContain("EDITED");
++    expect(saved.split(NL).length).toBeGreaterThan(1); // sanity: not collapsed to one line
++
++    await page.screenshot({ path: testInfo.outputPath("md-editor-cta-block-preserved.png"), fullPage: true });
++  });
+ });
+diff --git a/client/package.json b/client/package.json
+index 32b71227..84984304 100644
+--- a/client/package.json
++++ b/client/package.json
+@@ -44,6 +44,7 @@
+     "@xterm/xterm": "6.0.0",
+     "diff": "^5.2.2",
+     "lucide-react": "^0.400.0",
++    "markdown-it": "^14.2.0",
+     "mermaid": "^11.15.0",
+     "react": "^19.0.0",
+     "react-dom": "^19.0.0",
+@@ -66,6 +67,7 @@
+     "@testing-library/react": "^16.0.0",
+     "@testing-library/user-event": "^14.0.0",
+     "@types/diff": "^7.0.2",
++    "@types/markdown-it": "^14.1.2",
+     "@types/node": "^25.6.2",
+     "@types/react": "^19.0.0",
+     "@types/react-dom": "^19.0.0",
+diff --git a/client/src/components/external/SmartViewer/MarkdownEditorModal.tsx b/client/src/components/external/SmartViewer/MarkdownEditorModal.tsx
+index 24998bae..cf9dd798 100644
+--- a/client/src/components/external/SmartViewer/MarkdownEditorModal.tsx
++++ b/client/src/components/external/SmartViewer/MarkdownEditorModal.tsx
+@@ -109,7 +109,11 @@ export function MarkdownEditorModal({
+       const env = splitMarkdownEnvelope(res.text);
+       envelopeRef.current = env;
+       setHasFrontmatter(env.frontmatter.length > 0);
+-      setWarnings(detectLossyConstructs(res.text));
++      // env.core (frontmatter stripped), NOT res.text (the whole file) — the
++      // editor only ever sees env.core (line below), so the warn banner must
++      // classify the SAME text or it can flag HTML-looking frontmatter the
++      // editor never touches (doubt-reviewer LOW finding, iterate-2026-08-31).
++      setWarnings(detectLossyConstructs(env.core));
+       // The editor owns ONLY the prose body; frontmatter / line-endings /
+       // trailing newline live in the envelope and are re-attached on serialize.
+       editor?.commands.setContent(env.core);
+diff --git a/client/src/lib/markdownEnvelope.ts b/client/src/lib/markdownEnvelope.ts
+new file mode 100644
+index 00000000..c66b8fd5
+--- /dev/null
++++ b/client/src/lib/markdownEnvelope.ts
+@@ -0,0 +1,135 @@
++/*
++ * markdownEnvelope.ts — file envelope: keep non-prose structure OUT of the
++ * markdown editor's round-trip (split out of markdownTiptap.ts,
++ * iterate-2026-08-31-markdown-raw-html-passthrough, to stay under the repo's
++ * 300-line file convention; no behavior change).
++ *
++ * The Markdown -> ProseMirror -> Markdown round-trip is lossy: a leading YAML
++ * frontmatter block gets mangled (the closing `---` parses as a setext H2
++ * underline, collapsing every key:value line into one heading), line endings
++ * normalise to LF, and the trailing newline is dropped. So even a one-character
++ * body edit used to surface as a whole-file diff — and a Save would CORRUPT the
++ * frontmatter on disk. The envelope splits the file so the editor owns ONLY the
++ * prose `core`; `frontmatter`, surrounding blank lines, the line-ending style,
++ * and the trailing newline are preserved VERBATIM.
++ *
++ * Line endings are derived via char codes (String.fromCharCode), never "\n" /
++ * "\r" escape literals: such escapes in editor-written source have been written
++ * as real control bytes and corrupted files in this repo before (project memory).
++ */
++
++const LF = String.fromCharCode(10);
++const CR = String.fromCharCode(13);
++
++export interface MarkdownEnvelope {
++  /** Verbatim leading `---...---` fence block (incl. its trailing newline), or "". */
++  frontmatter: string;
++  /** `frontmatter` + any leading blank lines — preserved verbatim, never edited. */
++  prefix: string;
++  /** The prose body the editor owns (surrounding whitespace stripped). */
++  core: string;
++  /** Trailing whitespace / newline run of the original — preserved verbatim. */
++  suffix: string;
++  /** Original line-ending style: CRLF if the file contains any, else LF. */
++  eol: string;
++}
++
++function isWs(code: number): boolean {
++  return code === 32 || code === 9 || code === 10 || code === 13;
++}
++
++/** True if a line (ignoring a trailing CR + trailing spaces/tabs) is exactly `---`. */
++function isFenceLine(line: string): boolean {
++  let end = line.length;
++  if (end > 0 && line.charCodeAt(end - 1) === 13) end -= 1; // strip CR of a CRLF line
++  while (end > 0 && (line.charCodeAt(end - 1) === 32 || line.charCodeAt(end - 1) === 9)) end -= 1;
++  return line.slice(0, end) === "---";
++}
++
++/** Length (chars from index 0) of a leading YAML frontmatter block incl. its
++ *  trailing newline, or 0 if the text does not open with a CLOSED `---` fence.
++ *
++ *  Heuristic (intentionally matching gray-matter / the prior detectLossyConstructs
++ *  regex): first line is exactly `---`, the next `---` line closes it. A document
++ *  that opens with a thematic-break `---` and has another `---` later would be
++ *  read as frontmatter — accepted, since starting a doc with a horizontal rule is
++ *  vanishingly rare and there is no syntactic frontmatter/HR distinction without a
++ *  YAML parse. Either way the block is preserved verbatim, never corrupted. */
++function frontmatterLength(text: string): number {
++  if (!text.startsWith("---")) return 0;
++  const starts: number[] = [];
++  const ends: number[] = [];
++  let pos = 0;
++  for (;;) {
++    let nl = text.indexOf(LF, pos);
++    if (nl === -1) nl = text.length;
++    starts.push(pos);
++    ends.push(nl);
++    if (nl === text.length) break;
++    pos = nl + 1;
++  }
++  if (!isFenceLine(text.slice(starts[0], ends[0]))) return 0;
++  for (let i = 1; i < starts.length; i += 1) {
++    if (isFenceLine(text.slice(starts[i], ends[i]))) {
++      let cut = ends[i];
++      if (cut < text.length && text.charCodeAt(cut) === 10) cut += 1; // include the newline
++      return cut;
++    }
++  }
++  return 0; // unterminated fence -> not frontmatter, leave it in the body
++}
++
++/**
++ * Decompose a markdown file into the prose `core` the editor owns plus the
++ * verbatim `prefix` / `suffix` / `eol` it must NOT touch. See the section
++ * header above for why this exists.
++ */
++export function splitMarkdownEnvelope(text: string): MarkdownEnvelope {
++  const eol = text.indexOf(CR + LF) !== -1 ? CR + LF : LF;
++  const fmLen = frontmatterLength(text);
++  const frontmatter = text.slice(0, fmLen);
++  const rest = text.slice(fmLen);
++
++  // Consume only fully-BLANK leading lines (the separator after frontmatter, or
++  // blank lines at the top of a frontmatter-less file). The first content line —
++  // INCLUDING its own indentation — belongs to `core`, so an indented first line
++  // (e.g. an indented code block) is not silently moved out of the editor.
++  let i = 0;
++  for (;;) {
++    const lineEnd = rest.indexOf(LF, i);
++    if (lineEnd === -1) break; // no newline left → the remainder is content/trailing
++    let blank = true;
++    for (let k = i; k < lineEnd; k += 1) {
++      const c = rest.charCodeAt(k);
++      if (c !== 32 && c !== 9 && c !== 13) {
++        blank = false;
++        break;
++      }
++    }
++    if (!blank) break;
++    i = lineEnd + 1;
++  }
++  const leading = rest.slice(0, i);
++  const afterLeading = rest.slice(i);
++
++  let j = afterLeading.length;
++  while (j > 0 && isWs(afterLeading.charCodeAt(j - 1))) j -= 1;
++  const core = afterLeading.slice(0, j);
++  const suffix = afterLeading.slice(j);
++
++  return { frontmatter, prefix: frontmatter + leading, core, suffix, eol };
++}
++
++/**
++ * Re-assemble a file from its envelope and the editor's freshly serialized
++ * `core`. The serializer emits LF only; the body is re-mapped to the file's
++ * original line ending so a CRLF file is not rewritten line-by-line on save.
++ */
++export function composeMarkdownEnvelope(
++  env: MarkdownEnvelope,
++  serializedCore: string,
++): string {
++  const lfBody = serializedCore.split(CR).join(""); // defensive: drop stray CR
++  const body = env.eol === LF ? lfBody : lfBody.split(LF).join(env.eol);
++  return env.prefix + body + env.suffix;
++}
+diff --git a/client/src/lib/markdownRawHtmlBlock.detect.test.ts b/client/src/lib/markdownRawHtmlBlock.detect.test.ts
+new file mode 100644
+index 00000000..79220aa4
+--- /dev/null
++++ b/client/src/lib/markdownRawHtmlBlock.detect.test.ts
+@@ -0,0 +1,76 @@
++/*
++ * markdownRawHtmlBlock.detect.test.ts — detectLossyConstructs coverage for
++ * raw-HTML / comment classification (iterate-2026-08-31-markdown-raw-html-
++ * passthrough). Split out of markdownRawHtmlBlock.test.ts to keep both files
++ * under the repo's 300-line convention.
++ */
++
++import { describe, it, expect } from "vitest";
++
++import { detectLossyConstructs } from "./markdownTiptap";
++
++describe("detectLossyConstructs — raw HTML / comment classification", () => {
++  // @covers FR-01.35
++  it("flags an inline anchor carrying a non-href attribute as raw HTML (still lossy — only href-only anchors round-trip)", () => {
++    expect(detectLossyConstructs('<a id="trg-1"></a>\n\ntext')).toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("does NOT flag a top-level (block) HTML comment — it's now preserved verbatim by RawHtmlBlock, same mechanism as any other raw HTML block", () => {
++    expect(detectLossyConstructs("<!-- a comment -->\n\ntext")).not.toContain("HTML comments");
++    expect(detectLossyConstructs("<!-- a comment -->\n\ntext")).not.toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("still flags an INLINE HTML comment (mid-paragraph) as lossy", () => {
++    expect(detectLossyConstructs("text with <!-- comment --> inline")).toContain("HTML comments");
++  });
++
++  // @covers FR-01.35
++  it("does NOT flag a top-level raw HTML block — the CTA-link case from the bug report", () => {
++    const md =
++      '<p><strong><a href="https://example.com" style="color: #4A7C59;">→ Explore Shipwright</a></strong></p>\n\ntext';
++    expect(detectLossyConstructs(md)).not.toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("still flags a raw HTML block NESTED inside a blockquote or list (out of scope for RawHtmlBlock)", () => {
++    expect(detectLossyConstructs("> <div>nested</div>\n> more")).toContain("raw HTML");
++    expect(detectLossyConstructs("- <div>nested li</div>\n- two")).toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("does NOT flag an inline anchor whose sole attribute is href with a safe protocol", () => {
++    expect(
++      detectLossyConstructs('Built with <a href="https://github.com/svenroth-ai/shipwright">Shipwright</a>.'),
++    ).not.toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("does NOT flag an href-only inline anchor using single quotes, unquoted, relative, fragment, or protocol-relative URLs — all round-trip losslessly via the same Link-mark isAllowedUri check (external review, iterate-2026-08-31)", () => {
++    expect(detectLossyConstructs("See <a href='/docs'>docs</a>.")).not.toContain("raw HTML");
++    expect(detectLossyConstructs("See <a href=/docs>docs</a>.")).not.toContain("raw HTML");
++    expect(detectLossyConstructs('See <a href="#section">here</a>.')).not.toContain("raw HTML");
++    expect(detectLossyConstructs('See <a href="//example.com/x">here</a>.')).not.toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("still flags an href-only inline anchor with a dangerous scheme (javascript:/data:) as raw HTML", () => {
++    expect(detectLossyConstructs('<a href="javascript:alert(1)">x</a>')).toContain("raw HTML");
++    expect(detectLossyConstructs('<a href="data:text/html,x">x</a>')).toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("still flags an inline anchor with target/rel/class attributes beyond href", () => {
++    expect(
++      detectLossyConstructs(
++        'Powered by <a href="https://shipwright.dev" target="_blank" rel="noopener">Shipwright</a> today.',
++      ),
++    ).toContain("raw HTML");
++  });
++
++  // @covers FR-01.35
++  it("still flags an inline <span> or other non-anchor inline tag", () => {
++    expect(detectLossyConstructs('a <span style="color:red">word</span> here')).toContain("raw HTML");
++  });
++});
+diff --git a/client/src/lib/markdownRawHtmlBlock.test.ts b/client/src/lib/markdownRawHtmlBlock.test.ts
+new file mode 100644
+index 00000000..8c1f2418
+--- /dev/null
++++ b/client/src/lib/markdownRawHtmlBlock.test.ts
+@@ -0,0 +1,271 @@
++/*
++ * markdownRawHtmlBlock.test.ts — round-trip + lossy-detection coverage for
++ * the `rawHtmlBlock` node (iterate-2026-08-31-markdown-raw-html-passthrough).
++ * Split out of markdownTiptap.test.ts to keep both files under the repo's
++ * 300-line convention and mirror the markdownRawHtmlBlock.ts source split.
++ *
++ * Bug: a block-level raw-HTML construct (a line starting with a block tag
++ * like <p>, per CommonMark html_block rule 6) that itself contains
++ * schema-mappable inner tags (<strong>, <a href>) got silently reinterpreted
++ * into ProseMirror's schema and re-serialized as plain Markdown — dropping
++ * any attribute the schema doesn't model (style, class, id, data-*, ...).
++ * Root cause: tiptap-markdown's MarkdownParser renders markdown-it's
++ * `html_block` token to an HTML string and hands it to ProseMirror's DOM
++ * parser, which maps recognized DOM elements (p/strong/a) onto matching
++ * schema nodes/marks — attributes outside the schema are simply dropped.
++ */
++
++import { describe, it, expect } from "vitest";
++import { Editor } from "@tiptap/react";
++import { MarkdownSerializerState } from "prosemirror-markdown";
++import { DOMParser as PMDOMParser } from "prosemirror-model";
++
++import { buildEditorExtensions, serializeEditorMarkdown } from "./markdownTiptap";
++import { RawHtmlBlock } from "./markdownRawHtmlBlock";
++
++function roundTrip(md: string): string {
++  const editor = new Editor({
++    element: document.createElement("div"),
++    extensions: buildEditorExtensions(),
++    content: md,
++  });
++  try {
++    return serializeEditorMarkdown(editor as unknown as { storage: { markdown: { getMarkdown: () => string } } });
++  } finally {
++    editor.destroy();
++  }
++}
++
++describe("raw HTML BLOCKS survive the round-trip verbatim", () => {
++  // @covers FR-01.35
++  it("preserves a styled CTA link block byte-for-byte instead of downgrading to a plain markdown link", () => {
++    const source =
++      '<p><strong><a href="https://example.com" style="color: #4A7C59; font-size: 1.15em;">→ Explore Shipwright</a></strong></p>';
++    const out = roundTrip(source);
++    expect(out).toBe(source);
++  });
++
++  // @covers FR-01.35
++  it("round-trips a block with no attributes at all", () => {
++    const source = "<div>plain block, no attributes</div>";
++    expect(roundTrip(source)).toBe(source);
++  });
++
++  // @covers FR-01.35
++  it("round-trips a multi-line raw HTML block", () => {
++    const source = "<div>\n  <p>line one</p>\n  <p>line two</p>\n</div>";
++    expect(roundTrip(source)).toBe(source);
++  });
++
++  // @covers FR-01.35
++  it("round-trips a raw HTML block that sits between two prose paragraphs", () => {
++    const source = [
++      "Before the block.",
++      "",
++      '<p class="cta"><a href="https://example.com">Explore</a></p>',
++      "",
++      "After the block.",
++    ].join("\n");
++    const out = roundTrip(source);
++    expect(out).toContain("Before the block.");
++    expect(out).toContain('<p class="cta"><a href="https://example.com">Explore</a></p>');
++    expect(out).toContain("After the block.");
++  });
++
++  // @covers FR-01.35
++  it("is idempotent for a document containing a raw HTML block", () => {
++    const source =
++      '<p><strong><a href="https://example.com" style="color: #4A7C59;">CTA</a></strong></p>\n\nProse after.';
++    const once = roundTrip(source);
++    expect(roundTrip(once)).toBe(once);
++  });
++
++  // @covers FR-01.35
++  it("renders the raw HTML as inert TEXT, never executes it (no innerHTML anywhere in the render path)", () => {
++    // The node's whole purpose is to hold arbitrary, attacker-influenceable
++    // file content — a `<script>` payload must render as literal source
++    // text, never be parsed as markup (both external reviewers flagged this
++    // as a high-severity risk if the preview used innerHTML).
++    const editor = new Editor({
++      element: document.createElement("div"),
++      extensions: buildEditorExtensions(),
++      content: "",
++    });
++    try {
++      editor.commands.setContent('<div>text with an <script>window.__pwned = 1;</script> payload</div>');
++      const dom = editor.view.dom;
++      expect(dom.querySelector("script")).toBeNull();
++      expect((window as unknown as { __pwned?: unknown }).__pwned).toBeUndefined();
++      expect(dom.textContent ?? "").toContain("<script>window.__pwned = 1;</script>");
++    } finally {
++      editor.destroy();
++    }
++  });
++
++  // @covers FR-01.35
++  it("still round-trips a raw HTML block nested inside a blockquote or list — via the PRE-EXISTING (unimproved) path, out of scope for this iterate", () => {
++    // Nested blocks are deliberately NOT intercepted by RawHtmlBlock (see
++    // markdownRawHtmlBlock.ts file header) — proving here only that nothing
++    // NEW broke; content fidelity for this case is unchanged from before
++    // this iterate and remains flagged lossy by detectLossyConstructs
++    // (see markdownRawHtmlBlock.detect.test.ts).
++    expect(() => roundTrip("> <div>nested</div>\n> more")).not.toThrow();
++    expect(() => roundTrip("- <div>nested li</div>\n- two")).not.toThrow();
++  });
++
++  // @covers FR-01.35
++  it("writes a block-level javascript: scheme link back verbatim — a deliberate, documented asymmetry with the inline case (fidelity over sanitization; DocumentMarkdown sanitizes on render)", () => {
++    const source = '<p><a href="javascript:alert(1)">x</a></p>';
++    expect(roundTrip(source)).toBe(source);
++  });
++
++  // @covers FR-01.35
++  it("cannot be wrapped in a blockquote or bullet list via the toolbar — the schema itself refuses the wrap (doubt-reviewer HIGH finding: state.text()'s per-line delimiter made a WRAPPED chip serialize correctly, but did not stop the wrap; on reopen the marker div is nested, falls through to verbatim rendering, and ProseMirror's DOM parser drops the attributes again — silently reintroducing the exact bug this iterate fixes)", () => {
++    const source = '<p><strong><a href="https://example.com" style="color: #4A7C59;">CTA</a></strong></p>';
++    const editor = new Editor({
++      element: document.createElement("div"),
++      extensions: buildEditorExtensions(),
++      content: source,
++    });
++    try {
++      const before = editor.getJSON();
++      editor.commands.selectAll();
++      const blockquoteApplied = editor.commands.toggleBlockquote();
++      const bulletListApplied = editor.commands.toggleBulletList();
++      expect(blockquoteApplied).toBe(false);
++      expect(bulletListApplied).toBe(false);
++      expect(editor.getJSON()).toEqual(before);
++      // The block itself is still fully intact and still round-trips.
++      expect(roundTrip(source)).toBe(source);
++    } finally {
++      editor.destroy();
++    }
++  });
++
++  // @covers FR-01.35
++  it("serialize() applies its delimiter once PER LINE, not once for the whole block (state.text(html, false), not state.write(html)) — drives the REAL prosemirror-markdown MarkdownSerializerState directly (bypassing the schema restriction above, which means a live editor can no longer reach a delimited position) to pin the defense-in-depth behavior against the actual library, not a hand-rolled stand-in (code-reviewer HIGH finding)", () => {
++    // The public .d.ts exposes no constructor and hides `delim`/`out` (both
++    // present and used at runtime — verified against the installed
++    // prosemirror-markdown source, see markdownRawHtmlBlock.ts's serialize
++    // comment); a typed cast is the same idiom this file already uses for
++    // `editor.storage` above.
++    type SerializerStateInternals = {
++      delim: string;
++      out: string;
++      text: (s: string, escape?: boolean) => void;
++      write: (s?: string) => void;
++      closeBlock: (n: unknown) => void;
++    };
++    const StateCtor = MarkdownSerializerState as unknown as new (nodes: object, marks: object, options: object) => SerializerStateInternals;
++    const state = new StateCtor({}, {}, {});
++    state.delim = "> "; // simulates being inside a blockquote's render
++    const node = { attrs: { html: "<div>\n  <p>line one</p>\n  <p>line two</p>\n</div>" } };
++    RawHtmlBlock.storage.markdown.serialize(state, node);
++    const lines = state.out.split("\n").filter((line: string) => line.length > 0);
++    expect(lines.length).toBe(4);
++    for (const line of lines) {
++      expect(line.startsWith("> ")).toBe(true);
++    }
++    expect(state.out).toContain("<div>");
++    expect(state.out).toContain("<p>line one</p>");
++    expect(state.out).toContain("<p>line two</p>");
++    expect(state.out).toContain("</div>");
++  });
++
++  // @covers FR-01.35
++  it("absorbs immediately-following prose into the SAME opaque chip when no blank line separates them (CommonMark html_block rule 6 blank-line termination) — content is preserved byte-for-byte, but that prose is no longer separately rich-editable", () => {
++    // Corrected disclosure (code-reviewer MEDIUM finding): this is NOT
++    // content loss, but editability of "Regular prose." genuinely changes
++    // (it was a rich-editable paragraph before this fix existed at all).
++    const source = "<p>Intro</p>\nRegular prose.";
++    const editor = new Editor({
++      element: document.createElement("div"),
++      extensions: buildEditorExtensions(),
++      content: source,
++    });
++    try {
++      expect(editor.state.doc.childCount).toBe(1);
++      const onlyChild = editor.state.doc.firstChild;
++      expect(onlyChild?.type.name).toBe("rawHtmlBlock");
++      expect(onlyChild?.attrs.html).toContain("Regular prose.");
++      expect(roundTrip(source)).toBe(source);
++    } finally {
++      editor.destroy();
++    }
++  });
++
++  // @covers FR-01.35
++  it("normalises inter-block spacing (not the block's own bytes) when a non-absorbing top-level construct (an HTML comment, terminated on its own line per CommonMark rule 2) is immediately followed by prose with no blank line — a visible diff on open, same whitespace-normalisation contract the editor already applies to any two adjacent StarterKit blocks, corrected from an overclaimed 'byte-for-byte' scope in AC-1 (doubt-reviewer MEDIUM finding: narrowed to 'the block's own bytes', not the whole file)", () => {
++    const source = "<!-- note -->\nRegular prose.";
++    const editor = new Editor({
++      element: document.createElement("div"),
++      extensions: buildEditorExtensions(),
++      content: source,
++    });
++    try {
++      // Two separate top-level nodes (not absorbed, unlike rule 6 above).
++      expect(editor.state.doc.childCount).toBe(2);
++      expect(editor.state.doc.firstChild?.type.name).toBe("rawHtmlBlock");
++      expect(editor.state.doc.firstChild?.attrs.html).toBe("<!-- note -->");
++      const out = roundTrip(source);
++      // The comment's own bytes and the prose text both survive...
++      expect(out).toContain("<!-- note -->");
++      expect(out).toContain("Regular prose.");
++      // ...but a blank line the user never typed is inserted between them
++      // (the standard block-separator every adjacent pair of blocks gets;
++      // this is NOT unique to raw HTML — it is visible in the pre-save
++      // diff either way, so it is not silent).
++      expect(out).not.toBe(source);
++      expect(out).toBe("<!-- note -->\n\nRegular prose.");
++    } finally {
++      editor.destroy();
++    }
++  });
++});
++
++describe("rawHtmlBlock marker provenance — a file that already contains a marker-shaped element must never be silently treated as our own marker", () => {
++  // @covers FR-01.35
++  it("does NOT swallow real content sitting inside a NESTED (blockquote/list) element that happens to share the marker tag+attribute — nested html_block content is rendered verbatim (out of scope, unchanged from before this fix), so a real div[data-raw-html-block] with real children reaching the DOM parser must fall through to normal parsing, not be replaced by decoded (bogus) attribute content", () => {
++    const source = '> <div data-raw-html-block="not-a-real-payload">actual content</div>\n> more';
++    const editor = new Editor({
++      element: document.createElement("div"),
++      extensions: buildEditorExtensions(),
++      content: source,
++    });
++    try {
++      const text = editor.state.doc.textContent;
++      expect(text).toContain("actual content");
++    } finally {
++      editor.destroy();
++    }
++  });
++
++  // @covers FR-01.35
++  it("does NOT produce mojibake or a silently-empty chip from a marker-shaped element whose attribute is NOT a payload we produced (missing the magic prefix) — falls through to normal (empty-element) parsing instead", () => {
++    // Exercises parseHTML/getAttrs directly via ProseMirror's own DOMParser
++    // (the same mechanism a clipboard paste of raw HTML uses) — going
++    // through `editor.commands.setContent(string)` instead would route the
++    // string through the MARKDOWN parser first, which (correctly) treats it
++    // as html_block SOURCE and re-wraps it with a valid, magic-prefixed
++    // payload of its own, never reaching this code path with malformed input.
++    const editor = new Editor({
++      element: document.createElement("div"),
++      extensions: buildEditorExtensions(),
++      content: "",
++    });
++    try {
++      const parser = PMDOMParser.fromSchema(editor.schema);
++      // "hell" and "" are both valid base64 input (atob does not throw) but
++      // carry no MARKER_MAGIC prefix — must not become a decoded-garbage or
++      // silently-empty rawHtmlBlock node.
++      for (const payload of ["hell", ""]) {
++        const dom = document.createElement("div");
++        dom.innerHTML = `<div data-raw-html-block="${payload}"></div>`;
++        const parsed = parser.parse(dom);
++        expect(parsed.firstChild?.type.name).not.toBe("rawHtmlBlock");
++      }
++    } finally {
++      editor.destroy();
++    }
++  });
++});
+diff --git a/client/src/lib/markdownRawHtmlBlock.ts b/client/src/lib/markdownRawHtmlBlock.ts
+new file mode 100644
+index 00000000..51401c7d
+--- /dev/null
++++ b/client/src/lib/markdownRawHtmlBlock.ts
+@@ -0,0 +1,263 @@
++/*
++ * markdownRawHtmlBlock.ts — the `rawHtmlBlock` TipTap node
++ * (iterate-2026-08-31-markdown-raw-html-passthrough).
++ *
++ * Bug: a block-level raw-HTML construct (markdown-it's `html_block` token —
++ * a markdown line that OPENS a block-level tag, e.g. a styled CTA
++ * `<p><strong><a href="..." style="...">...</a></strong></p>`) was silently
++ * reinterpreted into the TipTap/ProseMirror schema on load and re-serialized
++ * as plain Markdown on save, dropping any attribute the schema doesn't model
++ * (`style`, `class`, `id`, `data-*`, ...) with no warning. See
++ * markdownTiptap.ts's file header for the parser/serializer architecture and
++ * why `html:true` exists at all (an EARLIER, separate fix for inline
++ * `<a href>` tags — untouched by this node, see the scope note below).
++ *
++ * Fix: intercept markdown-it's `html_block` token BEFORE tiptap-markdown's
++ * MarkdownParser hands its rendered HTML string to ProseMirror's DOM-based
++ * schema parser, and represent it as this atomic, non-editable node holding
++ * the original markup as a string attribute — serialized back byte-for-byte
++ * (content only; see the blank-line note on `serialize` below).
++ *
++ * Scope: TOP-LEVEL (`token.level === 0`) html_block tokens only. A block
++ * nested inside a blockquote/list item is left untouched (still lossy, still
++ * flagged by detectLossyConstructs) — CommonMark's per-line `> `/indent
++ * prefix handling for a raw multi-line block is a materially different, and
++ * separately risky, serialization problem this iterate does not take on
++ * (external + internal review both flagged it). `html_inline` tokens
++ * (raw HTML embedded mid-line, e.g. the pre-existing `<a href>` attribution
++ * fix) are NEVER touched here — only `md.renderer.rules.html_block` is
++ * overridden.
++ */
++
++import { Node } from "@tiptap/core";
++import MarkdownIt from "markdown-it";
++
++/** Shared with `detectLossyConstructs` (markdownTiptap.ts) so the warn-banner
++ *  heuristic classifies HTML exactly the way this node (and the editor's own
++ *  parser) actually will. */
++export const MARKDOWN_IT_OPTIONS: { html: boolean; linkify: boolean; breaks: boolean } = {
++  html: true,
++  linkify: false,
++  breaks: false,
++};
++
++const MARKER_TAG = "div";
++const MARKER_ATTR = "data-raw-html-block";
++
++/**
++ * A literal prefix (outside the base64 alphabet) rather than a base64-decode
++ * SUCCESS is what tells `getAttrs` this element is a marker WE produced.
++ * `atob` on 4-char input, or on `""`, does NOT throw — it happily returns
++ * mojibake or an empty string — so "decode didn't throw" is not evidence of
++ * provenance. Without this, a file that legitimately contains
++ * `<div data-raw-html-block="...">real content</div>` (nested, so
++ * `htmlBlockRendererRule` leaves it verbatim per the level!==0 branch below)
++ * would have its real children silently discarded and replaced by decoded
++ * garbage on the next parse (doubt-reviewer MEDIUM finding,
++ * iterate-2026-08-31 — a content-substitution risk, not just a decode
++ * failure). Combined with the `childNodes.length === 0` check in `getAttrs`
++ * (the renderer never emits children — real content would prove this is NOT
++ * our marker), both known corruption paths (substitution + mojibake/empty
++ * payload) are closed by construction rather than by guessing at malformed
++ * input.
++ */
++const MARKER_MAGIC = "shipwright-v1:";
++
++/** UTF-8-safe base64 — the raw HTML can contain quotes, `&`, `<`, newlines;
++ *  anything else would need per-context escaping (attribute vs. text) and a
++ *  matching unescape on the way back. An opaque payload sidesteps that
++ *  entire class of bug (both external reviewers flagged naive interpolation
++ *  here as a HIGH-severity correctness/security risk). */
++function encodePayload(html: string): string {
++  const bytes = new TextEncoder().encode(html);
++  let binary = "";
++  bytes.forEach((byte) => {
++    binary += String.fromCharCode(byte);
++  });
++  return MARKER_MAGIC + btoa(binary);
++}
++
++/** Returns `null` — never throws — for anything not carrying our magic
++ *  prefix, so `getAttrs` can tell "not our marker" apart from "our marker,
++ *  malformed" (the latter genuinely shouldn't happen; the former is file
++ *  content we must not touch). */
++function decodePayload(payload: string): string | null {
++  if (!payload.startsWith(MARKER_MAGIC)) return null;
++  const binary = atob(payload.slice(MARKER_MAGIC.length));
++  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
++  return new TextDecoder().decode(bytes);
++}
++
++/**
++ * markdown-it renderer-rule override for the `html_block` token type.
++ *
++ * MUST be a stable, module-scoped function reassigned by plain identity on
++ * every call to `parse.setup` (never captured-and-wrapped): tiptap-markdown
++ * re-runs `parse.setup(md)` for every extension on EVERY `MarkdownParser.parse()`
++ * call, and the `md` instance is long-lived across editor opens (one
++ * `useEditor()` instance reused for the modal's whole lifetime). A closure
++ * that reads `md.renderer.rules.html_block` and wraps "the current rule"
++ * would stack a new wrapper on every modal open — this function never reads
++ * the installed rule, so reassigning it is idempotent by construction.
++ */
++function htmlBlockRendererRule(tokens: Array<{ level: number; content: string }>, idx: number): string {
++  const token = tokens[idx];
++  if (token.level !== 0) {
++    // Nested inside a blockquote/list — out of scope (see file header).
++    // Falls through to markdown-it's own default html_block rendering
++    // (verbatim content), unchanged from before this fix.
++    return token.content;
++  }
++  // The token's content sometimes carries a trailing "\n" (when more block
++  // content follows) and sometimes doesn't (end of document) — trim it so
++  // the stored attribute never contains it. Blank-line spacing between this
++  // block and its siblings is owned by the serializer's write()/closeBlock()
++  // pair below, not by keeping the token's own trailing newline.
++  const html = token.content.endsWith("\n") ? token.content.slice(0, -1) : token.content;
++  return `<${MARKER_TAG} ${MARKER_ATTR}="${encodePayload(html)}"></${MARKER_TAG}>`;
++}
++
++export const RawHtmlBlock = Node.create({
++  name: "rawHtmlBlock",
++  // Deliberately NOT in the `"block"` group — see `RawHtmlBlockDocument`
++  // below. Being in `"block"` would let blockquote/listItem's `block+`
++  // content expression accept the chip via the toolbar's Blockquote/List
++  // buttons; `state.text(html, false)` (the Stage-2 fix) makes THAT
++  // serialize correctly, but on the NEXT load the marker div is now
++  // nested (`token.level !== 0`), `htmlBlockRendererRule` falls through to
++  // verbatim content, and ProseMirror's DOM parser drops the attributes
++  // again — silently reintroducing the exact bug this iterate fixes
++  // (doubt-reviewer HIGH finding, iterate-2026-08-31). No group membership
++  // means no content expression this schema defines accepts the node except
++  // the top-level `doc` override, so ProseMirror's OWN transform validation
++  // (`wrapIn`, drag-and-drop, any future block-wrapping command) refuses
++  // the wrap structurally — no per-command guard to keep in sync.
++  atom: true,
++  selectable: true,
++  draggable: false,
++
++  addAttributes() {
++    return {
++      html: { default: "" },
++    };
++  },
++
++  parseHTML() {
++    return [
++      {
++        tag: `${MARKER_TAG}[${MARKER_ATTR}]`,
++        getAttrs: (dom) => {
++          const el = dom as HTMLElement;
++          // The renderer NEVER emits children — an element with real DOM
++          // children is file content that happens to share our marker's
++          // tag+attribute, not a marker we produced (doubt-reviewer MEDIUM
++          // finding — content substitution). Checked before touching the
++          // payload at all: this rejects real content regardless of what
++          // the attribute value happens to be.
++          if (el.childNodes.length !== 0) return false;
++          const payload = el.getAttribute(MARKER_ATTR) ?? "";
++          try {
++            const html = decodePayload(payload);
++            // MARKER_MAGIC missing (see decodePayload) or, in principle, a
++            // corrupt base64 tail — either way this is not our marker, or
++            // is one damaged beyond recovery; `false` falls through to
++            // normal (empty-element) DOM parsing instead of a silently
++            // empty rawHtmlBlock node (code-reviewer LOW finding).
++            if (html === null) return false;
++            return { html };
++          } catch {
++            return false;
++          }
++        },
++      },
++    ];
++  },
++
++  renderHTML({ node }) {
++    const html = (node.attrs.html as string) ?? "";
++    // String children become DOM TEXT nodes (never parsed as HTML) per
++    // ProseMirror's DOMOutputSpec contract — the safe way to show untrusted
++    // file content. Do NOT reach for innerHTML / a NodeView with innerHTML
++    // here: `html` is attacker-influenceable file content (this node's
++    // whole purpose is to hold arbitrary markup, `<script>` included).
++    return [
++      MARKER_TAG,
++      {
++        [MARKER_ATTR]: encodePayload(html),
++        contenteditable: "false",
++        "data-testid": "raw-html-block-chip",
++        style:
++          "margin: 0.5em 0; padding: 8px 10px; border-radius: 6px; " +
++          "border: 1px solid var(--color-border, #e0dbd4); " +
++          "background: var(--color-muted-bg, #ede8e1);",
++      },
++      [
++        "div",
++        {
++          style:
++            "font-size: 11px; font-weight: 500; text-transform: uppercase; " +
++            "letter-spacing: 0.03em; color: var(--color-muted, #6b7280); margin-bottom: 4px;",
++        },
++        "Raw HTML — preserved as-is",
++      ],
++      [
++        "pre",
++        {
++          style:
++            "margin: 0; white-space: pre-wrap; word-break: break-word; " +
++            "font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; " +
++            "color: var(--color-text, #1a1a1a);",
++        },
++        ["code", {}, html],
++      ],
++    ];
++  },
++
++  addStorage() {
++    return {
++      markdown: {
++        serialize(state: { text: (s: string, escape?: boolean) => void; closeBlock: (n: unknown) => void }, node: { attrs: { html: string } }) {
++          // state.text(content, escape=false) — NOT state.write(content).
++          // write() applies the state's block-nesting delimiter (e.g. "> "
++          // for a blockquote, list indent for a list item) at most ONCE,
++          // then appends the whole multi-line string raw, which would
++          // corrupt a multi-line block on the delimiter'S line 1 only
++          // (code-reviewer HIGH finding, iterate-2026-08-31). The node is no
++          // longer wrappable at all now that it carries no `"block"` group
++          // membership (see the node config above / `RawHtmlBlockDocument`
++          // below — doubt-reviewer HIGH finding), so this is defense in
++          // depth rather than the only guard: text() splits on "\n" and
++          // calls the delimiter-applying write() once per line —
++          // escape=false keeps every line byte-verbatim, matching
++          // serialize's byte-for-byte contract; at the top level (the only
++          // level this node can now occupy) there is no delimiter, so
++          // output is identical to the old write() call.
++          state.text(node.attrs.html, false);
++          state.closeBlock(node);
++        },
++        parse: {
++          setup(md: MarkdownIt) {
++            md.renderer.rules.html_block = htmlBlockRendererRule;
++          },
++        },
++      },
++    };
++  },
++});
++
++/**
++ * Overrides StarterKit's default `doc` node (`content: "block+"`) to also
++ * accept `rawHtmlBlock` — but ONLY at the document's own top level, since
++ * `rawHtmlBlock` carries no `"block"` group membership. TipTap merges
++ * extensions by `name`; placed after `StarterKit` in `buildEditorExtensions`,
++ * this wins. Without it `rawHtmlBlock` would have no valid position in the
++ * doc at all (doubt-reviewer HIGH finding, iterate-2026-08-31): making the
++ * wrap structurally impossible at the schema level is what closes the
++ * blockquote/list re-corruption case, rather than a per-command guard that
++ * would need to be kept in sync with every future block-wrapping command.
++ */
++export const RawHtmlBlockDocument = Node.create({
++  name: "doc",
++  topNode: true,
++  content: "(block|rawHtmlBlock)+",
++});
+diff --git a/client/src/lib/markdownTiptap.test.ts b/client/src/lib/markdownTiptap.test.ts
+index 54daa31f..59062f65 100644
+--- a/client/src/lib/markdownTiptap.test.ts
++++ b/client/src/lib/markdownTiptap.test.ts
+@@ -179,11 +179,9 @@ describe("detectLossyConstructs", () => {
+     expect(detectLossyConstructs(md)).not.toContain("YAML frontmatter");
+   });
+ 
+-  // @covers FR-01.35
+-  it("flags raw HTML and HTML comments", () => {
+-    expect(detectLossyConstructs('<a id="trg-1"></a>\n\ntext')).toContain("raw HTML");
+-    expect(detectLossyConstructs("text\n<!-- a comment -->\n")).toContain("HTML comments");
+-  });
++  // raw-HTML / HTML-comment classification (block vs. inline, attribute
++  // awareness) is covered by markdownRawHtmlBlock.test.ts, alongside the
++  // rawHtmlBlock node's own round-trip suite.
+ 
+   // @covers FR-01.35
+   it("flags footnotes", () => {
+diff --git a/client/src/lib/markdownTiptap.ts b/client/src/lib/markdownTiptap.ts
+index 896d29d2..0fa2c0b0 100644
+--- a/client/src/lib/markdownTiptap.ts
++++ b/client/src/lib/markdownTiptap.ts
+@@ -12,15 +12,30 @@
+  * round-trips to its equivalent `[text](url)` markdown link instead of being
+  * entity-escaped to corrupt `&lt;a&gt;` text (the editor used to break "Built
+  * with Shipwright" attribution links on save). HTML with no schema node
+- * (`<div>`, attributes such as `target`/`class`) is still normalised away and
+- * stays flagged by {@link detectLossyConstructs}; tables / task-lists / footnotes
+- * are likewise detected and flagged, not represented.
++ * (inline `<span>`, an anchor carrying attributes beyond `href`) is still
++ * normalised away and stays flagged by {@link detectLossyConstructs}; tables /
++ * task-lists / footnotes are likewise detected and flagged, not represented.
++ *
++ * A block-level raw-HTML construct (a markdown line that OPENS a block tag,
++ * e.g. a styled CTA `<p><strong><a href="..." style="...">...</a></strong></p>`)
++ * is a DIFFERENT case from the inline one above — it round-trips byte-for-byte
++ * via the `RawHtmlBlock` node (iterate-2026-08-31-markdown-raw-html-passthrough,
++ * see `markdownRawHtmlBlock.ts`), never normalised into the schema at all.
+  */
+ 
+ import StarterKit from "@tiptap/starter-kit";
+-import Link from "@tiptap/extension-link";
++import Link, { isAllowedUri } from "@tiptap/extension-link";
+ import { Markdown } from "tiptap-markdown";
+ import type { Extensions } from "@tiptap/react";
++import MarkdownIt from "markdown-it";
++
++import { RawHtmlBlock, RawHtmlBlockDocument, MARKDOWN_IT_OPTIONS } from "./markdownRawHtmlBlock";
++
++export {
++  type MarkdownEnvelope,
++  splitMarkdownEnvelope,
++  composeMarkdownEnvelope,
++} from "./markdownEnvelope";
+ 
+ /** Link schemes the editor will keep; `javascript:` et al. are dropped so a
+  *  serialized doc can't smuggle an executable scheme back to disk (review #12).
+@@ -44,12 +59,16 @@ export function buildEditorExtensions(): Extensions {
+       protocols: SAFE_LINK_PROTOCOLS,
+       HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
+     }),
++    RawHtmlBlock,
++    // MUST come after StarterKit — TipTap merges same-named extensions by
++    // array order (later wins), and this overrides StarterKit's `doc` node.
++    RawHtmlBlockDocument,
+     Markdown.configure({
+-      html: true,
++      html: MARKDOWN_IT_OPTIONS.html,
+       tightLists: true,
+       bulletListMarker: "-",
+-      linkify: false,
+-      breaks: false,
++      linkify: MARKDOWN_IT_OPTIONS.linkify,
++      breaks: MARKDOWN_IT_OPTIONS.breaks,
+       transformPastedText: false,
+       transformCopiedText: false,
+     }),
+@@ -70,137 +89,6 @@ export function serializeEditorMarkdown(editor: {
+   return storage?.getMarkdown?.() ?? "";
+ }
+ 
+-// --- File envelope: keep non-prose structure OUT of the round-trip ---------
+-//
+-// The Markdown -> ProseMirror -> Markdown round-trip is lossy: a leading YAML
+-// frontmatter block gets mangled (the closing `---` parses as a setext H2
+-// underline, collapsing every key:value line into one heading), line endings
+-// normalise to LF, and the trailing newline is dropped. So even a one-character
+-// body edit used to surface as a whole-file diff — and a Save would CORRUPT the
+-// frontmatter on disk. The envelope splits the file so the editor owns ONLY the
+-// prose `core`; `frontmatter`, surrounding blank lines, the line-ending style,
+-// and the trailing newline are preserved VERBATIM.
+-//
+-// Line endings are derived via char codes (String.fromCharCode), never "\n" /
+-// "\r" escape literals: such escapes in editor-written source have been written
+-// as real control bytes and corrupted files in this repo before (project memory).
+-
+-const LF = String.fromCharCode(10);
+-const CR = String.fromCharCode(13);
+-
+-export interface MarkdownEnvelope {
+-  /** Verbatim leading `---...---` fence block (incl. its trailing newline), or "". */
+-  frontmatter: string;
+-  /** `frontmatter` + any leading blank lines — preserved verbatim, never edited. */
+-  prefix: string;
+-  /** The prose body the editor owns (surrounding whitespace stripped). */
+-  core: string;
+-  /** Trailing whitespace / newline run of the original — preserved verbatim. */
+-  suffix: string;
+-  /** Original line-ending style: CRLF if the file contains any, else LF. */
+-  eol: string;
+-}
+-
+-function isWs(code: number): boolean {
+-  return code === 32 || code === 9 || code === 10 || code === 13;
+-}
+-
+-/** True if a line (ignoring a trailing CR + trailing spaces/tabs) is exactly `---`. */
+-function isFenceLine(line: string): boolean {
+-  let end = line.length;
+-  if (end > 0 && line.charCodeAt(end - 1) === 13) end -= 1; // strip CR of a CRLF line
+-  while (end > 0 && (line.charCodeAt(end - 1) === 32 || line.charCodeAt(end - 1) === 9)) end -= 1;
+-  return line.slice(0, end) === "---";
+-}
+-
+-/** Length (chars from index 0) of a leading YAML frontmatter block incl. its
+- *  trailing newline, or 0 if the text does not open with a CLOSED `---` fence.
+- *
+- *  Heuristic (intentionally matching gray-matter / the prior detectLossyConstructs
+- *  regex): first line is exactly `---`, the next `---` line closes it. A document
+- *  that opens with a thematic-break `---` and has another `---` later would be
+- *  read as frontmatter — accepted, since starting a doc with a horizontal rule is
+- *  vanishingly rare and there is no syntactic frontmatter/HR distinction without a
+- *  YAML parse. Either way the block is preserved verbatim, never corrupted. */
+-function frontmatterLength(text: string): number {
+-  if (!text.startsWith("---")) return 0;
+-  const starts: number[] = [];
+-  const ends: number[] = [];
+-  let pos = 0;
+-  for (;;) {
+-    let nl = text.indexOf(LF, pos);
+-    if (nl === -1) nl = text.length;
+-    starts.push(pos);
+-    ends.push(nl);
+-    if (nl === text.length) break;
+-    pos = nl + 1;
+-  }
+-  if (!isFenceLine(text.slice(starts[0], ends[0]))) return 0;
+-  for (let i = 1; i < starts.length; i += 1) {
+-    if (isFenceLine(text.slice(starts[i], ends[i]))) {
+-      let cut = ends[i];
+-      if (cut < text.length && text.charCodeAt(cut) === 10) cut += 1; // include the newline
+-      return cut;
+-    }
+-  }
+-  return 0; // unterminated fence -> not frontmatter, leave it in the body
+-}
+-
+-/**
+- * Decompose a markdown file into the prose `core` the editor owns plus the
+- * verbatim `prefix` / `suffix` / `eol` it must NOT touch. See the section
+- * header above for why this exists.
+- */
+-export function splitMarkdownEnvelope(text: string): MarkdownEnvelope {
+-  const eol = text.indexOf(CR + LF) !== -1 ? CR + LF : LF;
+-  const fmLen = frontmatterLength(text);
+-  const frontmatter = text.slice(0, fmLen);
+-  const rest = text.slice(fmLen);
+-
+-  // Consume only fully-BLANK leading lines (the separator after frontmatter, or
+-  // blank lines at the top of a frontmatter-less file). The first content line —
+-  // INCLUDING its own indentation — belongs to `core`, so an indented first line
+-  // (e.g. an indented code block) is not silently moved out of the editor.
+-  let i = 0;
+-  for (;;) {
+-    const lineEnd = rest.indexOf(LF, i);
+-    if (lineEnd === -1) break; // no newline left → the remainder is content/trailing
+-    let blank = true;
+-    for (let k = i; k < lineEnd; k += 1) {
+-      const c = rest.charCodeAt(k);
+-      if (c !== 32 && c !== 9 && c !== 13) {
+-        blank = false;
+-        break;
+-      }
+-    }
+-    if (!blank) break;
+-    i = lineEnd + 1;
+-  }
+-  const leading = rest.slice(0, i);
+-  const afterLeading = rest.slice(i);
+-
+-  let j = afterLeading.length;
+-  while (j > 0 && isWs(afterLeading.charCodeAt(j - 1))) j -= 1;
+-  const core = afterLeading.slice(0, j);
+-  const suffix = afterLeading.slice(j);
+-
+-  return { frontmatter, prefix: frontmatter + leading, core, suffix, eol };
+-}
+-
+-/**
+- * Re-assemble a file from its envelope and the editor's freshly serialized
+- * `core`. The serializer emits LF only; the body is re-mapped to the file's
+- * original line ending so a CRLF file is not rewritten line-by-line on save.
+- */
+-export function composeMarkdownEnvelope(
+-  env: MarkdownEnvelope,
+-  serializedCore: string,
+-): string {
+-  const lfBody = serializedCore.split(CR).join(""); // defensive: drop stray CR
+-  const body = env.eol === LF ? lfBody : lfBody.split(LF).join(env.eol);
+-  return env.prefix + body + env.suffix;
+-}
+-
+ // --- Lossy-construct detection (warn banner) -------------------------------
+ 
+ /** Remove fenced + inline code so a `<` inside a code sample doesn't read as
+@@ -222,17 +110,20 @@ interface LossyRule {
+ // flagged as lossy, but `splitMarkdownEnvelope` now preserves it verbatim
+ // (the editor never sees it), so it round-trips cleanly. The modal surfaces a
+ // separate, neutral "frontmatter preserved" note instead of a lossy warning.
++//
++// NOTE: "HTML comments" and "raw HTML" are NOT in this regex-based list —
++// they're detected by `detectHtmlLossiness` below via a markdown-it instance
++// built from the SAME markdown-it CONFIG the editor's own parser uses
++// (`MARKDOWN_IT_OPTIONS`) — not the same instance: tiptap-markdown's own
++// instance additionally installs a task-lists plugin and a patched code-block
++// renderer, irrelevant to html_block/html_inline classification but worth
++// naming so a future reader doesn't assume token-for-token parity. A
++// text-only regex cannot tell a now-safe block-level construct (preserved
++// verbatim by `RawHtmlBlock`) from a still-lossy inline one, and a second,
++// differently-CONFIGURED parser could disagree with what the editor actually
++// does (iterate-2026-08-31-markdown-raw-html-passthrough, both external
++// reviewers).
+ const LOSSY_RULES: LossyRule[] = [
+-  {
+-    id: "html-comment",
+-    label: "HTML comments",
+-    test: (t) => /<!--[\s\S]*?-->/.test(t),
+-  },
+-  {
+-    id: "raw-html",
+-    label: "raw HTML",
+-    test: (t) => /<\/?[a-zA-Z][a-zA-Z0-9-]*(?:\s[^>]*)?>/.test(stripCode(t)),
+-  },
+   {
+     id: "footnotes",
+     label: "footnotes",
+@@ -256,15 +147,88 @@ const LOSSY_RULES: LossyRule[] = [
+   },
+ ];
+ 
++// An inline anchor OPEN tag is lossless only when `href` is its SOLE
++// attribute and the URI is one the Link mark itself would actually accept —
++// any other attribute (id/class/style/target/rel/data-*) falls through to
++// the lossy branch, and so does every other inline tag. A bare closing
++// `</a>` carries no attributes and is never lossy on its own.
++const SAFE_INLINE_ANCHOR_OPEN = /^<a\s+href=(?:"([^"]*)"|'([^']*)'|(\S+))\s*>$/i;
++const SAFE_INLINE_ANCHOR_CLOSE = /^<\/a\s*>$/i;
++const HTML_COMMENT = /^<!--[\s\S]*-->$/;
++
++/**
++ * URI safety uses tiptap's OWN `isAllowedUri` (the exact function the Link
++ * mark's `renderHTML`/`parseHTML` call) instead of a hand-rolled scheme-
++ * prefix check — a prior version here only accepted a double-quoted,
++ * `SAFE_LINK_PROTOCOLS`-prefixed absolute URL and false-positived on a
++ * single-quoted/unquoted attribute or a relative/fragment/protocol-relative
++ * href (`/docs`, `#section`, `//example.com`) that the Link mark round-trips
++ * losslessly (external review, iterate-2026-08-31). Two independently-
++ * written acceptance rules for the same underlying behavior is exactly the
++ * class of bug this was.
++ */
++function isSafeInlineAnchorOpen(tagText: string): boolean {
++  const match = SAFE_INLINE_ANCHOR_OPEN.exec(tagText);
++  if (!match) return false;
++  const href = match[1] ?? match[2] ?? match[3];
++  return !!isAllowedUri(href, SAFE_LINK_PROTOCOLS);
++}
++
++/**
++ * Tokenizes `text` with the editor's own markdown-it configuration and
++ * classifies its raw-HTML constructs the way the editor actually will:
++ * a top-level (`level === 0`) `html_block` token is safe (preserved
++ * byte-for-byte by `RawHtmlBlock`); a nested one (inside a blockquote/list —
++ * out of scope for this iterate) and any inline HTML the schema can't
++ * losslessly represent both remain lossy.
++ */
++function detectHtmlLossiness(text: string): { hasComment: boolean; hasRawHtml: boolean } {
++  let tokens: Array<{ type: string; level: number; content: string; children?: Array<{ type: string; content: string }> | null }>;
++  try {
++    tokens = new MarkdownIt(MARKDOWN_IT_OPTIONS).parse(text, {});
++  } catch {
++    return { hasComment: false, hasRawHtml: false }; // malformed input — let the diff surface it
++  }
++
++  let hasComment = false;
++  let hasRawHtml = false;
++  for (const token of tokens) {
++    if (token.type === "html_block") {
++      if (token.level !== 0) hasRawHtml = true; // nested — still lossy, see file header
++      continue;
++    }
++    if (token.type !== "inline" || !token.children) continue;
++    for (const child of token.children) {
++      if (child.type !== "html_inline") continue;
++      if (HTML_COMMENT.test(child.content)) {
++        hasComment = true;
++      } else if (!isSafeInlineAnchorOpen(child.content) && !SAFE_INLINE_ANCHOR_CLOSE.test(child.content)) {
++        hasRawHtml = true;
++      }
++    }
++  }
++  return { hasComment, hasRawHtml };
++}
++
+ /**
+- * Return human-readable labels for markdown constructs that the StarterKit-only
+- * editor cannot represent and would therefore drop or normalise on save. An
++ * Return human-readable labels for markdown constructs the StarterKit-only
++ * editor cannot represent WITHOUT LOSING information — dropped entirely
++ * (a table, an inline `<span style>` with no schema node), or rewritten to a
++ * form that is not semantically equivalent. NOT flagged: a construct that
++ * normalises to a schema-native, EQUIVALENT representation — an href-only
++ * `<a href="...">text</a>` rewriting to `[text](url)` changes markup syntax
++ * but preserves the same URL and text with nothing lost (the pre-existing
++ * FR-01.34 fix this editor already relies on); a top-level raw HTML block
++ * preserved byte-for-byte by `RawHtmlBlock` is equivalent by construction. An
+  * empty array means "safe to rich-edit"; a non-empty array drives the modal's
+  * non-blocking warn banner. Heuristic by design — false positives only nudge
+  * the user to read the diff (which already shows every change). (review #9)
+  */
+ export function detectLossyConstructs(text: string): string[] {
+   const labels: string[] = [];
++  const { hasComment, hasRawHtml } = detectHtmlLossiness(text);
++  if (hasComment) labels.push("HTML comments");
++  if (hasRawHtml) labels.push("raw HTML");
+   for (const rule of LOSSY_RULES) {
+     if (rule.test(text)) labels.push(rule.label);
+   }

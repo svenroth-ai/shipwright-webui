@@ -12,15 +12,30 @@
  * round-trips to its equivalent `[text](url)` markdown link instead of being
  * entity-escaped to corrupt `&lt;a&gt;` text (the editor used to break "Built
  * with Shipwright" attribution links on save). HTML with no schema node
- * (`<div>`, attributes such as `target`/`class`) is still normalised away and
- * stays flagged by {@link detectLossyConstructs}; tables / task-lists / footnotes
- * are likewise detected and flagged, not represented.
+ * (inline `<span>`, an anchor carrying attributes beyond `href`) is still
+ * normalised away and stays flagged by {@link detectLossyConstructs}; tables /
+ * task-lists / footnotes are likewise detected and flagged, not represented.
+ *
+ * A block-level raw-HTML construct (a markdown line that OPENS a block tag,
+ * e.g. a styled CTA `<p><strong><a href="..." style="...">...</a></strong></p>`)
+ * is a DIFFERENT case from the inline one above — it round-trips byte-for-byte
+ * via the `RawHtmlBlock` node (iterate-2026-08-31-markdown-raw-html-passthrough,
+ * see `markdownRawHtmlBlock.ts`), never normalised into the schema at all.
  */
 
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
+import Link, { isAllowedUri } from "@tiptap/extension-link";
 import { Markdown } from "tiptap-markdown";
 import type { Extensions } from "@tiptap/react";
+import MarkdownIt from "markdown-it";
+
+import { RawHtmlBlock, RawHtmlBlockDocument, MARKDOWN_IT_OPTIONS } from "./markdownRawHtmlBlock";
+
+export {
+  type MarkdownEnvelope,
+  splitMarkdownEnvelope,
+  composeMarkdownEnvelope,
+} from "./markdownEnvelope";
 
 /** Link schemes the editor will keep; `javascript:` et al. are dropped so a
  *  serialized doc can't smuggle an executable scheme back to disk (review #12).
@@ -44,12 +59,16 @@ export function buildEditorExtensions(): Extensions {
       protocols: SAFE_LINK_PROTOCOLS,
       HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
     }),
+    RawHtmlBlock,
+    // MUST come after StarterKit — TipTap merges same-named extensions by
+    // array order (later wins), and this overrides StarterKit's `doc` node.
+    RawHtmlBlockDocument,
     Markdown.configure({
-      html: true,
+      html: MARKDOWN_IT_OPTIONS.html,
       tightLists: true,
       bulletListMarker: "-",
-      linkify: false,
-      breaks: false,
+      linkify: MARKDOWN_IT_OPTIONS.linkify,
+      breaks: MARKDOWN_IT_OPTIONS.breaks,
       transformPastedText: false,
       transformCopiedText: false,
     }),
@@ -68,137 +87,6 @@ export function serializeEditorMarkdown(editor: {
     | { getMarkdown?: () => string }
     | undefined;
   return storage?.getMarkdown?.() ?? "";
-}
-
-// --- File envelope: keep non-prose structure OUT of the round-trip ---------
-//
-// The Markdown -> ProseMirror -> Markdown round-trip is lossy: a leading YAML
-// frontmatter block gets mangled (the closing `---` parses as a setext H2
-// underline, collapsing every key:value line into one heading), line endings
-// normalise to LF, and the trailing newline is dropped. So even a one-character
-// body edit used to surface as a whole-file diff — and a Save would CORRUPT the
-// frontmatter on disk. The envelope splits the file so the editor owns ONLY the
-// prose `core`; `frontmatter`, surrounding blank lines, the line-ending style,
-// and the trailing newline are preserved VERBATIM.
-//
-// Line endings are derived via char codes (String.fromCharCode), never "\n" /
-// "\r" escape literals: such escapes in editor-written source have been written
-// as real control bytes and corrupted files in this repo before (project memory).
-
-const LF = String.fromCharCode(10);
-const CR = String.fromCharCode(13);
-
-export interface MarkdownEnvelope {
-  /** Verbatim leading `---...---` fence block (incl. its trailing newline), or "". */
-  frontmatter: string;
-  /** `frontmatter` + any leading blank lines — preserved verbatim, never edited. */
-  prefix: string;
-  /** The prose body the editor owns (surrounding whitespace stripped). */
-  core: string;
-  /** Trailing whitespace / newline run of the original — preserved verbatim. */
-  suffix: string;
-  /** Original line-ending style: CRLF if the file contains any, else LF. */
-  eol: string;
-}
-
-function isWs(code: number): boolean {
-  return code === 32 || code === 9 || code === 10 || code === 13;
-}
-
-/** True if a line (ignoring a trailing CR + trailing spaces/tabs) is exactly `---`. */
-function isFenceLine(line: string): boolean {
-  let end = line.length;
-  if (end > 0 && line.charCodeAt(end - 1) === 13) end -= 1; // strip CR of a CRLF line
-  while (end > 0 && (line.charCodeAt(end - 1) === 32 || line.charCodeAt(end - 1) === 9)) end -= 1;
-  return line.slice(0, end) === "---";
-}
-
-/** Length (chars from index 0) of a leading YAML frontmatter block incl. its
- *  trailing newline, or 0 if the text does not open with a CLOSED `---` fence.
- *
- *  Heuristic (intentionally matching gray-matter / the prior detectLossyConstructs
- *  regex): first line is exactly `---`, the next `---` line closes it. A document
- *  that opens with a thematic-break `---` and has another `---` later would be
- *  read as frontmatter — accepted, since starting a doc with a horizontal rule is
- *  vanishingly rare and there is no syntactic frontmatter/HR distinction without a
- *  YAML parse. Either way the block is preserved verbatim, never corrupted. */
-function frontmatterLength(text: string): number {
-  if (!text.startsWith("---")) return 0;
-  const starts: number[] = [];
-  const ends: number[] = [];
-  let pos = 0;
-  for (;;) {
-    let nl = text.indexOf(LF, pos);
-    if (nl === -1) nl = text.length;
-    starts.push(pos);
-    ends.push(nl);
-    if (nl === text.length) break;
-    pos = nl + 1;
-  }
-  if (!isFenceLine(text.slice(starts[0], ends[0]))) return 0;
-  for (let i = 1; i < starts.length; i += 1) {
-    if (isFenceLine(text.slice(starts[i], ends[i]))) {
-      let cut = ends[i];
-      if (cut < text.length && text.charCodeAt(cut) === 10) cut += 1; // include the newline
-      return cut;
-    }
-  }
-  return 0; // unterminated fence -> not frontmatter, leave it in the body
-}
-
-/**
- * Decompose a markdown file into the prose `core` the editor owns plus the
- * verbatim `prefix` / `suffix` / `eol` it must NOT touch. See the section
- * header above for why this exists.
- */
-export function splitMarkdownEnvelope(text: string): MarkdownEnvelope {
-  const eol = text.indexOf(CR + LF) !== -1 ? CR + LF : LF;
-  const fmLen = frontmatterLength(text);
-  const frontmatter = text.slice(0, fmLen);
-  const rest = text.slice(fmLen);
-
-  // Consume only fully-BLANK leading lines (the separator after frontmatter, or
-  // blank lines at the top of a frontmatter-less file). The first content line —
-  // INCLUDING its own indentation — belongs to `core`, so an indented first line
-  // (e.g. an indented code block) is not silently moved out of the editor.
-  let i = 0;
-  for (;;) {
-    const lineEnd = rest.indexOf(LF, i);
-    if (lineEnd === -1) break; // no newline left → the remainder is content/trailing
-    let blank = true;
-    for (let k = i; k < lineEnd; k += 1) {
-      const c = rest.charCodeAt(k);
-      if (c !== 32 && c !== 9 && c !== 13) {
-        blank = false;
-        break;
-      }
-    }
-    if (!blank) break;
-    i = lineEnd + 1;
-  }
-  const leading = rest.slice(0, i);
-  const afterLeading = rest.slice(i);
-
-  let j = afterLeading.length;
-  while (j > 0 && isWs(afterLeading.charCodeAt(j - 1))) j -= 1;
-  const core = afterLeading.slice(0, j);
-  const suffix = afterLeading.slice(j);
-
-  return { frontmatter, prefix: frontmatter + leading, core, suffix, eol };
-}
-
-/**
- * Re-assemble a file from its envelope and the editor's freshly serialized
- * `core`. The serializer emits LF only; the body is re-mapped to the file's
- * original line ending so a CRLF file is not rewritten line-by-line on save.
- */
-export function composeMarkdownEnvelope(
-  env: MarkdownEnvelope,
-  serializedCore: string,
-): string {
-  const lfBody = serializedCore.split(CR).join(""); // defensive: drop stray CR
-  const body = env.eol === LF ? lfBody : lfBody.split(LF).join(env.eol);
-  return env.prefix + body + env.suffix;
 }
 
 // --- Lossy-construct detection (warn banner) -------------------------------
@@ -222,17 +110,20 @@ interface LossyRule {
 // flagged as lossy, but `splitMarkdownEnvelope` now preserves it verbatim
 // (the editor never sees it), so it round-trips cleanly. The modal surfaces a
 // separate, neutral "frontmatter preserved" note instead of a lossy warning.
+//
+// NOTE: "HTML comments" and "raw HTML" are NOT in this regex-based list —
+// they're detected by `detectHtmlLossiness` below via a markdown-it instance
+// built from the SAME markdown-it CONFIG the editor's own parser uses
+// (`MARKDOWN_IT_OPTIONS`) — not the same instance: tiptap-markdown's own
+// instance additionally installs a task-lists plugin and a patched code-block
+// renderer, irrelevant to html_block/html_inline classification but worth
+// naming so a future reader doesn't assume token-for-token parity. A
+// text-only regex cannot tell a now-safe block-level construct (preserved
+// verbatim by `RawHtmlBlock`) from a still-lossy inline one, and a second,
+// differently-CONFIGURED parser could disagree with what the editor actually
+// does (iterate-2026-08-31-markdown-raw-html-passthrough, both external
+// reviewers).
 const LOSSY_RULES: LossyRule[] = [
-  {
-    id: "html-comment",
-    label: "HTML comments",
-    test: (t) => /<!--[\s\S]*?-->/.test(t),
-  },
-  {
-    id: "raw-html",
-    label: "raw HTML",
-    test: (t) => /<\/?[a-zA-Z][a-zA-Z0-9-]*(?:\s[^>]*)?>/.test(stripCode(t)),
-  },
   {
     id: "footnotes",
     label: "footnotes",
@@ -256,15 +147,88 @@ const LOSSY_RULES: LossyRule[] = [
   },
 ];
 
+// An inline anchor OPEN tag is lossless only when `href` is its SOLE
+// attribute and the URI is one the Link mark itself would actually accept —
+// any other attribute (id/class/style/target/rel/data-*) falls through to
+// the lossy branch, and so does every other inline tag. A bare closing
+// `</a>` carries no attributes and is never lossy on its own.
+const SAFE_INLINE_ANCHOR_OPEN = /^<a\s+href=(?:"([^"]*)"|'([^']*)'|(\S+))\s*>$/i;
+const SAFE_INLINE_ANCHOR_CLOSE = /^<\/a\s*>$/i;
+const HTML_COMMENT = /^<!--[\s\S]*-->$/;
+
 /**
- * Return human-readable labels for markdown constructs that the StarterKit-only
- * editor cannot represent and would therefore drop or normalise on save. An
+ * URI safety uses tiptap's OWN `isAllowedUri` (the exact function the Link
+ * mark's `renderHTML`/`parseHTML` call) instead of a hand-rolled scheme-
+ * prefix check — a prior version here only accepted a double-quoted,
+ * `SAFE_LINK_PROTOCOLS`-prefixed absolute URL and false-positived on a
+ * single-quoted/unquoted attribute or a relative/fragment/protocol-relative
+ * href (`/docs`, `#section`, `//example.com`) that the Link mark round-trips
+ * losslessly (external review, iterate-2026-08-31). Two independently-
+ * written acceptance rules for the same underlying behavior is exactly the
+ * class of bug this was.
+ */
+function isSafeInlineAnchorOpen(tagText: string): boolean {
+  const match = SAFE_INLINE_ANCHOR_OPEN.exec(tagText);
+  if (!match) return false;
+  const href = match[1] ?? match[2] ?? match[3];
+  return !!isAllowedUri(href, SAFE_LINK_PROTOCOLS);
+}
+
+/**
+ * Tokenizes `text` with the editor's own markdown-it configuration and
+ * classifies its raw-HTML constructs the way the editor actually will:
+ * a top-level (`level === 0`) `html_block` token is safe (preserved
+ * byte-for-byte by `RawHtmlBlock`); a nested one (inside a blockquote/list —
+ * out of scope for this iterate) and any inline HTML the schema can't
+ * losslessly represent both remain lossy.
+ */
+function detectHtmlLossiness(text: string): { hasComment: boolean; hasRawHtml: boolean } {
+  let tokens: Array<{ type: string; level: number; content: string; children?: Array<{ type: string; content: string }> | null }>;
+  try {
+    tokens = new MarkdownIt(MARKDOWN_IT_OPTIONS).parse(text, {});
+  } catch {
+    return { hasComment: false, hasRawHtml: false }; // malformed input — let the diff surface it
+  }
+
+  let hasComment = false;
+  let hasRawHtml = false;
+  for (const token of tokens) {
+    if (token.type === "html_block") {
+      if (token.level !== 0) hasRawHtml = true; // nested — still lossy, see file header
+      continue;
+    }
+    if (token.type !== "inline" || !token.children) continue;
+    for (const child of token.children) {
+      if (child.type !== "html_inline") continue;
+      if (HTML_COMMENT.test(child.content)) {
+        hasComment = true;
+      } else if (!isSafeInlineAnchorOpen(child.content) && !SAFE_INLINE_ANCHOR_CLOSE.test(child.content)) {
+        hasRawHtml = true;
+      }
+    }
+  }
+  return { hasComment, hasRawHtml };
+}
+
+/**
+ * Return human-readable labels for markdown constructs the StarterKit-only
+ * editor cannot represent WITHOUT LOSING information — dropped entirely
+ * (a table, an inline `<span style>` with no schema node), or rewritten to a
+ * form that is not semantically equivalent. NOT flagged: a construct that
+ * normalises to a schema-native, EQUIVALENT representation — an href-only
+ * `<a href="...">text</a>` rewriting to `[text](url)` changes markup syntax
+ * but preserves the same URL and text with nothing lost (the pre-existing
+ * FR-01.34 fix this editor already relies on); a top-level raw HTML block
+ * preserved byte-for-byte by `RawHtmlBlock` is equivalent by construction. An
  * empty array means "safe to rich-edit"; a non-empty array drives the modal's
  * non-blocking warn banner. Heuristic by design — false positives only nudge
  * the user to read the diff (which already shows every change). (review #9)
  */
 export function detectLossyConstructs(text: string): string[] {
   const labels: string[] = [];
+  const { hasComment, hasRawHtml } = detectHtmlLossiness(text);
+  if (hasComment) labels.push("HTML comments");
+  if (hasRawHtml) labels.push("raw HTML");
   for (const rule of LOSSY_RULES) {
     if (rule.test(text)) labels.push(rule.label);
   }

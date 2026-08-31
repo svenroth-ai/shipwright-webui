@@ -15,9 +15,11 @@ import { test, expect } from "@playwright/test";
 
 import {
   NL,
+  CTA_BLOCK,
   mockApi,
   mockFrontmatterFile,
   mockBlogFile,
+  mockCtaBlockFile,
 } from "./markdown-editor.fixtures";
 
 test.describe("SmartViewer markdown editor (FR-01.34)", () => {
@@ -191,9 +193,12 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
     const surface = page.getByTestId("md-editor-surface");
     await expect(surface).toContainText("Built with Shipwright");
 
-    // Raw HTML present → the lossy-construct banner nudges the user to the diff
-    // (the link is normalised to markdown, not dropped).
-    await expect(page.getByTestId("md-editor-warn")).toBeVisible();
+    // No lossy-HTML warning: an href-only inline anchor with a safe protocol
+    // round-trips losslessly to its markdown-link equivalent (verified below),
+    // so it is no longer misclassified as lossy
+    // (iterate-2026-08-31-markdown-raw-html-passthrough tightened the
+    // detector to be attribute-aware instead of "any raw HTML tag present").
+    await expect(page.getByTestId("md-editor-warn")).toBeHidden();
 
     // Merely opening + saving recovers the link (the round-trip differs from the
     // on-disk HTML, so Save is enabled with no keystroke needed).
@@ -213,5 +218,54 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
     expect(saved).toContain('slug: "sdlc-automation"'); // frontmatter verbatim
 
     await page.screenshot({ path: testInfo.outputPath("md-editor-htmllink-recovered.png"), fullPage: true });
+  });
+
+  // Regression: iterate-2026-08-31-markdown-raw-html-passthrough. A styled CTA
+  // link authored as a raw HTML BLOCK (for a third-party renderer that honors
+  // inline styling) used to be silently rewritten to a plain markdown link on
+  // save, dropping the `style` attribute with no warning. AC-3/AC-1 (agent).
+  test("CTA block file: a raw HTML block renders as a preserved chip and saves byte-identical", async ({ page }, testInfo) => {
+    const captured = await mockCtaBlockFile(page);
+    await page.goto("/preview?projectId=proj-x&path=20260831/post.md");
+
+    await page.getByTestId("smart-viewer-edit").click();
+    await expect(page.getByTestId("markdown-editor-modal")).toBeVisible();
+
+    // AC-3 — a distinct, non-editable region shows the raw markup is present
+    // and will be preserved, instead of silently vanishing into prose.
+    const chip = page.getByTestId("raw-html-block-chip");
+    await expect(chip).toBeVisible();
+    await expect(chip).toContainText("→ Explore Shipwright");
+    await expect(chip).toContainText("style=");
+
+    // No lossy-HTML warning for a block that is now preserved verbatim.
+    await expect(page.getByTestId("md-editor-warn")).toBeHidden();
+
+    // Review with NO edit — the block round-trips byte-identically, so there
+    // is nothing to save; the diff must report no changes.
+    await page.getByTestId("md-editor-review").click();
+    await expect(page.getByTestId("markdown-diff")).toBeVisible();
+    await expect(page.getByTestId("markdown-diff-summary")).toHaveText("No changes");
+    await expect(page.getByTestId("md-editor-save")).toBeDisabled();
+
+    // A real edit elsewhere in the doc still enables Save, and the CTA block
+    // must survive that save byte-identical (AC-1-agent).
+    await page.getByTestId("md-editor-back").click();
+    const surface = page.getByTestId("md-editor-surface");
+    await surface.click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.type("EDITED ");
+
+    await page.getByTestId("md-editor-review").click();
+    await page.getByTestId("md-editor-save").click();
+    await expect(page.getByTestId("markdown-editor-modal")).toBeHidden();
+
+    expect(captured.putBody).not.toBeNull();
+    const saved = captured.putBody as string;
+    expect(saved).toContain(CTA_BLOCK); // byte-identical raw HTML block
+    expect(saved).toContain("EDITED");
+    expect(saved.split(NL).length).toBeGreaterThan(1); // sanity: not collapsed to one line
+
+    await page.screenshot({ path: testInfo.outputPath("md-editor-cta-block-preserved.png"), fullPage: true });
   });
 });

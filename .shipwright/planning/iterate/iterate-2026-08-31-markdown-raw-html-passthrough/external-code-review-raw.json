@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: `client/src/lib/markdownTiptap.ts:152-161`\n- Finding: The inline-anchor losslessness classifier only recognizes a double-quoted absolute URL (`<a href=\"https://...\">`). Valid href-only HTML anchors using single quotes, unquoted attributes, relative paths, fragments, or protocol-relative URLs are still representable as TipTap links and serialize to semantically equivalent Markdown links, but are incorrectly marked as lossy and show the warning banner. This contradicts the updated FR-01.35 behavior of warning only for inline HTML the schema cannot represent losslessly.\n- Suggestion: Parse the anchor attribute syntax rather than matching only `href=\"...\"`, and use the same URI-acceptance semantics as the configured Link extension (including allowed relative/fragment URLs). Add detector tests for at least `<a href='/docs'>`, `<a href=/docs>`, and `<a href=\"#section\">`.\n\nOverall assessment: The raw HTML block passthrough, inert rendering, serialization, and top-level warning classification are implemented soundly, but the tightened inline warning heuristic has concrete false positives for common, losslessly representable anchor syntax. Ship with the classifier correction first.  \nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": null,
+      "via": "openrouter",
+      "status": "degraded",
+      "reason": "provider returned an empty reply"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "unavailable"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "degraded"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
+  }
+}

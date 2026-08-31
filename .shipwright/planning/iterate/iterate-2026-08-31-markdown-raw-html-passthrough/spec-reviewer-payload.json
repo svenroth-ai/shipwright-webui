@@ -1,0 +1,22 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All four acceptance criteria are present, faithful and in-scope; the declared Spec Impact (MODIFY FR-01.35) is delivered in both the FR row and a new (E) criterion. No divergence found. Code-reviewer (Stage 2) may proceed.",
+  "per_criterion": {
+    "AC-1": "byte-for-byte block round-trip -- implemented by markdownRawHtmlBlock.ts (html_block renderer override + atom node + verbatim serialize), pinned by 8 test cases including the exact reported CTA construct.",
+    "AC-2": "pre-existing inline fix unaffected -- inline anchor round-trip suite untouched by the diff; renderer override scoped to html_block only, html_inline never touched.",
+    "AC-3": "distinct non-editable region -- atom:true node, contenteditable=false, data-testid=raw-html-block-chip, E2E asserts chip visibility + byte-identical saved PUT body.",
+    "AC-4": "lossy detector -- detectHtmlLossiness uses the SAME MARKDOWN_IT_OPTIONS as the editor parser; level-0 html_block not flagged, nested/inline (beyond href-only safe-protocol anchor) still flagged, matching the AC's own wording."
+  },
+  "out_of_scope_checks": {
+    "block_content_non_editable": "honoured -- atom node, no NodeView, no editable content hole",
+    "inline_span_style_still_warns": "honoured, pinned by test",
+    "markdownEnvelope_split_is_verbatim_move": "confirmed line-by-line identical to the deleted block; re-exported so no call site moved; recorded in the iterate spec's File split note (300-line convention)"
+  },
+  "non_blocking_observations_for_stage2": [
+    "FR-01.35 row wording in spec.md is a looser capability-level summary than the precise (E) criterion -- not a divergence, spec.md documents rows are deliberately summary-level.",
+    "client/package-lock.json was excluded from the reviewer's diff file by the diff-generation command (path filter), NOT because it is unmodified -- git status confirms it IS modified alongside package.json.",
+    "The E2E blog-file warn-banner assertion flip (toBeVisible -> toBeHidden) is a disclosed, correct behaviour change (href-only anchor with https scheme is genuinely lossless), not a weakened assertion."
+  ]
+}

@@ -36,6 +36,7 @@ import { ApiError } from "../../../lib/externalApi";
 import { MarkdownDiffView } from "./MarkdownDiffView";
 import { MarkdownEditorToolbar } from "./MarkdownEditorToolbar";
 import { MarkdownEditorBanners } from "./MarkdownEditorBanners";
+import { MarkdownEditorFooter } from "./MarkdownEditorFooter";
 
 interface Props {
   open: boolean;
@@ -58,9 +59,6 @@ interface Props {
 }
 
 type Phase = "loading" | "load_error" | "editing" | "diff" | "saving" | "conflict";
-
-const btnBase =
-  "rounded-[6px] px-3 py-1.5 text-[12px] font-medium transition disabled:opacity-50";
 
 export function MarkdownEditorModal({
   open,
@@ -109,7 +107,11 @@ export function MarkdownEditorModal({
       const env = splitMarkdownEnvelope(res.text);
       envelopeRef.current = env;
       setHasFrontmatter(env.frontmatter.length > 0);
-      setWarnings(detectLossyConstructs(res.text));
+      // env.core (frontmatter stripped), NOT res.text (the whole file) — the
+      // editor only ever sees env.core (line below), so the warn banner must
+      // classify the SAME text or it can flag HTML-looking frontmatter the
+      // editor never touches (doubt-reviewer LOW finding, iterate-2026-08-31).
+      setWarnings(detectLossyConstructs(env.core));
       // The editor owns ONLY the prose body; frontmatter / line-endings /
       // trailing newline live in the envelope and are re-attached on serialize.
       editor?.commands.setContent(env.core);
@@ -231,38 +233,17 @@ export function MarkdownEditorModal({
           </div>
 
           <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border,#e0dbd4)] px-4 py-2.5">
-            {phase === "load_error" ? (
-              <button type="button" className={`${btnBase} bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-text,#1a1a1a)]`} onClick={() => onOpenChange(false)} data-testid="md-editor-close-error">
-                Close
-              </button>
-            ) : phase === "conflict" ? (
-              <>
-                <button type="button" className={`${btnBase} text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]`} onClick={() => onOpenChange(false)}>
-                  Cancel
-                </button>
-                <button type="button" className={`${btnBase} bg-[var(--color-error,#DC2626)] text-white`} onClick={() => void load()} data-testid="md-editor-reload">
-                  Reload &amp; discard my changes
-                </button>
-              </>
-            ) : phase === "diff" || phase === "saving" ? (
-              <>
-                <button type="button" disabled={busy} className={`${btnBase} text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]`} onClick={() => setPhase("editing")} data-testid="md-editor-back">
-                  ← Back to editor
-                </button>
-                <button type="button" disabled={busy || edited === original.current} className={`${btnBase} bg-[var(--color-primary,#6b5e56)] text-white`} onClick={() => void doSave()} data-testid="md-editor-save">
-                  {busy ? "Saving…" : "Save"}
-                </button>
-              </>
-            ) : (
-              <>
-                <button type="button" className={`${btnBase} text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]`} onClick={() => onOpenChange(false)} data-testid="md-editor-cancel">
-                  Cancel
-                </button>
-                <button type="button" disabled={phase !== "editing"} className={`${btnBase} bg-[var(--color-primary,#6b5e56)] text-white`} onClick={toDiff} data-testid="md-editor-review">
-                  Review changes →
-                </button>
-              </>
-            )}
+            <MarkdownEditorFooter
+              phase={phase}
+              busy={busy}
+              edited={edited}
+              original={original.current}
+              onClose={() => onOpenChange(false)}
+              onReload={() => void load()}
+              onBackToEditor={() => setPhase("editing")}
+              onReview={toDiff}
+              onSave={() => void doSave()}
+            />
           </div>
         </Dialog.Content>
       </Dialog.Portal>
