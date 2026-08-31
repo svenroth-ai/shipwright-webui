@@ -1,0 +1,45 @@
+I attempted to disprove correctness across all four lenses, with primary focus on concurrency/ordering per the trigger. I found one concrete, high-severity race in the supersession write path that survives all currently-green tests (confirmed there is zero dedicated test coverage of association.ts or association-write.ts).
+
+## Finding: out-of-order concurrent writes let a supersession regress to a stale run
+
+Mechanism. scenario.ts rule 2b decides whether to supersede by comparing a freshly-recovered candidate against the association snapshot read at the start of that single request. That decision is fixed early in the request, well before the request's slow async work (git subprocess calls in resolveIterateContext) has run.
+
+The actual write, supersedeMissionContext (server/src/core/mission-context/association.ts:97-108), did NOT re-validate recency against the store's current value at write time -- it only checked that a missionContext existed and that association.source === "transcript_run_id", then unconditionally overwrote.
+
+Concrete reproduction (multi-tab is explicitly a supported pattern per CLAUDE.md Architecture rule 4, "multi-tab for free"):
+1. Task has stale missionContext = R1.
+2. Poll A reads transcript containing footers up to R2; detectScenario fixes associateRunId = R2 (proven newer than R1). A's request then does slow git I/O before reaching the write.
+3. Poll B (a second tab, or the next 1s tick, landing before A has written) reads task.missionContext -- still R1 -- but the transcript has grown further and now contains a footer for R3. B fixes associateRunId = R3 (proven newer than R1). B's git calls happen to be fast; B writes R1 -> R3 and persist() succeeds. Store now correctly holds R3.
+4. A finally resumes and writes. Because the previous implementation re-read task.missionContext fresh at write time (which now shows R3) and only compared "does my target differ from current", the guard would pass and A would overwrite R3 back to R2.
+
+Result: the durable association silently regresses from the correct, newer run (R3) to a staler one (R2), purely due to async scheduling order -- the exact class of bug ("a stale association never refreshes") this diff exists to fix, reintroduced one level deeper. Notably this bug requires no failure at all -- both writes succeed; it is a plain lost-update/TOCTOU race, which is arguably worse than the ELOCKED case the code already guards against.
+
+What would resolve it: have supersedeMissionContext re-validate against the store's CURRENT value at write time using the value the CALLER actually decided against (not a fresh re-read) -- i.e. true compare-and-set semantics.
+
+## Other lenses attacked, nothing further found
+- Supersession memo (resolver-parts.ts supersessionResult): traced a second-order oddity but it's harmless.
+- Resolver cache vs. supersession: cache key includes runId explicitly, no cross-contamination beyond the consequence of the regression bug above.
+- First-association ELOCKED rollback and supersession ELOCKED rollback: both correctly re-check ownership before reverting.
+- Mechanical file splits: no behavior divergence found by inspection.
+- Blast radius: task.missionContext is read/written only within the Mission tab feature, no wider coupling found.
+
+```json
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "async/concurrency (resolver cache + supersession memo + persisted association write with ELOCKED rollback)",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "concurrency-ordering",
+      "claim_under_doubt": "scenario.ts rule 2b's isProvablyNewerRunId check plus association.ts's supersedeMissionContext together make the persisted association monotonic (never regresses)",
+      "disproof_attempt": "Two overlapping polls can compute different 'newer than R1' targets (R2 vs R3) from the same stale snapshot; the faster one writes R3 first, then the slower one overwrites it back down to R2 because supersedeMissionContext only checked 'source is transcript_run_id and value differs from current', never true compare-and-set against the decision's own basis.",
+      "file": "server/src/core/mission-context/association.ts",
+      "what_would_resolve_it": "Re-validate against the store's CURRENT missionContext at write time using the exact value the caller's decision was based on (compare-and-set), not a fresh re-read; or a rebuttal showing this interleaving cannot occur in practice."
+    }
+  ],
+  "summary": "1 high doubt (concurrency/ordering): the supersession write was a TOCTOU/lost-update race that could regress the persisted association to a staler run under concurrent/out-of-order polls, with zero existing test coverage. Attempted all four lenses; the memo, resolver cache, first-association CAS path, and both ELOCKED rollback helpers held up under adversarial tracing and were not the source of the bug."
+}
+```
+
+DISPOSITION (implementer, same run): FIXED. supersedeMissionContext now takes an explicit expectedPrevious parameter and performs true compare-and-set against the store's current value; routes.ts snapshots associationAtResolve BEFORE resolveMissionContext's slow async work and threads that exact snapshot through persistMissionAssociation into the write, rather than re-reading task.missionContext at write time. New regression tests: association.test.ts ("SKIPS the write when the store's current value no longer matches expectedPrevious") and association-write.test.ts ("does NOT regress the store when a concurrent poll already superseded past the snapshot") both reproduce this exact scenario and assert the newer, already-current association survives untouched. Full server suite re-verified green (329 files / 3763 tests / 3 skipped) after the fix.

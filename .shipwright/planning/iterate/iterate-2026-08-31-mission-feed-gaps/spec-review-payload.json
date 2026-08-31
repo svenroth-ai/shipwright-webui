@@ -1,0 +1,12 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All four reported issues are implemented, faithful to the report, and in scope. (1) scenario.ts rule 2b now consults the recovery thunk and lets a DIFFERENT corroborated run id supersede a stale association, with runIdSource='transcript' so resolver.ts re-persists it; throttled by a content-fingerprinted memo in resolver-parts.ts. (2) ActivityCard.timestamp is threaded from the JSONL event's own timestamp at every event-derived creation site and rendered via the existing formatRelativeTime with a full-date title. (3) containsIterateBanner recognizes the /shipwright-iterate intro banner and emits a dedicated 'goal' card instead of feeding pendingNarration. (4) MissionActivityFeed uses the existing useAutoScroll hook on .mc-feed-scroll, which already carries overflow-anchor:auto — the CSS-first + safety-net pattern DO-NOT #2 prescribes, no scroll library added. No unrequested behaviour found; the four fixes in one diff were explicitly authorized. Code-reviewer (Stage 2) may proceed.",
+  "advisory_notes_addressed": [
+    "resolver.ts's pre-existing 300-line overflow (item 5) was resolved post-review via a genuine cohesive split into resolver-iterate.ts (the ITERATE-scenario body) — resolver.ts is now 111 lines, all touched files under 300, typecheck/lint/tests all clean (543/543 mission-context tests).",
+    "run-id-recovery.ts:213's stale doc comment (item 1) was corrected to describe both callers (rule 5 and rule 2b).",
+    "ActivityCard.timestamp's doc comment (item 3) was corrected to also name the reconcile-synthesized (no-source-event) absent case.",
+    "Item 2 (banner-printed-twice yields two undeduped goal cards) and item 4 (useAutoScroll's ResizeObserver watches the first .mc-feed-entry rather than a content wrapper) are left as-is — both are pre-existing behavior of code this diff reuses rather than authors, and neither regresses a reported issue."
+  ]
+}

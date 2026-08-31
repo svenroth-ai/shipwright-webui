@@ -1,0 +1,25 @@
+```json
+{
+  "section": "iterate-2026-08-31-mission-feed-gaps",
+  "review": []
+}
+```
+
+## Review Summary
+
+**Verdict: PASS — no findings.**
+
+I read the full diff (server/src/core/mission-context/{association,resolver,resolver-parts,resolver-iterate,run-id-recovery,scenario}.ts + their .test.ts files, server/src/external/mission-context/routes.ts + .test.ts, server/src/test/mission-runlive-doc-parity.test.ts, and the client-side client/src/components/external/mission/{MissionActivityFeed,MissionBody}.tsx + test, client/src/lib/missionActivityFeed{,Classify,Types}.ts + new test file, client/src/styles/mission-operation.css), and separately verified the two files the diff-generation step happened to omit by reading them directly off disk:
+- C:\01_Development\shipwright-webui\.worktrees\mission-feed-gaps\server\src\external\mission-context\association-write.ts
+- C:\01_Development\shipwright-webui\.worktrees\mission-feed-gaps\client\src\lib\formatTime.ts
+
+Both exist, are well under the 300-line limit, and match exactly what the task description and routes.ts's new import (persistMissionAssociation) expect — the diff file's silence on these two paths appears to be a tooling artifact (most likely git diff run against an index that hadn't staged the new files), not a code defect, so I did not raise it as a finding.
+
+**Axis-by-axis:**
+- **Correctness** — All four described defects are fixed and covered by targeted tests, including the edge cases external review already caught in-band (visible in code comments: "external code review, openai HIGH/MEDIUM"): same-day/unparseable run-id dates never count as "provably newer" (isProvablyNewerRunId in run-id-recovery.ts), the supersession memo caches the *confirmed result* rather than a checked/unchecked boolean (closing a revert-to-stale race across polls — verified in resolver-parts.ts + routes.recovery.test.ts), the banner match is a standalone trimmed-line compare (not .includes(), avoiding false positives on prose that merely quotes the banner), and the mobile hidden-tab scroll case is handled by folding visible into the useAutoScroll dependency string. Rule 2b in scenario.ts (lines 222-263) is correctly scoped so it can never leak into rules 3-6.
+- **Readability** — Files stay well inside the 300-line convention after the two mechanical splits (resolver.ts 111 lines, resolver-iterate.ts 233, routes.ts 274, association-write.ts 85, resolver-parts.ts 267); no dead imports or unused code found in the post-split resolver.ts.
+- **Architecture** — The split follows the exact precedent already used by recovery-schedule.test.ts -> recovery-schedule.resolver.test.ts; MissionCompactPanel/compactPanel state reused correctly rather than duplicated for the new visible prop.
+- **Security** — FeedTime guards Date.parse before rendering (never renders "NaNw ago"); the transcript-derived run-id recovery path (pre-existing, unmodified core logic) already enforces canonical-shape + strict grammar + line-termination + corroboration before any value is trusted, and the new supersession check composes on top of that without weakening it.
+- **Performance** — The new per-poll supersession check is throttled by a content-fingerprinted memo exactly mirroring the existing negative-scan memo pattern in run-id-recovery.ts; capped at 512 entries with the same clear-on-cap eviction the codebase already uses elsewhere.
+
+This confirms the transcript-recovery path already has robust input-validation (canonical shape + isSafeRunId grammar + line-termination + corroboration against real event records) predating this diff — the new isProvablyNewerRunId check composes safely on top of it, and recovered is never trusted for supersession without going through that same untrusted-input gauntlet first. No security gap introduced.

@@ -18,6 +18,15 @@ export interface ActivityCard {
   text: string;
   commands: string[];
   artifact?: ArtifactKind;
+  /** ISO-8601 timestamp of the JSONL event that created this card (its OWN
+   * transcript timestamp, never a client-side "now") — absent when the source
+   * event carried none (older transcripts predate the field), AND for a card
+   * synthesized from MissionContext with no source event at all (e.g. the
+   * test/spec/review/delivery cards missionActivityFeedReconcile.ts builds).
+   * Set once, at creation; a later event coalescing into the same card does
+   * not move it, since the card represents when the activity STARTED
+   * (iterate-2026-08-31-mission-feed-gaps). */
+  timestamp?: string;
   /** Bounded, sanitized raw-output excerpt — real transcript content, never
    * a gate verdict (MissionContext stays the sole verdict source). */
   detail?: string;

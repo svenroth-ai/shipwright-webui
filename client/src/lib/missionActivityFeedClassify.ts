@@ -13,6 +13,29 @@ export const GENERIC_TEXT = {
   implement: "The implementation was updated in compact steps.",
 } as const;
 
+/**
+ * The `/shipwright-iterate` skill's fixed intro banner (SKILL.md "Print Intro
+ * Banner") prints this exact line, alone, as its second row, inside a turn
+ * with no tool call — so it lands as `pendingNarration` and only ever
+ * surfaced indirectly, via whatever generic bucket sentence the NEXT
+ * tool-bearing turn happened to fall into (iterate-2026-08-31-mission-feed-gaps,
+ * reported: the feed opened on "The implementation was updated in compact
+ * steps." instead of ever showing an iterate had started). Matched on this
+ * one line rather than the surrounding `====` border, which carries no
+ * identifying text of its own and could appear in unrelated fenced output.
+ *
+ * Matched as a STANDALONE (trimmed) line, not a substring (external code
+ * review, openai MEDIUM) — a plain `.includes()` also fired on ordinary prose
+ * that merely quotes or discusses the banner mid-sentence, fabricating a
+ * "run started" card for a run that never started.
+ */
+const ITERATE_BANNER_LINE = "SHIPWRIGHT-ITERATE: Adaptive Change Lifecycle";
+
+/** Does this assistant turn's text print the /shipwright-iterate intro banner as its own line? */
+export function containsIterateBanner(lines: readonly string[]): boolean {
+  return lines.some((line) => line.trim() === ITERATE_BANNER_LINE);
+}
+
 const CHAIN_SEPARATORS = new Set(["&", "|", ";"]);
 
 /** Quote-aware split on shell chain separators (`&&`, `||`, `;`, `|`) — NOT

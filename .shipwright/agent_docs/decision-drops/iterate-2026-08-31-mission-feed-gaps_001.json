@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-31-mission-feed-gaps",
+  "date": "2026-08-31",
+  "section": "Iterate — bug: mission tab feed gaps",
+  "title": "Mission tab feed staleness, timestamps, banner recognition, scroll direction",
+  "context": "User reported four Mission-tab defects: feed stops documenting after the first delivery, no timestamps, generic fallback text instead of intro-banner recognition, and scroll opens at the top instead of the bottom.",
+  "decision": "Supersede a stale mission-context association via a corroborated transcript Run-ID footer using true compare-and-set; add per-card timestamps with a tooltip; give the intro banner its own goal card; scroll to bottom on mount.",
+  "consequences": "The Mission tab now keeps tracking after the first delivery, shows real times, opens with real content, and follows new activity; the association write is race-safe under concurrent polls (multi-tab/fast ticks).",
+  "rationale": "Doubt-review found the initial CAS fix insufficient: a write-time re-read of task.missionContext defeated it. Fixed by snapshotting the association at resolve time, before the slow git I/O.",
+  "rejected": "Length+last-256-char transcript fingerprint (collision risk, external review MEDIUM) replaced with full-content SHA-256; re-reading task.missionContext at write time, which defeats compare-and-set.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

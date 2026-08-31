@@ -72,3 +72,76 @@ export function revertMissionContext(
   if (task.missionContext.observedAt !== attempted.observedAt) return;
   store.patch(taskId, { missionContext: undefined });
 }
+
+/**
+ * Evidence-gated UPDATE of an association ALREADY on file — the one
+ * deliberate exception to the once-only doctrine above (external code
+ * review, openai HIGH, iterate-2026-08-31-mission-feed-gaps).
+ *
+ * Without this, scenario.ts rule 2b's supersession is provably decorative:
+ * the ONCE-only write above makes every corrected `associateRunId` it returns
+ * unreachable, so a long-lived task's stale association never durably
+ * corrects — and once the newer run's `Run-ID:` footer scrolls past this
+ * task's (narrower, associated-task) reach-back window, rule 2b's per-poll
+ * scan stops finding it too, and the Mission tab is stuck on the stale run
+ * for good. Persisting the correction closes both holes.
+ *
+ * Narrow on purpose — this is a correction, not a general-purpose write: the
+ * caller only ever offers a `transcript_run_id`-sourced association, and only
+ * after scenario.ts rule 2b has required a corroborated footer naming a
+ * PROVABLY newer run than the one on file (`isProvablyNewerRunId`). This
+ * function does not re-derive that recency itself — it trusts the one caller
+ * that computes it, the same posture `setMissionContextOnce` already takes
+ * toward its own caller's pointer validation.
+ *
+ * Compare-and-set against `expectedPrevious` (external code review, openai
+ * MEDIUM): without it, this is a blind overwrite of "whatever is currently
+ * stored", not of the specific stale association the resolver actually
+ * decided against. Two polls can race on the same stale association — poll
+ * A resolves against it and decides to supersede with run X, poll B resolves
+ * against the SAME stale read (a later poll interval, different transcript
+ * snapshot) and decides to supersede with run Y — and whichever write lands
+ * second would clobber the other's answer even though it is validating a read
+ * that is no longer current. Requiring the stored value to still equal what
+ * THIS caller read before writing turns that into a no-op instead: the loser
+ * skips its write and the next resolve operates on whatever is now current.
+ */
+export function supersedeMissionContext(
+  store: Pick<SdkSessionsStore, "get" | "patch">,
+  taskId: string,
+  association: MissionContextAssociation,
+  expectedPrevious: MissionContextAssociation,
+): boolean {
+  const task = store.get(taskId);
+  if (!task?.missionContext) return false;
+  if (task.missionContext.runId !== expectedPrevious.runId) return false;
+  if (task.missionContext.observedAt !== expectedPrevious.observedAt) return false;
+  if (association.source !== "transcript_run_id") return false;
+  if (!isMissionContextAssociation(association)) return false;
+  store.patch(taskId, { missionContext: association });
+  return true;
+}
+
+/**
+ * Roll back a supersession that was set in memory but FAILED to persist — the
+ * supersede counterpart to `revertMissionContext`. Restores the PREVIOUS
+ * association rather than clearing the field: unlike a first association,
+ * there was already a valid, durable value here, and losing it to a
+ * transient lock contention would be a second, worse regression stacked on
+ * top of the one this whole mechanism exists to fix.
+ *
+ * Only reverts when the field still holds the association WE just set, so a
+ * concurrent writer's value is never clobbered.
+ */
+export function revertSupersession(
+  store: Pick<SdkSessionsStore, "get" | "patch">,
+  taskId: string,
+  attempted: MissionContextAssociation,
+  previous: MissionContextAssociation,
+): void {
+  const task = store.get(taskId);
+  if (!task?.missionContext) return;
+  if (task.missionContext.runId !== attempted.runId) return;
+  if (task.missionContext.observedAt !== attempted.observedAt) return;
+  store.patch(taskId, { missionContext: previous });
+}

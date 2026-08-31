@@ -28,7 +28,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const SERVER_TYPES = "server/src/core/mission-context/types.ts";
 const CLIENT_MIRROR = "client/src/lib/missionContextApi.ts";
-const RESOLVER = "server/src/core/mission-context/resolver.ts";
+// `runLive` moved into the ITERATE-scenario split (2026-08-31,
+// iterate-2026-08-31-mission-feed-gaps) when resolver.ts crossed the
+// file-size limit — see resolver-iterate.ts's header.
+const RESOLVER = "server/src/core/mission-context/resolver-iterate.ts";
 
 function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf-8");

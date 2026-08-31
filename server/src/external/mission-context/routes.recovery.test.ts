@@ -162,6 +162,102 @@ describe("GET mission-context — recovering a pruned run identity", () => {
     }
   });
 
+  it("a STALE association is DURABLY superseded — a second GET sees the NEW association, not a reverted fallback (external code review, openai HIGH)", async () => {
+    const root = makeProject();
+    try {
+      prunePointer(root);
+      const newerRunId = "iterate-2026-07-20-newer-run";
+      recordRun(root, newerRunId);
+      const staleAssociation = {
+        kind: "iterate" as const,
+        runId: RUN_ID,
+        observedAt: "2026-07-18T10:00:00.000Z",
+        source: "iterate_active_pointer" as const,
+      };
+      const newerFooter = `{"text":"feat: something\\n\\nRun-ID: ${newerRunId}\\nCo-Authored-By: Claude <noreply@anthropic.com>"}`;
+      const { app, persist, tasks } = harness(
+        root,
+        makeTask({ missionContext: staleAssociation }),
+        { transcript: newerFooter },
+      );
+
+      // First poll: the transcript corroborates a NEWER run than the stale
+      // association on file, so it supersedes and PERSISTS the correction —
+      // without this the route's old once-only guard discarded every
+      // supersession scenario.ts computed, and the fix never survived past
+      // the single resolve() call that found it.
+      const ctx1 = await getContext(app);
+      expect(ctx1.runId).toBe(newerRunId);
+      expect(tasks.get("task-1")?.missionContext).toEqual({
+        kind: "iterate",
+        runId: newerRunId,
+        observedAt: expect.any(String),
+        source: "transcript_run_id",
+      });
+      expect(persist).toHaveBeenCalledTimes(1);
+
+      // Second poll, same transcript: the association now already matches
+      // what the transcript corroborates, so nothing further is written —
+      // and, crucially, the run id has NOT reverted to the stale one.
+      const ctx2 = await getContext(app);
+      expect(ctx2.runId).toBe(newerRunId);
+      expect(persist).toHaveBeenCalledTimes(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does NOT supersede a stale association with an OLDER quoted run, even a corroborated one", async () => {
+    const root = makeProject();
+    try {
+      prunePointer(root);
+      const olderRunId = "iterate-2026-07-01-older-run";
+      // RUN_ID is "iterate-2026-07-18-demo" — record BOTH so the older one is
+      // genuinely corroborated and not rejected merely for lacking a record.
+      recordRun(root, RUN_ID);
+      writeFileSync(
+        join(root, "shipwright_events.jsonl"),
+        `${JSON.stringify({
+          v: 1,
+          type: "work_completed",
+          id: olderRunId,
+          adr_id: olderRunId,
+          ts: "2026-07-01T10:00:00Z",
+          summary: "An earlier run",
+          commit: "b".repeat(40),
+        })}\n${JSON.stringify({
+          v: 1,
+          type: "work_completed",
+          id: RUN_ID,
+          adr_id: RUN_ID,
+          ts: "2026-07-20T10:00:00Z",
+          summary: "Did the thing",
+          commit: "a".repeat(40),
+        })}\n`,
+        "utf-8",
+      );
+      const staleAssociation = {
+        kind: "iterate" as const,
+        runId: RUN_ID,
+        observedAt: "2026-07-18T10:00:00.000Z",
+        source: "iterate_active_pointer" as const,
+      };
+      const olderFooter = `{"text":"feat: something\\n\\nRun-ID: ${olderRunId}\\nCo-Authored-By: Claude <noreply@anthropic.com>"}`;
+      const { app, persist, tasks } = harness(
+        root,
+        makeTask({ missionContext: staleAssociation }),
+        { transcript: olderFooter },
+      );
+
+      const ctx = await getContext(app);
+      expect(ctx.runId).toBe(RUN_ID);
+      expect(tasks.get("task-1")?.missionContext).toEqual(staleAssociation);
+      expect(persist).not.toHaveBeenCalled();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("a LIVE pointer still wins and is recorded as the pointer, not the footer", async () => {
     const root = makeProject();
     try {

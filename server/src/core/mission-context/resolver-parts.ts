@@ -13,6 +13,7 @@ import { statSync } from "node:fs";
 import { readBoundedFile } from "./fs-read.js";
 
 import { MAX_DOC_BYTES } from "./worktree-roots.js";
+import { recoverRunIdFromTranscript } from "./run-id-recovery.js";
 import {
   MISSION_CONTEXT_SCHEMA_VERSION,
   type ArtifactDescriptor,
@@ -103,6 +104,115 @@ export const CACHE_CAP = 256;
 /** Test-only: drop the module-level cache between cases. */
 export function _clearResolverCache(): void {
   cache.clear();
+}
+
+/**
+ * Memoizes a CONFIRMED SUPERSESSION for THIS transcript content against THIS
+ * association (iterate-2026-08-31-mission-feed-gaps, scenario.ts rule 2b) —
+ * not merely "already checked". Content-fingerprinted, not time-based: a poll
+ * with no new transcript content is a guaranteed no-op, and the memo is
+ * naturally invalidated the moment the association itself changes (a
+ * different key) or the transcript grows (a different fingerprint).
+ *
+ * Caching the RESULT, not a checked/unchecked boolean, is load-bearing
+ * (external code review, openai HIGH): the route persists a confirmed
+ * supersession via `supersedeMissionContext` (association.ts) AFTER
+ * `resolveMissionContext` returns, so a poll can legitimately land again with
+ * the SAME stale `associationRunId` before that write lands (or if it fails
+ * outright). A boolean-only memo would then return `null` on that second
+ * poll — discarding an already-found answer and reverting the Mission
+ * context from the newly recovered run back to the stale one.
+ *
+ * ONLY a non-null (confirmed, corroborated, provably-newer) recovery is ever
+ * cached (external code review, openai MEDIUM): `recoverRunIdFromTranscript`
+ * returns `null` for two different reasons — "no marker in this text" (a
+ * purely textual fact, already covered by the SEPARATE negative-scan memo in
+ * run-id-recovery.ts) and "marker found but corroboration failed", which that
+ * module deliberately re-checks every poll because the project's own records
+ * can gain the run LATER. Caching a `null` here for the second reason would
+ * silently override that decision for the whole rule-2b class, so this memo
+ * never stores one. Mirrors the negative-scan memo, kept separate because
+ * this one also has to remember WHICH association it checked against, not
+ * just whether a marker existed at all.
+ */
+const supersessionResult = new Map<string, { fingerprint: string; recovered: string }>();
+const SUPERSESSION_CAP = 512;
+
+/**
+ * A full-content SHA-256, not length+suffix (external code review, openai
+ * MEDIUM): two distinct bounded transcript snapshots can share both length
+ * and final 256 characters while differing earlier in the tail — exactly
+ * where an EARLIER `Run-ID:` footer could sit. A suffix-only fingerprint
+ * would then replay a stale memoized answer for genuinely different content
+ * instead of re-scanning. Hashing costs one pass over a string already read
+ * into memory for the scan this memo exists to skip — cheap relative to what
+ * it replaces.
+ */
+function supersessionFingerprint(transcript: string): string {
+  return createHash("sha256").update(transcript).digest("hex");
+}
+
+/**
+ * The memoized, CONFIRMED supersession for this (session, association,
+ * transcript-content) triple — `undefined` when none is cached (either this
+ * content was never checked, or it was checked and found nothing, which is
+ * deliberately never memoized here; a scan is owed either way).
+ */
+export function supersessionMemoHit(
+  sessionUuid: string,
+  associationRunId: string,
+  transcript: string,
+): string | undefined {
+  const entry = supersessionResult.get(`${sessionUuid}::${associationRunId}`);
+  if (!entry || entry.fingerprint !== supersessionFingerprint(transcript)) return undefined;
+  return entry.recovered;
+}
+
+/** Record this triple's CONFIRMED recovery, so the next unchanged poll reuses it instead of re-scanning. */
+export function markSupersessionResult(
+  sessionUuid: string,
+  associationRunId: string,
+  transcript: string,
+  recovered: string,
+): void {
+  const key = `${sessionUuid}::${associationRunId}`;
+  if (supersessionResult.size >= SUPERSESSION_CAP) supersessionResult.clear();
+  supersessionResult.set(key, { fingerprint: supersessionFingerprint(transcript), recovered });
+}
+
+/** Test-only: drop the supersession-check memo between cases. */
+export function _clearSupersessionMemo(): void {
+  supersessionResult.clear();
+}
+
+/**
+ * Builds the LAZY `recoverTranscriptRunId` thunk `detectScenario` calls for
+ * both rule 5 (no association) and rule 2b (supersession check) — wiring the
+ * throttle above around `recoverRunIdFromTranscript` in one place so the
+ * orchestrator (resolver.ts) stays a one-line call site. `memoHit` is read at
+ * BUILD time (this resolve's transcript/association snapshot), not
+ * re-evaluated inside the thunk, since neither changes within one call.
+ */
+export function buildRecoveryThunk(
+  projectRoot: string,
+  sessionUuid: string,
+  transcript: string,
+  associationRunId: string | null,
+): () => string | null {
+  const memoHit =
+    associationRunId !== null ? supersessionMemoHit(sessionUuid, associationRunId, transcript) : undefined;
+  return () => {
+    // A cache HIT is a CONFIRMED prior supersession for this exact content —
+    // returned as-is, never re-scanned. There is no cached-null case (see the
+    // memo's own doc comment): an unconfirmed result always re-scans, since
+    // corroboration can succeed later even when the text has not changed.
+    if (associationRunId !== null && memoHit !== undefined) return memoHit;
+    const recovered = recoverRunIdFromTranscript(projectRoot, transcript, sessionUuid);
+    if (associationRunId !== null && recovered !== null) {
+      markSupersessionResult(sessionUuid, associationRunId, transcript, recovered);
+    }
+    return recovered;
+  };
 }
 
 /**

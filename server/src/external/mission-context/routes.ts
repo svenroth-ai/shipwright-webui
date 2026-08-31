@@ -23,20 +23,16 @@ import { Hono } from "hono";
 
 import { parseDocId } from "../../core/mission-context/doc-ids.js";
 import {
-  revertMissionContext,
-  setMissionContextOnce,
-} from "../../core/mission-context/association.js";
-import {
   resolveMissionContext,
   readDocumentBody,
   type ResolveDeps,
   type ResolveRequest,
 } from "../../core/mission-context/resolver.js";
-import type { MissionContextAssociation } from "../../core/mission-context/types.js";
 import { readAllowedRoots } from "../../core/mission-context/worktree-roots.js";
 import { samePath } from "../../core/mission-context/pointer.js";
 import { SdkSessionsStore, type ExternalTask } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
+import { persistMissionAssociation } from "./association-write.js";
 
 /** Bounded tail of the transcript — enough for a `pr-link`, never the whole file. */
 export const TRANSCRIPT_TAIL_BYTES = 512 * 1024;
@@ -195,6 +191,18 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
       });
     }
 
+    // Snapshotted ONCE, here — the exact value `resolveMissionContext` bases
+    // `associateRunId`/`associateSource` on. The write below must compare
+    // against THIS reference, not a fresh re-read of `task.missionContext` at
+    // write time: the resolve that follows does slow async work (git calls in
+    // resolver-iterate.ts), during which a concurrent poll (multi-tab, or the
+    // next ~1s tick landing first) can legitimately write a NEWER association
+    // — re-reading late would then "expect" that newer value and let this
+    // poll's now-stale decision overwrite it (doubt-reviewer HIGH,
+    // iterate-2026-08-31-mission-feed-gaps: a lost-update/TOCTOU race with no
+    // failure involved, so ELOCKED rollback never catches it).
+    const associationAtResolve = task.missionContext ?? null;
+
     const { context, associateRunId, associateSource } = await resolveMissionContext({
       taskId: task.taskId,
       sessionUuid: task.sessionUuid,
@@ -206,38 +214,23 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
       taskTerminal: task.state === "done" || task.state === "launch_failed",
       // Server-held, server-written — this is what keeps a FINALIZED iterate
       // resolvable after its `iterate_active` pointer was pruned.
-      association: task.missionContext ?? null,
+      association: associationAtResolve,
       ...facts,
     }, deps.resolveDeps);
 
-    // THE one guarded association write (CONTRACT §5). Idempotent: the store
-    // no-ops when an association already exists, so repeated polls perform
-    // exactly zero writes after the first. Never a per-GET side-effect.
-    if (associateRunId && !task.missionContext) {
-      const association: MissionContextAssociation = {
-        kind: "iterate",
-        runId: associateRunId,
-        observedAt: now().toISOString(),
-        source: associateSource,
-      };
-      if (setMissionContextOnce(store, task.taskId, association)) {
-        try {
-          await store.persist();
-        } catch {
-          // A lock contention (ELOCKED) or I/O fault must not fail the READ —
-          // but the in-memory field MUST be rolled back, or every later poll
-          // would see it set, skip the write, and the association would never
-          // reach disk (external code review, openai HIGH).
-          revertMissionContext(store, task.taskId, association);
-          // …and the reach-back must be rolled back WITH it. The marker was
-          // recorded before the resolve; leaving it would make every later poll
-          // read only the ordinary tail while the task is unidentified again —
-          // permanently unreachable for a footer beyond it, which is the very
-          // data loss the rollback above exists to prevent, re-entered through
-          // the read side (internal code review, MEDIUM).
-          wideWindows.delete(task.taskId);
-        }
-      }
+    // THE one guarded association write (CONTRACT §5) — first association or
+    // a confirmed supersession, both idempotent. Split out to
+    // association-write.ts to stay under the file-size limit.
+    if (associateRunId) {
+      await persistMissionAssociation(
+        store,
+        task,
+        associationAtResolve,
+        associateRunId,
+        associateSource,
+        now,
+        wideWindows,
+      );
     }
 
     return c.json({ status: "ok", context });
