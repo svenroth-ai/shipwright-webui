@@ -16,6 +16,21 @@ interface Props {
 export function MarkdownEditorBanners({ phase, warnings, hasFrontmatter, errorMsg }: Props) {
   return (
     <>
+      {phase !== "loading" && phase !== "load_error" && (
+        <div
+          className="flex items-start gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)]/40 px-4 py-2 text-[12px]"
+          style={{ color: "var(--color-muted, #6b7280)" }}
+          data-testid="md-editor-uncommitted-note"
+        >
+          <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            Saved to disk only — this does not commit or push. Commit &amp;
+            push separately (or run <code>/shipwright-iterate</code>) to keep
+            the change.
+          </span>
+        </div>
+      )}
+
       {warnings.length > 0 && phase !== "load_error" && (
         <div
           className="flex items-start gap-2 border-b border-[var(--color-warning,#D97706)]/30 bg-[var(--color-warning,#D97706)]/10 px-4 py-2 text-[12px]"

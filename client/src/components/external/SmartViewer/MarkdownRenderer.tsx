@@ -9,11 +9,18 @@
  * `onPopOut` is omitted (the modal-nested instance), the button is suppressed.
  *
  * The Edit button (FR-01.34) opens the lazily-loaded <MarkdownEditorModal>
- * (TipTap rich editor → markdown save). It is shown only when `projectId`,
- * `path` AND `onSaved` are all provided — `onSaved` is set only by the primary
- * inline pane, so the nested pop-out instance shows no editor (no modal-in-modal).
- * The modal is `React.lazy`-loaded so TipTap/ProseMirror stays out of the
- * initial bundle.
+ * (TipTap rich editor → markdown save). It is shown whenever `projectId` +
+ * `path` + `onSaved` are all provided. `onSaved` used to be wired only by
+ * the primary inline pane (suppressing Edit inside a modal-nested instance,
+ * "no modal-in-modal") — decoupled in iterate-2026-08-31-shipslog-documents-
+ * panel: SmartViewer.tsx now always wires `onSaved` regardless of `popOut`,
+ * so a modal-nested viewer (SmartViewerModal, TriageFilePanel) can edit too.
+ * Nesting MarkdownEditorModal inside another Dialog (SmartViewerModal /
+ * TriageDetailModal) is intentional — Radix dialogs portal to <body> and
+ * stack correctly; only the pop-out AFFORDANCE itself stays non-recursive
+ * (`onPopOut` is still omitted for the nested instance, so it renders no
+ * further "Pop out" button). The modal is `React.lazy`-loaded so
+ * TipTap/ProseMirror stays out of the initial bundle.
  */
 
 import { lazy, Suspense, useState } from "react";
@@ -39,7 +46,7 @@ interface Props {
   /** Current file path (project-root-relative POSIX). */
   path?: string;
   /** Re-fetch callback fired after a successful in-app edit. Its presence
-   *  (set only by the primary inline pane) gates the Edit button. */
+   *  (now wired by every caller — see module doc) gates the Edit button. */
   onSaved?: () => void;
 }
 

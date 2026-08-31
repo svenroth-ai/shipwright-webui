@@ -1,0 +1,112 @@
+/* SHIP'S LOG — Documents panel (the right column, iterate-2026-08-31-
+   shipslog-documents-panel). Split out of ships-log.css to keep that file
+   under the 300-LOC convention. Loaded alongside ships-log.css by
+   ShipsLogPage.tsx; every selector stays scoped under `.ships-log` so the
+   on-photo.css reset (`.sheet`/`.logentry`/`.glass-card`, etc.) still
+   applies — the panel deliberately REUSES `.sheet`/`.sheet-h`/`.logentry`
+   for its group cards and rows rather than inventing new surfaces. */
+
+/* The right-column Documents panel. `.ships-log`'s grid row is auto-sized
+   (no `grid-template-rows`), so a percentage height on a grid item is NOT
+   definite — `height: 100%` does not reliably resolve against sl-main's
+   height, and a tall panel simply grows the row instead of scrolling
+   internally (caught by external code review, iterate-2026-08-31-
+   shipslog-documents-panel: confirmed empirically — a short logbook next
+   to a fully-populated panel stretched the grid row to the panel's own
+   content height rather than clipping it). `position: sticky` sidesteps
+   the row-height circularity entirely: the panel just tracks the page
+   scroll and caps itself to the viewport, independent of sl-main's
+   height. `top: 24px` matches `page-container`'s own `paddingTop` (set
+   inline in ShipsLogPage.tsx) so the panel sits flush with the top of the
+   scroll area, not 24px below it. */
+.ships-log .sl-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+/* CLAUDE.md rule 24: a direct child of a self-scrolling column-flex
+   container silently SHRINKS below its own content size once the
+   container is height-constrained (default flex-shrink:1 + min-height:
+   auto), rather than making the container overflow — the three `.sheet`
+   groups here each contain their own overflow:auto list, so their
+   min-content contribution collapses toward the header alone and the
+   whole panel LOOKS like it fits when it doesn't. `flex-shrink: 0` keeps
+   each group at its natural height so `.sl-docs` genuinely overflows
+   (and scrolls) instead of quietly squeezing every group's list to zero. */
+.ships-log .sl-docs > * {
+  flex-shrink: 0;
+}
+@media (max-width: 900px) {
+  .ships-log .sl-docs {
+    position: static;
+    max-height: none;
+  }
+}
+
+.ships-log .doc-tabs-list {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ships-log .doc-tab {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.ships-log .doc-tab:hover {
+  color: var(--ink);
+}
+.ships-log .doc-tab[data-state="active"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.ships-log .doc-tab:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+  border-radius: 4px;
+}
+
+.ships-log .doc-search-wrap {
+  padding: 10px 16px 0;
+}
+.ships-log .doc-search {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12.5px;
+  outline: none;
+}
+.ships-log .doc-search::placeholder {
+  color: var(--muted);
+}
+.ships-log .doc-search:focus-visible {
+  box-shadow: var(--focus);
+  border-color: var(--accent);
+}
+
+.ships-log .doc-list-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.ships-log .doc-empty {
+  font-size: 12.5px;
+  color: var(--muted);
+  padding: 14px 16px;
+}

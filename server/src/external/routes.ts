@@ -53,6 +53,7 @@ import { createWiredMissionContextRouter } from "./mission-context/wire.js";
 import { createPreviewRouter } from "./preview/routes.js";
 import { createActionsRouter } from "./actions/routes.js";
 import { createTreeRouter } from "./tree/routes.js";
+import { createShipsLogDocsRouter } from "./shipslog-docs/routes.js";
 import { createFileRouter } from "./file/routes.js";
 import { createFileExistsRouter } from "./file/exists-routes.js";
 import { createMediaRouter } from "./media/routes.js";
@@ -260,11 +261,9 @@ export function createExternalRoutes(args: {
     "/",
     createComplianceRouter({ getProjectById, readCompliance: args.readCompliance }),
   );
-  // FR-01.46 — tracked event-log is a READ-ONLY observer of
-  // shipwright_events.jsonl (per-run facts for Mission Control / Ship's-Log).
+  // FR-01.46 — tracked event-log is a READ-ONLY observer of shipwright_events.jsonl (per-run facts for Mission Control / Ship's-Log).
   app.route("/", createEventsRouter({ getProjectById }));
-  // FR-01.47 — per-run data join (READ-ONLY): runId → FRs/tests/derived-gates/
-  // phase-timings + grade-trend series, over the same shipwright_events.jsonl.
+  // FR-01.47 — per-run data join (READ-ONLY): runId → FRs/tests/derived-gates/phase-timings + grade-trend series, over the same shipwright_events.jsonl.
   app.route("/", createRunsRouter({ getProjectById }));
 
   // campaign 2026-07-18-mission-artifacts S1 — the Mission-context resolver.
@@ -298,11 +297,12 @@ export function createExternalRoutes(args: {
   );
   // CLAUDE.md rule 10 — realpath path-guard for tree + file.
   app.route("/", createTreeRouter({ getProjectById }));
+  // iterate-2026-08-31-shipslog-documents-panel — curated Requirements/Iterate/Agent-Docs/Compliance links for the Ship's-Log Documents panel.
+  app.route("/", createShipsLogDocsRouter({ getProjectById }));
   app.route("/", createFileRouter({ getProjectById }));
   // Batched existence check so the Triage file viewer links only real paths.
   app.route("/", createFileExistsRouter({ getProjectById }));
-  // Range-capable video streaming (SmartViewer <video> pane). Separate
-  // from /file: streams via createReadStream + 206, no 5 MB cap.
+  // Range-capable video streaming (SmartViewer <video> pane) — separate from /file: createReadStream + 206, no 5 MB cap.
   app.route("/", createMediaRouter({ getProjectById }));
   // GET actions + POST/DELETE per-project actions.json (Settings UI).
   app.route(

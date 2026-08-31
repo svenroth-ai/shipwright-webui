@@ -7,10 +7,27 @@
    inside the scene, so bare var(--ink|body|muted|accent) resolve legibly. */
 
 .ships-log {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 900px) {
+  .ships-log {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ships-log .sl-main {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-width: 0;
 }
+
+/* The right-column Documents panel's own rules live in ships-log-docs.css
+   (iterate-2026-08-31-shipslog-documents-panel) — split out to keep this
+   file under the 300-LOC convention (this file was already 301 lines
+   before that feature landed). */
 
 /* ── The Captain's Drawer — a 76px glass grade strip, not a hero band ── */
 .ships-log .log-mast {

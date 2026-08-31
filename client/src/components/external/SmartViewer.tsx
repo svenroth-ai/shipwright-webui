@@ -260,7 +260,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={popOut ? () => setReloadNonce((n) => n + 1) : undefined} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;

@@ -194,6 +194,18 @@ describe("SmartViewer — pop-out modal (popOut prop)", () => {
     expect(screen.queryByTestId("smart-viewer-popout")).toBeNull();
   });
 
+  // @covers iterate-2026-08-31-shipslog-documents-panel — Edit is decoupled
+  // from `popOut`: a modal-nested instance (SmartViewerModal, TriageFilePanel)
+  // still wires `onSaved`, so it can open the TipTap editor even though it
+  // renders no further "Pop out" button.
+  it("popOut={false} still shows the Edit button (onSaved is always wired)", async () => {
+    mockMarkdown();
+    render(<SmartViewer projectId="proj-a" path="README.md" popOut={false} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("smart-viewer-edit")).toBeTruthy();
+    });
+  });
+
   // @covers FR-01.35
   it("clicking pop-out opens the centered in-app modal and never calls window.open", async () => {
     mockMarkdown();

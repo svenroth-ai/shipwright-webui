@@ -1,0 +1,1 @@
+Ship's Log now shows a Documents panel alongside the logbook: one-click links to the project's Requirements spec, Iterate mini-specs (searchable), Agent Docs, and Compliance docs, each opening in the file viewer overlay with an in-place Edit button.

@@ -49,6 +49,11 @@ vi.mock("../components/shipslog/GraduationCard", () => ({
 vi.mock("../components/shipslog/LogEntryList", () => ({
   LogEntryList: () => <div data-testid="stub-logbook" />,
 }));
+vi.mock("../components/shipslog/ShipsLogDocumentsPanel", () => ({
+  ShipsLogDocumentsPanel: ({ projectId }: { projectId: string }) => (
+    <div data-testid="stub-docs-panel" data-project-id={projectId} />
+  ),
+}));
 
 // Radix DropdownMenu needs these jsdom shims to open (same as the phone-menu test).
 beforeAll(() => {
@@ -108,6 +113,12 @@ describe("ShipsLogPage", () => {
     expect(screen.getByTestId("stub-promptbox")).toBeInTheDocument();
     expect(screen.getByTestId("stub-graduation")).toBeInTheDocument();
     expect(screen.getByTestId("stub-logbook")).toBeInTheDocument();
+  });
+
+  // @covers iterate-2026-08-31-shipslog-documents-panel
+  it("renders the Documents panel as a second column, for the current project", () => {
+    renderPage();
+    expect(screen.getByTestId("stub-docs-panel")).toHaveAttribute("data-project-id", "p1");
   });
 
   // @covers FR-01.59
