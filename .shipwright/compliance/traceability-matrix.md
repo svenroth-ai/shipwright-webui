@@ -1,8 +1,8 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-08-31T05:41:07.878195+00:00
-Source-State: run=iterate-2026-08-31-compliance-bloat-event-reconcile
-Consistency-audit: last full run 2026-08-31 (same day) — PASS; latest 2026-08-31 partial (groups B)
+Generated: 2026-08-27T12:56:43.609365+00:00
+Source-State: run=iterate-2026-08-27-terminal-replay-reset-reopen-reconnect base=81dcaac0ab13 release=v0.25.0
+Consistency-audit: never run
 
 ## Requirements Coverage
 
@@ -23,7 +23,7 @@ Consistency-audit: last full run 2026-08-31 (same day) — PASS; latest 2026-08-
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137)<a id="rtm-fr-0137"></a> | A custom action can name a slash command (for example '/content-orchestrator') so that the task's description is combined with that command into a single prompt sent to Claude. If a custom action needs this but names no valid slash command, the app reports a clear error up front rather than failing silently or breaking at launch. | Should | [evt-06308665](#evt-06308665), [evt-72678829](#evt-72678829), [evt-a8bec2dd](#evt-a8bec2dd) | 3464/3464 | 2026-06-28 ([iter](#evt-a8bec2dd)) | ✅ | COVERED | MISSING | — | — |
 | [FR-01.45](../../.shipwright/planning/01-adopted/spec.md#fr-0145)<a id="rtm-fr-0145"></a> | For a single-session run, when Claude reaches the design gate it produces mockups plus a review viewer and pauses for a human decision. The Command Center hosts that viewer at full fidelity and captures your per-round feedback into the project - no manual export. Clicking Resume hands the feedback back so the run revises and continues. The app writes only the temporary feedback file, never the run's own control files.<br>**Updates:** Gained a record view with a mockup gallery and an Approve / Request-changes decision bar. | Should | — | — | — | ✅ | NOT VERIFIED | MISSING | — | MISSING |
 | [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133)<a id="rtm-fr-0133"></a> | A read-only Campaigns lane above the board that lists your Shipwright iterate campaigns. Each card shows the campaign name, a one-line intent, a done/total progress bar, and its ordered steps (complete / next / pending), plus a one-click Copy-launch button for the next step. The lane refreshes every few seconds and hides itself when every campaign is finished or none exist.<br>**Updates:** Gained one-click copy-launch of the next campaign step (and the concept of autonomous campaign launching). | Should | [evt-177f8389](#evt-177f8389), [evt-0e15ddd7](#evt-0e15ddd7), [evt-1c746044](#evt-1c746044), [evt-156ca7b5](#evt-156ca7b5) +8 | 1550/1550 → 1611/1611 | 2026-06-12 ([iter](#evt-b52512c5)) | ✅ | COVERED | MISSING | — | MISSING |
-| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130)<a id="rtm-fr-0130"></a> | A Triage tab (and sidebar entry) that gathers triage items from every project into one list, refreshing about every 30 seconds, with per-project counts and an orange badge. From here you can Promote an item into a real task (done reliably, without creating duplicates on retry), or Dismiss or Snooze it. | Must | [evt-b4369c7f](#evt-b4369c7f), [evt-2d58b346](#evt-2d58b346), [evt-eba3538b](#evt-eba3538b), [evt-d508eaff](#evt-d508eaff) +21 | 855/855 → 3583/3583 | 2026-08-30 ([iter](#evt-6fc39f0c)) | ✅ | COVERED | MISSING | — | MISSING |
+| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130)<a id="rtm-fr-0130"></a> | A Triage tab (and sidebar entry) that gathers triage items from every project into one list, refreshing about every 30 seconds, with per-project counts and an orange badge. From here you can Promote an item into a real task (done reliably, without creating duplicates on retry), or Dismiss or Snooze it. | Must | [evt-b4369c7f](#evt-b4369c7f), [evt-2d58b346](#evt-2d58b346), [evt-eba3538b](#evt-eba3538b), [evt-d508eaff](#evt-d508eaff) +19 | 855/855 → 3675/3678 | 2026-08-26 ([iter](#evt-b124edb3)) | ✅ | COVERED | MISSING | — | MISSING |
 | [FR-01.17](../../.shipwright/planning/01-adopted/spec.md#fr-0117)<a id="rtm-fr-0117"></a> | An optional Preview button that starts a project's own development web server so the user can see the app running. It only appears when the project's technology profile is a frontend with a defined dev-server command and the user hasn't switched it off; the server is shut down cleanly when the Command Center stops. | Must | [evt-944c534d](#evt-944c534d), [evt-1cd391fd](#evt-1cd391fd), [evt-e282ec0c](#evt-e282ec0c), [evt-42aac785](#evt-42aac785) +2 | 3464/3464 → 3270/3270 | 2026-08-09 ([iter](#evt-fc564bb8)) | ✅ | COVERED | — | — | MISSING |
 | [FR-01.43](../../.shipwright/planning/01-adopted/spec.md#fr-0143)<a id="rtm-fr-0143"></a> | A per-project compliance Control-Grade shown read-only from the project's own generated report: a colour-coded grade pill (A green, B amber, C or lower red) with the score, one-line verdict, and date, appearing on the Projects list and the board header. Clicking it opens a panel with the verdict and security details. If a project has no report, no badge is shown - nothing is invented. | Should | [evt-d3c61a35](#evt-d3c61a35) | 3497/3497 | 2026-06-30 ([iter](#evt-d3c61a35)) | ✅ | COVERED | MISSING | — | — |
 | [FR-01.47](../../.shipwright/planning/01-adopted/spec.md#fr-0147)<a id="rtm-fr-0147"></a> | Turns the recorded project event log into a per-run summary (used by Mission Control, the Ship's-Log gallery, and the board) plus a grade-over-time trend. It is strictly honest: a run with no matching completion record shows nothing rather than guessing, durations are never estimated (they show 'n/a' when unknown), and derived pass/fail lamps are never presented as an authoritative verdict. | Should | — | — | — | ✅ | NOT VERIFIED | MISSING | — | MISSING |
@@ -46,10 +46,6 @@ Consistency-audit: last full run 2026-08-31 (same day) — PASS; latest 2026-08-
 
 | Event | Source | Type | FRs | Tests | Commit | Date |
 |-------|--------|------|-----|-------|--------|------|
-| <a id="evt-fe9da3b6"></a>Fixed the project's compliance report by recording one missing change-log entry and cleaning up the file-size tracking list (added files that grew past the limit, corrected outdated size numbers, and removed entries for files that no longer exist). | iterate | change |  | — | — | 2026-08-31 |
-| <a id="evt-463eb92c"></a>B7 backfill: fix(triage) file viewer scroll (v/h) and dead links to nonexistent files via new GET /files/exist route (PR #397) | iterate | change |  | — | [cf00a9c](https://github.com/svenroth-ai/shipwright-webui/commit/cf00a9c26e247985a1f27893fb9b1d176ba76550) | 2026-08-31 |
-| <a id="evt-6fc39f0c"></a>The file preview panel in the triage detail popup is now noticeably wider, so most files need less scrolling to read. | iterate | change | [FR-01.30](#rtm-fr-0130) | 3583/3583 | — | 2026-08-30 |
-| <a id="evt-8a7139dc"></a>Triage detail popup: file references (evidencePath and free-text mentions) render as clickable links that open the file in a side-by-side viewer. | iterate | feature | [FR-01.30](#rtm-fr-0130) | 7290/7293 | — | 2026-08-29 |
 | <a id="evt-4fcd311c"></a>Reopening a finished task now reconnects its terminal automatically, and a closed task's terminal is scrollable and copyable again instead of staying stuck in mouse-drag mode. | iterate | bug | [FR-01.28](#rtm-fr-0128) | 10/10 | — | 2026-08-27 |
 | <a id="evt-3dcce8f4"></a>Fixes the Mission activity feed to show what the AI actually said about each step, even when it explained itself in a separate message from the action it took. | iterate | bug | [FR-01.66](#rtm-fr-0166) | 3502/3502 | — | 2026-08-27 |
 | <a id="evt-38796299"></a>Added a new page that shows the operator their AI leads (org chart, shared documents, and one card per lead with editable notes and activity history). | iterate | feature |  | 7171/7174 | — | 2026-08-26 |
@@ -493,7 +489,7 @@ Consistency-audit: last full run 2026-08-31 (same day) — PASS; latest 2026-08-
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 370 |
+| Iterate changes | 366 |
 | Requirements total | 31 |
 | Requirements verified | 28/31 |
 | Must-have verified | 13/13 |

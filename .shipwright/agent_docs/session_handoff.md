@@ -14,18 +14,17 @@ timestamp: "2026-08-31T05:41:07.878195+00:00"
 
 - **Session ID**: 16b20c1d-2be3-456d-8d2f-5c05abe6a149
 - **Timestamp**: 2026-08-31 05:41:07 UTC
-- **Reason**: iterate: reconcile compliance findings B7/H1/H2/H6
+- **Reason**: iterate completion: iterate-2026-08-31-compliance-bloat-event-reconcile
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-08-30-triage-panel-width
-- **Date**: 2026-08-30T21:52:53.976893Z
+- **Run ID**: iterate-2026-08-31-compliance-bloat-event-reconcile
+- **Date**: 2026-08-31T05:41:47.622714Z
 - **Type**: change
 - **Complexity**: small
-- **Branch**: iterate/triage-panel-width
-- **ADR**: iterate-2026-08-30-triage-panel-width
+- **Branch**: iterate/compliance-bloat-event-reconcile
+- **ADR**: iterate-2026-08-31-compliance-bloat-event-reconcile
 - **Tests passed**: True
-- **Spec**: n/a — small complexity, no iterate spec file
 
 ## Current Iterate Progress
 
@@ -50,7 +49,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/compliance-bloat-event-reconcile
-- **Last Commit**: 329d2d37 chore(triage): sweep 1 outbox append(s) into branch
+- **Last Commit**: 68cc32a1 fix(compliance): reconcile B7/H1/H2/H6 audit findings
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
