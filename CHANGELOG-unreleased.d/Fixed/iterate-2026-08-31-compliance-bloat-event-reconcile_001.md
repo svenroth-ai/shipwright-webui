@@ -1,0 +1,1 @@
+Reconciled 4 open compliance audit findings (B7/H1/H2/H6): backfilled a missing commit event, added 6 untracked oversize files to the bloat baseline, tightened 15 stale ratchet ceilings to their real line counts, and pruned 3 baseline entries for deleted files

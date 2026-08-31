@@ -1,8 +1,8 @@
 # Compliance Dashboard
 
-Generated: 2026-08-27T12:56:43.609365+00:00
-Source-State: run=iterate-2026-08-27-terminal-replay-reset-reopen-reconnect base=81dcaac0ab13 release=v0.25.0
-Consistency-audit: never run
+Generated: 2026-08-31T05:41:07.878195+00:00
+Source-State: run=iterate-2026-08-31-compliance-bloat-event-reconcile
+Consistency-audit: last full run 2026-08-31 (same day) — PASS; latest 2026-08-31 partial (groups B)
 Profile: vite-hono
 Scope: full_app
 
@@ -14,17 +14,17 @@ Scope: full_app
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 28/31 FRs covered; 412/436 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
-| ✅ | Test health | latest full suite 7171/7174 (2026-08-26) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 436/436 changes linked to a commit, ADR or test run | change provenance (SLSA) |
+| ✅ | Requirement traceability | 28/31 FRs covered; 416/440 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Test health | latest full suite 7290/7293 (2026-08-29) | automated tests pass (OpenSSF Scorecard) |
+| ✅ | Change traceability | 440/440 changes linked to a commit, ADR or test run | change provenance (SLSA) |
 | ✅ | Change reconciliation | 1/27 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
 | ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF) |
-| ✅ | Size / maintainability discipline | ratchet delta -579 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
+| ✅ | Size / maintainability discipline | ratchet delta +0 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
 | ✅ | Dependency hygiene | 0 unresolved / 71 licenses; 0 copyleft | dependency license & risk (OWASP) |
 
 > 📊 **Test-Health · diff-coverage (Control-Grade input · target ≥80%):** not measured this session — per-PR signal; see the CI "Diff coverage" artifact.
 
-Verified from: `shipwright_events.jsonl (436 events, 2026-05-01 → 2026-08-27)`
+Verified from: `shipwright_events.jsonl (440 events, 2026-05-01 → 2026-08-31)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
@@ -67,22 +67,22 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 366 changes | INFO |  |
-| Recent changes traced to an FR | 23/30 (77%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
-| All unit tests passing | 7171/7174 | WARN | 3/7174 not green in last full suite — see test-evidence.md; +2 change(s) since last full suite |
+| Work events (iterate) | 370 changes | INFO |  |
+| Recent changes traced to an FR | 21/30 (70%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
+| All unit tests passing | 7290/7293 | WARN | 3/7293 not green in last full suite — see test-evidence.md; +3 change(s) since last full suite |
 | Architecture decisions | 285 ADRs | INFO |  |
-| Iterate tests passing | 167/247 testable changes tested | WARN | 80 testable change(s) without tests — see test-evidence.md |
+| Iterate tests passing | 169/249 testable changes tested | WARN | 80 testable change(s) without tests — see test-evidence.md |
 | Dependencies | 71 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 6 open | WARN | 6 actionable item(s) — see ../agent_docs/triage_inbox.md |
-| Bloat over-limit (grandfathered) | 88 | INFO |  |
-| Bloat in allowlist | 104 entries | INFO |  |
-| Bloat ratchet delta | -579 lines | PASS |  |
+| Triage open | 7 open | WARN | 7 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Bloat over-limit (grandfathered) | 94 | INFO |  |
+| Bloat in allowlist | 107 entries | INFO |  |
+| Bloat ratchet delta | +0 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 366 changes (2026-05-01 → 2026-08-27)
-- Last activity: 2026-08-27
+- Iterate: 370 changes (2026-05-01 → 2026-08-31)
+- Last activity: 2026-08-31
 
 ## External LLM Review Evidence
 
@@ -94,9 +94,11 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 
 ## 🔎 Consistency Audit
 
-**Never run — nothing has cross-checked this evidence against the project's actual state.**
+**Last full run 2026-08-31 (same day): PASS** · 53 checks — 41 pass, 0 fail, 12 skip.
 
-_On demand by design: the audit has no schedule and no CI trigger, so it never runs on its own — invoke `/shipwright-compliance` to establish a first reading._
+Since then the only run was a partial one (2026-08-31 (same day), groups B: PASS), which does not re-check the rest of the project.
+
+_On demand by design: the audit has no schedule and no CI trigger, so it never runs on its own, so this date is how far back the last cross-check reaches — anything that drifted after it is unmeasured._
 
 ## Compliance Artifacts
 

@@ -1,35 +1,46 @@
 ---
 canon_generated: true
-run_id: "changelog-v0.24.0-20260808-1500"
-phase: "changelog"
-reason: "release v0.24.0"
-timestamp: "2026-08-08T20:38:36.160644+00:00"
+run_id: "iterate-2026-08-31-compliance-bloat-event-reconcile"
+phase: "iterate"
+reason: "iterate: reconcile compliance findings B7/H1/H2/H6"
+timestamp: "2026-08-31T05:41:07.878195+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-08-08 20:38:36 UTC
+> Auto-generated 2026-08-31 05:41:07 UTC
 
 ## Session Info
 
-- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
-- **Timestamp**: 2026-08-08 20:38:36 UTC
-- **Reason**: release v0.24.0
+- **Session ID**: 16b20c1d-2be3-456d-8d2f-5c05abe6a149
+- **Timestamp**: 2026-08-31 05:41:07 UTC
+- **Reason**: iterate: reconcile compliance findings B7/H1/H2/H6
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
-- **Date**: 2026-08-08T10:36:25.721563Z
+- **Run ID**: iterate-2026-08-30-triage-panel-width
+- **Date**: 2026-08-30T21:52:53.976893Z
 - **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/tests-total-skip-contract
-- **ADR**: iterate-2026-08-08-tests-total-skip-contract
+- **Complexity**: small
+- **Branch**: iterate/triage-panel-width
+- **ADR**: iterate-2026-08-30-triage-panel-width
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
+- **Spec**: n/a — small complexity, no iterate spec file
+
+## Current Iterate Progress
+
+- **Branch**: iterate/compliance-bloat-event-reconcile
+- **External Review Marker**: completed (external_review_state.json @ 2026-08-27T12:42:26)
+- **Review Cascade**: no run_id resolved
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
-- **Phase**: changelog
+- **Phase**: design
 - **Current Split**: 01-adopted
 - **Current Section**: adopted-baseline
 
@@ -38,8 +49,8 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 ## Git State
 
-- **Branch**: feat/track-model-config-allowlist
-- **Last Commit**: e76e3fc1 chore(release): v0.24.0
+- **Branch**: iterate/compliance-bloat-event-reconcile
+- **Last Commit**: 329d2d37 chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -55,23 +66,23 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
-| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
-| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
-| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
-| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
+| evt-fe9da3b6 | work_completed | iterate (Reconcile 4 open compliance findings (B7/H1/H2/H6): backfill missing commit event, add oversize files to bloat baseline, tighten stale ratchet ceilings, prune dead-file baseline entries) | 2026-08-31 |
+| evt-a019267d | event_amended | — | 2026-08-31 |
+| evt-463eb92c | work_completed | iterate (B7 backfill: fix(triage) file viewer scroll (v/h) and dead links to nonexistent files via new GET /files/exist route (PR #397)) | 2026-08-31 |
+| evt-6fc39f0c | work_completed | iterate (Triage detail popup: the file-viewer panel opened from a file mention is widened (1100px to 1440px total modal width) so most linked files need less vertical scrolling.) | 2026-08-30 |
+| evt-8a7139dc | work_completed | iterate (Triage detail popup: file references (evidencePath and free-text mentions) render as clickable links that open the file in a side-by-side viewer.) | 2026-08-29 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 398
-- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
+- **Total work events**: 440
+- **Last iterate**: change — Reconcile 4 open compliance findings (B7/H1/H2/H6): backfill missing commit event, add oversize files to bloat baseline, tighten stale ratchet ceilings, prune dead-file baseline entries (2026-08-31)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-264: Mission stage derived from real phase markers; TodoWrite premise falsified empirically
-- **Date:** 2026-07-19
-- **Section:** Iterate - change: mission lifecycle stage
-- **Run-ID:** iterate-2026-07-19-mission-s4-honest-lifecycle-stage
-- **Context:** The 'Where it stands' stepper left Analyze far too early: inferStage was furthest-along-wins over coarse tool signals, so the first Edit/Write to any non-spec file set Build, and Build outranks Analyze. A scratchpad probe or memory note written d
+### ADR-287: Replay-only interaction-mode teardown + Reopen WS reconnect
+- **Date:** 2026-08-27
+- **Section:** Terminal reader lifecycle
+- **Run-ID:** iterate-2026-08-27-terminal-replay-reset-reopen-reconnect
+- **Context:** A closed task's one-shot replay envelope left mouse-tracking mode latched on forever in the reader's real xterm instance (no live pty ever follows up to disable it), breaking native text selection and wheel-scroll. Separately, Reopening a closed task never reconnected the terminal We
