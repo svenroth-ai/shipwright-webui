@@ -1,0 +1,68 @@
+{
+  "section": "iterate-2026-08-31-markdown-raw-html-passthrough",
+  "verdict": "request_changes",
+  "review": [
+    {
+      "severity": "high",
+      "category": "correctness",
+      "file": "client/src/lib/markdownRawHtmlBlock.ts",
+      "line": 178,
+      "finding": "serialize() uses state.write(node.attrs.html), which is NOT delimiter-aware: prosemirror-markdown's write(content) emits delim at most once then appends the whole multi-line string raw. level===0 scoping only prevents the node from being CREATED in a nested position at PARSE time; it does nothing about a nested position reached through the editor UI (rawHtmlBlock is group:'block', StarterKit's blockquote/listItem accept block+). Wrapping the chip in Blockquote/List via the toolbar corrupts a multi-line raw block's structure on save.",
+      "suggestion": "Use state.text(node.attrs.html, false) instead of state.write(...) so delim is applied per-line while escape=false keeps markup byte-verbatim. Add a guard test: toggleBlockquote() on a multi-line raw block, assert every line carries the delimiter."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/lib/markdownTiptap.ts",
+      "line": 154,
+      "finding": "isSafeInlineAnchorOpen silences the warn banner for an href-only inline anchor, but that construct is still REWRITTEN on save (E2E asserts PUT body contains the markdown-link form, not the original <a> tag) while the banner is asserted hidden. Contradicts detectLossyConstructs' own documented contract ('drop OR NORMALISE') and the FR-01.35 wording this same diff writes into spec.md ('still warns ... inline raw HTML'). Code, spec text, and FR row disagree.",
+      "suggestion": "Either keep an inline anchor classified lossy (revert the spec.ts:201 assertion flip) or split the banner vocabulary into 'will be rewritten' vs 'content will be lost' and update spec.md's FR-01.35 line + AC (E) to say so."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/lib/markdownRawHtmlBlock.ts",
+      "line": 79,
+      "finding": "CommonMark html_block rules 6/7 terminate on a blank line, so a top-level block tag not followed by a blank line absorbs following prose into token.content -- prose that used to be editable becomes part of one opaque, non-editable chip. Iterate spec's Internal Plan Review disclosure calls this 'NOT A REGRESSION', but editability demonstrably changed. Untested, and not in the spec's Out of Scope list.",
+      "suggestion": "Add a pinning test for the prose-absorption case, correct the 'not a regression' disclosure, move the limitation into Out of Scope."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/lib/markdownRawHtmlBlock.ts",
+      "line": 117,
+      "finding": "getAttrs catches a decode failure and returns {html:\"\"} -- a malformed-payload marker element silently becomes an empty node (content drop) instead of falling through to normal DOM parsing.",
+      "suggestion": "Return false from getAttrs on decode failure so ProseMirror treats the rule as non-matching."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/lib/markdownTiptap.ts",
+      "line": 112,
+      "finding": "Comment claims 'the SAME markdown-it tokenizer the editor's own parser uses' -- it is the same OPTIONS object, not the same instance (tiptap-markdown's instance additionally installs markdown-it-task-lists + withPatchedRenderer). Harmless for html_block/html_inline classification but overclaims.",
+      "suggestion": "Downgrade wording to 'the same markdown-it CONFIG', naming the known plugin divergence."
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/lib/markdownEnvelope.ts",
+      "line": 1,
+      "finding": "The 135-line verbatim file-split extraction is bundled into the same diff as the feature, making it harder to diff-bisect later.",
+      "suggestion": "Non-blocking for this iterate; note for future practice to land pure extractions as a separate refactor: commit."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "CHANGELOG-unreleased.d/",
+      "line": 1,
+      "finding": "No CHANGELOG drop yet in the worktree.",
+      "suggestion": "Add at F4 (finalization) covering both the block-passthrough fix and the inline-anchor warn-banner behaviour change."
+    }
+  ],
+  "not_flagged_deliberately": [
+    "javascript:-scheme write-verbatim asymmetry -- documented, pinned by a test, reviewed by two external providers, introduces no new bytes",
+    "inline style strings in a .ts lib file -- justified, not scanned by Tailwind content globs",
+    "dense file headers -- Chesterton fences, not comment-restating-code"
+  ],
+  "reducibility_pass": "no blocking finding; all touched/new files under 300-line budget; no baseline entry touched"
+}

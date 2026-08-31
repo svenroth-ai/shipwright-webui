@@ -1,0 +1,32 @@
+{
+  "run_id": "iterate-2026-08-31-markdown-raw-html-passthrough",
+  "date": "2026-08-31T15:43:37.870283Z",
+  "event_at": "2026-08-31T15:42:56.898005+00:00",
+  "type": "bug",
+  "complexity": "medium",
+  "prior_source": "history",
+  "branch": "iterate/markdown-raw-html-passthrough",
+  "spec": ".shipwright/planning/iterate/2026-08-31-markdown-raw-html-passthrough.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-31-markdown-raw-html-passthrough",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 33,
+      "tested": 33,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 7,
+    "exit_code": 0,
+    "justification": "Whether raw HTML round-trips byte-for-byte through the real TipTap load->serialize->save path, whether the chip renders visibly and non-editably, and whether the lossy-warning banner correctly stays hidden are DOM/editor-runtime behaviors invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/markdown-editor.spec.ts). 7/7 tests passed."
+  },
+  "declared_removals": []
+}

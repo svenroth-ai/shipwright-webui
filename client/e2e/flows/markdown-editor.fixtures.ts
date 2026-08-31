@@ -98,6 +98,44 @@ export async function mockFrontmatterFile(page: Page): Promise<{ putBody: string
   return captured;
 }
 
+// The reported bug's exact scenario: a blog article whose CTA link is raw
+// HTML with inline styling, meant to render as styled HTML in a third-party
+// system (iterate-2026-08-31-markdown-raw-html-passthrough).
+export const CTA_BLOCK =
+  '<p><strong><a href="https://example.com/shipwright" style="color: #4A7C59; font-size: 1.15em;">→ Explore Shipwright</a></strong></p>';
+export const CTA_DOC = [
+  "---",
+  'title: "Five Roles of AI-Native Teams"',
+  'slug: "five-roles-ai-native-teams"',
+  "---",
+  "",
+  "Great content about AI-native teams.",
+  "",
+  CTA_BLOCK,
+  "",
+].join(NL);
+
+export async function mockCtaBlockFile(page: Page): Promise<{ putBody: string | null }> {
+  const captured: { putBody: string | null } = { putBody: null };
+  await page.route("**/api/external/projects/**/file**", async (route) => {
+    if (route.request().method() === "PUT") {
+      captured.putBody = route.request().postData();
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ written: true, fingerprint: "sha256:cta2", size: CTA_DOC.length }),
+      });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "text/markdown; charset=utf-8",
+      headers: { ETag: '"sha256:cta1"' },
+      body: CTA_DOC,
+    });
+  });
+  return captured;
+}
+
 export async function mockBlogFile(page: Page): Promise<{ putBody: string | null }> {
   const captured: { putBody: string | null } = { putBody: null };
   await page.route("**/api/external/projects/**/file**", async (route) => {

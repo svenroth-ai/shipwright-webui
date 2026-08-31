@@ -1,0 +1,349 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-31-markdown-raw-html-passthrough",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-31T14:52:42.847751+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan says the markdown-it `html_block` renderer will emit something like `<div data-raw-html-block=\"...\">`, but does not specify how the raw HTML is encoded into that attribute. The reported fixture itself contains `\"` characters (`href=\"...\"`, `style=\"...\"`), so naive interpolation will produce malformed HTML and the parser will not reconstruct the block. Newlines, `&`, and `<` have the same problem.",
+          "suggestion": "Encode the raw block in the marker attribute using a safe, unambiguous encoding such as base64 over UTF-8, then decode it in `parseHTML`. Add unit tests containing quotes, `&amp;`, `<`, newlines, and nested tags. Do not rely on ad-hoc string escaping unless it is deliberately double-escaped for HTML attribute parsing.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The raw HTML block is untrusted file content, and the NodeView will show a “preview” of the source markup. If that preview is implemented with `innerHTML`, `v-html`, or any HTML-serializing path, a raw block containing `<img src=x onerror=...>` or an event-handler attribute can execute in the editor context. The marker attribute is also an injection boundary if not encoded.",
+          "suggestion": "Render the preview strictly as text via `textContent` or by creating a text node inside a `<pre>`/`<code>` element. Never pass `node.attrs.html` to `innerHTML`. Add a regression case where the raw HTML includes an `onerror` payload and assert that it is displayed as literal source text.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The new node must be allowed wherever markdown-it can produce an `html_block`. The plan focuses on top-level blocks, but CommonMark permits HTML blocks inside blockquotes, list items, and other block containers. If `rawHtmlBlock` is not in the ProseMirror `block` group or explicitly added to parent content expressions, those cases may fail to parse or silently drop the raw block.",
+          "suggestion": "Give the node `group: 'block'` and/or explicitly include it in `blockquote`, `listItem`, and any custom block container content expressions. Add unit fixtures for `> <div>...</div>` and list-item-wrapped raw HTML. If nested raw HTML is intentionally out of scope, state that and ensure `detectLossyConstructs` still warns for it instead of silently regressing.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Serialization is described as writing `node.attrs.html` verbatim with “blank line before/after,” but it does not define how that interacts with tiptap-markdown’s existing block-node spacing or the original `html_block` token boundaries. This can easily double-insert blank lines or drop the trailing blank line that terminates the HTML block, breaking the byte-for-byte acceptance criterion.",
+          "suggestion": "Base serialization on the actual `html_block` token content and existing serializer behavior rather than manually adding fixed blank lines. Include round-trip tests for HTML blocks after a paragraph, before a paragraph, at EOF, and with no following blank line, asserting `roundTrip(source) === source`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Replacing the regex heuristic with markdown-it tokenization is the right direction, but it is only correct if `detectLossyConstructs` uses the same markdown-it configuration/options as the editor parser. A separate instance with different options could warn differently from actual lossiness. Also, the existing inline-link allowance must remain attribute-aware: an inline `<a href=\"...\" style=\"...\">` with unsupported `style` should still warn.",
+          "suggestion": "Factor the editor’s markdown-it setup into a shared configuration/helper used by both the editor parser and `detectLossyConstructs`. Add tests for inline `<a>` without extra attributes, inline `<a style=\"...\">`, and inline `<span style=\"...\">`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "renderHTML` returning a marker `<div data-raw-html-block=\"...\">` may leak into non-Markdown HTML outputs such as clipboard copy or HTML export, where users would see the marker instead of their original raw HTML.",
+          "suggestion": "If HTML serialization is not a supported product surface, document that this marker is internal-only. Otherwise, make the marker private to the markdown parse/serialize path or override clipboard/HTML behavior for this node.  Overall assessment: The chosen TipTap node plus markdown-it token-hook approach is sound and preferable to regex extract/restore, but the plan under-specifies two make-or-break details—safe attribute encoding and text-only NodeView rendering—and needs explicit handling for nested block positions and exact serialization spacing. Address those before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The proposed serializer’s unconditional “blank line before/after” behavior conflicts with the byte-identical round-trip requirement. `html_block` tokens preserve the block’s raw token content, but not necessarily the exact surrounding whitespace structure that preceded/followed it. Adding canonical spacing can change documents with no blank line before a valid HTML block, multiple blank lines, EOF placement, or adjacent HTML blocks—even if the block markup itself is retained.",
+          "suggestion": "Define and test byte preservation at the full-source level for boundary cases before implementing serialization. Ensure the node serializer cooperates with the existing markdown serializer’s block-separation rules rather than unconditionally writing blank lines. Add fixtures for start/end of document, zero/one/multiple surrounding blank lines, adjacent blocks, and prose immediately before/after. If exact surrounding whitespace cannot be retained through ProseMirror’s document model, narrow the acceptance criterion to preservation of the raw block payload or explicitly preserve the needed boundary information.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The proposed markdown-it renderer emits raw source markup into a `data-raw-html-block` marker attribute. Since markdown-it renderer rules return HTML strings, interpolating raw HTML into that attribute can permit attribute breakout or malformed marker HTML unless encoding is comprehensive. The NodeView preview is also an XSS risk if it uses `innerHTML` to display the source.",
+          "suggestion": "Use an opaque, safely encoded payload for the marker (for example UTF-8 base64 or a robust escaped/encoded representation), decode it only when creating the node attribute, and validate decoding failures safely. Render the preview with DOM text nodes / `textContent`, never `innerHTML`. Confirm the generated marker is the only DOM HTML presented to ProseMirror’s schema parser; the original raw HTML must not be emitted at this intermediate DOM-parsing stage.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Intercepting markdown-it `html_block` tokens is the right general direction, but the plan assumes the extension’s `addStorage().markdown.parse.setup(md)` hook is guaranteed to run on the exact markdown-it instance and before the renderer executes. If extension setup order, renderer-rule replacement, or the tiptap-markdown integration differs, the raw HTML may still reach the DOM schema parser or the rule may affect unrelated parse paths.",
+          "suggestion": "Verify the installed tiptap-markdown extension API and lifecycle against the application’s actual version before implementation. Add a focused integration test that demonstrates: markdown-it produces `html_block`, the override replaces only that token’s output with the marker, `parseHTML` creates `rawHtmlBlock`, and `html_inline` continues through the existing behavior. Register the rule using the library-supported extension mechanism and use explicit extension priority/order if supported.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The lossiness detector proposal is too broad if it flags every residual `html_inline` token except the current `<a href>` allowance. Some inline HTML may be represented by the existing schema and intentionally normalize to Markdown, while other constructs are truly lossy because of unsupported tags or attributes. Conversely, “block-level tag” is not sufficient classification: CommonMark/markdown-it’s actual `html_block` rules depend on tag category and line context.",
+          "suggestion": "Base classification on the same configured markdown-it token stream used for parsing, as proposed, but make the warning decision match actual serializer behavior and the product definition of losslessness. Retain the existing inline-link exception, preserve any existing supported-inline behavior, and add tests for inline `<span style>`, inline `<strong>`, inline arbitrary attributes, `<script>`/comments if accepted by markdown-it, and block-looking markup that markdown-it classifies as `html_inline`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not explicitly account for the serializer extension registration/API alongside parser registration. A parse-only `RawHtmlBlock` can appear correctly in the editor but still be omitted, escaped, or serialized with incorrect delimiters if the markdown serializer does not discover the node extension or dispatch to its serializer under the expected node name.",
+          "suggestion": "Confirm that `buildEditorExtensions()` supplies the node to both `MarkdownParser` and `MarkdownSerializer`, and add a direct assertion on the parsed ProseMirror JSON/node type plus serialized Markdown. Test multiple raw HTML block nodes in one document to ensure serializer dispatch and node separation are stable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "An atom NodeView is non-text-editable but remains selectable and deletable through normal editor actions. That is generally appropriate for an editor, but it does not by itself guarantee the “preserved as-is” user experience—especially if the expand toggle is interactive and ProseMirror treats its click/key events as editor events.",
+          "suggestion": "Mark the preview and controls `contenteditable=\"false\"`, implement `stopEvent`/`ignoreMutation` as appropriate for the NodeView, and make the toggle keyboard-accessible. Add an E2E assertion that expanding/collapsing does not alter serialized source and that a no-op save does not produce a dirty-state mutation merely from selecting or toggling the node.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The E2E requirement says to verify the saved file is unchanged, but the plan does not state how the fixture is provisioned or how byte identity is read back. UI-only confirmation can miss server-side newline normalization or save-path behavior that invalidates the full-source assertion.",
+          "suggestion": "Provision a dedicated writable fixture through the existing test API/fixture mechanism, capture its original bytes, perform an explicit save, and retrieve the saved content through the same supported file API used by the application. Compare exact bytes, including newline convention, while separately asserting the NodeView chip is visible.  Overall, the markdown-it token interception and opaque TipTap node are sound and materially better than regex extraction, but the implementation needs explicit whitespace-preservation semantics and safe marker transport before it can meet its stated byte-identical and security goals. The remaining work is targeted rather than a redesign. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-31T14:28:31.656622+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] 1. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** The plan says the markdown-it `html_block` renderer will emit something like `<div data-raw-html-block=\"...\">`, but does not specify how the raw HTML is encoded into that attribute. The reported fixture itself contains `\"` characters (`href=\"...\"`, `style=\"...\"`), so naive interpolation will produce malformed HTML and the parser will not reconstruct the block. Newlines, `&`, and `<` have the same problem.  \n   **Suggestion:** Encode the raw block in the marker attribute using a safe, unambiguous encoding such as base64 over UTF-8, then decode it in `parseHTML`. Add unit tests containing quotes, `&amp;`, `<`, newlines, and nested tags. Do not rely on ad-hoc string escaping unless it is deliberately double-escaped for HTML attribute parsing.\n\n2. **Category:** security  \n   **Severity:** high  \n   **Finding:** The raw HTML block is untrusted file content, and the NodeView will show a “preview” of the source markup. If that preview is implemented with `innerHTML`, `v-html`, or any HTML-serializing path, a raw block containing `<img src=x onerror=...>` or an event-handler attribute can execute in the editor context. The marker attribute is also an injection boundary if not encoded.  \n   **Suggestion:** Render the preview strictly as text via `textContent` or by creating a text node inside a `<pre>`/`<code>` element. Never pass `node.attrs.html` to `innerHTML`. Add a regression case where the raw HTML includes an `onerror` payload and assert that it is displayed as literal source text.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** The new node must be allowed wherever markdown-it can produce an `html_block`. The plan focuses on top-level blocks, but CommonMark permits HTML blocks inside blockquotes, list items, and other block containers. If `rawHtmlBlock` is not in the ProseMirror `block` group or explicitly added to parent content expressions, those cases may fail to p […truncated]\n\n[openai] 1. **Category: risk**  \n   **Severity: high**  \n   **Finding:** The proposed serializer’s unconditional “blank line before/after” behavior conflicts with the byte-identical round-trip requirement. `html_block` tokens preserve the block’s raw token content, but not necessarily the exact surrounding whitespace structure that preceded/followed it. Adding canonical spacing can change documents with no blank line before a valid HTML block, multiple blank lines, EOF placement, or adjacent HTML blocks—even if the block markup itself is retained.  \n   **Suggestion:** Define and test byte preservation at the full-source level for boundary cases before implementing serialization. Ensure the node serializer cooperates with the existing markdown serializer’s block-separation rules rather than unconditionally writing blank lines. Add fixtures for start/end of document, zero/one/multiple surrounding blank lines, adjacent blocks, and prose immediately before/after. If exact surrounding whitespace cannot be retained through ProseMirror’s document model, narrow the acceptance criterion to preservation of the raw block payload or explicitly preserve the needed boundary information.\n\n2. **Category: security**  \n   **Severity: high**  \n   **Finding:** The proposed markdown-it renderer emits raw source markup into a `data-raw-html-block` marker attribute. Since markdown-it renderer rules return HTML strings, interpolating raw HTML into that attribute can permit attribute breakout or malformed marker HTML unless encoding is comprehensive. The NodeView preview is also an XSS risk if it uses `innerHTML` to display the source.  \n   **Suggestion:** Use an opaque, safely encoded payload for the marker (for example UTF-8 base64 or a robust escaped/encoded representation), decode it only when creating the node attribute, and validate decoding failures safely. Render the preview with DOM text nodes / `textContent`, never `innerHTML`. Confirm the generated marker is the only DOM HTML […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/markdownRawHtmlBlock.ts",
+          "line": 178,
+          "finding": "serialize() uses state.write(node.attrs.html), which is NOT delimiter-aware: prosemirror-markdown's write(content) emits delim at most once then appends the whole multi-line string raw. level===0 scoping only prevents the node from being CREATED in a nested position at PARSE time; it does nothing about a nested position reached through the editor UI (rawHtmlBlock is group:'block', StarterKit's blockquote/listItem accept block+). Wrapping the chip in Blockquote/List via the toolbar corrupts a multi-line raw block's structure on save.",
+          "suggestion": "Use state.text(node.attrs.html, false) instead of state.write(...) so delim is applied per-line while escape=false keeps markup byte-verbatim. Add a guard test: toggleBlockquote() on a multi-line raw block, assert every line carries the delimiter.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/markdownTiptap.ts",
+          "line": 154,
+          "finding": "isSafeInlineAnchorOpen silences the warn banner for an href-only inline anchor, but that construct is still REWRITTEN on save (E2E asserts PUT body contains the markdown-link form, not the original <a> tag) while the banner is asserted hidden. Contradicts detectLossyConstructs' own documented contract ('drop OR NORMALISE') and the FR-01.35 wording this same diff writes into spec.md ('still warns ... inline raw HTML'). Code, spec text, and FR row disagree.",
+          "suggestion": "Either keep an inline anchor classified lossy (revert the spec.ts:201 assertion flip) or split the banner vocabulary into 'will be rewritten' vs 'content will be lost' and update spec.md's FR-01.35 line + AC (E) to say so.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/markdownRawHtmlBlock.ts",
+          "line": 79,
+          "finding": "CommonMark html_block rules 6/7 terminate on a blank line, so a top-level block tag not followed by a blank line absorbs following prose into token.content -- prose that used to be editable becomes part of one opaque, non-editable chip. Iterate spec's Internal Plan Review disclosure calls this 'NOT A REGRESSION', but editability demonstrably changed. Untested, and not in the spec's Out of Scope list.",
+          "suggestion": "Add a pinning test for the prose-absorption case, correct the 'not a regression' disclosure, move the limitation into Out of Scope.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/markdownRawHtmlBlock.ts",
+          "line": 117,
+          "finding": "getAttrs catches a decode failure and returns {html:\"\"} -- a malformed-payload marker element silently becomes an empty node (content drop) instead of falling through to normal DOM parsing.",
+          "suggestion": "Return false from getAttrs on decode failure so ProseMirror treats the rule as non-matching.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/markdownTiptap.ts",
+          "line": 112,
+          "finding": "Comment claims 'the SAME markdown-it tokenizer the editor's own parser uses' -- it is the same OPTIONS object, not the same instance (tiptap-markdown's instance additionally installs markdown-it-task-lists + withPatchedRenderer). Harmless for html_block/html_inline classification but overclaims.",
+          "suggestion": "Downgrade wording to 'the same markdown-it CONFIG', naming the known plugin divergence.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/markdownEnvelope.ts",
+          "line": 1,
+          "finding": "The 135-line verbatim file-split extraction is bundled into the same diff as the feature, making it harder to diff-bisect later.",
+          "suggestion": "Non-blocking for this iterate; note for future practice to land pure extractions as a separate refactor: commit.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "CHANGELOG-unreleased.d/",
+          "line": 1,
+          "finding": "No CHANGELOG drop yet in the worktree.",
+          "suggestion": "Add at F4 (finalization) covering both the block-passthrough fix and the inline-anchor warn-banner behaviour change.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-31T15:03:04.426910+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "hidden-coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: state.text(html, false) closes the blockquote/list-wrap corruption case (Stage-2 HIGH, marked Fixed) — The Stage-2 fix makes the FIRST serialization structurally valid; it does not make the result recoverable. Wrapping the chip in a blockquote/list via the toolbar and saving reads as a formatting-only diff, but on reopen the marker div is nested (level!==0), htmlBlockRendererRule falls through to verbatim content, and ProseMirror's DOM parser drops attributes again -- the exact bug this iterate fixes, silently re-introduced by the editor's own toolbar.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary-contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the base64 marker round-trip has no content-corrupting edge case (Stage-2 LOW finding marked Fixed) — getAttrs returning false only covered a decode THROW. (A) substitution: a file already containing a marker-shaped div (nested, reaches the DOM parser verbatim) has its real children silently discarded and replaced by whatever the fake attribute decodes to. (B) mojibake: atob on a short/garbage string does not throw. (C) silent drop: atob(\"\") does not throw either.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: opening a raw-HTML file and saving it unchanged is a no-op / the block round-trips byte-for-byte for html_block rules 1-5 (non-blank-line-terminated) adjacent to prose — Only rules 6/7 (blank-line terminated) absorb following prose into the same token. Rules 1-5 (comment, pre/script/style, doctype, cdata) terminate on their own end condition, so following prose becomes a separate node, and the serializer's closeBlock()+next write() inserts a blank line the user never typed -- a byte-for-byte claim that does not hold at the WHOLE-FILE level.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the warn banner classifies HTML exactly the way the editor actually will — MarkdownEditorModal.tsx fed detectLossyConstructs the FULL file (res.text, including frontmatter) while the editor itself only ever sees env.core (frontmatter stripped) -- two different inputs to two markdown-it instances. Concrete false positive: HTML-looking text inside frontmatter could trigger the banner for content the editor never touches.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "blast-radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the reviewed diff is the whole change -- client/package-lock.json has no hunk in the reviewed diff despite package.json gaining two dependencies — n/a -- process/scope check, not a code claim.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "blast-radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: encodePayload cost is irrelevant — encodePayload builds the binary string one String.fromCharCode per byte and runs on every parse and every renderHTML; a pathological html_block (rule 6 absorbs everything up to the next blank line) could be large enough to cause a main-thread stall.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-31T15:27:39.208517+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/markdownTiptap.ts:152-161",
+          "line": null,
+          "finding": "The inline-anchor losslessness classifier only recognizes a double-quoted absolute URL (`<a href=\"https://...\">`). Valid href-only HTML anchors using single quotes, unquoted attributes, relative paths, fragments, or protocol-relative URLs are still representable as TipTap links and serialize to semantically equivalent Markdown links, but are incorrectly marked as lossy and show the warning banner. This contradicts the updated FR-01.35 behavior of warning only for inline HTML the schema cannot represent losslessly.",
+          "suggestion": "Parse the anchor attribute syntax rather than matching only `href=\"...\"`, and use the same URI-acceptance semantics as the configured Link extension (including allowed relative/fragment URLs). Add detector tests for at least `<a href='/docs'>`, `<a href=/docs>`, and `<a href=\"#section\">`.  Overall assessment: The raw HTML block passthrough, inert rendering, serialization, and top-level warning classification are implemented soundly, but the tightened inline warning heuristic has concrete false positives for common, losslessly representable anchor syntax. Ship with the classifier correction first. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-31T15:15:44.307756+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: bug\n- Severity: medium\n- File: `client/src/lib/markdownTiptap.ts:152-161`\n- Finding: The inline-anchor losslessness classifier only recognizes a double-quoted absolute URL (`<a href=\"https://...\">`). Valid href-only HTML anchors using single quotes, unquoted attributes, relative paths, fragments, or protocol-relative URLs are still representable as TipTap links and serialize to semantically equivalent Markdown links, but are incorrectly marked as lossy and show the warning banner. This contradicts the updated FR-01.35 behavior of warning only for inline HTML the schema cannot represent losslessly.\n- Suggestion: Parse the anchor attribute syntax rather than matching only `href=\"...\"`, and use the same URI-acceptance semantics as the configured Link extension (including allowed relative/fragment URLs). Add detector tests for at least `<a href='/docs'>`, `<a href=/docs>`, and `<a href=\"#section\">`.\n\nOverall assessment: The raw HTML block passthrough, inert rendering, serialization, and top-level warning classification are implemented soundly, but the tightened inline warning heuristic has concrete false positives for common, losslessly representable anchor syntax. Ship with the classifier correction first.  \nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-31T14:56:52.209979+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-31T14:46:57.231071+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

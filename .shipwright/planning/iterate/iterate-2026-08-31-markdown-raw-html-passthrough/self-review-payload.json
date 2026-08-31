@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "AC-1..AC-4 in the iterate spec are implemented and marked [x] with evidence; no feature beyond FR-01.35's scope (top-level html_block passthrough) was added."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "parseHTML's getAttrs wraps decodePayload in try/catch (malformed base64 -> {html:\"\"} instead of throwing during ProseMirror doc parsing); detectHtmlLossiness wraps the markdown-it parse call in try/catch so malformed input degrades to 'not flagged' rather than crashing the modal."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No SQL/DB surface touched. renderHTML returns a DOMOutputSpec with the raw HTML only as a string child (safe DOM text node, never innerHTML) -- verified by a dedicated <script>-payload test. The inline Link mark keeps the SAFE_LINK_PROTOCOLS allowlist. Block-level HTML is deliberately NOT scheme-sanitized (fidelity-over-sanitization, reviewed by both external LLM providers and documented in markdownRawHtmlBlock.ts + the iterate spec's Design Notes) -- the in-app DocumentMarkdown preview still sanitizes via rehype-sanitize on render, so this is an accepted, documented asymmetry rather than an oversight."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "markdownRawHtmlBlock.test.ts asserts on outcomes (toBe(source) byte-identical round-trips, DOM query for absence of a <script> element, window.__pwned undefined) not internal state. Happy-path (styled CTA, no-attribute, multi-line, between-prose) and edge/error-path (nested blockquote/list doesn't-throw, malformed decode fallback, javascript:-scheme block) are both covered."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "n/a",
+      "note": "Client-side editor extension only; no DB calls, no list endpoints, no loops over unbounded data. base64 encode/decode is O(content length) per block, same order as the content itself."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "markdownTiptap.ts (213 lines) was split into markdownEnvelope.ts (135) and markdownRawHtmlBlock.ts (189) to stay under the 300-line convention; markdownTiptap.test.ts (203) similarly split off markdownRawHtmlBlock.test.ts (169). File/folder locations and naming match the existing client/src/lib/ conventions."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Producer = markdown source file on disk (loaded via GET, edited in the TipTap editor); consumer = the same file written back via the SmartViewer save PUT. A real round-trip test exists at both layers: unit (roundTrip(source) === source across 8+ fixtures, plus tiptap-markdown's parse->RawHtmlBlock->serialize path) and E2E (markdown-editor.spec.ts's CTA-block test asserts the captured PUT body via mockCtaBlockFile contains the exact CTA_BLOCK string after an unrelated edit + save)."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run shared/scripts/tools/scan_test_hygiene.py --diff (via shipwright-plan project + shared/scripts/tools path) returned 'test_hygiene: no findings' against the working-tree changes."
+    }
+  ]
+}

@@ -179,11 +179,9 @@ describe("detectLossyConstructs", () => {
     expect(detectLossyConstructs(md)).not.toContain("YAML frontmatter");
   });
 
-  // @covers FR-01.35
-  it("flags raw HTML and HTML comments", () => {
-    expect(detectLossyConstructs('<a id="trg-1"></a>\n\ntext')).toContain("raw HTML");
-    expect(detectLossyConstructs("text\n<!-- a comment -->\n")).toContain("HTML comments");
-  });
+  // raw-HTML / HTML-comment classification (block vs. inline, attribute
+  // awareness) is covered by markdownRawHtmlBlock.test.ts, alongside the
+  // rawHtmlBlock node's own round-trip suite.
 
   // @covers FR-01.35
   it("flags footnotes", () => {

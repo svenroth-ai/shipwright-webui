@@ -1,0 +1,56 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "irreversible-operations",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "state.text(html, false) closes the blockquote/list-wrap corruption case (Stage-2 HIGH, marked Fixed)",
+      "disproof_attempt": "The Stage-2 fix makes the FIRST serialization structurally valid; it does not make the result recoverable. Wrapping the chip in a blockquote/list via the toolbar and saving reads as a formatting-only diff, but on reopen the marker div is nested (level!==0), htmlBlockRendererRule falls through to verbatim content, and ProseMirror's DOM parser drops attributes again -- the exact bug this iterate fixes, silently re-introduced by the editor's own toolbar.",
+      "disposition": "fixed",
+      "resolution": "RawHtmlBlock no longer carries group:\"block\" membership; a new RawHtmlBlockDocument override (content: \"(block|rawHtmlBlock)+\") restricts the node to the document's own top level. ProseMirror's own transform validation (wrapIn) now refuses the wrap structurally -- no per-command guard to keep in sync. Pinned by a test asserting toggleBlockquote/toggleBulletList both return false and leave the doc unchanged; the delimiter-per-line behavior itself is pinned separately via a direct MarkdownSerializerState unit test, since the live editor can no longer reach a delimited position."
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary-contract",
+      "claim_under_doubt": "the base64 marker round-trip has no content-corrupting edge case (Stage-2 LOW finding marked Fixed)",
+      "disproof_attempt": "getAttrs returning false only covered a decode THROW. (A) substitution: a file already containing a marker-shaped div (nested, reaches the DOM parser verbatim) has its real children silently discarded and replaced by whatever the fake attribute decodes to. (B) mojibake: atob on a short/garbage string does not throw. (C) silent drop: atob(\"\") does not throw either.",
+      "disposition": "fixed",
+      "resolution": "Added a MARKER_MAGIC literal prefix (outside the base64 alphabet) that only our own encodePayload ever produces; decodePayload returns null (not a throw) when the prefix is absent, and getAttrs treats null the same as false (no match, falls through to normal parsing). Also added a childNodes.length !== 0 guard (the renderer never emits children) checked before the payload is even read. Pinned by two tests: a nested marker-shaped div with real children is not swallowed (via markdown source, real pipeline); a top-level marker-shaped div with a non-magic payload (via ProseMirror's own DOMParser directly, bypassing the markdown pipeline which would otherwise re-wrap it) is not treated as ours."
+    },
+    {
+      "severity": "medium",
+      "lens": "reversibility",
+      "claim_under_doubt": "opening a raw-HTML file and saving it unchanged is a no-op / the block round-trips byte-for-byte for html_block rules 1-5 (non-blank-line-terminated) adjacent to prose",
+      "disproof_attempt": "Only rules 6/7 (blank-line terminated) absorb following prose into the same token. Rules 1-5 (comment, pre/script/style, doctype, cdata) terminate on their own end condition, so following prose becomes a separate node, and the serializer's closeBlock()+next write() inserts a blank line the user never typed -- a byte-for-byte claim that does not hold at the WHOLE-FILE level.",
+      "disposition": "rebutted-and-disclosed",
+      "resolution": "AC-1's claim was already scoped to \"that block\" (the block's own bytes), not the whole file -- and the file's own pre-existing header already discloses that inter-block whitespace normalizes for ANY two adjacent StarterKit blocks (not unique to this iterate's new node). Confirmed this is visible, not silent: the pre-save diff view shows it on open, exactly the safety net the editor already relies on for every other normalization. A full structural fix (preserving exact inter-block blank-line counts for every node type) would be a materially larger, editor-wide change out of scope for this bug fix. Pinned the actual behavior with a new test (HTML comment + adjacent prose, no blank line) documenting what happens rather than leaving it untested."
+    },
+    {
+      "severity": "low",
+      "lens": "boundary-contract",
+      "claim_under_doubt": "the warn banner classifies HTML exactly the way the editor actually will",
+      "disproof_attempt": "MarkdownEditorModal.tsx fed detectLossyConstructs the FULL file (res.text, including frontmatter) while the editor itself only ever sees env.core (frontmatter stripped) -- two different inputs to two markdown-it instances. Concrete false positive: HTML-looking text inside frontmatter could trigger the banner for content the editor never touches.",
+      "disposition": "fixed",
+      "resolution": "One-line fix: detectLossyConstructs(env.core) instead of detectLossyConstructs(res.text) -- env.core was already computed on the preceding line."
+    },
+    {
+      "severity": "low",
+      "lens": "blast-radius",
+      "claim_under_doubt": "the reviewed diff is the whole change -- client/package-lock.json has no hunk in the reviewed diff despite package.json gaining two dependencies",
+      "disproof_attempt": "n/a -- process/scope check, not a code claim.",
+      "disposition": "rebutted",
+      "resolution": "client/package-lock.json IS modified in the worktree (confirmed via git status --short; the markdown-it entry is present) -- it was excluded from code-review-diff.txt only by the diff-generation command's explicit path filter (kept lockfiles out for reviewer noise), not because the lockfile is stale or unstaged. It will be included in the same commit at F6."
+    },
+    {
+      "severity": "low",
+      "lens": "blast-radius",
+      "claim_under_doubt": "encodePayload cost is irrelevant",
+      "disproof_attempt": "encodePayload builds the binary string one String.fromCharCode per byte and runs on every parse and every renderHTML; a pathological html_block (rule 6 absorbs everything up to the next blank line) could be large enough to cause a main-thread stall.",
+      "disposition": "accepted-not-fixed",
+      "resolution": "The overall file is already capped by the existing SmartViewer read/write byte limits, which bounds the worst-case single block to a known, small-multi-MB ceiling -- not unbounded. Given the low severity and that this is a bug-fix iterate (not a performance iterate), memoization is deferred rather than added speculatively; noted here so it is not silently forgotten."
+    }
+  ],
+  "summary": "6 doubts (1 high, 2 medium, 3 low). All addressed before commit: 3 fixed in code (structural block, marker provenance guard, warn-banner input mismatch), 2 rebutted-with-evidence (byte-for-byte scope already correct as written; package-lock.json is in fact modified), 1 accepted-not-fixed with a documented bound (encodePayload cost)."
+}
