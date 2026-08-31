@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-08-31-shipslog-documents-panel",
+  "date": "2026-09-01",
+  "section": "Iterate — feature: Ship's-Log Documents panel",
+  "title": "Ship's-Log Documents panel + Edit-button decoupling from popOut",
+  "context": "Compliance Docs, Agent Docs and Specs had no links anywhere in the Ship's Log, findable only via the File Viewer or Mission tab. 6-round HTML-mockup design approval settled a full two-column layout with a Documents panel, and surfaced that the Edit button inside SmartViewerModal was missing because MarkdownRenderer gated it on the same onSaved callback that also implied popOut=false was the primary pane.",
+  "decision": "Add a read-only GET /shipslog-docs route + reader curating Requirements (per planning-section spec.md), Iterate mini-specs, Agent Docs, Compliance; render as the Ship's-Log page's new 2fr:1fr right column via Radix Tabs, reusing SmartViewerModal per row. Decouple Edit from popOut in SmartViewer.tsx: onSaved is now always wired, only the Pop-out affordance stays popOut-gated. Add a global saved-to-disk-only banner to MarkdownEditorBanners.tsx.",
+  "consequences": "Every project doc is now one click from its home page; a modal-nested SmartViewer (SmartViewerModal, TriageFilePanel) can edit in place via the real TipTap editor; every markdown edit now visibly states it does not commit or push. No new write surface — reuses the existing PUT /file route.",
+  "rationale": "Requirements vs Iterate stayed two separate tabs rather than one merged list (oscillated during design, reverted to two) because they answer different questions and Iterate is two orders of magnitude larger, which would bury the one Requirements row under search noise.",
+  "rejected": "Merging Requirements and Iterate into one searchable list (v1-v3 of the mockup) - rejected because the size mismatch (1 vs ~230) buries the smaller, more important list.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/iterate-2026-08-31-shipslog-documents-panel.md"
+}

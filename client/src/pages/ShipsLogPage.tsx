@@ -33,7 +33,9 @@ import {
 import { SURFACE_CLS } from "../components/external/ProjectCreateCascade";
 import { GraduationCard } from "../components/shipslog/GraduationCard";
 import { LogEntryList } from "../components/shipslog/LogEntryList";
+import { ShipsLogDocumentsPanel } from "../components/shipslog/ShipsLogDocumentsPanel";
 import "../styles/ships-log.css";
+import "../styles/ships-log-docs.css";
 
 export default function ShipsLogPage() {
   const { projectId = "" } = useParams();
@@ -151,11 +153,14 @@ export default function ShipsLogPage() {
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 32 }}>
           {project && (
             <div className="ships-log">
-              <CaptainsDrawer projectId={project.id} />
-              <div className="sl-lead">Start the next change — a new iterate on this project</div>
-              <ScopedIteratePromptbox project={project} />
-              <GraduationCard projectId={project.id} date={baselineDate} />
-              <LogEntryList projectId={project.id} />
+              <div className="sl-main">
+                <CaptainsDrawer projectId={project.id} />
+                <div className="sl-lead">Start the next change — a new iterate on this project</div>
+                <ScopedIteratePromptbox project={project} />
+                <GraduationCard projectId={project.id} date={baselineDate} />
+                <LogEntryList projectId={project.id} />
+              </div>
+              <ShipsLogDocumentsPanel projectId={project.id} />
             </div>
           )}
         </div>
