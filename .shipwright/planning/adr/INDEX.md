@@ -38,5 +38,6 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [ADR: Route grade.py and triage_cli.py through `uv run`, never a bare system Python](iterate-2026-08-26-grade-uv-run-uv-run-spawn.md)
 - [ADR detail — Widen the triage file-viewer panel](iterate-2026-08-30-triage-panel-width-panel-width.md)
 - [Raw HTML block passthrough via a structurally-restricted TipTap node](iterate-2026-08-31-markdown-raw-html-passthrough-raw-html-block-node.md)
+- [Lead-question inbox kind](iterate-2026-09-01-lead-question-inbox.md)
 - [ADR: Swap the vendored Tier-3 PR-review gate's default model to GLM 5.3](iterate-2026-09-01-pr-review-glm-model-webui-pr-review-glm-swap.md)
 - [spec — Root cause of the residual embedded-terminal table smear](iterate-2026-09-01-terminal-table-smear-root-cause.md)

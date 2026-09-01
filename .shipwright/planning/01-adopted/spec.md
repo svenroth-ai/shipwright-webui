@@ -45,6 +45,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | ID | Area | Name | Priority | Description | Origin |
 |----|------|------|----------|-------------|--------|
 | FR-01.04 | INB | Cross-project inbox (pending questions) | Must | One cross-project Inbox that gathers every open question a running session is waiting on (for example a multiple-choice prompt) across all your tracked tasks. Each row links back to the task it came from, and a menu-style question can be dismissed to silence the reminder.<br>**Updates:** Gained detection of plain-text 'how should I proceed?' questions (which clear once you reply), and an honest note that they are answered in the task's terminal, not the Inbox. | crawl+enrichment + iterate-2026-05-15 |
+| FR-01.72 | INB | Lead-question inbox | Should | A fourth Inbox row kind for a follow-up question the separate leadwright tool asks the operator directly (not detected from a running session's terminal, but written by leadwright onto the task itself). Unlike the other three kinds, the operator answers it right there in the Inbox with a short text reply, which is handed back to leadwright; it can also be dismissed without answering. | iterate-2026-09-01-lead-question-inbox |
 
 ### Area PRJ — Projects & Ship's-Log
 

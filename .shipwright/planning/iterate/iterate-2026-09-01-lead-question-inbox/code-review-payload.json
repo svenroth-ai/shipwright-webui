@@ -1,0 +1,101 @@
+{
+  "section": "iterate-2026-09-01-lead-question-inbox",
+  "review": [
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "server/src/external/inbox/_lead.ts",
+      "line": 59,
+      "finding": "Suppression is TASK-scoped and permanent, not question-scoped — once a task's poFeedback is set or its lq-<taskId> id is dismissed, that task can never surface another lead_question until leadwright clears poFeedback and rewrites description. FIXED: documented as an explicit by-design contract in _lead.ts's header comment.",
+      "suggestion": "State the cross-repo contract explicitly so the next reader does not read the current behavior as a bug."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/pages/inbox/InboxCard.LeadQuestion.tsx",
+      "line": 63,
+      "finding": "The answer PATCH's failure modes were silent and reachable (server 400s over 6000 chars, 409s on lockfile contention, no client-side cap, no error surface). FIXED: added an answerMutation.isError alert and a maxLength cap on the textarea.",
+      "suggestion": "Render an isError alert and cap the textarea's maxLength to the server's DESCRIPTION_MAX_LENGTH minus the timestamp marker's length."
+    },
+    {
+      "severity": "medium",
+      "category": "readability",
+      "file": "client/src/pages/inbox/InboxCard.LeadQuestion.tsx",
+      "line": 141,
+      "finding": "The question body rendered unclipped, unlike both sibling cards, letting one lead card dominate the Inbox list. FIXED: reused the same MAX_BODY_PREVIEW_PX + fade wrapper as InboxCard.Waiting.tsx.",
+      "suggestion": "Reuse the sibling cards' clip + fade wrapper."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/pages/inbox/InboxCard.exhaustive.type.test.ts",
+      "line": 23,
+      "finding": "The exhaustiveness test was tautological — it asserted a standalone never-check with no reference to InboxCard.tsx's actual guard. FIXED: rewrote to call the real exported unhandledInboxItemKind guard inside a type-only, never-invoked function so a widened parameter type fails to compile.",
+      "suggestion": "Assert against the real exported guard, not a standalone type check."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx",
+      "line": 111,
+      "finding": "The FR-04.37 outbound client test was vacuous — it fed already-stripped input and asserted no marker in the output, proving nothing about stripping. FIXED: removed, with a pointer to the real server-side coverage in _lead.test.ts's extractLeadQuestionBody cases.",
+      "suggestion": "Delete the vacuous assertion; the real coverage is server-side."
+    },
+    {
+      "severity": "low",
+      "category": "security",
+      "file": "client/src/pages/inbox/inbox-no-writepath.test.ts",
+      "line": 91,
+      "finding": "The Inbox-fence carve-out was broader than documented — the file exclusion covered all three scans (input/textarea/contentEditable) and matched on basename rather than exact path. FIXED: narrowed to only the textarea scan, matched on the exact relative path.",
+      "suggestion": "Scope the exclusion to only the textarea scan and match the exact relative path."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/lib/externalApi.ts",
+      "line": 154,
+      "finding": "InboxItemBase/InboxItemCommon were collapsed onto single lines to stay under the bloat ceiling, buying headroom by compression rather than extraction. FIXED: extracted the whole InboxItem union into a new client/src/lib/inboxItemTypes.ts file, re-exported from externalApi.ts for back-compat, restoring normal multi-line style and real headroom.",
+      "suggestion": "Extract the type family into its own file instead of compressing it."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/external/inbox/_lead.ts",
+      "line": 42,
+      "finding": "Marker stripping only handled the leading marker and LF-only newlines — a second marker line further down, or a CRLF-terminated marker, could leave sentinel text or a stray \\r in the body. FIXED: generalized the strip to also remove any marker-only line anywhere in the body, and to handle CRLF.",
+      "suggestion": "Strip all marker-only lines and handle CRLF explicitly."
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/test/doc-sync.test.ts",
+      "line": 36,
+      "finding": "Three new production modules (_lead.ts, leadQuestionApi.ts, InboxCard.LeadQuestion.tsx) shipped without a corresponding entry in REQUIRED_TOKENS, contrary to the file's own stated contract. FIXED: added the tokens plus matching architecture.md prose and an Updates-list bullet.",
+      "suggestion": "Extend REQUIRED_TOKENS and the doc bundle in the same commit as new production modules."
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "CHANGELOG-unreleased.d",
+      "line": 1,
+      "finding": "No changelog drop yet for a user-visible feature (a new Inbox card kind with an answer form).",
+      "suggestion": "Add a changelog drop as part of F4 finalization."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/external/inbox/routes.ts",
+      "line": 84,
+      "finding": "A repeat dismiss of an already-dismissed lead_question falls through to 404 rather than an idempotent 200 — harmless and consistent with how the three existing kinds behave. NOT FIXED: matches existing sibling-kind behavior, not a regression introduced by this change.",
+      "suggestion": "Optional: return 200 idempotently when the id is already dismissed (left as-is, out of scope)."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/pages/inbox/InboxCard.LeadQuestion.tsx",
+      "line": 33,
+      "finding": "The lq- id convention was spelled literally instead of reusing inboxItemKey(). FIXED: now calls inboxItemKey(item).",
+      "suggestion": "Reuse the shared inboxItemKey() helper."
+    }
+  ]
+}
