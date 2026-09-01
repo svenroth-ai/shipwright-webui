@@ -1,0 +1,6 @@
+{
+  "stage": "self-review",
+  "verdict": "PASS",
+  "items": [],
+  "summary": "7-point self-review, no findings. Correctness: triggers only on push tags v*, builds server+client+bootstrapper then npm publish --access public (verified against bootstrapper/package.json). Tests: YAML parses; ci-action-pinning-posture 10/10 and no-shell-true-spawn 15/15 pass with the new file. Edge case: first tag before npmjs.com Trusted Publisher config fails — documented one-time operator setup. Security: OIDC least privilege (contents:read + id-token:write), no NPM_TOKEN/secrets, no untrusted input. Style: functional YAML byte-identical to the vetted template. Boundary: CI trust boundary — ci_supplychain_ack recorded, decision-drop reverses the no-publish-workflow stance."
+}

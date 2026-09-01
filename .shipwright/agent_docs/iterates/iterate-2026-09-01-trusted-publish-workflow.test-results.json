@@ -1,0 +1,62 @@
+{
+  "last_updated": "2026-09-01",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-01-trusted-publish-workflow",
+    "date": "2026-09-01",
+    "unit": "n/a \u2014 CI-workflow-only change (.github/workflows/publish-npm.yml); no TS/source touched. The one relevant guard, server ci-action-pinning-posture.test.ts, ran 10/10 GREEN against the new file.",
+    "integration": "n/a \u2014 no cross-component machinery touched (touches_ci_supplychain, not cross_component); no service-boundary code change.",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "n/a \u2014 no web surface; the change is a GitHub Actions workflow with no client or server runtime code.",
+    "design_fidelity": "n/a \u2014 no UI change",
+    "smoke": "n/a \u2014 no server runtime behaviour change",
+    "degraded": [
+      "The workflow's runtime behaviour (OIDC trusted publishing, tag<->version + prerelease + already-published guard, npm publish to the latest dist-tag) cannot be exercised in this repo's CI \u2014 it runs only inside GitHub Actions against the live npm registry. It is verified structurally (YAML parse, posture guard) and by the internal review cascade + the PR-Review CI gate; first real execution is the next release tag, after the one-time npmjs.com Trusted Publisher config."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "The added workflow keeps the action-pinning posture: only GitHub-owned actions on mutable tags, no third-party action, no hosted updater (CLAUDE.md rule 25).",
+          "disposition": "tested",
+          "evidence": "server/src/test/ci-action-pinning-posture.test.ts \u2014 10/10 PASSED against the tree containing .github/workflows/publish-npm.yml (both drift directions)."
+        },
+        {
+          "behavior": "The workflow YAML is well-formed and parses.",
+          "disposition": "tested",
+          "evidence": "python yaml.safe_load of .github/workflows/publish-npm.yml succeeds ('YAML OK'); the posture test also loads/parses every workflow file in .github/workflows/."
+        },
+        {
+          "behavior": "A pushed tag whose version disagrees with bootstrapper/package.json, or is a prerelease, or is already published on npm, fails the guard fast before any build/publish.",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "The guard step runs only inside GitHub Actions (GITHUB_REF_NAME) and its already-published check calls the live npm registry (npm view); neither is reproducible in this repo's CI."
+        },
+        {
+          "behavior": "On a matching stable tag, the job builds server+client+bootstrapper, verifies the tarball assembles with non-empty dist, and publishes to npm via OIDC trusted publishing (no NPM_TOKEN, provenance automatic).",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "Requires the GitHub Actions OIDC identity and a live npm publish against @svenroth-ai/shipwright \u2014 an irreversible external side effect that cannot run in CI; first exercised by the next real release tag."
+        }
+      ],
+      "counts": {
+        "testable": 2,
+        "tested": 2,
+        "untestable": 2,
+        "untested_testable": 0
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "No web or CLI surface. The change is a single GitHub Actions workflow file (.github/workflows/publish-npm.yml) with no client or server runtime code, so there is nothing to render or drive in a browser. Structural verification (YAML parse + ci-action-pinning-posture 10/10) and the full internal review cascade (spec/code/doubt) plus the PR-Review CI gate stand in for a surface run."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-01-trusted-publish-workflow",
+    "commit": "4c5d3c107b5b54fb7621b1a270254dfee935582a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-01-trusted-publish-workflow",
+  "date": "2026-09-01",
+  "section": "Release / CI supply chain",
+  "title": "Trusted-publishing npm workflow (OIDC) — reverse the no-publish-workflow stance",
+  "context": "Prior stance (npm-publish skill + repo): NO publish workflow — the human gate was the manual npm publish with 2FA/OTP. Every latest release was thus a manual, 2FA-gated step (webui 0.25.0 shipped this way), with no build provenance and operator availability as a release blocker.",
+  "decision": "Add .github/workflows/publish-npm.yml: on pushed tag v*, publish @svenroth-ai/shipwright via npm Trusted Publishing (OIDC, id-token:write, NO NPM_TOKEN) — install server/client/bootstrapper deps, npm run build in bootstrapper, npm publish --access public. The human gate moves from npm publish to cutting the release tag.",
+  "consequences": "Future latest releases publish automatically on tag; no OTP step; npm provenance attached automatically; no long-lived token exists. A one-time npmjs.com Trusted Publisher config (org svenroth-ai / repo shipwright-webui / workflow publish-npm.yml) is REQUIRED before the first tag or the job fails. Uses only GitHub-owned actions on mutable tags (CLAUDE.md rule 25).",
+  "rationale": "OIDC (tokenless) is strictly stronger than the NPM_TOKEN alternative the old stance avoided; tag-as-gate plus provenance is auditable. The first bootstrap publish already exists, so the trusted-publisher prerequisite can be satisfied.",
+  "rejected": "Keep manual 2FA publish (error-prone, no provenance, release blocked on operator availability). NPM_TOKEN secret in CI (long-lived credential, weaker than OIDC, larger blast radius).",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}
