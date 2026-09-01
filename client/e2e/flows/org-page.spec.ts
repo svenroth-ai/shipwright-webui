@@ -139,6 +139,11 @@ test.describe("Org page — present, one lead (AC-1/AC-2/AC-3/AC-8)", () => {
     // AC-3 — settled unmeasured fields read the literal text, never blank.
     await expect(card.getByTestId("lead-card-stats")).toContainText("not measured");
     await expect(card.getByTestId("lead-card-now")).toBeVisible();
+
+    // FR-04.42 (V4c) AC-d — real production truth today: leadwright's
+    // round-store producer (L8) has not shipped, so no thread renders for
+    // this real lead against the real running app.
+    await expect(page.getByTestId("org-thread-list")).toHaveCount(0);
   });
 
   test("Edit charter -> MarkdownEditorModal loads fresh content -> Save writes the file (AC-8)", async ({ page }) => {

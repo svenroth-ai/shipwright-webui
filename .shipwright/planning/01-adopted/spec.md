@@ -117,7 +117,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | FR-01.31 | PLT | Network access profile | Should | By default the app's servers are reachable only from the same machine, for safety. Reaching them from other devices on your LAN or over Tailscale is opt-in: one network-profile setting flips both halves of the app to a matching, coherent access mode at once. | backfill (iterate-2026-05-16) |
 | FR-01.49 | PLT | npx installer / updater | Should | One installer command that both installs and updates the whole system (the Shipwright plugins and the Command Center), first run and every run after. It checks prerequisites up front and refuses loudly if a required tool (Claude, Python, Node, git) is missing, rather than leaving a broken install. It never starts a Claude session; if the app is already running it attaches to a same-or-newer one, safely swaps an older one, and leaves an unrelated program on the port untouched. | iterate-2026-07-10-npx-bootstrapper |
 | FR-01.70 | PLT | Leads org route | Should | A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file.<br>**Updates:** Gained the runtime-store half of the leadwright coordination contract — a release action for a hung beat-register entry (mirrors leadwright's own recovery contract exactly, one audit line per release, idempotent on retry), a per-lead last-run timestamp with server-computed staleness (3× that lead's own cron cadence, never a hardcoded interval), and an open-register finding (clear / open / fault-on-duplicate-sessionId). | iterate-2026-08-17-org-route-leads + iterate-2026-08-18-org-route-beat-register |
-| FR-01.71 | PLT | Organization overview for AI leads | Should | The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter. | iterate-2026-08-26-org-page |
+| FR-01.71 | PLT | Organization overview for AI leads | Should | The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it — the only readable surface for that thread (FR-04.42). No new route or write surface; renders nothing until leadwright's round-store producer ships. | iterate-2026-08-26-org-page + iterate-2026-09-01-org-thread-view |
 
 ## FR-Fold-Map
 
@@ -1240,6 +1240,16 @@ write surface; gated, path-guarded, and concurrency-safe.
   400 `invalid_lead_id` before any chart-membership check runs). The
   existing secret-gated `/api/external/org/*` family is unaffected by
   mounting this new router (still 401/403 without the shared secret).
+- (D) **(iterate-2026-09-01-org-thread-view, FR-04.42)** Each lead card can
+  render a per-card conversation thread — leadwright's question/answer
+  follow-up rounds — directly beneath it, in the order recorded, via a new
+  `OrgThread`/`OrgThreadList` component pair. A round with no answer yet
+  renders an explicit "Open — waiting for your answer" state, never blank.
+  Round text is untrusted and always rendered as inert text, never markup.
+  Fed by a stub `useOrgThreads()` hook returning no threads until
+  leadwright's own round-store producer ships (L8, FR-04.17–FR-04.19); until
+  then every card legitimately shows no thread, which the page renders
+  cleanly. No new route or write surface.
 
 ## Quality Requirements
 

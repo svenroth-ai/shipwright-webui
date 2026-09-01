@@ -118,3 +118,31 @@
 }
 .org-page .badge.acc  { background: #E6F3F0; color: #0E7A6B; border-color: #9fd3ca; }
 .org-page .badge.warn { background: #FFFAEB; color: #B54708; border-color: #FEDF89; }
+
+/*
+ * .thread* — the per-card conversation thread (FR-04.42, V4c). Not part of
+ * the original mockup (artifact 8ffca3cd predates this run); tokens/colors
+ * are picked to match the existing `.rolebox`/`.nowline` blocks above.
+ */
+.org-page .thread-list { display: flex; flex-direction: column; gap: 10px; margin: 0 0 12px; }
+.org-page .thread {
+  background: #FFFFFF; border: 1px solid #E7E5E4; border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.05); padding: 12px 14px;
+}
+.org-page .thread-title { font-size: 12.5px; font-weight: 650; color: #1C1917; margin-bottom: 8px; }
+.org-page .thread-rounds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.org-page .thread-round { padding-top: 10px; border-top: 1px solid #F5F5F4; }
+.org-page .thread-round:first-child { padding-top: 0; border-top: none; }
+.org-page .thread-line { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.5; }
+.org-page .thread-line + .thread-line { margin-top: 4px; }
+.org-page .thread-label {
+  flex: 0 0 auto; width: 18px; height: 18px; border-radius: 5px; text-align: center;
+  font-size: 10.5px; font-weight: 700; line-height: 18px; background: #F5F5F4; color: #79716B;
+}
+.org-page .thread-a .thread-label { background: #E6F3F0; color: #0E7A6B; }
+.org-page .thread-text { color: #44403C; white-space: pre-wrap; word-break: break-word; }
+.org-page .thread-open {
+  margin-top: 4px; font-size: 12.5px; line-height: 1.5; font-weight: 600; color: #B54708;
+  background: #FFFAEB; border: 1px solid #FEDF89; border-radius: 7px; padding: 4px 9px;
+  display: inline-block;
+}
