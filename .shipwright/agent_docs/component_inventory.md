@@ -85,7 +85,10 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `BubbleTranscript` | `external/BubbleTranscript.tsx` | 175 | 24 |
 | `TaskDetailHeader` | `external/TaskDetailHeader.tsx` | 219 | 21 |
 | `PaneTabBar` (compact detail tabs, iterate-2026-06-14) | `external/PaneTabBar.tsx` | 60 | 1 |
-| `TaskCard` | `external/TaskCard.tsx` | 606 | 18 |
+| `TaskCard` | `external/TaskCard.tsx` | 444 | 18 |
+| `TaskCardProjectPill` (`ProjectPill`, extracted from `TaskCard.tsx`, iterate-2026-09-01-lead-board-surface — no behavior change, reclaims bloat headroom) | `external/TaskCardProjectPill.tsx` | 49 | 1 |
+| `TaskCardLeadExpander` (`LeadOriginGlyph` + `TaskCardLeadExpander`, FR-04.11, iterate-2026-09-01-lead-board-surface) — the bot glyph next to the project pill plus the on-card expander (domain/priority/complexityHint/lead-tag readouts); wrapper `stopPropagation` on both `onClick` and `onKeyDown` keeps the card's own `navigateToDetail` click AND `TaskBoardColumns`' dnd-kit `KeyboardSensor` from firing when the expander is used | `external/TaskCardLeadExpander.tsx` | 173 | 1 |
+| `LeadTagFilter` (`LeadTagFilterMenu` Bot dropdown + `LeadWaitToggleButton` BellDot shortcut, FR-04.11, iterate-2026-09-01-lead-board-surface) — board toolbar filter over the closed three-prefix tag vocabulary (`lead:`/`lead-wait:`/`lead-dedup:`, see `lib/leadTags.ts`); mirrors `BoardStatusFilter`'s menu anatomy | `external/LeadTagFilter.tsx` | 157 | 1 |
 | `TaskBoardColumns` (board grid + DnD, decoupled `boardColumn`; iterate-2026-06-17; uses `lib/boardColumnApi` + `lib/taskSort` for Last-Modified-desc within-column order) | `external/TaskBoardColumns.tsx` | — | 1 |
 | `SmartViewer` | `external/SmartViewer.tsx` | 286 | 13 |
 | `MarkdownText` | `external/MarkdownText.tsx` | 195 | 13 |
@@ -330,6 +333,8 @@ Every terminal launch state made visible + recoverable (campaign
 | `CampaignStartButton` | `client/src/components/external/CampaignStartButton.tsx` | The board's draft → active Start-Campaign CTA (existing `useStartCampaign`); surfaces 403/404/409/422/503 as an inline notice. |
 | `LaunchFailureRecovery` | `client/src/components/external/TaskDetailHeader/LaunchFailureRecovery.tsx` | The task-detail header's launch-failure notice + Retry/Resume (funnel-re-entering, rule 14). |
 | `taskCardState` | `client/src/components/external/taskCardState.tsx` | The board card's state-visual helpers (StatePill/icon), extracted so `TaskCard` mounts the notice without its LOC rising. `selectDraftCampaigns` + `campaignLifecycleLabel` in `campaignsApi.ts` surface drafts on the board. |
+| `leadTags` | `client/src/lib/leadTags.ts` | FR-04.11, iterate-2026-09-01-lead-board-surface. The closed three-prefix tag vocabulary (`lead:` / `lead-wait:` / `lead-dedup:`) — null-safe predicates (`isLeadOriginated`, `isWaitingOnPo`, `hasDedupTag`, `hasAnyLeadTag`, `matchesAnyLeadPrefix`) plus `leadOriginId`/`dedupKey`. No fourth prefix, no new persisted field. |
+| `useBoardFilters` | `client/src/hooks/useBoardFilters.ts` | FR-04.11, iterate-2026-09-01-lead-board-surface. Extracted out of `TaskBoardPage.tsx` (absorbing the pre-existing inline status-filter state too, not just the new lead-tag one) to keep that file under its bloat baseline: status + lead-tag `Set` state, toggle/clear, per-option counts, the combined `filteredTasks`, and `noFilterMatches`. `leadTagTotal` (the Bot menu's "All" row count) is `projectFiltered.length`, not a sum of the three per-prefix counts — those overlap and aren't exhaustive, so summing would double-count. |
 
 ## Screenshots
 

@@ -1,0 +1,2510 @@
+warning: in the working copy of '.shipwright/planning/iterate/external_review_state.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.shipwright/planning/iterate/2026-09-01-lead-board-surface-miniplan.md', LF will be replaced by CRLF the next time Git touches it
+diff --git a/.shipwright/agent_docs/component_inventory.md b/.shipwright/agent_docs/component_inventory.md
+index 3315db82..a8f89877 100644
+--- a/.shipwright/agent_docs/component_inventory.md
++++ b/.shipwright/agent_docs/component_inventory.md
+@@ -85,7 +85,10 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
+ | `BubbleTranscript` | `external/BubbleTranscript.tsx` | 175 | 24 |
+ | `TaskDetailHeader` | `external/TaskDetailHeader.tsx` | 219 | 21 |
+ | `PaneTabBar` (compact detail tabs, iterate-2026-06-14) | `external/PaneTabBar.tsx` | 60 | 1 |
+-| `TaskCard` | `external/TaskCard.tsx` | 606 | 18 |
++| `TaskCard` | `external/TaskCard.tsx` | 444 | 18 |
++| `TaskCardProjectPill` (`ProjectPill`, extracted from `TaskCard.tsx`, iterate-2026-09-01-lead-board-surface — no behavior change, reclaims bloat headroom) | `external/TaskCardProjectPill.tsx` | 49 | 1 |
++| `TaskCardLeadExpander` (`LeadOriginGlyph` + `TaskCardLeadExpander`, FR-04.11, iterate-2026-09-01-lead-board-surface) — the bot glyph next to the project pill plus the on-card expander (domain/priority/complexityHint/lead-tag readouts); wrapper `stopPropagation` on both `onClick` and `onKeyDown` keeps the card's own `navigateToDetail` click AND `TaskBoardColumns`' dnd-kit `KeyboardSensor` from firing when the expander is used | `external/TaskCardLeadExpander.tsx` | 173 | 1 |
++| `LeadTagFilter` (`LeadTagFilterMenu` Bot dropdown + `LeadWaitToggleButton` BellDot shortcut, FR-04.11, iterate-2026-09-01-lead-board-surface) — board toolbar filter over the closed three-prefix tag vocabulary (`lead:`/`lead-wait:`/`lead-dedup:`, see `lib/leadTags.ts`); mirrors `BoardStatusFilter`'s menu anatomy | `external/LeadTagFilter.tsx` | 157 | 1 |
+ | `TaskBoardColumns` (board grid + DnD, decoupled `boardColumn`; iterate-2026-06-17; uses `lib/boardColumnApi` + `lib/taskSort` for Last-Modified-desc within-column order) | `external/TaskBoardColumns.tsx` | — | 1 |
+ | `SmartViewer` | `external/SmartViewer.tsx` | 286 | 13 |
+ | `MarkdownText` | `external/MarkdownText.tsx` | 195 | 13 |
+@@ -330,6 +333,8 @@ Every terminal launch state made visible + recoverable (campaign
+ | `CampaignStartButton` | `client/src/components/external/CampaignStartButton.tsx` | The board's draft → active Start-Campaign CTA (existing `useStartCampaign`); surfaces 403/404/409/422/503 as an inline notice. |
+ | `LaunchFailureRecovery` | `client/src/components/external/TaskDetailHeader/LaunchFailureRecovery.tsx` | The task-detail header's launch-failure notice + Retry/Resume (funnel-re-entering, rule 14). |
+ | `taskCardState` | `client/src/components/external/taskCardState.tsx` | The board card's state-visual helpers (StatePill/icon), extracted so `TaskCard` mounts the notice without its LOC rising. `selectDraftCampaigns` + `campaignLifecycleLabel` in `campaignsApi.ts` surface drafts on the board. |
++| `leadTags` | `client/src/lib/leadTags.ts` | FR-04.11, iterate-2026-09-01-lead-board-surface. The closed three-prefix tag vocabulary (`lead:` / `lead-wait:` / `lead-dedup:`) — null-safe predicates (`isLeadOriginated`, `isWaitingOnPo`, `hasDedupTag`, `hasAnyLeadTag`, `matchesAnyLeadPrefix`) plus `leadOriginId`/`dedupKey`. No fourth prefix, no new persisted field. |
++| `useBoardFilters` | `client/src/hooks/useBoardFilters.ts` | FR-04.11, iterate-2026-09-01-lead-board-surface. Extracted out of `TaskBoardPage.tsx` (absorbing the pre-existing inline status-filter state too, not just the new lead-tag one) to keep that file under its bloat baseline: status + lead-tag `Set` state, toggle/clear, per-option counts, the combined `filteredTasks`, and `noFilterMatches`. `leadTagTotal` (the Bot menu's "All" row count) is `projectFiltered.length`, not a sum of the three per-prefix counts — those overlap and aren't exhaustive, so summing would double-count. |
+ 
+ ## Screenshots
+ 
+diff --git a/.shipwright/planning/iterate/2026-09-01-lead-board-surface-miniplan.md b/.shipwright/planning/iterate/2026-09-01-lead-board-surface-miniplan.md
+new file mode 100644
+index 00000000..0247eb08
+--- /dev/null
++++ b/.shipwright/planning/iterate/2026-09-01-lead-board-surface-miniplan.md
+@@ -0,0 +1,98 @@
++# Mini-Plan: lead-board-surface
++
++- **Run ID:** iterate-2026-09-01-lead-board-surface
++
++## Chosen Approach
++
++Three new files carry almost all new logic, so the two already-over-budget
++files (`TaskCard.tsx` 476/300, `TaskBoardPage.tsx` 447/300) grow by wiring
++only:
++
++1. `client/src/lib/leadTags.ts` (+test) — the three tag-prefix constants and
++   pure predicate/parse helpers (`isLeadOriginated`, `isWaitingOnPo`,
++   `hasDedupTag`, `matchesAnyLeadPrefix`, `leadOriginId`, `dedupKey`,
++   `hasAnyLeadTag`). No React, no server call — a plain string-matching
++   module, trivially unit-testable in isolation.
++2. `client/src/components/external/LeadTagFilter.tsx` (+test) — exports
++   `LeadTagFilterMenu` (the Bot dropdown, `BoardStatusFilter`-shaped: Radix
++   `DropdownMenu` + `CheckboxItem` per prefix + live counts + an "All" reset
++   row) and `LeadWaitToggleButton` (the BellDot single toggle). Both take
++   `{ counts, active, onToggle, onReset }`-shaped props exactly like
++   `StatusFilterMenu`, so `TaskBoardPage` wires them the same way it already
++   wires the status filter.
++3. `client/src/components/external/TaskCardLeadExpander.tsx` (+test) —
++   exports `LeadOriginGlyph` (the small Bot icon for the meta row) and
++   `TaskCardLeadExpander` (the chevron toggle + panel showing domain /
++   priority / complexityHint / the three lead tags in human-readable form).
++   Renders `null` when the task carries none of those fields — mirrors
++   `TaskDescriptionDisclosure`'s "render nothing when there's nothing to
++   show" contract.
++
++Then thin wiring:
++
++4. `TaskCard.tsx` — import `LeadOriginGlyph` + `TaskCardLeadExpander`; render
++   the glyph before `ProjectPill` in the meta row; render the expander toggle
++   + panel as a new block (own `stopPropagation` on click, same technique the
++   failure-notice block already uses at `:290`) so it never reaches
++   `navigateToDetail`. Net new lines: ~10-15.
++5. `TaskBoardPage.tsx` — add `leadTagFilter: Set<LeadTagPrefix>` state +
++   `toggleLeadTag`/`clearLeadTagFilter` callbacks (byte-for-byte the same
++   shape as the existing `statusFilter` block), fold it into the
++   `filteredTasks` memo alongside `statusFilter`, compute `leadTagCounts`
++   over `projectFiltered`, and render `<LeadTagFilterMenu>` +
++   `<LeadWaitToggleButton>` next to `<StatusFilterMenu>` in the toolbar `left`
++   slot. Net new lines: ~20-25.
++6. Update `shipwright_bloat_baseline.json`'s `current` for both files to
++   their new honest line counts in the same commit (see iterate spec Design
++   Notes — sanctioned, not a bypass).
++7. Author + run `client/e2e/flows/lead-board-surface.spec.ts` (Playwright,
++   medium+ mandatory web-surface verification).
++
++## Work Breakdown (TDD order)
++
++1. `leadTags.ts` + `leadTags.test.ts` (red → green).
++2. `LeadTagFilter.tsx` + `.test.tsx` (mirrors `BoardStatusFilter.test.tsx`
++   structure — dropdown open/toggle/reset, plus the BellDot toggle).
++3. `TaskCardLeadExpander.tsx` + `.test.tsx` (glyph presence/absence; expander
++   open/close; renders-nothing-when-empty; click isolation from card nav).
++4. Wire `TaskCard.tsx`; extend `TaskCard.test.tsx` with glyph + expander +
++   "navigation still fires outside the expander" cases.
++5. Wire `TaskBoardPage.tsx`; add/extend a page-level test if one exists,
++   else cover the wiring transitively through the E2E spec (the page has no
++   dedicated unit test today per the repo scout — confirm before skipping).
++6. Update the bloat baseline; run `npm run lint && npm run typecheck && npm
++   run test` in `client/`.
++7. Author + execute the Playwright E2E spec against the dev stack.
++
++## Alternative Approach (considered, rejected)
++
++**Add the two lead-filter entries directly inside `BoardStatusFilter.tsx`'s
++own dropdown**, per the earlier, looser prose reading of the source spec
++("two entries in the existing menu"), instead of two new standalone toolbar
++buttons.
++
++Rejected because:
++- It contradicts the task brief's explicit, literawarning: in the working copy of '.shipwright/planning/iterate/2026-09-01-lead-board-surface.md', LF will be replaced by CRLF the next time Git touches it
+l instruction ("A Bot and
++  BellDot button in the existing toolbar pattern") and the source spec's own
++  binding AC-table row for this exact FR, which independently says the same
++  thing ("Bot- und BellDot-Knopf im Werkzeugleisten-Muster").
++  `BoardStatusFilter.tsx` is a **status** filter (`ExternalTaskState`); its
++  own inline comment (`STATUS_FILTER_OPTIONS`) and its component name are
++  both state-shaped, and folding a semantically unrelated tag-filter concept
++  into it would make one component answer two different filtering questions
++  — worse cohesion, not better.
++- It would give `BellDot` no natural home at all (a *toggle*, not a
++  checkbox row inside someone else's dropdown) and lose the visual
++  discoverability the brief asks for (a notification-style bell for "waiting
++  on me", separate from the general status funnel).
++- W5d (claim chip, V3a) is coming next and already expected to touch
++  `TaskCard.tsx`; keeping the toolbar filter logic in its own new component
++  rather than growing `BoardStatusFilter.tsx` further keeps that file's
++  scope narrow for whoever touches it next, same reasoning as trap #4 for
++  `TaskCard.tsx` itself.
++
++## External Plan Review
++
++Per SKILL.md Step 4 (medium auto), this mini-plan + the iterate spec's
++`## Architecture Review` payload go to `external_review.py --mode iterate`
++and a second `--mode architecture` call before Build starts.
+diff --git a/.shipwright/planning/iterate/2026-09-01-lead-board-surface.md b/.shipwright/planning/iterate/2026-09-01-lead-board-surface.md
+new file mode 100644
+index 00000000..f8fc383c
+--- /dev/null
++++ b/.shipwright/planning/iterate/2026-09-01-lead-board-surface.md
+@@ -0,0 +1,477 @@
++# Iterate Spec: lead-board-surface
++
++- **Run ID:** iterate-2026-09-01-lead-board-surface
++- **Type:** feature
++- **Complexity:** medium
++- **Status:** draft
++
++## Goal
++Surface already-persisted lead-work metadata (`tags`, `domain`, `priority`,
++`complexityHint`) on the Task Board so a PO can find and recognize lead-agent
++work without a new page: two toolbar filter controls (Bot, BellDot) keyed off
++the three closed-vocabulary tag prefixes (`lead:`, `lead-wait:`, `lead-dedup:`
++— FR-04.10 in `leadwright/spec/lead-model-spec.md`), an in-place expander on
++`TaskCard` showing the fields the card doesn't render today, and a small bot
++glyph next to the project pill identifying lead-originated cards at a glance.
++
++This is Track B, §9 step 4, of the leadwright/webui parallel work (SEQUENCING
++brief V3, parallel with W5a/V2 and W5c/V4c). It runs autonomously; the task
++brief itself resolves the one open design question (below) so no PO check-in
++is needed mid-flight.
++
++## Acceptance Criteria
++- [ ] (a) A Bot button and a BellDot button exist in the Task Board's existing
++      toolbar row (next to `StatusFilterMenu`/`DensityToggle`), and each of
++      the three tag prefixes (`lead:`, `lead-wait:`, `lead-dedup:`) is
++      filterable and asserted by its literal string name in a test.
++- [ ] (b) An expander on `TaskCard` opens/closes in place without navigating,
++      via mouse **and** keyboard (Enter/Space on the toggle); the
++      pre-existing whole-card-click-navigates-to-detail behavior
++      (`navigateToDetail`, `TaskCard.tsx:150,157`) still fires for
++      interaction outside the expander control, and neither mouse nor
++      keyboard interaction with the expander initiates a card drag (the
++      card is draggable — `TaskBoardColumns.tsx`'s `DraggableCard` spreads
++      `useDraggable`'s listeners, including a `KeyboardSensor`, on an outer
++      wrapper `TaskCard` doesn't control). All three are proven by test —
++      one silently breaking another is the risk this AC exists to catch.
++- [ ] (c) A bot glyph renders next to the `ProjectPill` for a task carrying
++      any `lead:`-prefixed tag, and does not render for a task with no such
++      tag.
++- [ ] (d) No fourth tag prefix is introduced; no new field is added to
++      `ExternalTask` — `domain`, `priority`, `complexityHint`, `tags` are
++      already persisted (iterate-2026-05-14-lead-foundation-task-schema) and
++      this card only reads them.
++- [ ] (e) `npm run test`, `npm run typecheck`, `npm run lint` are green in
++      both `client/` and `server/` (server is untouched by this change but
++      must stay green).
++
++## Spec Impact
++- **Classification:** modify
++- **ADD:** none
++- **MODIFY:** FR-01.01 (Task board) — this is a FOLD: the board already
++  displays state/phase/project-pill and (on the separate `MasterTaskCard`)
++  priority/domain/blockedBy; this iterate extends the same "surface
++  already-persisted metadata" capability to the per-task `TaskCard` plus adds
++  board-level filtering by the lead tag vocabulary. Not a new capability —
++  the fields and the tag vocabulary both already exist server-side.
++- **REMOVE:** none
++- **NONE justification:** n/a (classification is modify)
++
++## Out of Scope
++- The Inbox card surface (W5a / V2) — separate iterate.
++- The org-page conversation thread (W5c / V4c) — separate iterate.
++- The claim chip and its filter (W5d / V3a) — explicitly deferred; W5d touches
++  `TaskCard.tsx` after this card lands and must not have to redo this work.
++- Rebuilding server-side tag filtering — `GET /api/external/tasks?tag=`
++  already exists (exact-match, single-value, V1/webui#371) for other
++  consumers (e2e, the leadwright dedup search); this card filters the
++  already-loaded client-side task list, exactly like the existing
++  `statusFilter`/`filteredTasks` mechanism in `TaskBoardPage.tsx`.
++- Any new persisted field. `blockedBy` display (shown today only on
++  `MasterTaskCard`) is not added to `TaskCard`'s expander — not requested by
++  this brief's acceptance criteria, and adding it would widen scope past the
++  named fields.
++
++## Design Notes
++
++**Resolving an apparent tension in the source spec.** Two passages of
++`leadwright/spec/lead-model-spec.md` describe the PO-facing surface
++differently: prose at line ~1199 says "two entries in the *existing menu*...
++no new bar", while the binding AC table (line 2410, the V3 row, the row that
++names this iterate's FR) says "Bot- und BellDot-Knopf im
++Werkzeugleisten-Muster" (Bot and BellDot **button** in the toolbar
++**pattern**). This iterate's own task brief settles it explicitly in the same
++words as the AC-table row — two dedicated toolbar buttons, not two items
++added inside `BoardStatusFilter`'s own dropdown — and cites
++`BoardStatusFilter.tsx` only as the **menu anatomy** to imitate for the Bot
++button's own dropdown, not as the component to modify. Read together, "no
++new bar" means: both buttons land in the *same* toolbar row as
++`StatusFilterMenu`/`DensityToggle` (no second row of controls), which is
++exactly what "in the existing toolbar pattern" describes. No PO clarification
++needed — the task brief already disambiguates.
++
++**Bot button** — opens a `BoardStatusFilter`-shaped dropdown
++(`LeadTagFilterMenu`) with three checkbox rows, one per tag prefix, each with
++a live count: "Lead-originated" (`lead:`), "Waiting on PO" (`lead-wait:`),
++"Dedup pending" (`lead-dedup:`). New component
++`client/src/components/external/LeadTagFilter.tsx`.
++
++**BellDot button** — a single always-visible toggle (no dropdown) that is a
++shortcut for exactly the "Waiting on PO" entry above, sharing the same
++`Set<LeadTagPrefix>` filter state as the Bot menu — checking one is reflected
++in the other. This matches the source spec's specific callout of "wartet auf
++den PO" (waiting on the PO) as its own PO-facing affordance, and BellDot's
++notification connotation fits that specific case best.
++
++**Filtering semantics** mirror the existing `statusFilter`: empty selection =
++no filtering; a non-empty selection is OR-within-group (task matches if any
++selected prefix matches any of its tags via `tag.startsWith(prefix)`). Client
++-side, over the already-loaded `tasks` array — no new fetch, no `?tag=` call.
++
++**Expander** — new `TaskCardLeadExpander` in
++`client/src/components/external/TaskCardLeadExpander.tsx`, following the
++existing `TaskDescriptionDisclosure` local-expand shape (chevron toggle +
++conditionally-rendered panel) rather than `SmartViewerModal`'s full dialog —
++the brief explicitly wants "an expander ON the card instead of a page
++change". Renders nothing when the task has none of `domain` / `priority` /
++`complexityHint` / `tags`. The toggle button calls `stopPropagation()` on
++click (same pattern already used by the card's failure-notice block and the
++existing action buttons) so it never reaches `navigateToDetail`.
++
++**Bot glyph** — a small `Bot` icon (already imported elsewhere in this
++codebase: `CampaignAutonomousLaunchButton.tsx`) rendered immediately before
++`ProjectPill` inside `TaskCard`'s meta row, gated on `isLeadOriginated(task.tags)`.
++
++**Bloat baseline.** `TaskCard.tsx` (476/300) and `TaskBoardPage.tsx`
++(447/300) are both already-grandfathered over-budget entries in
++`shipwright_bloat_baseline.json`. New logic is extracted into new files
++(`lib/leadTags.ts`, `components/external/LeadTagFilter.tsx`,
++`components/external/TaskCardLeadExpander.tsx`,
++`components/external/TaskCardProjectPill.tsx`, `hooks/useBoardFilters.ts`) to
++keep the growth in the two existing files to thin wiring only. Final state
++(after the code-review pass below, which caught a first draft that bumped
++the baseline instead of extracting): `TaskCard.tsx` shrinks to 444 lines
++(under its 476 baseline — the `ProjectPill` extraction alone did it) and
++`TaskBoardPage.tsx` shrinks to 440 lines (under its 447 baseline — folding
++the pre-existing inline `statusFilter` state into the same
++`useBoardFilters.ts` hook that holds the new lead-tag state did it).
++`shipwright_bloat_baseline.json` is therefore **untouched** by this iterate —
++no bump, honest or otherwise, was needed once both files were extracted
++instead of grown. (An anti-ratchet correction from the internal plan review,
++below, applies here too: `_load_baseline` reads the WORKTREE copy, not a
++committed one — irrelevant now that no baseline edit ships at all.)
++
++## External Plan Review
++
++Both `openai` and `deepseek` returned `revise` (agreeing, no contradiction) on
++the mode=iterate call over this spec + the mini-plan. Findings integrated
++into the mini-plan and the Design Notes above:
++
++- `leadTags.ts` helpers must be null/undefined-safe (`tags?: string[] | null`
++  treated as no tags) — a pre-existing or mocked `ExternalTask` record must
++  not throw the whole board render.
++- `leadTagCounts` follows the *same* convention already established by
++  `statusCounts`: computed from `projectFiltered` alone (not re-filtered by
++  `statusFilter` or by itself), so counts stay stable while the user toggles
++  either filter.
++- The expander's `stopPropagation()` guard goes on the whole expander
++  wrapper (toggle **and** panel), not the toggle button alone — a click
++  inside the open panel must not bubble to `navigateToDetail` either.
++- `LeadOriginGlyph` is gated on exactly `tag.startsWith("lead:")` — never the
++  three-prefix `hasAnyLeadTag` matcher, so a task with only a `lead-wait:` or
++  `lead-dedup:` tag (no `lead:` origin tag) does not get a false-positive
++  glyph.
++- The expander render-gate is "any lead tag present OR any of
++  domain/priority/complexityHint set" — not bare `tags.length > 0` (a task
++  with only unrelated, non-lead tags must not open an expander with nothing
++  meaningful in it).
++- BellDot's pressed state is derived read-only from
++  `active.has(LEAD_WAIT_TAG_PREFIX)` and its click calls the exact same
++  toggle function the menu's checkbox uses — no independent boolean, so
++  there is nothing to keep "in sync" (this was already the intended design;
++  called out explicitly here because both reviewers flagged the risk).
++- The Playwright E2E spec creates its own fixture tasks (via
++  `POST /api/external/tasks`) covering all three prefixes plus one ordinary
++  task with no lead tag, rather than depending on ambient dev-stack data.
++- AC (e)'s server-side `npm run test`/`typecheck`/`lint` are run explicitly
++  even though `server/` is untouched by this change.
++- `leadOriginId`/`dedupKey` are kept in `leadTags.ts` (not trimmed) because
++  the expander has a concrete consumer for both — showing the human-readable
++  lead id and dedup key text.
++- No `dangerouslySetInnerHTML` / dynamic class construction from tag or
++  metadata values — plain JSX text rendering throughout (already the
++  intended approach; explicitly noted per the low-severity security finding).
++- Bloat-baseline bump (Design Notes above) is kept to the exact measured new
++  line counts — no unrelated formatting/cleanup riding along in the same
++  commit.
++
++## Internal Plan Review
++
++`opus-plan-reviewer` (opus tier), verdict `revise`, over the already-revised
++spec + mini-plan. It confirmed the BellDot reconciliation above and added:
++one legibility point already true by construction, and blocking/should-fix
++findings acted on before Build:
++
++- **Bot trigger active-dot when BellDot is engaged** — already true by
++  construction: `LeadTagFilterMenu`'s dot is `active.size > 0` over the
++  *same* `Set` reference BellDot writes into, so engaging BellDot lights the
++  Bot dot with no extra code. No action needed; called out here because the
++  reviewer asked for it explicitly.
++- **`TaskCard.test.tsx` has zero bloat-baseline headroom** (377/377,
++  `current` already equals measured) — the planned new glyph/expander/
++  navigation-isolation test cases go in a **new** file (`TaskCard.lead.test.tsx`)
++  instead of growing it, avoiding a baseline touch entirely for that file.
++- **`TaskCard.tsx` bloat: extract instead of bump.** `ProjectPill`
++  (`:410-450`, ~41 lines) moves to its own file
++  (`TaskCardProjectPill.tsx`) — self-contained, no behavior change — which
++  gives this iterate's own +10-15 lines of wiring room to land *without*
++  raising `TaskCard.tsx`'s baseline `current` at all. This also sidesteps a
++  real, separately-flagged problem: `shipwright_bloat_baseline.json` is a
++  DO-NOT #30 PR-Review sensitive path, so touching it would force a
++  mandatory Tier-3a review regardless of size. The reviewer additionally
++  corrected the spec's original (wrong) claim about *why* a same-commit bump
++  would be safe — the anti-ratchet hook reads the baseline from the
++  **worktree**, not from staged/committed content
++  (`anti_ratchet_check.py:_load_baseline` calls `target.read_text(...)`,
++  not `git show`); only the measured file uses the staged/worktree split.
++  The conclusion (extract, don't bump) stands regardless.
++- **Keyboard propagation reaches dnd-kit, not just `navigateToDetail`.**
++  `TaskCard` is rendered inside `DraggableCard`
++  (`TaskBoardColumns.tsx:143-159`), which spreads `useDraggable`'s
++  `{...listeners}` (including a `KeyboardSensor`) onto an outer wrapper
++  `TaskCard` doesn't control. `stopPropagation()` on click alone (8px
++  `PointerSensor` activation distance) doesn't cover Enter/Space on the
++  expander toggle, which would otherwise bubble into that listener — the
++  same bubbling class already fixed once for the `⋯`-menu at
++  `TaskCard.tsx:158-166`. Fix: `onKeyDown` `stopPropagation()` on the
++  expander wrapper too; AC (b) extended to assert Enter/Space on the toggle
++  expands the panel, does not navigate, and does not initiate a drag.
++- **Case sensitivity.** The server's own `?tag=` test fixture
++  (`routes.lead-fields-tag-filter-list.test.ts:31`) is explicitly
++  case-sensitive. `tag.startsWith(prefix)` is case-sensitive by construction
++  (no `.toLowerCase()` anywhere in `leadTags.ts`) so the two filter surfaces
++  already agree — a test pins it explicitly rather than leaving it implicit.
++- **`seedTask()` (`client/e2e/helpers/fixtures.ts`) has no `tags` param** —
++  extended with an optional `tags?: string[]` passed through to
++  `createExternalTask` (the wire API already accepts it), budgeted into the
++  E2E authoring step rather than assumed free.
++- **Visual regression baselines** — `client/e2e/visual/01-board.spec.ts`
++  (`board.png`, full-page, covers the `PageHead` toolbar) and
++  `08-launch-states.spec.ts` will shift because the two new buttons land in
++  that exact toolbar region. Per project convention (`memory:
++  project_visual_baselines_linux_regen_flow`) baselines regenerate on Linux
++  only — regenerated as part of F0.5/E2E execution, not deferred.
++- **Zero-match board state** (non-blocking, folded in anyway — this iterate
++  adds a third filter axis plus a one-click BellDot toggle, making an
++  accidental zero-result view easy to hit): `TaskBoardPage` gates its
++  teaching empty state on `projectFiltered.length === 0` only; a minimal
++  "no tasks match the current filters" row is added for the
++  filtered-to-zero-but-not-actually-empty case.
++- **Phone width (DO-NOT #26 amendment area)** — considered, not changed:
++  `ViewToggle`, `StatusFilterMenu` and `DensityToggle` already render
++  unconditionally on phone width in the current code (only
++  `ProjectFilterDropdown`/`ComplianceGradeBadge` are `!isPhone`-gated); the
++  two new `h-8 w-8` icon buttons follow that same existing precedent rather
++  than introducing new phone-specific hiding logic, which would itself be
++  unbudgeted, untested surface this iterate doesn't need.
++- **`doc-sync.test.ts` `REQUIRED_TOKENS`** — the new files
++  (`leadTags.ts`, `LeadTagFilter.tsx`, `TaskCardLeadExpander.tsx`,
++  `TaskCardProjectPill.tsx`) are added to it and to
++  `component_inventory.md` per its own documented convention.
++- **Not adopted as new scope:** the `leadOriginId`/`dedupKey` href/src/style
++  injection caution and the unbounded-tag-length truncation note are real
++  but forward-looking (no link/style ever consumes these values in this
++  iterate); addressed with `break-all` on the dedup/origin text spans and a
++  code comment for the next iterate that does wire a link, rather than new
++  ACs for a risk this change doesn't yet create.
++
++## Architecture Review
++- **Brief:** `.shipwright/planning/iterate/iterate-2026-09-01-lead-board-surface/architecture_brief.md`
++- **Verdicts:** deepseek=revise · openai=revise (agree, no contradiction)
++- **Smallest thing that would do (per reviewers):** fold "waiting on PO" into
++  the single Bot dropdown as one more checkbox row; drop the standalone
++  BellDot button entirely — it duplicates one Bot-menu entry and adds a
++  second permanent control that must be kept in sync with the first.
++- **Findings:** simpler-alternative / medium (both reviewers, independently)
++  — BellDot is a redundant standing affordance for the same filter state as
++  a Bot-menu checkbox.
++- **Reconciliation:** **Not adopted — BellDot is kept.** The reviewers were
++  not shown (by design — the brief format withholds it) that "Bot and
++  BellDot button in the existing toolbar pattern" is an explicit, named
++  deliverable from two authoritative sources: this iterate's own task brief,
++  and the binding AC-table row for FR-04.11 in
++  `leadwright/spec/lead-model-spec.md` (line 2410), which literally reads
++  "Bot- und BellDot-Knopf im Werkzeugleisten-Muster" (Bot **and** BellDot
++  button in the toolbar pattern). Dropping BellDot would mean not building
++  what was asked. The underlying *technical* risk both reviewers actually
++  raised — two controls that can desync — is real and is addressed anyway
++  (see External Plan Review above): BellDot carries no state of its own, it
++  is a second read/write view onto the exact same `Set<LeadTagPrefix>` and
++  calls the exact same toggle function the menu's checkbox does, so there is
++  nothing that *can* desync. The reviewers' engineering concern is resolved
++  without dropping the requirement that prompted it.
++
++## Affected Boundaries
++n/a — no serialized-format producer/consumer changes. This iterate only
++*reads* fields (`tags`, `domain`, `priority`, `complexityHint`) that another
++iterate (2026-05-14-lead-foundation-task-schema) already produces and
++persists; no new boundary is created.
++
++## Confidence Calibration
++- **Boundaries touched:** none — `tags` is an existing persisted field (PATCH
++  `/tasks/:id` already validated/normalized it pre-iterate); this change adds
++  only a new client-side reader of it, no new producer/consumer pair.
++- **Empirical probes run:** component tests are the probes for this UI-only
++  change — Bot menu open/toggle/reset (`LeadTagFilter.test.tsx`), BellDot
++  shared-state entanglement in both directions (`useBoardFilters.test.ts`),
++  expander open/close + click-AND-keydown propagation isolation against a
++  simulated dnd-kit ancestor listener (`TaskCard.lead.test.tsx`,
++  `TaskCardLeadExpander.test.tsx`), glyph presence/absence gated strictly on
++  the `lead:` prefix (not the broader `hasAnyLeadTag`), and null/undefined
++  `tags` handling (`leadTags.test.ts`). A real-browser Playwright pass
++  (`lead-board-surface.spec.ts`) additionally proves the same behaviors
++  survive actual DOM event dispatch and real navigation — jsdom's
++  `fireEvent`/`userEvent` can pass while a real click still resolves against
++  the wrong element (e.g. the Radix portal-overlay finding fixed during this
++  run, see Verification below).
++- **Test Completeness Ledger:**
++  | Behavior | Category | Test |
++  |---|---|---|
++  | Null-safe tag predicates (undefined/null/empty/case-sensitivity) | edge-case | `leadTags.test.ts` |
++  | Bot menu filters by each of 3 prefixes + "All" reset | happy-path | `LeadTagFilter.test.tsx` |
++  | BellDot ⇄ Bot-menu shared-state entanglement (both directions) | integration | `useBoardFilters.test.ts` |
++  | Glyph shows for `lead:` only, not `lead-wait:`/`lead-dedup:` alone | edge-case | `TaskCard.lead.test.tsx` |
++  | Expander render-gate (no lead tag AND no domain/priority/complexityHint → null) | edge-case | `TaskCardLeadExpander.test.tsx` |
++  | Card-click still navigates outside the expander | regression | `TaskCard.lead.test.tsx` |
++  | Expander click/keydown does not navigate or reach a dnd-kit ancestor listener | edge-case | `TaskCard.lead.test.tsx`, `TaskCardLeadExpander.test.tsx` |
++  | Full end-to-end filter → card → expander → still-navigates flow, real browser | happy-path | `client/e2e/flows/lead-board-surface.spec.ts` |
++- **Confidence-pattern check:** no hedge language ("should work", "I believe")
++  in this spec or the commit; every claim above is backed by a named,
++  executed test file. The one genuine unknown at plan time — whether
++  `stopPropagation` on the toggle alone was sufficient — was resolved by
++  internal plan review (see below) before Build, not discovered late.
++
++## Verification (medium+)
++- **Surface:** web
++- **Runner command:** Playwright E2E — new
++  `client/e2e/flows/lead-board-surface.spec.ts` run against the dev stack
++  (`npx playwright test flows/lead-board-surface.spec.ts`), covering: Bot menu
++  filters by each of the three tag prefixes, BellDot toggles the "waiting on
++  PO" filter in sync with the Bot menu, the card expander opens in place, and
++  clicking the card body (outside the expander) still navigates to
++  TaskDetail. Component-level Vitest coverage (`LeadTagFilter`,
++  `TaskCardLeadExpander`, `TaskCard`, `TaskBoardPage` wiring) is authored
++  first as the TDD red/green loop and stays as regression coverage; the E2E
++  spec is the medium+ web-surface verification the Phase Matrix requires
++  ("always" — author AND execute) on top of it.
++- **Evidence path:** Playwright HTML report + `client/` Vitest output, both
++  captured at F0.5.
++- **Visual-regression impact:** the new Bot/BellDot toolbar buttons render
++  unconditionally next to `StatusFilterMenu` (no lead-tagged seed data is
++  required to trigger them), so both existing `fullPage` board baselines
++  shift: `client/e2e/visual/01-board.spec.ts` → `board.png` and
++  `client/e2e/visual/08-launch-states.spec.ts` → `board-launch-failed.png`.
++  `task-detail-launch-failed.png` (same file) is on the TaskDetail route,
++  which renders neither the toolbar nor `TaskCard` — unaffected.
++  Baselines are Linux-only (project convention); regenerate via the
++  project's Linux baseline-regen flow, not a local Windows run.
++- **E2E execution result:** authored and run against the isolated E2E stack
++  (`node e2e/isolated-stack.mjs --project=chromium flows/lead-board-surface.spec.ts`).
++  First run found one real bug in the spec itself (not the feature): a
++  re-click on the already-open Bot-menu trigger fought Radix's own dismiss
++  layer (`<html>` intercepted the pointer event) because the checkbox item's
++  `preventDefault` keeps the menu open — fixed by interacting with the
++  still-open menu directly instead of re-opening it. All 3 tests green after
++  the fix.
++
++## Self-Review
++Run after implementation, before commit (mandatory, all complexity levels).
++Full 8-point payload recorded via `record_review_pass.py` at
++`.shipwright/planning/iterate/iterate-2026-09-01-lead-board-surface/self-review.json`.
++
++  1. Spec Compliance:     pass — Bot+BellDot filter by the 3 closed prefixes, expander opens in place, glyph gated on `lead:` origin only; no 4th prefix, no new persisted field.
++  2. Error Handling:      pass — no new server boundary; `leadTags.ts` helpers are null-safe (`tags?: string[] | null`) and unit-tested for undefined/null.
++  3. Security Basics:     pass — plain JSX text rendering throughout, no `dangerouslySetInnerHTML`; a code comment flags untrusted tag-derived strings for any future href/src/style consumer.
++  4. Test Quality:        pass — assertions target rendered DOM/behavior; every new module has both a happy-path and an edge-case test.
++  5. Performance Basics:  pass — client-side `useMemo` filtering over the already-fetched task list; no new network calls.
++  6. Naming & Structure:  pass — new files follow existing directory conventions. (Updated post-code-review: `TaskBoardPage.tsx` and `TaskCard.tsx` both extract BELOW their bloat-baseline `current` values — see `## Code Review` below — so `shipwright_bloat_baseline.json` is untouched, not bumped.)
++  7. Affected Boundaries: n/a — `tags` is an existing persisted field; this change only adds a new client-side reader, no new producer/consumer pair.
++  8. Test Hygiene Probe:  pass — `scan_test_hygiene.py --diff` reported no findings.
++
++Action: All clear, proceed to commit / Step 8 review cascade.
++
++## Code Review
++
++**Stage 1 (`spec-reviewer`, HARD-GATE): PASS.** Zero spec citations — all five
++ACs verified against the diff, both Traps intact (whole-card navigation
++unbroken; client-side filtering only, `?tag=` untouched), nothing from Out of
++Scope implemented. Full report recorded in this run's review ledger
++(`.shipwright/planning/iterate/iterate-2026-09-01-lead-board-surface/reviews.json`,
++`spec-review.json` payload).
++
++**Stage 2 (`code-reviewer`): 13 findings, all resolved before commit** (this
++is a standalone iterate, not campaign mode — Step 8 runs the cascade itself,
++before F6). One HIGH, two MEDIUM, ten LOW/non-blocking:
++
++- **HIGH — bloat-baseline anti-ratchet violation, fixed by extraction, not
++  argument.** The first draft bumped `TaskBoardPage.tsx`'s baseline entry
++  447→489 instead of extracting, the exact treatment this same spec's
++  Internal Plan Review had already mandated for `TaskCard.tsx`'s twin case
++  ("extract instead of bump ... touching the baseline would force a
++  mandatory Tier-3a review regardless of size") — TaskCard got that
++  treatment, TaskBoardPage did not. Fixed: folded the pre-existing inline
++  `statusFilter` state into the same `useBoardFilters.ts` hook that already
++  held the new lead-tag state (renamed from `useLeadTagFilter.ts`), landing
++  `TaskBoardPage.tsx` at 440 lines — under its 447 baseline.
++  `shipwright_bloat_baseline.json` reverted to no-op; the stale Design Notes
++  paragraph claiming a same-commit bump is "the sanctioned path" (a claim
++  the Internal Plan Review had already corrected once, for the file-read
++  question, not the policy question) is corrected above.
++- **MEDIUM — `LeadTagFilterMenu`'s "All" count was wrong.** It summed the
++  three per-prefix counts, which is only valid for `StatusFilterMenu`'s
++  disjoint/exhaustive state buckets — lead-tag prefixes can overlap (one
++  task, two tags) and are not exhaustive (an ordinary task has none), so the
++  sum double-counted and under-represented. Fixed: `LeadTagFilterMenu` now
++  takes an explicit `total` prop; `useBoardFilters` reports
++  `leadTagTotal: projectFiltered.length` directly rather than deriving it
++  from the buckets. Test rewritten to assert a value distinct from the
++  bucket sum, with a multi-prefix task present.
++- **MEDIUM — `TaskBoardNoFilterMatches` had zero coverage**, including the
++  branch-ordering invariant that makes it correctly preempt both board and
++  list view (it sits above the `view === "list"` ternary — correct today,
++  undocumented in code, breakable by a future reorder). Fixed: added an E2E
++  case exercising BellDot → zero matches → the affordance visible in BOTH
++  `?view=list` and default board view → clear → the card returns.
++- **LOW — inconsistent null-safety in `leadTags.ts`.** `hasPrefix` guarded
++  each tag element (`typeof t === "string"`); `matchesAnyLeadPrefix` (the
++  highest-traffic path — runs per task per render) and `leadOriginId`/
++  `dedupKey` did not. Fixed: all three now route through `hasPrefix`
++  (exported) / a new `firstWithPrefix` helper.
++- **LOW — `stopPropagation` coverage gap on `TaskCardLeadExpander`'s
++  wrapper.** Missing `onPointerDown` (a press-and-drag starting on the
++  toggle/panel could still initiate a card drag past the sensor's 8px
++  activation distance) and over-broad on `onKeyDown` (stopped every key,
++  silently swallowing the window-level `i`/New-Iterate shortcut while focus
++  sat on the toggle). Fixed: added `onPointerDown` to the same stop; narrowed
++  `stopKey` to only `Enter`/`Space`/`Arrow*`.
++- **LOW — dead guard.** The toggle button's own `stop(ev)` was unreachable
++  (the wrapper's `onClick` already stops it first) — two overlapping guards
++  for one path, inviting deletion of the load-bearing one. Fixed: removed
++  the redundant call from the button.
++- **LOW — `LeadOriginGlyph` accessibility.** `aria-hidden="true"` removes the
++  whole subtree (including `title`) from assistive tech, but this glyph is
++  the SOLE signal a card is lead-originated. Fixed: `role="img"` +
++  `aria-label` on the wrapper, `aria-hidden` moved to the decorative icon
++  only.
++- **LOW — `PRIORITY_CLASS` typed as `Record<string, string>`** instead of the
++  model's closed union, making the map non-exhaustive-checked and its `??`
++  fallback unreachable dead code. Fixed: narrowed to
++  `Record<NonNullable<ExternalTask["priority"]>, string>`, fallback removed.
++- **LOW — `matchesAnyLeadPrefix`'s `prefixes` parameter widened to
++  `Iterable<string>`** in the one module whose premise is a closed
++  vocabulary. Fixed: narrowed to `Iterable<LeadTagPrefix>`.
++- **LOW — `useLeadTagFilter`'s count seed needed an unsafe `as` cast** and
++  the per-prefix loop allocated a throwaway array per task per prefix.
++  Fixed as part of the `useBoardFilters` merge: literal object seed (matches
++  the pre-existing `statusCounts` convention exactly, no cast), loop calls
++  the exported single-prefix `hasPrefix`.
++- **LOW — test duplication + a coverage gap, in the same finding.**
++  `TaskCard.lead.test.tsx`'s "bot glyph" and "render-gate" blocks duplicated
++  `TaskCardLeadExpander.test.tsx` byte-for-byte, while AC (c)'s actual claim
++  — the glyph renders "next to" the ProjectPill — was asserted nowhere (both
++  suites stayed green if the glyph moved elsewhere on the card). Fixed:
++  replaced the duplicated blocks with one DOM-adjacency assertion
++  (`glyph.nextElementSibling === pill`) plus one "mounted in the real card"
++  smoke case; the vocabulary-gating matrix stays in the unit file only.
++- **Non-blocking (recorded, not acted on this iterate) — `LeadTagFilterMenu`
++  is a near-verbatim clone of `StatusFilterMenu`.** The reviewer's own note:
++  refactoring would touch `BoardStatusFilter.tsx`, out of this iterate's
++  scope, and the spec explicitly chose "mirror BoardStatusFilter's menu
++  anatomy". Left as-is; a future generic `IconCheckboxFilterMenu` extraction
++  is a candidate for whichever iterate next touches either menu — not filed
++  as a standalone triage card per this project's "don't reflexively create
++  triage items" convention,warning: in the working copy of 'client/e2e/flows/lead-board-surface.spec.ts', LF will be replaced by CRLF the next time Git touches it
+ since nothing here is actionable in isolation
++  from that future touch.
++
++All fixes verified: `npm run test`/`typecheck`/`lint` green in `client/`
++after the changes (re-run below), plus the extended E2E spec.
+diff --git a/.shipwright/planning/iterate/external_review_state.json b/.shipwright/planning/iterate/external_review_state.json
+index a6c04dac..46b37d41 100644
+--- a/.shipwright/planning/iterate/external_review_state.json
++++ b/.shipwright/planning/iterate/external_review_state.json
+@@ -1,8 +1,8 @@
+ {
+   "status": "completed",
+-  "timestamp": "2026-08-31T14:28:31.659700+00:00",
++  "timestamp": "2026-09-01T21:03:41.080809+00:00",
+   "provider": "openrouter",
+-  "findings_count": 13,
++  "findings_count": 16,
+   "self_review_fallback_ran": false,
+   "reason": null,
+   "review_mode": "iterate",
+diff --git a/client/e2e/flows/lead-board-surface.spec.ts b/client/e2e/flows/lead-board-surface.spec.ts
+new file mode 100644
+index 00000000..f3fa2af8
+--- /dev/null
++++ b/client/e2e/flows/lead-board-surface.spec.ts
+@@ -0,0 +1,198 @@
++import { test, expect } from "@playwright/test";
++import {
++  cleanupProject,
++  cleanupTask,
++  seedProject,
++  seedTask,
++  setActiveProject,
++  type SeededProject,
++} from "../helpers/fixtures";
++
++/*
++ * Lead board surface (FR-04.11, iterate-2026-09-01-lead-board-surface).
++ *
++ * Medium+ web-surface E2E required by the Phase Matrix on top of the
++ * component-level Vitest coverage authored during Build (LeadTagFilter,
++ * TaskCardLeadExpander, TaskCard, TaskBoardPage wiring). Covers the four
++ * acceptance criteria a real browser can prove that jsdom cannot:
++ *   (a) Bot menu + BellDot filter by the three closed-vocabulary prefixes.
++ *   (b) the on-card expander opens in place AND the card's own navigation
++ *       to TaskDetail still fires on a plain click.
++ *   (c) the bot glyph renders next to the project pill for a lead task and
++ *       not for an ordinary one.
++ */
++test.describe("Lead board surface", () => {
++  let project: SeededProject;
++  const taskIds: string[] = [];
++
++  test.beforeEach(async ({ request }) => {
++    project = await seedProject(request, { name: "lead-board-surface" });
++  });
++
++  test.afterEach(async ({ request }) => {
++    for (const id of taskIds) await cleanupTask(request, id);
++    taskIds.length = 0;
++    await cleanupProject(request, project);
++  });
++
++  test("Bot menu and BellDot filter by the three lead-tag prefixes", async ({ page, request }) => {
++    const originated = await seedTask(request, {
++      title: "Lead-originated task",
++      projectId: project.projectId,
++      tags: ["lead:src-123"],
++    });
++    const waiting = await seedTask(request, {
++      title: "Waiting on PO task",
++      projectId: project.projectId,
++      tags: ["lead-wait:po-1"],
++    });
++    const dedup = await seedTask(request, {
++      title: "Dedup pending task",
++      projectId: project.projectId,
++      tags: ["lead-dedup:hash-1"],
++    });
++    const ordinary = await seedTask(request, {
++      title: "Ordinary task",
++      projectId: project.projectId,
++    });
++    taskIds.push(originated.taskId, waiting.taskId, dedup.taskId, ordinary.taskId);
++
++    await setActiveProject(page, project.projectId);
++    await page.goto("/");
++    await expect(page.getByTestId("task-board-page")).toBeVisible();
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toBeVisible();
++
++    // Bot menu: filter to `lead:` only.
++    const trigger = page.getByTestId("board-lead-filter-menu-trigger");
++    await expect(trigger).toBeVisible();
++    await trigger.click();
++    await expect(page.getByTestId("board-lead-filter-menu")).toBeVisible();
++    await page.getByTestId("board-lead-filter-menu-item-lead").click();
++    await expect(page.getByTestId(`task-card-${originated.taskId}`)).toBeVisible();
++    await expect(page.getByTestId(`task-card-${waiting.taskId}`)).toHaveCount(0);
++    await expect(page.getByTestId(`task-card-${dedup.taskId}`)).toHaveCount(0);
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toHaveCount(0);
++    await expect(page.getByTestId("board-lead-filter-menu-dot")).toBeVisible();
++
++    // Clear via the menu's own "All" row — the menu is ALREADY open (the
++    // checkbox item above uses preventDefault to stay open, same convention
++    // as BoardStatusFilter), so re-clicking `trigger` here would fight
++    // Radix's own dismiss layer. "All" is a plain Item (no preventDefault),
++    // so selecting it also closes the menu.
++    await page.getByTestId("board-lead-filter-menu-all").click();
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toBeVisible();
++    await expect(page.getByTestId("board-lead-filter-menu-dot")).toHaveCount(0);
++
++    // BellDot: shortcut for `lead-wait:` — reads/writes the SAME filter Set
++    // as the Bot menu's checkbox, so toggling it raises the menu's own dot.
++    const bellDot = page.getByTestId("board-lead-wait-toggle");
++    await expect(bellDot).toBeVisible();
++    await expect(bellDot).toHaveAttribute("aria-pressed", "false");
++    await bellDot.click();
++    await expect(bellDot).toHaveAttribute("aria-pressed", "true");
++    await expect(page.getByTestId(`task-card-${waiting.taskId}`)).toBeVisible();
++    await expect(page.getByTestId(`task-card-${originated.taskId}`)).toHaveCount(0);
++    await expect(page.getByTestId(`task-card-${dedup.taskId}`)).toHaveCount(0);
++    await expect(page.getByTestId("board-lead-filter-menu-dot")).toBeVisible();
++
++    // Dedup: filter to `lead-dedup:` via the menu.
++    await bellDot.click();
++    await trigger.click();
++    await page.getByTestId("board-lead-filter-menu-item-lead-dedup").click();
++    await expect(page.getByTestId(`task-card-${dedup.taskId}`)).toBeVisible();
++    await expect(page.getByTestId(`task-card-${originated.taskId}`)).toHaveCount(0);
++    await expect(page.getByTestId(`task-card-${waiting.taskId}`)).toHaveCount(0);
++  });
++
++  test("the card expander opens in place; plain card click still navigates to TaskDetail", async ({
++    page,
++    request,
++  }) => {
++    const leadTask = await seedTask(request, {
++      title: "Lead task with metadata",
++      projectId: project.projectId,
++      tags: ["lead:src-456", "lead-wait:po-2"],
++    });
++    taskIds.push(leadTask.taskId);
++
++    await setActiveProject(page, project.projectId);
++    await page.goto("/");
++    await expect(page.getByTestId(`task-card-${leadTask.taskId}`)).toBeVisible();
++
++    // (c) bot glyph present for the lead task.
++    await expect(page.getByTestId(`task-card-lead-glyph-${leadTask.taskId}`)).toBeVisible();
++
++    // (b) expander opens IN PLACE — no navigation on the toggle click.
++    const toggle = page.getByTestId(`task-card-lead-expander-toggle-${leadTask.taskId}`);
++    await expect(toggle).toBeVisible();
++    await toggle.click();
++    await expect(page.getByTestId(`task-card-lead-expander-body-${leadTask.taskId}`)).toBeVisible();
++    await expect(page).toHaveURL(/\/$|\/board/);
++
++    // Clicking inside the open panel (not the toggle) also does not navigate.
++    await page.getByTestId(`task-card-lead-wait-${leadTask.taskId}`).click();
++    await expect(page).toHaveURL(/\/$|\/board/);
++    await expect(page.getByTestId(`task-card-lead-expander-body-${leadTask.taskId}`)).toBeVisible();
++
++    // A plain click on the card body (outside the expander) still navigates.
++    await page.getByTestId(`task-card-${leadTask.taskId}`).click({ position: { x: 10, y: 10 } });
++    await expect(page).toHaveURL(new RegExp(`/tasks/${leadTask.taskId}$`));
++  });
++
++  test("BellDot filtering to zero matches shows the clear-filters affordance, in both board and list view", async ({
++    page,
++    request,
++  }) => {
++    const ordinary = await seedTask(request, {
++      title: "Ordinary task, no lead tags",
++      projectId: project.projectId,
++    });
++    taskIds.push(ordinary.taskId);
++
++    await setActiveProject(page, project.projectId);
++    await page.goto("/");
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toBeVisible();
++
++    // BellDot guarantees zero matches: the only seeded task has no lead tags.
++    await page.getByTestId("board-lwarning: in the working copy of 'client/src/components/external/LeadTagFilter.test.tsx', LF will be replaced by CRLF the next time Git touches it
+ead-wait-toggle").click();
++    await expect(page.getByTestId("task-board-no-filter-matches")).toBeVisible();
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toHaveCount(0);
++
++    // clearAllFilters resets BOTH filters and the card returns.
++    await page.getByTestId("task-board-clear-filters").click();
++    await expect(page.getByTestId("task-board-no-filter-matches")).toHaveCount(0);
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toBeVisible();
++    await expect(page.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "false");
++
++    // The same branch guards list view — the ternary chain in TaskBoardPage
++    // sits ABOVE `view === "list"`, so it must preempt both bodies, not just
++    // kanban (code review finding: this ordering was previously untested).
++    await page.goto("/?view=list");
++    await expect(page.getByTestId("task-list-view")).toBeVisible();
++    await page.getByTestId("board-lead-wait-toggle").click();
++    await expect(page.getByTestId("task-board-no-filter-matches")).toBeVisible();
++    await expect(page.getByTestId("task-list-view")).toHaveCount(0);
++    await page.getByTestId("task-board-clear-filters").click();
++    await expect(page.getByTestId("task-list-view")).toBeVisible();
++    await expect(page.getByTestId(`task-list-row-${ordinary.taskId}`)).toBeVisible();
++  });
++
++  test("the bot glyph does not render for an ordinary (non-lead) task", async ({
++    page,
++    request,
++  }) => {
++    const ordinary = await seedTask(request, {
++      title: "Ordinary task, no lead tags",
++      projectId: project.projectId,
++    });
++    taskIds.push(ordinary.taskId);
++
++    await setActiveProject(page, project.projectId);
++    await page.goto("/");
++    await expect(page.getByTestId(`task-card-${ordinary.taskId}`)).toBeVisible();
++    await expect(page.getByTestId(`task-card-lead-glyph-${ordinary.taskId}`)).toHaveCount(0);
++    await expect(
++      page.getByTestId(`task-card-lead-expander-toggle-${ordinary.taskId}`),
++    ).toHaveCount(0);
++  });
++});
+diff --git a/client/e2e/helpers/fixtures.ts b/client/e2e/helpers/fixtures.ts
+index f27ebd0e..146952fc 100644
+--- a/client/e2e/helpers/fixtures.ts
++++ b/client/e2e/helpers/fixtures.ts
+@@ -153,6 +153,12 @@ export async function seedTask(
+      * on a tree row was relying on whatever happened to be in the developer's folder.
+      */
+     files?: Record<string, string>;
++    /**
++     * Lead-board tags (FR-04.11: `lead:` / `lead-wait:` / `lead-dedup:`).
++     * POST /tasks has no `tags` field (create/edit are NOT symmetric here) —
++     * applied via a follow-up PATCH so callers get one seed call.
++     */
++    tags?: string[];
+   } = {},
+ ): Promise<SeededTask> {
+   const cwd = opts.cwd ?? assertTempPath(await makeTempDir("sw-e2e-task-"));
+@@ -172,7 +178,18 @@ export async function seedTask(
+     );
+   }
+   const body = (await res.json()) as { task: { taskId: string; sessionUuid: string } };
+-  return { taskId: body.task.taskId, title, cwd, sessionUuid: body.task.sessionUuid };
++  const taskId = body.task.taskId;
++  if (opts.tags) {
++    const patchRes = await request.patch(apiUrl(`/api/external/tasks/${taskId}`), {
++      data: { tags: opts.tags },
++    });
++    if (!patchRes.ok()) {
++      throw new Error(
++        `seedTask: PATCH /api/external/tasks/${taskId} tags → HTTP ${patchRes.status()} — ${await patchRes.text()}`,
++      );
++    }
++  }
++  return { taskId, title, cwd, sessionUuid: body.task.sessionUuid };
+ }
+ 
+ /**
+diff --git a/client/src/components/external/LeadTagFilter.test.tsx b/client/src/components/external/LeadTagFilter.test.tsx
+new file mode 100644
+index 00000000..e37a6356
+--- /dev/null
++++ b/client/src/components/external/LeadTagFilter.test.tsx
+@@ -0,0 +1,120 @@
++/*
++ * LeadTagFilter — the Bot dropdown (three-prefix checkbox menu) and the
++ * BellDot shortcut toggle (FR-04.11). Mirrors BoardStatusFilter.test.tsx's
++ * structure: open/toggle/reset for the menu, plus BellDot's derived-state
++ * sync with the shared filter Set.
++ */
++
++import { render, screen, within } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { describe, it, expect, vi, beforeAll } from "vitest";
++
++import { LeadTagFilterMenu, LeadWaitToggleButton } from "./LeadTagFilter";
++import {
++  LEAD_ORIGIN_TAG_PREFIX,
++  LEAD_WAIT_TAG_PREFIX,
++  LEAD_DEDUP_TAG_PREFIX,
++  type LeadTagPrefix,
++} from "../../lib/leadTags";
++
++beforeAll(() => {
++  const proto = Element.prototype as unknown as Record<string, unknown>;
++  if (!proto.hasPointerCapture) proto.hasPointerCapture = () => false;
++  if (!proto.setPointerCapture) proto.setPointerCapture = () => {};
++  if (!proto.releasePointerCapture) proto.releasePointerCapture = () => {};
++  if (!proto.scrollIntoView) proto.scrollIntoView = () => {};
++});
++
++const COUNTS: Record<LeadTagPrefix, number> = {
++  [LEAD_ORIGIN_TAG_PREFIX]: 2,
++  [LEAD_WAIT_TAG_PREFIX]: 1,
++  [LEAD_DEDUP_TAG_PREFIX]: 3,
++};
++
++const set = (...s: LeadTagPrefix[]) => new Set<LeadTagPrefix>(s);
++
++describe("LeadTagFilterMenu (Bot dropdown)", () => {
++  // @covers FR-01.01
++  it("shows no active dot when the filter is empty", () => {
++    render(<LeadTagFilterMenu counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />);
++    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
++    expect(screen.queryByTestId("board-lead-filter-menu-dot")).toBeNull();
++  });
++
++  // @covers FR-01.01
++  it("shows the active dot when at least one prefix is selected", () => {
++    render(
++      <LeadTagFilterMenu counts={COUNTS} total={9} active={set(LEAD_ORIGIN_TAG_PREFIX)} onToggle={() => {}} onReset={() => {}} />,
++    );
++    expect(screen.getByTestId("board-lead-filter-menu-dot")).toBeInTheDocument();
++  });
++
++  // @covers FR-01.01
++  it("opens a menu with all three prefixes asserted by name, each toggling and keeping the menu open", async () => {
++    const user = userEvent.setup();
++    const onToggle = vi.fn();
++    render(<LeadTagFilterMenu counts={COUNTS} total={9} active={set()} onToggle={onToggle} onReset={() => {}} />);
++    await user.click(screen.getByTestId("board-lead-filter-menu-trigger"));
++    const menu = await screen.findByTestId("board-lead-filter-menu");
++
++    expect(within(menu).getByTestId("board-lead-filter-menu-item-lead")).toBeInTheDocument();
++    expect(within(menu).getByTestId("board-lead-filter-menu-item-lead-wait")).toBeInTheDocument();
++    expect(within(menu).getByTestId("board-lead-filter-menu-item-lead-dedup")).toBeInTheDocument();
++
++    await user.click(within(menu).getByTestId("board-lead-filter-menu-item-lead-dedup"));
++    expect(onToggle).toHaveBeenCalledWith(LEAD_DEDUP_TAG_PREFIX);
++    // preventDefault on the CheckboxItem keeps it open for multi-select.
++    expect(screen.getByTestId("board-lead-filter-menu")).toBeInTheDocument();
++  });
++
++  // @covers FR-01.01
++  it("has an 'All' row that clears the filter and shows the caller-supplied total — NOT the sum of the per-prefix counts", async () => {
++    const user = userEvent.setup();
++    const onReset = vi.fn();
++    // total=9 is deliberately NOT 2+1+3=6: lead-tag prefixes can overlap
++    // (a task can carry more than one) and are not exhaustive (an ordinary
++    // task carries none), so the "All" count must come from the caller
++    // (the real project-filtered task count), never a sum of the buckets
++    // (code review finding, iterate-2026-09-01-lead-board-surface).
++    render(
++      <LeadTagFilterMenu counts={COUNTS} total={9} active={set(LEAD_WAIT_TAG_PREFIX)} onToggle={() => {}} onReset={onReset} />,
++    );
++    await user.click(screen.getByTestId("board-lead-filter-menu-trigger"));
++    const all = await screen.findByTestId("board-lead-filter-menu-all");
++    expect(all).toHaveTextContent("9");
++    await user.click(all);
++    expect(onReset).toHaveBeenCalledTimes(1);
++  });
++});
++
++describe("LeadWaitToggleButton (BellDot)", () => {
++  // @covers FR-01.01
++  it("is not pressed when lead-wait: is not in the active set", () => {
++    render(<LeadWaitToggleButton active={set()} onToggle={() => {}} />);
++    expewarning: in the working copy of 'client/src/components/external/LeadTagFilter.tsx', LF will be replaced by CRLF the next time Git touches it
+ct(screen.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "false");
++  });
++
++  // @covers FR-01.01
++  it("derives pressed state from the SAME shared Set the Bot menu uses (no independent state)", () => {
++    render(<LeadWaitToggleButton active={set(LEAD_WAIT_TAG_PREFIX)} onToggle={() => {}} />);
++    expect(screen.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "true");
++  });
++
++  // @covers FR-01.01
++  it("calls onToggle with exactly the lead-wait: prefix — the same value the menu checkbox uses", async () => {
++    const user = userEvent.setup();
++    const onToggle = vi.fn();
++    render(<LeadWaitToggleButton active={set()} onToggle={onToggle} />);
++    await user.click(screen.getByTestId("board-lead-wait-toggle"));
++    expect(onToggle).toHaveBeenCalledWith(LEAD_WAIT_TAG_PREFIX);
++  });
++
++  // @covers FR-01.01
++  it("stays in sync when the SAME active Set is shared with the Bot menu (menu selection reflected in BellDot)", () => {
++    const shared = set(LEAD_WAIT_TAG_PREFIX);
++    const { rerender } = render(<LeadWaitToggleButton active={shared} onToggle={() => {}} />);
++    expect(screen.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "true");
++    rerender(<LeadWaitToggleButton active={set()} onToggle={() => {}} />);
++    expect(screen.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "false");
++  });
++});
+diff --git a/client/src/components/external/LeadTagFilter.tsx b/client/src/components/external/LeadTagFilter.tsx
+new file mode 100644
+index 00000000..49c98dfc
+--- /dev/null
++++ b/client/src/components/external/LeadTagFilter.tsx
+@@ -0,0 +1,164 @@
++/*
++ * Lead tag board filter — Bot dropdown + BellDot shortcut toggle.
++ *
++ * FR-04.11 (leadwright/spec/lead-model-spec.md, V3 row) asks for exactly
++ * this: "Bot- und BellDot-Knopf im Werkzeugleisten-Muster" (Bot AND BellDot
++ * button in the toolbar pattern) — two toolbar buttons, not two rows added
++ * inside `BoardStatusFilter`'s own dropdown (see the iterate spec's
++ * `## Design Notes` for the full reconciliation of a looser prose reading
++ * of the same source spec that suggested otherwise, and `## Architecture
++ * Review` for why an external-review suggestion to drop BellDot as
++ * "redundant" was not adopted — it is a named deliverable, not a free
++ * simplification).
++ *
++ * <LeadTagFilterMenu> mirrors <StatusFilterMenu> (BoardStatusFilter.tsx)
++ * exactly: same trigger shell, same Radix DropdownMenu + CheckboxItem +
++ * "All" reset row anatomy, same live-count convention (computed by the
++ * caller from the project-filtered set, independent of this filter and of
++ * `statusFilter` — TaskBoardPage.tsx mirrors `statusCounts`'s own
++ * established convention for this reason).
++ *
++ * <LeadWaitToggleButton> (BellDot) is a shortcut for exactly the
++ * `lead-wait:` entry above. It carries NO state of its own — its pressed
++ * look is derived read-only from `active.has(LEAD_WAIT_TAG_PREFIX)` and its
++ * click calls the exact same `onToggle` the menu's checkbox calls, so there
++ * is nothing that can desync between the two controls.
++ */
++
++import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
++import { BellDot, Bot, Check } from "lucide-react";
++
++import {
++  LEAD_DEDUP_TAG_PREFIX,
++  LEAD_ORIGIN_TAG_PREFIX,
++  LEAD_WAIT_TAG_PREFIX,
++  type LeadTagPrefix,
++} from "../../lib/leadTags";
++
++export interface LeadTagFilterOption {
++  value: LeadTagPrefix;
++  label: string;
++}
++
++/** Order locked to the three closed-vocabulary prefixes (FR-04.10). */
++export const LEAD_TAG_FILTER_OPTIONS: LeadTagFilterOption[] = [
++  { value: LEAD_ORIGIN_TAG_PREFIX, label: "Lead-originated" },
++  { value: LEAD_WAIT_TAG_PREFIX, label: "Waiting on PO" },
++  { value: LEAD_DEDUP_TAG_PREFIX, label: "Dedup pending" },
++];
++
++interface LeadTagFilterProps {
++  counts: Record<LeadTagPrefix, number>;
++  /** Count shown on the "All" row — i.e. what clearing the filter reveals.
++   * NOT the sum of the three per-prefix counts: unlike the status filter's
++   * disjoint/exhaustive buckets, lead-tag prefixes can overlap (a task can
++   * carry more than one) and are not exhaustive (a task can carry none), so
++   * summing would double-count and under-represent (code review finding,
++   * iterate-2026-09-01-lead-board-surface). Callers pass the size of the set
++   * "All" actually renders. */
++  total: number;
++  active: Set<LeadTagPrefix>;
++  onToggle: (value: LeadTagPrefix) => void;
++  onReset: () => void;
++}
++
++/** The Bot toolbar button — opens the three-prefix filter menu. */
++export function LeadTagFilterMenu({ counts, total, active, onToggle, onReset }: LeadTagFilterProps) {
++  const hasActive = active.size > 0;
++  return (
++    <DropdownMenu.Root>
++      <DropdownMenu.Trigger asChild>
++        <button
++          type="button"
++          aria-label="Filter by lead tag"
++          data-testid="board-lead-filter-menu-trigger"
++          data-active={hasActive || undefined}
++          className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
++        >
++          <Bot size={15} />
++          {hasActive && (
++            <span
++              data-testid="board-lead-filter-menu-dot"
++              className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[var(--color-primary)]"
++            />
++          )}
++        </button>
++      </DropdownMenu.Trigger>
++      <DropdownMenu.Portal>
++        <DropdownMenu.Content
++          align="end"
++          sideOffset={6}
++          data-testid="board-lead-filter-menu"
++          className="z-50 min-w-[200px] rounded-[var(--radius-button)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm shadow-[var(--shadow-card)]"
++        >
++          <DropdownMenu.Label className="px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--color-muted)]">
++            Filter by lead tag
++          </DropdownMenu.Label>
++          <DropdownMenu.Item
++            onSelect={onReset}
++            data-testid="board-lead-filter-menu-all"
++            className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]"
++          >
++            <span className="flex h-4 w-4 items-center justify-center text-[var(--color-primary)]">
++              {!hasActive && <Check size={13} />}
++            </span>
++            <span className="flex-1">All</span>
++            <span className="font-mono text-[10px] text-[var(--color-muted)]">{total}</span>
++          </DropdownMenu.Item>
++          <DropdownMenu.Separator className="my-1 h-px bg-[var(--color-border)]" />
++          {LEAD_TAG_FILTER_OPTIONS.map((opt) => (
++            <DropdownMenu.CheckboxItem
++              key={opt.value}
++              checked={active.has(opt.value)}
++              onCheckedChange={() => onToggle(opt.value)}
++              onSelect={(e) => e.preventDefault()}
++              data-testid={`board-lead-filter-menu-item-${tagTestId(opt.value)}`}
++              className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]"
++            >
++              <span className="flex h-4 w-4 items-center justify-center text-[var(--color-primary)]">
++                <DropdownMenu.ItemIndicator>
++                  <Check size={13} />
++                </DropdownMenu.ItemIndicator>
++              </span>
++              <span className="flex-1">{opt.label}</span>
++              <span className="font-mono text-[10px] text-[var(--color-muted)]">
++                {counts[opt.value]}
++              </span>
++            </DropdownMenu.CheckboxItem>
++          ))}
++        </DropdownMenu.Content>
++      </DropdownMenu.Portal>
++    </DropdownMenu.Root>
++  );
++}
++
++interface LeadWaitToggleProps {
++  active: Set<LeadTagPrefix>;
++  onTogglwarning: in the working copy of 'client/src/components/external/TaskCard.lead.test.tsx', LF will be replaced by CRLF the next time Git touches it
+e: (value: LeadTagPrefix) => void;
++}
++
++/** The BellDot toolbar button — a one-click shortcut for the "Waiting on
++ *  PO" filter. Derives its pressed state from the SAME shared `active` Set
++ *  the menu above reads, and calls the SAME `onToggle` — no independent
++ *  state, nothing to keep in sync. */
++export function LeadWaitToggleButton({ active, onToggle }: LeadWaitToggleProps) {
++  const pressed = active.has(LEAD_WAIT_TAG_PREFIX);
++  return (
++    <button
++      type="button"
++      aria-label="Filter to tasks waiting on the PO"
++      aria-pressed={pressed}
++      data-testid="board-lead-wait-toggle"
++      data-active={pressed || undefined}
++      onClick={() => onToggle(LEAD_WAIT_TAG_PREFIX)}
++      className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
++    >
++      <BellDot size={15} />
++    </button>
++  );
++}
++
++function tagTestId(prefix: LeadTagPrefix): string {
++  // "lead:" -> "lead", "lead-wait:" -> "lead-wait", "lead-dedup:" -> "lead-dedup"
++  return prefix.slice(0, -1);
++}
+diff --git a/client/src/components/external/TaskBoardEmptyState.tsx b/client/src/components/external/TaskBoardEmptyState.tsx
+index e6b0d694..5b22bb74 100644
+--- a/client/src/components/external/TaskBoardEmptyState.tsx
++++ b/client/src/components/external/TaskBoardEmptyState.tsx
+@@ -47,3 +47,30 @@ export function TaskBoardEmptyState({ onCreate, canCreate }: TaskBoardEmptyState
+     </div>
+   );
+ }
++
++/**
++ * iterate-2026-09-01-lead-board-surface — distinct from the A07 empty state
++ * above: the project genuinely has tasks, but the active filter combination
++ * (status and/or the new lead-tag filter, FR-04.11) matches none of them.
++ * Rendered in BOTH board and list view, ahead of either body, so a
++ * one-click filter (e.g. the BellDot shortcut) never silently reads as
++ * "empty project".
++ */
++export function TaskBoardNoFilterMatches({ onClear }: { onClear: () => void }) {
++  return (
++    <div
++      data-testid="task-board-no-filter-matches"
++      className="flex flex-col items-center justify-center gap-2 p-16 text-center text-sm text-[var(--color-muted)]"
++    >
++      <p>No tasks match the current filters.</p>
++      <button
++        type="button"
++        onClick={onClear}
++        data-testid="task-board-clear-filters"
++        className="font-medium text-[var(--color-primary)] underline underline-offset-2"
++      >
++        Clear filters
++      </button>
++    </div>
++  );
++}
+diff --git a/client/src/components/external/TaskCard.lead.test.tsx b/client/src/components/external/TaskCard.lead.test.tsx
+new file mode 100644
+index 00000000..b4898dca
+--- /dev/null
++++ b/client/src/components/external/TaskCard.lead.test.tsx
+@@ -0,0 +1,141 @@
++/*
++ * TaskCard — lead surface (FR-04.11, iterate-2026-09-01-lead-board-surface).
++ * New test file rather than extending TaskCard.test.tsx (already at its
++ * bloat-baseline current with zero headroom — internal plan review).
++ *
++ * Covers: the bot glyph gate, the expander's render-gate, and — the actual
++ * risk this feature carries — that the expander never breaks the card's
++ * pre-existing whole-card-click/Enter navigates-to-detail behavior, via
++ * mouse AND keyboard, and never leaks a keydown to an ancestor the way
++ * TaskBoardColumns' dnd-kit DraggableCard wrapper would see it (mirrors the
++ * mocking pattern already established in TaskCard.keydown.test.tsx).
++ */
++import { render, screen, fireEvent } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
++import { MemoryRouter } from "react-router-dom";
++import { describe, it, expect, vi, beforeEach } from "vitest";
++
++import { TaskCard } from "./TaskCard";
++import type { ExternalTask } from "../../lib/externalApi";
++
++const navigate = vi.fn();
++vi.mock("react-router-dom", async (orig) => {
++  const actual = await orig<typeof import("react-router-dom")>();
++  return { ...actual, useNavigate: () => navigate };
++});
++
++function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
++  return {
++    taskId: "task-1",
++    sessionUuid: "11111111-1111-1111-1111-111111111111",
++    title: "Audit drift",
++    cwd: "/tmp/project",
++    pluginDirs: [],
++    projectId: "project-001",
++    state: "draft",
++    createdAt: "2026-04-23T15:00:00Z",
++    inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
++    ...overrides,
++  };
++}
++
++function renderCard(task: ExternalTask) {
++  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
++  return render(
++    <QueryClientProvider client={qc}>
++      <MemoryRouter>
++        <TaskCard task={task} />
++      </MemoryRouter>
++    </QueryClientProvider>,
++  );
++}
++
++beforeEach(() => navigate.mockClear());
++
++describe("TaskCard — bot glyph (FR-04.11 (c))", () => {
++  // The vocabulary-gating matrix (renders for lead:, not for lead-wait:-only
++  // /lead-dedup:-only/no-tags) is TaskCardLeadExpander.test.tsx's job — a
++  // unit test doesn't need a full TaskCard mount to prove it, and duplicating
++  // it here added no coverage (code review finding). What ONLY an in-context
++  // mount can prove is AC (c)'s actual wording — "next to the ProjectPill" —
++  // so that's the one thing this file asserts.
++  // @covers FR-01.01
++  it("renders immediately before the project pill in the meta row (AC (c): 'next to')", () => {
++    renderCard(baseTask({ tags: ["lead:helper-01"] }));
++    const glyph = screen.getByTestId("task-card-lead-glyph-task-1");
++    const pill = screen.getByTestId("task-card-project-task-1");
++    expect(glyph.nextElementSibling).toBe(pill);
++  });
++});
++
++describe("TaskCard — lead expander mounted in the real card", () => {
++  // Smoke test that TaskCardLeadExpander is actually wired into TaskCard
++  // (not just imported) — the render-gate matrix itself lives in
++  // TaskCardLeadExpander.test.tsx.
++  // @covers FR-01.01
++  it("renders the expander toggle for a lead-tagged task and not for an ordinary one", () => {
++    renderCard(baseTask({ tags: ["lead-wait:po"] }));
++    expect(screen.getByTestId("task-card-lead-expander-toggle-task-1")).toBeInTheDocument();
++  });
++});
++
++describe("TaskCard — expander vs. whole-card navigation (FR-04.11 (b))", () => {
++  // @covers FR-01.01
++  it("clicking the card body still navigates to detail (existing behavior preserved)", async () => {
++    const user = userEvent.setup();
++    renderCard(baseTask({ tags: ["lead:helper-01"] }));
++    await user.click(screen.getByTestId("task-card-task-1"));
++    expect(navigate).toHaveBeenCalledWith("/tasks/task-1");
++  });
++
++  // @covers FR-01.01
++  it("clicking the expander toggle opens it in place and does NOT navigate", async () => {
++    const user = userEvent.setup();
++    renderCard(baseTask({ tags: ["lead:helper-01"] }));
++    await user.click(screen.getByTestId("task-card-lead-expander-toggle-task-1"));
++    expect(screen.getByTestId("task-card-lead-expander-body-task-1")).toBeInTheDocument();
++    expect(navigate).not.toHaveBeenCalled();
++  });
++
++  // @covers FR-01.01
++  it("clicking inside the OPEN expander panel does NOT navigate either", async () => {
++    const user = userEvent.setup();
++    renderCard(baseTask({ tags: ["lead:helper-01"], priority: "P0" }));
++    await user.click(screen.getByTestId("task-card-lead-expander-toggle-task-1"));
++    await user.click(screen.getByTestId("task-card-lead-priority-task-1"));
++    expect(navigate).not.toHaveBeenCalled();
++  });
++
++  // @covers FR-01.01
++  it("Enter on the card itself still navigates (pre-existing guard, unbroken by the new expander)", () => {
++    renderCard(baseTask({ tags: ["lead:helper-01"] }));
++    fireEvent.keyDown(screen.getByTestId("task-card-task-1"), { key: "Enter" });
++    expect(navigate).toHaveBeenCalledWith("/tasks/task-1");
++  });
++
++  // @covers FR-01.01
++  it("Enter on the expander toggle does NOT navigate and does not reach a simulated dnd-kit ancestor keydown listener", async () => {
++    // TaskBoardColumns' DraggableCard wraps every TaskCard in a div carrying
++    // dnd-kit's useDraggable listeners (incl. a KeyboardSensor) — a
++    // component this test doesn't import, so it stands in with a plain
++    // keydown spy on an ancestor, exactly what internal plan review flagged.
++    const onAncestorKeyDown = vi.fn();
++    const user = userEvent.setup();
++    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
++    render(
++      <QueryClientProvider client={qc}>
++        <MemoryRouter>
++          <div onKeyDown={onAncestorKeyDown}>
++            <TaskCard task={baseTask({ tags: ["lead:helper-01"] })} />
++          </div>
++        </MemoryRouter>
++      </QueryClientProvider>,
++    );
++    screen.getByTestId("task-card-lead-expander-toggle-task-1").focus();
++    await user.keyboard("{Enter}");
++    expect(screen.getByTestId("task-card-lead-expander-body-task-1")).toBeInTheDocument();
++    expect(navigate).not.toHaveBeenCalled();
++    expect(onAncestorKeyDown).not.toHaveBeenCalled();
++  });
++});
+diff --git a/client/src/components/external/TaskCard.tsx b/client/src/components/external/TaskCard.tsx
+index 3144cb77..689eead5 100644
+--- a/client/src/components/external/TaskCard.tsx
++++ b/client/src/components/external/TaskCard.tsx
+@@ -67,7 +67,7 @@ import {
+ } from "../../hooks/useExternalTasks";
+ import { moveReopensTask, resolveBoardColumn } from "../../lib/boardColumnApi";
+ import { useProjects } from "../../hooks/useProjects";
+-import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
++import { getProjectColor } from "../../lib/projectColor";
+ import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
+ import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
+ import { taskLastModifiedMs } from "../../lib/taskSort";
+@@ -75,6 +75,8 @@ import { TerminalLaunchButton } from "./TerminalLaunchButton";
+ import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+ import { EditTaskModal } from "./EditTaskModal";
+ import { TaskCardMenu } from "./TaskCardMenu";
++import { LeadOriginGlyph, TaskCardLeadExpander } from "./TaskCardLeadExpander";
++import { ProjectPill } from "./TaskCardProjectPill";
+ 
+ const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
+ 
+@@ -248,6 +250,7 @@ export function TaskCard({ task }: Props) {
+               StatePill. The faint 3 px left-edge strip washed out on a
+               multi-project board; this names the project explicitly and
+               anchors it with a solid accent-color dot. */}
++          <LeadOriginGlyph taskId={task.taskId} tags={task.tags} />
+           <ProjectPill
+             taskId={task.taskId}
+             projectId={task.projectId}
+@@ -283,6 +286,13 @@ export function TaskCard({ task }: Props) {
+           })()}
+         </div>
+ 
++        {/* Lead metadata expander (FR-04.11) — in-place, ChevronRight/Down
++            toggle + panel; stopPropagation on the whole block (both the
++            toggle and the open panel) so it never reaches the card's own
++            onClick={navigateToDetail} above. Renders nothing when the task
++            has no lead tag and no domain/priority/complexityHint set. */}
++        <TaskCardLeadExpander task={task} />
++
+         {/* Launch failure notice (FR-01.61, A17) — a launch_failed / jsonl_missing
+             card is no longer silent: the SAME words as the task-detail header +
+             campaign card, with recovery. Not a toast (it persists). */}
+@@ -407,48 +417,6 @@ export function TaskCard({ task }: Props) {
+   );
+ }
+ 
+-/** Iterate-2026-05-15 (ADR-105) — project identity chip for the card meta
+- *  row. Leftmost element, left of the StatePill. A solid dot + the project
+- *  name, with the pill tinted + bordered in the project's accent color so
+- *  a multi-project board is scannable at a glance. `color.hsl` is either
+- *  the custom `settings.color` or a deterministic hash-derivwarning: in the working copy of 'client/src/components/external/TaskCardLeadExpander.test.tsx', LF will be replaced by CRLF the next time Git touches it
+ed hue, so the
+- *  pill, dot, and the 3 px left-edge strip all agree. `color-mix` keeps the
+- *  tint/border derivation format-agnostic (custom hex OR `hsl(...)`).
+- *  Read-only — clicks fall through to the card's navigate-to-detail
+- *  handler, no stopPropagation. */
+-function ProjectPill({
+-  taskId,
+-  projectId,
+-  name,
+-  color,
+-}: {
+-  taskId: string;
+-  projectId: string;
+-  name: string;
+-  color: ProjectColor;
+-}) {
+-  return (
+-    <span
+-      data-testid={`task-card-project-${taskId}`}
+-      data-project-id={projectId}
+-      data-project-color={color.hsl}
+-      title={`Project: ${name}`}
+-      className="inline-flex max-w-[150px] items-center gap-1.5 rounded-[10px] border px-2 py-[2px] text-[11px] font-semibold text-[var(--color-text)]"
+-      style={{
+-        background: `color-mix(in srgb, ${color.hsl} 14%, var(--color-surface))`,
+-        borderColor: `color-mix(in srgb, ${color.hsl} 42%, transparent)`,
+-      }}
+-    >
+-      <span
+-        aria-hidden="true"
+-        className="h-2 w-2 shrink-0 rounded-full"
+-        style={{ background: color.hsl }}
+-      />
+-      <span className="truncate">{name}</span>
+-    </span>
+-  );
+-}
+-
+ function lastActivity(task: ExternalTask): { short: string; full: string } | null {
+   // Canonical "last modified" (JSONL mtime → launchedAt → createdAt), shared
+   // with the board sort + List view via lib/taskSort so the card's timestamp
+diff --git a/client/src/components/external/TaskCardLeadExpander.test.tsx b/client/src/components/external/TaskCardLeadExpander.test.tsx
+new file mode 100644
+index 00000000..7905bbf8
+--- /dev/null
++++ b/client/src/components/external/TaskCardLeadExpander.test.tsx
+@@ -0,0 +1,185 @@
++/*
++ * TaskCardLeadExpander — bot glyph gating (lead: only, not the broader
++ * three-prefix match) and the in-place expander (render-gate, open/close,
++ * click isolation from a parent's whole-card navigation handler).
++ */
++import { render, screen } from "@testing-library/react";
++import userEvent from "@testing-library/user-event";
++import { describe, it, expect, vi } from "vitest";
++
++import { LeadOriginGlyph, TaskCardLeadExpander } from "./TaskCardLeadExpander";
++import type { ExternalTask } from "../../lib/externalApi";
++
++function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
++  return {
++    taskId: "task-1",
++    sessionUuid: "11111111-1111-1111-1111-111111111111",
++    title: "Audit drift",
++    cwd: "/tmp/project",
++    pluginDirs: [],
++    projectId: "project-001",
++    state: "draft",
++    createdAt: "2026-04-23T15:00:00Z",
++    inbox: {
++      pendingToolUseIds: [],
++      dismissedToolUseIds: [],
++      lastProcessedByteOffset: 0,
++    },
++    ...overrides,
++  };
++}
++
++describe("LeadOriginGlyph", () => {
++  // @covers FR-01.01
++  it("renders for a task with a lead: origin tag", () => {
++    render(<LeadOriginGlyph taskId="task-1" tags={["lead:helper-01"]} />);
++    expect(screen.getByTestId("task-card-lead-glyph-task-1")).toBeInTheDocument();
++  });
++
++  // @covers FR-01.01
++  it("is exposed to assistive tech via role=img + aria-label — the glyph is the SOLE signal, so it must not be aria-hidden", () => {
++    render(<LeadOriginGlyph taskId="task-1" tags={["lead:helper-01"]} />);
++    expect(screen.getByRole("img", { name: "Lead-originated task" })).toBeInTheDocument();
++  });
++
++  // @covers FR-01.01
++  it("does NOT render for an ordinary task with no tags", () => {
++    render(<LeadOriginGlyph taskId="task-1" tags={undefined} />);
++    expect(screen.queryByTestId("task-card-lead-glyph-task-1")).toBeNull();
++  });
++
++  // @covers FR-01.01
++  it("does NOT render for a task carrying only lead-wait: or lead-dedup: (no origin tag)", () => {
++    render(<LeadOriginGlyph taskId="task-1" tags={["lead-wait:po"]} />);
++    expect(screen.queryByTestId("task-card-lead-glyph-task-1")).toBeNull();
++    render(<LeadOriginGlyph taskId="task-2" tags={["lead-dedup:abc"]} />);
++    expect(screen.queryByTestId("task-card-lead-glyph-task-2")).toBeNull();
++  });
++});
++
++describe("TaskCardLeadExpander", () => {
++  // @covers FR-01.01
++  it("renders nothing for an ordinary task (no lead tags, no metadata)", () => {
++    render(<TaskCardLeadExpander task={baseTask()} />);
++    expect(screen.queryByTestId("task-card-lead-expander-task-1")).toBeNull();
++  });
++
++  // @covers FR-01.01
++  it("renders nothing for a task with only unrelated, non-lead tags", () => {
++    render(<TaskCardLeadExpander task={baseTask({ tags: ["urgent", "backend"] })} />);
++    expect(screen.queryByTestId("task-card-lead-expander-task-1")).toBeNull();
++  });
++
++  // @covers FR-01.01
++  it("renders the toggle (collapsed) when a lead tag is present", () => {
++    render(<TaskCardLeadExpander task={baseTask({ tags: ["lead:helper-01"] })} />);
++    const toggle = screen.getByTestId("task-card-lead-expander-toggle-task-1");
++    expect(toggle).toHaveAttribute("aria-expanded", "false");
++    expect(screen.queryByTestId("task-card-lead-expander-body-task-1")).toBeNull();
++  });
++
++  // @covers FR-01.01
++  it("renders the toggle when only metadata (priority/domain/complexityHint) is present, no lead tag", () => {
++    render(<TaskCardLeadExpander task={baseTask({ priority: "P0" })} />);
++    expect(screen.getByTestId("task-card-lead-expander-toggle-task-1")).toBeInTheDocument();
++  });
++
++  // @covers FR-01.01
++  it("opens the panel showing priority (color-coded), domain, complexityHint, and lead tag readouts", async () => {
++    const user = userEvent.setup();
++    render(
++      <TaskCardLeadExpander
++        task={baseTask({
++          priority: "P0",
++          domain: "billing",
++          complexityHint: "large",
++          tags: ["lead:helper-07", "lead-wait:po", "lead-dedup:card-9f3"],
++        })}
++      />,
++    );
++    await user.click(screen.getByTestId("task-card-lead-expander-toggle-task-1"));
++    const body = screen.getByTestId("task-card-lead-expander-body-task-1");
++    expect(body).toBeInTheDocument();
++    expect(screen.getByTestId("task-card-lead-priority-task-1")).toHaveTextContent("P0");
++    expect(screen.getByTestId("task-card-lead-domain-task-1")).toHaveTextContent("billing");
++    expect(screen.getByTestId("task-card-lead-complexity-task-1")).toHaveTextContent("large");
++    expect(screen.getByTestId("task-card-lead-origin-task-1")).toHaveTextContent("helper-07");
++    expect(screen.getByTestId("task-card-lead-wait-task-1")).toHaveTextContent("Waiting on PO");
++    expect(screen.getByTestId("task-card-lead-dedup-task-1")).toHaveTextContent("card-9f3");
++  });
++
++  // @covers FR-01.01
++  it("closes again on a second toggle click", async () => {
++    const user = userEvent.setup();
++    render(<TaskCardLeadExpander task={baseTask({ tags: ["lead:x"] })} />);
++    const toggle = screen.getByTestId("task-card-lead-expander-toggle-task-1");
++    await user.click(toggle);
++    expect(screen.getByTestId("task-card-lead-expander-body-task-1")).toBeInTheDocument();
++    await user.click(toggle);
++    expect(screen.queryByTestId("task-card-lead-expander-body-task-1")).toBeNull();
++  });
++
++  // @covers FR-01.01
++  it("stops propagation on the toggle AND on the open panel — a click on either never reaches a parent handler", async () => {
++    const user = userEvent.setup();
++    const onParentClick = vi.fn();
++    render(
++      <div onClick={onParentClick}>
++        <TaskCardLeadExpander task={baseTask({ tags: ["lead:x"], priority: "P1" })} />
++      </div>,
++    );
++    await user.click(screen.getByTestId("task-card-lead-expander-toggle-task-1"));
++    expect(onParentClick).not.toHaveBeenCalled();
++
++    const priorityBadge = screen.getByTestId("task-card-lead-priority-task-1");
++    await user.click(priorityBadge);
++    expect(onParentClick).not.toHaveBeenCalled();
++  });
++
++  // @covers FR-01.01
++  it("Enter/Space on the toggle expands the panel and does not reach a parent keydown handler (dnd-kit isolation)", async () => {
++    const user = userEvent.setup();
++    const onParentKeyDown = vi.fn();
++    render(
++      <div onKeyDown={onParentKeyDown}>
++        <TaskCardLeadExpander task={baseTask({ tags: ["lead:x"] })} />
++      </div>,
++    );
++    const toggle =warning: in the working copy of 'client/src/components/external/TaskCardLeadExpander.tsx', LF will be replaced by CRLF the next time Git touches it
+ screen.getByTestId("task-card-lead-expander-toggle-task-1");
++    toggle.focus();
++    await user.keyboard("{Enter}");
++    expect(screen.getByTestId("task-card-lead-expander-body-task-1")).toBeInTheDocument();
++    expect(onParentKeyDown).not.toHaveBeenCalled();
++
++    await user.keyboard(" ");
++    expect(screen.queryByTestId("task-card-lead-expander-body-task-1")).toBeNull();
++    expect(onParentKeyDown).not.toHaveBeenCalled();
++  });
++
++  // @covers FR-01.01
++  it("a press-and-drag starting on the toggle does not reach a parent pointerdown handler", async () => {
++    const user = userEvent.setup();
++    const onParentPointerDown = vi.fn();
++    render(
++      <div onPointerDown={onParentPointerDown}>
++        <TaskCardLeadExpander task={baseTask({ tags: ["lead:x"] })} />
++      </div>,
++    );
++    await user.pointer({ target: screen.getByTestId("task-card-lead-expander-toggle-task-1"), keys: "[MouseLeft]" });
++    expect(onParentPointerDown).not.toHaveBeenCalled();
++  });
++
++  // @covers FR-01.01
++  it("an unrelated key on the toggle (e.g. the board's global 'i' shortcut) is NOT stopped — only Enter/Space/Arrow* are", async () => {
++    const user = userEvent.setup();
++    const onParentKeyDown = vi.fn();
++    render(
++      <div onKeyDown={onParentKeyDown}>
++        <TaskCardLeadExpander task={baseTask({ tags: ["lead:x"] })} />
++      </div>,
++    );
++    screen.getByTestId("task-card-lead-expander-toggle-task-1").focus();
++    await user.keyboard("i");
++    expect(onParentKeyDown).toHaveBeenCalledTimes(1);
++  });
++});
+diff --git a/client/src/components/external/TaskCardLeadExpander.tsx b/client/src/components/external/TaskCardLeadExpander.tsx
+new file mode 100644
+index 00000000..f2ede2c5
+--- /dev/null
++++ b/client/src/components/external/TaskCardLeadExpander.tsx
+@@ -0,0 +1,185 @@
++/*
++ * TaskCard lead metadata — the bot glyph (next to the ProjectPill) and the
++ * in-place expander showing already-persisted-but-hidden fields (`domain`,
++ * `priority`, `complexityHint`, the three lead tags). FR-04.11 / plan V3.
++ *
++ * `LeadOriginGlyph` is gated ONLY on a `lead:` origin tag — never the
++ * broader `hasAnyLeadTag` — so a task carrying only `lead-wait:` or
++ * `lead-dedup:` (no origin tag) does not get a false-positive glyph
++ * (external plan review finding, both reviewers).
++ *
++ * `TaskCardLeadExpander` renders nothing when the task has none of
++ * domain/priority/complexityHint set AND no lead tag — a task with only
++ * unrelated, non-lead tags must not open an expander with nothing
++ * meaningful in it (external plan review finding). It follows the existing
++ * `TaskDescriptionDisclosure` "expand in place" shape (chevron toggle +
++ * conditionally-rendered panel), never a Dialog/Portal — the brief wants an
++ * expander ON the card, not a page change. `stopPropagation()` is applied
++ * to the WHOLE wrapper (toggle AND panel), not just the toggle button, so a
++ * click anywhere inside the open panel never reaches the card's
++ * `navigateToDetail` handler either.
++ */
++import { useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
++import { Bot, ChevronDown, ChevronRight } from "lucide-react";
++
++import type { ExternalTask } from "../../lib/externalApi";
++import {
++  dedupKey,
++  hasAnyLeadTag,
++  isLeadOriginated,
++  isWaitingOnPo,
++  hasDedupTag,
++  leadOriginId,
++} from "../../lib/leadTags";
++
++interface GlyphProps {
++  taskId: string;
++  tags?: string[] | null;
++}
++
++/** Small bot glyph rendered immediately before ProjectPill in the card's
++ *  meta row — a lead-originated task only. Renders nothing otherwise.
++ *  `role="img"` + `aria-label` (not `aria-hidden` + `title`) because this
++ *  glyph is the SOLE signal a card is lead-originated — `aria-hidden`
++ *  removes the whole subtree, including `title`, from assistive tech
++ *  (code review finding). */
++export function LeadOriginGlyph({ taskId, tags }: GlyphProps) {
++  if (!isLeadOriginated(tags)) return null;
++  return (
++    <span
++      role="img"
++      aria-label="Lead-originated task"
++      data-testid={`task-card-lead-glyph-${taskId}`}
++      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--color-muted-bg)] text-[var(--color-muted)]"
++    >
++      <Bot size={12} aria-hidden="true" />
++    </span>
++  );
++}
++
++interface ExpanderProps {
++  task: ExternalTask;
++}
++
++const PRIORITY_CLASS: Record<NonNullable<ExternalTask["priority"]>, string> = {
++  P0: "bg-err-tint text-err",
++  P1: "bg-warn-tint text-warn",
++  P2: "bg-warn-tint text-warn",
++  P3: "bg-inset text-[var(--color-text)]",
++};
++
++export function TaskCardLeadExpander({ task }: ExpanderProps) {
++  const [expanded, setExpanded] = useState(false);
++  const hasLeadTag = hasAnyLeadTag(task.tags);
++  const hasMetadata =
++    Boolean(task.domain) || Boolean(task.priority) || Boolean(task.complexityHint);
++  if (!hasLeadTag && !hasMetadata) return null;
++
++  const stop = (ev: MouseEvent | PointerEvent) => ev.stopPropagation();
++  // The card is draggable (TaskBoardColumns' DraggableCard spreads dnd-kit's
++  // useDraggable listeners — incl. a PointerSensor and a KeyboardSensor —
++  // onto an outer wrapper this component doesn't control). stopPropagation
++  // on click alone covers a stationary click (the sensor's 8px activation
++  // distance already prevents a drag) but NOT a press-and-drag started
++  // inside the toggle or the open panel, which begins on `onPointerDown` —
++  // so that needs its own stop too (code review finding). Only the
++  // activation/navigation keys are stopped for keydown, not every key: a
++  // blanket stop would also swallow the window-level `i` (New Iterate)
++  // shortcut while focus sits on the toggle, since React's root-level
++  // listener means `stopPropagation()` here defeats the native bubble to
++  // `window` as well (code review finding).
++  const stopKey = (ev: KeyboardEvent) => {
++    if (ev.key === "Enter" || ev.key === " " || ev.key.startsWith("Arrow")) {
++      ev.stopPropagation();
++    }
++  };
++
++  return (
++    <div
++      data-testid={`task-card-lead-expander-${task.taskId}`}
++      className="mt-1"
++      onClick={stop}
++      onPointerDown={stop}
++      onKeyDown={stopKey}
++    >
++      <button
++        type="button"
++        onClick={() => setExpanded((v) => !v)}
++        aria-expanded={expanded}
++        data-testid={`task-card-lead-expander-toggle-${task.taskId}`}
++        className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--color-muted)] transition hover:text-[var(--color-text)]"
++      >
++        {expanded ? (
++          <ChevronDown size={12} aria-hidden="true" />
++        ) : (
++          <ChevronRight size={12} aria-hidden="true" />
++        )}
++        <span>Lead details</span>
++      </button>
++      {expanded && (
++        <div
++          data-testid={`task-card-lead-expander-body-${task.taskId}`}
++          className="mt-1 flex flex-wrap items-center gap-1.5 rounded-[var(--radius-button,8px)] border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-1.5"
++        >
++          {task.priority && (
++            <span
++              data-testid={`task-card-lead-priority-${task.taskId}`}
++              className={
++                "inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
++                PRIORITY_CLASS[task.priority]
++              }
++            >
++              {task.priority}
++            </span>
++          )}
++          {task.domain && (
++            <span
++              data-testid={`task-card-lead-domain-${task.taskId}`}
++              className="inline-flex items-center rounded-[6px] bg-[var(--color-muted-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-muted)]"
++            >
++              {task.domain}
++            </span>
++          )}
++          {task.complexityHint && (
++            <span
++              data-testid={`task-card-lead-complexity-${task.taskId}`}
++              className="inline-flex items-center rounded-[6px] bg-[var(--color-muted-bg)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-muted)]"
++    warning: in the working copy of 'client/src/components/external/TaskCardProjectPill.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'client/src/hooks/useBoardFilters.test.ts', LF will be replaced by CRLF the next time Git touches it
+        >
++              {task.complexityHint}
++            </span>
++          )}
++          {/* leadOriginId/dedupKey are parsed out of a tag string a daemon
++              writes — plain text only. A future iterate wiring these into a
++              link or org-page navigation MUST NOT put them in an href/src
++              or interpolate them into a style value (unlike the project-
++              color `color-mix` string above ProjectPill does for a
++              server-validated hex/hsl value, this is untrusted). */}
++          {isLeadOriginated(task.tags) && (
++            <span
++              data-testid={`task-card-lead-origin-${task.taskId}`}
++              className="max-w-full break-all text-[10px] text-[var(--color-muted)]"
++            >
++              Lead: {leadOriginId(task.tags)}
++            </span>
++          )}
++          {isWaitingOnPo(task.tags) && (
++            <span
++              data-testid={`task-card-lead-wait-${task.taskId}`}
++              className="text-[10px] text-[var(--color-muted)]"
++            >
++              Waiting on PO
++            </span>
++          )}
++          {hasDedupTag(task.tags) && (
++            <span
++              data-testid={`task-card-lead-dedup-${task.taskId}`}
++              className="max-w-full break-all text-[10px] text-[var(--color-muted)]"
++            >
++              Dedup: {dedupKey(task.tags)}
++            </span>
++          )}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/client/src/components/external/TaskCardProjectPill.tsx b/client/src/components/external/TaskCardProjectPill.tsx
+new file mode 100644
+index 00000000..6d019a5f
+--- /dev/null
++++ b/client/src/components/external/TaskCardProjectPill.tsx
+@@ -0,0 +1,49 @@
++/*
++ * ProjectPill — extracted out of TaskCard.tsx (iterate-2026-09-01-
++ * lead-board-surface) to reclaim bloat-baseline headroom for the new
++ * LeadOriginGlyph/TaskCardLeadExpander wiring — no behavior change.
++ *
++ * Iterate-2026-05-15 (ADR-105) — project identity chip for the card meta
++ * row. Leftmost element, left of the StatePill. A solid dot + the project
++ * name, with the pill tinted + bordered in the project's accent color so
++ * a multi-project board is scannable at a glance. `color.hsl` is either
++ * the custom `settings.color` or a deterministic hash-derived hue, so the
++ * pill, dot, and the 3 px left-edge strip all agree. `color-mix` keeps the
++ * tint/border derivation format-agnostic (custom hex OR `hsl(...)`).
++ * Read-only — clicks fall through to the card's navigate-to-detail
++ * handler, no stopPropagation.
++ */
++import type { ProjectColor } from "../../lib/projectColor";
++
++export function ProjectPill({
++  taskId,
++  projectId,
++  name,
++  color,
++}: {
++  taskId: string;
++  projectId: string;
++  name: string;
++  color: ProjectColor;
++}) {
++  return (
++    <span
++      data-testid={`task-card-project-${taskId}`}
++      data-project-id={projectId}
++      data-project-color={color.hsl}
++      title={`Project: ${name}`}
++      className="inline-flex max-w-[150px] items-center gap-1.5 rounded-[10px] border px-2 py-[2px] text-[11px] font-semibold text-[var(--color-text)]"
++      style={{
++        background: `color-mix(in srgb, ${color.hsl} 14%, var(--color-surface))`,
++        borderColor: `color-mix(in srgb, ${color.hsl} 42%, transparent)`,
++      }}
++    >
++      <span
++        aria-hidden="true"
++        className="h-2 w-2 shrink-0 rounded-full"
++        style={{ background: color.hsl }}
++      />
++      <span className="truncate">{name}</span>
++    </span>
++  );
++}
+diff --git a/client/src/hooks/useBoardFilters.test.ts b/client/src/hooks/useBoardFilters.test.ts
+new file mode 100644
+index 00000000..83b2b86c
+--- /dev/null
++++ b/client/src/hooks/useBoardFilters.test.ts
+@@ -0,0 +1,138 @@
++/*
++ * useBoardFilters — the board's status + lead-tag filter state (FR-04.11).
++ */
++import { act, renderHook } from "@testing-library/react";
++import { describe, it, expect } from "vitest";
++
++import { useBoardFilters } from "./useBoardFilters";
++import { LEAD_ORIGIN_TAG_PREFIX, LEAD_WAIT_TAG_PREFIX, LEAD_DEDUP_TAG_PREFIX } from "../lib/leadTags";
++import type { ExternalTask, ExternalTaskState } from "../lib/externalApi";
++
++function task(opts: { state?: ExternalTaskState; tags?: string[] } = {}): ExternalTask {
++  return {
++    taskId: `t-${Math.random()}`,
++    sessionUuid: "u",
++    title: "t",
++    cwd: "/tmp",
++    pluginDirs: [],
++    projectId: "p",
++    state: opts.state ?? "draft",
++    createdAt: "2026-04-23T15:00:00Z",
++    inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
++    tags: opts.tags,
++  };
++}
++
++describe("useBoardFilters — status filter", () => {
++  // @covers FR-01.01
++  it("starts with an empty filter and zeroed counts", () => {
++    const { result } = renderHook(() => useBoardFilters([]));
++    expect(result.current.statusFilter.size).toBe(0);
++    expect(result.current.statusCounts.draft).toBe(0);
++  });
++
++  // @covers FR-01.01
++  it("toggleStatus adds/removes and filteredTasks narrows to the selected states", () => {
++    const tasks = [task({ state: "draft" }), task({ state: "done" })];
++    const { result } = renderHook(() => useBoardFilters(tasks));
++    act(() => result.current.toggleStatus("draft"));
++    expect(result.current.filteredTasks).toHaveLength(1);
++    expect(result.current.filteredTasks[0].state).toBe("draft");
++    act(() => result.current.clearStatusFilter());
++    expect(result.current.filteredTasks).toHaveLength(2);
++  });
++});
++
++describe("useBoardFilters — lead-tag filter", () => {
++  // @covers FR-01.01
++  it("computes per-prefix counts over the given task list", () => {
++    const tasks = [task({ tags: ["lead:a"] }), task({ tags: ["lead:b"] }), task({ tags: ["lead-wait:po"] }), task({ tags: ["lead-dedup:x"] })];
++    const { result } = renderHook(() => useBoardFilters(tasks));
++    expect(result.current.leadTagCounts[LEAD_ORIGIN_TAG_PREFIX]).toBe(2);
++    expect(result.current.leadTagCounts[LEAD_WAIT_TAG_PREFIX]).toBe(1);
++    expect(result.current.leadTagCounts[LEAD_DEDUP_TAG_PREFIX]).toBe(1);
++  });
++
++  // @covers FR-01.01
++  it("leadTagTotal is the project-filtered task count, NOT the sum of per-prefix counts", () => {
++    // One task carries TWO prefixes — a naive sum would double-count it, and
++    // the ordinary task contributes 0 to any sum despite being part of "All".
++    const tasks = [
++      task({ tags: ["lead:a", "lead-wait:po"] }),
++      task({ tags: ["lead-dedup:x"] }),
++      task({}), // ordinary, no lead tags
++    ];
++    const { result } = renderHook(() => useBoardFilters(tasks));
++    const sumOfBuckets =
++      result.current.leadTagCounts[LEAD_ORIGIN_TAG_PREFIX] +
++      result.current.leadTagCounts[LEAD_WAIT_TAG_PREFIX] +
++      result.current.leadTagCounts[LEAD_DEDUP_TAG_PREFIX];
++    expect(sumOfBuckets).toBe(3); // would be double-counted + missing the ordinary task
++    expect(result.current.leadTagTotal).toBe(3);
++    expect(result.current.leadTagTotal).not.toBe(sumOfBuckets - 1);
++  });
++
++  // @covers FR-01.01
++  it("toggleLeadTag adds and removes a prefix from the filter Set", () => {
++    const { result } = renderHook(() => useBoardFilters([]));
++    act(() => result.current.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
++    expect(result.current.leadTagFilter.has(LEAD_ORIGIN_TAG_PREFIX)).toBe(true);
++    act(() => result.current.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
++    expect(result.current.leadTagFilter.has(LEAD_ORIGIN_TAG_PREFIX)).toBe(false);
++  });
++
++  // @covers FR-01.01
++  it("clearLeadTagFilter resets to empty", () => {
++    const { result } = renderHook(() => useBoardFilters([]));
++    act(() => result.current.toggleLeadTag(LEAD_WAIT_TAG_PREFIX));
++    act(() => result.current.clearLeadTagFilter());
++    expect(result.current.leadTagFilter.size).toBe(0);
++  });
++
++  // @covers FR-01.01
++  it("counts stay stable across re-renders that only change the filter, not the task list", () => {
++    const tasks = [task({ tags: ["lead:a"] })];
++    const { result, rerender } = renderHook(({ list }) => useBoardFilters(list), {
++      initialProps: { list: tasks },
++    });
++    act(() => result.cwarning: in the working copy of 'client/src/hooks/useBoardFilters.ts', LF will be replaced by CRLF the next time Git touches it
+urrent.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
++    rerender({ list: tasks });
++    expect(result.current.leadTagCounts[LEAD_ORIGIN_TAG_PREFIX]).toBe(1);
++  });
++});
++
++describe("useBoardFilters — combined status + lead-tag filtering", () => {
++  // @covers FR-01.01
++  it("ANDs both filters together in filteredTasks", () => {
++    const tasks = [
++      task({ state: "draft", tags: ["lead:a"] }),
++      task({ state: "done", tags: ["lead:b"] }),
++      task({ state: "draft", tags: [] }),
++    ];
++    const { result } = renderHook(() => useBoardFilters(tasks));
++    act(() => result.current.toggleStatus("draft"));
++    act(() => result.current.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
++    expect(result.current.filteredTasks).toHaveLength(1);
++    expect(result.current.filteredTasks[0].state).toBe("draft");
++  });
++
++  // @covers FR-01.01
++  it("noFilterMatches is true only when a filter is active, the project has tasks, but none match", () => {
++    const tasks = [task({ state: "draft", tags: [] })];
++    const { result } = renderHook(() => useBoardFilters(tasks));
++    expect(result.current.noFilterMatches).toBe(false);
++    act(() => result.current.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
++    expect(result.current.noFilterMatches).toBe(true);
++    act(() => result.current.clearAllFilters());
++    expect(result.current.noFilterMatches).toBe(false);
++    expect(result.current.leadTagFilter.size).toBe(0);
++    expect(result.current.statusFilter.size).toBe(0);
++  });
++
++  // @covers FR-01.01
++  it("noFilterMatches is false for a genuinely empty project (no filter needed to explain zero cards)", () => {
++    const { result } = renderHook(() => useBoardFilters([]));
++    act(() => result.current.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
++    expect(result.current.noFilterMatches).toBe(false);
++  });
++});
+diff --git a/client/src/hooks/useBoardFilters.ts b/client/src/hooks/useBoardFilters.ts
+new file mode 100644
+index 00000000..e17c63ac
+--- /dev/null
++++ b/client/src/hooks/useBoardFilters.ts
+@@ -0,0 +1,124 @@
++/*
++ * useBoardFilters — the board's status + lead-tag filter state, and the
++ * derived filtered task list (FR-04.11, V3). Extracted out of
++ * TaskBoardPage.tsx (iterate-2026-09-01-lead-board-surface) — the status
++ * filter was already inline there; folding the lead-tag filter in alongside
++ * it (rather than as a sibling hook) keeps TaskBoardPage.tsx under its bloat
++ * baseline instead of raising it (code review finding: the two hooks were
++ * pulling in opposite directions on the same file's line count).
++ *
++ * Both filters are multi-select `Set`s, empty = "All" (no filter),
++ * OR-within-group. Status and lead-tag are independent axes, ANDed together
++ * in `filteredTasks`. Each filter's own per-option counts are computed on
++ * `projectFiltered` alone — independent of the OTHER filter and of itself —
++ * so counts stay stable as the user toggles either one (GitHub/Linear
++ * filter-bar convention, matches the pre-existing `statusCounts` behavior).
++ * The Bot menu's "All" row total is `projectFiltered.length` for the same
++ * reason: lead-tag buckets can overlap (a task can carry more than one
++ * prefix) and are not exhaustive (an ordinary task carries none), so a sum
++ * of the three would double-count and under-represent (code review finding)
++ * — the total is reported directly, on the same basis as the per-prefix
++ * counts, not derived from them.
++ */
++import { useCallback, useMemo, useState } from "react";
++
++import type { ExternalTask, ExternalTaskState } from "../lib/externalApi";
++import { LEAD_TAG_PREFIXES, hasPrefix, matchesAnyLeadPrefix, type LeadTagPrefix } from "../lib/leadTags";
++
++export function useBoardFilters(projectFiltered: ExternalTask[]) {
++  const [statusFilter, setStatusFilter] = useState<Set<ExternalTaskState>>(() => new Set());
++  const toggleStatus = useCallback((s: ExternalTaskState) => {
++    setStatusFilter((prev) => {
++      const next = new Set(prev);
++      if (next.has(s)) next.delete(s);
++      else next.add(s);
++      return next;
++    });
++  }, []);
++  const clearStwarning: in the working copy of 'client/src/lib/leadTags.test.ts', LF will be replaced by CRLF the next time Git touches it
+atusFilter = useCallback(() => {
++    setStatusFilter(new Set());
++  }, []);
++
++  const [leadTagFilter, setLeadTagFilter] = useState<Set<LeadTagPrefix>>(() => new Set());
++  const toggleLeadTag = useCallback((prefix: LeadTagPrefix) => {
++    setLeadTagFilter((prev) => {
++      const next = new Set(prev);
++      if (next.has(prefix)) next.delete(prefix);
++      else next.add(prefix);
++      return next;
++    });
++  }, []);
++  const clearLeadTagFilter = useCallback(() => {
++    setLeadTagFilter(new Set());
++  }, []);
++
++  const clearAllFilters = useCallback(() => {
++    clearStatusFilter();
++    clearLeadTagFilter();
++  }, [clearStatusFilter, clearLeadTagFilter]);
++
++  const filteredTasks = useMemo<ExternalTask[]>(() => {
++    let out = projectFiltered;
++    if (statusFilter.size > 0) out = out.filter((t) => statusFilter.has(t.state));
++    if (leadTagFilter.size > 0) {
++      out = out.filter((t) => matchesAnyLeadPrefix(t.tags, leadTagFilter));
++    }
++    return out;
++  }, [projectFiltered, statusFilter, leadTagFilter]);
++
++  const statusCounts = useMemo<Record<ExternalTaskState, number>>(() => {
++    const seed: Record<ExternalTaskState, number> = {
++      draft: 0,
++      awaiting_external_start: 0,
++      active: 0,
++      idle: 0,
++      done: 0,
++      launch_failed: 0,
++      jsonl_missing: 0,
++    };
++    for (const t of projectFiltered) {
++      if (t.state in seed) seed[t.state] += 1;
++    }
++    return seed;
++  }, [projectFiltered]);
++
++  const leadTagCounts = useMemo<Record<LeadTagPrefix, number>>(() => {
++    const seed: Record<LeadTagPrefix, number> = {
++      [LEAD_TAG_PREFIXES[0]]: 0,
++      [LEAD_TAG_PREFIXES[1]]: 0,
++      [LEAD_TAG_PREFIXES[2]]: 0,
++    };
++    for (const t of projectFiltered) {
++      for (const prefix of LEAD_TAG_PREFIXES) {
++        if (hasPrefix(t.tags, prefix)) seed[prefix] += 1;
++      }
++    }
++    return seed;
++  }, [projectFiltered]);
++
++  // Any filter active + zero results, but the project genuinely has tasks —
++  // distinct from the A07 "zero tasks at all" empty state. Adding a third
++  // filter axis plus a one-click BellDot toggle makes this trivially easy to
++  // hit by accident (internal plan review), so both view modes get a "clear
++  // filters" affordance instead of three silently-empty columns or an empty
++  // table.
++  const noFilterMatches =
++    (statusFilter.size > 0 || leadTagFilter.size > 0) &&
++    filteredTasks.length === 0 &&
++    projectFiltered.length > 0;
++
++  return {
++    statusFilter,
++    toggleStatus,
++    clearStatusFilter,
++    statusCounts,
++    leadTagFilter,
++    toggleLeadTag,
++    clearLeadTagFilter,
++    leadTagCounts,
++    leadTagTotal: projectFiltered.length,
++    filteredTasks,
++    noFilterMatches,
++    clearAllFilters,
++  };
++}
+diff --git a/client/src/lib/leadTags.test.ts b/client/src/lib/leadTags.test.ts
+new file mode 100644
+index 00000000..8d534083
+--- /dev/null
++++ b/client/src/lib/leadTags.test.ts
+@@ -0,0 +1,102 @@
++/*
++ * leadTags — the closed three-prefix tag vocabulary (FR-04.10). Every
++ * helper must be null/undefined-safe: a legacy or mocked ExternalTask
++ * record with no `tags` field must never throw.
++ */
++import { describe, it, expect } from "vitest";
++
++import {
++  LEAD_ORIGIN_TAG_PREFIX,
++  LEAD_WAIT_TAG_PREFIX,
++  LEAD_DEDUP_TAG_PREFIX,
++  LEAD_TAG_PREFIXES,
++  isLeadOriginated,
++  isWaitingOnPo,
++  hasDedupTag,
++  hasAnyLeadTag,
++  matchesAnyLeadPrefix,
++  leadOriginId,
++  dedupKey,
++} from "./leadTags";
++
++describe("leadTags — closed vocabulary", () => {
++  // @covers FR-01.01
++  it("names exactly the three prefixes, no fourth", () => {
++    expect(LEAD_ORIGIN_TAG_PREFIX).toBe("lead:");
++    expect(LEAD_WAIT_TAG_PREFIX).toBe("lead-wait:");
++    expect(LEAD_DEDUP_TAG_PREFIX).toBe("lead-dedup:");
++    expect(LEAD_TAG_PREFIXES).toEqual(["lead:", "lead-wait:", "lead-dedup:"]);
++  });
++});
++
++describe("isLeadOriginated", () => {
++  it("true for a lead: tag", () => {
++    expect(isLeadOriginated(["lead:helper-01"])).toBe(true);
++  });
++  it("false for a lead-wait: or lead-dedup: only tag (distinct from hasAnyLeadTagwarning: in the working copy of 'client/src/lib/leadTags.ts', LF will be replaced by CRLF the next time Git touches it
+)", () => {
++    expect(isLeadOriginated(["lead-wait:po"])).toBe(false);
++    expect(isLeadOriginated(["lead-dedup:abc"])).toBe(false);
++  });
++  it("false for undefined/null/empty tags", () => {
++    expect(isLeadOriginated(undefined)).toBe(false);
++    expect(isLeadOriginated(null)).toBe(false);
++    expect(isLeadOriginated([])).toBe(false);
++  });
++  it("is case-sensitive, matching the server's ?tag= convention (routes.lead-fields-tag-filter-list.test.ts)", () => {
++    expect(isLeadOriginated(["LEAD:helper-01"])).toBe(false);
++  });
++});
++
++describe("isWaitingOnPo / hasDedupTag", () => {
++  it("match their own prefix only", () => {
++    expect(isWaitingOnPo(["lead-wait:po"])).toBe(true);
++    expect(isWaitingOnPo(["lead:x"])).toBe(false);
++    expect(hasDedupTag(["lead-dedup:abc123"])).toBe(true);
++    expect(hasDedupTag(["lead:x"])).toBe(false);
++  });
++  it("are null-safe", () => {
++    expect(isWaitingOnPo(undefined)).toBe(false);
++    expect(hasDedupTag(null)).toBe(false);
++  });
++});
++
++describe("hasAnyLeadTag", () => {
++  it("true when any of the three prefixes is present", () => {
++    expect(hasAnyLeadTag(["lead:x"])).toBe(true);
++    expect(hasAnyLeadTag(["lead-wait:po"])).toBe(true);
++    expect(hasAnyLeadTag(["lead-dedup:x"])).toBe(true);
++  });
++  it("false for ordinary, non-lead tags", () => {
++    expect(hasAnyLeadTag(["urgent", "backend"])).toBe(false);
++  });
++  it("false for undefined/null/empty tags", () => {
++    expect(hasAnyLeadTag(undefined)).toBe(false);
++    expect(hasAnyLeadTag(null)).toBe(false);
++    expect(hasAnyLeadTag([])).toBe(false);
++  });
++});
++
++describe("matchesAnyLeadPrefix", () => {
++  it("OR-within-group: matches if any selected prefix matches any tag", () => {
++    expect(matchesAnyLeadPrefix(["lead-wait:po"], [LEAD_ORIGIN_TAG_PREFIX, LEAD_WAIT_TAG_PREFIX])).toBe(true);
++  });
++  it("false when no selected prefix matches", () => {
++    expect(matchesAnyLeadPrefix(["urgent"], LEAD_TAG_PREFIXES)).toBe(false);
++  });
++  it("false for an empty prefix selection or empty/absent tags", () => {
++    expect(matchesAnyLeadPrefix(["lead:x"], [])).toBe(false);
++    expect(matchesAnyLeadPrefix(undefined, LEAD_TAG_PREFIXES)).toBe(false);
++    expect(matchesAnyLeadPrefix(null, LEAD_TAG_PREFIXES)).toBe(false);
++  });
++});
++
++describe("leadOriginId / dedupKey", () => {
++  it("extract the suffix after the prefix", () => {
++    expect(leadOriginId(["lead:helper-07"])).toBe("helper-07");
++    expect(dedupKey(["lead-dedup:card-9f3"])).toBe("card-9f3");
++  });
++  it("null when the tag is absent", () => {
++    expect(leadOriginId(["urgent"])).toBeNull();
++    expect(dedupKey(undefined)).toBeNull();
++  });
++});
+diff --git a/client/src/lib/leadTags.ts b/client/src/lib/leadTags.ts
+new file mode 100644
+index 00000000..86796ee2
+--- /dev/null
++++ b/client/src/lib/leadTags.ts
+@@ -0,0 +1,88 @@
++/*
++ * Lead task tag vocabulary — FR-04.10 in leadwright/spec/lead-model-spec.md
++ * (canonical source, separate repo). Exactly three tag prefixes exist and
++ * this module MUST NOT invent a fourth: `lead:<lead-id>` (origin — which
++ * helper created the card), `lead-wait:po` (waiting on the PO) and
++ * `lead-dedup:<key>` (idempotency key). `domain`, `priority`,
++ * `complexityHint` and `tags` are already-persisted ExternalTask fields
++ * (iterate-2026-05-14-lead-foundation-task-schema) — nothing here derives
++ * or writes them, it only reads and matches.
++ *
++ * All helpers accept `tags?: string[] | null` and treat anything that
++ * isn't a non-empty array as "no tags" — a legacy/mocked ExternalTask
++ * record must never throw the board render (iterate-2026-09-01-lead-board-
++ * surface, external plan review).
++ */
++
++export const LEAD_ORIGIN_TAG_PREFIX = "lead:";
++export const LEAD_WAIT_TAG_PREFIX = "lead-wait:";
++export const LEAD_DEDUP_TAG_PREFIX = "lead-dedup:";
++
++export const LEAD_TAG_PREFIXES = [
++  LEAD_ORIGIN_TAG_PREFIX,
++  LEAD_WAIT_TAG_PREFIX,
++  LEAD_DEDUP_TAG_PREFIX,
++] as const;
++
++export type LeadTagPrefix = (typeof LEAD_TAG_PREFIXES)[number];
++
++function safeTags(tags?: string[] | null): string[] {
++  return Array.isArray(tags) ? tags : [];
++}
++
++/** The single null/element-safe primitive every predicate below routes
++ *  through — a malformed element (non-string, from a legacy/mocked record)
++ *  is skipped rather than thrown on. Exported for callers (board filter
++ *  counts) that need a single-prefix check without an array allocation. */
++export function hasPrefix(tags: string[] | undefined | null, prefix: string): boolean {
++  return safeTags(tags).some((t) => typeof t === "string" && t.startsWith(prefix));
++}
++
++function firstWithPrefix(tags: string[] | undefined | null, prefix: string): string | null {
++  const tag = safeTags(tags).find((t) => typeof t === "string" && t.startsWith(prefix));
++  return typeof tag === "string" ? tag.slice(prefix.length) : null;
++}
++
++/** True when the task carries a `lead:` origin tag — the ONLY prefix the
++ *  board glyph gates on (never the broader `hasAnyLeadTag`). */
++export function isLeadOriginated(tags?: string[] | null): boolean {
++  return hasPrefix(tags, LEAD_ORIGIN_TAG_PREFIX);
++}
++
++export function isWaitingOnPo(tags?: string[] | null): boolean {
++  return hasPrefix(tags, LEAD_WAIT_TAG_PREFIX);
++}
++
++export function hasDedupTag(tags?: string[] | null): boolean {
++  return hasPrefix(tags, LEAD_DEDUP_TAG_PREFIX);
++}
++
++/** True when the task carries any of the three lead tag prefixes. Used for
++ *  board filtering and the expander's render-gate — never for the glyph. */
++export function hasAnyLeadTag(tags?: string[] | null): boolean {
++  return LEAD_TAG_PREFIXES.some((prefix) => hasPrefix(tags, prefix));
++}
++
++/** True when `tags` has at least one tag starting with any prefix in
++ *  `prefixes` — the OR-within-group semantics the board filter uses. Narrowed
++ *  to the closed vocabulary: this module's whole premise is that no fourth
++ *  prefix exists, so the type system should refuse one too. */
++export function matchesAnyLeadPrefix(
++  tags: string[] | undefined | null,
++  prefixes: Iterable<LeadTagPrefix>,
++): boolean {
++  for (const prefix of prefixes) {
++    if (hasPrefix(tags, prefix)) return true;
++  }
++  return false;
++}
++
++/** The lead id from a `lead:<lead-id>` tag, or null. First match wins. */
++export function leadOriginId(tags?: string[] | null): string | null {
++  return firstWithPrefix(tags, LEAD_ORIGIN_TAG_PREFIX);
++}
++
++/** The dedup key from a `lead-dedup:<key>` tag, or null. First match wins. */
++export function dedupKey(tags?: string[] | null): string | null {
++  return firstWithPrefix(tags, LEAD_DEDUP_TAG_PREFIX);
++}
+diff --git a/client/src/pages/TaskBoardPage.tsx b/client/src/pages/TaskBoardPage.tsx
+index 59a9e84a..1a9c3ae4 100644
+--- a/client/src/pages/TaskBoardPage.tsx
++++ b/client/src/pages/TaskBoardPage.tsx
+@@ -60,7 +60,6 @@ import { useQueryClient } from "@tanstack/react-query";
+ import type {
+   ActionDefinition,
+   ExternalTask,
+-  ExternalTaskState,
+ } from "../lib/externalApi";
+ import { useExternalTasks } from "../hooks/useExternalTasks";
+ import { useProjects } from "../hooks/useProjects";
+@@ -68,13 +67,15 @@ import { useProjectFilter } from "../hooks/useProjectFilter";
+ import { useProjectActions } from "../hooks/useProjectActions";
+ import { useRunConfig } from "../hooks/useRunConfig";
+ import { TaskBoardColumns } from "../components/external/TaskBoardColumns";
+-import { TaskBoardEmptyState } from "../components/external/TaskBoardEmptyState";
++import { TaskBoardEmptyState, TaskBoardNoFilterMatches } from "../components/external/TaskBoardEmptyState";
+ import { TaskList } from "../components/external/TaskList";
+ import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
+ import { CreateControls } from "../components/external/CreateControls";
+ import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
+ import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
+ import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
++import { LeadTagFilterMenu, LeadWaitToggleButton } from "../components/external/LeadTagFilter";
++import { useBoardFilters } from "../hooks/useBoardFilters";
+ import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
+ import { PageHead } from "../components/common/PageHead";
+ import { DensityToggle } from "../components/command/DensityToggle";
+@@ -210,46 +211,25 @@ export default function TaskBoardPage() {
+     return tasks.filter((t) => t.projectId === activeProjectId);
+   }, [tasks, activeProjectId]);
+ 
+-  // Status filter — iterate 3.7e-b1 (plan S1.4). Multi-select chip set;
+-  // empty = "All" (no filter). Stored in local React state (no URL params).
+-  const [statusFilter, setStatusFilter] = useState<Set<ExternalTaskState>>(
+-    () => new Set(),
+-  );
+-  const toggleStatus = useCallback((s: ExternalTaskState) => {
+-    setStatusFilter((prev) => {
+-      const next = new Set(prev);
+-      if (next.has(s)) next.delete(s);
+-      else next.add(s);
+-      return next;
+-    });
+-  }, []);
+-  const clearStatusFilter = useCallback(() => {
+-    setStatusFilter(new Set());
+-  }, []);
+-
+-  const filteredTasks = useMemo<ExternalTask[]>(() => {
+-    if (statusFilter.size === 0) return projectFiltered;
+-    return projectFiltered.filter((t) => statusFilter.has(t.state));
+-  }, [projectFiltered, statusFilter]);
+-
+-  // Per-state counts — computed on the project-filtered set (not the
+-  // status-filtered one) so the counts stay stable as the user clicks
+-  // chips. Matches GitHub/Linear filter-bar affordance.
+-  const statusCounts = useMemo<Record<ExternalTaskState, number>>(() => {
+-    const seed: Record<ExternalTaskState, number> = {
+-      draft: 0,
+-      awaiting_external_start: 0,
+-      active: 0,
+-      idle: 0,
+-      done: 0,
+-      launch_failed: 0,
+-      jsonl_missing: 0,
+-    };
+-    for (const t of projectFiltered) {
+-      if (t.state in seed) seed[t.state] += 1;
+-    }
+-    return seed;
+-  }, [projectFiltered]);
++  // Status + lead-tag (FR-04.11 / V3) filters, and the derived filtered task
++  // list — extracted to useBoardFilters (iterate-2026-09-01-lead-board-
++  // surface, bloat headroom). BellDot reads/writes the SAME Set entry the
++  // Bot menu's "Waiting on PO" checkbox uses — no independent state, so
++  // nothing can desync between the two controls.
++  const {
++    statusFilter,
++    toggleStatus,
++    clearStatusFilter,
++    statusCounts,
++    leadTagFilter,
++    toggleLeadTag,
++    clearLeadTagFilter,
++    leadTagCounts,
++    leadTagTotal,
++    filteredTasks,
++    noFilterMatches,
++    clearAllFilters,
++  } = useBoardFilters(projectFiltered);
+ 
+   // NewIssueModal state — singleton per page.
+   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
+@@ -351,6 +331,17 @@ export default function TaskBoardPage() {
+               onToggle={toggleStatus}
+               onReset={clearStatusFilter}
+             />
++            {/* FR-04.11 (V3) — Bot dropdown (3 lead-tag prefixes) + BellDot
++                "waiting on PO" shortcut, same toolbar row, same h-8 w-8
++                icon-button shell as the funnel above. */}
++            <LeadTagFilterMenu
++              counts={leadTagCounts}
++              total={leadTagTotal}
++              active={leadTagFilter}
++              onToggle={toggleLeadTag}
++              onReset={clearLeadTagFilter}
++            />
++            <LeadWaitToggleButton active={leadTagFilter} onToggle={toggleLeadTag} />
+             <DensityToggle />
+           </>
+         }
+@@ -394,6 +385,8 @@ export default function TaskBoardPage() {
+ 
+       {isLoading ? (
+         <div className="p-6 text-sm text-[var(--color-muted)]">Loading…</div>
++      ) : noFilterMatches ? (
++        <TaskBoardNoFilterMatches onClear={clearAllFilters} />
+       ) : view === "list" ? (
+         // iterate 3.7h (Sven UAT): wrap TaskList in .page-container so the
+         // table respects the same L/R gutters as the header + filter row.
+diff --git a/client/src/test/doc-sync.test.ts b/client/src/test/doc-sync.test.ts
+index 1c52b8c2..42953ce8 100644
+--- a/client/src/test/doc-sync.test.ts
++++ b/client/src/test/doc-sync.test.ts
+@@ -198,6 +198,17 @@ const REQUIRED_TOKENS = [
+   'FileMentionText',
+   'TriageFilePanel',
+   'TriageDetailMeta',
++  // iterate-2026-09-01-lead-board-surface (FR-04.11) — the board surface for
++  // lead work: Bot/BellDot toolbar filters over the closed lead-tag
++  // vocabulary, the on-card expander, and the project-pill bot glyph.
++  'TaskCardLeadExpander',
++  'LeadOriginGlyph',
++  'TaskCardProjectPill',
++  'LeadTagFilter',
++  'LeadTagFilterMenu',
++  'LeadWaitToggleButton',
++  'leadTags',
++  'useBoardFilters',
+ ] as const;
+ 
+ let claudeMd = '';

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-01-lead-board-surface",
+  "date": "2026-09-02",
+  "section": "Iterate — feature: lead board surface",
+  "title": "Board surface for lead-agent work (FR-04.11)",
+  "context": "Lead-agent tasks persist tags/domain/priority/complexityHint (iterate-2026-05-14) but the board surfaced none of it, so a PO could not find or recognize lead-originated work without opening each task.",
+  "decision": "Add a Bot dropdown + BellDot shortcut filtering the three closed lead-tag prefixes, an in-place TaskCard expander for the unrendered fields, and a bot glyph beside ProjectPill for lead-originated cards.",
+  "consequences": "TaskBoardPage.tsx filter state moved into a new useBoardFilters.ts hook (absorbing the pre-existing status filter too) to stay under its bloat baseline; no new persisted field, no new route.",
+  "rationale": "Client-side surfacing of already-persisted data keeps scope minimal, reuses the existing ?tag= server filter and BoardStatusFilter's menu anatomy, per the task brief's own traps.",
+  "rejected": "A dedicated lead-work page was rejected — the brief scoped this to the existing board surface, deferring org-page/claim-chip work to a later W5d.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

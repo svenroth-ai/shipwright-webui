@@ -1,0 +1,1 @@
+Task Board: Bot dropdown + BellDot toolbar filters for lead-agent work (lead:/lead-wait:/lead-dedup: tags), an in-place TaskCard expander showing domain/priority/complexity, and a bot glyph beside the project pill for lead-originated cards (FR-04.11).

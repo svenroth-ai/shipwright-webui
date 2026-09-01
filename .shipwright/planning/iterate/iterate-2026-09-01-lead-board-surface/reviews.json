@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-01-lead-board-surface",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T21:38:13.026877+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 16,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The expander only calls `stopPropagation()` on the toggle button. Clicks or text selection inside the expanded panel can still bubble to the card’s `navigateToDetail` handler, potentially navigating when the user interacts with the expander content.",
+          "suggestion": "Put the propagation guard on the expander wrapper containing both toggle and panel (while keeping keyboard/button semantics intact), and add a test that clicks inside the open panel and asserts no navigation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan assumes `task.tags` is always defined. If `tags` is optional or absent on some pre-existing tasks, the pure helpers using `tag.startsWith(...)` or `task.tags.some(...)` can throw at runtime.",
+          "suggestion": "Make `leadTags` helpers accept `tags?: string[]`/null and default to an empty array, with a unit test for `undefined`/null input.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "TaskCardLeadExpander` says it renders `null` when there are no `domain`/`priority`/`complexityHint`/`tags`, but the panel only displays the three lead-prefixed tags. A task with only non-lead tags would satisfy the render condition but produce an empty/meaningless expander.",
+          "suggestion": "Gate rendering on “any of the three lead tags present OR any named metadata field present,” not on arbitrary `tags` presence — or explicitly render all tags if that is the intended surface.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The Playwright E2E spec depends on tasks carrying `lead:`, `lead-wait:`, and `lead-dedup:` tags, but the plan does not specify deterministic data setup or seeding. Against a shared dev stack this will be flaky.",
+          "suggestion": "Add explicit E2E fixture setup (API-created tasks, seed script, or dedicated project) and assert against that isolated data rather than assuming existing dev-stack tasks.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "AC (e) requires `server/` test/typecheck/lint to stay green, but the mini-plan’s step 6 only runs `client/` commands.",
+          "suggestion": "Explicitly run the same checks in `server/` (or a root command) before finalizing verification evidence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Updating `shipwright_bloat_baseline.json` in the same commit as the line-count increase can mask accidental growth in already-over-budget files, even if it is the sanctioned mechanism.",
+          "suggestion": "Record the exact net line additions for `TaskCard.tsx` and `TaskBoardPage.tsx` in the plan/PR evidence, and keep the baseline bump to precisely those new counts — no unrelated cleanup or padding in the same change.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "leadOriginId` and `dedupKey` in `leadTags.ts` are not needed by this feature as described; they look speculative until a consumer exists.",
+          "suggestion": "Remove them from this iterate unless they are used by the expander/tests, or provide a known caller; otherwise keep the new module’s surface to the predicates and constants this feature actually consumes.  Overall: the architecture is mostly sound — new logic is isolated into focused files, keeps existing filtering semantics, and resolves the toolbar/menu ambiguity correctly. The main fixes before landing are expander click isolation, defensive tag handling, and a deterministic E2E data setup.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "leadTags.ts` proposes several helpers that are not needed by this iterate (`leadOriginId`, `dedupKey`, and likely `hasDedupTag` / `isWaitingOnPo` depending on actual call sites). Parsing IDs and dedup keys is beyond the stated surface-and-filter requirement and creates an implied utility API for semantics this UI does not use.",
+          "suggestion": "Keep the shared module narrowly scoped to the actual needs: exported prefix constants, a null-safe “task has prefix” predicate, and a “matches selected prefixes” predicate. Add parsing helpers only if they have a concrete consumer in this change.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed predicates and filtering logic need to tolerate legacy or partial task records. Even if the current `ExternalTask` type declares `tags`, `domain`, `priority`, and `complexityHint`, persisted older records or mocked/API responses may contain absent, null, or malformed values. Calling `.some()` or `.startsWith()` on those values would break the entire board render/filter path.",
+          "suggestion": "Make tag helpers accept `readonly string[] | null | undefined` and treat non-array/empty values as no tags. Likewise, only render non-empty scalar metadata values in the expander. Cover absent `tags` and all-empty metadata in unit tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The filtering plan does not define live-count behavior in the presence of the existing status filter. Computing `leadTagCounts` from `projectFiltered` while the displayed results also honor `statusFilter` can make counts advertise tasks that cannot appear in the board. Conversely, computing them after the lead filter can make unselected choices appear to have zero results.",
+          "suggestion": "Match the established status-filter count convention exactly. If no established convention exists, calculate each lead-prefix count from the project- and status-filtered task set while excluding the lead-prefix filter itself. Test a combination of an active status filter and lead filter so displayed cards and counts remain intelligible.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Stopping propagation only on the expander toggle leaves clicks within the expanded panel bubbling to the whole-card navigation handler. This is particularly likely if tag badges, text selection, future links, or any interactive metadata are added later, and it makes an “in-place” disclosure unexpectedly navigate away after opening.",
+          "suggestion": "Put `stopPropagation()` on the expander container/panel as well as the toggle, including relevant keyboard event handling if the card has keyboard navigation. Retain the explicit test that a click on an ordinary card-body region still invokes `navigateToDetail`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The shared `Set<LeadTagPrefix>` state can become inconsistent if the BellDot shortcut is implemented as an independent boolean or if toggle callbacks close over stale filter state. This is easy to miss because the menu and bell can each appear to work independently.",
+          "suggestion": "Derive BellDot’s pressed state solely from `active.has('lead-wait:')` and make its click invoke the same functional state updater used by the menu. Add a test sequence in both directions: menu selection updates BellDot, BellDot updates the menu checkbox, and reset clears both.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The E2E plan assumes the board’s test data and client API mapping already expose all three representative tags and all metadata fields. The specification says these fields are persisted, but that does not guarantee existing Playwright fixtures, dev-stack seeding, or the board query response provide deterministic records for `lead:`, `lead-wait:`, and `lead-dedup:`.",
+          "suggestion": "Before implementing the E2E test, verify the board endpoint’s client-side mapping and establish deterministic seeded/created tasks for each literal prefix, including a task with no `lead:` tag for the glyph-negative assertion. Avoid relying on ambient development data. Preserve literal prefix assertions in tests as required.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The glyph condition needs to remain deliberately narrower than the general lead-filter vocabulary. The acceptance criterion requires a glyph for `lead:`-prefixed tags, not for a task carrying only `lead-wait:` or `lead-dedup:`. Reusing `hasAnyLeadTag` for the glyph would silently violate that distinction.",
+          "suggestion": "Gate `LeadOriginGlyph` specifically with `tag.startsWith('lead:')`; reserve the all-three-prefix matcher for board filtering. Include a negative test for a task containing only `lead-wait:` or only `lead-dedup:`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Updating `shipwright_bloat_baseline.json` in the same change can conceal avoidable growth in two already-over-budget files. The plan estimates only thin wiring, so a baseline increase should not become a substitute for confirming that the extracted components actually keep the edits minimal.",
+          "suggestion": "First verify whether the repository policy truly requires an honest baseline bump for grandfathered growth. If it does, keep the bump limited to measured line counts and ensure the new components do not merely move unused abstraction out of the two files. Do not add unrelated formatting or refactoring to either oversized file.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "This change introduces no new trust boundary, server query, or authorization path. The practical concern is display safety: persisted tag and metadata strings must continue to be rendered as React text rather than inserted through HTML APIs.",
+          "suggestion": "Use ordinary JSX text rendering for all metadata and tags; do not introduce `dangerouslySetInnerHTML` or dynamic CSS/class construction from tag values.  Overall, the client-side filtering and in-card disclosure approach is sound and appropriately avoids unnecessary server work. It should be revised to tighten the utility scope, define filter-count semantics, and robustly isolate expander interactions from whole-card navigation. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-01T21:03:41.076710+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[deepseek] - **Category:** edge-case  \n  **Severity:** medium  \n  **Finding:** The expander only calls `stopPropagation()` on the toggle button. Clicks or text selection inside the expanded panel can still bubble to the card’s `navigateToDetail` handler, potentially navigating when the user interacts with the expander content.  \n  **Suggestion:** Put the propagation guard on the expander wrapper containing both toggle and panel (while keeping keyboard/button semantics intact), and add a test that clicks inside the open panel and asserts no navigation.\n\n- **Category:** edge-case  \n  **Severity:** medium  \n  **Finding:** The plan assumes `task.tags` is always defined. If `tags` is optional or absent on some pre-existing tasks, the pure helpers using `tag.startsWith(...)` or `task.tags.some(...)` can throw at runtime.  \n  **Suggestion:** Make `leadTags` helpers accept `tags?: string[]`/null and default to an empty array, with a unit test for `undefined`/null input.\n\n- **Category:** edge-case  \n  **Severity:** low  \n  **Finding:** `TaskCardLeadExpander` says it renders `null` when there are no `domain`/`priority`/`complexityHint`/`tags`, but the panel only displays the three lead-prefixed tags. A task with only non-lead tags would satisfy the render condition but produce an empty/meaningless expander.  \n  **Suggestion:** Gate rendering on “any of the three lead tags present OR any named metadata field present,” not on arbitrary `tags` presence — or explicitly render all tags if that is the intended surface.\n\n- **Category:** dependency  \n  **Severity:** medium  \n  **Finding:** The Playwright E2E spec depends on tasks carrying `lead:`, `lead-wait:`, and `lead-dedup:` tags, but the plan does not specify deterministic data setup or seeding. Against a shared dev stack this will be flaky.  \n  **Suggestion:** Add explicit E2E fixture setup (API-created tasks, seed script, or dedicated project) and assert against that isolated data rather than assuming existing dev-stack task […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** `leadTags.ts` proposes several helpers that are not needed by this iterate (`leadOriginId`, `dedupKey`, and likely `hasDedupTag` / `isWaitingOnPo` depending on actual call sites). Parsing IDs and dedup keys is beyond the stated surface-and-filter requirement and creates an implied utility API for semantics this UI does not use.  \n   **Suggestion:** Keep the shared module narrowly scoped to the actual needs: exported prefix constants, a null-safe “task has prefix” predicate, and a “matches selected prefixes” predicate. Add parsing helpers only if they have a concrete consumer in this change.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The proposed predicates and filtering logic need to tolerate legacy or partial task records. Even if the current `ExternalTask` type declares `tags`, `domain`, `priority`, and `complexityHint`, persisted older records or mocked/API responses may contain absent, null, or malformed values. Calling `.some()` or `.startsWith()` on those values would break the entire board render/filter path.  \n   **Suggestion:** Make tag helpers accept `readonly string[] | null | undefined` and treat non-array/empty values as no tags. Likewise, only render non-empty scalar metadata values in the expander. Cover absent `tags` and all-empty metadata in unit tests.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The filtering plan does not define live-count behavior in the presence of the existing status filter. Computing `leadTagCounts` from `projectFiltered` while the displayed results also honor `statusFilter` can make counts advertise tasks that cannot appear in the board. Conversely, computing them after the lead filter can make unselected choices appear to have zero results.  \n   **Suggestion:** Match the established status-filter count convention exactly. If no established convention exists, calculate each lead-prefix co […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "architecture",
+          "file": "shipwright_bloat_baseline.json",
+          "line": 313,
+          "finding": "Anti-ratchet violation: client/src/pages/TaskBoardPage.tsx current was raised 447 -> 489 on an existing grandfathered entry, and the adr field was overwritten, erasing provenance of the original crossing. The spec's own internal plan review reached the opposite conclusion for the twin case (TaskCard.tsx: extract instead of bump) and TaskCard was correctly handled that way; TaskBoardPage got the treatment the review rejected.",
+          "suggestion": "Do for TaskBoardPage.tsx what was done for TaskCard.tsx: absorb the sibling statusFilter block into useLeadTagFilter.ts (renamed useBoardFilters) so the file drops below its 447 baseline and the entry is not touched at all.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/LeadTagFilter.tsx",
+          "line": 60,
+          "finding": "The 'All' row's count summed the three per-prefix counts, which is only correct when buckets are disjoint and exhaustive (true for StatusFilterMenu's 7 states, false for the 3 lead-tag prefixes: a task can carry more than one, and an ordinary task carries none). This double-counts overlapping tasks and misses ordinary ones.",
+          "suggestion": "Pass the real total down (total={projectFiltered.length}) instead of summing the buckets; update the test to assert the chosen semantics with a multi-prefix task present.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test-coverage",
+          "file": "client/src/components/external/TaskBoardEmptyState.tsx",
+          "line": 53,
+          "finding": "TaskBoardNoFilterMatches, clearAllFilters, and the noFilterMatches derivation shipped with zero coverage, including the branch-ordering invariant that makes it correctly preempt both board and list view.",
+          "suggestion": "Add E2E coverage: seed one ordinary task, trigger a zero-match filter, assert the affordance is visible, clear, assert the card returns — in both board and list view.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/leadTags.ts",
+          "line": 59,
+          "finding": "Null-safety guard applied inconsistently: hasPrefix guards each tag element, but matchesAnyLeadPrefix, leadOriginId, and dedupKey bypass it and call .startsWith on an unchecked element. matchesAnyLeadPrefix is the highest-traffic path (runs over every task on every board render).",
+          "suggestion": "Route all four through one guarded primitive (export hasPrefix / add firstWithPrefix).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+          "line": 85,
+          "finding": "stopPropagation wrapper stops onClick and onKeyDown but not onPointerDown; a press-and-drag started on the expander toggle or open panel can still initiate a card drag past the 8px activation distance.",
+          "suggestion": "Add onPointerDown stop to the same wrapper, symmetric with onClick/onKeyDown.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+          "line": 86,
+          "finding": "onKeyDown stop was unconditional, which also defeats the native bubble to window — silently swallowing the global 'i' (New Iterate) shortcut while focus sits on the expander toggle.",
+          "suggestion": "Narrow the stop to only the keys that matter for dnd-kit isolation (Enter/Space/Arrow*).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+          "line": 93,
+          "finding": "Dead guard: the toggle button's own stop(ev) is unreachable because the wrapper's onClick already stops propagation first; two overlapping guards for one path invites deleting the load-bearing one.",
+          "suggestion": "Drop stop(ev) from the button, keep only the wrapper's guard.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+          "line": 45,
+          "finding": "LeadOriginGlyph used aria-hidden=\"true\" with a title attribute; aria-hidden removes the whole subtree (including title) from assistive tech, but this glyph is the SOLE signal a card is lead-originated.",
+          "suggestion": "Swap to role=\"img\" aria-label on the wrapper, keep aria-hidden on the inner decorative icon only.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+          "line": 60,
+          "finding": "PRIORITY_CLASS typed as Record<string, string> instead of the model's closed union, so the map isn't exhaustiveness-checked and its ?? fallback is unreachable dead code for a well-typed task.",
+          "suggestion": "Narrow to Record<NonNullable<ExternalTask['priority']>, string> and drop the fallback.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/hooks/useLeadTagFilter.ts",
+          "line": 39,
+          "finding": "Count seed needed an unsafe 'as' cast (Object.fromEntries returns a wider type), and the per-prefix loop allocated a throwaway one-element array per task per prefix via the multi-prefix matchesAnyLeadPrefix API.",
+          "suggestion": "Seed with a literal object (no cast); call a single-prefix hasPrefix in the loop instead.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/leadTags.ts",
+          "line": 61,
+          "finding": "matchesAnyLeadPrefix's prefixes parameter widened to Iterable<string> in the one module whose whole premise is a closed vocabulary; nothing stops a caller passing a fourth prefix.",
+          "suggestion": "Narrow to Iterable<LeadTagPrefix>.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "client/src/components/external/TaskCard.lead.test.tsx",
+          "line": 57,
+          "finding": "The 'bot glyph' and 'lead expander render-gate' blocks duplicated TaskCardLeadExpander.test.tsx byte-for-byte (same testids, same fixtures), while AC (c)'s actual claim -- the glyph renders 'next to' the ProjectPill -- was asserted nowhere.",
+          "suggestion": "Replace the duplicated presence/absence cases with one DOM-adjacency assertion plus one 'mounted in the real card' smoke case; keep the vocabulary-gating matrix in the unit file.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/external/LeadTagFilter.tsx",
+          "line": 43,
+          "finding": "LeadTagFilterMenu is a near-verbatim ~70-line clone of StatusFilterMenu (BoardStatusFilter.tsx) -- identical trigger shell, Portal/Content/Label/All-Item/Separator/CheckboxItem structure. Two instances only, and the spec explicitly chose to mirror BoardStatusFilter's menu anatomy.",
+          "suggestion": "Do not refactor inside this iterate (would touch BoardStatusFilter, out of scope); a future generic IconCheckboxFilterMenu extraction is a candidate for whichever iterate next touches either menu.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-01T22:01:14.597062+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T22:01:26.601935+00:00",
+      "disposition": "Diff is client-side React UI + Playwright fixtures + docs only -- no migrations, async/concurrency, cross-plugin imports, or irreversible ops (iteration-reviews.md Stage 3 conditional trigger).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/hooks/useBoardFilters.test.ts:64-71",
+          "line": null,
+          "finding": "The `leadTagTotal` test does not distinguish the correct total from the known-buggy implementation that sums prefix buckets. With the fixture, both `sumOfBuckets` and `leadTagTotal` are `3`; the only negative assertion checks that the total is not `2`. A regression to `leadTagTotal: sumOfBuckets` would pass this test.",
+          "suggestion": "Use fixture data where the project task count differs from the prefix-count sum (for example, one multi-prefix task plus two ordinary tasks), then assert the exact project count and assert it differs from the bucket sum.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/LeadTagFilter.test.tsx:109-119",
+          "line": null,
+          "finding": "The claimed Bot-menu-to-BellDot synchronization test only renders `LeadWaitToggleButton` and manually rerenders it with a different prop; it never mounts the Bot menu or exercises its `lead-wait:` checkbox. The E2E test verifies BellDot → Bot active-dot, but not the reverse direction required by the shared-state acceptance criterion. A page wiring regression where menu selection does not update BellDot’s pressed state could therefore pass.",
+          "suggestion": "Add an integration test mounting both controls with `useBoardFilters` (or a page-level harness), select the `lead-wait:` menu item, and assert BellDot becomes pressed; retain the existing BellDot → menu assertion as the inverse direction.  Overall assessment: The implementation appears to satisfy the functional requirements and has appropriate propagation and null-safety handling, but the stated test coverage has two concrete blind spots. Ship with these test fixes before relying on the acceptance-criteria evidence.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-01T22:13:25.360396+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: test\n- Severity: low\n- File: `client/src/hooks/useBoardFilters.test.ts:64-71`\n- Finding: The `leadTagTotal` test does not distinguish the correct total from the known-buggy implementation that sums prefix buckets. With the fixture, both `sumOfBuckets` and `leadTagTotal` are `3`; the only negative assertion checks that the total is not `2`. A regression to `leadTagTotal: sumOfBuckets` would pass this test.\n- Suggestion: Use fixture data where the project task count differs from the prefix-count sum (for example, one multi-prefix task plus two ordinary tasks), then assert the exact project count and assert it differs from the bucket sum.\n\n- Category: test\n- Severity: low\n- File: `client/src/components/external/LeadTagFilter.test.tsx:109-119`\n- Finding: The claimed Bot-menu-to-BellDot synchronization test only renders `LeadWaitToggleButton` and manually rerenders it with a different prop; it never mounts the Bot menu or exercises its `lead-wait:` checkbox. The E2E test verifies BellDot → Bot active-dot, but not the reverse direction required by the shared-state acceptance criterion. A page wiring regression where menu selection does not update BellDot’s pressed state could therefore pass.\n- Suggestion: Add an integration test mounting both controls with `useBoardFilters` (or a page-level harness), select the `lead-wait:` menu item, and assert BellDot becomes pressed; retain the existing BellDot → menu assertion as the inverse direction.\n\nOverall assessment: The implementation appears to satisfy the functional requirements and has appropriate propagation and null-safety handling, but the stated test coverage has two concrete blind spots. Ship with these test fixes before relying on the acceptance-criteria evidence.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T21:45:08.497913+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T21:09:05.943586+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

@@ -153,6 +153,12 @@ export async function seedTask(
      * on a tree row was relying on whatever happened to be in the developer's folder.
      */
     files?: Record<string, string>;
+    /**
+     * Lead-board tags (FR-04.11: `lead:` / `lead-wait:` / `lead-dedup:`).
+     * POST /tasks has no `tags` field (create/edit are NOT symmetric here) —
+     * applied via a follow-up PATCH so callers get one seed call.
+     */
+    tags?: string[];
   } = {},
 ): Promise<SeededTask> {
   const cwd = opts.cwd ?? assertTempPath(await makeTempDir("sw-e2e-task-"));
@@ -172,7 +178,18 @@ export async function seedTask(
     );
   }
   const body = (await res.json()) as { task: { taskId: string; sessionUuid: string } };
-  return { taskId: body.task.taskId, title, cwd, sessionUuid: body.task.sessionUuid };
+  const taskId = body.task.taskId;
+  if (opts.tags) {
+    const patchRes = await request.patch(apiUrl(`/api/external/tasks/${taskId}`), {
+      data: { tags: opts.tags },
+    });
+    if (!patchRes.ok()) {
+      throw new Error(
+        `seedTask: PATCH /api/external/tasks/${taskId} tags → HTTP ${patchRes.status()} — ${await patchRes.text()}`,
+      );
+    }
+  }
+  return { taskId, title, cwd, sessionUuid: body.task.sessionUuid };
 }
 
 /**

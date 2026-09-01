@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "openrouter",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: test\n- Severity: low\n- File: `client/src/hooks/useBoardFilters.test.ts:64-71`\n- Finding: The `leadTagTotal` test does not distinguish the correct total from the known-buggy implementation that sums prefix buckets. With the fixture, both `sumOfBuckets` and `leadTagTotal` are `3`; the only negative assertion checks that the total is not `2`. A regression to `leadTagTotal: sumOfBuckets` would pass this test.\n- Suggestion: Use fixture data where the project task count differs from the prefix-count sum (for example, one multi-prefix task plus two ordinary tasks), then assert the exact project count and assert it differs from the bucket sum.\n\n- Category: test\n- Severity: low\n- File: `client/src/components/external/LeadTagFilter.test.tsx:109-119`\n- Finding: The claimed Bot-menu-to-BellDot synchronization test only renders `LeadWaitToggleButton` and manually rerenders it with a different prop; it never mounts the Bot menu or exercises its `lead-wait:` checkbox. The E2E test verifies BellDot \u2192 Bot active-dot, but not the reverse direction required by the shared-state acceptance criterion. A page wiring regression where menu selection does not update BellDot\u2019s pressed state could therefore pass.\n- Suggestion: Add an integration test mounting both controls with `useBoardFilters` (or a page-level harness), select the `lead-wait:` menu item, and assert BellDot becomes pressed; retain the existing BellDot \u2192 menu assertion as the inverse direction.\n\nOverall assessment: The implementation appears to satisfy the functional requirements and has appropriate propagation and null-safety handling, but the stated test coverage has two concrete blind spots. Ship with these test fixes before relying on the acceptance-criteria evidence.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "deepseek": {
+      "feedback": null,
+      "via": "openrouter",
+      "status": "degraded",
+      "reason": "provider returned an empty reply"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "deepseek": "unavailable"
+  },
+  "statuses": {
+    "openai": "success",
+    "deepseek": "degraded"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 deepseek did not (deepseek=unavailable, openai=revise)"
+  }
+}

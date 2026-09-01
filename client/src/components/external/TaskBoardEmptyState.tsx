@@ -47,3 +47,30 @@ export function TaskBoardEmptyState({ onCreate, canCreate }: TaskBoardEmptyState
     </div>
   );
 }
+
+/**
+ * iterate-2026-09-01-lead-board-surface — distinct from the A07 empty state
+ * above: the project genuinely has tasks, but the active filter combination
+ * (status and/or the new lead-tag filter, FR-04.11) matches none of them.
+ * Rendered in BOTH board and list view, ahead of either body, so a
+ * one-click filter (e.g. the BellDot shortcut) never silently reads as
+ * "empty project".
+ */
+export function TaskBoardNoFilterMatches({ onClear }: { onClear: () => void }) {
+  return (
+    <div
+      data-testid="task-board-no-filter-matches"
+      className="flex flex-col items-center justify-center gap-2 p-16 text-center text-sm text-[var(--color-muted)]"
+    >
+      <p>No tasks match the current filters.</p>
+      <button
+        type="button"
+        onClick={onClear}
+        data-testid="task-board-clear-filters"
+        className="font-medium text-[var(--color-primary)] underline underline-offset-2"
+      >
+        Clear filters
+      </button>
+    </div>
+  );
+}
