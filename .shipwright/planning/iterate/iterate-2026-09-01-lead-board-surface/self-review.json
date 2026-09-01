@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Bot + BellDot toolbar buttons filter by the three closed prefixes (lead:/lead-wait:/lead-dedup:), the expander opens in place on the card, and the bot glyph renders next to ProjectPill for lead-originated tasks only — matches FR-04.11 AC (a)-(d) with no fourth prefix or new persisted field added; nothing beyond the brief was built (YAGNI)."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "No new API routes or server boundaries; existing PATCH /tasks/:id tags validation is untouched. All new client helpers (leadTags.ts) accept tags?: string[] | null and are null-safe by construction, unit-tested for undefined/null/empty input."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No SQL, no dangerouslySetInnerHTML — all tag/metadata strings render as plain JSX text. No secrets introduced. A code comment in TaskCardLeadExpander.tsx flags leadOriginId/dedupKey as untrusted plain text for any future href/src/style consumer."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Vitest specs assert on rendered DOM and filter behavior (menu items, glyph presence/absence, navigation still firing), not internals. Each new module has a null/edge-case test (leadTags case-sensitivity + null tags, expander render-gate, keyboard-isolation) alongside the happy path."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "Purely client-side, memoized (useMemo) filtering over the already-fetched projectFiltered set; no new network calls, no unbounded list, no N+1 pattern."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New files follow existing directory conventions (components/external, hooks/, lib/). TaskBoardPage.tsx grew past the literal 300-line convention (447 -> 489) — this repo's own grandfathered-ceiling mechanism (shipwright_bloat_baseline.json) is the sanctioned exception path already used by dozens of pre-existing files; the bump here is limited to the measured net addition after extracting useLeadTagFilter.ts and TaskBoardNoFilterMatches, no unrelated growth. TaskCard.tsx shrank (476 -> 444), so its baseline entry needed no change."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No new serialized format or producer/consumer pair. `tags` is an existing persisted field (PATCH /tasks/:id already validated and normalized it pre-iterate); this change only adds a new CLIENT-SIDE reader of that existing field, so no round-trip probe applies."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reported no findings across the new/changed test files."
+    }
+  ]
+}

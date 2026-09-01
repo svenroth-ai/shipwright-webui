@@ -1,0 +1,122 @@
+{
+  "section": "iterate-2026-09-01-lead-board-surface",
+  "review": [
+    {
+      "severity": "high",
+      "category": "architecture",
+      "file": "shipwright_bloat_baseline.json",
+      "line": 313,
+      "finding": "Anti-ratchet violation: client/src/pages/TaskBoardPage.tsx current was raised 447 -> 489 on an existing grandfathered entry, and the adr field was overwritten, erasing provenance of the original crossing. The spec's own internal plan review reached the opposite conclusion for the twin case (TaskCard.tsx: extract instead of bump) and TaskCard was correctly handled that way; TaskBoardPage got the treatment the review rejected.",
+      "suggestion": "Do for TaskBoardPage.tsx what was done for TaskCard.tsx: absorb the sibling statusFilter block into useLeadTagFilter.ts (renamed useBoardFilters) so the file drops below its 447 baseline and the entry is not touched at all.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/components/external/LeadTagFilter.tsx",
+      "line": 60,
+      "finding": "The 'All' row's count summed the three per-prefix counts, which is only correct when buckets are disjoint and exhaustive (true for StatusFilterMenu's 7 states, false for the 3 lead-tag prefixes: a task can carry more than one, and an ordinary task carries none). This double-counts overlapping tasks and misses ordinary ones.",
+      "suggestion": "Pass the real total down (total={projectFiltered.length}) instead of summing the buckets; update the test to assert the chosen semantics with a multi-prefix task present.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "client/src/components/external/TaskBoardEmptyState.tsx",
+      "line": 53,
+      "finding": "TaskBoardNoFilterMatches, clearAllFilters, and the noFilterMatches derivation shipped with zero coverage, including the branch-ordering invariant that makes it correctly preempt both board and list view.",
+      "suggestion": "Add E2E coverage: seed one ordinary task, trigger a zero-match filter, assert the affordance is visible, clear, assert the card returns — in both board and list view.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/lib/leadTags.ts",
+      "line": 59,
+      "finding": "Null-safety guard applied inconsistently: hasPrefix guards each tag element, but matchesAnyLeadPrefix, leadOriginId, and dedupKey bypass it and call .startsWith on an unchecked element. matchesAnyLeadPrefix is the highest-traffic path (runs over every task on every board render).",
+      "suggestion": "Route all four through one guarded primitive (export hasPrefix / add firstWithPrefix).",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+      "line": 85,
+      "finding": "stopPropagation wrapper stops onClick and onKeyDown but not onPointerDown; a press-and-drag started on the expander toggle or open panel can still initiate a card drag past the 8px activation distance.",
+      "suggestion": "Add onPointerDown stop to the same wrapper, symmetric with onClick/onKeyDown.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+      "line": 86,
+      "finding": "onKeyDown stop was unconditional, which also defeats the native bubble to window — silently swallowing the global 'i' (New Iterate) shortcut while focus sits on the expander toggle.",
+      "suggestion": "Narrow the stop to only the keys that matter for dnd-kit isolation (Enter/Space/Arrow*).",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+      "line": 93,
+      "finding": "Dead guard: the toggle button's own stop(ev) is unreachable because the wrapper's onClick already stops propagation first; two overlapping guards for one path invites deleting the load-bearing one.",
+      "suggestion": "Drop stop(ev) from the button, keep only the wrapper's guard.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+      "line": 45,
+      "finding": "LeadOriginGlyph used aria-hidden=\"true\" with a title attribute; aria-hidden removes the whole subtree (including title) from assistive tech, but this glyph is the SOLE signal a card is lead-originated.",
+      "suggestion": "Swap to role=\"img\" aria-label on the wrapper, keep aria-hidden on the inner decorative icon only.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/components/external/TaskCardLeadExpander.tsx",
+      "line": 60,
+      "finding": "PRIORITY_CLASS typed as Record<string, string> instead of the model's closed union, so the map isn't exhaustiveness-checked and its ?? fallback is unreachable dead code for a well-typed task.",
+      "suggestion": "Narrow to Record<NonNullable<ExternalTask['priority']>, string> and drop the fallback.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/hooks/useLeadTagFilter.ts",
+      "line": 39,
+      "finding": "Count seed needed an unsafe 'as' cast (Object.fromEntries returns a wider type), and the per-prefix loop allocated a throwaway one-element array per task per prefix via the multi-prefix matchesAnyLeadPrefix API.",
+      "suggestion": "Seed with a literal object (no cast); call a single-prefix hasPrefix in the loop instead.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/lib/leadTags.ts",
+      "line": 61,
+      "finding": "matchesAnyLeadPrefix's prefixes parameter widened to Iterable<string> in the one module whose whole premise is a closed vocabulary; nothing stops a caller passing a fourth prefix.",
+      "suggestion": "Narrow to Iterable<LeadTagPrefix>.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "test-coverage",
+      "file": "client/src/components/external/TaskCard.lead.test.tsx",
+      "line": 57,
+      "finding": "The 'bot glyph' and 'lead expander render-gate' blocks duplicated TaskCardLeadExpander.test.tsx byte-for-byte (same testids, same fixtures), while AC (c)'s actual claim -- the glyph renders 'next to' the ProjectPill -- was asserted nowhere.",
+      "suggestion": "Replace the duplicated presence/absence cases with one DOM-adjacency assertion plus one 'mounted in the real card' smoke case; keep the vocabulary-gating matrix in the unit file.",
+      "outcome": "fixed"
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/components/external/LeadTagFilter.tsx",
+      "line": 43,
+      "finding": "LeadTagFilterMenu is a near-verbatim ~70-line clone of StatusFilterMenu (BoardStatusFilter.tsx) -- identical trigger shell, Portal/Content/Label/All-Item/Separator/CheckboxItem structure. Two instances only, and the spec explicitly chose to mirror BoardStatusFilter's menu anatomy.",
+      "suggestion": "Do not refactor inside this iterate (would touch BoardStatusFilter, out of scope); a future generic IconCheckboxFilterMenu extraction is a candidate for whichever iterate next touches either menu.",
+      "outcome": "skipped"
+    }
+  ]
+}

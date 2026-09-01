@@ -198,6 +198,17 @@ const REQUIRED_TOKENS = [
   'FileMentionText',
   'TriageFilePanel',
   'TriageDetailMeta',
+  // iterate-2026-09-01-lead-board-surface (FR-04.11) — the board surface for
+  // lead work: Bot/BellDot toolbar filters over the closed lead-tag
+  // vocabulary, the on-card expander, and the project-pill bot glyph.
+  'TaskCardLeadExpander',
+  'LeadOriginGlyph',
+  'TaskCardProjectPill',
+  'LeadTagFilter',
+  'LeadTagFilterMenu',
+  'LeadWaitToggleButton',
+  'leadTags',
+  'useBoardFilters',
   // iterate-2026-09-01-lead-question-inbox — FR-04.17/18/19: the fourth,
   // WRITTEN (not derived) Inbox kind and its answer PATCH.
   '_lead',

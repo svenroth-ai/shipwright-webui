@@ -60,7 +60,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import type {
   ActionDefinition,
   ExternalTask,
-  ExternalTaskState,
 } from "../lib/externalApi";
 import { useExternalTasks } from "../hooks/useExternalTasks";
 import { useProjects } from "../hooks/useProjects";
@@ -68,13 +67,15 @@ import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useRunConfig } from "../hooks/useRunConfig";
 import { TaskBoardColumns } from "../components/external/TaskBoardColumns";
-import { TaskBoardEmptyState } from "../components/external/TaskBoardEmptyState";
+import { TaskBoardEmptyState, TaskBoardNoFilterMatches } from "../components/external/TaskBoardEmptyState";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
 import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
+import { LeadTagFilterMenu, LeadWaitToggleButton } from "../components/external/LeadTagFilter";
+import { useBoardFilters } from "../hooks/useBoardFilters";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
@@ -210,46 +211,25 @@ export default function TaskBoardPage() {
     return tasks.filter((t) => t.projectId === activeProjectId);
   }, [tasks, activeProjectId]);
 
-  // Status filter — iterate 3.7e-b1 (plan S1.4). Multi-select chip set;
-  // empty = "All" (no filter). Stored in local React state (no URL params).
-  const [statusFilter, setStatusFilter] = useState<Set<ExternalTaskState>>(
-    () => new Set(),
-  );
-  const toggleStatus = useCallback((s: ExternalTaskState) => {
-    setStatusFilter((prev) => {
-      const next = new Set(prev);
-      if (next.has(s)) next.delete(s);
-      else next.add(s);
-      return next;
-    });
-  }, []);
-  const clearStatusFilter = useCallback(() => {
-    setStatusFilter(new Set());
-  }, []);
-
-  const filteredTasks = useMemo<ExternalTask[]>(() => {
-    if (statusFilter.size === 0) return projectFiltered;
-    return projectFiltered.filter((t) => statusFilter.has(t.state));
-  }, [projectFiltered, statusFilter]);
-
-  // Per-state counts — computed on the project-filtered set (not the
-  // status-filtered one) so the counts stay stable as the user clicks
-  // chips. Matches GitHub/Linear filter-bar affordance.
-  const statusCounts = useMemo<Record<ExternalTaskState, number>>(() => {
-    const seed: Record<ExternalTaskState, number> = {
-      draft: 0,
-      awaiting_external_start: 0,
-      active: 0,
-      idle: 0,
-      done: 0,
-      launch_failed: 0,
-      jsonl_missing: 0,
-    };
-    for (const t of projectFiltered) {
-      if (t.state in seed) seed[t.state] += 1;
-    }
-    return seed;
-  }, [projectFiltered]);
+  // Status + lead-tag (FR-04.11 / V3) filters, and the derived filtered task
+  // list — extracted to useBoardFilters (iterate-2026-09-01-lead-board-
+  // surface, bloat headroom). BellDot reads/writes the SAME Set entry the
+  // Bot menu's "Waiting on PO" checkbox uses — no independent state, so
+  // nothing can desync between the two controls.
+  const {
+    statusFilter,
+    toggleStatus,
+    clearStatusFilter,
+    statusCounts,
+    leadTagFilter,
+    toggleLeadTag,
+    clearLeadTagFilter,
+    leadTagCounts,
+    leadTagTotal,
+    filteredTasks,
+    noFilterMatches,
+    clearAllFilters,
+  } = useBoardFilters(projectFiltered);
 
   // NewIssueModal state — singleton per page.
   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
@@ -351,6 +331,17 @@ export default function TaskBoardPage() {
               onToggle={toggleStatus}
               onReset={clearStatusFilter}
             />
+            {/* FR-04.11 (V3) — Bot dropdown (3 lead-tag prefixes) + BellDot
+                "waiting on PO" shortcut, same toolbar row, same h-8 w-8
+                icon-button shell as the funnel above. */}
+            <LeadTagFilterMenu
+              counts={leadTagCounts}
+              total={leadTagTotal}
+              active={leadTagFilter}
+              onToggle={toggleLeadTag}
+              onReset={clearLeadTagFilter}
+            />
+            <LeadWaitToggleButton active={leadTagFilter} onToggle={toggleLeadTag} />
             <DensityToggle />
           </>
         }
@@ -394,6 +385,8 @@ export default function TaskBoardPage() {
 
       {isLoading ? (
         <div className="p-6 text-sm text-[var(--color-muted)]">Loading…</div>
+      ) : noFilterMatches ? (
+        <TaskBoardNoFilterMatches onClear={clearAllFilters} />
       ) : view === "list" ? (
         // iterate 3.7h (Sven UAT): wrap TaskList in .page-container so the
         // table respects the same L/R gutters as the header + filter row.

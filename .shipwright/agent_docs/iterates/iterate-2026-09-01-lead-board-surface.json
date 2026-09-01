@@ -1,0 +1,65 @@
+{
+  "run_id": "iterate-2026-09-01-lead-board-surface",
+  "date": "2026-09-01T22:23:14.084825Z",
+  "event_at": "2026-09-01T22:22:42.354611+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/lead-board-surface",
+  "spec": ".shipwright/planning/iterate/2026-09-01-lead-board-surface.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-01-lead-board-surface",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Bot dropdown + BellDot toolbar filters, each of the three tag prefixes (lead:/lead-wait:/lead-dedup:) filterable and asserted by literal name",
+        "disposition": "tested",
+        "evidence": "E2E: 'Bot menu and BellDot filter by the three lead-tag prefixes' (lead-board-surface.spec.ts); unit: LeadTagFilter.test.tsx asserts each prefix's testid + literal menu-item text"
+      },
+      {
+        "behavior": "TaskCard expander opens/closes in place via mouse AND keyboard (Enter/Space), without triggering navigateToDetail or the card's dnd-kit KeyboardSensor",
+        "disposition": "tested",
+        "evidence": "E2E: 'the card expander opens in place; plain card click still navigates to TaskDetail'; unit: TaskCardLeadExpander.test.tsx covers pointer-drag isolation + unrelated-key-not-stopped (regression added after code review)"
+      },
+      {
+        "behavior": "Bot glyph renders next to ProjectPill for a lead:-tagged task and not for an ordinary task",
+        "disposition": "tested",
+        "evidence": "E2E: 'the bot glyph does not render for an ordinary (non-lead) task'; unit: TaskCard.lead.test.tsx DOM-adjacency assertion (glyph.nextElementSibling === pill)"
+      },
+      {
+        "behavior": "BellDot filtering to zero matches shows the clear-filters affordance in both board and list view; clearing restores the card",
+        "disposition": "tested",
+        "evidence": "E2E: 'BellDot filtering to zero matches shows the clear-filters affordance, in both board and list view' (added per code-review finding); unit: useBoardFilters.test.ts noFilterMatches branch-ordering tests"
+      },
+      {
+        "behavior": "The Bot menu's 'All' count is the real project-filtered task count, not a sum of the three per-prefix buckets (which overlap and are not exhaustive)",
+        "disposition": "tested",
+        "evidence": "useBoardFilters.test.ts: 'leadTagTotal is the project-filtered task count, NOT the sum of per-prefix counts' \u2014 fixture picked so the two values diverge (sum=3, total=4), per external code-review finding"
+      },
+      {
+        "behavior": "Bot menu selection and the BellDot shortcut stay in sync in both directions (menu -> BellDot and BellDot -> menu) against one shared filter Set",
+        "disposition": "tested",
+        "evidence": "LeadTagFilter.test.tsx: both directions covered \u2014 the pre-existing BellDot->menu-derived-state test, plus a new integration test mounting both controls against one useBoardFilters() call and clicking the real lead-wait: menu item (added per external code-review finding)"
+      },
+      {
+        "behavior": "No fourth tag prefix accepted; ExternalTask gains no new field",
+        "disposition": "tested",
+        "evidence": "leadTags.test.ts: matchesAnyLeadPrefix narrowed to Iterable<LeadTagPrefix> (TS closed union, no 4th value constructible); grep confirms domain/priority/complexityHint/tags are read-only, no new key added to ExternalTask"
+      },
+      {
+        "behavior": "Existing board/status-filter/TaskCard suites and doc-sync guards unaffected",
+        "disposition": "tested",
+        "evidence": "Full client (3699, 3730 post-merge) + server (3785/3 skipped, 3800/3 skipped post-merge) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones); doc-sync.test.ts extended with the 8 new component/module tokens"
+      }
+    ],
+    "counts": { "testable": 8, "tested": 8, "untestable": 0, "untested_testable": 0 },
+    "enumeration_basis": { "acs": 5, "covered_acs": 5 }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 4,
+    "exit_code": 0,
+    "justification": "Toolbar filter interaction, card drag-vs-click disambiguation, and the expander's keyboard/mouse behavior are real-DOM/event-propagation behaviors invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/lead-board-surface.spec.ts). 4/4 tests passed."
+  }
+}
