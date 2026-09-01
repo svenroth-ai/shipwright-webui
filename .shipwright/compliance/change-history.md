@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-08-27T12:56:43.609365+00:00
-Source-State: run=iterate-2026-08-27-terminal-replay-reset-reopen-reconnect base=81dcaac0ab13 release=v0.25.0
-Consistency-audit: never run
-Total commits: 817
+Generated: 2026-09-01T07:41:52.552221+00:00
+Source-State: run=iterate-2026-09-01-trusted-publish-workflow base=23fbba76ee94 release=v0.26.0
+Consistency-audit: last full run 2026-08-31 (1 day earlier) — PASS; latest 2026-08-31 partial (groups B)
+Total commits: 829
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 319
-    "feat" : 204
-    "chore" : 139
-    "docs" : 72
+    "fix" : 324
+    "feat" : 207
+    "chore" : 141
+    "docs" : 74
     "refactor" : 33
     "test" : 30
     "ci" : 8
@@ -23,10 +23,15 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 319 commits
+### Fixes (fix) — 324 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-08-31 | markdown-editor | preserve raw HTML blocks byte-for-byte on save (#402) | 6bd95e6a67f4 |
+| 2026-08-31 | mission | mission tab feed staleness, timestamps, banner recognition, scroll direction (#401) | 1e66182d43fb |
+| 2026-08-31 | compliance | reconcile B7/H1/H2/H6 audit findings (#400) | 539b5f79ace1 |
+| 2026-08-31 | triage | widen file-viewer panel to cut vertical scrolling (#399) | aae7745a9ae4 |
+| 2026-08-30 | triage | file viewer scroll (v/h), dead links to nonexistent files (#397) | cf00a9c26e24 |
 | 2026-08-27 | terminal | tear down replay interaction modes; reconnect WS on Reopen/Retry (#393) | 81dcaac0ab13 |
 | 2026-08-27 | mission | carry split-turn narration to its own card, bounded across test/question turns (#392) | eadcf0087fad |
 | 2026-08-26 | grade,triage | spawn grade.py and triage_cli.py via uv run, never a bare system python (#390) | 9e35cd62d3a1 |
@@ -347,10 +352,13 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 204 commits
+### Features (feat) — 207 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-01 | ci | add npm trusted-publishing workflow (OIDC) on stable v* tags (#404) | 23fbba76ee94 |
+| 2026-09-01 | shipslog | add Documents panel — Requirements/Iterate/Agent Docs/Compliance links (#403) | 4c5d3c107b5b |
+| 2026-08-29 | triage | clickable file references open a side-by-side viewer (#395) | 8e074f79746a |
 | 2026-08-26 | org | add Org page for AI-lead overview (FR-01.71) (#391) | 943c4ada8a7a |
 | 2026-08-25 | mission | restore a turn's own words beyond the headline in the activity feed (#387) | a519801c6405 |
 | 2026-08-21 | mission | real transcript content for all nine activity-feed card kinds (#377) | 9cdcec65d7e4 |
@@ -556,10 +564,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 139 commits
+### Chores (chore) — 141 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-08-29 | docs | sync guide.md with the npx bootstrapper, Mission tab, Intent Wizard doors (#396) | f4dae7bb194d |
+| 2026-08-27 | release | v0.25.0 (#394) | bbcc9d618705 |
 | 2026-08-08 | gitignore | track shipwright_model_config.json via root-anchored allowlist (#352) | 8802b00328c2 |
 | 2026-07-30 | adr | regenerate INDEX.md so it lists ADR-134 through ADR-138 (#334) | b0d9657365e0 |
 | 2026-07-30 | repo | keep Spec/ fully local, commit the iterate planning residue (#333) | e7922fecf7cd |
@@ -700,10 +710,12 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 72 commits
+### Documentation (docs) — 74 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-01 | terminal | document root cause of residual table-only smear (ADR-288) (#405) | fa86f26bd1b9 |
+| 2026-08-30 | readme | fix broken triage-inbox link to guide.md §4.11 (#398) | 11e5a612fb43 |
 | 2026-08-08 | — | track Codex operating policy (#353) | 0db83535f1cd |
 | 2026-07-31 | claude-md | carry the review-subagent standing request into webui (#337) | ef57da35f10e |
 | 2026-07-22 | inbox | record the answer-in-place spike and the decision not to build it (#315) | b84d6b4fd87e |
@@ -894,7 +906,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 817 |
+| Total commits | 829 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 817 |
+| Human-authored commits | 829 |
 
