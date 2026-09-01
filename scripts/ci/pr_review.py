@@ -102,18 +102,11 @@ from pr_review_gh import (  # noqa: E402
     post_pr_review_state,
 )
 from pr_review_openrouter import (  # noqa: E402
-    DEEPSEEK_MODEL,
-    DEFAULT_MODEL,
-    DEFAULT_TIMEOUT,
-    OPENROUTER_URL,
-    call_openrouter,
+    DEEPSEEK_MODEL, DEFAULT_MODEL, DEFAULT_TIMEOUT, GLM_MODEL, OPENROUTER_URL, call_openrouter,
 )
-# DeepSeek ZDR provider-routing constraint; `{}` for a non-DeepSeek override,
-# which never reads `deepseek_routing.json` (see module docstring).
-from pr_review_model_policy import (  # noqa: E402
-    DeepSeekRoutingPolicyError,
-    resolve_extra_body,
-)
+# ZDR provider-routing constraint for the DeepSeek/GLM namespaces; `{}` for any
+# other override, which never reads `pr_review_routing.json` (see module docstring).
+from pr_review_model_policy import DeepSeekRoutingPolicyError, GlmRoutingPolicyError, resolve_extra_body  # noqa: E402
 # Retracting this reviewer's OWN superseded change-requests (ADR-117). The
 # ownership rule is `pr_review_dismiss_select`; this tool only supplies the two
 # things no other module can know — the nonce it stamped, and the commit it read.
@@ -135,8 +128,8 @@ __all__ = [
     "parse_review_response", "post_pr_comment", "post_pr_review_state",
     "read_reviewed_head", "render_comment", "safe_path", "stamp_review_body",
     "strip_display_unsafe", "truncate_diff", "call_openrouter", "DEFAULT_MODEL",
-    "DEFAULT_TIMEOUT", "OPENROUTER_URL", "DEEPSEEK_MODEL",
-    "DeepSeekRoutingPolicyError", "resolve_extra_body",
+    "DEFAULT_TIMEOUT", "OPENROUTER_URL", "DEEPSEEK_MODEL", "GLM_MODEL",
+    "DeepSeekRoutingPolicyError", "GlmRoutingPolicyError", "resolve_extra_body",
 ]
 
 
@@ -200,17 +193,17 @@ def main(argv: list[str] | None = None) -> int:
         print("[pr_review] OPENROUTER_API_KEY is not set — cannot review.", file=sys.stderr)
         return EXIT_ERROR
     model = os.environ.get("SHIPWRIGHT_PR_REVIEW_MODEL", DEFAULT_MODEL)
-    # Resolved before any network I/O: a non-DeepSeek model never touches
-    # deepseek_routing.json; a DeepSeek model's missing/malformed config or
-    # invalid ZDR policy must fail this REQUIRED gate closed before the diff
-    # is even fetched.
+    # Resolved before any network I/O: a model outside the DeepSeek/GLM
+    # namespaces never touches pr_review_routing.json; a gated model's
+    # missing/malformed config or invalid ZDR policy must fail this REQUIRED
+    # gate closed before the diff is even fetched.
     try:
         extra_body = resolve_extra_body(model)
     except Exception as e:  # noqa: BLE001 — any loader/policy failure must
         # fail closed, not escape as a bare traceback; type name keeps a real
         # code bug diagnosable.
         print(_redact(
-            f"[pr_review] reviewer misconfigured (DeepSeek ZDR routing policy) — "
+            f"[pr_review] reviewer misconfigured (ZDR routing policy) — "
             f"not your change: {type(e).__name__}: {e}", api_key), file=sys.stderr)
         return EXIT_ERROR
     # Minted before the first post, because EVERY posting path stamps it.

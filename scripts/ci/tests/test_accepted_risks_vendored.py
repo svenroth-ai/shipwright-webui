@@ -59,7 +59,7 @@ _NOT_HASH_PINNED = {
     "pr_review_safe_path.py":
         "vendored 2026-07-28 (canonical-parity iterate) with header-only provenance",
     "pr_review_model_policy.py":
-        "vendored 2026-09-01 (DeepSeek ZDR routing) with header-only provenance; "
+        "vendored 2026-09-01 (DeepSeek + GLM ZDR routing) with header-only provenance; "
         "self-contained merge of two canonical sources, see its module docstring",
 }
 

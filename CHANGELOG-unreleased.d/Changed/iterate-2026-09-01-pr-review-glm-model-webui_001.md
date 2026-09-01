@@ -1,0 +1,1 @@
+The vendored Tier-3 PR-review gate now defaults to GLM 5.3 (z-ai/glm-5.3) instead of DeepSeek, after DeepSeek was found to repeatedly hallucinate a false block verdict on the canonical monorepo's PR #668. DeepSeek remains available as an operator override via SHIPWRIGHT_PR_REVIEW_MODEL.

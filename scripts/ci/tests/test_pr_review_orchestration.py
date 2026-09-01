@@ -267,11 +267,12 @@ class TestMainOrchestration:
         assert FAKE_KEY not in captured.err
 
     def test_the_default_models_zdr_body_actually_reaches_the_transport(self, monkeypatch):
-        # THE regression guard for the whole DeepSeek-routing change: main()
-        # must resolve the real policy (not a stub) and pass it through to
-        # call_openrouter untouched. Deleting `extra_body=extra_body` at the
-        # call site, or short-circuiting resolve_extra_body to always return
-        # `{}`, would leave every other case in this file green.
+        # THE regression guard for the ZDR-routing change (originally DeepSeek,
+        # now GLM as the default): main() must resolve the real policy (not a
+        # stub) and pass it through to call_openrouter untouched. Deleting
+        # `extra_body=extra_body` at the call site, or short-circuiting
+        # resolve_extra_body to always return `{}`, would leave every other
+        # case in this file green.
         posted = _wire(monkeypatch, review_json=json.dumps(
             {"decision": "approve", "summary": "lgtm", "blocking": [], "comments": []}))
         assert pr_review.main(ARGV) == pr_review.EXIT_OK
