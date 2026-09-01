@@ -54,15 +54,22 @@ def _wire(monkeypatch, *, review_json=None, diff="diff --git a b\n+x\n", raise_c
     """Patch every external boundary; capture posted comment/review state."""
     posted = {}
     monkeypatch.setenv("OPENROUTER_API_KEY", FAKE_KEY)
+    # A real SHIPWRIGHT_PR_REVIEW_MODEL in the test-runner's own env would
+    # silently swap which model (and ZDR policy) these cases exercise.
+    monkeypatch.delenv("SHIPWRIGHT_PR_REVIEW_MODEL", raising=False)
     # Isolate orchestration from the filesystem prompt files (cwd-dependent).
     monkeypatch.setattr(pr_review, "load_prompts", lambda d: ("SYSTEM", "USER\n{PR_META}\n{DIFF}"))
     monkeypatch.setattr(pr_review, "fetch_pr_diff", lambda pr, repo: diff)
 
-    def fake_call(api_key, model, messages, timeout=pr_review.DEFAULT_TIMEOUT):
+    def fake_call(api_key, model, messages, timeout=pr_review.DEFAULT_TIMEOUT, *, extra_body=None):
         # Capture what actually reaches the MODEL. Asserting only on the posted
         # comment lets the meta wiring rot silently: dropping the file lists from
         # the build_pr_meta call would otherwise leave the whole suite green.
+        # `extra_body` too — main() resolves it and must actually thread it
+        # through; a fake that drops the kwarg (like this one used to) would
+        # keep the whole suite green even if that wiring were deleted.
         posted["messages"] = messages
+        posted["extra_body"] = extra_body
         if raise_call is not None:
             raise raise_call
         return review_json
@@ -258,6 +265,41 @@ class TestMainOrchestration:
         captured = capsys.readouterr()
         assert FAKE_KEY not in captured.out
         assert FAKE_KEY not in captured.err
+
+    def test_the_default_models_zdr_body_actually_reaches_the_transport(self, monkeypatch):
+        # THE regression guard for the whole DeepSeek-routing change: main()
+        # must resolve the real policy (not a stub) and pass it through to
+        # call_openrouter untouched. Deleting `extra_body=extra_body` at the
+        # call site, or short-circuiting resolve_extra_body to always return
+        # `{}`, would leave every other case in this file green.
+        posted = _wire(monkeypatch, review_json=json.dumps(
+            {"decision": "approve", "summary": "lgtm", "blocking": [], "comments": []}))
+        assert pr_review.main(ARGV) == pr_review.EXIT_OK
+        assert posted["extra_body"]["provider"]["zdr"] is True
+        assert posted["extra_body"]["provider"]["data_collection"] == "deny"
+
+    def test_a_misconfigured_routing_policy_exits_2_before_any_network_call(
+            self, monkeypatch, capsys):
+        # The OTHER half of resolve_extra_body's contract: a raise there must
+        # map to EXIT_ERROR before fetch_pr_diff / call_openrouter ever run —
+        # not escape as a traceback, not fall through to a network call.
+        called = {}
+        monkeypatch.setenv("OPENROUTER_API_KEY", FAKE_KEY)
+
+        def _raise_routing_error(model):
+            raise pr_review.DeepSeekRoutingPolicyError("provider allowlist mismatch")
+
+        monkeypatch.setattr(pr_review, "resolve_extra_body", _raise_routing_error)
+        monkeypatch.setattr(pr_review, "fetch_pr_diff",
+                            lambda pr, repo: called.setdefault("diff_fetched", True))
+        monkeypatch.setattr(pr_review, "call_openrouter",
+                            lambda *a, **k: called.setdefault("model_called", True))
+        assert pr_review.main(ARGV) == pr_review.EXIT_ERROR
+        assert "diff_fetched" not in called
+        assert "model_called" not in called
+        err = capsys.readouterr().err
+        assert "reviewer misconfigured" in err
+        assert "provider allowlist mismatch" in err
 
     def test_generated_files_excluded_lets_review_run(self, monkeypatch):
         # THE root-fix behaviour: a diff that WOULD truncate (dominated by a

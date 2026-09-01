@@ -32,12 +32,14 @@ plus the stdlib-only trigger/provider/hardening checks.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pytest
 
 # scripts/ci/tests/test_*.py → parents[3] is the repo root.
 REPO_ROOT = Path(__file__).resolve().parents[3]
+CI_DIR = REPO_ROOT / "scripts" / "ci"
 STAGE1_PATH = REPO_ROOT / ".github" / "workflows" / "pr-review.yml"
 STAGE2_PATH = REPO_ROOT / ".github" / "workflows" / "pr-review-run.yml"
 
@@ -210,6 +212,15 @@ class TestSecrets:
     def test_model_env_override(self, stage2):
         assert "SHIPWRIGHT_PR_REVIEW_MODEL" in stage2, \
             "model must be selectable via SHIPWRIGHT_PR_REVIEW_MODEL env"
+
+    def test_model_env_matches_code_default(self, stage2):
+        # The workflow's hardcoded value and pr_review_openrouter.DEFAULT_MODEL
+        # must agree — this is the one place a model swap can silently drift
+        # (the workflow file's literal is never executed by the code path
+        # this suite otherwise exercises).
+        sys.path.insert(0, str(CI_DIR))
+        import pr_review_openrouter as O
+        assert f"SHIPWRIGHT_PR_REVIEW_MODEL: {O.DEFAULT_MODEL}" in stage2
 
 
 # ---------------------------------------------------------------------------
