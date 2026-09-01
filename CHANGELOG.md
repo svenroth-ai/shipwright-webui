@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.26.0] - 2026-09-01
+
+### Added
+
+- Triage detail popup: file references (evidencePath and free-text mentions like `architecture.md`) now render as clickable links that open the file in a side-by-side viewer, without leaving the browser.
+- Ship's Log now shows a Documents panel alongside the logbook: one-click links to the project's Requirements spec, Iterate mini-specs (searchable), Agent Docs, and Compliance docs, each opening in the file viewer overlay with an in-place Edit button.
+- Release automation: pushing a v* release tag now publishes @svenroth-ai/shipwright to npm automatically via GitHub Actions Trusted Publishing (OIDC — no stored NPM_TOKEN, provenance attached), so the manual npm publish + 2FA step is no longer required. A one-time npmjs.com Trusted Publisher setup (org svenroth-ai / repo shipwright-webui / workflow publish-npm.yml) is needed before the first automated publish.
+
+### Changed
+
+- Triage file viewer: the panel is now noticeably wider (~800px instead of ~460px at a typical desktop width), cutting the vertical scrolling most linked files needed.
+
+### Fixed
+
+- Triage file viewer: long files now scroll both vertically and horizontally instead of being clipped, and a mention of a file that no longer exists (or never did) renders as plain text instead of a dead link.
+- Reconciled 4 open compliance audit findings (B7/H1/H2/H6): backfilled a missing commit event, added 6 untracked oversize files to the bloat baseline, tightened 15 stale ratchet ceilings to their real line counts, and pruned 3 baseline entries for deleted files
+- SmartViewer's markdown editor no longer silently rewrites top-level raw HTML (e.g. a styled CTA link) into plain Markdown on save — it now round-trips the block byte-for-byte.
+- The markdown editor's lossy-content warning no longer false-positives on a safe href-only inline link (single quotes, unquoted, relative, fragment, or protocol-relative URLs) — only links with unsafe or extra attributes still warn.
+- Mission tab now keeps documenting an iterate after its first delivery instead of going stale, by re-checking the transcript's Run-ID footer against the persisted association on every poll.
+- Mission tab activity cards now show a relative timestamp with a full-date tooltip instead of no time at all.
+- Mission tab now shows a dedicated goal card when an iterate starts instead of generic fallback narration.
+- Mission tab now opens scrolled to the latest activity at the bottom instead of the top.
+- The Edit button was missing from the file viewer overlay (e.g. from the Triage detail panel) — it now shows whenever a project file is open, not only from the primary file-viewer pane.
+
 ## [0.25.0] - 2026-08-27
 
 ### Added

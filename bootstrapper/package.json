@@ -1,6 +1,6 @@
 {
   "name": "@svenroth-ai/shipwright",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "description": "One command to install AND update Shipwright — the /shipwright-* SDLC plugins and the Command Center. Run `npx @svenroth-ai/shipwright@latest`.",
   "type": "module",
   "bin": {

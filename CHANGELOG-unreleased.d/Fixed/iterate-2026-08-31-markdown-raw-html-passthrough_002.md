@@ -1,1 +1,0 @@
-The markdown editor's lossy-content warning no longer false-positives on a safe href-only inline link (single quotes, unquoted, relative, fragment, or protocol-relative URLs) — only links with unsafe or extra attributes still warn.

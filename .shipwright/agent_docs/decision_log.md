@@ -4237,3 +4237,110 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rejected:** Building the sanitizer now (explicit user choice this iterate); treating it as a rule 28/29 regression (ruled out — neither mechanism is present in the captured reproduction); filing it upstream to Anthropic in this same iterate (left for the user to do separately).
 - **Details:** [iterate-2026-09-01-terminal-table-smear-root-cause.md](../planning/adr/iterate-2026-09-01-terminal-table-smear-root-cause.md)
 - **Details:** [iterate-2026-08-27-terminal-replay-reset-reopen-reconnect.md](../planning/iterate/iterate-2026-08-27-terminal-replay-reset-reopen-reconnect.md)
+
+---
+
+### ADR-289: Inline file mentions in the Triage detail popup open a side-by-side viewer
+- **Date:** 2026-08-29
+- **Section:** Triage compliance file viewer
+- **Run-ID:** iterate-2026-08-29-compliance-file-viewer
+- **Context:** Compliance triage entries cite files inline (evidencePath, or a plain-text mention like 'architecture.md' inside detail) but the path was inert text - judging a compliance finding required leaving the browser for a separate editor.
+- **Decision:** Detect file-path-like tokens in evidencePath AND free-text detail via a new regex util (extractFileMentions.ts), render each as a clickable FileLink, and open the file in a new TriageFilePanel column reusing the existing path-guarded SmartViewer. The panel renders BESIDE the detail column (widened Dialog.Content, two flex columns), not a second overlapping Dialog, per user direction.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing SmartViewer avoids a second viewer/API surface; free-text scanning (not just evidencePath) was chosen because most compliance findings only cite files in prose - confirmed by user during the interview ('Alle erkannten Datei-Erwähnungen').
+- **Consequences:** No new server route or write surface - SmartViewer's path-guarded read API is reused as-is. TriageDetailModal.tsx needed a TriageDetailMeta.tsx extraction to stay under its bloat-baseline ceiling. Left column hides below md while a file is open (verified by a narrow-viewport E2E test). Scope excludes the separate Compliance Detail modal (deferred follow-up).
+- **Rejected:** A second overlapping Dialog (rejected - user asked for a side-by-side window). Linking only evidencePath (rejected - misses most real mentions). A new file-viewer component (rejected - SmartViewer already exists and is already path-guarded).
+- **Details:** [2026-08-29-compliance-file-viewer-miniplan.md](../planning/iterate/2026-08-29-compliance-file-viewer-miniplan.md)
+
+---
+
+### ADR-290: Definite Dialog height + max-content pre width fix triage file-viewer scroll; batched existence check gates file links
+- **Date:** 2026-08-30
+- **Section:** Iterate - bug: triage file viewer follow-ups
+- **Run-ID:** iterate-2026-08-30-triage-file-viewer-followups
+- **Context:** Triage file viewer had no vertical scrollbar (long files grew past the modal), code was clipped on the right with no horizontal scrollbar, and file mentions linked to nonexistent paths.
+- **Decision:** Dialog.Content switches max-h-[85vh] to a real h-[85vh] when a file panel is open, giving descendant h-full chains a definite height to resolve against. .smart-viewer-code pre gets width:max-content + min-width:100% so overflow-x:auto can detect real content width. A new batched GET /files/exist route (reusing pathGuard/realPathGuard) resolves which mentions are real files; only those render as FileLink.
+- **Commit:** (assigned post-merge)
+- **Rationale:** max-height alone never establishes a definite size for descendant percentage-height resolution in CSS flexbox, regardless of the box's own correctly-bounded pixel size; a block <pre> defaults to width:auto (fill container), so unwrapped long lines paint as invisible overflow no ancestor overflow-x:auto detects until the pre's own box is grown to content width.
+- **Consequences:** Vertical/horizontal scrolling now works in the file panel; a mention of a deleted or never-built file renders as plain text instead of a dead link. Follow-up code-review found a comma-delimiter collision in the batch query (fixed via double percent-encoding) and a per-path realpathSync amplification (fixed by resolving the project root's realpath once per request); the client also caps a batch at 50 distinct paths so an unusually verbose item degrades partially instead of losing every link.
+
+---
+
+### ADR-291: Widen the triage file-viewer panel to 1440px total modal width
+- **Date:** 2026-08-30
+- **Section:** Iterate — change: triage file-viewer panel width
+- **Run-ID:** iterate-2026-08-30-triage-panel-width
+- **Context:** Sven reported (2026-08-30, follow-up to #395/#397) that the file panel opened from a triage file mention is too narrow (~460px at 1100px total modal width), forcing most linked files into excessive vertical scrolling.
+- **Decision:** Raise the file-open modal width in TriageDetailModal.tsx from w-[1100px] to w-[1440px] (max-w-[95vw] unchanged; left detail pane stays a fixed md:w-[640px]), growing the file panel's flex-1 share from ~460px to ~800px.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Measured empirically against real repo files (not guessed): a real ADR needs ~800px to cut vertical scroll ~33%; a real 190-line TS file needs ~717px to avoid horizontal scroll. 1440px total clears both. See spec-ref for full numbers.
+- **Consequences:** The open file panel is now meaningfully wider on desktop; narrow viewports still clamp via max-w-[95vw], unaffected by the existing narrow-viewport E2E test which uses different fixed-width classes below the md breakpoint. No component/data-flow/test-shape change beyond the one width value.
+- **Rejected:** A dynamic/content-aware width was rejected as disproportionate for a single-value tweak; sizing off an 84KB outlier file was rejected as it would over-justify an unreasonably wide panel for the common case.
+- **Details:** [iterate-2026-08-30-triage-panel-width-panel-width.md](../planning/adr/iterate-2026-08-30-triage-panel-width-panel-width.md)
+
+---
+
+### ADR-292: Reconcile compliance findings B7/H1/H2/H6
+- **Date:** 2026-08-31
+- **Section:** Iterate — change: reconcile compliance findings B7/H1/H2/H6
+- **Run-ID:** iterate-2026-08-31-compliance-bloat-event-reconcile
+- **Context:** The detective compliance audit (Groups B/H) flagged 4 open findings: a commit missing its event-log entry (B7), 7 oversize files untracked in the bloat baseline (H1), 15 baseline entries with stale/inflated line counts (H2), and 3 baseline entries pointing at deleted files (H6).
+- **Decision:** Backfilled the missing B7 event via record_event.py, added the 7 H1 entries (state=grandfathered, matching existing convention), tightened the 15 H2 entries to their real on-disk line count, and removed the 3 H6 dead-file entries from shipwright_bloat_baseline.json.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reconciliation is mechanical and data-only, no application code changed, so a small CHANGE iterate with self-review plus the internal code-review cascade (diff over 100 lines) was sufficient; no external/medium+ process needed.
+- **Consequences:** All 4 findings now pass on re-audit (53/53 total checks green); the bloat ratchet is honest again and B7 commit-to-event coverage is complete for this window.
+- **Rejected:** Considered baselining a 7th flagged file, Spec/prototype/data.js (3861 lines), but it is gitignored/untracked local scratch content absent from every commit; tracking it would create a phantom H6 entry, so it was excluded instead.
+
+---
+
+### ADR-293: Raw HTML block passthrough via a structurally-restricted TipTap node
+- **Date:** 2026-08-31
+- **Section:** Iterate — bug: markdown raw HTML passthrough
+- **Run-ID:** iterate-2026-08-31-markdown-raw-html-passthrough
+- **Context:** SmartViewer's markdown editor silently rewrote top-level raw HTML (e.g. a styled CTA link) into plain Markdown on save, losing styling with no warning. User preference: fix, not a warning.
+- **Decision:** Add a RawHtmlBlock atom node that stores raw HTML verbatim and serializes it back unchanged; a RawHtmlBlockDocument doc override restricts it to top-level only, so ProseMirror's own transform validation refuses any wrap into a blockquote/list.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A per-command toolbar guard was tried first and rejected: it blocks the toolbar but not ProseMirror's own wrapIn transform (drag-and-drop, future callers), silently re-introducing the bug. Restricting via the schema closes it structurally.
+- **Consequences:** Top-level raw HTML now round-trips byte-for-byte; nesting inside a blockquote/list stays lossy (pre-existing, disclosed). Adjacent-block whitespace can still normalize on save (pre-existing editor-wide behavior).
+- **Rejected:** Warning-banner-only (rejected per user preference). Per-command guard without schema restriction (rejected as incomplete, caught by doubt review). Full inter-block whitespace rewrite (deferred, out of scope).
+- **Details:** [iterate-2026-08-31-markdown-raw-html-passthrough-raw-html-block-node.md](../planning/adr/iterate-2026-08-31-markdown-raw-html-passthrough-raw-html-block-node.md)
+
+---
+
+### ADR-294: Mission tab feed staleness, timestamps, banner recognition, scroll direction
+- **Date:** 2026-08-31
+- **Section:** Iterate — bug: mission tab feed gaps
+- **Run-ID:** iterate-2026-08-31-mission-feed-gaps
+- **Context:** User reported four Mission-tab defects: feed stops documenting after the first delivery, no timestamps, generic fallback text instead of intro-banner recognition, and scroll opens at the top instead of the bottom.
+- **Decision:** Supersede a stale mission-context association via a corroborated transcript Run-ID footer using true compare-and-set; add per-card timestamps with a tooltip; give the intro banner its own goal card; scroll to bottom on mount.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Doubt-review found the initial CAS fix insufficient: a write-time re-read of task.missionContext defeated it. Fixed by snapshotting the association at resolve time, before the slow git I/O.
+- **Consequences:** The Mission tab now keeps tracking after the first delivery, shows real times, opens with real content, and follows new activity; the association write is race-safe under concurrent polls (multi-tab/fast ticks).
+- **Rejected:** Length+last-256-char transcript fingerprint (collision risk, external review MEDIUM) replaced with full-content SHA-256; re-reading task.missionContext at write time, which defeats compare-and-set.
+
+---
+
+### ADR-295: Ship's-Log Documents panel + Edit-button decoupling from popOut
+- **Date:** 2026-09-01
+- **Section:** Iterate — feature: Ship's-Log Documents panel
+- **Run-ID:** iterate-2026-08-31-shipslog-documents-panel
+- **Context:** Compliance Docs, Agent Docs and Specs had no links anywhere in the Ship's Log, findable only via the File Viewer or Mission tab. 6-round HTML-mockup design approval settled a full two-column layout with a Documents panel, and surfaced that the Edit button inside SmartViewerModal was missing because MarkdownRenderer gated it on the same onSaved callback that also implied popOut=false was the primary pane.
+- **Decision:** Add a read-only GET /shipslog-docs route + reader curating Requirements (per planning-section spec.md), Iterate mini-specs, Agent Docs, Compliance; render as the Ship's-Log page's new 2fr:1fr right column via Radix Tabs, reusing SmartViewerModal per row. Decouple Edit from popOut in SmartViewer.tsx: onSaved is now always wired, only the Pop-out affordance stays popOut-gated. Add a global saved-to-disk-only banner to MarkdownEditorBanners.tsx.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Requirements vs Iterate stayed two separate tabs rather than one merged list (oscillated during design, reverted to two) because they answer different questions and Iterate is two orders of magnitude larger, which would bury the one Requirements row under search noise.
+- **Consequences:** Every project doc is now one click from its home page; a modal-nested SmartViewer (SmartViewerModal, TriageFilePanel) can edit in place via the real TipTap editor; every markdown edit now visibly states it does not commit or push. No new write surface — reuses the existing PUT /file route.
+- **Rejected:** Merging Requirements and Iterate into one searchable list (v1-v3 of the mockup) - rejected because the size mismatch (1 vs ~230) buries the smaller, more important list.
+- **Details:** [iterate-2026-08-31-shipslog-documents-panel.md](../planning/iterate/iterate-2026-08-31-shipslog-documents-panel.md)
+
+---
+
+### ADR-296: Trusted-publishing npm workflow (OIDC) — reverse the no-publish-workflow stance
+- **Date:** 2026-09-01
+- **Section:** Release / CI supply chain
+- **Run-ID:** iterate-2026-09-01-trusted-publish-workflow
+- **Context:** Prior stance (npm-publish skill + repo): NO publish workflow — the human gate was the manual npm publish with 2FA/OTP. Every latest release was thus a manual, 2FA-gated step (webui 0.25.0 shipped this way), with no build provenance and operator availability as a release blocker.
+- **Decision:** Add .github/workflows/publish-npm.yml: on pushed tag v*, publish @svenroth-ai/shipwright via npm Trusted Publishing (OIDC, id-token:write, NO NPM_TOKEN) — install server/client/bootstrapper deps, npm run build in bootstrapper, npm publish --access public. The human gate moves from npm publish to cutting the release tag.
+- **Commit:** (assigned post-merge)
+- **Rationale:** OIDC (tokenless) is strictly stronger than the NPM_TOKEN alternative the old stance avoided; tag-as-gate plus provenance is auditable. The first bootstrap publish already exists, so the trusted-publisher prerequisite can be satisfied.
+- **Consequences:** Future latest releases publish automatically on tag; no OTP step; npm provenance attached automatically; no long-lived token exists. A one-time npmjs.com Trusted Publisher config (org svenroth-ai / repo shipwright-webui / workflow publish-npm.yml) is REQUIRED before the first tag or the job fails. Uses only GitHub-owned actions on mutable tags (CLAUDE.md rule 25).
+- **Rejected:** Keep manual 2FA publish (error-prone, no provenance, release blocked on operator availability). NPM_TOKEN secret in CI (long-lived credential, weaker than OIDC, larger blast radius).

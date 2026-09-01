@@ -1,25 +1,25 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-08-27T12:56:43.609365+00:00
-Source-State: run=iterate-2026-08-27-terminal-replay-reset-reopen-reconnect base=81dcaac0ab13 release=v0.25.0
-Consistency-audit: never run
+Generated: 2026-09-01T07:41:52.552221+00:00
+Source-State: run=iterate-2026-09-01-trusted-publish-workflow base=23fbba76ee94 release=v0.26.0
+Consistency-audit: last full run 2026-08-31 (1 day earlier) — PASS; latest 2026-08-31 partial (groups B)
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 46 (deduplicated) |
-| Dev dependencies | 25 |
-| Total packages | 71 |
-| Licenses resolved | 66 / 71 |
+| Runtime dependencies | 47 (deduplicated) |
+| Dev dependencies | 26 |
+| Total packages | 73 |
+| Licenses resolved | 68 / 73 |
 | Unique licenses | 5 (Apache-2.0, BSD-3-Clause, ISC, MIT, OFL-1.1) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 71 packages)
-    "MIT" : 59
+pie title License Distribution (all 73 packages)
+    "MIT" : 61
     "Apache-2.0" : 3
     "OFL-1.1" : 2
     "BSD-3-Clause" : 1
@@ -60,6 +60,7 @@ pie title License Distribution (all 71 packages)
 | hono | ^4.12.34 | MIT |
 | ignore | ^5.3.2 | MIT |
 | lucide-react | ^0.400.0 | ISC |
+| markdown-it | ^14.2.0 | MIT |
 | mermaid | ^11.15.0 | MIT |
 | p-queue | ^9.2.0 | MIT |
 | proper-lockfile | ^4.1.0 | MIT |
@@ -88,6 +89,7 @@ pie title License Distribution (all 71 packages)
 | @testing-library/react | ^16.0.0 | MIT |
 | @testing-library/user-event | ^14.0.0 | MIT |
 | @types/diff | ^7.0.2 | MIT |
+| @types/markdown-it | ^14.1.2 | MIT |
 | @types/node | ^22.0.0 | - |
 | @types/node | ^25.6.2 | MIT |
 | @types/proper-lockfile | ^4.1.4 | - |
