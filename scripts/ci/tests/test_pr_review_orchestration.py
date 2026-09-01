@@ -285,10 +285,11 @@ class TestMainOrchestration:
         # not escape as a traceback, not fall through to a network call.
         called = {}
         monkeypatch.setenv("OPENROUTER_API_KEY", FAKE_KEY)
-        monkeypatch.setattr(
-            pr_review, "resolve_extra_body",
-            lambda model: (_ for _ in ()).throw(
-                pr_review.DeepSeekRoutingPolicyError("provider allowlist mismatch")))
+
+        def _raise_routing_error(model):
+            raise pr_review.DeepSeekRoutingPolicyError("provider allowlist mismatch")
+
+        monkeypatch.setattr(pr_review, "resolve_extra_body", _raise_routing_error)
         monkeypatch.setattr(pr_review, "fetch_pr_diff",
                             lambda pr, repo: called.setdefault("diff_fetched", True))
         monkeypatch.setattr(pr_review, "call_openrouter",
