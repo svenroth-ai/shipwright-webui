@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-01-pr-review-glm-model-webui",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T17:35:43.031870+00:00",
+      "disposition": null,
+      "recorded_by": "self",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T17:34:26.721043+00:00",
+      "disposition": "mini-plan is FEATURE-only at small complexity (Phase Matrix); this run is a CHANGE",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T17:34:26.500032+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": ".github/workflows/pr-review-run.yml",
+          "line": null,
+          "finding": "Claim under doubt: the documented admin-override recovery path for a GLM-provider outage is confirmed as of today, not merely re-dated — pr-review-run.yml's comment states, dated 2026-09-01, that the ruleset was confirmed. Nothing in the diff alone proves this gh api call was re-run for this change versus the DeepSeek iterate's identical finding being carried forward with today's date substituted. RESOLVED: re-ran `gh api repos/svenroth-ai/shipwright-webui/rulesets/17593577` live during this review — confirmed today, 2026-09-01: enforcement=active, bypass_actors=[{actor_id:5, actor_type:RepositoryRole, bypass_mode:always}], matching the repository-admin bypass the comment claims. Not stale copy-paste.",
+          "suggestion": "confirm (or re-run) the ruleset check live for this iterate — done above.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-01T17:41:52.608470+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T17:34:26.936016+00:00",
+      "disposition": "external LLM code review is not required at small complexity for a faithful, precedent-mirroring port; the internal code-reviewer + doubt-reviewer cascade covers this diff",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T17:53:57.375215+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T17:34:26.819137+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

@@ -247,15 +247,25 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # deepseek/deepseek-v4-pro, routed under a fail-closed ZDR (zero-data-
-          # retention) provider policy (pr_review_model_policy.py + vendored
-          # scripts/ci/deepseek_routing.json) — mirrors the canonical shipwright
-          # monorepo's Tier-3 gate (iterate-2026-08-31-pr-review-deepseek-model).
-          # ZDR's `allow_fallbacks: false` plus the lack of a live `together`
-          # endpoint for this model leaves exactly one live provider (novita)
-          # serving this REQUIRED merge gate as of 2026-09-01 — a snapshot, not
-          # a guarantee, and OpenRouter's endpoint list can change under it.
-          # A rollback PR editing this line back to a non-DeepSeek model is
+          # z-ai/glm-5.3, routed under a fail-closed ZDR (zero-data-retention)
+          # provider policy (pr_review_model_policy.py + vendored
+          # scripts/ci/pr_review_routing.json) — mirrors the canonical shipwright
+          # monorepo's Tier-3 gate (iterate-2026-09-01-pr-review-glm-model).
+          # Replaces the deepseek/deepseek-v4-pro default set by
+          # iterate-2026-08-31-pr-review-deepseek-model: on the canonical repo's
+          # PR #668, DeepSeek repeatedly (3x, deterministic) produced a
+          # confident BLOCK verdict citing a NameError that did not exist in the
+          # diff — a model-quality regression, not an infra bug. GLM 5.3 was
+          # replayed against the same diff and correctly avoided the
+          # hallucination. DeepSeek stays fully wired as an operator override
+          # (SHIPWRIGHT_PR_REVIEW_MODEL=deepseek/deepseek-v4-pro) — its ZDR
+          # routing config and tests are untouched.
+          # ZDR's `allow_fallbacks: false` plus GLM's own together-provider
+          # uptime (present but measurably less healthy than novita's) leaves
+          # novita doing nearly all of the serving for this REQUIRED merge gate
+          # as of 2026-09-01 — a snapshot, not a guarantee, and OpenRouter's
+          # endpoint list can change under it.
+          # A rollback PR editing this line back to a non-gated model is
           # reviewed by the DEFAULT BRANCH's own (possibly still-broken) copy of
           # this workflow (GitHub `workflow_run` semantics never execute a PR's
           # own edit to this file), so recovery from a provider outage is a
@@ -263,7 +273,7 @@ jobs:
           # 2026-09-01 (`gh api repos/.../rulesets/17593577`): `main-protection`
           # carries `current_user_can_bypass: always` for the repository-admin
           # role, same as any other Tier-3 PR-Review admin override.
-          SHIPWRIGHT_PR_REVIEW_MODEL: deepseek/deepseek-v4-pro
+          SHIPWRIGHT_PR_REVIEW_MODEL: z-ai/glm-5.3
           PR_NUMBER: ${{ steps.pr.outputs.number }}
           REPO: ${{ github.repository }}
         run: |

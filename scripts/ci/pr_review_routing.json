@@ -1,0 +1,36 @@
+{
+  "deepseek_routing": {
+    "provider_allowlist": [
+      {
+        "provider": "novita",
+        "region": "US",
+        "zero_retention_verified": true,
+        "verified_on": "2026-08-04"
+      },
+      {
+        "provider": "together",
+        "region": "US",
+        "zero_retention_verified": true,
+        "verified_on": "2026-08-04"
+      }
+    ],
+    "_comment": "Fail closed: pr_review_model_policy.py requires this ordered declaration to match its code-owned approved endpoint registry. Vendored from shared/config/external_review.json's deepseek_routing block in the canonical shipwright monorepo (see that file's header for the reviewed-EU-endpoint amendment process). A future US/EU endpoint needs deliberate code, config, test, and review changes after its ZDR policy and processing region are verified."
+  },
+  "glm_routing": {
+    "provider_allowlist": [
+      {
+        "provider": "novita",
+        "region": "US",
+        "zero_retention_verified": true,
+        "verified_on": "2026-09-01"
+      },
+      {
+        "provider": "together",
+        "region": "US",
+        "zero_retention_verified": true,
+        "verified_on": "2026-09-01"
+      }
+    ],
+    "_comment": "Same two providers already vetted for deepseek_routing above; verified separately for GLM 5.3 via OpenRouter's data-policy API AND a live production-route completion probe (canonical shipwright monorepo, plugins/shipwright-security/scripts/tools/probe_glm_zdr.py, evidence committed at .shipwright/planning/iterate/iterate-2026-09-01-pr-review-glm-model/glm-zdr-probe.json) that landed on novita. Vendored here rather than re-probed independently, same as deepseek_routing above: this validates OpenRouter's own service, not anything repo-specific. Unlike DeepSeek, together DOES serve this model, though at lower measured uptime than novita. Fail closed: pr_review_model_policy.py requires this ordered declaration to match its code-owned approved endpoint registry."
+  }
+}

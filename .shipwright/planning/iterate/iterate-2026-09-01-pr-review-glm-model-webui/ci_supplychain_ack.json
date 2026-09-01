@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-01-pr-review-glm-model-webui",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-09-01-pr-review-glm-model-webui",
+    "paths_fingerprint": "20acc007afa12e3a27a66d528225aa8cc5d29b9b3c7174e42672976976be13af",
+    "consistent_with": "iterate-2026-08-31-pr-review-deepseek-model",
+    "statement": "Changes the Tier-3 PR-review gate's model env var (SHIPWRIGHT_PR_REVIEW_MODEL) from deepseek/deepseek-v4-pro to z-ai/glm-5.3 and the accompanying explanatory comment; no change to the workflow's triggers, permissions, secrets, or third-party actions. DeepSeek stays a fully wired operator override with its ZDR routing intact. Mirrors the canonical monorepo's iterate-2026-09-01-pr-review-glm-model, which found DeepSeek repeatedly hallucinating a block verdict on real PR #668.",
+    "ci_paths": [
+      ".github/workflows/pr-review-run.yml"
+    ]
+  }
+}

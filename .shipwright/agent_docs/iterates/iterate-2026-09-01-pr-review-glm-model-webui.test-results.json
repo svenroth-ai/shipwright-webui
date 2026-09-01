@@ -1,0 +1,71 @@
+{
+  "last_updated": "2026-09-01",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-01-pr-review-glm-model-webui",
+    "date": "2026-09-01",
+    "unit": "PASS — scripts/ci/tests: 740 passed, 0 failed (ruff clean on every touched file)",
+    "integration": "n/a — no CRUD or service-boundary change; this swaps a CI gate's default OpenRouter model string plus its ZDR routing-validation logic, no cross_component machinery touched",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "n/a — no UI/frontend change; backend-only CI script + workflow-env swap, not reachable via browser",
+    "design_fidelity": "n/a — no visual change",
+    "smoke": "n/a — no running server behaviour affected; the change only takes effect inside the GitHub Actions Tier-3 PR-review job",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "resolve_extra_body returns {} for a model outside the deepseek/ and z-ai/ namespaces, without ever reading the routing config file",
+          "disposition": "tested",
+          "evidence": "test_pr_review_model_policy.py::TestResolveExtraBody::test_non_gated_model_returns_empty_without_loading_config PASSED (asserts via a config-loader stub that raises if called)"
+        },
+        {
+          "behavior": "resolve_extra_body still returns the exact fail-closed ZDR body for a DeepSeek model, unchanged after the generalization",
+          "disposition": "tested",
+          "evidence": "test_pr_review_model_policy.py::TestResolveExtraBody::test_deepseek_model_returns_the_zdr_body and test_the_vendored_deepseek_config_on_disk_is_valid PASSED"
+        },
+        {
+          "behavior": "resolve_extra_body returns the exact fail-closed ZDR body for a GLM model (new)",
+          "disposition": "tested",
+          "evidence": "test_pr_review_model_policy.py::TestResolveExtraBody::test_glm_model_returns_the_zdr_body and test_the_vendored_glm_config_on_disk_is_valid PASSED"
+        },
+        {
+          "behavior": "namespace matching for both is_deepseek_model and is_glm_model is normalized (trim, casefold, variant suffix like ':free') rather than exact-string",
+          "disposition": "tested",
+          "evidence": "test_pr_review_model_policy.py::TestIsDeepseekModel and TestIsGlmModel (parametrized) PASSED"
+        },
+        {
+          "behavior": "GlmRoutingPolicyError and DeepSeekRoutingPolicyError are distinct, non-overlapping exception types",
+          "disposition": "tested",
+          "evidence": "test_pr_review_model_policy.py::TestResolveExtraBody::test_glm_and_deepseek_routing_errors_are_distinct_types PASSED"
+        },
+        {
+          "behavior": "a changed or unverified provider config fails closed for both the DeepSeek and GLM routing blocks (missing key, empty/reordered/truncated allowlist, wrong region, unverified/missing zero_retention_verified, non-dict entry, missing provider slug)",
+          "disposition": "tested",
+          "evidence": "test_pr_review_model_policy.py::test_changed_or_unverified_provider_config_fails_closed — 18 parametrized cases (9 per namespace) PASSED"
+        },
+        {
+          "behavior": "DEFAULT_MODEL is now GLM_MODEL (z-ai/glm-5.3) while DEEPSEEK_MODEL stays a live, usable operator-override constant",
+          "disposition": "tested",
+          "evidence": "test_pr_review_openrouter.py::TestDefaults and test_pr_review_script.py::TestFileContract (test_default_model_is_glm, test_deepseek_model_constant_still_exists_for_the_operator_override) PASSED"
+        },
+        {
+          "behavior": "the workflow's SHIPWRIGHT_PR_REVIEW_MODEL env var stays coupled to the code's own DEFAULT_MODEL constant, so they cannot drift apart silently",
+          "disposition": "tested",
+          "evidence": "test_pr_review_workflow_shape.py::TestSecrets::test_model_env_matches_code_default PASSED (reads pr_review_openrouter.DEFAULT_MODEL dynamically, not a hardcoded literal)"
+        },
+        {
+          "behavior": "main() resolves the real (non-stubbed) ZDR policy for the new default model and passes it through to call_openrouter untouched",
+          "disposition": "tested",
+          "evidence": "test_pr_review_orchestration.py::TestMainOrchestration::test_the_default_models_zdr_body_actually_reaches_the_transport PASSED (SHIPWRIGHT_PR_REVIEW_MODEL explicitly delenv'd beforehand so it exercises the real default)"
+        }
+      ],
+      "counts": {"testable": 9, "tested": 9, "untestable": 0, "untested_testable": 0}
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Backend-only CI-script and GitHub Actions workflow-env change with no UI, no running dev server, and no touches_io_boundary file (no .env/hooks.json/settings.json/config-file parsing changed) — nothing for a browser or dev-stack E2E run to exercise. The gate this diff modifies only executes inside GitHub's own Actions runner on a real PR; scripts/ci/tests exercises every code path (namespace matching, dispatch, fail-closed validation, orchestration wiring) via 740 unit/integration-style tests instead."
+    }
+  }
+}

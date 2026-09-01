@@ -18,6 +18,8 @@ under whatever environment the CI runner's Python resolves.
 #   + iterate-2026-07-31-it7a-pr-review-stale-verdict (ADR-117, extraction wording)
 #   + iterate-2026-08-31-pr-review-deepseek-model (DEFAULT_MODEL swap +
 #     `extra_body` merge, mirroring the monorepo's DeepSeek ZDR routing)
+#   + iterate-2026-09-01-pr-review-glm-model (DEFAULT_MODEL swap to GLM 5.3,
+#     DeepSeek kept as the named operator-override constant)
 # adaptation: NOT byte-identical, so no canonical-source-hash line is claimed
 #   (spelled without the leading marker on purpose; `tests/test_accepted_risks_vendored.py`
 #   scans for that literal string). Divergences from any single upstream blob:
@@ -32,13 +34,19 @@ import json
 import urllib.error
 import urllib.request
 
-__all__ = ["DEEPSEEK_MODEL", "DEFAULT_MODEL", "DEFAULT_TIMEOUT", "OPENROUTER_URL", "call_openrouter"]
+__all__ = [
+    "DEEPSEEK_MODEL", "GLM_MODEL", "DEFAULT_MODEL", "DEFAULT_TIMEOUT",
+    "OPENROUTER_URL", "call_openrouter",
+]
 
-# One named constant — DEFAULT_MODEL, the ZDR-routing model match in
-# pr_review_model_policy.py, and every test/workflow assertion all read this,
-# so they cannot drift into three copies of the same literal.
+# Named constants — DEFAULT_MODEL, the ZDR-routing model match in
+# pr_review_model_policy.py, and every test/workflow assertion all read these,
+# so they cannot drift into separate copies of the same literal. DeepSeek stays
+# a fully wired operator override (SHIPWRIGHT_PR_REVIEW_MODEL=deepseek/...)
+# after the GLM 5.3 swap below — never treat "kept as a constant" as dead code.
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-pro"
-DEFAULT_MODEL = DEEPSEEK_MODEL
+GLM_MODEL = "z-ai/glm-5.3"
+DEFAULT_MODEL = GLM_MODEL
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # ONE default for the whole tool — the CLI flag and the direct call share it.
