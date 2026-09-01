@@ -209,6 +209,11 @@ const REQUIRED_TOKENS = [
   'LeadWaitToggleButton',
   'leadTags',
   'useBoardFilters',
+  // iterate-2026-09-01-lead-question-inbox — FR-04.17/18/19: the fourth,
+  // WRITTEN (not derived) Inbox kind and its answer PATCH.
+  '_lead',
+  'leadQuestionApi',
+  'LeadQuestionCard',
 ] as const;
 
 let claudeMd = '';

@@ -24,6 +24,7 @@ import {
 import type { ExternalTask, InboxItem } from "../../lib/externalApi";
 import { AskToolCard } from "./InboxCard.AskTool";
 import { WaitingReplyCard } from "./InboxCard.Waiting";
+import { LeadQuestionCard } from "./InboxCard.LeadQuestion";
 
 // Known phase ids (mirrors PIPELINE_PHASES but we intentionally don't couple
 // to Kanban phaseMapping, which uses a slightly different vocab). Used as the
@@ -63,9 +64,27 @@ export const PHASE_ICON: Record<
 
 /** Stable React key / testid base for an inbox item, kind-aware. */
 export function inboxItemKey(item: InboxItem): string {
-  if (item.kind === "ask_tool") return item.toolUseId;
-  if (item.kind === "terminal_prompt") return `tp-${item.taskId}`;
-  return item.questionId;
+  switch (item.kind) {
+    case "ask_tool":
+      return item.toolUseId;
+    case "terminal_prompt":
+      return `tp-${item.taskId}`;
+    case "text_question":
+      return item.questionId;
+    case "lead_question":
+      return `lq-${item.taskId}`;
+    default:
+      // Exhaustiveness guard (FR-04.19 trap 3/4) — a fifth kind added to
+      // `InboxItem` without a case here is a TYPE error at this line,
+      // not a silent `undefined` key.
+      return unhandledInboxItemKind(item);
+  }
+}
+
+export function unhandledInboxItemKind(item: never): never {
+  throw new Error(
+    `inboxItemKey: unhandled inbox item kind: ${(item as InboxItem).kind}`,
+  );
 }
 
 /**
@@ -107,6 +126,8 @@ export function InboxTerminalHonesty({
  *  - `text_question`   → `WaitingReplyCard` (plain-text end-of-turn question)
  *  - `terminal_prompt` → `WaitingReplyCard` (live AskUserQuestion picker
  *    detected in the embedded terminal — iterate-2026-05-18-inbox-terminal-prompts)
+ *  - `lead_question`   → `LeadQuestionCard` (FR-04.19 — webui answers inline,
+ *    PATCHing `poFeedback`, unlike the three terminal-answered kinds above)
  */
 export function InboxCard({
   item,
@@ -115,8 +136,16 @@ export function InboxCard({
   item: InboxItem;
   task: ExternalTask | undefined;
 }) {
-  if (item.kind === "text_question" || item.kind === "terminal_prompt") {
-    return <WaitingReplyCard item={item} task={task} />;
+  switch (item.kind) {
+    case "text_question":
+    case "terminal_prompt":
+      return <WaitingReplyCard item={item} task={task} />;
+    case "ask_tool":
+      return <AskToolCard item={item} task={task} />;
+    case "lead_question":
+      return <LeadQuestionCard item={item} task={task} />;
+    default:
+      // Exhaustiveness guard (FR-04.19 trap 3/4) — see `unhandledInboxItemKind` above.
+      return unhandledInboxItemKind(item);
   }
-  return <AskToolCard item={item} task={task} />;
 }

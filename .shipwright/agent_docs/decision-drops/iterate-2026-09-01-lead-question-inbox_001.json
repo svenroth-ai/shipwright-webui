@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-01-lead-question-inbox",
+  "date": "2026-09-01",
+  "section": "Iterate — feature: lead-question inbox",
+  "title": "Lead-question inbox kind",
+  "context": "leadwright needs a PO-answerable follow-up surfaced in webui's Inbox; the 3 existing kinds are all derived, bestEffort, and read-only.",
+  "decision": "Add lead_question: WRITTEN off a description marker, no bestEffort (base/common type split), dismiss/answer reuse existing fields, compile-time exhaustiveness guard on the dispatcher.",
+  "consequences": "No new schema; provably unaffects the 3 existing kinds. One caveat: suppression is per-task not per-question (documented contract).",
+  "rationale": "Reusing existing fields keeps this additive and matches small complexity; a compile-time guard closes two pre-existing dispatcher traps for free.",
+  "rejected": "Hash-based per-question dismiss key (invents an answer schema, out of scope); keeping bestEffort for uniformity (fails the type-level acceptance criterion); full Playwright E2E (disproportionate at small complexity, already covered by real component+route tests).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-01-lead-question-inbox.md"
+}

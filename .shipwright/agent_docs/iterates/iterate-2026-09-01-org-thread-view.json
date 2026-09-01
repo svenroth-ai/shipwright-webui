@@ -1,0 +1,64 @@
+{
+  "run_id": "iterate-2026-09-01-org-thread-view",
+  "date": "2026-09-01T21:27:20.719376Z",
+  "event_at": "2026-09-01T21:26:33.019595+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/org-thread-view",
+  "spec": ".shipwright/planning/iterate/2026-09-01-org-thread-view-miniplan.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-01-org-thread-view",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Rounds render in the order supplied (not re-sorted by timestamp), proven with 3+ out-of-chronological-order rounds (AC-a)",
+        "disposition": "tested",
+        "evidence": "OrgThread.test.tsx 'round order (AC-a)' (compareDocumentPosition on 3 rounds); OrgPage.thread.test.tsx 'renders the lead's thread, below its card, in round order (AC-a)'"
+      },
+      {
+        "behavior": "A round with no answer yet renders as an open badge, never blank or missing \u2014 including empty-string, whitespace-only, and null answer edge cases (AC-b)",
+        "disposition": "tested",
+        "evidence": "OrgThread.test.tsx 'open round (AC-b)': 4 tests (no answer, empty string, whitespace-only, null answer)"
+      },
+      {
+        "behavior": "Round question/answer text is untrusted and renders as inert text, never as markup, and never reaches the app's real notification pathway (AC-c)",
+        "disposition": "tested",
+        "evidence": "OrgThread.test.tsx 'untrusted text (AC-c)': fixture with an <img onerror>/<b> markup payload and a <task-notification> sentinel \u2014 asserts no real <img>/<b>/<task-notification> element, no window.__pwned, no task-notification-chip testid, Notification spy never called, and the literal text is still readable via within(round).getByText"
+      },
+      {
+        "behavior": "The page still renders with no thread at all \u2014 the state on every card until leadwright's round-store producer (L8) lands (AC-d)",
+        "disposition": "tested",
+        "evidence": "OrgThread.test.tsx 'OrgThreadList \u2014 no thread at all (AC-d)': undefined cards, empty array, all-empty-rounds card, mixed populated+empty; OrgPage.thread.test.tsx 'renders no thread for a lead with no rounds'; E2E org-page.spec.ts asserts org-thread-list has count 0 against the real running app"
+      },
+      {
+        "behavior": "Each lead's thread is scoped to its own card \u2014 never a neighbor's thread or a page-wide dump",
+        "disposition": "tested",
+        "evidence": "OrgPage.thread.test.tsx 'associates each lead with its OWN thread...': 3 leads (2 with distinct threads, 1 with none), asserted per-lead via DOM wrapper scoping, not document order alone"
+      },
+      {
+        "behavior": "Mounting OrgThreadList as a sibling under LeadCard does not regress LeadCard's existing 5-block order contract",
+        "disposition": "tested",
+        "evidence": "LeadCard.tsx left byte-for-byte untouched; pre-existing LeadCard.test.tsx and org-page.spec.ts AC-2 block-order assertion (['header','role','now','stats','docs']) both still green"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 4,
+    "exit_code": 0,
+    "justification": "AC-a/b/c/d are proved primarily by fixture-driven component/unit tests (no real leadwright round data exists yet); the E2E run adds the one thing those can't \u2014 real-browser proof of AC-d's production truth (no thread renders for a real lead against the real running app today) plus a full regression pass of the pre-existing org-page suite."
+  },
+  "declared_removals": []
+}

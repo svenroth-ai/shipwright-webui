@@ -27,34 +27,8 @@ import {
   type InboxDeriveCacheEntry,
 } from "./_cache.js";
 
-export type AggregatedEntry =
-  | {
-      kind: "ask_tool";
-      taskId: string;
-      sessionUuid: string;
-      taskTitle: string;
-      toolUseId: string;
-      toolName: string;
-      input: unknown;
-      bestEffort: true;
-    }
-  | {
-      kind: "text_question";
-      taskId: string;
-      sessionUuid: string;
-      taskTitle: string;
-      questionId: string;
-      questionText: string;
-      bestEffort: true;
-    }
-  | {
-      kind: "terminal_prompt";
-      taskId: string;
-      sessionUuid: string;
-      taskTitle: string;
-      promptText: string;
-      bestEffort: true;
-    };
+export type { AggregatedEntry } from "./_types.js";
+import type { AggregatedEntry } from "./_types.js";
 
 /**
  * Walk every task in the store, return cached entries on a warm hit

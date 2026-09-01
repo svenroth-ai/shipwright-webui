@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-01-org-thread-view",
+  "date": "2026-09-01",
+  "section": "Iterate — feature: org-page conversation thread view",
+  "title": "Org-page conversation thread (FR-04.42)",
+  "context": "FR-04.42/section 10.6 (PO decision, 2026-08-16, option b) makes the Org page the sole surface where leadwright's per-card question/answer rounds are readable; today nothing renders any thread, and the round store (L8) has not shipped yet.",
+  "decision": "Add OrgThread/OrgThreadList as sibling components rendered under each lead's LeadCard on OrgPage.tsx, fed by a stub useOrgThreads() hook returning {} until leadwright's producer lands.",
+  "consequences": "OrgPage renders correctly today with no thread (AC-d); the stub hook is the seam for a real query once L8 ships, and LeadCard's block-order contract stays untouched.",
+  "rationale": "Decoupling avoids touching LeadCard's test-ratcheted 5-block order and avoids fabricating a data model ahead of leadwright's real producer; fixture-driven tests prove ordering, open-round state, and text-escaping now, against >2 rounds.",
+  "rejected": "Rejected reusing the existing poFeedback field (unrelated single-string data from a different prior iterate); rejected a second page (spec designates OrgPage as the host surface).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-01-org-thread-view-miniplan.md"
+}
