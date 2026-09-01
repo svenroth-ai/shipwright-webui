@@ -3,7 +3,7 @@
   "iterate_latest": {
     "run_id": "iterate-2026-09-01-lead-board-surface",
     "date": "2026-09-01",
-    "unit": "PASS \u2014 client 3699 passed (398 files); server 3785 passed / 3 skipped (332 files)",
+    "unit": "PASS \u2014 client 3730 passed (404 files); server 3800 passed / 3 skipped (333 files) \u2014 post-merge with origin/main (#409, #410)",
     "integration": "n/a \u2014 no CRUD or service-boundary change; pure client-side UI reading already-persisted ExternalTask fields",
     "pgtap": "n/a \u2014 no RLS or schema change",
     "e2e": "PASS \u2014 4/4, real-Chromium isolated-stack run of client/e2e/flows/lead-board-surface.spec.ts (Playwright, chromium project)",
@@ -51,9 +51,11 @@
         {
           "behavior": "Existing board/status-filter/TaskCard suites and doc-sync guards unaffected",
           "disposition": "tested",
-          "evidence": "Full client (3699) + server (3785/3 skipped) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones); doc-sync.test.ts extended with the 8 new component/module tokens"
+          "evidence": "Full client (3699, 3730 post-merge) + server (3785/3 skipped, 3800/3 skipped post-merge) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones); doc-sync.test.ts extended with the 8 new component/module tokens"
         }
-      ]
+      ],
+      "counts": { "testable": 8, "tested": 8, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 5, "covered_acs": 5 }
     },
     "surface_verification": {
       "surface": "web",

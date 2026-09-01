@@ -50,9 +50,11 @@
       {
         "behavior": "Existing board/status-filter/TaskCard suites and doc-sync guards unaffected",
         "disposition": "tested",
-        "evidence": "Full client (3699) + server (3785/3 skipped) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones); doc-sync.test.ts extended with the 8 new component/module tokens"
+        "evidence": "Full client (3699, 3730 post-merge) + server (3785/3 skipped, 3800/3 skipped post-merge) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones); doc-sync.test.ts extended with the 8 new component/module tokens"
       }
-    ]
+    ],
+    "counts": { "testable": 8, "tested": 8, "untestable": 0, "untested_testable": 0 },
+    "enumeration_basis": { "acs": 5, "covered_acs": 5 }
   },
   "surface_verification": {
     "surface": "web",
