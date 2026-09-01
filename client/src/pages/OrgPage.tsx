@@ -14,9 +14,11 @@ import { PageHead } from "../components/common/PageHead";
 import { OrgChart } from "../components/org/OrgChart";
 import { OrgSharedDocs } from "../components/org/OrgSharedDocs";
 import { LeadCard } from "../components/org/LeadCard";
+import { OrgThreadList } from "../components/org/OrgThread";
 import { useOrgChartPresence } from "../hooks/useOrgChartPresence";
 import { useOrgChart } from "../hooks/useOrgChart";
 import { useOrgRoster } from "../hooks/useOrgRoster";
+import { useOrgThreads } from "../hooks/useOrgThreads";
 
 export default function OrgPage() {
   const presence = useOrgChartPresence();
@@ -64,6 +66,7 @@ function OrgPageErrorState() {
 function OrgPageContent() {
   const { data: roster, isLoading, error } = useOrgRoster();
   const { data: chart } = useOrgChart();
+  const threads = useOrgThreads();
 
   if (isLoading || !chart) {
     return (
@@ -88,7 +91,10 @@ function OrgPageContent() {
       <OrgSharedDocs />
       <div className="leadlist" data-testid="org-lead-list" style={{ padding: "0 18px 18px" }}>
         {roster.leads.map((lead) => (
-          <LeadCard key={lead.leadId} lead={lead} />
+          <div key={lead.leadId}>
+            <LeadCard lead={lead} />
+            <OrgThreadList cards={threads[lead.leadId]} />
+          </div>
         ))}
       </div>
     </div>

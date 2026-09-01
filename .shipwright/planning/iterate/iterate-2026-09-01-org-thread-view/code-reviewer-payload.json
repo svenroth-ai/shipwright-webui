@@ -1,0 +1,60 @@
+{
+  "section": "iterate-2026-09-01-org-thread-view (FR-04.42)",
+  "review": [
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/components/org/OrgThread.tsx",
+      "line": 37,
+      "finding": "isAnswered had two gaps: a whitespace-only answer passed length>0 (visually blank 'answered' round, violating AC-b), and a null answer (the likely shape once a real, untyped fetch boundary replaces the stub) passed the !== undefined guard and would throw on .length.",
+      "disposition": "fixed",
+      "fix": "isAnswered now checks typeof round.answer === 'string' && round.answer.trim().length > 0. Added fixture tests for whitespace-only and null answers (OrgThread.test.tsx)."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/components/org/OrgThread.tsx",
+      "line": 46,
+      "finding": "data-round-index (and the index prop/parameter feeding it) was dead — referenced nowhere else; ordering is already proven via compareDocumentPosition in tests.",
+      "disposition": "fixed",
+      "fix": "Removed data-round-index, the index prop on Round, and the map's second parameter."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/styles/org.css",
+      "line": 144,
+      "finding": "The open badge carried both .thread-line (display:flex) and .thread-open (display:inline-block) at identical specificity, plus a duplicated margin-top declaration — source-order-dependent.",
+      "disposition": "fixed",
+      "fix": "Dropped the thread-line class from the open badge markup (it isn't a Q/A line); .thread-open now sets its own font-size/line-height explicitly."
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/hooks/useOrgThreads.ts",
+      "line": 12,
+      "finding": "Returning a fresh {} per render is an unstable reference; the header comment's 'swap the body for a real fetch' understated that the call site and consumers change with it.",
+      "disposition": "fixed",
+      "fix": "Returns a module-level frozen EMPTY constant; comment now names that the real hook's shape (and OrgPage's call site) will change too."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/components/org/OrgThread.test.tsx",
+      "line": 20,
+      "finding": "The round() test helper returned its input unchanged and added no type strictness over inline literals; the sibling test file already used plain literals, so the two files were inconsistent.",
+      "disposition": "fixed",
+      "fix": "Removed the helper; all fixtures are now inline object literals."
+    },
+    {
+      "severity": "low",
+      "category": "test-quality",
+      "file": "client/src/components/org/OrgThread.test.tsx",
+      "line": 110,
+      "finding": "The custom text matcher asserted el?.className === 'thread-text' (exact string), coupling the assertion to markup detail rather than rendered behavior.",
+      "disposition": "fixed",
+      "fix": "Replaced with within(answeredRound).getByText(MARKUP), scoped to the round via its testid rather than a class-name match."
+    }
+  ],
+  "no_findings": ["security", "performance"]
+}
