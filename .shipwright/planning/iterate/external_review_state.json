@@ -1,21 +1,13 @@
 {
-  "status": "completed",
-  "timestamp": "2026-08-31T14:28:31.659700+00:00",
-  "provider": "openrouter",
-  "findings_count": 13,
+  "status": "skipped_config_disabled",
+  "timestamp": "2026-09-01T20:56:59.660410+00:00",
+  "provider": null,
+  "findings_count": 0,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "small complexity \u2014 external plan/iterate review is medium+ only by default; not opted in via --review",
   "review_mode": "iterate",
   "marker_schema": 3,
-  "verdicts": {
-    "openai": "revise",
-    "deepseek": "revise"
-  },
-  "contradiction": {
-    "detected": false,
-    "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: deepseek=revise, openai=revise"
-  },
+  "verdicts": null,
+  "contradiction": null,
   "contradiction_resolution": null
 }

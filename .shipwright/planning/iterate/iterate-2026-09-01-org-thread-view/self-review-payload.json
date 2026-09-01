@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Implements FR-04.42/V4c: rounds render per card in order, an unanswered round renders open (never blank), rounds don't fabricate the round-store producer (L8), and nothing outside scope (inbox card, board surface, claim chip, leadwright changes) was touched."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "No API route, DB call, or external service call is introduced by this run — useOrgThreads is a pure stub with no failure mode; OrgThread/OrgThreadList degrade to null on any empty/undefined shape rather than throwing."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "Round question/answer text renders only as React text nodes (JSX auto-escaping) — no dangerouslySetInnerHTML, no markdown/HTML interpretation, no notification pipeline consumes it. Verified by a test asserting a markup+sentinel fixture creates no real <img>/<b> element and never constructs window.Notification."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Tests assert on rendered DOM (testids, text content, DOM order) rather than internals. Happy path (answered rounds, in order) and edge/error paths (open round, empty-string answer, undefined/empty/all-empty thread lists, untrusted markup) are each covered."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "Pure client-side render over small, finite, caller-supplied arrays; no loops of network/DB calls, no unbounded list, no synchronous blocking work."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New files land in the existing client/src/components/org/ and client/src/hooks/ conventions. OrgThread.tsx is 99 lines; OrgPage.tsx grew by 8 lines to ~104; LeadCard.tsx (251 lines) was deliberately left untouched to preserve its strict 5-block-order test. No file exceeds 300 lines."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized format is produced or consumed by this run — useOrgThreads() returns a static in-memory {} with no file/API I/O; the round-store's actual serialization is leadwright's own, unbuilt (L8), and explicitly out of scope here."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run shared/scripts/tools/scan_test_hygiene.py --diff reported no findings (no skip/fixme/xit patterns introduced)."
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-01-org-thread-view",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T20:56:51.912386+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T20:56:59.650844+00:00",
+      "disposition": "small complexity — external plan/iterate review is medium+ only by default; not opted in via --review",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/org/OrgThread.tsx",
+          "line": 37,
+          "finding": "isAnswered had two gaps: a whitespace-only answer passed length>0 (visually blank 'answered' round, violating AC-b), and a null answer (the likely shape once a real, untyped fetch boundary replaces the stub) passed the !== undefined guard and would throw on .length.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/OrgThread.tsx",
+          "line": 46,
+          "finding": "data-round-index (and the index prop/parameter feeding it) was dead — referenced nowhere else; ordering is already proven via compareDocumentPosition in tests.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/styles/org.css",
+          "line": 144,
+          "finding": "The open badge carried both .thread-line (display:flex) and .thread-open (display:inline-block) at identical specificity, plus a duplicated margin-top declaration — source-order-dependent.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/hooks/useOrgThreads.ts",
+          "line": 12,
+          "finding": "Returning a fresh {} per render is an unstable reference; the header comment's 'swap the body for a real fetch' understated that the call site and consumers change with it.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/OrgThread.test.tsx",
+          "line": 20,
+          "finding": "The round() test helper returned its input unchanged and added no type strictness over inline literals; the sibling test file already used plain literals, so the two files were inconsistent.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-quality",
+          "file": "client/src/components/org/OrgThread.test.tsx",
+          "line": 110,
+          "finding": "The custom text matcher asserted el?.className === 'thread-text' (exact string), coupling the assertion to markup detail rather than rendered behavior.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-01T21:08:48.268003+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T21:08:48.569451+00:00",
+      "disposition": "docs/presentational-only diff — no migrations, async/concurrency, cross-plugin imports, or irreversible ops, so Stage 3 does not apply per iteration-reviews.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/pages/OrgPage.thread.test.tsx:42-115",
+          "line": null,
+          "finding": "The page-wiring test uses only one lead, so it cannot verify the required per-lead association. A broken implementation that rendered every lead’s thread under the first lead card (or rendered a single thread list after the complete lead list) would pass this test because the sole card and sole thread are still in document order.",
+          "suggestion": "Add at least two roster leads with distinct thread cards and assert each thread’s content is within the wrapper following its corresponding `LeadCard`, rather than only asserting global document order.  The implementation otherwise satisfies the specified rendering, empty-state, ordering, and inert-text requirements; the identified issue is a coverage gap rather than a production defect. Ship with the strengthened integration test when practical. SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-01T21:08:57.104342+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[deepseek] <no review returned: provider returned an empty reply>\n\n[openai] - Category: test\n- Severity: low\n- File: `client/src/pages/OrgPage.thread.test.tsx:42-115`\n- Finding: The page-wiring test uses only one lead, so it cannot verify the required per-lead association. A broken implementation that rendered every lead’s thread under the first lead card (or rendered a single thread list after the complete lead list) would pass this test because the sole card and sole thread are still in document order.\n- Suggestion: Add at least two roster leads with distinct thread cards and assert each thread’s content is within the wrapper following its corresponding `LeadCard`, rather than only asserting global document order.\n\nThe implementation otherwise satisfies the specified rendering, empty-state, ordering, and inert-text requirements; the identified issue is a coverage gap rather than a production defect. Ship with the strengthened integration test when practical.  \nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "deepseek": "unavailable"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T21:00:25.402360+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T20:56:59.799356+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
