@@ -7,10 +7,13 @@
  *     `detectAwaitingUserQuestion`.
  *   - `terminal_prompt` — a waiting picker visible in the LIVE headless
  *     mirror but not (yet) journaled to the JSONL.
+ *   - `lead_question` — a leadwright follow-up WRITTEN onto the task's
+ *     `description` (FR-04.19), not derived from a JSONL/terminal read
+ *     — see `./_lead.ts`.
  *
  * Precedence: ask_tool > terminal_prompt > text_question. terminal_prompt
  * is a post-pass over the JSONL-derived set so the mtime-keyed cache
- * stays byte-identical.
+ * stays byte-identical. `lead_question` is independent of that precedence.
  *
  * Phase A4 hot-path: per-session derive cache + negative-result cache
  * — see `./_cache.ts`. JSONL cold-path + terminal_prompt post-pass live
@@ -24,6 +27,11 @@ import { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 
 import { inboxDeriveCache } from "./_cache.js";
 import { deriveInboxFromJsonl, appendTerminalPrompts } from "./_derive.js";
+import {
+  appendLeadQuestions,
+  extractLeadQuestionBody,
+  LEAD_QUESTION_DISMISS_PREFIX,
+} from "./_lead.js";
 
 export interface InboxRouterDeps {
   store: SdkSessionsStore;
@@ -44,6 +52,7 @@ export function createInboxRouter(deps: InboxRouterDeps): Hono {
       watcher,
     });
     appendTerminalPrompts(entries, { store, ptyManager });
+    appendLeadQuestions(entries, { store });
     if (storeDirty) await store.persist();
     return c.json({ items: entries });
   });
@@ -68,6 +77,31 @@ export function createInboxRouter(deps: InboxRouterDeps): Hono {
       inboxDeriveCache.delete(task.sessionUuid);
       await store.persist();
       return c.json({ ok: true, taskId: task.taskId });
+    }
+    // lead_question dismiss — the id is `lq-<taskId>`, not a JSONL toolUseId
+    // (a written kind has no toolUseId at all). Reuses `dismissedToolUseIds`
+    // as a generic dismissed-id set rather than adding a parallel field.
+    if (toolUseId.startsWith(LEAD_QUESTION_DISMISS_PREFIX)) {
+      const taskId = toolUseId.slice(LEAD_QUESTION_DISMISS_PREFIX.length);
+      const task = store.get(taskId);
+      if (
+        task &&
+        extractLeadQuestionBody(task.description) !== null &&
+        !task.inbox.dismissedToolUseIds.includes(toolUseId)
+      ) {
+        store.patch(task.taskId, {
+          inbox: {
+            pendingToolUseIds: task.inbox.pendingToolUseIds,
+            dismissedToolUseIds: [
+              ...task.inbox.dismissedToolUseIds,
+              toolUseId,
+            ],
+            lastProcessedByteOffset: task.inbox.lastProcessedByteOffset,
+          },
+        });
+        await store.persist();
+        return c.json({ ok: true, taskId: task.taskId });
+      }
     }
     return c.json(
       { ok: false, error: "toolUseId not found in any pending set" },

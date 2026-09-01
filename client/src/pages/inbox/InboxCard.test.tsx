@@ -23,13 +23,15 @@ vi.mock("../../hooks/useLaunchTask", () => ({
   })),
 }));
 
-import { InboxCard } from "./InboxCard";
+import { InboxCard, inboxItemKey } from "./InboxCard";
 import type {
   AskToolInboxItem,
   ExternalTask,
+  InboxItem,
   TerminalPromptInboxItem,
   TextQuestionInboxItem,
 } from "../../lib/externalApi";
+import type { LeadQuestionInboxItem } from "../../lib/leadQuestionApi";
 
 function makeTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
   return {
@@ -109,6 +111,14 @@ const TERM: TerminalPromptInboxItem = {
   bestEffort: true,
 };
 
+const LEAD: LeadQuestionInboxItem = {
+  kind: "lead_question",
+  taskId: "task-A",
+  sessionUuid: "sess-A",
+  taskTitle: "task-A",
+  questionText: "Are we good to ship?",
+};
+
 describe("InboxCard — polymorphic dispatcher", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -184,5 +194,35 @@ describe("InboxCard — polymorphic dispatcher", () => {
       />,
     );
     expect(screen.getByTestId("inbox-card-q-A")).toBeInTheDocument();
+  });
+
+  // @covers FR-01.72
+  it("lead_question routes to LeadQuestionCard — inbox-card-lq-<taskId> testid, answer form present", () => {
+    renderCard(<InboxCard item={LEAD} task={makeTask()} />);
+    expect(screen.getByTestId("inbox-card-lq-task-A")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-question-text-lq-task-A")).toHaveTextContent(
+      "Are we good to ship?",
+    );
+    expect(screen.getByTestId("inbox-lead-answer-input-lq-task-A")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-lead-answer-send-lq-task-A")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-lead-dismiss-lq-task-A")).toBeInTheDocument();
+  });
+});
+
+describe("InboxCard / inboxItemKey — exhaustiveness guard (FR-04.19 trap 3/4)", () => {
+  it("inboxItemKey returns lq-<taskId> for a lead_question item", () => {
+    expect(inboxItemKey(LEAD)).toBe("lq-task-A");
+  });
+
+  it("inboxItemKey throws (never a silent undefined key) for an unrecognized kind", () => {
+    const bogus = { kind: "bogus_kind", taskId: "x" } as unknown as InboxItem;
+    expect(() => inboxItemKey(bogus)).toThrow(/unhandled inbox item kind/);
+  });
+
+  it("InboxCard throws (never a silent wrong-card render) for an unrecognized kind", () => {
+    const bogus = { kind: "bogus_kind", taskId: "x" } as unknown as InboxItem;
+    expect(() =>
+      renderCard(<InboxCard item={bogus} task={makeTask()} />),
+    ).toThrow(/unhandled inbox item kind/);
   });
 });

@@ -20,6 +20,15 @@
  * Prove it bites: add a `<textarea>` / `<input>` / `contentEditable` to any
  * Inbox card, or import a terminal-write hook, or call `socket.send` — this
  * test goes RED.
+ *
+ * FR-04.19 (2026-09-01) carved ONE deliberate, narrow exception into the first
+ * assertion only: `InboxCard.LeadQuestion.tsx`'s `<textarea>`. A `lead_question`
+ * is not a live Claude turn — there is no pty, no TUI, nothing this fence was
+ * built to protect. Answering it PATCHes `poFeedback` over the ordinary REST
+ * API, the same write surface the ("outside this tree") Edit Task dialog
+ * already uses. The other three assertions (terminal-write imports,
+ * socket.send/.write(), clipboard) still cover this file in full — a lead
+ * card doing ANY of those would still turn this test red.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -62,9 +71,19 @@ function inboxSourceFiles(): string[] {
 
 const FILES = inboxSourceFiles();
 
-function scan(re: RegExp): string[] {
+// FR-04.19 — the one file allowed a `<textarea>` (only): a `lead_question`
+// answer PATCHes `poFeedback` over REST, not a pty. Matched on the exact
+// relative path, not basename, so no other file anywhere under the walked
+// tree can inherit this by sharing a filename; an `<input>` or
+// contentEditable in this SAME file is still forbidden — see file header.
+const LEAD_ANSWER_FILE = path.join("pages", "inbox", "InboxCard.LeadQuestion.tsx");
+const FILES_EXCLUDING_LEAD_ANSWER = FILES.filter(
+  (f) => path.relative(SRC, f) !== LEAD_ANSWER_FILE,
+);
+
+function scan(re: RegExp, files: string[] = FILES): string[] {
   const hits: string[] = [];
-  for (const f of FILES) {
+  for (const f of files) {
     const text = strip(readFileSync(f, "utf8"));
     if (re.test(text)) hits.push(path.relative(SRC, f));
   }
@@ -72,9 +91,12 @@ function scan(re: RegExp): string[] {
 }
 
 describe("Inbox fence — no control writes into a pty (AC1)", () => {
-  it("has NO text input surface (input / textarea / contentEditable)", () => {
+  it("has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field", () => {
     expect(scan(/<input[\s/>]/i), "Inbox rendered an <input>").toEqual([]);
-    expect(scan(/<textarea[\s/>]/i), "Inbox rendered a <textarea>").toEqual([]);
+    expect(
+      scan(/<textarea[\s/>]/i, FILES_EXCLUDING_LEAD_ANSWER),
+      "Inbox rendered a <textarea> outside the FR-04.19 lead-answer field",
+    ).toEqual([]);
     expect(
       scan(/contenteditable/i),
       "Inbox rendered a contentEditable surface",

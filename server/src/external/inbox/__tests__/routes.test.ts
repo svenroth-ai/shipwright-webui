@@ -116,4 +116,58 @@ describe("createInboxRouter — POST /api/external/inbox/:toolUseId/dismiss", ()
     expect(after.inbox.dismissedToolUseIds).toContain("tu-pending");
     expect(after.inbox.pendingToolUseIds).not.toContain("tu-pending");
   });
+
+  it("200 dismisses a lead_question via its lq-<taskId> id", async () => {
+    const { app, store } = await makeApp();
+    const task = store.create({ title: "Lead task", cwd: "/c", pluginDirs: [] });
+    store.patch(task.taskId, {
+      description: "<!-- lead-question:info -->\nStill on track?",
+    });
+
+    const res = await app.request(`/api/external/inbox/lq-${task.taskId}/dismiss`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; taskId: string };
+    expect(body.ok).toBe(true);
+    expect(body.taskId).toBe(task.taskId);
+    const after = store.get(task.taskId)!;
+    expect(after.inbox.dismissedToolUseIds).toContain(`lq-${task.taskId}`);
+
+    // Dismissed lead_question no longer appears in the aggregator.
+    const listRes = await app.request("/api/external/inbox");
+    const listBody = (await listRes.json()) as { items: { kind: string }[] };
+    expect(listBody.items).toEqual([]);
+  });
+
+  it("404 for an lq-prefixed id that doesn't resolve to a waiting lead_question", async () => {
+    const { app } = await makeApp();
+    const res = await app.request("/api/external/inbox/lq-unknown-task/dismiss", {
+      method: "POST",
+    });
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { ok: boolean };
+    expect(body.ok).toBe(false);
+  });
+});
+
+describe("createInboxRouter — GET /api/external/inbox — lead_question", () => {
+  beforeEach(() => clearInboxDeriveCache());
+
+  it("surfaces a task with a lead-question marker as kind lead_question, without bestEffort", async () => {
+    const { app, store } = await makeApp();
+    const task = store.create({ title: "Lead task", cwd: "/c", pluginDirs: [] });
+    store.patch(task.taskId, {
+      description: "<!-- lead-question:info -->\nAll good?",
+    });
+
+    const res = await app.request("/api/external/inbox");
+    const body = (await res.json()) as {
+      items: { kind: string; taskId: string; bestEffort?: boolean }[];
+    };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("lead_question");
+    expect(body.items[0].taskId).toBe(task.taskId);
+    expect(body.items[0]).not.toHaveProperty("bestEffort");
+  });
 });

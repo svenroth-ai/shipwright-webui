@@ -1,0 +1,32 @@
+{
+  "run_id": "iterate-2026-09-01-lead-question-inbox",
+  "date": "2026-09-01T21:58:00.425199Z",
+  "event_at": "2026-09-01T21:57:48.391743+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/lead-question-inbox",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-01-lead-question-inbox",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 9,
+      "tested": 9,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "exit_code": 0,
+    "tests_run": 0,
+    "justification": "small-complexity UI addition; behavior covered at the component/route level (real DOM, real click/keyboard, real mocked-network fetch calls; real server route tests) instead of Playwright E2E."
+  },
+  "declared_removals": []
+}
