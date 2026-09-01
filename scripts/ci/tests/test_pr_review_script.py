@@ -47,8 +47,8 @@ class TestFileContract:
             "script must not reference ANTHROPIC_API_KEY — OpenRouter is the single provider"
         )
 
-    def test_default_model_is_sonnet(self):
-        assert pr_review.DEFAULT_MODEL == "anthropic/claude-sonnet-4.6"
+    def test_default_model_is_deepseek(self):
+        assert pr_review.DEFAULT_MODEL == pr_review.DEEPSEEK_MODEL == "deepseek/deepseek-v4-pro"
 
     def test_every_re_exported_name_resolves(self):
         # The lib modules are reachable through `pr_review.<symbol>` — that is

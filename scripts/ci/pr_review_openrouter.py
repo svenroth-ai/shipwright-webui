@@ -16,12 +16,14 @@ under whatever environment the CI runner's Python resolves.
 #   plugins/shipwright-security/scripts/tools/pr_review.py  (the ADR-117 extraction)
 # canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
 #   + iterate-2026-07-31-it7a-pr-review-stale-verdict (ADR-117, extraction wording)
+#   + iterate-2026-08-31-pr-review-deepseek-model (DEFAULT_MODEL swap +
+#     `extra_body` merge, mirroring the monorepo's DeepSeek ZDR routing)
 # adaptation: NOT byte-identical, so no canonical-source-hash line is claimed
 #   (spelled without the leading marker on purpose; `tests/test_accepted_risks_vendored.py`
-#   scans for that literal string). Two independent divergences from any single
-#   upstream blob: (1) OpenRouter attribution headers (HTTP-Referer / X-Title)
-#   name the webui repo; (2) `DEFAULT_TIMEOUT` is 600s, not upstream's 120s — see
-#   the comment at its definition for why the size-cap increase requires it.
+#   scans for that literal string). Divergences from any single upstream blob:
+#   (1) OpenRouter attribution headers (HTTP-Referer / X-Title) name the webui
+#   repo; (2) `DEFAULT_TIMEOUT` is 600s, not upstream's 120s — see the comment
+#   at its definition for why the size-cap increase requires it.
 """
 
 from __future__ import annotations
@@ -30,9 +32,13 @@ import json
 import urllib.error
 import urllib.request
 
-__all__ = ["DEFAULT_MODEL", "DEFAULT_TIMEOUT", "OPENROUTER_URL", "call_openrouter"]
+__all__ = ["DEEPSEEK_MODEL", "DEFAULT_MODEL", "DEFAULT_TIMEOUT", "OPENROUTER_URL", "call_openrouter"]
 
-DEFAULT_MODEL = "anthropic/claude-sonnet-4.6"
+# One named constant — DEFAULT_MODEL, the ZDR-routing model match in
+# pr_review_model_policy.py, and every test/workflow assertion all read this,
+# so they cannot drift into three copies of the same literal.
+DEEPSEEK_MODEL = "deepseek/deepseek-v4-pro"
+DEFAULT_MODEL = DEEPSEEK_MODEL
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # ONE default for the whole tool — the CLI flag and the direct call share it.
@@ -44,9 +50,17 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 DEFAULT_TIMEOUT = 600
 
 
-def _post_openrouter(api_key: str, model: str, messages: list[dict], timeout: int) -> dict:
-    """POST the chat-completion request and return the parsed JSON body."""
+def _post_openrouter(api_key: str, model: str, messages: list[dict], timeout: int,
+                      *, extra_body: dict | None = None) -> dict:
+    """POST the chat-completion request and return the parsed JSON body.
+
+    `extra_body` (e.g. a DeepSeek ZDR provider-routing constraint) is merged
+    UNDER the transport's own keys — `{**extra_body, **payload}`, not the
+    reverse — so a config-derived dict can never overwrite `model`,
+    `messages`, or `response_format`, even if it later grows a colliding key.
+    """
     payload = {
+        **(extra_body or {}),
         "model": model,
         "messages": messages,
         "response_format": {"type": "json_object"},
@@ -73,14 +87,15 @@ def _post_openrouter(api_key: str, model: str, messages: list[dict], timeout: in
 
 
 def call_openrouter(api_key: str, model: str, messages: list[dict],
-                    timeout: int = DEFAULT_TIMEOUT) -> str:
+                    timeout: int = DEFAULT_TIMEOUT, *,
+                    extra_body: dict | None = None) -> str:
     """Call OpenRouter and return the assistant message content string.
 
     Raises RuntimeError on transport failure (HTTP error, timeout) or an
     unexpected response shape — the caller maps that to exit 2.
     """
     try:
-        data = _post_openrouter(api_key, model, messages, timeout)
+        data = _post_openrouter(api_key, model, messages, timeout, extra_body=extra_body)
     except urllib.error.HTTPError as e:
         detail = ""
         try:

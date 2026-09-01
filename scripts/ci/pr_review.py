@@ -10,43 +10,38 @@ Vendored from the canonical shipwright monorepo — the WebUI has no Python
 #   plugins/shipwright-security/scripts/tools/pr_review.py
 # canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
 #   + iterate-2026-08-01-pr-review-stale-verdict (ADR-117)
+#   + iterate-2026-08-31-pr-review-deepseek-model (DeepSeek ZDR routing)
 #
 # THIS FILE MERGES TWO INDEPENDENT CANONICAL PORTS and is not byte-identical to
 # either, so no canonical-source-hash line is claimed (see the same discipline
 # in `pr_review_gh.py` / `pr_review_openrouter.py`). Adaptations from both:
-#   (1) sibling imports — every `pr_review_*` module lives next to this file in
-#       `scripts/ci/`, so the sys.path insert points at SCRIPT_DIR (canonical:
-#       PLUGIN_ROOT/scripts/lib).
-#   (2) default --prompt-dir → `scripts/ci/pr_reviewer`.
-#   (3) OpenRouter attribution headers (HTTP-Referer / X-Title) → the webui repo.
-#   (4) ADR-117 (iterate-2026-08-01-pr-review-stale-verdict): a passing verdict
-#       retracts its own superseded change-requests. The ownership rule is
-#       vendored verbatim into `pr_review_dismiss_select`; what lives HERE is
-#       only what no other module can know — the nonce this run stamped and the
-#       head it actually read.
-#   (5) the canonical-parity hardening (iterate-2026-07-28-pr-review-parity):
-#       one-pass template fill, bytes-safe diff fetch, LF-anchored section
-#       splitting, the generated-artifact filter + `safe_path` sanitiser, and
-#       the 200k→1M cap cut at a file boundary. `pr_review_diff_filter` /
-#       `pr_review_render` / `pr_review_safe_path` carry the logic; this file
-#       only wires it into `main()`.
-#   Both ports split OpenRouter and `gh` each into their own boundary module —
-#   independently, for the same source-size-guideline reason — so this file
-#   holds orchestration only.
+#   (1) sibling imports (`scripts/ci/`, canonical: PLUGIN_ROOT/scripts/lib);
+#       (2) default --prompt-dir → `scripts/ci/pr_reviewer`; (3) OpenRouter
+#       attribution headers (HTTP-Referer / X-Title) → the webui repo.
+#   (4) ADR-117: a passing verdict retracts its own superseded change-requests.
+#       The ownership rule is vendored verbatim into `pr_review_dismiss_select`;
+#       what lives HERE is only what no other module can know — the nonce this
+#       run stamped and the head it actually read.
+#   (5) canonical-parity hardening (iterate-2026-07-28-pr-review-parity): one-
+#       pass template fill, bytes-safe diff fetch, LF-anchored section
+#       splitting, generated-artifact filter + `safe_path` sanitiser, 200k→1M
+#       cap cut at a file boundary — logic lives in `pr_review_diff_filter` /
+#       `pr_review_render` / `pr_review_safe_path`, this file only wires it in.
+#   Both ports split OpenRouter and `gh` into their own boundary module, so
+#   this file holds orchestration only.
 
 Invoked by `.github/workflows/pr-review-run.yml` (stage 2) for Tier-3 PRs only
-(external contributors, sensitive paths, `needs-review`). The tier filter lives
-in stage 2's `tier` step — default-branch code over API data
-(iterate-2026-07-31-two-stage-pr-review); Step 8 covers Tier 1/2 locally.
+(external contributors, sensitive paths, `needs-review`); the tier filter lives
+in stage 2's `tier` step (default-branch code over API data), Step 8 covers
+Tier 1/2 locally.
 
-Steps: read the PR head (BEFORE the diff — a review's own `commit_id` is stamped
-at submission, so it cannot say what was reviewed) → fetch the diff (as bytes,
-so a lone CR cannot forge a `diff --git` boundary) → drop producer-generated
-sections → refuse to proceed if nothing reviewable is left → truncate at a file
-boundary if still oversize → load prompts → build messages (one-pass template
-fill) → POST to OpenRouter (strict JSON) → parse the decision → post a comment +
-(best-effort) review state stamped with this run's nonce → on a passing
-verdict, retract its own superseded change-requests → exit per decision.
+Steps: read the PR head (before the diff, since a review's own `commit_id` is
+stamped at submission) → fetch the diff (as bytes) → drop producer-generated
+sections → refuse if nothing reviewable is left → truncate at a file boundary
+if still oversize → load prompts → build messages → POST to OpenRouter (strict
+JSON) → parse the decision → post a comment + (best-effort) review state
+stamped with this run's nonce → on a pass, retract its own superseded
+change-requests → exit per decision.
 
 Usage:
     python scripts/ci/pr_review.py \
@@ -62,7 +57,8 @@ Exit codes:
     0  decision approve | comment
     1  block — also when nothing/not everything was reviewed (fails closed)
     2  error (no key, OpenRouter down/rate-limited, JSON parse failure, unknown
-       decision, prompt/diff fetch failure, a template missing a placeholder)
+       decision, prompt/diff fetch failure, a template missing a placeholder,
+       invalid DeepSeek ZDR routing policy)
 """
 
 from __future__ import annotations
@@ -106,10 +102,17 @@ from pr_review_gh import (  # noqa: E402
     post_pr_review_state,
 )
 from pr_review_openrouter import (  # noqa: E402
+    DEEPSEEK_MODEL,
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT,
     OPENROUTER_URL,
     call_openrouter,
+)
+# DeepSeek ZDR provider-routing constraint; `{}` for a non-DeepSeek override,
+# which never reads `deepseek_routing.json` (see module docstring).
+from pr_review_model_policy import (  # noqa: E402
+    DeepSeekRoutingPolicyError,
+    resolve_extra_body,
 )
 # Retracting this reviewer's OWN superseded change-requests (ADR-117). The
 # ownership rule is `pr_review_dismiss_select`; this tool only supplies the two
@@ -122,9 +125,8 @@ from pr_review_dismiss import (  # noqa: E402
     strip_display_unsafe,
 )
 
-# The re-export surface: every name a caller or test is entitled to reach
-# through `pr_review.<symbol>`. Kept complete on purpose — a name that is
-# imported above but missing here reads as private while tests patch it.
+# The re-export surface every caller/test reaches via `pr_review.<symbol>` —
+# kept complete since a name imported above but missing here reads as private.
 __all__ = [
     "EXIT_BLOCK", "EXIT_ERROR", "EXIT_OK", "MAX_DIFF_CHARS", "_redact",
     "build_messages", "build_pr_meta", "count_sections", "decision_to_exit",
@@ -133,7 +135,8 @@ __all__ = [
     "parse_review_response", "post_pr_comment", "post_pr_review_state",
     "read_reviewed_head", "render_comment", "safe_path", "stamp_review_body",
     "strip_display_unsafe", "truncate_diff", "call_openrouter", "DEFAULT_MODEL",
-    "DEFAULT_TIMEOUT", "OPENROUTER_URL",
+    "DEFAULT_TIMEOUT", "OPENROUTER_URL", "DEEPSEEK_MODEL",
+    "DeepSeekRoutingPolicyError", "resolve_extra_body",
 ]
 
 
@@ -149,18 +152,15 @@ def _fix_windows_encoding() -> None:
 def _post_verdict(args, api_key: str, body: str, decision: str, summary: str,
                   nonce: str) -> bool:
     """Post the comment + review state. Best-effort: a posting failure must not
-    flip the gate, which reflects the review outcome (the exit code), not the
-    side-effect.
+    flip the gate, which reflects the review outcome, not the side-effect.
 
-    The review-state body is stamped with this run's nonce, which is how the
-    stale-verdict cleanup later recognises its OWN review among the PR's.
-    Returns whether that state landed: without it there is no anchor, and a
-    cleanup that cannot identify itself must not guess.
+    Stamped with this run's nonce, so the stale-verdict cleanup can recognise
+    its OWN review later. Returns whether the state landed: without an anchor,
+    a cleanup that cannot identify itself must not guess.
     """
-    # Stamped BEFORE the loop, not inside its iterable: Python builds that tuple
-    # before entering the body, so a `stamp_review_body` that raised would
-    # escape the try/except below — turning a passing review into exit 1 on the
-    # one call in this construct that the best-effort contract does not cover.
+    # Stamped BEFORE the loop: the tuple below is built before the try/except,
+    # so a raising `stamp_review_body` would escape it — the one call here the
+    # best-effort contract does not cover.
     stamped = stamp_review_body(summary, nonce)
     state_posted = True
     for fn, call_args, what in (
@@ -170,10 +170,8 @@ def _post_verdict(args, api_key: str, body: str, decision: str, summary: str,
         try:
             fn(*call_args)
         except Exception as e:  # noqa: BLE001
-            # Scrubbed AND redacted (Stage-3). This diff made
-            # `post_pr_review_state` raise, so this print is live for the first
-            # time and its payload is raw `gh` stderr — which carries newlines
-            # (HTTP 422 field errors). `_redact` masks only the key; without the
+            # Scrubbed AND redacted: `_redact` masks only the key, and this
+            # payload is raw `gh` stderr, which carries newlines — without the
             # scrub a line starting `::error::` forges an Actions workflow
             # command. The sibling sink in `pr_review_dismiss` already guards it.
             print(_redact(strip_display_unsafe(f"[pr_review] failed to post {what}: {e}"),
@@ -202,6 +200,19 @@ def main(argv: list[str] | None = None) -> int:
         print("[pr_review] OPENROUTER_API_KEY is not set — cannot review.", file=sys.stderr)
         return EXIT_ERROR
     model = os.environ.get("SHIPWRIGHT_PR_REVIEW_MODEL", DEFAULT_MODEL)
+    # Resolved before any network I/O: a non-DeepSeek model never touches
+    # deepseek_routing.json; a DeepSeek model's missing/malformed config or
+    # invalid ZDR policy must fail this REQUIRED gate closed before the diff
+    # is even fetched.
+    try:
+        extra_body = resolve_extra_body(model)
+    except Exception as e:  # noqa: BLE001 — any loader/policy failure must
+        # fail closed, not escape as a bare traceback; type name keeps a real
+        # code bug diagnosable.
+        print(_redact(
+            f"[pr_review] reviewer misconfigured (DeepSeek ZDR routing policy) — "
+            f"not your change: {type(e).__name__}: {e}", api_key), file=sys.stderr)
+        return EXIT_ERROR
     # Minted before the first post, because EVERY posting path stamps it.
     nonce = new_nonce()
 
@@ -223,26 +234,21 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_ERROR
 
     # Drop producer-generated artifacts (compliance MDs, agent-docs, changelog
-    # drops, state logs, prior review records — NOT dependency lockfiles, which
-    # left this set in iterate-2026-07-27-pr-review-forged-boundary: on an
-    # untrusted PR the lockfile is the supply-chain surface) BEFORE the
-    # truncation check: they dominate a shipwright PR diff but carry no
-    # reviewable logic, so keeping them would trip the size cap and fail the
-    # review closed on ordinary medium+ iterates. The excluded list is surfaced
-    # to the model (pr_meta) + humans (comment) — transparent, never silent.
+    # drops, state logs, prior review records — NOT lockfiles, which left this
+    # set in iterate-2026-07-27-pr-review-forged-boundary since on an untrusted
+    # PR the lockfile IS the supply-chain surface) before truncation: they
+    # dominate a shipwright diff but carry no reviewable logic and would trip
+    # the size cap. The excluded list is surfaced to model + humans, never silent.
     diff, excluded = filter_generated_paths(diff)
 
     # ...but "everything was generated" is not a review. This script runs ONLY
-    # when the tier step decided the PR needs one (needs-review label, sensitive
-    # path, or external contributor — an ordinary internal churn PR takes the
-    # `decide false "internal PR"` branch and never reaches here). So a filtered
-    # diff that came back empty means a PR that had to be reviewed was handed to
-    # the model as nothing at all — and the system prompt answers an empty diff
-    # with `approve` plainly: a green required check over an unread change. The
-    # invariant is "the reviewer saw at least one file section" — NOT the
-    # narrower "everything was filtered". An empty fetch, a `gh` body with no
-    # `diff --git` header at all, and a fully-filtered PR are the same failure
-    # from the model's side.
+    # when the tier step decided the PR needs one (an ordinary internal PR never
+    # reaches here). A filtered diff that comes back empty means a PR that had
+    # to be reviewed was handed nothing — and the system prompt answers an empty
+    # diff with `approve`: a green required check over an unread change. The
+    # invariant is "saw at least one file section", not "everything was
+    # filtered" — an empty fetch, a headerless `gh` body, and a fully-filtered
+    # PR are the same failure from the model's side.
     if not count_sections(diff):
         summary = nothing_reviewed_summary(excluded)
         # `model=` names who reviewed. On this branch nobody did — we return
@@ -280,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     try:
-        raw = call_openrouter(api_key, model, messages, args.timeout)
+        raw = call_openrouter(api_key, model, messages, args.timeout, extra_body=extra_body)
     except Exception as e:  # noqa: BLE001 — any transport/shape failure is a non-blocking error
         print(_redact(f"[pr_review] OpenRouter call failed: {e}", api_key), file=sys.stderr)
         return EXIT_ERROR
@@ -295,14 +301,11 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_ERROR
 
     decision = str(review.get("decision", ""))
-    # A truncated diff is a PARTIAL review — we never saw the whole change. For a
-    # required gate on an untrusted (external/sensitive) PR, neither auto-passing
-    # nor trusting the partial verdict is safe: a large diff must not be able to
-    # BYPASS review by exceeding the size cap. Fail CLOSED — force a
-    # request-changes state + non-zero exit (below) so a human must review; the
-    # red check is also what lets the gh-pr-ci triage producer track the PR.
-    # (Until iterate-2026-06-17-pr-review-truncation-failclosed this returned
-    # EXIT_OK — a silent size-bypass.)
+    # A truncated diff is a PARTIAL review. On a required gate for an untrusted
+    # PR, neither auto-passing nor trusting the partial verdict is safe — a
+    # large diff must not BYPASS review by exceeding the size cap. Fail CLOSED:
+    # force request-changes + non-zero exit so a human must review (until
+    # iterate-2026-06-17-pr-review-truncation-failclosed this returned EXIT_OK).
     effective_decision = "block" if truncated else decision
     body = render_comment(
         review, model=model, truncated=truncated, excluded_generated=excluded, **missing)
@@ -311,11 +314,9 @@ def main(argv: list[str] | None = None) -> int:
                                  str(review.get("summary", "")), nonce)
 
     if truncated:
-        # Partial review fails closed — needs human. `skip-pr-review` is no
-        # longer a general override: stage 2's tier step ignores it on a
-        # sensitive path, which an oversize diff often touches, so it needs an
-        # admin merge there instead. Sanitised like every sink: a raw Git path
-        # can carry terminal escapes.
+        # Partial review fails closed — needs human. `skip-pr-review` is
+        # ignored on a sensitive path (needs an admin merge instead). Sanitised
+        # like every sink: a raw Git path can carry terminal escapes.
         unseen = ", ".join(safe_path(p) for p in reviewed.omitted + reviewed.partial)
         extra = f" (+{reviewed.unidentified} unnamed)" if reviewed.unidentified else ""
         print(
@@ -331,10 +332,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[pr_review] unknown decision '{decision}' — treating as error.", file=sys.stderr)
     if exit_code == EXIT_OK and state_posted:
         # This run said yes, so its own earlier NOs about commits that are gone
-        # must stop holding the PR. Only on a passing verdict, and never allowed
-        # to change what the review earned — hence the outer guard as well as
-        # the ones inside. GitHub does not let a COMMENTED review retract a
-        # CHANGES_REQUESTED one, and `dismiss_stale_reviews_on_push` clears
+        # must stop holding the PR — only on a passing verdict, never allowed to
+        # change what the review earned. GitHub does not let a COMMENTED review
+        # retract CHANGES_REQUESTED, and `dismiss_stale_reviews_on_push` clears
         # approvals only, so without this a green PR stays BLOCKED in silence.
         #
         # ORDERING (Stage-2 review): this irreversible write runs in the

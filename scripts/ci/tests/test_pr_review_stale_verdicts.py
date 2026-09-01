@@ -57,7 +57,7 @@ def _wire(monkeypatch, *, review_json=_PASS, diff="diff --git a b\n+x\n"):
 
     monkeypatch.setattr(pr_review, "fetch_pr_diff", fake_diff)
     monkeypatch.setattr(pr_review, "call_openrouter",
-                        lambda key, model, messages, timeout=120: review_json)
+                        lambda key, model, messages, timeout=120, *, extra_body=None: review_json)
     monkeypatch.setattr(pr_review, "post_pr_comment",
                         lambda pr, repo, body: seen.update(comment=body))
     monkeypatch.setattr(pr_review, "post_pr_review_state",
