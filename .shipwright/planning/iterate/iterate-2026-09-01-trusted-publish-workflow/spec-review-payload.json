@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "The single added file .github/workflows/publish-npm.yml matches the change intent exactly: trigger is push tags v* only; permissions are contents:read + id-token:write with no NPM_TOKEN/secrets reference; it installs deps for server/client/bootstrapper, runs npm run build then npm publish --access public from bootstrapper (verified against bootstrapper/package.json — @svenroth-ai/shipwright, build-package.mjs stages server/dist + client/dist); uses only actions/checkout@v4 and actions/setup-node@v4 on mutable tags (consistent with CLAUDE.md rule 25), no third-party action. Functional YAML is identical to the vetted template; only the header comment is adapted. No drift."
+}

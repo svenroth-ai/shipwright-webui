@@ -1,0 +1,127 @@
+# Operational `latest` publishing for @svenroth-ai/shipwright via npm Trusted
+# Publishing (OIDC). No NPM_TOKEN ever exists — GitHub's OIDC identity is the
+# credential, and npm provenance is attached automatically.
+#
+# This DELIBERATELY reverses the earlier "no publish workflow, manual 2FA gate"
+# stance: the human gate moves from `npm publish` to cutting the release tag
+# (optionally an Environment approval — see below). A fail-fast guard asserts
+# the pushed tag matches bootstrapper/package.json AND is a STABLE version, so
+# the tag is genuinely load-bearing and prereleases never reach `latest`.
+# See the paired decision drop / ADR for the full rationale.
+#
+# STABLE (`latest`) ONLY. Prerelease / `@next` builds are published MANUALLY
+# (shipwright-npm-publish skill, Flow A --channel next) — this workflow rejects
+# a prerelease tag on purpose so a `-next`/`-rc` can never land on `latest`.
+#
+# ACCEPTED, DOCUMENTED risks (see decision-drop / doubt review):
+#   * id-token:write is job-scoped, so it is present while `npm ci` runs
+#     dependency install scripts. Inherent to Actions + native deps; accepted
+#     for an infrequent, write-gated, manual release. Splitting build/publish
+#     into two jobs would tighten this if ever judged worth the complexity.
+#   * Git tags are not branch-protected, so tag-push authority == release
+#     authority. Accepted by design (cutting the tag IS the human gate); enable
+#     the optional `environment: npm-publish` approval below for a second gate.
+#
+# ONE-TIME SETUP (must be done before the first tag fires this):
+#   1. First bootstrap publish already done (the package exists on npm).
+#   2. npmjs.com -> package @svenroth-ai/shipwright -> Settings ->
+#      "Trusted Publisher" -> GitHub Actions, entered EXACTLY as:
+#        Organization or user: svenroth-ai
+#        Repository:           shipwright-webui
+#        Workflow filename:    publish-npm.yml
+#        Environment name:     (leave blank, or 'npm-publish' if the gate below is used)
+#   3. From then on: push a stable release tag (v*) -> this publishes automatically.
+#
+# Node >= 22.14 / npm >= 11.5.1 are required for OIDC; Node 24 + the npm pin
+# below satisfy both.
+
+name: Publish to npm (trusted publishing)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+# FIXED group (not keyed on the tag ref): ALL publishes serialize, so two
+# release tags pushed close together can never run in parallel and race the
+# `latest` dist-tag onto the older version. cancel-in-progress:false — a
+# queued publish waits and still runs; it must never be dropped.
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build + publish @svenroth-ai/shipwright
+    runs-on: ubuntu-latest
+    # OIDC: no NPM_TOKEN. Least privilege, job-scoped — only this job mints the
+    # id-token; a future job added to this file does not inherit it.
+    permissions:
+      contents: read
+      id-token: write
+    # OPTIONAL human gate: create a GitHub Environment named 'npm-publish' with
+    # required reviewers, add its name to the trusted-publisher config above,
+    # and uncomment the next line. Then every publish waits for your approval.
+    # environment: npm-publish
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node (OIDC-capable toolchain)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm >= 11.5.1. Node 24 ships 11.x; pin to a
+      # known-good floor (not @latest) so a bad npm release can't break publishing.
+      - name: Ensure npm supports OIDC
+        run: npm install -g npm@^11.5.1 && npm --version
+
+      # The tag is the human gate — assert it matches the artifact, is a STABLE
+      # version (no prerelease to `latest`), and is not already published, so a
+      # drift / prerelease / re-tag fails fast with a clear message before any build.
+      - name: Verify tag is a matching, stable, unpublished version
+        run: |
+          PKG_VERSION="$(node -p "require('./bootstrapper/package.json').version")"
+          if [ "v${PKG_VERSION}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::pushed tag '${GITHUB_REF_NAME}' does not match bootstrapper/package.json version 'v${PKG_VERSION}'"
+            exit 1
+          fi
+          case "${PKG_VERSION}" in
+            *-*)
+              echo "::error::'${PKG_VERSION}' is a prerelease. This workflow publishes STABLE releases to the 'latest' dist-tag only; publish prerelease/@next builds manually (shipwright-npm-publish Flow A --channel next)."
+              exit 1
+              ;;
+          esac
+          if npm view "@svenroth-ai/shipwright@${PKG_VERSION}" version >/dev/null 2>&1; then
+            echo "::error::@svenroth-ai/shipwright@${PKG_VERSION} is already published; npm forbids republishing. Bump the version and re-tag."
+            exit 1
+          fi
+          echo "tag ${GITHUB_REF_NAME} is stable v${PKG_VERSION} and not yet published"
+
+      # The package bundles the BUILT server + client. build-package.mjs
+      # (bootstrapper's `build`/`prepack`) compiles server/ and client/ when
+      # their dist is absent, so their deps must be installed first.
+      - name: Install workspace deps
+        run: |
+          npm ci --prefix server
+          npm ci --prefix client
+          npm ci --prefix bootstrapper
+
+      - name: Stage the package (build server + client + bootstrapper)
+        working-directory: bootstrapper
+        run: npm run build
+
+      # Pre-publish verification before the irreversible step: the tarball must
+      # assemble and the staged server+client dist must be non-empty. A build
+      # that succeeds but produces an empty/broken dist is caught HERE, not by
+      # burning a version number.
+      - name: Verify built artifact before publish
+        run: |
+          test -s server/dist/index.js || { echo "::error::server/dist/index.js is missing or empty"; exit 1; }
+          test -s client/dist/index.html || { echo "::error::client/dist/index.html is missing or empty"; exit 1; }
+          ( cd bootstrapper && npm pack --dry-run )
+
+      - name: Publish (OIDC — no token, provenance automatic)
+        working-directory: bootstrapper
+        run: npm publish --access public

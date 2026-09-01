@@ -1,0 +1,11 @@
+{
+  "stage": "code-review",
+  "verdict": "PASS",
+  "summary": "PASS (sound), no high/critical. OIDC least privilege correct, no secret-exfil or injection surface, provenance/repo alignment verified. All 4 findings (1 medium tag/version guard + 3 low: npm pin, job-scoped id-token, concurrency) APPLIED to the workflow; YAML re-validated and ci-action-pinning-posture 10/10 re-pass.",
+  "review": [
+    {"severity": "medium", "category": "correctness", "file": ".github/workflows/publish-npm.yml", "finding": "No guard that the pushed tag matches bootstrapper/package.json version; publishes package.json's version regardless of tag name.", "resolution": "APPLIED - added a 'Verify tag matches package version' fail-fast step before build asserting v${package.json.version} == ${GITHUB_REF_NAME}."},
+    {"severity": "low", "category": "correctness", "file": ".github/workflows/publish-npm.yml", "finding": "npm install -g npm@latest floats the release-critical toolchain.", "resolution": "APPLIED - pinned to npm@^11.5.1 (known-good OIDC floor)."},
+    {"severity": "low", "category": "security", "file": ".github/workflows/publish-npm.yml", "finding": "id-token:write was workflow-scoped; future jobs would inherit OIDC minting.", "resolution": "APPLIED - moved permissions under jobs.publish (job-scoped least privilege)."},
+    {"severity": "low", "category": "correctness", "file": ".github/workflows/publish-npm.yml", "finding": "No concurrency guard; two rapid tag pushes launch overlapping publish runs.", "resolution": "APPLIED - added concurrency group publish-npm-${{ github.ref }}."}
+  ]
+}

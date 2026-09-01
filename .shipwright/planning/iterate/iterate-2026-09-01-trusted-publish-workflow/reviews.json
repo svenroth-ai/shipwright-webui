@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-01-trusted-publish-workflow",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T07:28:19.379646+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T07:27:50.705796+00:00",
+      "disposition": "external LLM plan review is medium+ only; this run is small (operator override from medium for a single vetted-template YAML)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "No guard that the pushed tag matches bootstrapper/package.json version; publishes package.json's version regardless of tag name.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "npm install -g npm@latest floats the release-critical toolchain.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "id-token:write was workflow-scoped; future jobs would inherit OIDC minting.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "No concurrency guard; two rapid tag pushes launch overlapping publish runs.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-01T07:30:34.037893+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "concurrency-ordering",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "Claim under doubt: concurrency group publish-npm-${{ github.ref }} is UNIQUE per tag, so v0.25.0 and v0.26.0 pushed close together do NOT serialize; both npm publish set the latest dist-tag and the LAST to finish wins, so latest could land on the OLDER version. — FIXED - changed to a FIXED group 'publish-npm' (not keyed on the ref) with cancel-in-progress:false, so all publishes serialize and a queued one still runs. Header comment corrected.",
+          "suggestion": "See disproof_attempt (FIXED in the workflow, or ACCEPTED in writing in the header + ack).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary-contract",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "Claim under doubt: The tag<->version guard does not reject a prerelease; a v0.26.0-next.1 tag with a matching package.json would publish straight to the latest dist-tag, bypassing the documented @next channel. — FIXED - the guard now rejects any version containing '-' (prerelease) with a clear message pointing at the manual @next flow. This workflow is stable-latest-only by contract.",
+          "suggestion": "See disproof_attempt (FIXED in the workflow, or ACCEPTED in writing in the header + ack).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "Claim under doubt: No pre-publish verification before the irreversible npm publish; a build that succeeds but produces an empty/broken dist would burn a version number. — FIXED - added a 'Verify built artifact before publish' step: assert server/dist/index.js and client/dist/index.html are non-empty and npm pack --dry-run assembles the tarball, before publish.",
+          "suggestion": "See disproof_attempt (FIXED in the workflow, or ACCEPTED in writing in the header + ack).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "supply-chain",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "Claim under doubt: id-token:write is present while npm ci runs dependency install scripts, so a compromised transitive install script could mint an OIDC publish token. — ACCEPTED in writing (documented in the workflow header + ack). Inherent to Actions + native deps; blast radius bounded by an infrequent, write-gated, manual release. Splitting build/publish into two jobs would tighten it if ever judged worth the complexity.",
+          "suggestion": "See disproof_attempt (FIXED in the workflow, or ACCEPTED in writing in the header + ack).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "authorization",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "Claim under doubt: Git tags are not branch-protected, so a maintainer can tag any commit and tag-push authority equals release authority. — ACCEPTED in writing. Cutting the tag IS the human gate by design; an optional 'environment: npm-publish' approval gate is documented (commented) for a second gate.",
+          "suggestion": "See disproof_attempt (FIXED in the workflow, or ACCEPTED in writing in the header + ack).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "ergonomics",
+          "file": ".github/workflows/publish-npm.yml",
+          "line": null,
+          "finding": "Claim under doubt: A re-pushed or already-published version 403s late, at the publish step, after a full build. — FIXED - the guard now runs npm view early and fails fast with a clear 'already published, bump and re-tag' message before the build. (Also means re-pushing the manually-published v0.25.0 tag would fail fast rather than confusingly late.)",
+          "suggestion": "See disproof_attempt (FIXED in the workflow, or ACCEPTED in writing in the header + ack).",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-01T07:39:27.553149+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T07:27:50.985685+00:00",
+      "disposition": "external code review advisory at small; internal cascade (spec+code+doubt) covers it and the PR-Review CI gate independently reviews the workflow change",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T07:27:05.523385+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-01T07:27:50.847528+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

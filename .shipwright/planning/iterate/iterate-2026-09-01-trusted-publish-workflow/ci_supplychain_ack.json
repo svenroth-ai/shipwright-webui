@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-01-trusted-publish-workflow",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-09-01-trusted-publish-workflow",
+    "paths_fingerprint": "7a81007153acfe0757fed5f28a77ad0f95ea981c7ae64bf552d453725f594fff",
+    "consistent_with": "iterate-2026-09-01-trusted-publish-workflow",
+    "statement": "Adds .github/workflows/publish-npm.yml: a trusted-publishing (OIDC, id-token:write job-scoped, NO NPM_TOKEN) job on release tags v* that (1) verifies the tag matches bootstrapper/package.json AND is a STABLE version (rejects prerelease so a -next/-rc never reaches the latest dist-tag) AND is not already published, (2) builds server+client+bootstrapper, (3) verifies the tarball assembles and dist is non-empty, then (4) npm publish --access public. FIXED concurrency group publish-npm serializes ALL publishes so two release tags cannot race the latest dist-tag. Uses ONLY GitHub-owned actions on mutable tags (actions/checkout@v4, actions/setup-node@v4) consistent with CLAUDE.md rule 25; no third-party action; npm pinned to ^11.5.1. Accepted-in-writing lows: id-token is job-scoped but present during npm ci install scripts (inherent to Actions+native deps); tags are not branch-protected so tag-push authority == release authority (the human gate by design; optional environment approval documented). Deliberately reverses the prior no-publish-workflow / manual-2FA stance. Rationale in this run's decision-drop.",
+    "ci_paths": [
+      ".github/workflows/publish-npm.yml"
+    ]
+  }
+}
