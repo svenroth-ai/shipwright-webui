@@ -11,6 +11,58 @@
   "adr": "iterate-2026-09-01-lead-question-inbox",
   "test_completeness": {
     "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "lead_question appears in the inbox aggregator with kind:\"lead_question\" and without bestEffort:true; the three existing kinds keep bestEffort:true unchanged (AC a)",
+        "disposition": "tested",
+        "evidence": "server: _lead.test.ts 'surfaces a waiting task with kind lead_question and no bestEffort field'; routes.test.ts GET surfaces it alongside the three existing kinds; client: externalApi.inboxItem.type.test.ts asserts AskTool/TextQuestion/TerminalPrompt still require bestEffort:true"
+      },
+      {
+        "behavior": "The InboxItemBase/InboxItemCommon split does not loosen bestEffort for the three derived kinds - proved at the type level, not by inspection (AC b)",
+        "disposition": "tested",
+        "evidence": "client/src/lib/externalApi.inboxItem.type.test.ts: expectTypeOf assertions plus two @ts-expect-error compile-fail cases (a missing bestEffort on AskToolInboxItem, an extra bestEffort on LeadQuestionInboxItem)"
+      },
+      {
+        "behavior": "Dismiss works for a lead_question via the lq-<taskId> synthetic id; an unknown id still 404s (AC c)",
+        "disposition": "tested",
+        "evidence": "server/src/external/inbox/__tests__/routes.test.ts: POST /inbox/lq-<taskId>/dismiss returns 200 and the item disappears from a subsequent GET; an unresolvable lq-prefixed id 404s"
+      },
+      {
+        "behavior": "A fifth inbox kind left unhandled is a TYPE error in both inboxItemKey and InboxCard, not a silent undefined key or wrong-card render (AC d)",
+        "disposition": "tested",
+        "evidence": "client/src/pages/inbox/InboxCard.exhaustive.type.test.ts: a type-only, never-invoked function calling the real exported unhandledInboxItemKind guard with a fake fifth kind requires @ts-expect-error to compile; InboxCard.test.tsx: both inboxItemKey and InboxCard throw at runtime (not silently misrender) for a bogus kind"
+      },
+      {
+        "behavior": "The answer PATCHes poFeedback with the PO's text plus a genuine, ISO-parseable timestamp (AC e)",
+        "disposition": "tested",
+        "evidence": "client/src/lib/leadQuestionApi.test.ts: asserts the PATCH body format and round-trips the extracted timestamp through new Date(ts).toISOString() === ts; InboxCard.LeadQuestion.test.tsx exercises the same PATCH through the rendered Send button"
+      },
+      {
+        "behavior": "FR-04.37 outbound: the internal <!-- lead-question:TYPE --> marker never reaches the rendered card, including a second marker line or a CRLF-terminated marker (AC f)",
+        "disposition": "tested",
+        "evidence": "server/src/external/inbox/_lead.test.ts: extractLeadQuestionBody cases for the leading marker, a second marker line further down, and a CRLF-terminated marker - all stripped"
+      },
+      {
+        "behavior": "npm run test / typecheck / lint are green in both workspaces (AC g)",
+        "disposition": "tested",
+        "evidence": "server: 333 files / 3800 passed, 3 skipped; client: 397 files / 3654 passed; tsc --noEmit clean both workspaces; oxlint clean both workspaces (pre-existing warnings only, none new)"
+      },
+      {
+        "behavior": "Suppression (answered / dismissed) is per-task and permanent until leadwright clears poFeedback - documented contract, not silently wrong",
+        "disposition": "tested",
+        "evidence": "server/src/external/inbox/_lead.test.ts: 'skips a task that already has a poFeedback answer' and 'skips a task dismissed via the lq- prefixed id'; contract documented in _lead.ts's header comment and the run's ADR"
+      },
+      {
+        "behavior": "The Inbox Fence's write-surface exception is scoped to exactly one file and one surface (the lead-answer textarea), not broadened to input/contentEditable or any other file",
+        "disposition": "tested",
+        "evidence": "client/src/pages/inbox/inbox-no-writepath.test.ts: the textarea exclusion is matched on the exact relative path and applied only to the textarea scan; the input/contentEditable scans and the other three assertions (terminal-write imports, socket.send/.write(), clipboard) still cover the new file in full"
+      },
+      {
+        "behavior": "The grandfathered bloat-ceiling file externalApi.ts is not pushed over its baseline by the required type split",
+        "disposition": "tested",
+        "evidence": "python scripts/hooks/anti_ratchet_check.py --worktree --project-root . --json: {\"status\": \"ok\", \"ratchets\": []} after extracting the InboxItem type family into client/src/lib/inboxItemTypes.ts"
+      }
+    ],
     "counts": {
       "testable": 9,
       "tested": 9,
