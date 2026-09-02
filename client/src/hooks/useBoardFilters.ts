@@ -7,18 +7,25 @@
  * baseline instead of raising it (code review finding: the two hooks were
  * pulling in opposite directions on the same file's line count).
  *
- * Both filters are multi-select `Set`s, empty = "All" (no filter),
- * OR-within-group. Status and lead-tag are independent axes, ANDed together
- * in `filteredTasks`. Each filter's own per-option counts are computed on
- * `projectFiltered` alone — independent of the OTHER filter and of itself —
- * so counts stay stable as the user toggles either one (GitHub/Linear
- * filter-bar convention, matches the pre-existing `statusCounts` behavior).
- * The Bot menu's "All" row total is `projectFiltered.length` for the same
- * reason: lead-tag buckets can overlap (a task can carry more than one
- * prefix) and are not exhaustive (an ordinary task carries none), so a sum
- * of the three would double-count and under-represent (code review finding)
- * — the total is reported directly, on the same basis as the per-prefix
- * counts, not derived from them.
+ * Both status/lead-tag filters are multi-select `Set`s, empty = "All" (no
+ * filter), OR-within-group. Status and lead-tag are independent axes, ANDed
+ * together in `filteredTasks`. Each filter's own per-option counts are
+ * computed on `projectFiltered` alone — independent of the OTHER filter and
+ * of itself — so counts stay stable as the user toggles either one
+ * (GitHub/Linear filter-bar convention, matches the pre-existing
+ * `statusCounts` behavior). The Bot menu's "All" row total is
+ * `projectFiltered.length` for the same reason: lead-tag buckets can overlap
+ * (a task can carry more than one prefix) and are not exhaustive (an
+ * ordinary task carries none), so a sum of the three would double-count and
+ * under-represent (code review finding) — the total is reported directly,
+ * on the same basis as the per-prefix counts, not derived from them.
+ *
+ * `claimFilter` (FR-04.22, iterate-2026-09-02-claim-chip-filter) is a THIRD,
+ * independent axis — a plain boolean (there's exactly one condition: does
+ * the task carry `claimedBy`), ANDed in alongside the other two. It is keyed
+ * off `claimedBy`, never `state` — section 5.2 of the lead-model spec: a
+ * claim doesn't touch `state`, so filtering on `state` would break silently
+ * once leadwright's L11 removes the `state = "active"` side-effect.
  */
 import { useCallback, useMemo, useState } from "react";
 
@@ -52,10 +59,15 @@ export function useBoardFilters(projectFiltered: ExternalTask[]) {
     setLeadTagFilter(new Set());
   }, []);
 
+  const [claimFilter, setClaimFilter] = useState(false);
+  const toggleClaim = useCallback(() => setClaimFilter((prev) => !prev), []);
+  const clearClaimFilter = useCallback(() => setClaimFilter(false), []);
+
   const clearAllFilters = useCallback(() => {
     clearStatusFilter();
     clearLeadTagFilter();
-  }, [clearStatusFilter, clearLeadTagFilter]);
+    clearClaimFilter();
+  }, [clearStatusFilter, clearLeadTagFilter, clearClaimFilter]);
 
   const filteredTasks = useMemo<ExternalTask[]>(() => {
     let out = projectFiltered;
@@ -63,8 +75,9 @@ export function useBoardFilters(projectFiltered: ExternalTask[]) {
     if (leadTagFilter.size > 0) {
       out = out.filter((t) => matchesAnyLeadPrefix(t.tags, leadTagFilter));
     }
+    if (claimFilter) out = out.filter((t) => Boolean(t.claimedBy));
     return out;
-  }, [projectFiltered, statusFilter, leadTagFilter]);
+  }, [projectFiltered, statusFilter, leadTagFilter, claimFilter]);
 
   const statusCounts = useMemo<Record<ExternalTaskState, number>>(() => {
     const seed: Record<ExternalTaskState, number> = {
@@ -103,7 +116,7 @@ export function useBoardFilters(projectFiltered: ExternalTask[]) {
   // filters" affordance instead of three silently-empty columns or an empty
   // table.
   const noFilterMatches =
-    (statusFilter.size > 0 || leadTagFilter.size > 0) &&
+    (statusFilter.size > 0 || leadTagFilter.size > 0 || claimFilter) &&
     filteredTasks.length === 0 &&
     projectFiltered.length > 0;
 
@@ -117,6 +130,9 @@ export function useBoardFilters(projectFiltered: ExternalTask[]) {
     clearLeadTagFilter,
     leadTagCounts,
     leadTagTotal: projectFiltered.length,
+    claimFilter,
+    toggleClaim,
+    clearClaimFilter,
     filteredTasks,
     noFilterMatches,
     clearAllFilters,

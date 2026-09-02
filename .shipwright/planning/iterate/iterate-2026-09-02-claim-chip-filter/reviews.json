@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-02-claim-chip-filter",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:09:18.636833+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:11:35.356499+00:00",
+      "disposition": "External LLM plan review (Branch A/B/C gate, Step 3.5) is medium+ only, gated BEFORE build. This run's dispatch card already carried a fully-specified, pre-corrected plan (acceptance criteria, traps, and a resolved design question citing lead-model-spec.md section 5.2) and --autonomous went straight to build; classify_complexity.py returned medium only retroactively post-build (keyword-driven, zero risk_flags). No mini-plan document was authored to send for review.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:13:08.306349+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:11:28.171380+00:00",
+      "disposition": "Stage-3 doubt-reviewer triggers only for non-trivial touches (migrations, async/concurrency, cross-plugin imports, irreversible ops) per iteration-reviews.md; this diff is plain client-side UI (a chip + a boolean filter axis) with none of those, so it is not triggered.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:11:28.291466+00:00",
+      "disposition": "This standalone iterate session has the Agent tool and spawned the internal cascade directly (spec-reviewer PASS, code-reviewer in progress) per Step 8 — external_code is the delegate-back path used only when a runner subagent has no Agent tool (campaign mode); not applicable here.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:09:56.610965+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-02T22:11:28.401229+00:00",
+      "disposition": "Internal architecture/plan review (opus-plan-reviewer) is medium+ only, gated on Step 3.5 running BEFORE build. This run's dispatch card already carried a fully-specified, pre-corrected plan (acceptance criteria, traps, and a resolved design question citing lead-model-spec.md section 5.2) and --autonomous went straight to build; classify_complexity.py returned medium only retroactively post-build (keyword-driven, zero risk_flags).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

@@ -8,7 +8,9 @@ import { useBoardFilters } from "./useBoardFilters";
 import { LEAD_ORIGIN_TAG_PREFIX, LEAD_WAIT_TAG_PREFIX, LEAD_DEDUP_TAG_PREFIX } from "../lib/leadTags";
 import type { ExternalTask, ExternalTaskState } from "../lib/externalApi";
 
-function task(opts: { state?: ExternalTaskState; tags?: string[] } = {}): ExternalTask {
+function task(
+  opts: { state?: ExternalTaskState; tags?: string[]; claimedBy?: string } = {},
+): ExternalTask {
   return {
     taskId: `t-${Math.random()}`,
     sessionUuid: "u",
@@ -20,6 +22,7 @@ function task(opts: { state?: ExternalTaskState; tags?: string[] } = {}): Extern
     createdAt: "2026-04-23T15:00:00Z",
     inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
     tags: opts.tags,
+    claimedBy: opts.claimedBy,
   };
 }
 
@@ -103,6 +106,61 @@ describe("useBoardFilters — lead-tag filter", () => {
     act(() => result.current.toggleLeadTag(LEAD_ORIGIN_TAG_PREFIX));
     rerender({ list: tasks });
     expect(result.current.leadTagCounts[LEAD_ORIGIN_TAG_PREFIX]).toBe(1);
+  });
+});
+
+describe("useBoardFilters — claim filter (FR-04.22)", () => {
+  // @covers FR-04.22
+  it("starts inactive and filteredTasks is unaffected", () => {
+    const tasks = [task({ claimedBy: "po" }), task({})];
+    const { result } = renderHook(() => useBoardFilters(tasks));
+    expect(result.current.claimFilter).toBe(false);
+    expect(result.current.filteredTasks).toHaveLength(2);
+  });
+
+  // @covers FR-04.22
+  it("toggleClaim narrows to tasks carrying claimedBy, keyed off claimedBy not state", () => {
+    const tasks = [
+      task({ state: "done", claimedBy: "po" }), // claimed while state is "done"
+      task({ state: "draft" }),
+    ];
+    const { result } = renderHook(() => useBoardFilters(tasks));
+    act(() => result.current.toggleClaim());
+    expect(result.current.filteredTasks).toHaveLength(1);
+    expect(result.current.filteredTasks[0].claimedBy).toBe("po");
+    act(() => result.current.toggleClaim());
+    expect(result.current.filteredTasks).toHaveLength(2);
+  });
+
+  // @covers FR-04.22
+  it("clearClaimFilter resets to inactive", () => {
+    const { result } = renderHook(() => useBoardFilters([]));
+    act(() => result.current.toggleClaim());
+    act(() => result.current.clearClaimFilter());
+    expect(result.current.claimFilter).toBe(false);
+  });
+
+  // @covers FR-04.22
+  it("is its own axis: does not change statusFilter's behaviour", () => {
+    const tasks = [
+      task({ state: "draft", claimedBy: "po" }),
+      task({ state: "draft" }),
+      task({ state: "done" }),
+    ];
+    const { result } = renderHook(() => useBoardFilters(tasks));
+    act(() => result.current.toggleStatus("draft"));
+    expect(result.current.filteredTasks).toHaveLength(2); // status filter alone: unaffected by claim
+    act(() => result.current.toggleClaim());
+    expect(result.current.filteredTasks).toHaveLength(1); // status AND claim
+    expect(result.current.filteredTasks[0].claimedBy).toBe("po");
+  });
+
+  // @covers FR-04.22
+  it("clearAllFilters also resets the claim axis", () => {
+    const { result } = renderHook(() => useBoardFilters([]));
+    act(() => result.current.toggleClaim());
+    act(() => result.current.clearAllFilters());
+    expect(result.current.claimFilter).toBe(false);
   });
 });
 

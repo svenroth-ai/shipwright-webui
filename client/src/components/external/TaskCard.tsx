@@ -77,6 +77,7 @@ import { EditTaskModal } from "./EditTaskModal";
 import { TaskCardMenu } from "./TaskCardMenu";
 import { LeadOriginGlyph, TaskCardLeadExpander } from "./TaskCardLeadExpander";
 import { ProjectPill } from "./TaskCardProjectPill";
+import { ClaimChip } from "./TaskCardClaimChip";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -258,6 +259,7 @@ export function TaskCard({ task }: Props) {
             color={projectColor}
           />
           <StatePill state={task.state} />
+          <ClaimChip task={task} />
           {(() => {
             // Policy shared with TaskDetailHeader via resolveTaskPhase.
             const resolved = resolveTaskPhase(task);

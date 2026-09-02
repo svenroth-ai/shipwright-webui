@@ -1,0 +1,74 @@
+{
+  "run_id": "iterate-2026-09-02-claim-chip-filter",
+  "date": "2026-09-02T22:18:07.019491Z",
+  "event_at": "2026-09-02T22:16:45.278230+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/claim-chip-filter",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-02-claim-chip-filter",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "AC(a): claimed card shows who + since; unclaimed shows neither",
+        "disposition": "tested",
+        "evidence": "TaskCardClaimChip.test.tsx (4 cases) + claim-chip-filter.spec.ts test 1 (real browser)"
+      },
+      {
+        "behavior": "AC(b): chip/filter key off claimedBy/claimedAt, never state",
+        "disposition": "tested",
+        "evidence": "TaskCardClaimChip.test.tsx 'keys off claimedBy, NOT state' + claim-chip-filter.spec.ts test 2 (claims then closes a task, state->done, chip still renders)"
+      },
+      {
+        "behavior": "AC(c): claim filter is an independent axis; status filter behaviour unchanged",
+        "disposition": "tested",
+        "evidence": "useBoardFilters.test.ts 'claim filter (FR-04.22)' describe block (5 cases) + claim-chip-filter.spec.ts test 3"
+      },
+      {
+        "behavior": "AC(d): resolveBoardColumn untouched; a claim does not move the card's column",
+        "disposition": "tested",
+        "evidence": "git diff confirms boardColumnApi.ts unmodified; claim-chip-filter.spec.ts test 3 asserts column-draft membership after claim"
+      },
+      {
+        "behavior": "AC(e): npm run test / typecheck / lint green in both workspaces",
+        "disposition": "tested",
+        "evidence": "client: 406 files/3742 tests passed, tsc --noEmit clean, typecheck:e2e clean, oxlint exit 0; server: 333 files/3800 tests passed (3 pre-existing skips), tsc --noEmit clean, oxlint exit 0"
+      },
+      {
+        "behavior": "ClaimFilterToggle reflects pressed state and fires onToggle",
+        "disposition": "tested",
+        "evidence": "ClaimFilterToggle.test.tsx (3 cases)"
+      },
+      {
+        "behavior": "Chip omits the 'since' span when claimedAt is missing",
+        "disposition": "tested",
+        "evidence": "TaskCardClaimChip.test.tsx 'renders without the since span when claimedAt is missing'"
+      },
+      {
+        "behavior": "clearAllFilters also resets the new claim axis",
+        "disposition": "tested",
+        "evidence": "useBoardFilters.test.ts 'clearAllFilters also resets the claim axis'"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 3,
+    "exit_code": 0,
+    "justification": "Board (kanban) UI feature; E2E authored and executed against the isolated real-browser stack (client/e2e/flows/claim-chip-filter.spec.ts, 3/3 passed)."
+  },
+  "declared_removals": []
+}

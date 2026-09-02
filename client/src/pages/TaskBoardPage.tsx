@@ -75,6 +75,7 @@ import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropd
 import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
 import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
 import { LeadTagFilterMenu, LeadWaitToggleButton } from "../components/external/LeadTagFilter";
+import { ClaimFilterToggle } from "../components/external/ClaimFilterToggle";
 import { useBoardFilters } from "../hooks/useBoardFilters";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
 import { PageHead } from "../components/common/PageHead";
@@ -226,6 +227,8 @@ export default function TaskBoardPage() {
     clearLeadTagFilter,
     leadTagCounts,
     leadTagTotal,
+    claimFilter,
+    toggleClaim,
     filteredTasks,
     noFilterMatches,
     clearAllFilters,
@@ -342,6 +345,8 @@ export default function TaskBoardPage() {
               onReset={clearLeadTagFilter}
             />
             <LeadWaitToggleButton active={leadTagFilter} onToggle={toggleLeadTag} />
+            {/* FR-04.22 — independent claim axis (never a 5th ExternalTaskState). */}
+            <ClaimFilterToggle active={claimFilter} onToggle={toggleClaim} />
             <DensityToggle />
           </>
         }
