@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-02-claim-chip-filter",
+  "date": "2026-09-03",
+  "section": "FR-04.22 / lead-model-spec.md section 5.2",
+  "title": "Claim chip + filter keyed on claimedBy, not state",
+  "context": "Section 5.2 settles the claim marker: a claim never touches state; a claimed card stays draft until launched. leadwright's claimTask still sets state=active today but that falls away without replacement in a later iterate (L11).",
+  "decision": "Added a ClaimChip on TaskCard's meta row and a ClaimFilterToggle in the board toolbar. Both read exclusively claimedBy/claimedAt via a new independent boolean axis in useBoardFilters. resolveBoardColumn and the status filter are untouched.",
+  "consequences": "The claim indicator and filter stay correct across the L11 transition instead of breaking silently. PO can see who holds a card and since when, and filter to claimed cards, without a column move or a new state value.",
+  "rationale": "Keying on claimedBy per section 5.2 is forward-compatible; keying on state would work today and break the day L11 removes claimTask's state side-effect.",
+  "rejected": "A state-derived chip/filter (breaks under L11); folding claim into the existing status filter (would invent a 5th ExternalTaskState value the spec does not define).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

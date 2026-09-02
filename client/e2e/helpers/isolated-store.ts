@@ -174,6 +174,35 @@ export function writeIsolatedStore(
   fs.writeFileSync(storePath, JSON.stringify(data, null, 2));
 }
 
+/**
+ * Merge `fields` onto an EXISTING row (identified by `taskId`) on the
+ * isolated store, without touching any other row. Self-locks first.
+ *
+ * Simulates a daemon-owned write (e.g. leadwright's claim helper setting
+ * `claimedBy`/`claimedAt` — CLAUDE.md rule 12: "not webui-writable at all",
+ * so the normal `seedTask` HTTP fixture cannot produce this state) writing
+ * directly to sdk-sessions.json out-of-band, exactly as production does.
+ *
+ * The running server only re-reads this file inside `SdkSessionsStore
+ * .persist()`'s field-level 3-way merge (F08, sdk-sessions-merge.ts) — never
+ * on a plain GET. A caller MUST therefore trigger one ordinary webui
+ * mutation (e.g. a `tags` PATCH) AFTER calling this so the server's
+ * in-memory store picks the injected fields up before the page is loaded;
+ * `patchStoreRow` itself does not talk to the server.
+ */
+export function patchStoreRow(
+  taskId: string,
+  fields: Record<string, unknown>,
+  storePath: string = isolatedStorePath(),
+): void {
+  const store = readIsolatedStore(storePath);
+  if (!store || !store.sessions[taskId]) {
+    throw new Error(`patchStoreRow: no row for taskId=${taskId} in ${storePath}`);
+  }
+  store.sessions[taskId] = { ...store.sessions[taskId], ...fields };
+  writeIsolatedStore(store, storePath);
+}
+
 export interface V1SeedRow {
   taskId: string;
   title: string;
