@@ -1,0 +1,1 @@
+Launch's claim check now re-reads the claim fresh from disk under the store's write lock before refusing, closing a stale-cache window where a long-running webui process could miss a claim another process (e.g. the leadwright daemon) had already written, letting two runners launch the same task

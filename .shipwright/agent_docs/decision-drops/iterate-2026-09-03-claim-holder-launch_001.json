@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-03-claim-holder-launch",
+  "date": "2026-09-03",
+  "section": "FR-04.22 / V5 (leadwright lead-model-spec.md sec 5.2, 10.9)",
+  "title": "Claim-holder launch exception + fresh-disk-read gate",
+  "context": "launch/routes.ts refused every /launch while claimToken was set (409 task_claimed), forcing the unsafe order launch-then-claim. The gate also read a stale in-memory Map -- load() runs once at boot -- so a claim written to disk by leadwright's own store instance was invisible to a webui process that had not itself persisted since, an unbounded window for an idle daemon with no browser open.",
+  "decision": "Added SdkSessionsStore.refreshRowFromDisk(taskId): re-reads ONE row under the persist() lock, 3-way-merges it (mergeRow) into both sessions and baseline -- never a blind overwrite, which would drop this instance's own unpersisted patches. routes.ts calls it before the claim check; checkClaimHolderGate allows the request when body.claimToken matches the fresh claimToken AND claimedAt is within CLAIM_LAUNCH_WINDOW_MS (24h); else 409 with claimExpired:true when only the window failed.",
+  "consequences": "A launch bearing the current claimToken succeeds, incl. a late restart (AC FR-04.22); a foreign or expired one still 409s, now correctly even against a stale webui process. Every /launch costs one extra disk read+lock. Residual named risk (leadwright spec sec 8/10.9): both sides run as the same local user with sdk-sessions.json readable -- defends a mistake, not a local attacker.",
+  "rationale": "PO decision 2026-08-16 (leadwright spec sec 10.9): variant (a) plus a time window -- consistent with the threat model's own boundary (local-user, not local-attacker) rather than an inconsistent per-claim secret. Window value (24h) is not spec-fixed; chosen so a slow beat or sleeping daemon still restarts, while bounding an abandoned claim's replay life.",
+  "rejected": "Single-use token gated on launchedAt being unset -- cheap but breaks AC FR-04.22 (a late restart by the holder must succeed). A per-claim secret (variant b) -- inconsistent with the threat model FR-04.38 already accepts, and useless against a process that can already read sdk-sessions.json.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

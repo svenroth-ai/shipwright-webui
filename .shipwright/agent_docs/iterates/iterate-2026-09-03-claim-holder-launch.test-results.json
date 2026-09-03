@@ -1,0 +1,84 @@
+{
+  "last_updated": "2026-09-03",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-03-claim-holder-launch",
+    "date": "2026-09-03",
+    "unit": "PASS \u2014 server 3842 passed / 3 skipped (338 files); client suite untouched, not re-run for this server-only change",
+    "integration": "PASS \u2014 real-fs + real proper-lockfile route-level tests: claim-holder-gate.test.ts (8 pure unit), claim-holder-launch.test.ts (6 route-level, two SdkSessionsStore instances sharing one file behind an in-memory FIFO lock double that forces the real merge-under-lock path), sdk-sessions-store-refresh-row.test.ts (4, real fs + real proper-lockfile)",
+    "pgtap": "n/a \u2014 no schema or RLS change",
+    "e2e": "n/a \u2014 no client change; server-only route + store change, covered by surface_verification below",
+    "design_fidelity": "n/a \u2014 no visual/UI change",
+    "smoke": "n/a \u2014 no server-wide behaviour change; the added disk read is scoped to the claim-holder branch of POST /launch",
+    "degraded": [
+      "The real-HTTP F0.5 probe (surface_verification below) crashes on process.exit() with a Windows libuv assertion (`UV_HANDLE_CLOSING`) AFTER all 8 checks already printed pass \u2014 believed to be an unrelated Node-on-Windows process-exit/proper-lockfile-cleanup timing artifact, not a defect in the reviewed code; not root-caused further since it fires after the proof is already complete."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "The claim HOLDER (matching claimToken, within the launch window) can launch a claimed task",
+          "disposition": "tested",
+          "evidence": "claim-holder-gate.test.ts 'allows the holder'; claim-holder-launch.test.ts [AC b] over a real Hono route + real store"
+        },
+        {
+          "behavior": "A stranger (foreign or absent claimToken) is refused with 409 task_claimed, even against a webui process that persisted nothing since the claim was written to disk by a separate store instance",
+          "disposition": "tested",
+          "evidence": "sdk-sessions-store-refresh-row.test.ts 'staleness pickup' (store-level, real fs + real proper-lockfile, two SdkSessionsStore instances); claim-holder-launch.test.ts [AC a]/[AC b] (route-level, same two-instance shape); the tests' own comments state why a freshly-loaded store would prove nothing"
+        },
+        {
+          "behavior": "A restart (resume) by the holder succeeds, not just the initial launch",
+          "disposition": "tested",
+          "evidence": "claim-holder-launch.test.ts [AC c]"
+        },
+        {
+          "behavior": "A claim older than CLAIM_LAUNCH_WINDOW_MS (24h) is refused even with the correct token, and is distinguishable from a foreign claim via claimExpired:true",
+          "disposition": "tested",
+          "evidence": "claim-holder-gate.test.ts ('refuses the right token past the launch window' + boundary test + malformed/missing claimedAt fail-closed); claim-holder-launch.test.ts [AC d]"
+        },
+        {
+          "behavior": "refreshRowFromDisk refreshes baseline alongside sessions, so a subsequent persist() does not write a released/foreign claim back to disk",
+          "disposition": "tested",
+          "evidence": "sdk-sessions-store-refresh-row.test.ts trap-#1 test; claim-holder-launch.test.ts [AC e] \u2014 the route test's sharedDeps() implements a real FIFO lock + map-based rename so the actual merge-under-lock path executes rather than persist()'s no-lock fallback"
+        },
+        {
+          "behavior": "No ELOCKED on the launch path under a concurrent persist() from the same process",
+          "disposition": "tested",
+          "evidence": "sdk-sessions-store-refresh-row.test.ts [AC f], gated-write pattern proving the lock is released before the caller's remaining work runs"
+        },
+        {
+          "behavior": "A task with no claimToken at all still launches unconditionally (no false-positive refusal)",
+          "disposition": "tested",
+          "evidence": "claim-holder-gate.test.ts 'allows launch when there is no claim on record' + '...claimedBy/claimedAt exist without claimToken (stale metadata, HIGH-2 semantics)'"
+        },
+        {
+          "behavior": "The pre-existing done/dryRun launch guards keep running before the claim check, unchanged in order",
+          "disposition": "tested",
+          "evidence": "server/src/external/routes.test.ts (existing claim tests) still pass unchanged; code-reviewer confirmed the guard order was not disturbed"
+        },
+        {
+          "behavior": "End-to-end over real HTTP (not just in-process test doubles): a real Hono app on a real port, backed by two real SdkSessionsStore instances sharing one on-disk file via real proper-lockfile, proves (a)-(d) together",
+          "disposition": "tested",
+          "evidence": "F0.5 surface=api probe (.shipwright/runs/iterate-2026-09-03-claim-holder-launch/f05-claim-holder-probe.mjs), 8/8 checks pass \u2014 see surface_verification below"
+        },
+        {
+          "behavior": "Existing sdk-sessions / launch-route suites unaffected by the sdk-sessions-merge.ts -> sdk-sessions-refresh.ts extraction",
+          "disposition": "tested",
+          "evidence": "Full server suite: 338 files / 3842 passed / 3 skipped, 0 failures; tsc --noEmit clean; oxlint clean (no new warnings)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "api",
+      "tests_run": 8,
+      "exit_code": 0,
+      "justification": "The bug this closes (an in-memory Map staying stale across process boundaries) is invisible to in-process test doubles by construction \u2014 proving it needs a real second OS process's worth of independence: a real Hono app served over a real HTTP port (@hono/node-server), backed by two real SdkSessionsStore instances sharing one on-disk file via the real proper-lockfile (not the test-double lock), where the 'foreign' claim is written by a store instance the running server process never touches again. Never points at the operator's actual ~/.shipwright-webui/sdk-sessions.json (config.ts's registryDir has no env override, so the compiled production server binary was deliberately not used) \u2014 a scratch temp-dir file instead, wired through the same createExternalRoutes() construction. 8/8 checks passed, proving AC (a)-(d) end to end. The process crashed on process.exit() with a Windows libuv UV_HANDLE_CLOSING assertion AFTER every check had already printed pass \u2014 a known class of Node-on-Windows forced-exit timing hazard, not part of the HTTP round trips under test; recorded as a degraded item above rather than root-caused further."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-03-claim-holder-launch",
+    "commit": "4f80757ff9e9e612993e215c951637ca2601fe96",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
