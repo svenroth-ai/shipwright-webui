@@ -1,45 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-09-03-claim-holder-launch"
-phase: "iterate"
-reason: "iterate: claim-holder launch gate (FR-04.22/V5)"
-timestamp: "2026-09-03T20:25:47.108462+00:00"
+run_id: "changelog-v0.24.0-20260808-1500"
+phase: "changelog"
+reason: "release v0.24.0"
+timestamp: "2026-08-08T20:38:36.160644+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-09-03 20:25:47 UTC
+> Auto-generated 2026-08-08 20:38:36 UTC
 
 ## Session Info
 
-- **Session ID**: 4c49e778-ab48-4e6f-8c50-46d93d5f7145
-- **Timestamp**: 2026-09-03 20:25:47 UTC
-- **Reason**: iterate: claim-holder launch gate (FR-04.22/V5)
+- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
+- **Timestamp**: 2026-08-08 20:38:36 UTC
+- **Reason**: release v0.24.0
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-09-03-org-thread-live-source
-- **Date**: 2026-09-03T13:09:56.979927Z
-- **Type**: feature
-- **Complexity**: small
-- **Branch**: iterate/org-thread-live-source
-- **ADR**: iterate-2026-09-03-org-thread-live-source
+- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
+- **Date**: 2026-08-08T10:36:25.721563Z
+- **Type**: change
+- **Complexity**: medium
+- **Branch**: iterate/tests-total-skip-contract
+- **ADR**: iterate-2026-08-08-tests-total-skip-contract
 - **Tests passed**: True
-
-## Current Iterate Progress
-
-- **Branch**: iterate/claim-holder-launch
-- **External Review Marker**: skipped_config_disabled (external_review_state.json @ 2026-09-01T20:56:59)
-- **Review Cascade**: no run_id resolved
-
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Finalization (F0–F11) after all mandatory phases pass
+- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
 
 ## Legacy build state
 
-- **Phase**: design
+- **Phase**: changelog
 - **Current Split**: 01-adopted
 - **Current Section**: adopted-baseline
 
@@ -48,8 +38,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/claim-holder-launch
-- **Last Commit**: 4f80757f chore(external-review): route the GPT review leg through Codex CLI (#414)
+- **Branch**: feat/track-model-config-allowlist
+- **Last Commit**: e76e3fc1 chore(release): v0.24.0
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,23 +55,23 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-6deb46a4 | work_completed | iterate (POST /launch now re-reads the claimed task fresh from disk and lets the claim holder (re)launch within a 24h window, closing the stale-in-memory-claim window that previously let a second runner launch a claimed task.) | 2026-09-03 |
-| evt-f081c221 | work_completed | iterate (Wire useOrgThreads() to leadwright's real round-store producer (lead-question-threads.json, FR-04.42) instead of the stub) | 2026-09-03 |
-| evt-ffe1d2d2 | grade_snapshot | — | 2026-09-02 |
-| evt-9f4d68ae | work_completed | iterate (Task Board: claimed-card chip (who + since when, keyed on claimedBy/claimedAt not state) and an independent toolbar filter toggle for claimed tasks (lead-model-spec.md section 5.2, FR-04.22).) | 2026-09-02 |
-| evt-613558a6 | event_amended | — | 2026-09-01 |
+| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
+| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
+| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
+| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
+| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 450
-- **Last iterate**: change — POST /launch now re-reads the claimed task fresh from disk and lets the claim holder (re)launch within a 24h window, closing the stale-in-memory-claim window that previously let a second runner launch a claimed task. (2026-09-03)
+- **Total work events**: 398
+- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-296: Trusted-publishing npm workflow (OIDC) — reverse the no-publish-workflow stance
-- **Date:** 2026-09-01
-- **Section:** Release / CI supply chain
-- **Run-ID:** iterate-2026-09-01-trusted-publish-workflow
-- **Context:** Prior stance (npm-publish skill + repo): NO publish workflow — the human gate was the manual npm publish with 2FA/OTP. Every latest release was thus a manual, 2FA-gated step (webui 0.25.0 shipped this way), with no build provenance and operator availability as a release blocker
+### ADR-264: Mission stage derived from real phase markers; TodoWrite premise falsified empirically
+- **Date:** 2026-07-19
+- **Section:** Iterate - change: mission lifecycle stage
+- **Run-ID:** iterate-2026-07-19-mission-s4-honest-lifecycle-stage
+- **Context:** The 'Where it stands' stepper left Analyze far too early: inferStage was furthest-along-wins over coarse tool signals, so the first Edit/Write to any non-spec file set Build, and Build outranks Analyze. A scratchpad probe or memory note written d
