@@ -1,0 +1,41 @@
+{
+  "review": [
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "finding": "org-schema-sync.test.ts's per-field regex requires a segment to start with the identifier; a preceding JSDoc comment on unpricedCallsTotal/anyNotMeasured made both fields silently invisible to the drift guard on BOTH sides identically. Fixed: added a stripComments() pass before splitTopLevel() in both interfaceFields() and armInfo(). Falsified by temporarily dropping anyNotMeasured from the client mirror, confirming the guard failed red, then restoring it and confirming green.",
+      "file": "server/src/types/org-schema-sync.test.ts",
+      "suggestion": "Strip block/line comments before matching field declarations."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "finding": "usageNoteText(lead.usage) was computed twice in the same render. Fixed: extracted to a single const usageNote at the top of LeadCard, reused in the JSX.",
+      "file": "client/src/components/org/LeadCard.tsx"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "finding": "LeadCard.test.tsx's file-header comment still said 'usage-fills-budget-and-runs', stale after the wording purge this iterate performs. Fixed: reworded and added a pointer to the sibling FR-04.30 test file.",
+      "file": "client/src/components/org/LeadCard.test.tsx"
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "finding": "makeWrapper()/UNMEASURED_LEAD duplicated between the two split LeadCard test files. Accepted as-is per the reviewer's own assessment — a one-off from the 300-line-convention split, flagged only for a future third sibling file.",
+      "file": "client/src/components/org/LeadCard.usage-consumed.test.tsx"
+    },
+    {
+      "severity": "low",
+      "category": "test-coverage",
+      "finding": "The composite roster route (GET /api/org/leads) forwards the two new usage fields via a trivial spread, but had zero direct test coverage proving the end-to-end pass-through. Fixed: added a test asserting GET /api/org/leads surfaces unpricedCallsTotal + anyNotMeasured.",
+      "file": "server/src/routes/__tests__/org.test.ts"
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "finding": "isValidUsagePayload accepted a non-integer unpricedCallsTotal (e.g. 2.5), which would render as '2.5 unpriced calls'. Already caught independently by the external review cascade and fixed before this report landed: Number.isFinite -> Number.isInteger, with a new 502 test case.",
+      "file": "server/src/external/org/usage.ts"
+    }
+  ]
+}

@@ -39,6 +39,19 @@ const CLIENT_PATH = resolve(__dirname, "..", "..", "..", "client", "src", "lib",
 // Shared depth-aware helpers.
 // ---------------------------------------------------------------------------
 
+/**
+ * Strips `/* ... *\/` block comments (incl. `/** ... *\/` doc comments) and
+ * `// ...` line comments. A field's per-line regex below requires the
+ * segment to START with the identifier — a preceding doc comment (common on
+ * these mirrored types) would otherwise glue onto the field text and make
+ * the whole segment fail to match, silently dropping that field from BOTH
+ * sides identically (code-review finding, iterate-2026-09-03-budget-display-
+ * usage-widen: two real fields were being dropped from this exact check).
+ */
+function stripComments(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
 /** Splits `text` on top-level occurrences of `sep` — never inside {}, (), []. */
 function splitTopLevel(text: string, sep: string): string[] {
   const parts: string[] = [];
@@ -77,7 +90,7 @@ function interfaceFields(filePath: string, interfaceName: string): Set<string> {
       }
     }
   }
-  const body = raw.slice(open + 1, end);
+  const body = stripComments(raw.slice(open + 1, end));
 
   const names = new Set<string>();
   for (const def of splitTopLevel(body, ";")) {
@@ -116,7 +129,7 @@ interface Arm {
 function armInfo(armText: string): Arm {
   const open = armText.indexOf("{");
   const close = armText.lastIndexOf("}");
-  const body = armText.slice(open + 1, close);
+  const body = stripComments(armText.slice(open + 1, close));
 
   const fields = new Set<string>();
   let discriminant: string | null = null;

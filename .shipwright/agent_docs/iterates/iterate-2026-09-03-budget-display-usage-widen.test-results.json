@@ -1,0 +1,97 @@
+{
+  "last_updated": "2026-09-03",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-03-budget-display-usage-widen",
+    "date": "2026-09-03",
+    "unit": "PASS — client 3761 passed (409 files); server 3851 passed / 3 skipped (339 files)",
+    "integration": "n/a — no CRUD or service-boundary change; usage.ts validation + org-leads-composite pass-through covered directly below",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "PASS — real-Chromium Playwright screenshot verification against the isolated dev stack (server on an isolated leadsRoot fixture, client dev proxy), all three UsageResponse states (no-data / partial / complete) visually confirmed to match every acceptance criterion",
+    "design_fidelity": "n/a — label/copy + one new amber text-color token on an existing stat row; no visual baseline shift expected or observed (no Percy/pixel baseline covers this surface)",
+    "smoke": "n/a — no server-wide behaviour change; change is scoped to the usage field + LeadCard rendering",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "AC-a: label reads '{N}-day USD consumed' with the real windowDays value, never the word 'budget', anywhere",
+          "disposition": "tested",
+          "evidence": "leadUsageDisplay.test.ts (usageLabel); LeadCard.usage-consumed.test.tsx ('never renders the word budget')"
+        },
+        {
+          "behavior": "AC-b: the note names the un-counted subagent-spend gap without quantifying it",
+          "disposition": "tested",
+          "evidence": "leadUsageDisplay.test.ts (usageNoteText); LeadCard.usage-consumed.test.tsx (subagent-spend note asserted present, no numeric claim asserted)"
+        },
+        {
+          "behavior": "AC-c: unpricedCallsTotal > 0 is visible in the note (singular/plural), and a payload with it absent or 0 shows no such clause",
+          "disposition": "tested",
+          "evidence": "leadUsageDisplay.test.ts (singular '1 unpriced call' vs plural '3 unpriced calls'); LeadCard.usage-consumed.test.tsx (silent at 0/absent)"
+        },
+        {
+          "behavior": "AC-d: no-data / partial / complete render as three visually and textually distinguishable states",
+          "disposition": "tested",
+          "evidence": "LeadCard.usage-consumed.test.tsx (three-state assertions); manual Playwright screenshot of the isolated stack confirms all three side by side"
+        },
+        {
+          "behavior": "AC-e: costUsd: 0 on a measured window renders as a real '$0.00', not 'not measured'",
+          "disposition": "tested",
+          "evidence": "leadUsageDisplay.test.ts + LeadCard.usage-consumed.test.tsx (branches on .measured, not truthiness); screenshot shows Complete Lead's $0.00"
+        },
+        {
+          "behavior": "AC-f: a payload without the two new optional fields (older leadwright producer) still validates and renders without a 502 or crash",
+          "disposition": "tested",
+          "evidence": "usage.test.ts (backward-compat 'fields absent' cases, not.toHaveProperty); org.test.ts composite-roster non-7-day windowDays case; org-schema-sync.test.ts (optional fields, both sides)"
+        },
+        {
+          "behavior": "unpricedCallsTotal validation rejects a negative or non-integer value (e.g. 2.5) as 502, never silently rendered",
+          "disposition": "tested",
+          "evidence": "usage.test.ts (negative -> 502; non-integer 2.5 -> 502, external-code-review fix)"
+        },
+        {
+          "behavior": "anyNotMeasured validation rejects a non-boolean value as 502",
+          "disposition": "tested",
+          "evidence": "usage.test.ts (non-boolean anyNotMeasured -> 502)"
+        },
+        {
+          "behavior": "The two new optional fields pass through the composite roster route (GET /api/org/leads) end to end, not just through usageCore in isolation",
+          "disposition": "tested",
+          "evidence": "org.test.ts ('surfaces unpricedCallsTotal and anyNotMeasured through the composite roster read')"
+        },
+        {
+          "behavior": "org-schema-sync.test.ts's field-drift guard actually detects a dropped field on either side, including one preceded by a comment",
+          "disposition": "tested",
+          "evidence": "Falsification check: temporarily dropped anyNotMeasured from the client mirror, confirmed the guard failed red with the stripComments() fix in place, then restored and confirmed green"
+        },
+        {
+          "behavior": "AC-g: npm run test, npm run typecheck, npm run lint all green across both workspaces",
+          "disposition": "tested",
+          "evidence": "Full client suite (409 files/3761 passed) + full server suite (339 files/3851 passed/3 skipped); tsc --noEmit clean both workspaces; oxlint clean, no new warnings"
+        }
+      ],
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Advisory tier at this run's complexity (small, no risk flags — no touches_io_boundary, not cross_split). Verified anyway: built a three-lead fixture (no-data/partial/complete) under an isolated leadsRoot, ran the isolated Hono server + Vite client dev stack (SHIPWRIGHT_NETWORK_PROFILE=local), confirmed the API response shape per state via curl, then drove a real headless Chromium session (Playwright, ad hoc script, not a committed spec) to the /org route and screenshotted all three LeadCard states, confirming every acceptance criterion visually. No committed spec file exists for this change; tests_run is 0 by that measure, which is consistent with the Advisory tier."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-03-budget-display-usage-widen",
+    "commit": "76de77895cf59a4c0a1ea3b23c94318be2a52f84",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

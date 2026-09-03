@@ -62,6 +62,107 @@ describe("GET /api/external/org/leads/:leadId/usage", () => {
     expect(res.status).toBe(502);
   });
 
+  it("returns unpricedCallsTotal and anyNotMeasured when the producer supplies them (leadwright#38)", async () => {
+    mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
+    writeFileSync(
+      path.join(leadsRoot, "acme-lead", "usage.json"),
+      JSON.stringify({
+        costUsd: 12.5,
+        runCount: 4,
+        windowDays: 7,
+        asOf: "2026-08-17T09:00:00.000Z",
+        unpricedCallsTotal: 3,
+        anyNotMeasured: true,
+      }),
+      "utf8",
+    );
+    const res = await app().request("/api/external/org/leads/acme-lead/usage");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      leadId: "acme-lead",
+      measured: true,
+      costUsd: 12.5,
+      runCount: 4,
+      windowDays: 7,
+      asOf: "2026-08-17T09:00:00.000Z",
+      unpricedCallsTotal: 3,
+      anyNotMeasured: true,
+    });
+  });
+
+  it("still validates a payload WITHOUT the two new fields — an older producer must not 502", async () => {
+    mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
+    writeFileSync(
+      path.join(leadsRoot, "acme-lead", "usage.json"),
+      JSON.stringify({ costUsd: 0, runCount: 0, windowDays: 7, asOf: "2026-08-17T09:00:00.000Z" }),
+      "utf8",
+    );
+    const res = await app().request("/api/external/org/leads/acme-lead/usage");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      leadId: "acme-lead",
+      measured: true,
+      costUsd: 0,
+      runCount: 0,
+      windowDays: 7,
+      asOf: "2026-08-17T09:00:00.000Z",
+    });
+    expect(body).not.toHaveProperty("unpricedCallsTotal");
+    expect(body).not.toHaveProperty("anyNotMeasured");
+  });
+
+  it("502s on a negative unpricedCallsTotal", async () => {
+    mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
+    writeFileSync(
+      path.join(leadsRoot, "acme-lead", "usage.json"),
+      JSON.stringify({
+        costUsd: 1,
+        runCount: 1,
+        windowDays: 7,
+        asOf: "x",
+        unpricedCallsTotal: -1,
+      }),
+      "utf8",
+    );
+    const res = await app().request("/api/external/org/leads/acme-lead/usage");
+    expect(res.status).toBe(502);
+  });
+
+  it("502s on a non-integer unpricedCallsTotal (a call count can't be fractional)", async () => {
+    mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
+    writeFileSync(
+      path.join(leadsRoot, "acme-lead", "usage.json"),
+      JSON.stringify({
+        costUsd: 1,
+        runCount: 1,
+        windowDays: 7,
+        asOf: "x",
+        unpricedCallsTotal: 2.5,
+      }),
+      "utf8",
+    );
+    const res = await app().request("/api/external/org/leads/acme-lead/usage");
+    expect(res.status).toBe(502);
+  });
+
+  it("502s when anyNotMeasured is not a boolean", async () => {
+    mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
+    writeFileSync(
+      path.join(leadsRoot, "acme-lead", "usage.json"),
+      JSON.stringify({
+        costUsd: 1,
+        runCount: 1,
+        windowDays: 7,
+        asOf: "x",
+        anyNotMeasured: "yes",
+      }),
+      "utf8",
+    );
+    const res = await app().request("/api/external/org/leads/acme-lead/usage");
+    expect(res.status).toBe(502);
+  });
+
   it("502s on a negative costUsd", async () => {
     mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
     writeFileSync(

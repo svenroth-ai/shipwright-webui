@@ -1,0 +1,1 @@
+Org lead cards now label spend as '{N}-day USD consumed' (never 'budget'), name the un-counted subagent-spend gap, surface unpriced-call counts, and distinguish no-data / partial / complete measurement windows.

@@ -52,6 +52,12 @@ export type UsageResponse =
       runCount: number;
       windowDays: number;
       asOf: string;
+      /** Optional — an older producer (pre leadwright#38) omits both.
+       *  A missing value must render as if it were absent, never as 0/false. */
+      unpricedCallsTotal?: number;
+      /** true = SOME sessions in this window measured, some didn't (a
+       *  partial total). Absent/false = every session in the window measured. */
+      anyNotMeasured?: boolean;
     };
 
 // ---------------------------------------------------------------------------

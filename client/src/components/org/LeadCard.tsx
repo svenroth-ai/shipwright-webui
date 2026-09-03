@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import type { LeadCadenceView, LeadNowState, LeadRoleView, LeadRosterEntry } from "../../lib/orgApi";
 import { fetchLeadLearnings } from "../../lib/orgApi";
+import { usageLabel, usageNoteText, usageValueText } from "./leadUsageDisplay";
 import { formatRelativeTime } from "../../lib/formatTime";
 import { loadMarkdownForEdit, saveMarkdown } from "../../lib/orgMarkdownFileApi";
 import { ORG_ROSTER_QUERY_KEY } from "../../hooks/useOrgRoster";
@@ -90,8 +91,8 @@ function cadenceText(cadence: LeadCadenceView): string {
 }
 
 export function LeadCard({ lead }: { lead: LeadRosterEntry }) {
-  const budgetLabel = lead.usage.measured ? `${lead.usage.windowDays}-day budget` : "budget";
   const badge = statusBadge(lead.now);
+  const usageNote = usageNoteText(lead.usage);
   const queryClient = useQueryClient();
   const [charterOpen, setCharterOpen] = useState(false);
   const [learningsOpen, setLearningsOpen] = useState(false);
@@ -137,44 +138,55 @@ export function LeadCard({ lead }: { lead: LeadRosterEntry }) {
         <NowLine now={lead.now} />
       </div>
 
-      {/* Block 4 — Stats: cadence, parallel, N-day budget, projects, runs. */}
-      <div className="statrow" data-block="stats" data-testid="lead-card-stats">
-        <span className="stat">
-          <span className="k" style={{ display: "block" }}>
-            Cadence
+      {/* Block 4 — Stats: cadence, parallel, N-day consumed spend, projects, runs. */}
+      <div data-block="stats" data-testid="lead-card-stats">
+        <div className="statrow">
+          <span className="stat">
+            <span className="k" style={{ display: "block" }}>
+              Cadence
+            </span>
+            <span className={`v${lead.cadence.measured ? "" : " unmeasured"}`}>
+              {cadenceText(lead.cadence)}
+            </span>
           </span>
-          <span className={`v${lead.cadence.measured ? "" : " unmeasured"}`}>
-            {cadenceText(lead.cadence)}
+          <span className="stat">
+            <span className="k" style={{ display: "block" }}>
+              Parallel
+            </span>
+            <span className="v unmeasured">not measured</span>
           </span>
-        </span>
-        <span className="stat">
-          <span className="k" style={{ display: "block" }}>
-            Parallel
+          <span className="stat">
+            <span className="k" style={{ display: "block" }}>
+              {usageLabel(lead.usage)}
+            </span>
+            <span
+              className={`v${
+                !lead.usage.measured ? " unmeasured" : lead.usage.anyNotMeasured ? " partial" : ""
+              }`}
+            >
+              {usageValueText(lead.usage)}
+            </span>
           </span>
-          <span className="v unmeasured">not measured</span>
-        </span>
-        <span className="stat">
-          <span className="k" style={{ display: "block" }}>
-            {budgetLabel}
+          <span className="stat">
+            <span className="k" style={{ display: "block" }}>
+              Projects
+            </span>
+            <span className="v unmeasured">not measured</span>
           </span>
-          <span className={`v${lead.usage.measured ? "" : " unmeasured"}`}>
-            {lead.usage.measured ? `$${lead.usage.costUsd.toFixed(2)}` : "not measured"}
+          <span className="stat">
+            <span className="k" style={{ display: "block" }}>
+              Runs
+            </span>
+            <span className={`v${lead.usage.measured ? "" : " unmeasured"}`}>
+              {lead.usage.measured ? lead.usage.runCount : "not measured"}
+            </span>
           </span>
-        </span>
-        <span className="stat">
-          <span className="k" style={{ display: "block" }}>
-            Projects
-          </span>
-          <span className="v unmeasured">not measured</span>
-        </span>
-        <span className="stat">
-          <span className="k" style={{ display: "block" }}>
-            Runs
-          </span>
-          <span className={`v${lead.usage.measured ? "" : " unmeasured"}`}>
-            {lead.usage.measured ? lead.usage.runCount : "not measured"}
-          </span>
-        </span>
+        </div>
+        {usageNote && (
+          <div className="usagenote" data-testid="lead-usage-note">
+            {usageNote}
+          </div>
+        )}
       </div>
 
       {/* Block 5 — Docs: charter.md (edit), learnings.md (view), audit.jsonl (view). */}

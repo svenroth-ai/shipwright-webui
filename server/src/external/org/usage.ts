@@ -32,12 +32,17 @@ import type { UsageResponse } from "../../types/org.js";
 export { LEADS_USAGE_REFRESH_INTERVAL_MS };
 export type { UsageResponse } from "../../types/org.js";
 
-function isValidUsagePayload(
-  v: unknown,
-): v is { costUsd: number; runCount: number; windowDays: number; asOf: string } {
+function isValidUsagePayload(v: unknown): v is {
+  costUsd: number;
+  runCount: number;
+  windowDays: number;
+  asOf: string;
+  unpricedCallsTotal?: number;
+  anyNotMeasured?: boolean;
+} {
   if (typeof v !== "object" || v === null) return false;
   const u = v as Record<string, unknown>;
-  return (
+  const coreValid =
     typeof u.costUsd === "number" &&
     Number.isFinite(u.costUsd) &&
     u.costUsd >= 0 &&
@@ -48,8 +53,23 @@ function isValidUsagePayload(
     Number.isFinite(u.windowDays) &&
     u.windowDays > 0 &&
     typeof u.asOf === "string" &&
-    u.asOf.length > 0
-  );
+    u.asOf.length > 0;
+  if (!coreValid) return false;
+
+  // Both fields are OPTIONAL on the wire — an older producer that omits them
+  // still validates — but a PRESENT value must be well-typed.
+  if (
+    u.unpricedCallsTotal !== undefined &&
+    (typeof u.unpricedCallsTotal !== "number" ||
+      !Number.isInteger(u.unpricedCallsTotal) ||
+      u.unpricedCallsTotal < 0)
+  ) {
+    return false;
+  }
+  if (u.anyNotMeasured !== undefined && typeof u.anyNotMeasured !== "boolean") {
+    return false;
+  }
+  return true;
 }
 
 export interface UsageRouteDeps {
@@ -134,6 +154,10 @@ export function usageCore(deps: UsageRouteDeps, leadId: string): UsageCoreResult
       runCount: parsed.runCount,
       windowDays: parsed.windowDays,
       asOf: parsed.asOf,
+      ...(parsed.unpricedCallsTotal !== undefined
+        ? { unpricedCallsTotal: parsed.unpricedCallsTotal }
+        : {}),
+      ...(parsed.anyNotMeasured !== undefined ? { anyNotMeasured: parsed.anyNotMeasured } : {}),
     },
   };
 }
