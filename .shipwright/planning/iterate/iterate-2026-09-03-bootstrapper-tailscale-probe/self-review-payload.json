@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Implements exactly the fix webui#415 suggests: probe host now follows SHIPWRIGHT_NETWORK_PROFILE via the server's own resolveHonoHost, threaded through tcpOccupied, the diagnostics fetch, and the reported/opened url. No extra features added."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "resolveProbeHost wraps the dynamic import + resolveHonoHost() call in try/catch and falls back to 127.0.0.1 on any failure (missing build, tailscale CLI unreachable) — never fatal, matching the module's existing non-fatal contract."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input, no SQL/HTML output, no secrets. The dynamically-imported path is built from pkgRoot (a trusted, process-controlled value, same as bootSpawnPlan already uses), not from any external input."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New tests assert on outcomes (returned host string, threaded host/url values via injected spies), cover the happy path (concrete host, wildcard mapping) and the failure path (import throws, resolver throws) for resolveProbeHost, plus probeServer host-threading and ensureServer url-building with both a loopback and a non-loopback resolution."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "One dynamic import + one function call per ensureServer invocation (a one-shot CLI command); no loops, no N+1, no blocking I/O beyond what already existed (the tcpProbe/fetch calls)."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New functions follow existing file conventions (JSDoc header, seam-injectable deps). bootstrapper/lib/server.mjs was already 369 lines (over the 300-line convention) before this diff and is not in shipwright_bloat_baseline.json (the baseline appears server/client-scoped, not bootstrapper/); this diff adds ~47 lines to a pre-existing over-ceiling file rather than newly crossing a tracked baseline. A structural split is out of scope for this small bug fix and is left as a follow-up, not silently absorbed here."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized/on-disk format changed (no new file format, no schema). This changes network addressing (which host is probed/reported), not a producer/consumer data format, so round-trip probes do not apply."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run shared/scripts/tools/scan_test_hygiene.py --diff reported no findings against the changed test file."
+    }
+  ]
+}
