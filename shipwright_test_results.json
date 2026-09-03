@@ -1,82 +1,92 @@
 {
-  "last_updated": "2026-08-30",
+  "last_updated": "2026-09-03",
   "iterate_latest": {
-    "run_id": "iterate-2026-08-30-triage-file-viewer-followups",
-    "date": "2026-08-30",
-    "unit": "PASS \u2014 client 3578 passed (385 files); server 3735 passed / 3 skipped (324 files)",
-    "integration": "n/a \u2014 no CRUD or service-boundary change beyond the new read-only /files/exist route, covered directly below",
-    "pgtap": "n/a \u2014 no RLS or schema change",
-    "e2e": "PASS \u2014 5/5, real-Chromium isolated-stack run of client/e2e/flows/triage-file-viewer.spec.ts (Playwright, chromium project)",
-    "design_fidelity": "n/a \u2014 layout/overflow fix only, no visual design change; no baseline shift expected or observed",
-    "smoke": "n/a \u2014 no server-wide behaviour change; new route is additive and scoped to /files/exist",
+    "run_id": "iterate-2026-09-03-claim-holder-launch",
+    "date": "2026-09-03",
+    "unit": "PASS \u2014 server 3845 passed / 3 skipped (338 files); client suite untouched, not re-run for this server-only change",
+    "integration": "PASS \u2014 real-fs + real proper-lockfile route-level tests: claim-holder-gate.test.ts (10 pure unit, incl. 2 added for the doubt-review clock-skew finding), claim-holder-launch.test.ts (6 route-level, two SdkSessionsStore instances sharing one file behind an in-memory FIFO lock double that forces the real merge-under-lock path), sdk-sessions-store-refresh-row.test.ts (5, real fs + real proper-lockfile, incl. 1 added for the doubt-review delete-race finding)",
+    "pgtap": "n/a \u2014 no schema or RLS change",
+    "e2e": "n/a \u2014 no client change; server-only route + store change, covered by surface_verification below",
+    "design_fidelity": "n/a \u2014 no visual/UI change",
+    "smoke": "n/a \u2014 no server-wide behaviour change; the added disk read is scoped to the claim-holder branch of POST /launch",
     "degraded": [
-      "The up-to-50-iteration realpathSync loop in pathExists() was reasoned about and halved (project root's realpath now resolved once per request instead of once per path) but was not load-tested under concurrent embedded-terminal WebSocket traffic \u2014 no perf/latency test exists for this route."
+      "The real-HTTP F0.5 probe (surface_verification below) crashes on process.exit() with a Windows libuv assertion (`UV_HANDLE_CLOSING`) AFTER all 8 checks already printed pass \u2014 believed to be an unrelated Node-on-Windows process-exit/proper-lockfile-cleanup timing artifact, not a defect in the reviewed code; not root-caused further since it fires after the proof is already complete."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Long .py file scrolls vertically instead of clipping past the modal",
+          "behavior": "The claim HOLDER (matching claimToken, within the launch window) can launch a claimed task",
           "disposition": "tested",
-          "evidence": "E2E: scrollHeight > clientHeight on .smart-viewer-code; panel box height <= modal box height + 1px"
+          "evidence": "claim-holder-gate.test.ts 'allows the holder'; claim-holder-launch.test.ts [AC b] over a real Hono route + real store"
         },
         {
-          "behavior": "Long .py line scrolls horizontally instead of being clipped/invisible-overflowed",
+          "behavior": "A stranger (foreign or absent claimToken) is refused with 409 task_claimed, even against a webui process that persisted nothing since the claim was written to disk by a separate store instance",
           "disposition": "tested",
-          "evidence": "E2E: scrollWidth (902px) > clientWidth (459px) on .smart-viewer-code; screenshot"
+          "evidence": "sdk-sessions-store-refresh-row.test.ts 'staleness pickup' (store-level, real fs + real proper-lockfile, two SdkSessionsStore instances); claim-holder-launch.test.ts [AC a]/[AC b] (route-level, same two-instance shape); the tests' own comments state why a freshly-loaded store would prove nothing"
         },
         {
-          "behavior": "A mention of a file that does not exist under the project (evidencePath + inline detail) renders as plain text, never a link",
+          "behavior": "A restart (resume) by the holder succeeds, not just the initial launch",
           "disposition": "tested",
-          "evidence": "E2E: text appears twice (evidence + detail), zero [data-file-path] links, even after 500ms settle; unit: FileMentionText.test.tsx, TriageDetailModal.fileViewer.test.tsx, useFileExistence.test.ts"
+          "evidence": "claim-holder-launch.test.ts [AC c]"
         },
         {
-          "behavior": "evidencePath still renders as a clickable link when the file genuinely exists",
+          "behavior": "A claim older than CLAIM_LAUNCH_WINDOW_MS (24h) is refused even with the correct token, and is distinguishable from a foreign claim via claimExpired:true",
           "disposition": "tested",
-          "evidence": "E2E: 'evidencePath renders as a clickable link for a structured-source finding' (pre-existing, re-verified green)"
+          "evidence": "claim-holder-gate.test.ts ('refuses the right token past the launch window' + boundary test + malformed/missing claimedAt fail-closed); claim-holder-launch.test.ts [AC d]"
         },
         {
-          "behavior": "Narrow (phone-width) viewport does not clip either surface when the file panel opens",
+          "behavior": "refreshRowFromDisk refreshes baseline alongside sessions, so a subsequent persist() does not write a released/foreign claim back to disk",
           "disposition": "tested",
-          "evidence": "E2E: 'on a narrow (phone-width) viewport...' (pre-existing, re-verified green)"
+          "evidence": "sdk-sessions-store-refresh-row.test.ts trap-#1 test; claim-holder-launch.test.ts [AC e] \u2014 the route test's sharedDeps() implements a real FIFO lock + map-based rename so the actual merge-under-lock path executes rather than persist()'s no-lock fallback"
         },
         {
-          "behavior": "A literal comma inside a filename is not mistaken for the batch delimiter",
+          "behavior": "No ELOCKED on the launch path under a concurrent persist() from the same process",
           "disposition": "tested",
-          "evidence": "client fileExistsApi.test.ts asserts the exact double-encoded wire string; server exists-routes.test.ts resolves a real 'a,b.md' file distinctly from 'other.md', with the test's own run() helper fixed to mirror the client's double-encoding (caught and fixed a false-pass in the test itself before landing)"
+          "evidence": "sdk-sessions-store-refresh-row.test.ts [AC f], gated-write pattern proving the lock is released before the caller's remaining work runs"
         },
         {
-          "behavior": "A batch over the 50-path cap degrades partially (first 50 sent) instead of the whole item losing every link",
+          "behavior": "A task with no claimToken at all still launches unconditionally (no false-positive refusal)",
           "disposition": "tested",
-          "evidence": "useFileExistence.test.ts: 75 distinct paths -> exactly 50 sent to checkFilesExist"
+          "evidence": "claim-holder-gate.test.ts 'allows launch when there is no claim on record' + '...claimedBy/claimedAt exist without claimToken (stale metadata, HIGH-2 semantics)'"
         },
         {
-          "behavior": "Resolving the project root's realpath once per request instead of once per path does not weaken the symlink-escape guard",
+          "behavior": "The pre-existing done/dryRun launch guards keep running before the claim check, unchanged in order",
           "disposition": "tested",
-          "evidence": "path-guard.test.ts: a precomputed realRoot still accepts a legit path and still rejects a symlink escaping the root"
+          "evidence": "server/src/external/routes.test.ts (existing claim tests) still pass unchanged; code-reviewer confirmed the guard order was not disturbed"
         },
         {
-          "behavior": "The shared .smart-viewer-code pre CSS change does not regress other CodeRenderer consumers (TaskDetailPage, PreviewPage, SmartViewerModal)",
+          "behavior": "End-to-end over real HTTP (not just in-process test doubles): a real Hono app on a real port, backed by two real SdkSessionsStore instances sharing one on-disk file via real proper-lockfile, proves (a)-(d) together",
           "disposition": "tested",
-          "evidence": "Confirmed all three wrap SmartViewer in the identical flex h-full flex-col / min-h-0 flex-1 overflow-hidden pattern already proven correct for TriageFilePanel; full client suite (incl. TaskDetailPage.test.tsx) green; no visual baseline exists for this surface so no pixel-level check was possible"
+          "evidence": "F0.5 surface=api probe (.shipwright/runs/iterate-2026-09-03-claim-holder-launch/f05-claim-holder-probe.mjs), 8/8 checks pass \u2014 see surface_verification below"
         },
         {
-          "behavior": "Existing triage/file-viewer/path-guard suites and doc guards unaffected",
+          "behavior": "Existing sdk-sessions / launch-route suites unaffected by the sdk-sessions-merge.ts -> sdk-sessions-refresh.ts extraction",
           "disposition": "tested",
-          "evidence": "Full client (3578) + server (3735) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones)"
+          "evidence": "Full server suite: 338 files / 3845 passed / 3 skipped, 0 failures; tsc --noEmit clean; oxlint clean (no new warnings)"
+        },
+        {
+          "behavior": "A concurrent same-process delete() landing mid-disk-read is never resurrected by refreshRowFromDisk (doubt-review HIGH finding)",
+          "disposition": "tested",
+          "evidence": "sdk-sessions-store-refresh-row.test.ts '[doubt-review finding] a concurrent delete() landing mid-read is not resurrected'"
+        },
+        {
+          "behavior": "A future-dated claimedAt beyond the clock-skew tolerance is refused as expired; within tolerance it is still accepted (doubt-review LOW/MEDIUM finding)",
+          "disposition": "tested",
+          "evidence": "claim-holder-gate.test.ts '[doubt-review finding] refuses a matching token when claimedAt is future-dated beyond the clock-skew tolerance' + 'allows a matching token when claimedAt is future-dated but within the clock-skew tolerance'"
         }
       ]
     },
     "surface_verification": {
-      "surface": "web",
-      "tests_run": 5,
+      "surface": "api",
+      "tests_run": 8,
       "exit_code": 0,
-      "justification": "All three reported bugs (no vertical scrollbar, clipped code with no horizontal scrollbar, dead links to nonexistent files) are DOM-layout and network-timing behaviors invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/triage-file-viewer.spec.ts), measuring actual scrollHeight/scrollWidth/clientHeight/clientWidth and bounding boxes rather than asserting on classNames. 5/5 tests passed, including the two new ones added for this iterate's follow-up bugs."
+      "justification": "The bug this closes (an in-memory Map staying stale across process boundaries) is invisible to in-process test doubles by construction \u2014 proving it needs a real second OS process's worth of independence: a real Hono app served over a real HTTP port (@hono/node-server), backed by two real SdkSessionsStore instances sharing one on-disk file via the real proper-lockfile (not the test-double lock), where the 'foreign' claim is written by a store instance the running server process never touches again. Never points at the operator's actual ~/.shipwright-webui/sdk-sessions.json (config.ts's registryDir has no env override, so the compiled production server binary was deliberately not used) \u2014 a scratch temp-dir file instead, wired through the same createExternalRoutes() construction. 8/8 checks passed, proving AC (a)-(d) end to end. The process crashed on process.exit() with a Windows libuv UV_HANDLE_CLOSING assertion AFTER every check had already printed pass \u2014 a known class of Node-on-Windows forced-exit timing hazard, not part of the HTTP round trips under test; recorded as a degraded item above rather than root-caused further."
     }
   },
   "source_state": {
-    "run_id": "iterate-2026-08-30-triage-file-viewer-followups",
-    "commit": "5c760bdb8d15b846f48899576d1219f284047bfb",
+    "run_id": "iterate-2026-09-03-claim-holder-launch",
+    "commit": "4f80757ff9e9e612993e215c951637ca2601fe96",
     "dirty": true,
     "base": null,
     "release": null

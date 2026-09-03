@@ -37,6 +37,7 @@ import {
   applyLegacyFallbackBranch,
   type LaunchBranchResult,
 } from "./_helpers.js";
+import { checkClaimHolderGate } from "./claim-holder-gate.js";
 
 export interface LaunchRouterDeps {
   store: SdkSessionsStore;
@@ -66,7 +67,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         ? (rawBody as Record<string, unknown>)
         : {};
 
-    const task = store.get(c.req.param("id"));
+    let task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
 
     // Section 03 (iterate 3) — O20 idempotency guard. Reject re-launch on
@@ -81,29 +82,28 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
     }
 
     // iterate-2026-05-14 lead-foundation-task-schema (leadwright Phase 1).
-    // While a task is claimed the user-level launch route MUST step aside
-    // so user + daemon don't fight over the same session (stale SQLite
-    // lock, interleaved JSONL, double-running shells). External review
-    // HIGH-2: only `claimToken` triggers the 409.
-    if (typeof task.claimToken === "string" && task.claimToken.length > 0) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          message: "task_claimed: launch refused while claimToken is set",
-          taskId: task.taskId,
-          claimedBy: task.claimedBy,
-          claimedAt: task.claimedAt,
-          claimPid: task.claimPid,
-        }),
-      );
-      return c.json(
-        {
-          error: "task_claimed",
-          claimedBy: task.claimedBy,
-          claimedAt: task.claimedAt,
-        },
-        409,
-      );
+    // While a task is claimed the launch route MUST step aside for anyone
+    // but the claim HOLDER (FR-04.22/V5, iterate-2026-09-03-claim-holder-launch)
+    // — so a stranger and the daemon don't fight over the same session
+    // (stale SQLite lock, interleaved JSONL, double-running shells), while
+    // the holder itself can still (re)launch. External review HIGH-2: only
+    // `claimToken` triggers the 409.
+    //
+    // The in-memory row can be STALE — `load()` runs once at server boot
+    // (index.ts), so a foreign claim written to disk by the leadwright
+    // daemon only reaches this process's memory via its OWN persist(). A
+    // webui that has persisted nothing since the claim was written would
+    // otherwise see no claim at all (the normal case for an idle daemon
+    // with no browser open). Refresh this one row from disk first — never
+    // re-run `load()` (a guarded no-op after the first call).
+    const freshTask = await store.refreshRowFromDisk(task.taskId);
+    if (freshTask) task = freshTask;
+
+    const bodyClaimToken =
+      typeof body.claimToken === "string" ? body.claimToken : undefined;
+    const claimGate = checkClaimHolderGate(task, bodyClaimToken);
+    if (!claimGate.allowed) {
+      return c.json(claimGate.error, 409);
     }
 
     // Parse + apply once-set-always-used (v0.4.1 fallback contract).

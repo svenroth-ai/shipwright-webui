@@ -144,6 +144,28 @@ async function withFsRetry<T>(op: () => Promise<T>): Promise<T> {
 }
 
 /**
+ * Ensure the parent dir + the file itself exist before a proper-lockfile
+ * `lstat` — shared by persist() and refreshRowFromDisk() (FR-04.22/V5,
+ * sdk-sessions-refresh.ts), both of which lock the same path before
+ * reading/writing it.
+ */
+export function ensureFileReady(
+  deps: {
+    existsSync: (p: string) => boolean;
+    mkdirSync: (p: string, opts?: { recursive: boolean }) => void;
+    ensureFile: (p: string) => void;
+  },
+  path: string,
+): void {
+  const lastSlash = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
+  if (lastSlash !== -1) {
+    const dir = path.slice(0, lastSlash);
+    if (!deps.existsSync(dir)) deps.mkdirSync(dir, { recursive: true });
+  }
+  deps.ensureFile(path);
+}
+
+/**
  * Re-read + classify + validate the on-disk file for a persist merge. A missing
  * file / ENOENT is an empty store; a TRANSIENT read error (EBUSY/EPERM/EACCES)
  * is retried, then re-thrown (the caller must reject, NOT full-write — that
@@ -219,13 +241,12 @@ export async function atomicWriteFile(
   }
 }
 
-/**
- * Field-level 3-way merge of a row present in both memory and disk. Start from
+/** Field-level 3-way merge of a row present in both memory and disk. Start from
  * the on-disk row (foreign updates + external claim fields), then re-apply
  * every field this instance actually changed (baseline → memory), including
- * fields it removed.
- */
-function mergeRow(
+ * fields it removed. Also used standalone by `refreshRowFromDisk`
+ * (sdk-sessions-refresh.ts). */
+export function mergeRow(
   base: ExternalTask | undefined,
   mem: ExternalTask,
   dsk: ExternalTask,
