@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-09-03-webui-pr-review-block-visibility",
+  "date": "2026-09-03T20:27:32.969066Z",
+  "event_at": "2026-09-03T20:26:59.788152+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/pr-review-block-visibility",
+  "spec": "n/a \u2014 no iterate spec required at small complexity",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-03-webui-pr-review-block-visibility"
+}

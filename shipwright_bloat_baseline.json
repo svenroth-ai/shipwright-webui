@@ -688,10 +688,10 @@
     {
       "path": "scripts/ci/pr_review.py",
       "limit": 300,
-      "current": 365,
+      "current": 370,
       "state": "exception",
       "adr": "iterate-2026-07-28-pr-review-parity",
-      "note": "Two independently-complete iterates converged on this file at once: the canonical-parity hardening (this run, 274 lines standalone before the merge) and ADR-117's stale-verdict retraction (iterate-2026-08-01-pr-review-stale-verdict, 297 lines standalone before the merge) both wire most of main()'s body. A safe split (e.g. moving _post_verdict into its own module) would have to thread the `pr_review.<name>` monkeypatch surface every existing test in test_pr_review_script.py relies on through a second module without breaking it -- not something to rush inside a merge of a security-sensitive required CI gate. Filed as a follow-up split, not attempted here."
+      "note": "Two independently-complete iterates converged on this file at once: the canonical-parity hardening (this run, 274 lines standalone before the merge) and ADR-117's stale-verdict retraction (iterate-2026-08-01-pr-review-stale-verdict, 297 lines standalone before the merge) both wire most of main()'s body. A safe split (e.g. moving _post_verdict into its own module) would have to thread the `pr_review.<name>` monkeypatch surface every existing test in test_pr_review_script.py relies on through a second module without breaking it -- not something to rush inside a merge of a security-sensitive required CI gate. Filed as a follow-up split, not attempted here. Bumped 365->370 by iterate-2026-09-03-webui-pr-review-block-visibility (ported the canonical shipwright PR #674 decision-log fix: main() now logs decision+exit_code+a bounded, scrubbed summary excerpt unconditionally, not just on the unknown-decision path -- same follow-up-split note still applies, this run only added the smallest possible unconditional print)."
     },
     {
       "path": "client/e2e/flows/94-webgl-atlas-repaint.spec.ts",
