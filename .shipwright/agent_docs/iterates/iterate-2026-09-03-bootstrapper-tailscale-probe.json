@@ -6,5 +6,119 @@
   "complexity": "small",
   "branch": "iterate/bootstrapper-tailscale-probe",
   "tests_passed": true,
-  "adr": "iterate-2026-09-03-bootstrapper-tailscale-probe"
+  "adr": "iterate-2026-09-03-bootstrapper-tailscale-probe",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "resolveProbeHost maps a wildcard bind (open profile -> 0.0.0.0) back down to loopback",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'wildcard bind (open profile -> 0.0.0.0) maps back down to loopback'"
+      },
+      {
+        "behavior": "resolveProbeHost maps a wildcard bind (HONO_HOST=true -> ::) back down to loopback",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'wildcard bind (HONO_HOST=true -> ::) also maps down to loopback'"
+      },
+      {
+        "behavior": "resolveProbeHost probes a concrete resolved address (tailscale IP) directly, not loopback",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'a concrete bind (tailscale profile's resolved IP) is probed directly, not loopback'"
+      },
+      {
+        "behavior": "resolveProbeHost falls back to loopback (never throws) when the dynamic import fails",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'an import failure (no staged server/dist, e.g. from source) falls back to loopback, never throws'"
+      },
+      {
+        "behavior": "resolveProbeHost falls back to loopback (never throws) when resolveHonoHost itself throws (e.g. tailscale CLI unreachable)",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'a resolution failure (e.g. tailscale ip -4 unreachable) falls back to loopback, never throws'"
+      },
+      {
+        "behavior": "probeServer threads a non-default host into BOTH the TCP occupancy probe and the diagnostics fetch URL",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'threads host into BOTH the TCP occupancy probe and the diagnostics fetch URL'"
+      },
+      {
+        "behavior": "probeServer defaults to 127.0.0.1 when no host is given (backward compatible)",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'defaults to 127.0.0.1 when no host is given (backward compatible)'"
+      },
+      {
+        "behavior": "ensureServer reports/opens a url built from a non-loopback resolved probe host (tailscale)",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'a tailscale-resolved host produces a reachable url'"
+      },
+      {
+        "behavior": "ensureServer keeps the existing http://localhost:<port> url when the resolved host is loopback",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'loopback resolution keeps the existing localhost url (unchanged default behaviour)'"
+      },
+      {
+        "behavior": "resolveProbeHost's real integration against the compiled server resolver (not a mock) correctly resolves local/open/unset/HONO_HOST=true to loopback",
+        "disposition": "tested",
+        "evidence": "F0.5 CLI probe (.shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/f05_probe.mjs) run against a freshly-built server/dist/lib/resolveHonoHost.js: 4/4 cases pass, exit 0. Also promoted into the permanent vitest suite: server.test.mjs 'resolves the real compiled resolveHonoHost.js for local/open/unset profiles -> loopback' (build-gated via it.skipIf — this alone is CI-blind, see next behavior for the unconditional guard code-reviewer required alongside it)"
+      },
+      {
+        "behavior": "the dist import specifier resolveProbeHost depends on (server/dist/lib/resolveHonoHost.js) stays in sync with its real source, so a rename/move/removed-export drift is caught even in CI where server/ is never built",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'server/src/lib/resolveHonoHost.ts exists and exports resolveHonoHost — the specifier resolveProbeHost's dist import depends on' (unconditional, no it.skipIf — added after code-reviewer flagged the build-gated test alone as always-skipped in bootstrapper-checks CI)"
+      },
+      {
+        "behavior": "server/tsconfig.json's rootDir/outDir mapping (src/lib/X.ts -> dist/lib/X.js) still matches the assumption resolveProbeHost's hardcoded dist specifier bakes in",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'server/tsconfig.json's rootDir/outDir still map src/lib/X.ts -> dist/lib/X.js — the assumption resolveProbeHost's hardcoded specifier bakes in' (added on a second code-review pass: the prior source-existence check alone would not catch a future outDir/rootDir change)"
+      },
+      {
+        "behavior": "resolveHonoHost's signature keeps every parameter after `env` optional (default-valued), so resolveProbeHost's single-arg `resolveHonoHost(env)` call keeps working even if the source changes — not just the export name",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'resolveHonoHost's signature keeps every parameter after env optional — resolveProbeHost calls it with only env' (added after doubt-reviewer's HIGH finding: the name-only regex check would not catch a future required 2nd param, e.g. exec losing its default)"
+      },
+      {
+        "behavior": "ensureServer's own default resolveProbeHost wiring (not just resolveProbeHost tested directly) actually surfaces a fallback reason through the log callback",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'ensureServer's DEFAULT resolveProbeHost wiring (not overridden) surfaces a fallback reason through log' (added after doubt-reviewer's LOW finding: this glue line had no assertion coverage — every other test overrides resolveProbeHost, bypassing it)"
+      },
+      {
+        "behavior": "resolveProbeHost rejects an unsafe resolved host (shell/cmd metacharacters) and falls back to loopback, reporting why via onFallback",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'rejects an unsafe resolved host (e.g. a shell/cmd metacharacter) and falls back to loopback, calling onFallback' + 'accepts a plain hostname (e.g. HONO_HOST=localhost) unchanged' (added after code-reviewer flagged the missing isSafeProbeHost coverage / %VAR% cmd.exe expansion risk)"
+      },
+      {
+        "behavior": "an import/resolution failure reports its error message via onFallback (not just silently swallowed)",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'an import/resolution failure calls onFallback with the error message'"
+      },
+      {
+        "behavior": "probeServer and ensureServer bracket an IPv6 probe host ([::1]) so the diagnostics fetch/reported url is well-formed instead of throwing",
+        "disposition": "tested",
+        "evidence": "server.test.mjs: 'probeServer brackets an IPv6 probe host in the diagnostics fetch URL instead of throwing' + 'ensureServer brackets an IPv6 resolved probe host in the reported/opened url' (added after code-reviewer flagged unbracketed IPv6 as a URL-malformation risk)"
+      },
+      {
+        "behavior": "the actual tailscale-profile IP-resolution branch (resolveTailscaleIp's `tailscale ip -4` subprocess) end-to-end",
+        "disposition": "untestable",
+        "reason_code": "requires-external-nondeterministic-service",
+        "reason": "requires a live Tailscale daemon/CLI on the dev machine; the resolution logic itself (server/src/lib/resolveTailscaleIp.ts) is pre-existing and already covered by its own test suite (resolveTailscaleIp.test.ts) unmodified by this diff, so only the NEW consumption of its result (resolveProbeHost passing a concrete-address result straight through) needed new coverage, which is tested via injected fakes above."
+      }
+    ],
+    "counts": {
+      "testable": 17,
+      "tested": 17,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  },
+  "surface_verification": {
+    "surface": "cli",
+    "runner": "node .shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/f05_probe.mjs",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": ".shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/surface_verification.json",
+    "timestamp": "2026-09-03T00:00:00Z"
+  }
 }
