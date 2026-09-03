@@ -3,12 +3,12 @@
   "iterate_latest": {
     "run_id": "iterate-2026-09-03-budget-display-usage-widen",
     "date": "2026-09-03",
-    "unit": "PASS \u2014 client 3761 passed (409 files); server 3851 passed / 3 skipped (339 files)",
-    "integration": "n/a \u2014 no CRUD or service-boundary change; usage.ts validation + org-leads-composite pass-through covered directly below",
-    "pgtap": "n/a \u2014 no RLS or schema change",
-    "e2e": "PASS \u2014 real-Chromium Playwright screenshot verification against the isolated dev stack (server on an isolated leadsRoot fixture, client dev proxy), all three UsageResponse states (no-data / partial / complete) visually confirmed to match every acceptance criterion",
-    "design_fidelity": "n/a \u2014 label/copy + one new amber text-color token on an existing stat row; no visual baseline shift expected or observed (no Percy/pixel baseline covers this surface)",
-    "smoke": "n/a \u2014 no server-wide behaviour change; change is scoped to the usage field + LeadCard rendering",
+    "unit": "PASS — client 3761 passed (409 files); server 3851 passed / 3 skipped (339 files)",
+    "integration": "n/a — no CRUD or service-boundary change; usage.ts validation + org-leads-composite pass-through covered directly below",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "PASS — real-Chromium Playwright screenshot verification against the isolated dev stack (server on an isolated leadsRoot fixture, client dev proxy), all three UsageResponse states (no-data / partial / complete) visually confirmed to match every acceptance criterion",
+    "design_fidelity": "n/a — label/copy + one new amber text-color token on an existing stat row; no visual baseline shift expected or observed (no Percy/pixel baseline covers this surface)",
+    "smoke": "n/a — no server-wide behaviour change; change is scoped to the usage field + LeadCard rendering",
     "degraded": [],
     "test_completeness": {
       "status": "complete",
@@ -62,16 +62,29 @@
           "behavior": "org-schema-sync.test.ts's field-drift guard actually detects a dropped field on either side, including one preceded by a comment",
           "disposition": "tested",
           "evidence": "Falsification check: temporarily dropped anyNotMeasured from the client mirror, confirmed the guard failed red with the stripComments() fix in place, then restored and confirmed green"
+        },
+        {
+          "behavior": "AC-g: npm run test, npm run typecheck, npm run lint all green across both workspaces",
+          "disposition": "tested",
+          "evidence": "Full client suite (409 files/3761 passed) + full server suite (339 files/3851 passed/3 skipped); tsc --noEmit clean both workspaces; oxlint clean, no new warnings"
         }
       ],
-      "counts": { "testable": 10, "tested": 10, "untestable": 0, "untested_testable": 0 },
-      "enumeration_basis": { "acs": 7, "covered_acs": 6 }
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
     },
     "surface_verification": {
       "surface": "web",
       "tests_run": 0,
       "exit_code": 0,
-      "justification": "Advisory tier at this run's complexity (small, no risk flags \u2014 no touches_io_boundary, not cross_split). Verified anyway: built a three-lead fixture (no-data/partial/complete) under an isolated leadsRoot, ran the isolated Hono server + Vite client dev stack (SHIPWRIGHT_NETWORK_PROFILE=local), confirmed the API response shape per state via curl, then drove a real headless Chromium session (Playwright, ad hoc script, not a committed spec) to the /org route and screenshotted all three LeadCard states, confirming every acceptance criterion visually. No committed spec file exists for this change; tests_run is 0 by that measure, which is consistent with the Advisory tier."
+      "justification": "Advisory tier at this run's complexity (small, no risk flags — no touches_io_boundary, not cross_split). Verified anyway: built a three-lead fixture (no-data/partial/complete) under an isolated leadsRoot, ran the isolated Hono server + Vite client dev stack (SHIPWRIGHT_NETWORK_PROFILE=local), confirmed the API response shape per state via curl, then drove a real headless Chromium session (Playwright, ad hoc script, not a committed spec) to the /org route and screenshotted all three LeadCard states, confirming every acceptance criterion visually. No committed spec file exists for this change; tests_run is 0 by that measure, which is consistent with the Advisory tier."
     }
   },
   "source_state": {

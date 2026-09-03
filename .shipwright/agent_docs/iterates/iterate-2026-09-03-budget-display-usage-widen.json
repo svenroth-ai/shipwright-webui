@@ -61,17 +61,22 @@
         "behavior": "org-schema-sync.test.ts's field-drift guard actually detects a dropped field on either side, including one preceded by a comment",
         "disposition": "tested",
         "evidence": "Falsification check: temporarily dropped anyNotMeasured from the client mirror, confirmed the guard failed red with the stripComments() fix in place, then restored and confirmed green"
+      },
+      {
+        "behavior": "AC-g: npm run test, npm run typecheck, npm run lint all green across both workspaces",
+        "disposition": "tested",
+        "evidence": "Full client suite (409 files/3761 passed) + full server suite (339 files/3851 passed/3 skipped); tsc --noEmit clean both workspaces; oxlint clean, no new warnings"
       }
     ],
     "counts": {
-      "testable": 10,
-      "tested": 10,
+      "testable": 11,
+      "tested": 11,
       "untestable": 0,
       "untested_testable": 0
     },
     "enumeration_basis": {
       "acs": 7,
-      "covered_acs": 6
+      "covered_acs": 7
     }
   },
   "surface_verification": {
