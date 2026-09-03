@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T19:50:12.181662+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T19:50:19.428046+00:00",
+      "disposition": "external plan/iterate review is medium+ only, this run is small complexity per the Phase Matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": 56,
+          "finding": "isSafeProbeHost's own JSDoc quoted a paraphrase of openBrowserPlan's win32 comment that this same diff had already rewritten to no longer make that claim — a stale, slightly circular cross-reference.",
+          "suggestion": "Reword isSafeProbeHost's JSDoc to describe the current state directly rather than paraphrasing the other comment. FIXED before merge: reworded.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "bootstrapper/test/server.test.mjs",
+          "line": 374,
+          "finding": "The new CI-visible source-level regression test only checked that server/src/lib/resolveHonoHost.ts exists and exports the function by name — it did not cross-check the hardcoded dist specifier (server/dist/lib/resolveHonoHost.js) against server/tsconfig.json's actual rootDir/outDir mapping, so a future tsconfig change would silently escape this check.",
+          "suggestion": "Add a test that also reads server/tsconfig.json and asserts rootDir/outDir still match the assumption. FIXED before merge: added.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-03T20:28:51.854009+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary-contract",
+          "file": "bootstrapper/lib/server.mjs, server/src/lib/resolveHonoHost.ts, bootstrapper/test/server.test.mjs",
+          "line": null,
+          "finding": "Claim under doubt: the dynamic cross-package import is adequately guarded against drift — the added CI-safe test only regex-matches 'export function resolveHonoHost' in the .ts source; a signature-narrowing refactor (e.g. dropping the exec=defaultExec default) still matches that regex, is invisible to bootstrapper's CI (which never builds server/), and silently regresses tailscale-profile users to the pre-fix bug.",
+          "suggestion": "a server-side contract/parity test pinning resolveHonoHost's call signature and return semantics. FIXED before merge: added a depth-aware test asserting every parameter after env carries a default value.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency-ordering",
+          "file": "bootstrapper/lib/server.mjs (resolveProbeHost, ensureServer), server/src/index.ts:73",
+          "line": null,
+          "finding": "Claim under doubt: resolveProbeHost's fallback to loopback is always benign — a transient tailscale-CLI failure on THIS invocation while a healthy incumbent is bound to a tailscale IP from an EARLIER successful resolution causes the probe to read 'free' and triggers a redundant boot attempt.",
+          "suggestion": "distinguish a resolution failure from 'server not running', or an explicit written rebuttal accepting the narrow window. ADDRESSED before merge: documented as an accepted trade-off in resolveProbeHost's JSDoc and the PR body (window is narrow — bounded by resolveTailscaleIp's 2s exec timeout — and reproduces only the SAME symptom the pre-fix bug always produced, now rare instead of constant); not further code-fixed, judged disproportionate machinery for the window's rarity.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": null,
+          "finding": "Claim under doubt: isSafeProbeHost fully characterizes what is safe to do with the resolved host — it validates shell/URL-metacharacter safety only; an explicit HONO_HOST=external-hostname now makes the bootstrapper itself issue outbound TCP+HTTP requests to that host on every launch — new egress vs. pre-fix loopback-only probing.",
+          "suggestion": "clarify the docstring's safety claim scope. FIXED before merge: reworded.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "bootstrapper/lib/server.mjs, bootstrapper/test/server.test.mjs",
+          "line": null,
+          "finding": "Claim under doubt: the test suite proves ensureServer's onFallback-to-log wiring works — no test asserts on log output for the resolveProbeHost fallback path; the default-wiring arrow function in ensureServer is exercised only for its return value, not its log side effect.",
+          "suggestion": "a test passing a custom log spy through the default (unmocked resolveProbeHost) path. FIXED before merge: added.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": null,
+          "finding": "Claim under doubt: isSafeProbeHost's hostname branch only accepts genuine hostnames — a malformed IP-shaped string like '999.999.999.999' passes the hostname regex even though isIP correctly rejects it as an IP — harmless in practice (DNS failure reads as free, identical to pre-fix behaviour).",
+          "suggestion": "no action needed per the doubt-reviewer's own assessment.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-03T20:28:57.593381+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T20:29:16.017644+00:00",
+      "disposition": "external LLM code review is Advisory/freely skippable below medium per the Phase Matrix — this run is small complexity",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T19:55:11.130052+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T19:50:19.545890+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small complexity per the Phase Matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
