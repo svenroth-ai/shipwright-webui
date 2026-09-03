@@ -5,7 +5,8 @@
     "date": "2026-09-03",
     "unit": {
       "status": "passed",
-      "passed": 280,
+      "passed": 281,
+      "skipped": 2,
       "total": 283
     },
     "integration": {
