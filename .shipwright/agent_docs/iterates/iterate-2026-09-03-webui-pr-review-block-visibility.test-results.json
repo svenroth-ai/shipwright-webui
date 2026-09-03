@@ -1,0 +1,72 @@
+{
+  "last_updated": "2026-09-03",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-03-webui-pr-review-block-visibility",
+    "date": "2026-09-03",
+    "unit": "PASS \u2014 scripts/ci full suite (Python): 745 passed, 0 failed. Not a client/server change, so the TS suites were not re-run.",
+    "integration": "n/a \u2014 no CRUD or service-boundary change, a CI-log stdout/stderr excerpt only",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "n/a \u2014 no browser surface; this is a CI-log observability fix in a Tier-3 PR-review CLI script",
+    "design_fidelity": "n/a \u2014 no UI surface",
+    "smoke": "n/a \u2014 no startable server surface touched",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "a `block` decision prints decision=block, exit=1, and a bounded summary excerpt to stderr, pointing at the PR comment for full findings",
+          "disposition": "tested",
+          "evidence": "test_pr_review_decision_log.py::TestDecisionLog::test_block_decision_logs_a_bounded_excerpt PASSED"
+        },
+        {
+          "behavior": "`approve` and `comment` decisions also log unconditionally, not just the error path",
+          "disposition": "tested",
+          "evidence": "test_pr_review_decision_log.py::TestDecisionLog::test_approve_and_comment_also_log_unconditionally PASSED"
+        },
+        {
+          "behavior": "the logged excerpt is bounded \u2014 an arbitrarily long model-authored summary does not become a second full copy of the PR comment in the CI log",
+          "disposition": "tested",
+          "evidence": "test_pr_review_decision_log.py::TestDecisionLog::test_decision_log_excerpt_is_bounded PASSED"
+        },
+        {
+          "behavior": "the new log line is redacted like every other stderr print \u2014 a summary that happens to echo the API key never leaks it",
+          "disposition": "tested",
+          "evidence": "test_pr_review_decision_log.py::TestDecisionLog::test_decision_log_excerpt_is_redacted PASSED"
+        },
+        {
+          "behavior": "the new log line is scrubbed of control/terminal-escape chars via strip_display_unsafe, matching this file's own untrusted-text sink discipline",
+          "disposition": "tested",
+          "evidence": "test_pr_review_decision_log.py::TestDecisionLog::test_decision_log_excerpt_is_scrubbed_of_control_chars PASSED"
+        },
+        {
+          "behavior": "exit codes and PR-comment/review-state posting are unchanged by this diff; the size-guideline meta-test still passes with the bumped baseline",
+          "disposition": "tested",
+          "evidence": "test_pr_review_orchestration.py existing block/approve/comment exit-code cases still PASSED unmodified; test_pr_review_script.py::test_no_reviewer_module_silently_crosses_the_size_guideline PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "CI-log stdout/stderr observability change in a Tier-3 script with no browser or server surface; fully covered by the unit suite above (test_pr_review_decision_log.py, run via pytest capsys)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-03-webui-pr-review-block-visibility",
+    "commit": "56d44880846627e48f6fd7c7e37914851ca2ed0d",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

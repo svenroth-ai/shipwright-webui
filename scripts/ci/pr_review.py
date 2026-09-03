@@ -321,6 +321,18 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_BLOCK
 
     exit_code = decision_to_exit(decision)
+    # Unconditional, unlike the check below it — a correct block/approve/comment
+    # used to print NOTHING past the "reviewing PR..." line above, making a
+    # legitimate gate outcome indistinguishable from a hang in the CI log
+    # (canonical shipwright PR #672: 4 CI runs misdiagnosed as an infra flake for
+    # exactly this reason, while the full findings sat unread in the PR comment
+    # the whole time — see render_comment/_post_verdict above). Bounded to keep
+    # this a log LINE, and scrubbed like every other untrusted-text sink in this
+    # file (the model's summary is as untrusted as `gh`'s own error bodies).
+    summary_excerpt = strip_display_unsafe(str(review.get("summary", ""))[:300])
+    print(_redact(
+        f"[pr_review] decision={decision} exit={exit_code} — {summary_excerpt!r} "
+        "(full findings posted as PR comment)", api_key), file=sys.stderr)
     if exit_code == EXIT_ERROR:
         print(f"[pr_review] unknown decision '{decision}' — treating as error.", file=sys.stderr)
     if exit_code == EXIT_OK and state_posted:
