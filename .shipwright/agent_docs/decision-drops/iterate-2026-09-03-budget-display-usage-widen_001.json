@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-03-budget-display-usage-widen",
+  "date": "2026-09-04",
+  "section": "Iterate — change: budget display (V4b)",
+  "title": "Consumed-spend display replaces budget label",
+  "context": "LeadCard labelled spend as a '7-day budget' and hid partial-measurement and unpriced-call signals, misleading the reader about remaining allowance.",
+  "decision": "Relabel as '{N}-day USD consumed', name the subagent-spend gap in a note, surface unpricedCallsTotal when >0, and distinguish no-data/partial/complete via UsageResponse.anyNotMeasured.",
+  "consequences": "UsageResponse gains two optional fields (unpricedCallsTotal, anyNotMeasured); older leadwright producers still validate and render unchanged.",
+  "rationale": "AC forbids any remaining-allowance wording; costUsd:0 must render as a real zero, not 'not measured', so branching is on .measured not truthiness.",
+  "rejected": "Quantifying the subagent-spend gap was rejected — the counter cannot measure it, so a number would be a fabricated precision.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}

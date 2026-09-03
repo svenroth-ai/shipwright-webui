@@ -109,6 +109,8 @@
 .org-page .stat .v { font-size: 13px; font-weight: 600; color: #1C1917; font-variant-numeric: tabular-nums; }
 .org-page .stat .v.hot { color: #B54708; }
 .org-page .stat .v.unmeasured { color: #A8A29E; font-weight: 500; font-variant-numeric: normal; }
+.org-page .stat .v.partial { color: #B54708; }
+.org-page .usagenote { margin: 6px 14px 0; font-size: 10.5px; color: #A8A29E; }
 
 .org-page .rcard2 .docs { padding: 12px 14px 14px; }
 

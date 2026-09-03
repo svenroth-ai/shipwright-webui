@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Widens UsageResponse + isValidUsagePayload with two optional fields, relabels LeadCard's consumed-spend stat away from 'budget', adds the subagent-spend-gap note and the no-data/partial/complete distinction — matches FR-04.30's display-half AC (a)-(f) exactly, no extra scope (leadwright, budget.usd, claim reorder untouched)."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "usageCore's existing try/catch for ENOENT/read/parse errors is unchanged; the two new fields are validated inside the same isValidUsagePayload gate, so a malformed new field still 502s exactly like a malformed core field."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No new user input path — leadId is still validated via LEAD_ID_RE before any filesystem access (unchanged). No secrets, no HTML/SQL injection surface."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Every new behavior asserts on rendered text / response body (outcomes), not internal state. Each AC has both a happy path (field present, valid) and an error/edge path (field absent, field invalid, value 0)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "No loops, no additional I/O — the same single usage.json read now validates two more optional fields in the same object-property checks."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "LeadCard.tsx crossed 300 lines mid-edit; extracted the three pure usage-display helpers into a new leadUsageDisplay.ts (44 lines) with its own leadUsageDisplay.test.ts (68 lines), bringing LeadCard.tsx back to 262 lines. LeadCard.test.tsx sits at 306 lines (6 over the guideline) — flagged, not split, since splitting a single component's test file for 6 lines would fragment related AC coverage for no real benefit; noted for the PR."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Producer: leadwright's usage.json writer (external, leadwright#38, out of scope). Consumer: usageCore/isValidUsagePayload -> org-leads-composite.ts -> LeadCard. Round-trip covered by usage.test.ts (write real usage.json to a tmp dir, read back through the real route) for: both new fields present, both absent (backward-compat), each new field individually malformed."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff: no findings."
+    }
+  ]
+}

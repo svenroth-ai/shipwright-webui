@@ -1,9 +1,10 @@
 /*
  * LeadCard.test.tsx — iterate spec AC-2/AC-3/AC-4/AC-5 component tests:
  * fixed five-block order (via `data-block`, never a snapshot), the
- * not-measured contract, the usage-fills-budget-and-runs behavior with a
- * non-7 `windowDays` fixture, and the disabled pause switch issuing no
- * network request.
+ * not-measured contract, the usage-fills-consumed-spend-and-runs behavior
+ * with a non-7 `windowDays` fixture, and the disabled pause switch issuing
+ * no network request. FR-04.30's consumed-spend-label + gap-disclosure AC
+ * tests live in the sibling LeadCard.usage-consumed.test.tsx.
  */
 import type { ReactNode } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -112,8 +113,8 @@ describe("LeadCard — Now block renders relative time, not an absolute timestam
   });
 });
 
-describe("LeadCard — usage fills budget and runs (AC-4)", () => {
-  it("derives the budget label from windowDays and never hardcodes 7", () => {
+describe("LeadCard — usage fills consumed spend and runs (AC-4)", () => {
+  it("derives the label from windowDays and never hardcodes 7", () => {
     const Wrapper = makeWrapper();
     const lead: LeadRosterEntry = {
       ...UNMEASURED_LEAD,
@@ -132,12 +133,17 @@ describe("LeadCard — usage fills budget and runs (AC-4)", () => {
       </Wrapper>,
     );
     const stats = screen.getByTestId("lead-card-stats");
-    expect(stats.textContent).toContain("30-day budget");
-    expect(stats.textContent).not.toContain("7-day budget");
+    expect(stats.textContent).toContain("30-day USD consumed");
+    expect(stats.textContent).not.toContain("7-day USD consumed");
     expect(stats.textContent).toContain("$42.75");
     expect(stats.textContent).toContain("9");
   });
 });
+
+// FR-04.30 display-half AC tests (consumed-spend label, subagent-spend-gap
+// note, unpricedCallsTotal, no-data/partial/complete states) live in the
+// sibling LeadCard.usage-consumed.test.tsx — split out to keep this file
+// under the 300-line convention.
 
 describe("LeadCard — disabled pause switch (AC-5)", () => {
   it("renders disabled with a stated reason and issues no network request on click", () => {

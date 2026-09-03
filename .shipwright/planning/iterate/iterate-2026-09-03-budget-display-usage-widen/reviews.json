@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-03-budget-display-usage-widen",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T21:53:17.833052+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T21:53:33.698673+00:00",
+      "disposition": "Mini-Plan is skipped at small complexity for CHANGE intent (phase matrix); nothing to review",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/types/org-schema-sync.test.ts",
+          "line": null,
+          "finding": "org-schema-sync.test.ts's per-field regex requires a segment to start with the identifier; a preceding JSDoc comment on unpricedCallsTotal/anyNotMeasured made both fields silently invisible to the drift guard on BOTH sides identically. Fixed: added a stripComments() pass before splitTopLevel() in both interfaceFields() and armInfo(). Falsified by temporarily dropping anyNotMeasured from the client mirror, confirming the guard failed red, then restoring it and confirming green.",
+          "suggestion": "Strip block/line comments before matching field declarations.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/LeadCard.tsx",
+          "line": null,
+          "finding": "usageNoteText(lead.usage) was computed twice in the same render. Fixed: extracted to a single const usageNote at the top of LeadCard, reused in the JSX.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/LeadCard.test.tsx",
+          "line": null,
+          "finding": "LeadCard.test.tsx's file-header comment still said 'usage-fills-budget-and-runs', stale after the wording purge this iterate performs. Fixed: reworded and added a pointer to the sibling FR-04.30 test file.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/org/LeadCard.usage-consumed.test.tsx",
+          "line": null,
+          "finding": "makeWrapper()/UNMEASURED_LEAD duplicated between the two split LeadCard test files. Accepted as-is per the reviewer's own assessment — a one-off from the 300-line-convention split, flagged only for a future third sibling file.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "server/src/routes/__tests__/org.test.ts",
+          "line": null,
+          "finding": "The composite roster route (GET /api/org/leads) forwards the two new usage fields via a trivial spread, but had zero direct test coverage proving the end-to-end pass-through. Fixed: added a test asserting GET /api/org/leads surfaces unpricedCallsTotal + anyNotMeasured.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/org/usage.ts",
+          "line": null,
+          "finding": "isValidUsagePayload accepted a non-integer unpricedCallsTotal (e.g. 2.5), which would render as '2.5 unpriced calls'. Already caught independently by the external review cascade and fixed before this report landed: Number.isFinite -> Number.isInteger, with a new 502 test case.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-03T22:09:39.596224+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T22:09:51.373417+00:00",
+      "disposition": "Stage 3 is conditional on a non-trivial surface (migrations, async/concurrency, cross-plugin imports, irreversible ops); this diff is pure type-widening + display logic + a test-guard parser fix, none of which qualify",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/external/org/usage.ts (~line 60, the `unpricedCallsTotal` validation block)",
+          "line": null,
+          "finding": "unpricedCallsTotal` accepts non-integer values (e.g. `2.5`), which would render as \"2.5 unpriced calls\" on the card. A call count is inherently an integer.",
+          "suggestion": "Add `Number.isInteger(u.unpricedCallsTotal)` to the presence check, or floor/round if fractional producers are expected.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/org/LeadCard.usage-consumed.test.tsx (~line 165, \"still renders correctly when the payload lacks the two new optional fields\")",
+          "line": null,
+          "finding": "This test is nearly identical to the \"complete state\" test above it — it doesn't do anything extra to prove backward compatibility beyond relying on the fields being absent from `BASE_USAGE`. It passes, and the server-side test does the real work, but the client test's stated purpose is weakly differentiated.",
+          "suggestion": "Optionally assert `usage.unpricedCallsTotal === undefined && usage.anyNotMeasured === undefined` via a distinct fixture, or drop the redundant test — the server test plus the complete-state test already cover this.  No security issues: the server only reads local `usage.json` under `leadsRoot` (existing pattern), validates types before forwarding, and no new auth surface is introduced.  No regressions found: the `statrow` restructure preserves the shared flex layout (class moved to an inner div, same children), `UsageResponse` fields are additive/optional, and the server response shape only gains optional keys.  Overall: the diff faithfully implements all six ACs, guards the traps (windowDays from payload, truthiness-vs-measured branching, no \"budget\" wording), and has meaningful error-path tests on both server and client. The only finding is a minor integer-validation gap.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-03T21:59:50.769938+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] Reviewing against FR-04.30's acceptance criteria:\n\n**(a)–(f) coverage check:**\n- (a) Label is \"N-day USD consumed\" / \"USD consumed\"; test asserts \"budget\" absent on both measured and unmeasured cards. ✓\n- (b) `usageNoteText` always includes \"Excludes subagent spend\" on measured windows; the no-number assertion regex is correct. ✓\n- (c) unpricedCallsTotal only surfaces when > 0, with singular/plural handling; covered both in unit tests and card-level. ✓\n- (d) Three states distinguished via `measured`, `anyNotMeasured`, plus distinct CSS class `partial`; tested in `LeadCard.usage-consumed.test.tsx`. ✓\n- (e) `usageValueText` branches on `.measured` only; `$0.00` covered, plus the \"exactly 3 'not measured' occurrences\" guard against a truthiness regression. ✓\n- (f) Server validator makes the two fields optional-with-type-check-if-present, and the response omits them when absent (spread pattern). The older-producer test asserts both 200 and absence. ✓\n\n**Findings:**\n\n- Category: edge-case\n- Severity: low\n- File: server/src/external/org/usage.ts (~line 60, the `unpricedCallsTotal` validation block)\n- Finding: `unpricedCallsTotal` accepts non-integer values (e.g. `2.5`), which would render as \"2.5 unpriced calls\" on the card. A call count is inherently an integer.\n- Suggestion: Add `Number.isInteger(u.unpricedCallsTotal)` to the presence check, or floor/round if fractional producers are expected.\n\n- Category: test\n- Severity: low\n- File: client/src/components/org/LeadCard.usage-consumed.test.tsx (~line 165, \"still renders correctly when the payload lacks the two new optional fields\")\n- Finding: This test is nearly identical to the \"complete state\" test above it — it doesn't do anything extra to prove backward compatibility beyond relying on the fields being absent from `BASE_USAGE`. It passes, and the server-side test does the real work, but the client test's stated purpose is weakly differentiated.\n- Suggestion: Optionally assert `usage.unpricedCallsTotal === […truncated]\n\n[openai] No concrete defects found in the diff. The implementation removes the budget wording, uses payload-provided `windowDays`, preserves zero-valued measured costs, distinguishes unmeasured/partial/complete states, conditionally surfaces positive unpriced-call totals, and keeps the new producer fields optional through server validation and client types. The added tests exercise the specified display states and backwards-compatible payload shape.\n\nOverall assessment: ship-as-is.  \nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T21:56:39.171909+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-03T21:53:33.817377+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
