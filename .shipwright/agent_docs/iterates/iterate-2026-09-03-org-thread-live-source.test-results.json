@@ -83,7 +83,9 @@
           "disposition": "tested",
           "evidence": "npm run typecheck / lint / test clean in server/ (335 files/3821 tests) and client/ (407 files/3745 tests)"
         }
-      ]
+      ],
+      "counts": { "testable": 14, "tested": 14, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 6, "covered_acs": 6 }
     },
     "surface_verification": {
       "surface": "web",
