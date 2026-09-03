@@ -1,0 +1,12 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All four elements of webui#415's problem statement and suggested fix are present, faithful and in scope. (1) The probe host is resolved through the server's OWN profile logic rather than re-implemented: resolveProbeHost dynamically imports pkgRoot/server/dist/lib/resolveHonoHost.js — verified to exist with a named ESM export at exactly that path, and shipped (bootstrapper/package.json files includes 'server/dist/' AND 'server/package.json', the latter load-bearing for \"type\":\"module\" resolution). (2) The host is threaded into BOTH legs the issue names: tcpProbe(port,{host,...}) and the diagnostics fetch URL. (3) The url used for logging, error messages and openBrowser is derived from the same resolution. (4) decideAction's attach/swap/foreign branches become genuinely reachable under SHIPWRIGHT_NETWORK_PROFILE=tailscale, and they actually work once reached — deploy-swap.mjs/deploy-procs.mjs identify the incumbent by listening PORT, not by loopback address, so no second hardcoded-loopback assumption defeats the newly-reachable swap path. No scope creep. Code-reviewer (Stage 2) may proceed.",
+  "non_blocking_observations": [
+    "probes.mjs docstring still said 'TCP-connect to 127.0.0.1:port' and its connect-timeout-treated-as-free rationale no longer holds once host can be a tailnet address (a blackholed interface would time out, read as free, boot, and collide).",
+    "No test exercised the real specifier/export name of resolveHonoHost.js — a drift there would silently fall back to the pre-fix bug with a fully green suite.",
+    "An explicit non-wildcard IPv6 HONO_HOST would produce an unbracketed http://::1:<port> — out of the issue's scope (tailscale resolution is IPv4-only) but newly reachable.",
+    "Direction asymmetry: an incumbent still bound to loopback while env says tailscale is now invisible to the probe (two live servers, no EADDRINUSE) — the issue's alternative 'loopback first, then profile fallback' would cover both directions; this diff implements the issue's primary suggestion instead."
+  ]
+}

@@ -9,10 +9,16 @@
 import net from "node:net";
 
 /**
- * TCP-connect to 127.0.0.1:port. `connected` → the port is OCCUPIED (by
- * anything); ECONNREFUSED → FREE. A connect timeout is treated as free (a
- * filtered localhost port does not occur in practice; erring toward free avoids
- * a false-foreign that would block boot on a genuinely open port).
+ * TCP-connect to `host`:`port` (loopback by default; server.mjs's
+ * `resolveProbeHost` passes a profile-derived address, e.g. a tailscale IP,
+ * under SHIPWRIGHT_NETWORK_PROFILE=tailscale — webui#415). `connected` → the
+ * port is OCCUPIED (by anything); ECONNREFUSED → FREE. A connect timeout is
+ * treated as free (a filtered loopback port does not occur in practice;
+ * erring toward free avoids a false-foreign that would block boot on a
+ * genuinely open port). That heuristic is weaker for a non-loopback `host`: a
+ * blackholed/unreachable tailnet interface times out the same way a genuinely
+ * free port does, so it also reads as free — a known, accepted gap, not this
+ * function's concern to close (server.mjs owns which host to pass).
  * @returns {Promise<boolean>} occupied
  */
 export function tcpOccupied(port, { host = "127.0.0.1", timeoutMs = 1500 } = {}) {

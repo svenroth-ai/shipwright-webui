@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import http from "node:http";
 import net from "node:net";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { existsSync, readFileSync } from "node:fs";
 
 import {
   probeServer,
@@ -13,6 +16,7 @@ import {
   checkNativePty,
   bootLogPath,
   resolveBootStdio,
+  resolveProbeHost,
 } from "../lib/server.mjs";
 
 const PKG_VERSION = "0.23.0";
@@ -315,6 +319,253 @@ describe("server — probeServer against a REAL socket (alt ephemeral port, neve
     } finally {
       srv.close();
     }
+  });
+});
+
+describe("server — resolveProbeHost (webui#415: tailscale profile probed on loopback)", () => {
+  it("wildcard bind (open profile → 0.0.0.0) maps back down to loopback — still connectable there", async () => {
+    const host = await resolveProbeHost("/pkg", {}, async () => ({ resolveHonoHost: () => "0.0.0.0" }));
+    expect(host).toBe("127.0.0.1");
+  });
+
+  it("wildcard bind (HONO_HOST=true → ::) also maps down to loopback", async () => {
+    const host = await resolveProbeHost("/pkg", {}, async () => ({ resolveHonoHost: () => "::" }));
+    expect(host).toBe("127.0.0.1");
+  });
+
+  it("a concrete bind (tailscale profile's resolved IP) is probed directly, not loopback", async () => {
+    const host = await resolveProbeHost("/pkg", {}, async () => ({ resolveHonoHost: () => "100.64.1.2" }));
+    expect(host).toBe("100.64.1.2");
+  });
+
+  it("an import failure (no staged server/dist, e.g. from source) falls back to loopback, never throws", async () => {
+    const host = await resolveProbeHost("/pkg", {}, async () => {
+      throw new Error("ENOENT");
+    });
+    expect(host).toBe("127.0.0.1");
+  });
+
+  it("a resolution failure (e.g. `tailscale ip -4` unreachable) falls back to loopback, never throws", async () => {
+    const host = await resolveProbeHost("/pkg", {}, async () => ({
+      resolveHonoHost: () => {
+        throw new Error("[resolveTailscaleIp] tailscale CLI not found on PATH");
+      },
+    }));
+    expect(host).toBe("127.0.0.1");
+  });
+});
+
+describe("server — resolveProbeHost against the REAL server resolver (webui#415)", () => {
+  // Every other resolveProbeHost test injects a fake importFn — none of them
+  // exercise the real specifier/export name. A drift there (rename, moved
+  // file, changed export) would silently fall through resolveProbeHost's
+  // catch and restore the exact pre-fix bug with a fully green mocked suite
+  // (code-reviewer finding: `bootstrapper-checks` CI does a bootstrapper-only
+  // `npm ci`/test — it never builds server/, and server/dist is gitignored,
+  // so a build-gated runtime check alone is ALWAYS skipped in CI and proves
+  // nothing there). This SOURCE-level check needs no build and runs in every
+  // CI invocation: it asserts the .ts source resolveProbeHost's specifier
+  // maps to (server/tsconfig.json: rootDir "./src" -> outDir "./dist", so
+  // src/lib/X.ts -> dist/lib/X.js) exists and still exports the function by
+  // that exact name.
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
+  const resolverSourcePath = path.join(repoRoot, "server", "src", "lib", "resolveHonoHost.ts");
+
+  it("server/src/lib/resolveHonoHost.ts exists and exports resolveHonoHost — the specifier resolveProbeHost's dist import depends on", () => {
+    expect(existsSync(resolverSourcePath)).toBe(true);
+    const source = readFileSync(resolverSourcePath, "utf-8");
+    expect(source).toMatch(/export function resolveHonoHost\b/);
+  });
+
+  it("server/tsconfig.json's rootDir/outDir still map src/lib/X.ts -> dist/lib/X.js — the assumption resolveProbeHost's hardcoded specifier bakes in", () => {
+    const tsconfigPath = path.join(repoRoot, "server", "tsconfig.json");
+    const tsconfig = JSON.parse(readFileSync(tsconfigPath, "utf-8"));
+    expect(tsconfig.compilerOptions.rootDir).toBe("./src");
+    expect(tsconfig.compilerOptions.outDir).toBe("./dist");
+  });
+
+  it("resolveHonoHost's signature keeps every parameter after `env` optional — resolveProbeHost calls it with only env (doubt review: a name-only check wouldn't catch a future required 2nd param)", () => {
+    const source = readFileSync(resolverSourcePath, "utf-8");
+    const match = source.match(/export function resolveHonoHost\s*\(([\s\S]*?)\)\s*:/);
+    expect(match).not.toBeNull();
+    // Depth-aware split: a param's TYPE can itself contain commas (e.g.
+    // `Record<string, string | undefined>`), so a naive `.split(",")` would
+    // wrongly split THAT comma into a fake extra "parameter".
+    const params = [];
+    let depth = 0;
+    let current = "";
+    for (const ch of match[1]) {
+      if (ch === "<" || ch === "(" || ch === "[") depth++;
+      else if (ch === ">" || ch === ")" || ch === "]") depth--;
+      if (ch === "," && depth === 0) {
+        params.push(current.trim());
+        current = "";
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) params.push(current.trim());
+
+    expect(params.length).toBeGreaterThanOrEqual(1);
+    // First param (env) is required by design. Every param after it MUST
+    // carry a default (`= ...`) — if a future refactor makes one required
+    // (e.g. dropping `exec`'s default), resolveProbeHost's `resolveHonoHost(env)`
+    // call would break at runtime with no build needed to see it here.
+    for (const param of params.slice(1)) {
+      expect(param).toMatch(/=/);
+    }
+  });
+
+  // Build-gated bonus: when server/ HAS been built locally (not in CI — see
+  // above), also exercise the real compiled output end to end. A runtime
+  // conditional test.skip(cond, reason) (first arg not a string) is the
+  // documented test-hygiene exemption for a binary/build-artifact gate.
+  const builtResolverPath = path.join(repoRoot, "server", "dist", "lib", "resolveHonoHost.js");
+  const built = existsSync(builtResolverPath);
+
+  it.skipIf(!built)(
+    `resolves the real compiled resolveHonoHost.js for local/open/unset profiles -> loopback${built ? "" : " [skipped: server/ not built locally — run `npm run build` in server/]"}`,
+    async () => {
+      const local = await resolveProbeHost(repoRoot, { SHIPWRIGHT_NETWORK_PROFILE: "local" });
+      const open = await resolveProbeHost(repoRoot, { SHIPWRIGHT_NETWORK_PROFILE: "open" });
+      const unset = await resolveProbeHost(repoRoot, {});
+      expect(local).toBe("127.0.0.1");
+      expect(open).toBe("127.0.0.1");
+      expect(unset).toBe("127.0.0.1");
+    },
+  );
+});
+
+describe("server — isSafeProbeHost / formatHostForUrl via resolveProbeHost + probeServer (webui#415 code review)", () => {
+  it("rejects an unsafe resolved host (e.g. a shell/cmd metacharacter) and falls back to loopback, calling onFallback", async () => {
+    const fallbacks = [];
+    const host = await resolveProbeHost(
+      "/pkg", {}, async () => ({ resolveHonoHost: () => "%USERPROFILE%" }),
+      (reason) => fallbacks.push(reason),
+    );
+    expect(host).toBe("127.0.0.1");
+    expect(fallbacks).toHaveLength(1);
+    expect(fallbacks[0]).toMatch(/not a safe/);
+  });
+
+  it("accepts a plain hostname (e.g. HONO_HOST=localhost) unchanged", async () => {
+    const host = await resolveProbeHost("/pkg", {}, async () => ({ resolveHonoHost: () => "localhost" }));
+    expect(host).toBe("localhost");
+  });
+
+  it("an import/resolution failure calls onFallback with the error message", async () => {
+    const fallbacks = [];
+    await resolveProbeHost("/pkg", {}, async () => {
+      throw new Error("[resolveTailscaleIp] tailscale CLI not found on PATH");
+    }, (reason) => fallbacks.push(reason));
+    expect(fallbacks).toEqual(["[resolveTailscaleIp] tailscale CLI not found on PATH"]);
+  });
+
+  it("probeServer brackets an IPv6 probe host in the diagnostics fetch URL instead of throwing", async () => {
+    let seenUrl = null;
+    const p = await probeServer(3847, {
+      host: "::1",
+      tcpProbe: async () => true,
+      fetchImpl: async (url) => {
+        seenUrl = url;
+        return { ok: true, json: async () => ({ app: { name: "shipwright-command-center", version: "0.23.0" } }) };
+      },
+    });
+    expect(seenUrl).toBe("http://[::1]:3847/api/diagnostics");
+    expect(p.shipwright).toBe(true);
+  });
+
+  it("ensureServer brackets an IPv6 resolved probe host in the reported/opened url", async () => {
+    const calls = [];
+    const r = await ensureServer({
+      port: 3847, pkgRoot: "/pkg", packageVersion: PKG_VERSION,
+      resolveProbeHost: async () => "::1",
+      probeFn: async () => ({ reachable: true, shipwright: true, version: "0.23.0" }),
+      bootServer: () => 111, spawnSwapper: () => 999, openBrowser: (u) => calls.push(u),
+      nativePtyCheck: async () => ({ ok: true, error: null }),
+    });
+    expect(r.url).toBe("http://[::1]:3847");
+    expect(calls).toEqual(["http://[::1]:3847"]);
+  });
+
+  it("ensureServer's DEFAULT resolveProbeHost wiring (not overridden) surfaces a fallback reason through `log` (doubt review: this glue line had no assertion coverage)", async () => {
+    const logs = [];
+    await ensureServer({
+      port: 3847, pkgRoot: "/pkg", packageVersion: PKG_VERSION,
+      // resolveProbeHost intentionally NOT overridden — exercises ensureServer's
+      // own default arrow function, which real-imports pkgRoot/server/dist/...
+      // ("/pkg" doesn't exist, so this hits resolveProbeHost's catch-all).
+      // shipwright:true + matching version -> "attach": no boot/poll needed.
+      probeFn: async () => ({ reachable: true, shipwright: true, version: PKG_VERSION }),
+      bootServer: () => 111, spawnSwapper: () => 999, openBrowser: () => {},
+      nativePtyCheck: async () => ({ ok: true, error: null }),
+      log: (msg) => logs.push(msg),
+    });
+    expect(logs.some((m) => m.startsWith("probe host resolution fell back to loopback:"))).toBe(true);
+  });
+});
+
+describe("server — probeServer honours a non-loopback probe host (webui#415)", () => {
+  it("threads `host` into BOTH the TCP occupancy probe and the diagnostics fetch URL", async () => {
+    const seen = { tcpHost: null, fetchUrl: null };
+    const p = await probeServer(3847, {
+      host: "100.64.1.2",
+      tcpProbe: async (_port, { host }) => {
+        seen.tcpHost = host;
+        return true;
+      },
+      fetchImpl: async (url) => {
+        seen.fetchUrl = url;
+        return { ok: true, json: async () => ({ app: { name: "shipwright-command-center", version: "0.23.0" } }) };
+      },
+    });
+    expect(seen.tcpHost).toBe("100.64.1.2");
+    expect(seen.fetchUrl).toBe("http://100.64.1.2:3847/api/diagnostics");
+    expect(p).toEqual({ reachable: true, shipwright: true, version: "0.23.0" });
+  });
+
+  it("defaults to 127.0.0.1 when no host is given (backward compatible)", async () => {
+    const seen = { tcpHost: null };
+    await probeServer(3847, {
+      tcpProbe: async (_port, { host }) => {
+        seen.tcpHost = host;
+        return false;
+      },
+    });
+    expect(seen.tcpHost).toBe("127.0.0.1");
+  });
+});
+
+describe("server — ensureServer reports a url built from the resolved probe host (webui#415)", () => {
+  it("a tailscale-resolved host produces a reachable url — not the hardcoded, unreachable localhost", async () => {
+    const s = {
+      bootServer: () => 111,
+      spawnSwapper: () => 999,
+      openBrowser: (u) => calls.push(u),
+      nativePtyCheck: async () => ({ ok: true, error: null }),
+    };
+    const calls = [];
+    const r = await ensureServer({
+      port: 3847, pkgRoot: "/pkg", packageVersion: PKG_VERSION,
+      resolveProbeHost: async () => "100.64.1.2",
+      probeFn: async () => ({ reachable: true, shipwright: true, version: "0.23.0" }),
+      bootServer: s.bootServer, spawnSwapper: s.spawnSwapper, openBrowser: s.openBrowser, nativePtyCheck: s.nativePtyCheck,
+    });
+    expect(r.url).toBe("http://100.64.1.2:3847");
+    expect(calls).toEqual(["http://100.64.1.2:3847"]);
+  });
+
+  it("loopback resolution keeps the existing localhost url (unchanged default behaviour)", async () => {
+    const calls = [];
+    const r = await ensureServer({
+      port: 3847, pkgRoot: "/pkg", packageVersion: PKG_VERSION,
+      resolveProbeHost: async () => "127.0.0.1",
+      probeFn: async () => ({ reachable: true, shipwright: true, version: "0.23.0" }),
+      bootServer: () => 111, spawnSwapper: () => 999, openBrowser: (u) => calls.push(u),
+      nativePtyCheck: async () => ({ ok: true, error: null }),
+    });
+    expect(r.url).toBe("http://localhost:3847");
+    expect(calls).toEqual(["http://localhost:3847"]);
   });
 });
 

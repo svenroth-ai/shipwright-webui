@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
+  "date": "2026-09-03",
+  "section": "Iterate — bug: bootstrapper tailscale probe",
+  "title": "Bootstrapper probe host follows SHIPWRIGHT_NETWORK_PROFILE (webui#415)",
+  "context": "The bootstrapper's port probe hardcoded loopback (127.0.0.1) for both TCP occupancy and the /api/diagnostics fetch, while the packaged server's bind address follows SHIPWRIGHT_NETWORK_PROFILE. Under the tailscale profile the server binds only the tailnet interface, so the probe never saw it — attach/swap/foreign were all unreachable and every launch redundantly re-booted onto a live incumbent, dying on EADDRINUSE (webui#415).",
+  "decision": "Added resolveProbeHost(pkgRoot, env, importFn) to bootstrapper/lib/server.mjs: dynamically imports the server's own compiled resolveHonoHost from pkgRoot/server/dist/lib/ (the dir bootSpawnPlan already targets) instead of re-deriving profile precedence here. A wildcard bind (0.0.0.0/::) maps back to loopback; a concrete address (e.g. the tailscale IP) is probed directly. Threaded through probeServer's host option and ensureServer's reported/opened url.",
+  "consequences": "Attach/swap/foreign now work under SHIPWRIGHT_NETWORK_PROFILE=tailscale; the change is a no-op for local/unset/open profiles (all resolve to loopback). Any resolution failure (missing build, tailscale CLI unreachable) falls back to the pre-fix loopback probe, never fatal. Slightly deepens the bootstrapper's existing runtime coupling to pkgRoot/server/dist's layout.",
+  "rationale": "Reusing the server's own resolver avoids a second SHIPWRIGHT_NETWORK_PROFILE implementation that could drift from the server's; the bootstrapper already reaches into pkgRoot/server/dist for bootSpawnPlan, so this is consistent with the existing coupling rather than a new one.",
+  "rejected": "Re-implementing resolveNetworkProfile/resolveTailscaleIp verbatim in the bootstrapper (client/server already mirror this pair with a sync test; a third copy multiplies drift surface). Also rejected the issue's narrower fallback (probe loopback, then retry the profile address on failure) as an unnecessary extra round-trip on every non-local-profile launch.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
