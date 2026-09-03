@@ -317,13 +317,7 @@ export function createExternalRoutes(args: {
 
   // FR-04.38 — secret-gated `/api/external/org/*` + plain `/api/org/*` proxy
   // (see org/mount.ts for why both are composed from one call site).
-  mountOrgRouters(app, {
-    honoHost,
-    leadsRoot,
-    leadsRouteSecret,
-    orgLstatSync,
-    orgWithDecisionsLock,
-  });
+  mountOrgRouters(app, { honoHost, leadsRoot, leadsRouteSecret, orgLstatSync, orgWithDecisionsLock, store });
 
   return app;
 }

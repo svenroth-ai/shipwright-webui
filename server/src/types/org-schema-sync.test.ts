@@ -172,6 +172,8 @@ describe("org-schema sync — flat interfaces", () => {
     "AuditLogEntry",
     "AuditLogPage",
     "BeatRegisterEntryView",
+    "OrgThreadRoundView",
+    "OrgThreadCardView",
   ])(
     "%s: server canonical and client mirror declare the same field set",
     (name) => {

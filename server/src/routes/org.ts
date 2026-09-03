@@ -36,9 +36,12 @@ import { readAllLeadOrgInfo, type LeadOrgInfoResult } from "../external/org/org-
 import { orgFileReadCore, type OrgFileReadDeps } from "../external/org/file-read.js";
 import { orgFileWriteCore, type OrgFileWriteDeps } from "../external/org/file-write.js";
 import { buildLeadRosterEntry, type LeadRosterBuildDeps } from "./org-leads-composite.js";
+import { buildOrgThreads, type TaskTitleLookup } from "./org-threads-composite.js";
 import { leadLearningsReadCore, type LeadDocReadDeps } from "../external/org/lead-doc-read.js";
 import { auditLogCore, type AuditLogDeps } from "../external/org/audit-log.js";
 import type { LeadsRosterResponse } from "../types/org.js";
+
+const NO_TASKS: TaskTitleLookup = { get: () => undefined };
 
 export interface OrgApiRouterDeps {
   leadsRoot: string;
@@ -49,6 +52,10 @@ export interface OrgApiRouterDeps {
   openSync?: OrgFileReadDeps["openSync"];
   withDecisionsLock?: OrgFileWriteDeps["withDecisionsLock"];
   now?: () => Date;
+  /** FR-04.42 — task-title lookup for `GET /api/org/threads`. Omitted
+   *  (e.g. in tests that don't exercise that route) falls back to raw
+   *  taskIds instead of a real title. */
+  store?: TaskTitleLookup;
 }
 
 export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
@@ -95,6 +102,21 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
       buildLeadRosterEntry(buildDeps, leadId, lead, orgInfoFor(leadId)),
     );
     const body: LeadsRosterResponse = { leads };
+    return c.json(body, 200);
+  });
+
+  // FR-04.42 (leadwright#35) — every lead's follow-up-card threads, keyed
+  // by leadId, one call. A lead with no thread file (the overwhelming
+  // default) simply has an empty array — see org-threads-composite.ts.
+  app.get("/api/org/threads", async (c) => {
+    const chart = orgChartCore({ leadsRoot, lstatSync: deps.lstatSync });
+    if (chart.status !== 200) {
+      return c.json(chart.body, chart.status);
+    }
+    const body = buildOrgThreads(
+      { leadsRoot, lstatSync: deps.lstatSync, store: deps.store ?? NO_TASKS },
+      Object.keys(chart.body.leads),
+    );
     return c.json(body, 200);
   });
 

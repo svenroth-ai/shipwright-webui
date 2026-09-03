@@ -14,7 +14,7 @@
 import type { Hono } from "hono";
 
 import { createOrgRouter, type OrgRouterDeps } from "./routes.js";
-import { createOrgApiRouter } from "../../routes/org.js";
+import { createOrgApiRouter, type OrgApiRouterDeps } from "../../routes/org.js";
 
 export interface MountOrgRoutersDeps {
   honoHost?: string;
@@ -22,11 +22,13 @@ export interface MountOrgRoutersDeps {
   leadsRouteSecret?: string;
   orgLstatSync?: OrgRouterDeps["lstatSync"];
   orgWithDecisionsLock?: OrgRouterDeps["withDecisionsLock"];
+  /** FR-04.42 — task-title lookup for `GET /api/org/threads`. */
+  store?: OrgApiRouterDeps["store"];
 }
 
 /** FR-04.38 — mounted only when `honoHost` + `leadsRoot` are both provided. */
 export function mountOrgRouters(app: Hono, deps: MountOrgRoutersDeps): void {
-  const { honoHost, leadsRoot, leadsRouteSecret, orgLstatSync, orgWithDecisionsLock } = deps;
+  const { honoHost, leadsRoot, leadsRouteSecret, orgLstatSync, orgWithDecisionsLock, store } = deps;
   if (!honoHost || !leadsRoot) return;
 
   app.route(
@@ -46,6 +48,7 @@ export function mountOrgRouters(app: Hono, deps: MountOrgRoutersDeps): void {
       leadsRoot,
       lstatSync: orgLstatSync,
       withDecisionsLock: orgWithDecisionsLock,
+      store,
     }),
   );
 }

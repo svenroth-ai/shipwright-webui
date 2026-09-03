@@ -142,6 +142,28 @@ export interface LeadsRosterResponse {
 }
 
 // ---------------------------------------------------------------------------
+// GET /threads — every lead's follow-up-card threads, keyed by leadId
+// (FR-04.42). Field set mirrors `OrgThreadCard` / `ThreadRound`
+// (`components/org/OrgThread.tsx`) exactly — see server/src/types/org.ts.
+// ---------------------------------------------------------------------------
+
+export interface OrgThreadRoundView {
+  id: string;
+  question: string;
+  askedAt: string;
+  answer?: string;
+  answeredAt?: string;
+}
+
+export interface OrgThreadCardView {
+  cardId: string;
+  cardTitle: string;
+  rounds: OrgThreadRoundView[];
+}
+
+export type OrgThreadsResponse = Record<string, OrgThreadCardView[]>;
+
+// ---------------------------------------------------------------------------
 // GET /leads/:leadId/audit — bounded, paginated audit-log page.
 // ---------------------------------------------------------------------------
 
@@ -211,6 +233,13 @@ export async function fetchOrgFileText(relpath: string): Promise<string> {
   const r = await fetch(`${ORG_API}/file?path=${encodeURIComponent(relpath)}`, { cache: "no-store" });
   if (!r.ok) throw await decodeApiError(r);
   return r.text();
+}
+
+/** `GET /api/org/threads` — every lead's follow-up-card threads, one call. */
+export async function fetchOrgThreads(): Promise<OrgThreadsResponse> {
+  const r = await fetch(`${ORG_API}/threads`, { cache: "no-store" });
+  if (!r.ok) throw await decodeApiError(r);
+  return (await r.json()) as OrgThreadsResponse;
 }
 
 /**

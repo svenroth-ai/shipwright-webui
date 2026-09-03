@@ -1,0 +1,104 @@
+{
+  "run_id": "iterate-2026-09-03-org-thread-live-source",
+  "date": "2026-09-03T13:09:56.979927Z",
+  "event_at": "2026-09-03T13:04:55.844771+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/org-thread-live-source",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-03-org-thread-live-source",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A real 3-round lead-question-threads.json renders on the Org page in store order (AC-a)",
+        "disposition": "tested",
+        "evidence": "server/src/routes/__tests__/org-threads.test.ts (real on-disk fixture through the actual read->parse->composite pipeline); client/src/pages/OrgPage.thread.test.tsx (DOM round order); client/e2e/flows/org-page.spec.ts real-Chromium test"
+      },
+      {
+        "behavior": "leadsRoot resolves from SHIPWRIGHT_LEADS_ROOT when set, and from ~/.claude/leads when unset (AC-b)",
+        "disposition": "tested",
+        "evidence": "server/src/config.test.ts \u2014 both branches"
+      },
+      {
+        "behavior": "The <!-- lead-question:TYPE --> marker line never appears in rendered output (AC-c)",
+        "disposition": "tested",
+        "evidence": "org-threads.test.ts asserts the stripped question text; client/e2e/flows/org-page.spec.ts asserts the marker string is absent from the page body"
+      },
+      {
+        "behavior": "Missing lead-question-threads.json renders as no thread, not an error (AC-d)",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/__tests__/lead-question-threads.test.ts; org-threads.test.ts"
+      },
+      {
+        "behavior": "A symlinked lead-question-threads.json is never followed (AC-d, path-safety)",
+        "disposition": "tested",
+        "evidence": "lead-question-threads.test.ts symlink test"
+      },
+      {
+        "behavior": "An unknown version file degrades to no thread, not a crash (AC-d, trap 7)",
+        "disposition": "tested",
+        "evidence": "lead-question-threads.test.ts + org-threads.test.ts; console.warn breadcrumb added and covered by the same tests"
+      },
+      {
+        "behavior": "Invalid JSON degrades to no thread (AC-d, trap 6)",
+        "disposition": "tested",
+        "evidence": "lead-question-threads.test.ts + org-threads.test.ts"
+      },
+      {
+        "behavior": "A malformed round/answer shape, or an array-valued threads field, is rejected (structural validation)",
+        "disposition": "tested",
+        "evidence": "lead-question-threads.test.ts parseLeadQuestionThreadsFile suite"
+      },
+      {
+        "behavior": "An invalid leadId (traversal-shaped or non-kebab-case) is rejected before the filesystem is touched",
+        "disposition": "tested",
+        "evidence": "lead-question-threads.test.ts (added post code-review Finding 1 \u2014 mirrors usage.test.ts's coverage of the same LEAD_ID_RE guard)"
+      },
+      {
+        "behavior": "A thread record with an empty rounds array is skipped, not rendered as a blank card",
+        "disposition": "tested",
+        "evidence": "org-threads.test.ts (added post code-review Finding 2)"
+      },
+      {
+        "behavior": "Card title resolves from the task store when a match exists, and falls back to the raw taskId otherwise",
+        "disposition": "tested",
+        "evidence": "org-threads.test.ts (matched + orphan-taskId cases)"
+      },
+      {
+        "behavior": "useOrgThreads' new {data,isLoading,error} shape and OrgPage.tsx's call site are updated together (AC-e)",
+        "disposition": "tested",
+        "evidence": "client/src/hooks/useOrgThreads.test.ts; client/src/pages/OrgPage.test.tsx; client/src/pages/OrgPage.thread.test.tsx"
+      },
+      {
+        "behavior": "Untrusted round text (question/answer) renders as plain text only, never markup or a notification sentinel (FR-04.37)",
+        "disposition": "tested",
+        "evidence": "OrgThread.tsx has no dangerouslySetInnerHTML and no notification-pipeline hookup (pre-existing component, re-verified unchanged); E2E asserts the marker text renders inert"
+      },
+      {
+        "behavior": "Both workspaces are green end-to-end (AC-f)",
+        "disposition": "tested",
+        "evidence": "npm run typecheck / lint / test clean in server/ (335 files/3821 tests) and client/ (407 files/3745 tests)"
+      }
+    ],
+    "counts": {
+      "testable": 14,
+      "tested": 14,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 5,
+    "exit_code": 0,
+    "justification": "Real GET /api/org/threads round trip and DOM rendering are invisible to jsdom-only unit tests \u2014 verified in real Chromium via the isolated-stack Playwright harness (client/e2e/flows/org-page.spec.ts), including the new thread-fixture test. 5/5 passed."
+  },
+  "declared_removals": []
+}

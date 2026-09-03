@@ -17,6 +17,9 @@
  *   AC-8 — charter Edit -> MarkdownEditorModal loads fresh content -> Save
  *     writes the file for real (through the browser-facing `/api/org/*`
  *     proxy, not a mock).
+ *   FR-04.42 AC-a/c — a real lead-question-threads.json (leadwright#35)
+ *     renders through the actual GET /api/org/threads round trip: store
+ *     order preserved, marker stripped, open vs. answered rounds.
  */
 import { test, expect } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "node:fs";
@@ -140,10 +143,74 @@ test.describe("Org page — present, one lead (AC-1/AC-2/AC-3/AC-8)", () => {
     await expect(card.getByTestId("lead-card-stats")).toContainText("not measured");
     await expect(card.getByTestId("lead-card-now")).toBeVisible();
 
-    // FR-04.42 (V4c) AC-d — real production truth today: leadwright's
-    // round-store producer (L8) has not shipped, so no thread renders for
-    // this real lead against the real running app.
+    // FR-04.42 (V4c) AC-d — this lead has no lead-question-threads.json
+    // seeded (see the dedicated thread test below for the populated case),
+    // so the steady state — no thread file yet — must render nothing, never
+    // an error.
     await expect(page.getByTestId("org-thread-list")).toHaveCount(0);
+  });
+
+  test("renders a real lead-question-threads.json thread — round order, marker stripped, open + answered rounds (FR-04.42 AC-a/c)", async ({ page }) => {
+    const threadsPath = path.join(LEADS_ROOT, LEAD_ID, "lead-question-threads.json");
+    writeFileSync(
+      threadsPath,
+      JSON.stringify({
+        version: 1,
+        threads: {
+          "task-e2e-1": {
+            taskId: "task-e2e-1",
+            dedupKey: "dedup-e2e-1",
+            rounds: [
+              {
+                round: 1,
+                questionType: "clarify",
+                question: "<!-- lead-question:clarify -->\nFirst question?",
+                askedAt: "2026-08-30T00:00:00Z",
+                answer: { text: "First answer", answeredAt: "2026-08-30T01:00:00Z" },
+              },
+              {
+                round: 2,
+                questionType: "clarify",
+                question: "<!-- lead-question:clarify -->\nSecond question?",
+                askedAt: "2026-08-31T00:00:00Z",
+                answer: { text: "Second answer", answeredAt: "2026-08-31T01:00:00Z" },
+              },
+              {
+                round: 3,
+                questionType: "clarify",
+                question: "<!-- lead-question:clarify -->\nThird question?",
+                askedAt: "2026-09-01T00:00:00Z",
+              },
+            ],
+          },
+        },
+      }),
+      "utf8",
+    );
+
+    try {
+      await page.goto("/org");
+      const list = page.getByTestId("org-thread-list");
+      await expect(list).toBeVisible();
+
+      const thread = page.getByTestId("org-thread");
+      await expect(thread).toHaveAttribute("data-card-id", "task-e2e-1");
+
+      // AC-c: the raw marker line never appears anywhere on the page.
+      await expect(page.locator("body")).not.toContainText("lead-question:clarify");
+
+      // AC-a: store order, not re-sorted.
+      const questions = await thread.getByTestId("org-thread-rounds").locator(".thread-q .thread-text").allTextContents();
+      expect(questions).toEqual(["First question?", "Second question?", "Third question?"]);
+
+      const answered = thread.getByTestId("thread-round-answered");
+      const open = thread.getByTestId("thread-round-open");
+      await expect(answered).toHaveCount(2);
+      await expect(open).toHaveCount(1);
+      await expect(open.getByTestId("thread-round-open-badge")).toBeVisible();
+    } finally {
+      rmSync(threadsPath, { force: true });
+    }
   });
 
   test("Edit charter -> MarkdownEditorModal loads fresh content -> Save writes the file (AC-8)", async ({ page }) => {

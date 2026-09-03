@@ -1,9 +1,12 @@
 /*
  * OrgPage.thread.test.tsx — proves the FR-04.42 (V4c) thread is actually
  * mounted on the Org page, not just a component that exists unused
- * (Trap 2). Complements `OrgPage.test.tsx` (unchanged, unmocked
- * `useOrgThreads` — its passing AC-1 test already demonstrates AC-d: the
- * real stub returns `{}` and the page renders with no thread at all).
+ * (Trap 2). `useOrgThreads` is now a real `GET /api/org/threads` query
+ * (leadwright#35's producer) — mocked here the same way `useOrgRoster` and
+ * `useOrgChart` already are, returning `{data, isLoading, error}`.
+ * `OrgPage.test.tsx`'s AC-1 test covers the same "no thread anywhere"
+ * default (AC-d) via its own mock, not the real stub this file used to
+ * describe.
  */
 import { render, screen, within, cleanup, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -75,7 +78,9 @@ afterEach(() => {
 
 describe("OrgPage — thread wiring (FR-04.42, V4c)", () => {
   it("renders no thread for a lead with no rounds (AC-d, real-world default)", async () => {
-    mockedThreads.mockReturnValue({});
+    mockedThreads.mockReturnValue({ data: {}, isLoading: false, error: null } as unknown as ReturnType<
+      typeof useOrgThreads
+    >);
     renderPresentPage();
     await waitFor(() => expect(screen.getByTestId("org-lead-list")).toBeInTheDocument());
     expect(screen.queryByTestId("org-thread-list")).toBeNull();
@@ -108,10 +113,14 @@ describe("OrgPage — thread wiring (FR-04.42, V4c)", () => {
       typeof useOrgRoster
     >);
     mockedThreads.mockReturnValue({
-      "lead-a": [{ cardId: "card-a", cardTitle: "Thread for Lead A", rounds: [{ id: "r1", question: "Q-A?", askedAt: "2026-09-01T00:00:00Z", answer: "Answer A" }] }],
-      "lead-b": [{ cardId: "card-b", cardTitle: "Thread for Lead B", rounds: [{ id: "r1", question: "Q-B?", askedAt: "2026-09-01T00:00:00Z", answer: "Answer B" }] }],
-      // lead-c intentionally has no entry.
-    });
+      data: {
+        "lead-a": [{ cardId: "card-a", cardTitle: "Thread for Lead A", rounds: [{ id: "r1", question: "Q-A?", askedAt: "2026-09-01T00:00:00Z", answer: "Answer A" }] }],
+        "lead-b": [{ cardId: "card-b", cardTitle: "Thread for Lead B", rounds: [{ id: "r1", question: "Q-B?", askedAt: "2026-09-01T00:00:00Z", answer: "Answer B" }] }],
+        // lead-c intentionally has no entry.
+      },
+      isLoading: false,
+      error: null,
+    } as unknown as ReturnType<typeof useOrgThreads>);
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { container } = render(
@@ -156,7 +165,9 @@ describe("OrgPage — thread wiring (FR-04.42, V4c)", () => {
         },
       ],
     };
-    mockedThreads.mockReturnValue(threads);
+    mockedThreads.mockReturnValue({ data: threads, isLoading: false, error: null } as unknown as ReturnType<
+      typeof useOrgThreads
+    >);
     renderPresentPage();
 
     await waitFor(() => expect(screen.getByTestId("org-thread-list")).toBeInTheDocument());
