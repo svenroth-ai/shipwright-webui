@@ -1,0 +1,94 @@
+{
+  "run_id": "iterate-2026-09-03-claim-holder-launch",
+  "date": "2026-09-03T20:26:30.180082Z",
+  "event_at": "2026-09-03T20:25:47.108462+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/claim-holder-launch",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-03-claim-holder-launch",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "The claim HOLDER (matching claimToken, within the launch window) can launch a claimed task",
+        "disposition": "tested",
+        "evidence": "claim-holder-gate.test.ts 'allows the holder'; claim-holder-launch.test.ts [AC b]"
+      },
+      {
+        "behavior": "A stranger (foreign or absent claimToken) is refused with 409, even against a webui process that persisted nothing since the claim was written to disk",
+        "disposition": "tested",
+        "evidence": "sdk-sessions-store-refresh-row.test.ts 'staleness pickup'; claim-holder-launch.test.ts [AC a]/[AC b]"
+      },
+      {
+        "behavior": "A restart (resume) by the holder succeeds, not just the initial launch",
+        "disposition": "tested",
+        "evidence": "claim-holder-launch.test.ts [AC c]"
+      },
+      {
+        "behavior": "A claim older than the 24h window is refused even with the correct token, distinguishable from a foreign claim via claimExpired:true",
+        "disposition": "tested",
+        "evidence": "claim-holder-gate.test.ts window/boundary/fail-closed tests; claim-holder-launch.test.ts [AC d]"
+      },
+      {
+        "behavior": "baseline is refreshed alongside sessions so a subsequent persist() does not write a released/foreign claim back to disk",
+        "disposition": "tested",
+        "evidence": "sdk-sessions-store-refresh-row.test.ts trap-#1 test; claim-holder-launch.test.ts [AC e] (real lock+rename double forces the merge-under-lock path)"
+      },
+      {
+        "behavior": "No ELOCKED on the launch path under a concurrent persist() from the same process",
+        "disposition": "tested",
+        "evidence": "sdk-sessions-store-refresh-row.test.ts [AC f]"
+      },
+      {
+        "behavior": "A task with no claimToken at all still launches unconditionally",
+        "disposition": "tested",
+        "evidence": "claim-holder-gate.test.ts 'allows launch when there is no claim on record' + stale-metadata case"
+      },
+      {
+        "behavior": "npm run test / typecheck / lint green on the server workspace",
+        "disposition": "tested",
+        "evidence": "338 files / 3845 passed / 3 skipped; tsc --noEmit clean; oxlint clean"
+      },
+      {
+        "behavior": "End-to-end proof over real HTTP with two real SdkSessionsStore instances sharing one on-disk file via real proper-lockfile",
+        "disposition": "tested",
+        "evidence": "F0.5 surface=api probe, 8/8 checks pass"
+      },
+      {
+        "behavior": "sdk-sessions-merge.ts stays under the 300-line guideline after the new logic (extraction into sdk-sessions-refresh.ts)",
+        "disposition": "tested",
+        "evidence": "wc -l: merge.ts 267, refresh.ts 81 (post doubt-review fix), store.ts 543 (== recorded baseline)"
+      },
+      {
+        "behavior": "A concurrent same-process delete() landing mid-disk-read is never resurrected by refreshRowFromDisk (doubt-review HIGH finding)",
+        "disposition": "tested",
+        "evidence": "sdk-sessions-store-refresh-row.test.ts '[doubt-review finding] a concurrent delete() landing mid-read is not resurrected'"
+      },
+      {
+        "behavior": "A future-dated claimedAt beyond the clock-skew tolerance is refused as expired; within tolerance it is still accepted (doubt-review LOW/MEDIUM finding)",
+        "disposition": "tested",
+        "evidence": "claim-holder-gate.test.ts future-dated-claimedAt tests (beyond/within CLAIM_CLOCK_SKEW_TOLERANCE_MS)"
+      }
+    ],
+    "counts": {
+      "testable": 12,
+      "tested": 12,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "api",
+    "tests_run": 8,
+    "exit_code": 0,
+    "justification": "The staleness bug is invisible to in-process test doubles by construction; a real Hono app on a real HTTP port, backed by two real SdkSessionsStore instances sharing one on-disk file via real proper-lockfile, proves AC (a)-(d) end to end. Never touches the operator's real ~/.shipwright-webui registry."
+  },
+  "declared_removals": []
+}

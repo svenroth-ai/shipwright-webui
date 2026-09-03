@@ -31,7 +31,8 @@ import { randomUUID } from "node:crypto";
 
 import type { BoardColumn } from "./board-column.js";
 import type { MissionContextAssociation } from "./mission-context/types.js";
-import { atomicWriteFile, cloneSessions, mergeSessions, reReadDisk } from "./sdk-sessions-merge.js";
+import { atomicWriteFile, cloneSessions, ensureFileReady, mergeSessions, reReadDisk } from "./sdk-sessions-merge.js";
+import { refreshRowFromDisk as mergeRefreshRowFromDisk } from "./sdk-sessions-refresh.js";
 import { UNASSIGNED_PROJECT_ID, validateExternalTask } from "./sdk-sessions-validate.js";
 // Re-exported for the many callers that historically imported it from here.
 export { UNASSIGNED_PROJECT_ID } from "./sdk-sessions-validate.js";
@@ -496,15 +497,14 @@ export class SdkSessionsStore {
     return existed;
   }
 
+  /** FR-04.22 (V5, iterate-2026-09-03-claim-holder-launch) — fresh-from-disk read for the claim-holder launch gate; mechanics + rationale live with `refreshRowFromDisk` in sdk-sessions-refresh.ts. */
+  async refreshRowFromDisk(taskId: string): Promise<ExternalTask | undefined> {
+    return mergeRefreshRowFromDisk(this.deps, this.path, CURRENT_SCHEMA_VERSION, validateExternalTask, taskId, this.sessions, this.baseline, this.deletedSinceBaseline);
+  }
+
   /** Merge under the lock (F08 header note) + atomically flush. `await` after any mutation. */
   async persist(): Promise<void> {
-    // Ensure parent dir + file exist before locking (proper-lockfile lstats).
-    const lastSlash = Math.max(this.path.lastIndexOf("/"), this.path.lastIndexOf("\\"));
-    if (lastSlash !== -1) {
-      const dir = this.path.slice(0, lastSlash);
-      if (!this.deps.existsSync(dir)) this.deps.mkdirSync(dir, { recursive: true });
-    }
-    this.deps.ensureFile(this.path);
+    ensureFileReady(this.deps, this.path); // parent dir + file must exist before locking (proper-lockfile lstats)
 
     const release = this.deps.lock ? await this.deps.lock(this.path) : null;
     try {
