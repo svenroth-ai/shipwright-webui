@@ -1,7 +1,7 @@
 {
   "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
-  "date": "2026-09-03T19:57:23.054673Z",
-  "event_at": "2026-09-03T13:04:55.844771+00:00",
+  "date": "2026-09-03T20:34:51.149625Z",
+  "event_at": "2026-09-03T19:57:31.525037+00:00",
   "type": "bug",
   "complexity": "small",
   "branch": "iterate/bootstrapper-tailscale-probe",

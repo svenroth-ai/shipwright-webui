@@ -1,157 +1,82 @@
 {
-  "last_updated": "2026-09-03",
+  "last_updated": "2026-08-30",
   "iterate_latest": {
-    "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
-    "date": "2026-09-03",
-    "unit": {
-      "status": "passed",
-      "passed": 280,
-      "total": 283
-    },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "design_fidelity": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "smoke": {
-      "status": "not_run"
-    },
+    "run_id": "iterate-2026-08-30-triage-file-viewer-followups",
+    "date": "2026-08-30",
+    "unit": "PASS \u2014 client 3578 passed (385 files); server 3735 passed / 3 skipped (324 files)",
+    "integration": "n/a \u2014 no CRUD or service-boundary change beyond the new read-only /files/exist route, covered directly below",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 5/5, real-Chromium isolated-stack run of client/e2e/flows/triage-file-viewer.spec.ts (Playwright, chromium project)",
+    "design_fidelity": "n/a \u2014 layout/overflow fix only, no visual design change; no baseline shift expected or observed",
+    "smoke": "n/a \u2014 no server-wide behaviour change; new route is additive and scoped to /files/exist",
     "degraded": [
-      "No live Tailscale interface / tailscale CLI was available in this dev environment to end-to-end verify the actual `SHIPWRIGHT_NETWORK_PROFILE=tailscale` branch (resolveTailscaleIp's `tailscale ip -4` path). Verified instead: (1) unit tests inject a fake resolveHonoHost returning a concrete IP and assert it is probed directly; (2) an F0.5 CLI probe exercises resolveProbeHost against the REAL compiled server/dist/lib/resolveHonoHost.js for local/open/unset/HONO_HOST=true, confirming the wildcard-to-loopback mapping end-to-end against production code, not a mock."
+      "The up-to-50-iteration realpathSync loop in pathExists() was reasoned about and halved (project root's realpath now resolved once per request instead of once per path) but was not load-tested under concurrent embedded-terminal WebSocket traffic \u2014 no perf/latency test exists for this route."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "resolveProbeHost maps a wildcard bind (open profile -> 0.0.0.0) back down to loopback",
+          "behavior": "Long .py file scrolls vertically instead of clipping past the modal",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'wildcard bind (open profile -> 0.0.0.0) maps back down to loopback'"
+          "evidence": "E2E: scrollHeight > clientHeight on .smart-viewer-code; panel box height <= modal box height + 1px"
         },
         {
-          "behavior": "resolveProbeHost maps a wildcard bind (HONO_HOST=true -> ::) back down to loopback",
+          "behavior": "Long .py line scrolls horizontally instead of being clipped/invisible-overflowed",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'wildcard bind (HONO_HOST=true -> ::) also maps down to loopback'"
+          "evidence": "E2E: scrollWidth (902px) > clientWidth (459px) on .smart-viewer-code; screenshot"
         },
         {
-          "behavior": "resolveProbeHost probes a concrete resolved address (tailscale IP) directly, not loopback",
+          "behavior": "A mention of a file that does not exist under the project (evidencePath + inline detail) renders as plain text, never a link",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'a concrete bind (tailscale profile's resolved IP) is probed directly, not loopback'"
+          "evidence": "E2E: text appears twice (evidence + detail), zero [data-file-path] links, even after 500ms settle; unit: FileMentionText.test.tsx, TriageDetailModal.fileViewer.test.tsx, useFileExistence.test.ts"
         },
         {
-          "behavior": "resolveProbeHost falls back to loopback (never throws) when the dynamic import fails",
+          "behavior": "evidencePath still renders as a clickable link when the file genuinely exists",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'an import failure (no staged server/dist, e.g. from source) falls back to loopback, never throws'"
+          "evidence": "E2E: 'evidencePath renders as a clickable link for a structured-source finding' (pre-existing, re-verified green)"
         },
         {
-          "behavior": "resolveProbeHost falls back to loopback (never throws) when resolveHonoHost itself throws (e.g. tailscale CLI unreachable)",
+          "behavior": "Narrow (phone-width) viewport does not clip either surface when the file panel opens",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'a resolution failure (e.g. tailscale ip -4 unreachable) falls back to loopback, never throws'"
+          "evidence": "E2E: 'on a narrow (phone-width) viewport...' (pre-existing, re-verified green)"
         },
         {
-          "behavior": "probeServer threads a non-default host into BOTH the TCP occupancy probe and the diagnostics fetch URL",
+          "behavior": "A literal comma inside a filename is not mistaken for the batch delimiter",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'threads host into BOTH the TCP occupancy probe and the diagnostics fetch URL'"
+          "evidence": "client fileExistsApi.test.ts asserts the exact double-encoded wire string; server exists-routes.test.ts resolves a real 'a,b.md' file distinctly from 'other.md', with the test's own run() helper fixed to mirror the client's double-encoding (caught and fixed a false-pass in the test itself before landing)"
         },
         {
-          "behavior": "probeServer defaults to 127.0.0.1 when no host is given (backward compatible)",
+          "behavior": "A batch over the 50-path cap degrades partially (first 50 sent) instead of the whole item losing every link",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'defaults to 127.0.0.1 when no host is given (backward compatible)'"
+          "evidence": "useFileExistence.test.ts: 75 distinct paths -> exactly 50 sent to checkFilesExist"
         },
         {
-          "behavior": "ensureServer reports/opens a url built from a non-loopback resolved probe host (tailscale)",
+          "behavior": "Resolving the project root's realpath once per request instead of once per path does not weaken the symlink-escape guard",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'a tailscale-resolved host produces a reachable url'"
+          "evidence": "path-guard.test.ts: a precomputed realRoot still accepts a legit path and still rejects a symlink escaping the root"
         },
         {
-          "behavior": "ensureServer keeps the existing http://localhost:<port> url when the resolved host is loopback",
+          "behavior": "The shared .smart-viewer-code pre CSS change does not regress other CodeRenderer consumers (TaskDetailPage, PreviewPage, SmartViewerModal)",
           "disposition": "tested",
-          "evidence": "server.test.mjs: 'loopback resolution keeps the existing localhost url (unchanged default behaviour)'"
+          "evidence": "Confirmed all three wrap SmartViewer in the identical flex h-full flex-col / min-h-0 flex-1 overflow-hidden pattern already proven correct for TriageFilePanel; full client suite (incl. TaskDetailPage.test.tsx) green; no visual baseline exists for this surface so no pixel-level check was possible"
         },
         {
-          "behavior": "resolveProbeHost's real integration against the compiled server resolver (not a mock) correctly resolves local/open/unset/HONO_HOST=true to loopback",
+          "behavior": "Existing triage/file-viewer/path-guard suites and doc guards unaffected",
           "disposition": "tested",
-          "evidence": "F0.5 CLI probe (.shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/f05_probe.mjs) run against a freshly-built server/dist/lib/resolveHonoHost.js: 4/4 cases pass, exit 0. Also promoted into the permanent vitest suite: server.test.mjs 'resolves the real compiled resolveHonoHost.js for local/open/unset profiles -> loopback' (build-gated via it.skipIf \u2014 this alone is CI-blind, see next behavior for the unconditional guard code-reviewer required alongside it)"
-        },
-        {
-          "behavior": "the dist import specifier resolveProbeHost depends on (server/dist/lib/resolveHonoHost.js) stays in sync with its real source, so a rename/move/removed-export drift is caught even in CI where server/ is never built",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'server/src/lib/resolveHonoHost.ts exists and exports resolveHonoHost \u2014 the specifier resolveProbeHost's dist import depends on' (unconditional, no it.skipIf \u2014 added after code-reviewer flagged the build-gated test alone as always-skipped in bootstrapper-checks CI)"
-        },
-        {
-          "behavior": "server/tsconfig.json's rootDir/outDir mapping (src/lib/X.ts -> dist/lib/X.js) still matches the assumption resolveProbeHost's hardcoded dist specifier bakes in",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'server/tsconfig.json's rootDir/outDir still map src/lib/X.ts -> dist/lib/X.js \u2014 the assumption resolveProbeHost's hardcoded specifier bakes in' (added on a second code-review pass: the prior source-existence check alone would not catch a future outDir/rootDir change)"
-        },
-        {
-          "behavior": "resolveHonoHost's signature keeps every parameter after `env` optional (default-valued), so resolveProbeHost's single-arg `resolveHonoHost(env)` call keeps working even if the source changes \u2014 not just the export name",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'resolveHonoHost's signature keeps every parameter after env optional \u2014 resolveProbeHost calls it with only env' (added after doubt-reviewer's HIGH finding: the name-only regex check would not catch a future required 2nd param, e.g. exec losing its default)"
-        },
-        {
-          "behavior": "ensureServer's own default resolveProbeHost wiring (not just resolveProbeHost tested directly) actually surfaces a fallback reason through the log callback",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'ensureServer's DEFAULT resolveProbeHost wiring (not overridden) surfaces a fallback reason through log' (added after doubt-reviewer's LOW finding: this glue line had no assertion coverage \u2014 every other test overrides resolveProbeHost, bypassing it)"
-        },
-        {
-          "behavior": "resolveProbeHost rejects an unsafe resolved host (shell/cmd metacharacters) and falls back to loopback, reporting why via onFallback",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'rejects an unsafe resolved host (e.g. a shell/cmd metacharacter) and falls back to loopback, calling onFallback' + 'accepts a plain hostname (e.g. HONO_HOST=localhost) unchanged' (added after code-reviewer flagged the missing isSafeProbeHost coverage / %VAR% cmd.exe expansion risk)"
-        },
-        {
-          "behavior": "an import/resolution failure reports its error message via onFallback (not just silently swallowed)",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'an import/resolution failure calls onFallback with the error message'"
-        },
-        {
-          "behavior": "probeServer and ensureServer bracket an IPv6 probe host ([::1]) so the diagnostics fetch/reported url is well-formed instead of throwing",
-          "disposition": "tested",
-          "evidence": "server.test.mjs: 'probeServer brackets an IPv6 probe host in the diagnostics fetch URL instead of throwing' + 'ensureServer brackets an IPv6 resolved probe host in the reported/opened url' (added after code-reviewer flagged unbracketed IPv6 as a URL-malformation risk)"
-        },
-        {
-          "behavior": "the actual tailscale-profile IP-resolution branch (resolveTailscaleIp's `tailscale ip -4` subprocess) end-to-end",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "requires a live Tailscale daemon/CLI on the dev machine; the resolution logic itself (server/src/lib/resolveTailscaleIp.ts) is pre-existing and already covered by its own test suite (resolveTailscaleIp.test.ts) unmodified by this diff, so only the NEW consumption of its result (resolveProbeHost passing a concrete-address result straight through) needed new coverage, which is tested via injected fakes above."
+          "evidence": "Full client (3578) + server (3735) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings, only pre-existing unrelated ones)"
         }
-      ],
-      "counts": {
-        "testable": 17,
-        "tested": 17,
-        "untestable": 1,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 1,
-        "covered_acs": 1
-      }
+      ]
     },
     "surface_verification": {
-      "surface": "cli",
-      "runner": "node .shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/f05_probe.mjs",
+      "surface": "web",
+      "tests_run": 5,
       "exit_code": 0,
-      "tests_run": 4,
-      "evidence_path": ".shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/surface_verification.json",
-      "timestamp": "2026-09-03T00:00:00Z"
+      "justification": "All three reported bugs (no vertical scrollbar, clipped code with no horizontal scrollbar, dead links to nonexistent files) are DOM-layout and network-timing behaviors invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/triage-file-viewer.spec.ts), measuring actual scrollHeight/scrollWidth/clientHeight/clientWidth and bounding boxes rather than asserting on classNames. 5/5 tests passed, including the two new ones added for this iterate's follow-up bugs."
     }
   },
   "source_state": {
-    "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
-    "commit": "52e865b5afaaa2d332b022c71890ae349041a74e",
+    "run_id": "iterate-2026-08-30-triage-file-viewer-followups",
+    "commit": "5c760bdb8d15b846f48899576d1219f284047bfb",
     "dirty": true,
     "base": null,
     "release": null
