@@ -1,7 +1,7 @@
 {
   "run_id": "iterate-2026-09-03-budget-display-usage-widen",
-  "date": "2026-09-03T22:28:37.145777Z",
-  "event_at": "2026-09-03T20:44:02.333850+00:00",
+  "date": "2026-09-03T22:36:55.394612Z",
+  "event_at": "2026-09-03T22:30:10.226264+00:00",
   "type": "change",
   "complexity": "small",
   "prior_source": "keyword",
@@ -62,7 +62,17 @@
         "disposition": "tested",
         "evidence": "Falsification check: temporarily dropped anyNotMeasured from the client mirror, confirmed the guard failed red with the stripComments() fix in place, then restored and confirmed green"
       }
-    ]
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 6
+    }
   },
   "surface_verification": {
     "surface": "web",
