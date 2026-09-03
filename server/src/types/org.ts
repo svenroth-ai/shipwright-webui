@@ -137,6 +137,34 @@ export interface LeadsRosterResponse {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/org/threads — one round per follow-up card, keyed by leadId
+// (FR-04.42, leadwright#35). Field set mirrors the ORG PAGE's own
+// `OrgThreadCard` / `ThreadRound` component props
+// (`client/src/components/org/OrgThread.tsx`) exactly, so
+// `useOrgThreads`'s query result needs no reshaping before it reaches
+// `<OrgThreadList>`. `round` and `questionType` from leadwright's on-disk
+// record are deliberately dropped here — order is carried by array
+// position (never re-derived from `round`), and `questionType` is
+// leadwright's own vocabulary, not something this page's UI branches on.
+// ---------------------------------------------------------------------------
+
+export interface OrgThreadRoundView {
+  id: string;
+  question: string;
+  askedAt: string;
+  answer?: string;
+  answeredAt?: string;
+}
+
+export interface OrgThreadCardView {
+  cardId: string;
+  cardTitle: string;
+  rounds: OrgThreadRoundView[];
+}
+
+export type OrgThreadsResponse = Record<string, OrgThreadCardView[]>;
+
+// ---------------------------------------------------------------------------
 // GET /api/org/leads/:leadId/audit — bounded, paginated `audit.jsonl` page
 // (Docs block "Open log"; see `external/org/audit-log.ts` — never the whole
 // growing file in one response).

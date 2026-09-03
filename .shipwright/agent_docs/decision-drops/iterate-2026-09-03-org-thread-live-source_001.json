@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-03-org-thread-live-source",
+  "date": "2026-09-03",
+  "section": "Iterate — feature: Org page thread live source",
+  "title": "Wire the Org page thread to leadwright's real round store",
+  "context": "leadwright#35 shipped the lead-question-threads.json producer (versioned, threads[taskId].rounds[]); useOrgThreads() was still a stub returning empty data, so the Org page thread UI (PR #409) never showed a real conversation.",
+  "decision": "Add a server reader (lead-question-threads.ts, mirroring usage.ts/last-run.ts's lstat+LEAD_ID_RE+realPathGuard chain), a composite builder mapping taskId->rounds into the client wire shape (dropping round/questionType, reusing extractLeadQuestionBody for marker-stripping), and GET /api/org/threads. Any read failure (missing/symlink/invalid/unknown-version) degrades to an empty card list, never an error.",
+  "consequences": "Org page now shows real follow-up threads once leadwright writes them; still reads webui's own SHIPWRIGHT_LEADS_ROOT (not leadwright's LEADWRIGHT_LEADS_ROOT env var) since both processes already point at the same directory in practice.",
+  "rationale": "Composite read (one round trip for all leads) matches the existing usage/last-run/beat-register pattern; reusing extractLeadQuestionBody avoids a second marker-stripping implementation.",
+  "rejected": "A dedicated per-lead thread env var was rejected: webui already has one leadsRoot resolution point every org reader shares, and introducing a second would only add drift risk for no benefit.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}

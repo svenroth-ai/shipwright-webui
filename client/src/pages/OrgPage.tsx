@@ -66,7 +66,7 @@ function OrgPageErrorState() {
 function OrgPageContent() {
   const { data: roster, isLoading, error } = useOrgRoster();
   const { data: chart } = useOrgChart();
-  const threads = useOrgThreads();
+  const { data: threads } = useOrgThreads();
 
   if (isLoading || !chart) {
     return (
@@ -93,7 +93,7 @@ function OrgPageContent() {
         {roster.leads.map((lead) => (
           <div key={lead.leadId}>
             <LeadCard lead={lead} />
-            <OrgThreadList cards={threads[lead.leadId]} />
+            <OrgThreadList cards={threads?.[lead.leadId]} />
           </div>
         ))}
       </div>

@@ -15,15 +15,18 @@ import OrgPage from "./OrgPage";
 import { useOrgChartPresence } from "../hooks/useOrgChartPresence";
 import { useOrgChart } from "../hooks/useOrgChart";
 import { useOrgRoster } from "../hooks/useOrgRoster";
+import { useOrgThreads } from "../hooks/useOrgThreads";
 import type { LeadRosterEntry, OrgChartView } from "../lib/orgApi";
 
 vi.mock("../hooks/useOrgChartPresence");
 vi.mock("../hooks/useOrgChart");
 vi.mock("../hooks/useOrgRoster");
+vi.mock("../hooks/useOrgThreads");
 
 const mockedPresence = vi.mocked(useOrgChartPresence);
 const mockedChart = vi.mocked(useOrgChart);
 const mockedRoster = vi.mocked(useOrgRoster);
+const mockedThreads = vi.mocked(useOrgThreads);
 
 const CHART: OrgChartView = {
   version: 1,
@@ -67,6 +70,15 @@ function rosterQuery(overrides: Partial<ReturnType<typeof useOrgRoster>> = {}) {
     isLoading: false,
     ...overrides,
   } as ReturnType<typeof useOrgRoster>;
+}
+
+function threadsQuery(overrides: Partial<ReturnType<typeof useOrgThreads>> = {}) {
+  return {
+    data: {},
+    error: null,
+    isLoading: false,
+    ...overrides,
+  } as unknown as ReturnType<typeof useOrgThreads>;
 }
 
 function renderPage() {
@@ -115,6 +127,7 @@ describe("OrgPage — presence-state branches", () => {
     mockedPresence.mockReturnValue("present");
     mockedChart.mockReturnValue(chartQuery({ data: CHART, isSuccess: true }));
     mockedRoster.mockReturnValue(rosterQuery({ data: { leads: [LEAD] } }));
+    mockedThreads.mockReturnValue(threadsQuery());
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId("org-lead-list")).toBeInTheDocument());

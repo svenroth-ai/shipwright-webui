@@ -5,6 +5,7 @@ import {
   fetchOrgFileText,
   fetchLeadLearnings,
   fetchLeadAuditLog,
+  fetchOrgThreads,
   ORG_API,
 } from "./orgApi";
 import { ApiError } from "./externalApi";
@@ -33,6 +34,23 @@ describe("fetchLeadsRoster", () => {
   it("throws a decoded ApiError on a non-2xx", async () => {
     stubFetch({ ok: false, status: 500, json: async () => ({ error: "boom" }) });
     await expect(fetchLeadsRoster()).rejects.toBeInstanceOf(ApiError);
+  });
+});
+
+describe("fetchOrgThreads", () => {
+  it("returns the parsed threads map on a 200", async () => {
+    const fetchMock = stubFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({ "acme-lead": [] }),
+    });
+    await expect(fetchOrgThreads()).resolves.toEqual({ "acme-lead": [] });
+    expect(fetchMock).toHaveBeenCalledWith(`${ORG_API}/threads`, { cache: "no-store" });
+  });
+
+  it("throws a decoded ApiError on a non-2xx", async () => {
+    stubFetch({ ok: false, status: 500, json: async () => ({ error: "boom" }) });
+    await expect(fetchOrgThreads()).rejects.toBeInstanceOf(ApiError);
   });
 });
 

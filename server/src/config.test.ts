@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import path from "node:path";
 import { getConfig } from "./config.js";
 
 describe("getConfig", () => {
@@ -88,5 +89,20 @@ describe("getConfig", () => {
     process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "0";
     const config = getConfig();
     expect(config.terminalNoFlicker).toBe(false);
+  });
+
+  // FR-04.42 — every org reader (org-chart, usage, last-run, beat-register,
+  // and now lead-question-threads) shares this ONE resolved value; there is
+  // no second, reader-specific leadsRoot lookup anywhere in this codebase.
+  it("leadsRoot defaults to ~/.claude/leads when SHIPWRIGHT_LEADS_ROOT is unset", () => {
+    delete process.env.SHIPWRIGHT_LEADS_ROOT;
+    const config = getConfig();
+    expect(config.leadsRoot.endsWith(path.join(".claude", "leads"))).toBe(true);
+  });
+
+  it("reads SHIPWRIGHT_LEADS_ROOT as an override", () => {
+    process.env.SHIPWRIGHT_LEADS_ROOT = "/custom/path/to/leads";
+    const config = getConfig();
+    expect(config.leadsRoot).toBe("/custom/path/to/leads");
   });
 });
