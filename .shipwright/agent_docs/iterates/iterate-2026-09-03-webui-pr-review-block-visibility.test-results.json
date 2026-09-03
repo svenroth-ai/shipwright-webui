@@ -43,7 +43,17 @@
           "disposition": "tested",
           "evidence": "test_pr_review_orchestration.py existing block/approve/comment exit-code cases still PASSED unmodified; test_pr_review_script.py::test_no_reviewer_module_silently_crosses_the_size_guideline PASSED"
         }
-      ]
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      }
     },
     "surface_verification": {
       "surface": "none",
