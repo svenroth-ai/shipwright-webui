@@ -1,10 +1,62 @@
 # Project Activity Dashboard
-> Updated: 2026-08-08 20:38 UTC | Session: b24c7537-4b35-4585-be92-02ee02b3ff6b
+> Updated: 2026-09-03 19:57 UTC | Session: unknown | Run: iterate-2026-09-03-bootstrapper-tailscale-probe
 
-## Recent Changes (328 iterations)
+## Recent Changes (380 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | bootstrapper: probe host now follows SHIPWRIGHT_NETWORK_PROFILE instead of hardcoding loopback (webui#415) | 271/274 |  | tooling | 2026-09-03 |
+| feature | Wire useOrgThreads() to leadwright's real round-store producer (lead-question-threads.json, FR-04.42) instead of the stub | 7566/7566 |  | FR-01.71 | 2026-09-03 |
+| feature | Task Board: claimed-card chip (who + since when, keyed on claimedBy/claimedAt not state) and an independent toolbar filter toggle for claimed tasks (lead-model-spec.md section 5.2, FR-04.22). | 7545/7545 |  | FR-01.01 | 2026-09-02 |
+| feature | Org page renders each lead's per-card conversation thread (question/answer follow-up rounds, in order) beneath its LeadCard, fed by a stub hook until leadwright's round-store producer ships (FR-04.42). | 7438/7438 |  | FR-01.71 | 2026-09-01 |
+| feature | Add a fourth Inbox kind, lead_question, written by leadwright off a task description marker (not derived), with no bestEffort field, dismiss/answer reusing existing fields, and a compile-time exhaustiveness guard on the dispatcher. | 7454/7457 (3 skipped) |  |  | 2026-09-01 |
+| feature | Task Board: Bot dropdown + BellDot toolbar filters for the closed lead-tag vocabulary (lead:/lead-wait:/lead-dedup:), an in-place TaskCard expander showing domain/priority/complexityHint, and a bot glyph beside the project pill for lead-originated cards (leadwright FR-04.11). | 7488/7491 (3 skipped) |  | FR-01.01 | 2026-09-01 |
+| change | Swap the vendored Tier-3 PR-review gate's default OpenRouter model from DeepSeek to GLM 5.3, keeping DeepSeek as a live operator override | 0/0 |  | infra | 2026-09-01 |
+| feature | Add trusted-publishing (OIDC) GitHub Action: pushing a stable v* tag auto-publishes @svenroth-ai/shipwright to npm latest | 0/0 |  | infra | 2026-09-01 |
+| bug | SmartViewer markdown editor: preserve top-level raw HTML blocks byte-for-byte instead of silently rewriting them on save | 7376/7379 (3 skipped) |  | FR-01.35 | 2026-08-31 |
+| change | Reconcile 4 open compliance findings (B7/H1/H2/H6): backfill missing commit event, add oversize files to bloat baseline, tighten stale ratchet ceilings, prune dead-file baseline entries | 0/0 |  | compliance | 2026-08-31 |
+| change | B7 backfill: fix(triage) file viewer scroll (v/h) and dead links to nonexistent files via new GET /files/exist route (PR #397) | 0/0 | cf00a9c | compliance | 2026-08-31 |
+| bug | Fix four Mission tab defects: stale run association past the first delivery, missing card timestamps, generic fallback text at iterate-start instead of banner recognition, and wrong auto-scroll direction; also closed a compare-and-set race in the association writer found by review. | 0/0 |  | FR-01.66 | 2026-08-31 |
+| change | Triage detail popup: the file-viewer panel opened from a file mention is widened (1100px to 1440px total modal width) so most linked files need less vertical scrolling. | 3583/3583 |  | FR-01.30 | 2026-08-30 |
+| feature | Triage detail popup: file references (evidencePath and free-text mentions) render as clickable links that open the file in a side-by-side viewer. | 7290/7293 (3 skipped) |  | FR-01.30 | 2026-08-29 |
+| bug | Mission activity feed silently dropped assistant narration split into its own turn from the tool call it explains, and let it drift onto unrelated later work once several non-consuming turns intervened | 3502/3502 |  | FR-01.66 | 2026-08-27 |
+| bug | Fix embedded-terminal replay teardown (mouse-tracking mode stuck on after a closed task) and Reopen/Retry WS reconnect (previously required a full page reload) | 10/10 |  | FR-01.28 | 2026-08-27 |
+| bug | Route grade.py and triage_cli.py through uv run instead of a bare unversioned system Python, fixing a ModuleNotFoundError on machines lacking the plugin dependencies. | 3675/3678 | a31249e | FR-01.51, FR-01.30 | 2026-08-26 |
+| bug | Grade wizard band pill (e.g. "Partial control") rendered white text on a white pill on the photo backdrop, making it invisible | 0/0 |  | FR-01.51 | 2026-08-26 |
+| feature | Org page — organization overview for AI leads (chart, shared docs, per-lead cards with charter/learnings/audit-log access) via a new plain-surface /api/org/* proxy | 7171/7174 |  |  | 2026-08-26 |
+| bug | Scope missionActivityFeed.ts's blocker-recovery merge to the current card's own composition so a stale unresolvedBlockers entry cannot swallow a later, unrelated coalesced card. | 3436/3436 |  | FR-01.66 | 2026-08-25 |
+| feature | Mission Activity Feed cards show a turn's own words beyond the headline (card.explanation) when exactly one assistant turn contributed to the card | 7089/7092 |  | FR-01.66 | 2026-08-25 |
+| bug | Read-only terminal viewer (second tab/browser without the writer slot) could not scroll or copy inside a live TUI session | 0/9 |  | FR-01.28 | 2026-08-24 |
+| bug | Prerelease-aware attach-vs-swap comparator + stamp the published version into the staged server/package.json so app.version carries the -next tail. | 0/0 | 5246324 | FR-01.49 | 2026-08-23 |
+| bug | Route the new door to /wizard/new so it lands on step 1 (not the picker); add the wz-outline on-photo reset so the Back button is legible. | 0/0 | 6e6bfc9 | FR-01.51 | 2026-08-23 |
+| bug | First-Contact readiness probe augments its lookup PATH (mirror of the bootstrapper preflight) so a uv installed in ~/.local/bin is found and the uv-managed-Python fallback fires; plus refreshed First-Contact welcome copy | 7036/7039 (3 skipped) |  | FR-01.51 | 2026-08-23 |
+| bug | First-Contact readiness gate: accept uv-managed Python, name per-tool OS-aware installs, and make the not-ready banner legible on the photo hero | 6965/6966 (1 skipped) |  | FR-01.51 | 2026-08-22 |
+| change | Mission activity feed: fix bucket-classification over-matching, single-command fallback text, wrong-identity Delivered card, and remove the GOAL header | 7024/7025 (1 skipped) |  | FR-01.66 | 2026-08-22 |
+| bug | cross-platform bootstrapper prerequisite detection (~/.local/bin + Homebrew + Windows) + uv-coupled Python gate + OS-aware install hints | 241/244 (3 skipped) |  | FR-01.49 | 2026-08-22 |
+| change | iterate: fix npx cold-start (cron-parser dep-drift + boot log + prereq hard-stop) | 230/233 |  | infra | 2026-08-22 |
+| change | iterate: fix npx bootstrapper main-module guard (silent no-op under symlink) | 214/217 |  | infra | 2026-08-22 |
+| change | Mission activity feed: all nine ActivityCard kinds now source real transcript content (previously four of nine), plus a visual redesign matching the approved mockup (icons on a connecting line, status pills, mono chips, bordered excerpt blocks, real question/options). | 6961/6962 (1 skipped) |  | FR-01.66 | 2026-08-20 |
+| feature | Org route beat-register release, last-run staleness, open-register finding (V4a-2B) | 3609/3610 (1 skipped) |  | FR-01.70 | 2026-08-18 |
+| bug | Complete the hono CVE fix that PR #374 left half-done: bump bootstrapper/'s hono lockfile to 4.13.2 and raise the declared floor to ^4.12.34 in both server/ and bootstrapper/ package.json, with a regression test per workspace. | 3732/3733 |  | infra | 2026-08-17 |
+| feature | New host-allowlist + secret-gated /api/external/org/* route family for reading/updating leadwright's organization files under ~/.claude/leads/**. | 6856/6857 |  |  | 2026-08-17 |
+| feature | External Task API: PATCH poFeedback, POST leadParentTaskId, GET ?tag= filter (leadwright V1 lead-field support) | 6707/6708 |  | FR-01.01 | 2026-08-16 |
+| change | Split 90-phone-responsive.spec.ts into three files to keep it under the 300-line bloat cap, and fixed trg-9435df9d (a 30s hang in the touch-safe test caused by a locator that never renders in the scoped create-menu flow) | 18/18 |  | tooling | 2026-08-16 |
+| change | iterate: remove retracted .gitignore blanket rule that silently discarded decision-drop ADRs | 0/0 |  | infra | 2026-08-15 |
+| bug | Fix 90-phone-responsive.spec.ts phone-new-project test to assert the locked ProjectContextStrip instead of a project select that never renders on the phone drill-in flow | 3327/3327 |  | tooling | 2026-08-15 |
+| bug | Embedded terminal auto-launch silently timed out for long launch commands because an uncapped command-preview banner squeezed the xterm canvas to zero height. | 6688/6689 |  | FR-01.10 | 2026-08-14 |
+| change | iterate: declare published package manifests for changelog manifest-sync | 210/210 |  | infra | 2026-08-13 |
+| change | Restyle Mission tab's middle section onto the dark surface, retire the Transcript sub-tab, and fix mobile-viewport visual defects across Board/Task Detail/Intent Wizard. | 6684/6685 |  | FR-01.66, FR-01.02, FR-01.38 | 2026-08-13 |
+| bug | Lower and unify the task-description length cap (20,000 -> 6,000); triage-promote now rejects an over-cap description instead of silently truncating it | 6676/6677 |  | FR-01.01, FR-01.30 | 2026-08-13 |
+| change | Make Mission artifacts trustworthy, traceable, and readable | 131/131 |  | FR-01.66 | 2026-08-11 |
+| change | Move model-tier defaults from task cards to the New Iterate start dialog. | 6620/6621 | 3b90550 | FR-01.16 | 2026-08-10 |
+| bug | Stabilize mutable Playwright fixtures behind a disposable registry boundary. | 412/420 |  | tooling | 2026-08-11 |
+| change | Surface read-only project model tiers and supported Iterate override choices. | 3286/3286 |  | tooling | 2026-08-10 |
+| change | reconcile stale compliance findings | 6660/6661 |  | compliance | 2026-08-10 |
+| change | B7 backfill: CI now runs github/codeql-action v4, with the existing regression coverage pinning the action version. | 0/0 | 7694348 | infra | 2026-08-10 |
+| change | B7 backfill: v0.24.0 release commit consolidated the shipped changelog and canonical release markers. | 0/0 | fe9ae48 | docs | 2026-08-10 |
+| bug | Restyle Triage filter chips to match the Board's control chrome; fix Preview button illegibility on the dark project toolbar; fix Preview button rendering without a genuine single-project selection. | 3270/3270 |  | FR-01.17 | 2026-08-09 |
+| bug | Triage reader resolves amend events (Python parity); adds an inline Edit-in-place UI for title/detail/severity; removes the dead LaunchPayloadBlock | 6650/6651 |  | FR-01.30 | 2026-08-08 |
+| change | Track AGENTS.md as the durable Codex operating contract. | 6607/6608 |  | docs | 2026-08-08 |
 | feature | Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. | 6536/6536 |  | FR-01.30 | 2026-08-08 |
 | change | Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure. | 6534/6535 (1 skipped) |  | FR-01.66 | 2026-08-08 |
 | change | Port monorepo P2.03 (CONTRACT_VERSION 2) parked-entry lifecycle: readAllItems gains revisitAt/revisitDue, a CLI-parity envelope projection, a read-only Deferred section in the Triage tab, and an optional Snooze revisit-date field. | 6461/6462 |  | FR-01.30 | 2026-08-05 |
@@ -335,7 +387,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-07-28 | Unit: PASS — client 3092 passed (331 files); server 3030 passed / 1 skipped (261 files) | Integration: n/a — no CRUD or service-boundary change | pgTAP: n/a — no RLS or schema change | E2E: PASS — real-Chromium mermaid render probe (authoring-time, not a committed spec); see surface_verification | Smoke: n/a — no server behaviour change | (iterate)
+Last run: 2026-09-03 | Unit: 271/274 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

@@ -1,19 +1,19 @@
 # Commit Change Log
 
-Generated: 2026-09-01T07:41:52.552221+00:00
-Source-State: run=iterate-2026-09-01-trusted-publish-workflow base=23fbba76ee94 release=v0.26.0
-Consistency-audit: last full run 2026-08-31 (1 day earlier) — PASS; latest 2026-08-31 partial (groups B)
-Total commits: 829
+Generated: 2026-09-03T19:57:31.525037+00:00
+Source-State: run=iterate-2026-09-03-bootstrapper-tailscale-probe
+Consistency-audit: last full run 2026-08-31 (3 days earlier) — PASS; latest 2026-08-31 partial (groups B)
+Total commits: 839
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 324
-    "feat" : 207
-    "chore" : 141
+    "feat" : 212
+    "chore" : 144
     "docs" : 74
-    "refactor" : 33
+    "refactor" : 35
     "test" : 30
     "ci" : 8
     "other" : 6
@@ -352,10 +352,15 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 207 commits
+### Features (feat) — 212 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-03 | org | wire useOrgThreads to leadwright's real round store (FR-04.42) (#413) | 424ba0201ab2 |
+| 2026-09-03 | board | claim chip + filter, keyed on claimedBy not state (FR-04.22) (#412) | 1cfcaa4d5b48 |
+| 2026-09-02 | board | add lead-agent board surface (Bot/BellDot filters, card expander, glyph) (#411) | 0e8467acfd83 |
+| 2026-09-02 | inbox | add lead_question kind for leadwright follow-up answers (#410) | 38aa3c068f1d |
+| 2026-09-01 | org | render per-card conversation thread on the Org page (FR-04.42) (#409) | 9f5cb3d1a8a9 |
 | 2026-09-01 | ci | add npm trusted-publishing workflow (OIDC) on stable v* tags (#404) | 23fbba76ee94 |
 | 2026-09-01 | shipslog | add Documents panel — Requirements/Iterate/Agent Docs/Compliance links (#403) | 4c5d3c107b5b |
 | 2026-08-29 | triage | clickable file references open a side-by-side viewer (#395) | 8e074f79746a |
@@ -564,10 +569,13 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 141 commits
+### Chores (chore) — 144 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-03 | triage | sweep 1 outbox append(s) into branch | 52e865b5afaa |
+| 2026-09-03 | external-review | route the GPT review leg through Codex CLI (#414) | 4f80757ff9e9 |
+| 2026-09-01 | release | v0.26.0 (#406) | c064c89ec0d3 |
 | 2026-08-29 | docs | sync guide.md with the npx bootstrapper, Mission tab, Intent Wizard doors (#396) | f4dae7bb194d |
 | 2026-08-27 | release | v0.25.0 (#394) | bbcc9d618705 |
 | 2026-08-08 | gitignore | track shipwright_model_config.json via root-anchored allowlist (#352) | 8802b00328c2 |
@@ -789,10 +797,12 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 33 commits
+### Refactoring (refactor) — 35 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-01 | security | swap Tier-3 PR-review gate to GLM 5.3 with reused ZDR routing (#408) | 2d4eb255d44e |
+| 2026-09-01 | security | swap Tier-3 PR-review gate to DeepSeek with reused ZDR routing (#407) | 254e52c978c9 |
 | 2026-08-10 | compliance | reconcile stale audit findings (#359) | 8ba78d97be5c |
 | 2026-08-01 | spawn | extract core/win32-spawn.ts, drop the dead async probe, pin win32 path semantics (#342) | 8e6fec70c3a2 |
 | 2026-07-16 | chrome | anthracite sidebar + uniform 92px PageHead + closed type scale + self-hosted fonts (A05, FR-01.48) (#261) | 9eebd2a6f68f |
@@ -906,7 +916,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 829 |
+| Total commits | 839 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 829 |
+| Human-authored commits | 839 |
 

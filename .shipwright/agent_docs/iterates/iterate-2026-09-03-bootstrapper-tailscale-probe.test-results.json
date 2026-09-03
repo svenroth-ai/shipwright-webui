@@ -1,0 +1,124 @@
+{
+  "last_updated": "2026-09-03",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
+    "date": "2026-09-03",
+    "unit": {
+      "status": "passed",
+      "passed": 271,
+      "total": 274
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "No live Tailscale interface / tailscale CLI was available in this dev environment to end-to-end verify the actual `SHIPWRIGHT_NETWORK_PROFILE=tailscale` branch (resolveTailscaleIp's `tailscale ip -4` path). Verified instead: (1) unit tests inject a fake resolveHonoHost returning a concrete IP and assert it is probed directly; (2) an F0.5 CLI probe exercises resolveProbeHost against the REAL compiled server/dist/lib/resolveHonoHost.js for local/open/unset/HONO_HOST=true, confirming the wildcard-to-loopback mapping end-to-end against production code, not a mock."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "resolveProbeHost maps a wildcard bind (open profile -> 0.0.0.0) back down to loopback",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'wildcard bind (open profile -> 0.0.0.0) maps back down to loopback'"
+        },
+        {
+          "behavior": "resolveProbeHost maps a wildcard bind (HONO_HOST=true -> ::) back down to loopback",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'wildcard bind (HONO_HOST=true -> ::) also maps down to loopback'"
+        },
+        {
+          "behavior": "resolveProbeHost probes a concrete resolved address (tailscale IP) directly, not loopback",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'a concrete bind (tailscale profile's resolved IP) is probed directly, not loopback'"
+        },
+        {
+          "behavior": "resolveProbeHost falls back to loopback (never throws) when the dynamic import fails",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'an import failure (no staged server/dist, e.g. from source) falls back to loopback, never throws'"
+        },
+        {
+          "behavior": "resolveProbeHost falls back to loopback (never throws) when resolveHonoHost itself throws (e.g. tailscale CLI unreachable)",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'a resolution failure (e.g. tailscale ip -4 unreachable) falls back to loopback, never throws'"
+        },
+        {
+          "behavior": "probeServer threads a non-default host into BOTH the TCP occupancy probe and the diagnostics fetch URL",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'threads host into BOTH the TCP occupancy probe and the diagnostics fetch URL'"
+        },
+        {
+          "behavior": "probeServer defaults to 127.0.0.1 when no host is given (backward compatible)",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'defaults to 127.0.0.1 when no host is given (backward compatible)'"
+        },
+        {
+          "behavior": "ensureServer reports/opens a url built from a non-loopback resolved probe host (tailscale)",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'a tailscale-resolved host produces a reachable url'"
+        },
+        {
+          "behavior": "ensureServer keeps the existing http://localhost:<port> url when the resolved host is loopback",
+          "disposition": "tested",
+          "evidence": "server.test.mjs: 'loopback resolution keeps the existing localhost url (unchanged default behaviour)'"
+        },
+        {
+          "behavior": "resolveProbeHost's real integration against the compiled server resolver (not a mock) correctly resolves local/open/unset/HONO_HOST=true to loopback",
+          "disposition": "tested",
+          "evidence": "F0.5 CLI probe (.shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/f05_probe.mjs) run against a freshly-built server/dist/lib/resolveHonoHost.js: 4/4 cases pass, exit 0. Also promoted into the permanent vitest suite: server.test.mjs 'resolves the real resolveHonoHost.js export for local/open/unset profiles -> loopback' (build-gated via it.skipIf, added after spec-reviewer flagged the mock-only gap)"
+        },
+        {
+          "behavior": "the actual tailscale-profile IP-resolution branch (resolveTailscaleIp's `tailscale ip -4` subprocess) end-to-end",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "requires a live Tailscale daemon/CLI on the dev machine; the resolution logic itself (server/src/lib/resolveTailscaleIp.ts) is pre-existing and already covered by its own test suite (resolveTailscaleIp.test.ts) unmodified by this diff, so only the NEW consumption of its result (resolveProbeHost passing a concrete-address result straight through) needed new coverage, which is tested via injected fakes above."
+        }
+      ],
+      "counts": {
+        "testable": 10,
+        "tested": 10,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "cli",
+      "runner": "node .shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/f05_probe.mjs",
+      "exit_code": 0,
+      "tests_run": 4,
+      "evidence_path": ".shipwright/runs/iterate-2026-09-03-bootstrapper-tailscale-probe/surface_verification.json",
+      "timestamp": "2026-09-03T00:00:00Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-03-bootstrapper-tailscale-probe",
+    "commit": "52e865b5afaaa2d332b022c71890ae349041a74e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

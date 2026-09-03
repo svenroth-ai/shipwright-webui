@@ -1,14 +1,14 @@
 {
   "schema_version": 3,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-09-01T07:41:52.552221+00:00",
-  "source_commit": "23fbba76ee94b23946a7ce0faed996ee69b93fe1",
-  "spec_hash": "sha256:3839d377cd299ae8284fd7475b7cddf71feaf757e33a01a565be49558eae98c0",
+  "generated_at": "2026-09-03T19:57:31.525037+00:00",
+  "source_commit": "52e865b5afaaa2d332b022c71890ae349041a74e",
+  "spec_hash": "sha256:6fe273657b148252ae05cc469a9236cd44205bc20e5abaebf9ae7e6e51a113d9",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The landing kanban board: every task across all projects as cards grouped by state (active / idle / done / failed), newest first, with a sortable List view. A sidebar button creates a new Pipeline, Iterate, or Task. Each card has a state icon, actions menu, and launch button; clicking opens its detail. A multi-phase Run shows its child steps inline with a progress bar.<br>**Updates:** Gained: priority/domain/blocked-by badges, a project colour pill, Move-to-Backlog and Re-open, the single-session Run card and its design-gate panel, and every launch state made visible/recoverable.",
+      "title": "The landing kanban board: every task across all projects as cards grouped by state (active / idle / done / failed), newest first, with a sortable List view. A sidebar button creates a new Pipeline, Iterate, or Task. Each card has a state icon, actions menu, and launch button; clicking opens its detail. A multi-phase Run shows its child steps inline with a progress bar.<br>**Updates:** Gained: priority/domain/blocked-by badges, a project colour pill, Move-to-Backlog and Re-open, the single-session Run card and its design-gate panel, every launch state made visible/recoverable, and a lead-agent-work surface (toolbar Bot/BellDot filters over the closed lead-tag vocabulary, an in-place card expander, and a bot glyph beside the project pill, FR-04.11); and a claim indicator (who holds a card and since when, keyed on claimedBy/claimedAt not state, plus an independent toolbar filter for claimed tasks, FR-04.22).",
       "priority": "Must",
       "status": "active",
       "required_layers": [
@@ -154,6 +154,78 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::shows no active dot when the filter is empty",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::shows no active dot when the filter is empty",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::shows the active dot when at least one prefix is selected",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::shows the active dot when at least one prefix is selected",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::opens a menu with all three prefixes asserted by name, each toggling and keeping the menu open",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::opens a menu with all three prefixes asserted by name, each toggling and keeping the menu open",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::has an 'All' row that clears the filter and shows the caller-supplied total — NOT the sum of the per-prefix counts",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::has an 'All' row that clears the filter and shows the caller-supplied total — NOT the sum of the per-prefix counts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::is not pressed when lead-wait: is not in the active set",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::is not pressed when lead-wait: is not in the active set",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::derives pressed state from the SAME shared Set the Bot menu uses (no independent state)",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::derives pressed state from the SAME shared Set the Bot menu uses (no independent state)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::calls onToggle with exactly the lead-wait: prefix — the same value the menu checkbox uses",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::calls onToggle with exactly the lead-wait: prefix — the same value the menu checkbox uses",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::stays in sync when the SAME active Set is shared with the Bot menu (menu selection reflected in BellDot)",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::stays in sync when the SAME active Set is shared with the Bot menu (menu selection reflected in BellDot)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/LeadTagFilter.test.tsx::selecting lead-wait: in the real Bot menu flips the real BellDot to pressed (both mounted against one shared useBoardFilters — external code review, iterate-2026-09-01-lead-board-surface)",
+            "path": "client/src/components/external/LeadTagFilter.test.tsx::selecting lead-wait: in the real Bot menu flips the real BellDot to pressed (both mounted against one shared useBoardFilters — external code review, iterate-2026-09-01-lead-board-surface)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/MasterRunLaunchButton.test.tsx::renders NOTHING for a terminal (complete) run",
             "path": "client/src/components/external/MasterRunLaunchButton.test.tsx::renders NOTHING for a terminal (complete) run",
             "layer": "unit",
@@ -276,6 +348,262 @@
           {
             "id": "client/src/components/external/PipelineLaneCard.test.tsx::renders the MasterTaskCard for a mode-less legacy run (defaults to multi_session)",
             "path": "client/src/components/external/PipelineLaneCard.test.tsx::renders the MasterTaskCard for a mode-less legacy run (defaults to multi_session)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::renders immediately before the project pill in the meta row (AC (c): 'next to')",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::renders immediately before the project pill in the meta row (AC (c): 'next to')",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::renders the expander toggle for a lead-tagged task and not for an ordinary one",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::renders the expander toggle for a lead-tagged task and not for an ordinary one",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::clicking the card body still navigates to detail (existing behavior preserved)",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::clicking the card body still navigates to detail (existing behavior preserved)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::clicking the expander toggle opens it in place and does NOT navigate",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::clicking the expander toggle opens it in place and does NOT navigate",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::clicking inside the OPEN expander panel does NOT navigate either",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::clicking inside the OPEN expander panel does NOT navigate either",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::Enter on the card itself still navigates (pre-existing guard, unbroken by the new expander)",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::Enter on the card itself still navigates (pre-existing guard, unbroken by the new expander)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCard.lead.test.tsx::Enter on the expander toggle does NOT navigate and does not reach a simulated dnd-kit ancestor keydown listener",
+            "path": "client/src/components/external/TaskCard.lead.test.tsx::Enter on the expander toggle does NOT navigate and does not reach a simulated dnd-kit ancestor keydown listener",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders for a task with a lead: origin tag",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders for a task with a lead: origin tag",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::is exposed to assistive tech via role=img + aria-label — the glyph is the SOLE signal, so it must not be aria-hidden",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::is exposed to assistive tech via role=img + aria-label — the glyph is the SOLE signal, so it must not be aria-hidden",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::does NOT render for an ordinary task with no tags",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::does NOT render for an ordinary task with no tags",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::does NOT render for a task carrying only lead-wait: or lead-dedup: (no origin tag)",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::does NOT render for a task carrying only lead-wait: or lead-dedup: (no origin tag)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders nothing for an ordinary task (no lead tags, no metadata)",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders nothing for an ordinary task (no lead tags, no metadata)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders nothing for a task with only unrelated, non-lead tags",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders nothing for a task with only unrelated, non-lead tags",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders the toggle (collapsed) when a lead tag is present",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders the toggle (collapsed) when a lead tag is present",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders the toggle when only metadata (priority/domain/complexityHint) is present, no lead tag",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::renders the toggle when only metadata (priority/domain/complexityHint) is present, no lead tag",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::opens the panel showing priority (color-coded), domain, complexityHint, and lead tag readouts",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::opens the panel showing priority (color-coded), domain, complexityHint, and lead tag readouts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::closes again on a second toggle click",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::closes again on a second toggle click",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::stops propagation on the toggle AND on the open panel — a click on either never reaches a parent handler",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::stops propagation on the toggle AND on the open panel — a click on either never reaches a parent handler",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::Enter/Space on the toggle expands the panel and does not reach a parent keydown handler (dnd-kit isolation)",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::Enter/Space on the toggle expands the panel and does not reach a parent keydown handler (dnd-kit isolation)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::a press-and-drag starting on the toggle does not reach a parent pointerdown handler",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::a press-and-drag starting on the toggle does not reach a parent pointerdown handler",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/TaskCardLeadExpander.test.tsx::an unrelated key on the toggle (e.g. the board's global 'i' shortcut) is NOT stopped — only Enter/Space/Arrow* are",
+            "path": "client/src/components/external/TaskCardLeadExpander.test.tsx::an unrelated key on the toggle (e.g. the board's global 'i' shortcut) is NOT stopped — only Enter/Space/Arrow* are",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::starts with an empty filter and zeroed counts",
+            "path": "client/src/hooks/useBoardFilters.test.ts::starts with an empty filter and zeroed counts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::toggleStatus adds/removes and filteredTasks narrows to the selected states",
+            "path": "client/src/hooks/useBoardFilters.test.ts::toggleStatus adds/removes and filteredTasks narrows to the selected states",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::computes per-prefix counts over the given task list",
+            "path": "client/src/hooks/useBoardFilters.test.ts::computes per-prefix counts over the given task list",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::leadTagTotal is the project-filtered task count, NOT the sum of per-prefix counts",
+            "path": "client/src/hooks/useBoardFilters.test.ts::leadTagTotal is the project-filtered task count, NOT the sum of per-prefix counts",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::toggleLeadTag adds and removes a prefix from the filter Set",
+            "path": "client/src/hooks/useBoardFilters.test.ts::toggleLeadTag adds and removes a prefix from the filter Set",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::clearLeadTagFilter resets to empty",
+            "path": "client/src/hooks/useBoardFilters.test.ts::clearLeadTagFilter resets to empty",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::counts stay stable across re-renders that only change the filter, not the task list",
+            "path": "client/src/hooks/useBoardFilters.test.ts::counts stay stable across re-renders that only change the filter, not the task list",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::ANDs both filters together in filteredTasks",
+            "path": "client/src/hooks/useBoardFilters.test.ts::ANDs both filters together in filteredTasks",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::noFilterMatches is true only when a filter is active, the project has tasks, but none match",
+            "path": "client/src/hooks/useBoardFilters.test.ts::noFilterMatches is true only when a filter is active, the project has tasks, but none match",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/hooks/useBoardFilters.test.ts::noFilterMatches is false for a genuinely empty project (no filter needed to explain zero cards)",
+            "path": "client/src/hooks/useBoardFilters.test.ts::noFilterMatches is false for a genuinely empty project (no filter needed to explain zero cards)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/lib/leadTags.test.ts::names exactly the three prefixes, no fourth",
+            "path": "client/src/lib/leadTags.test.ts::names exactly the three prefixes, no fourth",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -4157,6 +4485,32 @@
       "coverage": {
         "unit": "MISSING",
         "e2e": "MISSING"
+      }
+    },
+    "01::FR-01.72": {
+      "id": "FR-01.72",
+      "spec_path": ".shipwright/planning/01-adopted/spec.md",
+      "title": "A fourth Inbox row kind for a follow-up question the separate leadwright tool asks the operator directly (not detected from a running session's terminal, but written by leadwright onto the task itself). Unlike the other three kinds, the operator answers it right there in the Inbox with a short text reply, which is handed back to leadwright; it can also be dismissed without answering.",
+      "priority": "Should",
+      "status": "active",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "defaulted_legacy",
+      "tests": {
+        "unit": [
+          {
+            "id": "client/src/pages/inbox/InboxCard.test.tsx::lead_question routes to LeadQuestionCard — inbox-card-lq-<taskId> testid, answer form present",
+            "path": "client/src/pages/inbox/InboxCard.test.tsx::lead_question routes to LeadQuestionCard — inbox-card-lq-<taskId> testid, answer form present",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          }
+        ]
+      },
+      "coverage": {
+        "unit": "MISSING"
       }
     },
     "01::FR-01.03": {
@@ -9472,7 +9826,7 @@
     "01::FR-01.71": {
       "id": "FR-01.71",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.",
+      "title": "The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it — the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface.",
       "priority": "Should",
       "status": "active",
       "required_layers": [
@@ -9485,7 +9839,80 @@
       }
     }
   },
-  "orphans": [],
+  "orphans": [
+    {
+      "test": "client/src/components/external/ClaimFilterToggle.test.tsx::reflects the active flag via aria-pressed and data-active",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/ClaimFilterToggle.test.tsx::shows pressed state when active",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/ClaimFilterToggle.test.tsx::calls onToggle on click",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/TaskCardClaimChip.test.tsx::renders nothing when the task is unclaimed",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/TaskCardClaimChip.test.tsx::shows who holds the card and since when once claimed",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/TaskCardClaimChip.test.tsx::keys off claimedBy, NOT state — renders while state is 'done'",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/TaskCardClaimChip.test.tsx::renders without the 'since' span when claimedAt is missing",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/hooks/useBoardFilters.test.ts::starts inactive and filteredTasks is unaffected",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/hooks/useBoardFilters.test.ts::toggleClaim narrows to tasks carrying claimedBy, keyed off claimedBy not state",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/hooks/useBoardFilters.test.ts::clearClaimFilter resets to inactive",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/hooks/useBoardFilters.test.ts::is its own axis: does not change statusFilter's behaviour",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/hooks/useBoardFilters.test.ts::clearAllFilters also resets the claim axis",
+      "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    }
+  ],
   "invalid_tags": [],
   "invalid_layers": [],
   "untagged_tests": [
@@ -9708,6 +10135,9 @@
     "client/e2e/flows/campaign-status-filter.spec.ts::board shows active, draft, and legacy campaigns; complete states are hidden",
     "client/e2e/flows/campaign-step-launch.spec.ts::expand → Launch (B1) → direct launch → navigates to a TaskDetail",
     "client/e2e/flows/campaigns-board-lane.spec.ts::renders the seeded campaign with progress + a working per-step Launch button",
+    "client/e2e/flows/claim-chip-filter.spec.ts::a claimed card shows who holds it and since when; an unclaimed one shows neither",
+    "client/e2e/flows/claim-chip-filter.spec.ts::the chip reads claimedBy, NOT state — a done task still shows it",
+    "client/e2e/flows/claim-chip-filter.spec.ts::the claim toggle is its own filter axis; a claim never moves the board column",
     "client/e2e/flows/command-palette-keyboard.spec.ts::Ctrl+K opens the palette, Esc closes it, ? opens the cheat-sheet",
     "client/e2e/flows/command-palette-keyboard.spec.ts::THE FENCE — the terminal keeps every keystroke, byte for byte (AC1)",
     "client/e2e/flows/command-palette-keyboard.spec.ts::j/k move a visible board selection and Enter opens the task",
@@ -9729,6 +10159,10 @@
     "client/e2e/flows/iterate-2026-05-13-dynamic-stack-profiles.spec.ts::guided new-project flow derives the persistent Stack Profile from the selected answers",
     "client/e2e/flows/iterate-2026-05-13-dynamic-stack-profiles.spec.ts::guided new-project flow selects the local Stack Profile when persistence is not needed",
     "client/e2e/flows/iterate-2026-05-17-resume-guard-survives-reload.spec.ts::ready envelope: ptyReused=false on the first attach, true on re-attach to the persisted pty",
+    "client/e2e/flows/lead-board-surface.spec.ts::BellDot filtering to zero matches shows the clear-filters affordance, in both board and list view",
+    "client/e2e/flows/lead-board-surface.spec.ts::Bot menu and BellDot filter by the three lead-tag prefixes",
+    "client/e2e/flows/lead-board-surface.spec.ts::the bot glyph does not render for an ordinary (non-lead) task",
+    "client/e2e/flows/lead-board-surface.spec.ts::the card expander opens in place; plain card click still navigates to TaskDetail",
     "client/e2e/flows/lead-fields-tag-filter.spec.ts::GET ?tag= exact-matches across projects, 200-empties on an unknown tag, intersects with ?projectId=",
     "client/e2e/flows/lead-fields-tag-filter.spec.ts::PATCH poFeedback: writes, echoes, clears via empty string, rejects over-length",
     "client/e2e/flows/lead-fields-tag-filter.spec.ts::POST leadParentTaskId: persists + round-trips, soft-drops empty string, poFeedback stays PATCH-only",
@@ -9795,6 +10229,7 @@
     "client/e2e/flows/org-page.spec.ts::Edit charter -> MarkdownEditorModal loads fresh content -> Save writes the file (AC-8)",
     "client/e2e/flows/org-page.spec.ts::hides the nav entries and shows the not-installed empty state on direct navigation",
     "client/e2e/flows/org-page.spec.ts::keeps the nav entries and shows a page-level error naming the failure",
+    "client/e2e/flows/org-page.spec.ts::renders a real lead-question-threads.json thread — round order, marker stripped, open + answered rounds (FR-04.42 AC-a/c)",
     "client/e2e/flows/org-page.spec.ts::renders chart -> shared docs -> lead cards in that fixed order, five blocks per card, unmeasured fields read 'not measured'",
     "client/e2e/flows/project-delete-cascade.spec.ts::deleting a project with a task leaves no phantom Unassigned row",
     "client/e2e/flows/projects-gallery.spec.ts::'Open log' routes through the single seam to the Ship's Log home (/projects/:id/log)",
@@ -10737,6 +11172,16 @@
     "client/src/components/org/OrgSharedDocs.test.tsx::opens the markdown viewer for a markdown tile and fetches its text",
     "client/src/components/org/OrgSharedDocs.test.tsx::opens the markdown viewer for decision_log.md and fetches its text",
     "client/src/components/org/OrgSharedDocs.test.tsx::renders all four document tiles",
+    "client/src/components/org/OrgThread.test.tsx::a null answer (an untyped fetch boundary's most likely shape for 'unanswered') counts as unanswered, not a crash",
+    "client/src/components/org/OrgThread.test.tsx::a round with no answer yet renders as open, never blank or missing",
+    "client/src/components/org/OrgThread.test.tsx::a whitespace-only answer counts as unanswered too, not a visually blank answered round",
+    "client/src/components/org/OrgThread.test.tsx::an empty-string answer counts as unanswered, not a blank answered round",
+    "client/src/components/org/OrgThread.test.tsx::renders markup and a sentinel as plain text, never as real elements, and fires no notification",
+    "client/src/components/org/OrgThread.test.tsx::renders nothing for a card whose rounds array is empty",
+    "client/src/components/org/OrgThread.test.tsx::renders nothing for an empty card array",
+    "client/src/components/org/OrgThread.test.tsx::renders nothing for undefined cards (every lead's real state until L8 lands)",
+    "client/src/components/org/OrgThread.test.tsx::renders one thread per card with rounds, skipping cards without any",
+    "client/src/components/org/OrgThread.test.tsx::renders three rounds in the order supplied, not sorted by timestamp",
     "client/src/components/settings/ActionsConfigCard.test.tsx::renders one row per non-synthesized project",
     "client/src/components/settings/ActionsConfigCard.test.tsx::reset is a no-op when the user cancels the dialog",
     "client/src/components/settings/ActionsConfigCard.test.tsx::reset is enabled even when the on-disk file is malformed (recovery path)",
@@ -11655,6 +12100,7 @@
     "client/src/hooks/useOrgChartPresence.test.ts::resolves 'broken' on a network error — never 'absent'",
     "client/src/hooks/useOrgChartPresence.test.ts::starts loading, then resolves 'present' on a 200",
     "client/src/hooks/useOrgRoster.test.ts::fetches the composite roster and resolves with it",
+    "client/src/hooks/useOrgThreads.test.ts::fetches the composite threads map and resolves with it",
     "client/src/hooks/useParsedTranscript.test.ts::is correct under StrictMode double-render (no double-append)",
     "client/src/hooks/useParsedTranscript.test.ts::returns the SAME result reference when content is unchanged",
     "client/src/hooks/useParsedTranscript.test.ts::returns the batch-parser result as content grows",
@@ -11896,6 +12342,10 @@
     "client/src/lib/collapseAskUserQuestion.test.ts::reopens rendering at the next real action after a folded + markdown run",
     "client/src/lib/collapseAskUserQuestion.test.ts::resumes normal rendering after the pending question is resolved",
     "client/src/lib/collapseAskUserQuestion.test.ts::still suppresses the adjacent markdown fallback when the tool_use is already folded (iterate 13.1)",
+    "client/src/lib/externalApi.inboxItem.type.test.ts::a LeadQuestionInboxItem literal with bestEffort fails to compile (base has no such key)",
+    "client/src/lib/externalApi.inboxItem.type.test.ts::an AskToolInboxItem literal without bestEffort:true fails to compile",
+    "client/src/lib/externalApi.inboxItem.type.test.ts::ask_tool / text_question / terminal_prompt still require bestEffort: true",
+    "client/src/lib/externalApi.inboxItem.type.test.ts::lead_question carries no bestEffort field (FR-04.19)",
     "client/src/lib/extractFileMentions.test.ts::does not match a bare commit SHA",
     "client/src/lib/extractFileMentions.test.ts::does not match a real extension immediately followed by another extension-like suffix",
     "client/src/lib/extractFileMentions.test.ts::does not match a scheme-less URL that happens to end in a recognized extension",
@@ -11940,6 +12390,21 @@
     "client/src/lib/intentGuards.test.ts::skips questions",
     "client/src/lib/intentGuards.test.ts::skips short messages",
     "client/src/lib/intentGuards.test.ts::skips slash commands",
+    "client/src/lib/leadQuestionApi.test.ts::PATCHes poFeedback with the PO's text plus an ISO timestamp marker",
+    "client/src/lib/leadQuestionApi.test.ts::trims the PO's answer text before appending the timestamp",
+    "client/src/lib/leadTags.test.ts::OR-within-group: matches if any selected prefix matches any tag",
+    "client/src/lib/leadTags.test.ts::are null-safe",
+    "client/src/lib/leadTags.test.ts::extract the suffix after the prefix",
+    "client/src/lib/leadTags.test.ts::false for a lead-wait: or lead-dedup: only tag (distinct from hasAnyLeadTag)",
+    "client/src/lib/leadTags.test.ts::false for an empty prefix selection or empty/absent tags",
+    "client/src/lib/leadTags.test.ts::false for ordinary, non-lead tags",
+    "client/src/lib/leadTags.test.ts::false for undefined/null/empty tags",
+    "client/src/lib/leadTags.test.ts::false when no selected prefix matches",
+    "client/src/lib/leadTags.test.ts::is case-sensitive, matching the server's ?tag= convention (routes.lead-fields-tag-filter-list.test.ts)",
+    "client/src/lib/leadTags.test.ts::match their own prefix only",
+    "client/src/lib/leadTags.test.ts::null when the tag is absent",
+    "client/src/lib/leadTags.test.ts::true for a lead: tag",
+    "client/src/lib/leadTags.test.ts::true when any of the three prefixes is present",
     "client/src/lib/localStorage.test.ts::reads existing JSON value from localStorage",
     "client/src/lib/localStorage.test.ts::reads stored null (literal) as null",
     "client/src/lib/localStorage.test.ts::reads stored object values",
@@ -12212,6 +12677,7 @@
     "client/src/lib/orgApi.test.ts::builds a query string from before/limit when given",
     "client/src/lib/orgApi.test.ts::omits query params entirely when none are given",
     "client/src/lib/orgApi.test.ts::returns the parsed roster on a 200",
+    "client/src/lib/orgApi.test.ts::returns the parsed threads map on a 200",
     "client/src/lib/orgApi.test.ts::returns the raw text on a 200",
     "client/src/lib/orgApi.test.ts::returns the raw text on a 200 and encodes the path in the query string",
     "client/src/lib/orgApi.test.ts::throws a decoded ApiError on a 404",
@@ -12446,6 +12912,9 @@
     "client/src/pages/OrgPage.test.tsx::shows a loading state while presence is still resolving",
     "client/src/pages/OrgPage.test.tsx::shows a page-level error naming the failure when broken, not a blank/broken screen (AC-7)",
     "client/src/pages/OrgPage.test.tsx::shows the not-installed empty state on a confirmed absent (AC-6b)",
+    "client/src/pages/OrgPage.thread.test.tsx::associates each lead with its OWN thread, not a neighbor's or a page-wide dump (external-review fix)",
+    "client/src/pages/OrgPage.thread.test.tsx::renders no thread for a lead with no rounds (AC-d, real-world default)",
+    "client/src/pages/OrgPage.thread.test.tsx::renders the lead's thread, below its card, in round order (AC-a)",
     "client/src/pages/ProjectsPage.test.tsx::\"Create Project\" navigates to the guided Intent Wizard",
     "client/src/pages/ProjectsPage.test.tsx::/projects?new=1 auto-opens the expert registration dialog",
     "client/src/pages/ProjectsPage.test.tsx::card click navigates to the project's Ship's Log (A16 re-point)",
@@ -12493,6 +12962,11 @@
     "client/src/pages/TriagePage.test.tsx::renders item cards as a flat list, with no source-derived group heading (AC6, iterate-2026-08-08-triage-filters-sort-parked)",
     "client/src/pages/TriagePage.test.tsx::renders item with XSS-unsafe title as plain text (not as HTML)",
     "client/src/pages/TriagePage.test.tsx::shows the staleness banner when the local checkout is behind origin",
+    "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx::Dismiss calls the lq-<taskId> dismiss endpoint, not the card's navigate",
+    "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx::Send answer PATCHes poFeedback with the typed text plus a timestamp",
+    "client/src/pages/inbox/InboxCard.LeadQuestion.test.tsx::Send answer is disabled for empty/whitespace-only text",
+    "client/src/pages/inbox/InboxCard.exhaustive.type.test.ts::today's four real kinds are exactly what InboxItem is (no silent fifth)",
+    "client/src/pages/inbox/InboxCard.exhaustive.type.test.ts::unhandledInboxItemKind rejects a value outside today's InboxItem union (compile-time only, see typeOnlyRejectsFakeFifthKind above)",
     "client/src/pages/inbox/InboxCard.terminalFallback.test.tsx::carries the honesty copy — the WebUI does not answer for you",
     "client/src/pages/inbox/InboxCard.terminalFallback.test.tsx::has NO clickable option button that could send into the session",
     "client/src/pages/inbox/InboxCard.terminalFallback.test.tsx::renders anatomy: context pill + question + read-only Options text",
@@ -12500,11 +12974,14 @@
     "client/src/pages/inbox/InboxCard.terminalFallback.test.tsx::renders the recessed mono prompt + the honesty copy",
     "client/src/pages/inbox/InboxCard.terminalFallback.test.tsx::the CTA NAVIGATES to the terminal deep link (not a clipboard copy)",
     "client/src/pages/inbox/InboxCard.terminalFallback.test.tsx::the CTA navigates to the terminal deep link (no freetext input)",
+    "client/src/pages/inbox/InboxCard.test.tsx::InboxCard throws (never a silent wrong-card render) for an unrecognized kind",
+    "client/src/pages/inbox/InboxCard.test.tsx::inboxItemKey returns lq-<taskId> for a lead_question item",
+    "client/src/pages/inbox/InboxCard.test.tsx::inboxItemKey throws (never a silent undefined key) for an unrecognized kind",
     "client/src/pages/inbox/InboxProjectSection.test.tsx::Unassigned bucket uses the muted-token chip",
     "client/src/pages/inbox/InboxProjectSection.test.tsx::renders project label + (N open) count + chevron-color chip",
     "client/src/pages/inbox/InboxProjectSection.test.tsx::sessions render in input order (MED #3 — ordering preservation)",
     "client/src/pages/inbox/inbox-no-writepath.test.ts::does NOT copy a command to the clipboard (the CTA navigates, not copies)",
-    "client/src/pages/inbox/inbox-no-writepath.test.ts::has NO text input surface (input / textarea / contentEditable)",
+    "client/src/pages/inbox/inbox-no-writepath.test.ts::has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field",
     "client/src/pages/inbox/inbox-no-writepath.test.ts::imports NO terminal-write / pty API",
     "client/src/pages/inbox/inbox-no-writepath.test.ts::makes NO WebSocket send / pty.write call",
     "client/src/pages/inbox/useInboxData.derivation.test.ts::Unassigned bucket — task missing OR projectId === unassigned (openai MED)",
@@ -12585,7 +13062,9 @@
     "client/src/test/shell-scroll-invariant.test.ts::every route that renders a title bar bounds its own vertical scroll",
     "client/src/test/shell-scroll-invariant.test.ts::no page renders a title bar without being in the registry (reverse drift)",
     "client/src/test/shell-scroll-invariant.test.ts::the shell scroller reserves NO width for a scrollbar (it would inset every title bar)",
+    "server/src/config.test.ts::leadsRoot defaults to ~/.claude/leads when SHIPWRIGHT_LEADS_ROOT is unset",
     "server/src/config.test.ts::reads PORT env var and returns parsed number",
+    "server/src/config.test.ts::reads SHIPWRIGHT_LEADS_ROOT as an override",
     "server/src/config.test.ts::reads SHIPWRIGHT_MAX_CONCURRENT env var",
     "server/src/config.test.ts::reads SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS as a positive-int override",
     "server/src/config.test.ts::returns a registryDir path containing .shipwright-webui",
@@ -14146,10 +14625,25 @@
     "server/src/external/file/__tests__/routes.test.ts::404 not_found when file does not exist",
     "server/src/external/file/__tests__/routes.test.ts::404 project_not_found",
     "server/src/external/file/__tests__/write-symlink-guard.test.ts::regular .md write still succeeds (guard is symlink-specific)",
+    "server/src/external/inbox/__tests__/routes.test.ts::200 dismisses a lead_question via its lq-<taskId> id",
     "server/src/external/inbox/__tests__/routes.test.ts::200 returns { items: [] } when no tasks are tracked",
     "server/src/external/inbox/__tests__/routes.test.ts::200 returns { ok, taskId } when the toolUseId matches a tracked task",
     "server/src/external/inbox/__tests__/routes.test.ts::200 still returns { items: [] } when tasks exist but no JSONL is on disk",
+    "server/src/external/inbox/__tests__/routes.test.ts::404 for an lq-prefixed id that doesn't resolve to a waiting lead_question",
     "server/src/external/inbox/__tests__/routes.test.ts::404 toolUseId not found when nothing is pending",
+    "server/src/external/inbox/__tests__/routes.test.ts::surfaces a task with a lead-question marker as kind lead_question, without bestEffort",
+    "server/src/external/inbox/_lead.test.ts::FR-04.37 outbound: a second marker line further down is also stripped",
+    "server/src/external/inbox/_lead.test.ts::FR-04.37 outbound: the marker sentinel never survives into the stripped body",
+    "server/src/external/inbox/_lead.test.ts::returns null for a description with no marker",
+    "server/src/external/inbox/_lead.test.ts::returns null for an undefined description",
+    "server/src/external/inbox/_lead.test.ts::skips a task dismissed via the lq- prefixed id",
+    "server/src/external/inbox/_lead.test.ts::skips a task that already has a poFeedback answer",
+    "server/src/external/inbox/_lead.test.ts::skips a task with no lead-question marker",
+    "server/src/external/inbox/_lead.test.ts::skips done and launch_failed tasks",
+    "server/src/external/inbox/_lead.test.ts::strips a CRLF-terminated marker line without leaving a stray \\\\r",
+    "server/src/external/inbox/_lead.test.ts::strips the marker line and returns the body",
+    "server/src/external/inbox/_lead.test.ts::strips the marker regardless of question type",
+    "server/src/external/inbox/_lead.test.ts::surfaces a waiting task with kind lead_question and no bestEffort field",
     "server/src/external/launch/__tests__/campaign-branch.test.ts::AC-1: builds /shipwright-iterate --campaign <slug> --autonomous as one positional, no --resume",
     "server/src/external/launch/__tests__/campaign-branch.test.ts::AC-2: rejects shell-/path-hostile slugs with 400 invalid_campaign_slug",
     "server/src/external/launch/__tests__/campaign-branch.test.ts::AC-3: 400 campaign_not_found when the slug has no matching campaign dir",
@@ -14414,6 +14908,18 @@
     "server/src/external/org/__tests__/last-run.test.ts::reports staleness:unknown when org-chart.json is missing",
     "server/src/external/org/__tests__/last-run.test.ts::reports staleness:unknown when the cron string is unparseable",
     "server/src/external/org/__tests__/last-run.test.ts::reports staleness:unknown when the lead isn't in org-chart.json",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::accepts a well-formed threads file",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::degrades a missing file to { ok: false } (the normal case, not an error)",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::degrades a symlinked file to { ok: false } (never followed)",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::degrades invalid JSON to { ok: false }",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::reads a well-formed file",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects a malformed answer object",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects a round missing a required field",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects a top-level array",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects an array-valued threads field (same class of bug org-chart.ts's parser guards)",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects an unknown version (trap 7 — not a crash, just 'nothing to show')",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects an uppercase / underscore leadId (not kebab-case) with { ok: false }",
+    "server/src/external/org/__tests__/lead-question-threads.test.ts::rejects invalid JSON",
     "server/src/external/org/__tests__/org-chart-lookup.test.ts::a DIFFERENT lead's malformed entry does not break this lead's lookup (decision 4)",
     "server/src/external/org/__tests__/org-chart-lookup.test.ts::forLead() matches readLeadOrgInfo()'s per-lead result for every lead, from a SINGLE parse",
     "server/src/external/org/__tests__/org-chart-lookup.test.ts::only opens the file once regardless of how many leads are looked up (the N+1 fix)",
@@ -14821,6 +15327,13 @@
     "server/src/routes/__tests__/org-docs.test.ts::keeps a malformed line as raw with parsed:null rather than failing the whole page",
     "server/src/routes/__tests__/org-docs.test.ts::returns the newest entries first, capped at `limit`, with a nextCursor for older ones",
     "server/src/routes/__tests__/org-docs.test.ts::serves the lead's learnings.md",
+    "server/src/routes/__tests__/org-threads.test.ts::degrades an unknown version to an empty array instead of erroring (trap 7)",
+    "server/src/routes/__tests__/org-threads.test.ts::degrades invalid JSON to an empty array instead of erroring (trap 6)",
+    "server/src/routes/__tests__/org-threads.test.ts::falls back to the raw taskId when no store dependency is wired (or no matching task)",
+    "server/src/routes/__tests__/org-threads.test.ts::forwards the org-chart error when the chart itself is missing",
+    "server/src/routes/__tests__/org-threads.test.ts::returns an empty array for a lead with no thread file — the steady state, not an error (AC-d)",
+    "server/src/routes/__tests__/org-threads.test.ts::skips a thread record whose rounds array is empty",
+    "server/src/routes/__tests__/org-threads.test.ts::strips the lead-question marker, preserves round order, and looks up the card title (AC-a/c)",
     "server/src/routes/__tests__/org.test.ts::403s a non-allowlisted path",
     "server/src/routes/__tests__/org.test.ts::409s on a stale If-Match fingerprint",
     "server/src/routes/__tests__/org.test.ts::GET /api/external/org/org-chart without the secret header still 401s, and /api/org/org-chart works, on ONE app with both mounted",
