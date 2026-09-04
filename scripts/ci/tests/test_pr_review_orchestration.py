@@ -266,15 +266,40 @@ class TestMainOrchestration:
         assert FAKE_KEY not in captured.out
         assert FAKE_KEY not in captured.err
 
-    def test_the_default_models_zdr_body_actually_reaches_the_transport(self, monkeypatch):
-        # THE regression guard for the ZDR-routing change (originally DeepSeek,
-        # now GLM as the default): main() must resolve the real policy (not a
-        # stub) and pass it through to call_openrouter untouched. Deleting
-        # `extra_body=extra_body` at the call site, or short-circuiting
-        # resolve_extra_body to always return `{}`, would leave every other
-        # case in this file green.
+    def test_the_default_luna_model_never_touches_zdr_routing(self, monkeypatch):
+        # The positive case for the CURRENT default (GPT-5.6 Luna,
+        # iterate-2026-09-03-pr-review-sonnet-default, after GLM 5.3 was found
+        # to silently hang mid-review on the shared ZDR provider pool — see
+        # pr_review_openrouter.py's DEFAULT_MODEL comment): with no override,
+        # main() must thread an EMPTY extra_body through — Luna is outside the
+        # deepseek/z-ai namespaces, so resolve_extra_body's short-circuit
+        # applies and no ZDR provider pin (with its `allow_fallbacks: false`)
+        # is ever added.
         posted = _wire(monkeypatch, review_json=json.dumps(
             {"decision": "approve", "summary": "lgtm", "blocking": [], "comments": []}))
+        assert pr_review.main(ARGV) == pr_review.EXIT_OK
+        assert posted["extra_body"] == {}
+
+    def test_the_deepseek_override_still_delivers_the_zdr_body(self, monkeypatch):
+        # DeepSeek stays available as an operator override — its ZDR routing
+        # must still work even though it is no longer the default. Set the
+        # override AFTER _wire(), which unconditionally delenv's this var to
+        # keep the default-path cases isolated from the test runner's own env.
+        posted = _wire(monkeypatch, review_json=json.dumps(
+            {"decision": "approve", "summary": "lgtm", "blocking": [], "comments": []}))
+        monkeypatch.setenv("SHIPWRIGHT_PR_REVIEW_MODEL", pr_review.DEEPSEEK_MODEL)
+        assert pr_review.main(ARGV) == pr_review.EXIT_OK
+        assert posted["extra_body"]["provider"]["zdr"] is True
+        assert posted["extra_body"]["provider"]["data_collection"] == "deny"
+
+    def test_the_glm_override_still_delivers_the_zdr_body(self, monkeypatch):
+        # GLM 5.3 stays available as an operator override too (its hang was an
+        # availability problem with the shared ZDR provider pool, not a reason
+        # to remove the routing wiring) — its ZDR routing must still work. Set
+        # the override AFTER _wire() for the same reason as above.
+        posted = _wire(monkeypatch, review_json=json.dumps(
+            {"decision": "approve", "summary": "lgtm", "blocking": [], "comments": []}))
+        monkeypatch.setenv("SHIPWRIGHT_PR_REVIEW_MODEL", pr_review.GLM_MODEL)
         assert pr_review.main(ARGV) == pr_review.EXIT_OK
         assert posted["extra_body"]["provider"]["zdr"] is True
         assert posted["extra_body"]["provider"]["data_collection"] == "deny"
