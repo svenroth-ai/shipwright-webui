@@ -491,6 +491,45 @@ describe("PtyManager — chunked pty write (iterate-2026-09-05-terminal-large-co
     expect(joined).toContain("y".repeat(50));
     expect(joined).not.toContain("z");
   });
+
+  // External-review finding (2026-09-05, Tier-3, BLOCKING): draining a large
+  // queue of small writes used to recurse one stack frame per queued write
+  // (deliverOrChunk -> drainPendingWrites -> deliverOrChunk -> ...), so a
+  // client flooding tiny writes during a burst's ~60ms drain window could
+  // blow the call stack and crash the whole process — the exact "frozen/
+  // dead server" failure this fix exists to eliminate. Draining is now an
+  // iterative loop; this proves a very large queue drains without throwing
+  // and preserves delivery order.
+  it("draining a very large queue of small writes does not overflow the stack, and preserves delivery order", () => {
+    const scheduled: Array<() => void> = [];
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      ptyWriteChunkBytes: 512,
+      pendingWriteBytesCap: 10_000_000,
+      scheduleChunkWrite: (cb) => scheduled.push(cb),
+    });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    mgr.write("t1", "x".repeat(1000)); // starts draining, chunkWriteBusy = true
+
+    const QUEUED = 20_000;
+    for (let i = 0; i < QUEUED; i++) {
+      mgr.write("t1", `${i}\n`);
+    }
+
+    expect(() => {
+      while (scheduled.length > 0) {
+        const next = scheduled.shift()!;
+        next();
+      }
+    }).not.toThrow();
+
+    const writes = spawn.lastPty().__writes;
+    // The 1000-byte burst chunks, followed by every queued write, in order.
+    const tail = writes.slice(-QUEUED);
+    expect(tail.join("")).toBe(
+      Array.from({ length: QUEUED }, (_, i) => `${i}\n`).join(""),
+    );
+  });
 });
 
 describe("PtyManager — subscribe + attach (writer/reader roles)", () => {

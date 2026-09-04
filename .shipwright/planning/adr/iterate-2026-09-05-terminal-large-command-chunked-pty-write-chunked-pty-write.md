@@ -50,6 +50,36 @@ structurally but had no dedicated test) was closed by adding one.
 across three review passes) and `pty-manager.test.ts` to 798 lines (+279,
 11 new tests) — both bloat-baseline entries updated accordingly.
 
+### Amendment 3 (post external Tier-3 PR review)
+
+The PR's Tier-3 external review (sensitive-path track, `z-ai/glm-5.3`) found
+a genuinely new, blocking correctness defect the three internal passes
+missed: `drainPendingWrites` and `deliverOrChunk` were mutually recursive,
+adding one call-stack frame per queued write. `pendingWriteBytesCap` bounds
+queued *bytes*, not *count* — a client flooding thousands of tiny writes
+during a burst's ~60ms drain window (e.g. 6KB / 512B chunks × 5ms) could
+queue thousands of entries and, once the burst finished, recurse through the
+whole queue on drain — exceeding the call stack and crashing the entire
+process with an uncaught `RangeError`. That takes down every session on the
+process: precisely the "frozen/dead server" failure this ADR exists to
+eliminate, now reachable via the very flooding scenario the byte cap was
+added to guard against. Fixed by converting `drainPendingWrites` into an
+iterative loop — small queued writes are delivered directly in the loop (no
+re-entry into `deliverOrChunk`), so stack depth stays O(1) regardless of
+queue length; only an oversized queued write still hands off to
+`deliverOrChunk`'s async chunked path, which schedules and returns rather
+than recursing. Covered by a new regression test draining a 20,000-entry
+queue of tiny writes. The same review also flagged two non-blocking issues,
+both fixed: the byte-cap check recomputed the queue's total via `reduce` on
+every push (O(n²) under a flooding client) — replaced with an O(1) running
+total on the entry; and `Math.max(4, maxBytes)` did not guard `NaN` (a
+non-finite `ptyWriteChunkBytes` would silently drop the whole write) — now
+falls back to the default chunk size for any non-finite input.
+
+`pty-manager.ts` grew to 1523 lines (net +224 from the pre-iterate baseline,
+across four review passes) and `pty-manager.test.ts` to 837 lines (+318,
+12 new tests) — both bloat-baseline entries updated accordingly.
+
 ## Context
 
 Production incident (macOS): a task's first launch bakes the full task prompt
@@ -98,13 +128,15 @@ DO-NOT #19 (auto-execute stays a client-side WS data-frame).
 
 ## Consequences
 
-- `server/src/terminal/pty-manager.ts` grows from 1299 to 1388 lines (+89).
-  It is already an ADR-101 bloat-baseline "exception"; the baseline's
-  `current` + `note` were updated in the same commit, same responsibility
-  bullet (the writer path), not a new concern.
-- `server/src/terminal/pty-manager.test.ts` grows from 519 to 642 lines
-  (+123, 5 new tests + a `chunkUtf8ForPtyWrite` unit-test block); it is
-  already a grandfathered bloat entry, `current` updated likewise.
+- `server/src/terminal/pty-manager.ts` grows from a pre-iterate baseline of
+  1299 to 1523 lines (+224 net, across four review passes — see Amendment 3
+  for the final pass). It is already an ADR-101 bloat-baseline "exception";
+  the baseline's `current` + `note` were updated in the same commit, same
+  responsibility bullet (the writer path), not a new concern.
+- `server/src/terminal/pty-manager.test.ts` grows from a pre-iterate baseline
+  of 519 to 837 lines (+318, 13 new tests + a `chunkUtf8ForPtyWrite`
+  unit-test block); it is already a grandfathered bloat entry, `current`
+  updated likewise.
 - New `PtyManagerOpts` fields: `ptyWriteChunkBytes`, `ptyWriteChunkDelayMs`,
   `scheduleChunkWrite` — all optional, all defaulted, no call-site changes
   required at either of `write()`'s two production call sites

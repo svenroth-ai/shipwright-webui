@@ -313,6 +313,13 @@ interface PtyEntry {
   chunkWriteBusy?: boolean;
   /** FIFO of `write()` payloads that arrived while `chunkWriteBusy` was set. */
   pendingWrites?: string[];
+  /**
+   * External-review finding (2026-09-05, Tier-3): running total of
+   * `pendingWrites`' UTF-8 byte length, maintained incrementally on push/shift
+   * so the `pendingWriteBytesCap` check is O(1) instead of an O(n) `reduce`
+   * per queued write (which made flooding the queue O(n^2) overall).
+   */
+  pendingWritesBytes?: number;
 }
 
 export interface PtyManagerOpts {
@@ -406,7 +413,14 @@ export function chunkUtf8ForPtyWrite(data: string, maxBytes: number): string[] {
   // UTF-8 code point is at most 4 bytes, so clamping the floor to 4
   // guarantees both termination and that a chunk boundary always has room
   // to land clear of a multi-byte sequence.
-  const safeMaxBytes = Math.max(4, maxBytes);
+  // External-review finding (2026-09-05, Tier-3): Math.max(4, NaN) is NaN,
+  // so a non-finite maxBytes (misconfiguration, not just <= 0) must also
+  // fall back rather than silently propagate NaN into subarray() below,
+  // which would clamp to an empty first chunk and drop the whole write.
+  const safeMaxBytes = Math.max(
+    4,
+    Number.isFinite(maxBytes) ? Math.floor(maxBytes) : DEFAULT_PTY_WRITE_CHUNK_BYTES,
+  );
   const chunks: string[] = [];
   let start = 0;
   while (start < buf.length) {
@@ -706,21 +720,26 @@ export class PtyManager {
   private writePossiblyChunked(entry: PtyEntry, data: string): void {
     if (entry.chunkWriteBusy) {
       const queue = (entry.pendingWrites ??= []);
-      const queuedBytes = queue.reduce((sum, w) => sum + Buffer.byteLength(w, "utf8"), 0);
+      // External-review finding (2026-09-05, Tier-3): a running total on the
+      // entry keeps this an O(1) check; a `reduce` over the whole queue on
+      // every queued write made flooding the queue O(n^2) in queue length.
+      const queuedBytes = entry.pendingWritesBytes ?? 0;
+      const dataBytes = Buffer.byteLength(data, "utf8");
       // Doubt-review finding (2026-09-05): the queue itself must not become
       // an unbounded-memory vector — mirrors the existing wsBufferBytes cap
       // this file already enforces on the opposite (pty→WS) direction. A
       // sane local user never hits this; it only guards a buggy/flooding
       // client. Failing safe means dropping the NEW write whole (never
       // truncating/corrupting an already-queued item).
-      if (queuedBytes + Buffer.byteLength(data, "utf8") > this.pendingWriteBytesCap) {
+      if (queuedBytes + dataBytes > this.pendingWriteBytesCap) {
         // eslint-disable-next-line no-console
         console.warn(
-          `[pty-manager] pendingWrites cap exceeded for a chunked write in flight — dropping a queued write (${Buffer.byteLength(data, "utf8")} bytes)`,
+          `[pty-manager] pendingWrites cap exceeded for a chunked write in flight — dropping a queued write (${dataBytes} bytes)`,
         );
         return;
       }
       queue.push(data);
+      entry.pendingWritesBytes = queuedBytes + dataBytes;
       return;
     }
     this.deliverOrChunk(entry, data);
@@ -757,12 +776,38 @@ export class PtyManager {
     writeNext();
   }
 
-  /** Delivers (or re-chunks) the next queued write, if any, once the entry is free. */
+  /**
+   * Delivers (or re-chunks) queued writes once the entry is free.
+   *
+   * External-review finding (2026-09-05, Tier-3, BLOCKING): this used to
+   * call `deliverOrChunk`, which for a small write calls straight back into
+   * `drainPendingWrites` — mutual recursion with one stack frame per queued
+   * write. `pendingWriteBytesCap` bounds bytes, not COUNT, so a client
+   * flooding thousands of tiny writes during a burst's drain window could
+   * exceed the call stack and crash the whole process with an uncaught
+   * `RangeError` — the exact "frozen/dead server" failure this fix exists
+   * to eliminate, now reachable via the very flooding scenario the cap was
+   * added to guard against. Small queued writes are now delivered directly
+   * in an iterative loop (no re-entry into `deliverOrChunk`), so stack depth
+   * stays O(1) regardless of queue length. An oversized queued write still
+   * hands off to `deliverOrChunk`'s async chunked path (which sets
+   * `chunkWriteBusy` and returns after scheduling — not a recursive call),
+   * and the loop stops there; that path's own completion calls
+   * `drainPendingWrites` again to continue the queue.
+   */
   private drainPendingWrites(entry: PtyEntry): void {
-    if (entry.chunkWriteBusy) return;
-    const next = entry.pendingWrites?.shift();
-    if (next === undefined) return;
-    this.deliverOrChunk(entry, next);
+    while (!entry.chunkWriteBusy) {
+      const next = entry.pendingWrites?.shift();
+      if (next === undefined) return;
+      const nextBytes = Buffer.byteLength(next, "utf8");
+      entry.pendingWritesBytes = Math.max(0, (entry.pendingWritesBytes ?? 0) - nextBytes);
+      if (nextBytes <= this.ptyWriteChunkBytes) {
+        entry.pty.write(next);
+        continue;
+      }
+      this.deliverOrChunk(entry, next);
+      return;
+    }
   }
 
   /**
