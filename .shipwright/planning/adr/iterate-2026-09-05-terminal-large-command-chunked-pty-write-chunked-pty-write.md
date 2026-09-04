@@ -78,7 +78,7 @@ falls back to the default chunk size for any non-finite input.
 
 `pty-manager.ts` grew to 1523 lines (net +224 from the pre-iterate baseline,
 across four review passes) and `pty-manager.test.ts` to 837 lines (+318,
-12 new tests) — both bloat-baseline entries updated accordingly.
+13 new tests) — both bloat-baseline entries updated accordingly.
 
 ## Context
 
