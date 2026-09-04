@@ -19,6 +19,7 @@ export function reconcileArtifactCards(
   context: MissionContext | null,
   testCards: ActivityCard[],
   unresolvedTest: ActivityCard | null,
+  awaitingTestResult: Set<ActivityCard>,
 ): ActivityFeed {
   if (cards.some((card) => card.kind === "test") || artifact(context, "tests")) {
     const gate = context?.tests?.gate;
@@ -27,7 +28,11 @@ export function reconcileArtifactCards(
     // An earlier test still genuinely open must never be silently hidden
     // behind a later completed/recovered one (pre-existing) — surfaced via
     // `latest`'s text below even when `latest` itself already settled.
-    const pendingTest = testCards.some((card) => /awaiting a result/i.test(card.text));
+    // Structural check, not a text regex (iterate-2026-09-05-mission-feed-
+    // ux-gaps): both a genuinely never-resolved card and a resolved-then-
+    // recovered one now share `status === undefined` and no distinguishing
+    // text, since resolution no longer overwrites `card.text` at all.
+    const pendingTest = testCards.some((card) => awaitingTestResult.has(card));
     if (!latest) {
       const text = gate === "pass" ? "Tests have a recorded passing result."
         : gate === "fail" ? "Tests have a recorded failing result." : "No reliable test result is recorded.";
@@ -52,9 +57,13 @@ export function reconcileArtifactCards(
       // this transcript never proved the recovery it would be claiming.
       latest.status = status;
       if (!unresolvedTest) {
-        if (gate === "pass" && latest.text === "This test command completed.") latest.text = "Tests have a recorded passing result.";
-        if (gate === "fail") latest.text = "Tests have a recorded failing result.";
-        if (gate === "unknown") latest.text = "No reliable test result is recorded.";
+        // Only fill in when the transcript itself left no words of its own
+        // (`latest.text` empty — no more hardcoded sentence to match against,
+        // iterate-2026-09-05-mission-feed-ux-gaps): the turn's own narration,
+        // when it exists, always wins over this generic fallback.
+        if (gate === "pass" && !latest.text) latest.text = "Tests have a recorded passing result.";
+        if (gate === "fail" && !latest.text) latest.text = "Tests have a recorded failing result.";
+        if (gate === "unknown" && !latest.text) latest.text = "No reliable test result is recorded.";
       } else if (status === "ok") {
         // The gate overrode an unretried local failure back to ok (this
         // attempt was never locally proven to recover — code review catch,

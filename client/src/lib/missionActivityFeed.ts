@@ -55,15 +55,17 @@ export function deriveActivityFeed(
   // there is no retention concern a weak reference would address.
   const cardEventCounts = new Map<ActivityCard, number>();
   // How many distinct ASSISTANT TURNS contributed to a card — deliberately
-  // separate from `cardEventCounts` above (which counts tool-use EVENTS and
-  // stays untouched for its own existing job, the label-derived-sentence
-  // fallback below). A card is misattributed only when MORE THAN ONE turn's
-  // words land on it; one turn issuing several tool calls that coalesce
-  // into a single card is not misattribution and must keep its explanation
-  // (iterate-2026-08-25-mission-feed-progress-narration, Internal Plan
-  // Review HIGH finding — `cardEventCounts === 1` alone would have wrongly
-  // suppressed that common, valuable case).
+  // separate from `cardEventCounts` above (which counts tool-use EVENTS). A
+  // card is misattributed only when MORE THAN ONE turn's words land on it;
+  // one turn issuing several tool calls that coalesce into a single card is
+  // not misattribution and must keep its explanation (iterate-2026-08-25-
+  // mission-feed-progress-narration, Internal Plan Review HIGH finding —
+  // `cardEventCounts === 1` alone would have wrongly suppressed that common,
+  // valuable case).
   const cardTurnCounts = new Map<ActivityCard, number>();
+  // Test cards genuinely still awaiting ANY result — see `ResolveState.
+  // awaitingTestResult`'s doc comment (missionActivityFeedResolve.ts).
+  const awaitingTestResult = new Set<ActivityCard>();
   // A real `/shipwright-iterate` autonomous turn NEVER combines narration
   // text and a tool call in the same JSONL event — Claude always splits them
   // into two consecutive assistant events (a pure-narration turn, then a
@@ -87,12 +89,13 @@ export function deriveActivityFeed(
   // retries, then a turn that quietly pivots to something else with no
   // narration of its own (doubt-review catch, same iterate). `staleness`
   // counts consecutive non-consuming turns it has survived; past
-  // `MAX_PENDING_NARRATION_CARRY` it is dropped rather than carried further —
-  // a card with no narration behind it falls back to the existing
-  // label-derived sentence, which is preferable to a confident-looking but
-  // wrong headline. The cap is generous enough for a realistic retry-until-
-  // green burst (a handful of `test` turns) or a single clarifying question,
-  // not for an open-ended run of unrelated intervening turns.
+  // `MAX_PENDING_NARRATION_CARRY` it is dropped rather than carried
+  // further — a card with no narration behind it simply has no headline
+  // text (iterate-2026-09-05-mission-feed-ux-gaps), which is preferable to
+  // a confident-looking but wrong one. The cap is generous enough for a
+  // realistic retry-until-green burst (a handful of `test` turns) or a
+  // single clarifying question, not for an open-ended run of unrelated
+  // intervening turns.
   let pendingNarration: { prose: string; proseFull: string; proseRest: string; proseRestFull: string; staleness: number } | null = null;
   const add = createCardAdder(cards, cardEventCounts);
   for (const event of events) {
@@ -100,8 +103,8 @@ export function deriveActivityFeed(
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
     }
     if (event.kind === "user") {
-      unresolvedTest = resolveToolResults(event, context, {
-        cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest,
+      unresolvedTest = resolveToolResults(event, {
+        cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult,
       });
       continue;
     }
@@ -202,17 +205,28 @@ export function deriveActivityFeed(
       const labelFull = commandLabelFull(tool.name, tool.input);
       const commandKey = `${tool.name}\u0000${commandDetail(tool.input)}`;
       if (bucket === "test") {
+        // No standard sentence here either (iterate-2026-09-05-mission-
+        // feed-ux-gaps — the user's own quoted example was literally "This
+        // test command completed."): only THIS turn's own words (never
+        // carried pendingNarration, which must stay free to reach a LATER
+        // real turn past this test call, per the narration-bridging
+        // invariant above), or nothing. The status pill + command chip
+        // carry the outcome; resolveToolResults no longer overwrites this
+        // with a hardcoded sentence either.
         const card: ActivityCard = {
           kind: "test",
-          text: "This test command needs attention: it is awaiting a result.",
+          text: ownProse,
           commands: [],
           artifact: artifact(context, "tests") ? "tests" : undefined,
           timestamp: event.timestamp,
         };
+        if (ownProseFull && ownProseFull.length > ownProse.length) card.textFull = ownProseFull;
         attachCommand(card, label, labelFull);
         cards.push(card);
         testCards.push(card);
+        awaitingTestResult.add(card);
         pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
+        if (ownProse) proseConsumedThisTurn = true;
       } else if (bucket === "user-input") {
         const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp, undefined, labelFull);
         // Always set `card.question` — even the `fallback` shape carries a
@@ -286,5 +300,5 @@ export function deriveActivityFeed(
     }
   }
 
-  return reconcileArtifactCards(cards, context, testCards, unresolvedTest);
+  return reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
 }

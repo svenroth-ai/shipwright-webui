@@ -37,9 +37,11 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     const card = deriveActivityFeed(events, context("pass")).cards.find((c) => c.kind === "test");
     // The pill follows the gate unconditionally...
     expect(card?.status).toBe("ok");
-    // ...while the prose stays conservative: this transcript never proved
-    // the recovery a "recorded passing result" sentence would claim.
-    expect(card?.text).toMatch(/needs attention/i);
+    // ...and no invented sentence papers over that (iterate-2026-09-05-
+    // mission-feed-ux-gaps): the transcript's own turn wrote no narration,
+    // so the card's text stays empty rather than claiming a recovery this
+    // transcript never proved.
+    expect(card?.text).toBe("");
     // ...and the stale FAIL excerpt from the unretried attempt must not keep
     // rendering under a pill that no longer says "Failing" (code review
     // catch, high — the gate override cleared status but not detail).
@@ -118,7 +120,10 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
       tool("retry", "Bash", { command: "npm test" }), result("retry"),
     ].join("\n")).events;
     const recovered = deriveActivityFeed(events, context("pass")).cards.filter((c) => c.kind === "test").at(-1);
-    expect(recovered?.text).toMatch(/recovered/i);
+    // No invented "recovered" sentence any more (iterate-2026-09-05-mission-
+    // feed-ux-gaps) — the recorded gate's own fallback text fills in since
+    // this transcript's turns wrote no narration of their own.
+    expect(recovered?.text).toBe("Tests have a recorded passing result.");
     expect(recovered?.status).toBe("ok");
     expect(recovered?.detail).toBeUndefined();
   });
