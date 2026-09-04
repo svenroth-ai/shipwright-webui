@@ -41,3 +41,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Lead-question inbox kind](iterate-2026-09-01-lead-question-inbox.md)
 - [ADR: Swap the vendored Tier-3 PR-review gate's default model to GLM 5.3](iterate-2026-09-01-pr-review-glm-model-webui-pr-review-glm-swap.md)
 - [spec — Root cause of the residual embedded-terminal table smear](iterate-2026-09-01-terminal-table-smear-root-cause.md)
+- [ADR: Chunk pty.write() to stop the macOS large-command hang](iterate-2026-09-05-terminal-large-command-chunked-pty-write-chunked-pty-write.md)

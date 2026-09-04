@@ -600,17 +600,17 @@
     {
       "path": "server/src/terminal/pty-manager.test.ts",
       "limit": 300,
-      "current": 519,
+      "current": 798,
       "state": "grandfathered",
       "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1299,
+      "current": 1478,
       "state": "exception",
       "adr": "ADR-101",
-      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern"
+      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern. iterate-2026-09-05-terminal-large-command-chunked-pty-write (+179 lines net, three review passes): write() now chunks an oversized single-burst write into sub-KB UTF-8-safe pieces (chunkUtf8ForPtyWrite pure helper + deliverOrChunk/drainPendingWrites, plus 4 new PtyManagerOpts knobs) to close a real production hang -- an unchunked write() of a multi-KB first-launch command deadlocked the macOS pty's canonical-mode input queue and froze the whole server's event loop. Code review found two HIGH issues in the first draft (+89): an unclamped chunk-size config could spin the chunker forever (fixed by a 4-byte floor), and a second same-task write() arriving mid-drain could interleave into the still-draining burst (fixed by the chunkWriteBusy/pendingWrites queue). Doubt review then found writeMouseReport() bypassed that same queue -- a reader's scroll gesture could still splice into a draining burst -- so it now routes through writePossiblyChunked too; plus a pendingWriteBytesCap (mirrors the existing wsBufferBytes cap on the opposite direction) so a flooding client can't grow the queue unboundedly. Same responsibility bullet 6 (the writer path); not a new concern, just its overdue size guard, now hardened across two review passes"
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
