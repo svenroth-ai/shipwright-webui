@@ -7,8 +7,8 @@
  * event-driven card-building loop above it: this half reads `context`, the
  * loop above never does except to gate whether an artifact chip is shown.
  */
-import type { ActivityCard, ActivityFeed } from "./missionActivityFeed";
 import type { ArtifactKind, CommitArtifact, MissionContext } from "./missionContextApi";
+import type { ActivityCard, ActivityFeed } from "./missionActivityFeedTypes";
 
 function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
   return context?.artifacts.some((item) => item.kind === kind && item.state === "available") ?? false;
@@ -19,6 +19,7 @@ export function reconcileArtifactCards(
   context: MissionContext | null,
   testCards: ActivityCard[],
   unresolvedTest: ActivityCard | null,
+  awaitingTestResult: Set<ActivityCard>,
 ): ActivityFeed {
   if (cards.some((card) => card.kind === "test") || artifact(context, "tests")) {
     const gate = context?.tests?.gate;
@@ -27,13 +28,22 @@ export function reconcileArtifactCards(
     // An earlier test still genuinely open must never be silently hidden
     // behind a later completed/recovered one (pre-existing) — surfaced via
     // `latest`'s text below even when `latest` itself already settled.
-    const pendingTest = testCards.some((card) => /awaiting a result/i.test(card.text));
+    // Structural check, not a text regex (iterate-2026-09-05-mission-feed-
+    // ux-gaps): both a genuinely never-resolved card and a resolved-then-
+    // recovered one now share `status === undefined` and no distinguishing
+    // text, since resolution no longer overwrites `card.text` at all.
+    const pendingTest = testCards.some((card) => awaitingTestResult.has(card));
     if (!latest) {
       const text = gate === "pass" ? "Tests have a recorded passing result."
         : gate === "fail" ? "Tests have a recorded failing result." : "No reliable test result is recorded.";
       cards.push({ kind: "test", text, commands: [], artifact: artifact(context, "tests") ? "tests" : undefined, status });
     } else if (pendingTest) {
-      latest.text = "The latest test attempt needs attention.";
+      // Same "own words win" rule as the fallback three lines below (spec-
+      // reviewer catch, iterate-2026-09-05-mission-feed-ux-gaps): `latest`
+      // may itself carry real narration from its own turn even though some
+      // OTHER, earlier test card is still unresolved — that narration must
+      // not be clobbered by this generic caveat about the run as a whole.
+      if (!latest.text) latest.text = "The latest test attempt needs attention.";
       // A real "fail" gate still escalates the pill (code review catch: a
       // hardcoded "warn" could under-claim a genuine failure), but "pass"
       // cannot claim "ok" here (doubt-review catch, high): something in
@@ -52,9 +62,13 @@ export function reconcileArtifactCards(
       // this transcript never proved the recovery it would be claiming.
       latest.status = status;
       if (!unresolvedTest) {
-        if (gate === "pass" && latest.text === "This test command completed.") latest.text = "Tests have a recorded passing result.";
-        if (gate === "fail") latest.text = "Tests have a recorded failing result.";
-        if (gate === "unknown") latest.text = "No reliable test result is recorded.";
+        // Only fill in when the transcript itself left no words of its own
+        // (`latest.text` empty — no more hardcoded sentence to match against,
+        // iterate-2026-09-05-mission-feed-ux-gaps): the turn's own narration,
+        // when it exists, always wins over this generic fallback.
+        if (gate === "pass" && !latest.text) latest.text = "Tests have a recorded passing result.";
+        if (gate === "fail" && !latest.text) latest.text = "Tests have a recorded failing result.";
+        if (gate === "unknown" && !latest.text) latest.text = "No reliable test result is recorded.";
       } else if (status === "ok") {
         // The gate overrode an unretried local failure back to ok (this
         // attempt was never locally proven to recover — code review catch,
@@ -67,10 +81,20 @@ export function reconcileArtifactCards(
     }
   }
   for (const kind of ["spec", "requirement", "decisions"] as const) {
-    if (artifact(context, kind) && !cards.some((card) => card.artifact === kind)) {
-      const text = kind === "spec" ? "Specification evidence is available."
+    // The server already writes a rich, always-populated `summary` for every
+    // `state: "available"` artifact (`server/src/core/mission-context/
+    // artifacts.ts`) — prefer it over the generic placeholder text, which
+    // was rendering unconditionally regardless of what actually happened
+    // (iterate-2026-09-05-mission-feed-ux-gaps: "Requirement evidence is
+    // available. ist irgendwie leer immer am Ende der Kette"). The fallback
+    // stays for the rare artifact shape with no `summary` field at all
+    // (`CommitArtifact`, `TestsArtifact`, `ReviewArtifact` — not reachable
+    // through this loop's three kinds, but kept as a defensive floor).
+    const item = context?.artifacts.find((entry) => entry.kind === kind && entry.state === "available");
+    if (item && !cards.some((card) => card.artifact === kind)) {
+      const fallback = kind === "spec" ? "Specification evidence is available."
         : kind === "requirement" ? "Requirement evidence is available." : "A recorded decision is available.";
-      cards.push({ kind: "spec", text, commands: [], artifact: kind, status: "ok" });
+      cards.push({ kind: "spec", text: item.summary ?? fallback, commands: [], artifact: kind, status: "ok" });
     }
   }
   if (artifact(context, "review")) {

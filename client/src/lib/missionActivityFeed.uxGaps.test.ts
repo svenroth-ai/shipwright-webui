@@ -1,0 +1,258 @@
+/*
+ * iterate-2026-09-05-mission-feed-ux-gaps — six reported Mission Activity
+ * Feed gaps on top of iterate-2026-08-31-mission-feed-gaps:
+ *  1. no more generic bucket sentences for tool calls (own test file:
+ *     missionActivityFeed.test.ts / .splitTurn.test.ts / .timestampAndBanner.test.ts)
+ *  2/4. "nie croppen" — every bounded field gets an untruncated `xFull`
+ *     counterpart, populated only when real truncation happened
+ *  3. a long command chip can be inspected in full (`commandFullText`)
+ *  5. a successful review tool_result's own content reaches `card.detail`
+ *  6. the requirement/spec/decisions backfill card uses the server's real
+ *     `summary`, not a hardcoded placeholder
+ * Split into its own file (not folded into missionActivityFeedFields.test.ts,
+ * already at 261 lines) to keep each file under the project's 300-line
+ * convention.
+ */
+import { describe, expect, it } from "vitest";
+import { parseSessionJsonl } from "../external/session-parser";
+import { deriveActivityFeed } from "./missionActivityFeed";
+import type { MissionContext } from "./missionContextApi";
+
+const event = (value: unknown) => JSON.stringify(value);
+const tool = (id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] } });
+const turn = (text: string, id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }, { type: "tool_use", id, name, input }] } });
+const narrationOnly = (text: string) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }] } });
+const okResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: false }] } });
+const errorResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: true }] } });
+
+const context = (gate: "pass" | "fail" | "unknown", live = true): MissionContext => ({ schemaVersion: 1, scenario: "iterate", missionTabVisible: true, runId: "iterate-x", runLive: live, servesFrId: null, sourceRev: "x", tests: { passed: gate === "pass" ? 12 : null, total: gate === "pass" ? 12 : null, skipped: 0, gate }, artifacts: [
+  { kind: "spec", label: "Spec", state: "available", summary: null, receipt: null, detail: null },
+  { kind: "tests", label: "Tests", state: "available", summary: null, receipt: null, detail: null },
+  { kind: "commit", label: "Delivery", state: "available", summary: null, receipt: null, detail: null },
+] });
+
+describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-gaps)", () => {
+  it("carries a turn's explanation into explanationFull only when it is longer than the 600-char cap", () => {
+    const longRest = `${"A relevant detail about this change. ".repeat(20)}Done.`;
+    const events = parseSessionJsonl(turn(`Headline.\n${longRest}`, "r1", "Read", { file_path: "a.ts" })).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "investigate");
+    // 600-char cap + a trailing ellipsis character on truncation (same
+    // convention as excerpt()'s 320/321 in missionActivityFeedFields.test.ts).
+    expect(card?.explanation?.length).toBeLessThanOrEqual(601);
+    expect(card?.explanationFull).toBe(longRest);
+  });
+
+  it("does not set explanationFull when the real explanation already fits under the cap", () => {
+    const events = parseSessionJsonl(turn("Headline.\nA short follow-up.", "r1", "Read", { file_path: "a.ts" })).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "investigate");
+    expect(card?.explanation).toBe("A short follow-up.");
+    expect(card?.explanationFull).toBeUndefined();
+  });
+
+  it("carries a failing test's raw output into detailFull only when it is longer than the 4-line/320-char excerpt", () => {
+    const longOutput = Array.from({ length: 10 }, (_, i) => `line ${i}: ${"x".repeat(40)}`).join("\n");
+    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", longOutput)].join("\n")).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test");
+    expect(card?.detail?.split("\n")).toHaveLength(4);
+    expect(card?.detailFull).toBe(longOutput);
+  });
+
+  it("does not set detailFull when the raw output already fits under the excerpt caps", () => {
+    const events = parseSessionJsonl([tool("t", "Bash", { command: "npm test" }), errorResult("t", "short failure")].join("\n")).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test");
+    expect(card?.detail).toBe("short failure");
+    expect(card?.detailFull).toBeUndefined();
+  });
+
+  it("carries a long AskUserQuestion answer into answerFull only when it is longer than the bounded excerpt (reported: answers get cropped with no way to read the rest)", () => {
+    const longAnswer = "This is a fairly detailed free-text answer. ".repeat(15);
+    const events = parseSessionJsonl([
+      tool("ask", "AskUserQuestion", { questions: [{ question: "Which approach?", options: [{ label: "A" }] }] }),
+      okResult("ask", longAnswer),
+    ].join("\n")).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
+    expect(card?.question?.answer?.length).toBeLessThan(longAnswer.trim().length);
+    expect(card?.question?.answerFull).toBe(longAnswer.trim());
+  });
+
+  it("does not set answerFull when the answer already fits under the excerpt cap", () => {
+    const events = parseSessionJsonl([
+      tool("ask", "AskUserQuestion", { questions: [{ question: "Which approach?", options: [{ label: "A" }] }] }),
+      okResult("ask", "A short free-text answer."),
+    ].join("\n")).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
+    expect(card?.question?.answer).toBe("A short free-text answer.");
+    expect(card?.question?.answerFull).toBeUndefined();
+  });
+
+  it("records a long Bash command's full text under commandFullText, keyed by its truncated chip label (reported: a long command could not be inspected past its preview)", () => {
+    const longCommand = `npm run build -- --flag ${"x".repeat(200)}`;
+    const events = parseSessionJsonl(tool("b", "Bash", { command: longCommand })).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
+    const label = card?.commands[0];
+    expect(label).toBeDefined();
+    expect(label!.length).toBeLessThan(longCommand.length + "Bash: ".length);
+    expect(card?.commandFullText?.[label!]).toBe(`Bash: ${longCommand}`);
+  });
+
+  it("does not add a commandFullText entry for a chip whose label already shows the full command", () => {
+    const events = parseSessionJsonl(tool("b", "Bash", { command: "npm test" })).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test" || c.kind === "implement");
+    expect(card?.commandFullText).toBeUndefined();
+  });
+
+  it("keeps the FIRST command's full text when two different commands share the same truncated chip label (code review catch)", () => {
+    const sharedPrefix = "a".repeat(200);
+    const events = parseSessionJsonl([
+      tool("w1", "Write", { file_path: `${sharedPrefix}/first.ts` }),
+      tool("w2", "Write", { file_path: `${sharedPrefix}/second.ts` }),
+    ].join("\n")).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
+    // Both calls truncate to the identical chip label (the divergence point
+    // is past the 180-char cap), so `commands` coalesces them into one chip
+    // — but the click-to-expand text must stay stable rather than silently
+    // flip to whichever command attached second (would misrepresent the
+    // first command's own full path as belonging to the chip).
+    expect(card?.commands).toHaveLength(1);
+    const label = card!.commands[0];
+    expect(card?.commandFullText?.[label]).toBe(`Write: ${sharedPrefix}/first.ts`);
+  });
+
+  it("lets a recovered test card's commandFullText reflect the retry that actually succeeded, even if its label collides with the failed attempt's (doubt-review catch)", () => {
+    const sharedPrefix = "a".repeat(200);
+    const events = parseSessionJsonl([
+      tool("first", "Bash", { command: `npm test -- ${sharedPrefix} --mode fail` }),
+      errorResult("first", "FAIL"),
+      tool("retry", "Bash", { command: `npm test -- ${sharedPrefix} --mode pass` }),
+      okResult("retry", "ok"),
+    ].join("\n")).events;
+    // Both commands truncate to the identical chip label — the recovery
+    // merge is replacing the card's entire stale state with the retry's,
+    // so the retry's own full command must win over the collision, not the
+    // earlier failing attempt's.
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test");
+    const label = card!.commands[0];
+    expect(card?.commandFullText?.[label]).toBe(`Bash: npm test -- ${sharedPrefix} --mode pass`);
+  });
+});
+
+describe("deriveActivityFeed — test-bucket cards use only their own narration (issue #1, 2nd spec-reviewer pass)", () => {
+  it("shows a test-bucket card's own narration without stealing an older turn's still-waiting narration", () => {
+    const events = parseSessionJsonl([
+      narrationOnly("Investigating why the login redirect intermittently fails."),
+      turn("Re-running the suite with verbose output.", "t1", "Bash", { command: "npm test" }),
+      okResult("t1", "ok"),
+      tool("i1", "Read", { file_path: "login.ts" }),
+    ].join("\n")).events;
+    const feed = deriveActivityFeed(events, context("unknown"));
+    const testCard = feed.cards.find((c) => c.kind === "test");
+    const investigateCard = feed.cards.find((c) => c.kind === "investigate");
+    // The test card shows its OWN words...
+    expect(testCard?.text).toBe("Re-running the suite with verbose output.");
+    // ...and the earlier, still-waiting narration survives past this
+    // narrated test turn to reach the next real turn, instead of being
+    // wrongly discarded because the test turn happened to have words of
+    // its own too (spec-reviewer catch: a test turn's own narration must
+    // not null out an unrelated older pendingNarration).
+    expect(investigateCard?.text).toBe("Investigating why the login redirect intermittently fails.");
+  });
+
+  it("does not carry a test-bucket card's own narration forward onto a later, unrelated card", () => {
+    const events = parseSessionJsonl([
+      turn("Re-running the suite with verbose output.", "t1", "Bash", { command: "npm test" }),
+      okResult("t1", "ok"),
+      tool("i1", "Read", { file_path: "login.ts" }),
+    ].join("\n")).events;
+    const feed = deriveActivityFeed(events, context("unknown"));
+    const investigateCard = feed.cards.find((c) => c.kind === "investigate");
+    // The test turn's own words already have a home on the test card; they
+    // must not duplicate onto the next card too.
+    expect(investigateCard?.text).toBe("");
+  });
+
+  it("does not let an unrelated pending test's caveat pill clobber a resolved test card's own narration", () => {
+    const events = parseSessionJsonl([
+      tool("first", "Bash", { command: "npm test suiteA" }), // never resolves — stays "awaiting a result"
+      turn("Re-running suite B after the fix.", "second", "Bash", { command: "npm test suiteB" }),
+      okResult("second", "ok"),
+    ].join("\n")).events;
+    const cards = deriveActivityFeed(events, context("pass")).cards.filter((c) => c.kind === "test");
+    // suiteA is still open, so the aggregate pill stays cautious (existing
+    // behaviour) — but suiteB's own narration must survive that caveat,
+    // not get overwritten by the generic "needs attention" sentence
+    // (spec-reviewer catch: the pendingTest branch clobbered it
+    // unconditionally, unlike the sibling fallback three lines below it).
+    expect(cards.at(-1)?.text).toBe("Re-running suite B after the fix.");
+  });
+});
+
+describe("deriveActivityFeed — successful review tool_result surfaces its own content (issue #5)", () => {
+  it("attaches a successful review tool_result's own content to card.detail, even with no durable review artifact", () => {
+    const events = parseSessionJsonl([
+      tool("rev", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" }),
+      okResult("rev", "Verdict: approved.\nNo blocking findings."),
+    ].join("\n")).events;
+    // No "review" artifact in context — a one-off review with no
+    // `record_review_pass.py` call, the exact gap this closes.
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "review");
+    expect(card?.detail).toBe("Verdict: approved.\nNo blocking findings.");
+  });
+
+  it("does not let a second coalesced review call's result silently overwrite the first review's findings (doubt-review catch)", () => {
+    const events = parseSessionJsonl([
+      tool("rev1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" }),
+      tool("rev2", "Task", { subagent_type: "code-reviewer", description: "Review the payments diff" }),
+      okResult("rev1", "Verdict on the auth diff: approved."),
+      okResult("rev2", "Verdict on the payments diff: approved."),
+    ].join("\n")).events;
+    // Both calls carry no narration of their own, so they coalesce into ONE
+    // card (same kind/text/artifact) — attaching the second result must not
+    // silently discard the first review's actual findings.
+    const cards = deriveActivityFeed(events, context("unknown")).cards.filter((c) => c.kind === "review");
+    expect(cards).toHaveLength(1);
+    expect(cards[0].detail).toBe("Verdict on the auth diff: approved.");
+  });
+
+  it("still lets a later durable review artifact override the card's headline (reconcile stays authoritative)", () => {
+    const events = parseSessionJsonl([
+      tool("rev", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" }),
+      okResult("rev", "Verdict: approved."),
+    ].join("\n")).events;
+    const reviewContext: MissionContext = {
+      ...context("unknown"),
+      artifacts: [...context("unknown").artifacts, { kind: "review", label: "Review", state: "available", summary: null, receipt: null, detail: null }],
+    };
+    const card = deriveActivityFeed(events, reviewContext).cards.find((c) => c.kind === "review");
+    expect(card?.text).toBe("The recorded review evidence is available.");
+    expect(card?.status).toBe("ok");
+  });
+});
+
+describe("deriveActivityFeed — requirement/spec/decisions backfill uses the real summary (issue #6)", () => {
+  it("uses the server's real requirement summary instead of the hardcoded placeholder", () => {
+    const withSummary: MissionContext = {
+      ...context("unknown", false),
+      artifacts: [
+        ...context("unknown", false).artifacts,
+        { kind: "requirement", label: "Requirement", state: "available", summary: "Changed FR-02.14 (login rate limiting).", receipt: "FR-02.14", detail: null },
+      ],
+    };
+    const feed = deriveActivityFeed([], withSummary);
+    const card = feed.cards.find((c) => c.artifact === "requirement");
+    expect(card?.text).toBe("Changed FR-02.14 (login rate limiting).");
+    expect(card?.text).not.toBe("Requirement evidence is available.");
+  });
+
+  it("falls back to the placeholder only when the artifact carries no summary at all", () => {
+    const noSummary: MissionContext = {
+      ...context("unknown", false),
+      artifacts: [
+        ...context("unknown", false).artifacts,
+        { kind: "requirement", label: "Requirement", state: "available", summary: null, receipt: "FR-02.14", detail: null },
+      ],
+    };
+    const feed = deriveActivityFeed([], noSummary);
+    const card = feed.cards.find((c) => c.artifact === "requirement");
+    expect(card?.text).toBe("Requirement evidence is available.");
+  });
+});

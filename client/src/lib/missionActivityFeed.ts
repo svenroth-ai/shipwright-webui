@@ -1,7 +1,8 @@
 import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
-import { clean, commandDetail, commandLabel, explanationExcerpt, isCompactionMarker, sentenceFromLabel } from "./missionActivityFeedText";
-import { containsIterateBanner, GENERIC_TEXT, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { attachCommand, commandDetail, commandLabel, commandLabelFull, extractOwnProse, isCompactionMarker } from "./missionActivityFeedText";
+import { containsIterateBanner, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
 import type { ActivityCard, ActivityFeed, ActivityKind } from "./missionActivityFeedTypes";
@@ -54,15 +55,17 @@ export function deriveActivityFeed(
   // there is no retention concern a weak reference would address.
   const cardEventCounts = new Map<ActivityCard, number>();
   // How many distinct ASSISTANT TURNS contributed to a card — deliberately
-  // separate from `cardEventCounts` above (which counts tool-use EVENTS and
-  // stays untouched for its own existing job, the label-derived-sentence
-  // fallback below). A card is misattributed only when MORE THAN ONE turn's
-  // words land on it; one turn issuing several tool calls that coalesce
-  // into a single card is not misattribution and must keep its explanation
-  // (iterate-2026-08-25-mission-feed-progress-narration, Internal Plan
-  // Review HIGH finding — `cardEventCounts === 1` alone would have wrongly
-  // suppressed that common, valuable case).
+  // separate from `cardEventCounts` above (which counts tool-use EVENTS). A
+  // card is misattributed only when MORE THAN ONE turn's words land on it;
+  // one turn issuing several tool calls that coalesce into a single card is
+  // not misattribution and must keep its explanation (iterate-2026-08-25-
+  // mission-feed-progress-narration, Internal Plan Review HIGH finding —
+  // `cardEventCounts === 1` alone would have wrongly suppressed that common,
+  // valuable case).
   const cardTurnCounts = new Map<ActivityCard, number>();
+  // Test cards genuinely still awaiting ANY result — see `ResolveState.
+  // awaitingTestResult`'s doc comment (missionActivityFeedResolve.ts).
+  const awaitingTestResult = new Set<ActivityCard>();
   // A real `/shipwright-iterate` autonomous turn NEVER combines narration
   // text and a tool call in the same JSONL event — Claude always splits them
   // into two consecutive assistant events (a pure-narration turn, then a
@@ -86,63 +89,29 @@ export function deriveActivityFeed(
   // retries, then a turn that quietly pivots to something else with no
   // narration of its own (doubt-review catch, same iterate). `staleness`
   // counts consecutive non-consuming turns it has survived; past
-  // `MAX_PENDING_NARRATION_CARRY` it is dropped rather than carried further —
-  // a card with no narration behind it falls back to the existing
-  // label-derived sentence, which is preferable to a confident-looking but
-  // wrong headline. The cap is generous enough for a realistic retry-until-
-  // green burst (a handful of `test` turns) or a single clarifying question,
-  // not for an open-ended run of unrelated intervening turns.
-  let pendingNarration: { prose: string; proseRest: string; staleness: number } | null = null;
-  const add = (
-    kind: ActivityKind,
-    text: string,
-    command: string,
-    artifact?: ArtifactKind,
-    coalesce = true,
-    timestamp?: string,
-  ): ActivityCard => {
-    const previous = cards[cards.length - 1];
-    if (coalesce && previous?.kind === kind && previous.text === text && previous.artifact === artifact) {
-      if (!previous.commands.includes(command)) previous.commands.push(command);
-      cardEventCounts.set(previous, (cardEventCounts.get(previous) ?? 1) + 1);
-      return previous;
-    }
-    // `timestamp` is set ONLY at creation — a card reused via coalescing above
-    // keeps marking when the activity STARTED, not each event folded into it.
-    const card: ActivityCard = { kind, text, commands: [command], artifact, timestamp };
-    cards.push(card);
-    cardEventCounts.set(card, 1);
-    return card;
-  };
+  // `MAX_PENDING_NARRATION_CARRY` it is dropped rather than carried
+  // further — a card with no narration behind it simply has no headline
+  // text (iterate-2026-09-05-mission-feed-ux-gaps), which is preferable to
+  // a confident-looking but wrong one. The cap is generous enough for a
+  // realistic retry-until-green burst (a handful of `test` turns) or a
+  // single clarifying question, not for an open-ended run of unrelated
+  // intervening turns.
+  let pendingNarration: { prose: string; proseFull: string; proseRest: string; proseRestFull: string; staleness: number } | null = null;
+  const add = createCardAdder(cards, cardEventCounts);
   for (const event of events) {
     if (isCompactionMarker(event)) {
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
     }
     if (event.kind === "user") {
-      unresolvedTest = resolveToolResults(event, context, {
-        cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest,
-      });
+      unresolvedTest = resolveToolResults(event, { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult });
       continue;
     }
     if (event.kind !== "assistant") continue;
-    // A turn's own explanation (when Claude wrote one alongside its tool calls)
-    // replaces the generic bucket sentence below — reusing the same raw-JSONL
-    // `assistantText()` narrator-transcript.ts already narrates from, so a
-    // non-technical reader gets the actual reasoning instead of a templated
-    // "was updated in compact steps." Purely deterministic text extraction,
-    // never a new LLM call.
+    // This turn's own words (when Claude wrote any alongside its tool
+    // calls), replacing the generic bucket sentence below when present —
+    // see `extractOwnProse`'s doc comment (missionActivityFeedText.ts).
+    const { ownProse, ownProseFull, ownProseRest, ownProseRestFull } = extractOwnProse(event);
     const assistantLines = assistantText(event).split("\n");
-    const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
-    const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
-    // The turn's own words BEYOND its headline (`ownProse`) — never a bare
-    // `slice(1)`, which would leak a leading blank line's absence of
-    // content back in as if it were the headline (Internal Plan/External
-    // LLM Review finding). `join("\n")`, never space-joined or
-    // empty-line-filtered like `excerpt()`: this is plain-text-rendered
-    // prose, and blank lines are real paragraph breaks in it.
-    const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
-    const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
-
     const tools = toolUses(event);
     if (tools.length === 0) {
       // A pure-narration turn — the common real-world shape. Its words are
@@ -167,7 +136,7 @@ export function deriveActivityFeed(
       // The banner turn's own "prose" is its `====` border line, not real
       // explanatory narration — it must not become the next tool-bearing
       // turn's headline (the goal card above already carries the meaning).
-      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseRest: ownProseRest, staleness: 0 };
+      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
       continue;
     }
     // This turn called tools. Prefer ITS OWN text when it wrote any (the
@@ -175,7 +144,9 @@ export function deriveActivityFeed(
     // otherwise fall back to the immediately preceding pure-narration turn's
     // words, which is the shape a real autonomous session actually produces.
     const prose = ownProse || pendingNarration?.prose || "";
+    const proseFull = ownProse ? ownProseFull : (pendingNarration?.proseFull ?? "");
     const proseRest = ownProse ? ownProseRest : (pendingNarration?.proseRest ?? "");
+    const proseRestFull = ownProse ? ownProseRestFull : (pendingNarration?.proseRestFull ?? "");
     // Cleared below only once actually consumed — NOT here. A turn whose
     // tools are entirely `test`/`user-input` never reads `prose`/`proseRest`
     // (neither bucket's branch below references them), so nulling
@@ -184,6 +155,18 @@ export function deriveActivityFeed(
     // turn past an intervening test run or user prompt (code review catch,
     // iterate-2026-08-27-mission-feed-narration-scroll).
     let proseConsumedThisTurn = false;
+    // Set instead of `proseConsumedThisTurn` when a test-bucket card takes
+    // THIS turn's own words directly (spec-reviewer catch, iterate-2026-09-
+    // 05-mission-feed-ux-gaps): a test card is not a "real" (review/spec/
+    // investigate/implement) card, so it must not flip this turn into the
+    // consuming case below and null out an OLDER, still-waiting
+    // `pendingNarration` meant for a genuinely later real turn — that older
+    // value must keep aging (staleness+1) exactly as it would if this test
+    // turn had written no words of its own at all. It also must not become
+    // the NEW `pendingNarration` itself: it already has a home (the test
+    // card), and carrying it forward too would let the same sentence show
+    // up twice.
+    let ownProseGivenToTestCard = false;
     // At most ONE card per turn gets this turn's explanation — a turn whose
     // tool calls land in two genuinely different (non-coalescing) cards
     // does not duplicate the same words onto both (External LLM Review,
@@ -210,20 +193,33 @@ export function deriveActivityFeed(
         : /\.shipwright[\\/].*(spec|plan)/i.test(String(input?.file_path ?? "")) ? "spec"
         : "implement";
       const label = commandLabel(tool.name, tool.input);
+      const labelFull = commandLabelFull(tool.name, tool.input);
       const commandKey = `${tool.name}\u0000${commandDetail(tool.input)}`;
       if (bucket === "test") {
+        // No standard sentence here either (iterate-2026-09-05-mission-
+        // feed-ux-gaps — the user's own quoted example was literally "This
+        // test command completed."): only THIS turn's own words (never
+        // carried pendingNarration, which must stay free to reach a LATER
+        // real turn past this test call, per the narration-bridging
+        // invariant above), or nothing. The status pill + command chip
+        // carry the outcome; resolveToolResults no longer overwrites this
+        // with a hardcoded sentence either.
         const card: ActivityCard = {
           kind: "test",
-          text: "This test command needs attention: it is awaiting a result.",
-          commands: [label],
+          text: ownProse,
+          commands: [],
           artifact: artifact(context, "tests") ? "tests" : undefined,
           timestamp: event.timestamp,
         };
+        if (ownProseFull && ownProseFull.length > ownProse.length) card.textFull = ownProseFull;
+        attachCommand(card, label, labelFull);
         cards.push(card);
         testCards.push(card);
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+        awaitingTestResult.add(card);
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
+        if (ownProse) ownProseGivenToTestCard = true;
       } else if (bucket === "user-input") {
-        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp);
+        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp, undefined, labelFull);
         // Always set `card.question` — even the `fallback` shape carries a
         // real (if generic) placeholder question. Gating this on
         // `!summary.fallback` (code review catch) silently dropped the
@@ -232,37 +228,51 @@ export function deriveActivityFeed(
         // `card.question` is truthy.
         const summary = askUserQuestionSummary(tool.input);
         card.question = { text: summary.question, options: summary.options, resolved: false };
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
       } else {
-        const card = bucket === "review" ? add("review", prose || GENERIC_TEXT.review, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp)
-          : bucket === "spec" ? add("spec", prose || GENERIC_TEXT.spec, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp)
-          : bucket === "investigate" ? add("investigate", prose || GENERIC_TEXT.investigate, label, undefined, true, event.timestamp)
-          : add("implement", prose || GENERIC_TEXT.implement, label, undefined, true, event.timestamp);
+        // No more generic-bucket-sentence fallback (`GENERIC_TEXT`): the
+        // user already sees the tool call in their own terminal, and a
+        // templated "The implementation was updated in compact steps."
+        // added no information of its own — an empty `text` here means the
+        // card renders only its command chip(s)
+        // (iterate-2026-09-05-mission-feed-ux-gaps).
+        const card = bucket === "review" ? add("review", prose, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, proseFull, labelFull)
+          : bucket === "spec" ? add("spec", prose, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp, proseFull, labelFull)
+          : bucket === "investigate" ? add("investigate", prose, label, undefined, true, event.timestamp, proseFull, labelFull)
+          : add("implement", prose, label, undefined, true, event.timestamp, proseFull, labelFull);
         proseConsumedThisTurn = true;
         if (!cardsTouchedThisTurn.has(card)) {
           cardsTouchedThisTurn.add(card);
           cardTurnCounts.set(card, (cardTurnCounts.get(card) ?? 0) + 1);
         }
         if (!explanationAttachedThisTurn) {
-          if (proseRest) card.explanation = proseRest;
+          if (proseRest) {
+            card.explanation = proseRest;
+            if (proseRestFull && proseRestFull.length > proseRest.length) card.explanationFull = proseRestFull;
+          }
           explanationAttachedThisTurn = true;
         }
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
       }
     }
     // Clear only once actually used (an eligible bucket read it this turn),
     // or once superseded by this turn's OWN text — a pure test/user-input
     // turn with no text of its own leaves `pendingNarration` untouched so it
-    // still reaches a later real turn. A pure test/user-input turn that DID
-    // write its own text becomes the new pending value (most-recent-wins,
-    // same as two consecutive narration-only turns). Past
+    // still reaches a later real turn. A pure user-input turn that DID write
+    // its own text becomes the new pending value (most-recent-wins, same as
+    // two consecutive narration-only turns) — a test turn that gave its own
+    // words to its OWN card instead (`ownProseGivenToTestCard`) does neither:
+    // it must not replace an older still-waiting value (that value's own
+    // later real turn hasn't arrived yet) and must not become a new one
+    // itself (it already has a home, so carrying it forward would just
+    // duplicate it onto whatever card comes next). Past
     // `MAX_PENDING_NARRATION_CARRY` consecutive non-consuming turns it is
     // dropped instead of carried further (doubt-review catch — see the
     // comment on `pendingNarration`'s declaration).
     if (proseConsumedThisTurn) {
       pendingNarration = null;
-    } else if (ownProse) {
-      pendingNarration = { prose: ownProse, proseRest: ownProseRest, staleness: 0 };
+    } else if (ownProse && !ownProseGivenToTestCard) {
+      pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
     } else if (pendingNarration) {
       pendingNarration = pendingNarration.staleness + 1 >= MAX_PENDING_NARRATION_CARRY
         ? null
@@ -270,29 +280,21 @@ export function deriveActivityFeed(
     }
   }
 
-  // Second-tier, always-available fallback: a card that (a) never got a
-  // turn's own prose and (b) ended up representing EXACTLY ONE tool_use
-  // event (never coalesced) gets its generic sentence replaced with one
-  // derived from that event's own already-computed, already-sanitized
-  // label — the same text already shown in its command chip. A coalesced
-  // multi-command card keeps the generic sentence unchanged: no single
-  // derived sentence can represent several distinct commands.
+  // A card that never got a turn's own prose (`text === ""`, no more
+  // `GENERIC_TEXT` fallback — iterate-2026-09-05-mission-feed-ux-gaps)
+  // still renders its command chip(s); nothing to clear here for it.
+  //
+  // This pass clears a stale `explanation` written for a card that turned
+  // out to span MORE than one assistant turn — an explanation is only ever
+  // exactly one turn's words (see `ActivityCard.explanation`'s doc comment)
+  // and a later turn coalescing into the same card must not leave an
+  // earlier turn's words looking like they cover the whole card.
   for (const card of cards) {
-    if (card.kind !== "investigate" && card.kind !== "implement" && card.kind !== "review" && card.kind !== "spec") continue;
-    if (card.text !== GENERIC_TEXT[card.kind]) continue;
-    if (cardEventCounts.get(card) !== 1) continue;
-    card.text = sentenceFromLabel(card.commands[0]);
+    if (card.explanation && cardTurnCounts.get(card) !== 1) {
+      delete card.explanation;
+      delete card.explanationFull;
+    }
   }
 
-  // Deliberately its OWN, separate, unconditional pass — NOT folded into
-  // the sweep above. That sweep's own `card.text !== GENERIC_TEXT[...]`
-  // guard `continue`s past every card that has real prose, which is
-  // exactly every card that could ever carry an explanation; folding this
-  // clear in there would make it a permanent no-op (Internal Plan Review
-  // HIGH finding).
-  for (const card of cards) {
-    if (card.explanation && cardTurnCounts.get(card) !== 1) delete card.explanation;
-  }
-
-  return reconcileArtifactCards(cards, context, testCards, unresolvedTest);
+  return reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
 }
