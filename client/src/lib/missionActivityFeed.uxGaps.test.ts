@@ -117,6 +117,23 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
     const label = card!.commands[0];
     expect(card?.commandFullText?.[label]).toBe(`Write: ${sharedPrefix}/first.ts`);
   });
+
+  it("lets a recovered test card's commandFullText reflect the retry that actually succeeded, even if its label collides with the failed attempt's (doubt-review catch)", () => {
+    const sharedPrefix = "a".repeat(200);
+    const events = parseSessionJsonl([
+      tool("first", "Bash", { command: `npm test -- ${sharedPrefix} --mode fail` }),
+      errorResult("first", "FAIL"),
+      tool("retry", "Bash", { command: `npm test -- ${sharedPrefix} --mode pass` }),
+      okResult("retry", "ok"),
+    ].join("\n")).events;
+    // Both commands truncate to the identical chip label — the recovery
+    // merge is replacing the card's entire stale state with the retry's,
+    // so the retry's own full command must win over the collision, not the
+    // earlier failing attempt's.
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test");
+    const label = card!.commands[0];
+    expect(card?.commandFullText?.[label]).toBe(`Bash: npm test -- ${sharedPrefix} --mode pass`);
+  });
 });
 
 describe("deriveActivityFeed — test-bucket cards use only their own narration (issue #1, 2nd spec-reviewer pass)", () => {
@@ -179,6 +196,21 @@ describe("deriveActivityFeed — successful review tool_result surfaces its own 
     // `record_review_pass.py` call, the exact gap this closes.
     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "review");
     expect(card?.detail).toBe("Verdict: approved.\nNo blocking findings.");
+  });
+
+  it("does not let a second coalesced review call's result silently overwrite the first review's findings (doubt-review catch)", () => {
+    const events = parseSessionJsonl([
+      tool("rev1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" }),
+      tool("rev2", "Task", { subagent_type: "code-reviewer", description: "Review the payments diff" }),
+      okResult("rev1", "Verdict on the auth diff: approved."),
+      okResult("rev2", "Verdict on the payments diff: approved."),
+    ].join("\n")).events;
+    // Both calls carry no narration of their own, so they coalesce into ONE
+    // card (same kind/text/artifact) — attaching the second result must not
+    // silently discard the first review's actual findings.
+    const cards = deriveActivityFeed(events, context("unknown")).cards.filter((c) => c.kind === "review");
+    expect(cards).toHaveLength(1);
+    expect(cards[0].detail).toBe("Verdict on the auth diff: approved.");
   });
 
   it("still lets a later durable review artifact override the card's headline (reconcile stays authoritative)", () => {

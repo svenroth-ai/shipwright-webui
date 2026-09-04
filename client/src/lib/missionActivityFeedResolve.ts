@@ -112,7 +112,12 @@ export function resolveToolResults(
         unresolvedTest.status = undefined;
         unresolvedTest.detail = undefined;
         delete unresolvedTest.detailFull;
-        attachCommand(unresolvedTest, pending.label, pending.full);
+        // Overwrite (doubt-review catch): this recovery is replacing the
+        // stale failed attempt with the just-succeeded retry as the card's
+        // current truth, so the retry's own full command text must win
+        // even if its truncated label happens to collide with the earlier
+        // attempt's.
+        attachCommand(unresolvedTest, pending.label, pending.full, { overwrite: true });
         cards.splice(cards.indexOf(pending.card), 1);
         testCards.splice(testCards.indexOf(pending.card), 1);
         awaitingTestResult.delete(unresolvedTest);
@@ -160,7 +165,10 @@ export function resolveToolResults(
         blocker.card.status = undefined;
         blocker.card.detail = undefined;
         delete blocker.card.detailFull;
-        attachCommand(blocker.card, pending.label, pending.full);
+        // Same reasoning as the test-recovery merge above: overwrite so the
+        // successful retry's own full text wins over a same-label collision
+        // with the earlier failed attempt.
+        attachCommand(blocker.card, pending.label, pending.full, { overwrite: true });
         cards.splice(cards.indexOf(pending.card), 1);
         unresolvedBlockers.delete(pending.commandKey);
       }
@@ -172,7 +180,16 @@ export function resolveToolResults(
       // review (no `record_review_pass.py` call) never got that, leaving
       // the card permanently empty (iterate-2026-09-05-mission-feed-ux-gaps,
       // "External plan review wird angezeigt, aber das resultat nicht").
-      attachDetail(pending.card, result.content);
+      // First-wins, not the blocker branch's ambiguity skip (doubt-review
+      // catch, corrected after a regression test caught the first attempt):
+      // `add()` can coalesce two review-bucket tool calls with no narration
+      // between them into ONE card, each carrying its own real findings —
+      // unlike a blocker's error excerpt (which is genuinely ambiguous
+      // when several unrelated commands share the card), every review
+      // result here is equally relevant, so skipping both when there are
+      // 2+ commands would just as wrongly discard the FIRST review's
+      // detail. Attach only while nothing has been recorded yet.
+      if (!pending.card.detail) attachDetail(pending.card, result.content);
     }
   }
   return unresolvedTest;

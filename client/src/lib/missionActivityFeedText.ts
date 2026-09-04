@@ -100,15 +100,22 @@ export function commandLabelFull(name: string, input: unknown): string {
  * `missionActivityFeedResolve.ts` (retry/recovery, which re-attaches a
  * command to an EXISTING card) so both stay byte-identical.
  */
-export function attachCommand(card: Pick<ActivityCard, "commands" | "commandFullText">, label: string, full: string): void {
+export function attachCommand(card: Pick<ActivityCard, "commands" | "commandFullText">, label: string, full: string, options: { overwrite?: boolean } = {}): void {
   if (!card.commands.includes(label)) card.commands.push(label);
-  // Never overwrite an already-recorded full text for this label (code
-  // review catch): two DIFFERENT commands can share the same truncated
-  // 180-char label (e.g. two long paths that diverge only past the cap),
-  // and the chip lookup is by label alone — silently flipping the stored
-  // full text to whichever command happened to attach second would make
-  // the click-to-expand view lie about which command it belongs to.
-  if (full !== label && !card.commandFullText?.[label]) {
+  // Never overwrite an already-recorded full text for this label by default
+  // (code review catch): two DIFFERENT commands can share the same
+  // truncated 180-char label (e.g. two long paths that diverge only past
+  // the cap), and the chip lookup is by label alone — silently flipping the
+  // stored full text to whichever command happened to attach second would
+  // make the click-to-expand view lie about which command it belongs to.
+  //
+  // `options.overwrite` is the deliberate exception (doubt-review catch):
+  // a retry/recovery call site isn't attaching a SIBLING command that
+  // happens to share a label — it's replacing the ENTIRE card's stale
+  // state (status/detail already get cleared unconditionally right next to
+  // these call sites) with the incoming, just-succeeded command's own
+  // data, so that data must win even over a same-label collision.
+  if (full !== label && (options.overwrite || !card.commandFullText?.[label])) {
     card.commandFullText = { ...card.commandFullText, [label]: full };
   }
 }

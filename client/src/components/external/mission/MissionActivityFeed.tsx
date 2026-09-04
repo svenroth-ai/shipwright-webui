@@ -54,8 +54,21 @@ export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, tas
       ) : feed.cards.map((card, index) => {
         const isSystem = card.kind === "system";
         const accent = kindAccent(card);
+        // Not just `${kind}-${index}` (doubt-review catch, iterate-2026-09-
+        // 05-mission-feed-ux-gaps): a retry/recovery resolution can splice a
+        // card out of the middle of this array between polls, shifting
+        // every later same-kind card down one index. `FeedCard` now holds
+        // real per-card `useState` (the click-to-expand affordances this
+        // iterate added) that a reused React element would wrongly carry
+        // over onto the shifted-in card's different content. `timestamp` +
+        // the first command label are set once at creation and never move,
+        // so they stay stable for the SAME logical card across polls (the
+        // reducer is a pure, deterministic function of the same growing
+        // event log) while reliably differing from whatever card previously
+        // sat at this index.
+        const key = `${card.kind}-${card.timestamp ?? ""}-${card.commands[0] ?? ""}-${index}`;
         return (
-          <div className="mc-feed-entry" key={`${card.kind}-${index}`}>
+          <div className="mc-feed-entry" key={key}>
             <div
               className="mc-feed-node"
               data-dashed={isSystem ? "true" : undefined}
