@@ -1,6 +1,6 @@
 import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
-import { attachCommand, clean, cleanFull, commandDetail, commandLabel, commandLabelFull, explanationExcerpt, isCompactionMarker } from "./missionActivityFeedText";
+import { attachCommand, commandDetail, commandLabel, commandLabelFull, extractOwnProse, isCompactionMarker } from "./missionActivityFeedText";
 import { containsIterateBanner, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { reconcileArtifactCards } from "./missionActivityFeedReconcile";
@@ -103,36 +103,15 @@ export function deriveActivityFeed(
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
     }
     if (event.kind === "user") {
-      unresolvedTest = resolveToolResults(event, {
-        cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult,
-      });
+      unresolvedTest = resolveToolResults(event, { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult });
       continue;
     }
     if (event.kind !== "assistant") continue;
-    // A turn's own explanation (when Claude wrote one alongside its tool calls)
-    // replaces the generic bucket sentence below — reusing the same raw-JSONL
-    // `assistantText()` narrator-transcript.ts already narrates from, so a
-    // non-technical reader gets the actual reasoning instead of a templated
-    // "was updated in compact steps." Purely deterministic text extraction,
-    // never a new LLM call.
+    // This turn's own words (when Claude wrote any alongside its tool
+    // calls), replacing the generic bucket sentence below when present —
+    // see `extractOwnProse`'s doc comment (missionActivityFeedText.ts).
+    const { ownProse, ownProseFull, ownProseRest, ownProseRestFull } = extractOwnProse(event);
     const assistantLines = assistantText(event).split("\n");
-    const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
-    const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
-    // The untruncated counterpart of `ownProse` — a real turn is very often
-    // ONE long paragraph with no internal newline, so this is often the
-    // turn's ENTIRE explanation (iterate-2026-09-05-mission-feed-ux-gaps:
-    // "nie croppen" — never crop).
-    const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(assistantLines[firstNonEmptyIdx]);
-    // The turn's own words BEYOND its headline (`ownProse`) — never a bare
-    // `slice(1)`, which would leak a leading blank line's absence of
-    // content back in as if it were the headline (Internal Plan/External
-    // LLM Review finding). `join("\n")`, never space-joined or
-    // empty-line-filtered like `excerpt()`: this is plain-text-rendered
-    // prose, and blank lines are real paragraph breaks in it.
-    const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
-    const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
-    const ownProseRestFull = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw, Infinity, Infinity) : "";
-
     const tools = toolUses(event);
     if (tools.length === 0) {
       // A pure-narration turn — the common real-world shape. Its words are
@@ -176,6 +155,18 @@ export function deriveActivityFeed(
     // turn past an intervening test run or user prompt (code review catch,
     // iterate-2026-08-27-mission-feed-narration-scroll).
     let proseConsumedThisTurn = false;
+    // Set instead of `proseConsumedThisTurn` when a test-bucket card takes
+    // THIS turn's own words directly (spec-reviewer catch, iterate-2026-09-
+    // 05-mission-feed-ux-gaps): a test card is not a "real" (review/spec/
+    // investigate/implement) card, so it must not flip this turn into the
+    // consuming case below and null out an OLDER, still-waiting
+    // `pendingNarration` meant for a genuinely later real turn — that older
+    // value must keep aging (staleness+1) exactly as it would if this test
+    // turn had written no words of its own at all. It also must not become
+    // the NEW `pendingNarration` itself: it already has a home (the test
+    // card), and carrying it forward too would let the same sentence show
+    // up twice.
+    let ownProseGivenToTestCard = false;
     // At most ONE card per turn gets this turn's explanation — a turn whose
     // tool calls land in two genuinely different (non-coalescing) cards
     // does not duplicate the same words onto both (External LLM Review,
@@ -226,7 +217,7 @@ export function deriveActivityFeed(
         testCards.push(card);
         awaitingTestResult.add(card);
         pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
-        if (ownProse) proseConsumedThisTurn = true;
+        if (ownProse) ownProseGivenToTestCard = true;
       } else if (bucket === "user-input") {
         const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp, undefined, labelFull);
         // Always set `card.question` — even the `fallback` shape carries a
@@ -267,15 +258,20 @@ export function deriveActivityFeed(
     // Clear only once actually used (an eligible bucket read it this turn),
     // or once superseded by this turn's OWN text — a pure test/user-input
     // turn with no text of its own leaves `pendingNarration` untouched so it
-    // still reaches a later real turn. A pure test/user-input turn that DID
-    // write its own text becomes the new pending value (most-recent-wins,
-    // same as two consecutive narration-only turns). Past
+    // still reaches a later real turn. A pure user-input turn that DID write
+    // its own text becomes the new pending value (most-recent-wins, same as
+    // two consecutive narration-only turns) — a test turn that gave its own
+    // words to its OWN card instead (`ownProseGivenToTestCard`) does neither:
+    // it must not replace an older still-waiting value (that value's own
+    // later real turn hasn't arrived yet) and must not become a new one
+    // itself (it already has a home, so carrying it forward would just
+    // duplicate it onto whatever card comes next). Past
     // `MAX_PENDING_NARRATION_CARRY` consecutive non-consuming turns it is
     // dropped instead of carried further (doubt-review catch — see the
     // comment on `pendingNarration`'s declaration).
     if (proseConsumedThisTurn) {
       pendingNarration = null;
-    } else if (ownProse) {
+    } else if (ownProse && !ownProseGivenToTestCard) {
       pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
     } else if (pendingNarration) {
       pendingNarration = pendingNarration.staleness + 1 >= MAX_PENDING_NARRATION_CARRY

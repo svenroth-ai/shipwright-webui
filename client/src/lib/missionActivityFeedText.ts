@@ -7,7 +7,7 @@
  * transforms with no dependency on the reducer's mutation state machine.
  */
 import stripAnsi from "strip-ansi";
-import type { ParsedEvent } from "../external/session-parser";
+import { assistantText, type AssistantEvent, type ParsedEvent } from "../external/session-parser";
 import { sanitizeProofText, stripBidiOverrides, stripC1Controls, stripControl } from "./proofLines";
 import type { ActivityCard } from "./missionActivityFeedTypes";
 
@@ -24,6 +24,36 @@ import type { ActivityCard } from "./missionActivityFeedTypes";
 export const clean = (value: string, maxLen = 280) => sanitizeProofText(value.split("\n")[0] ?? "", maxLen);
 /** The untruncated counterpart of `clean()` — same sanitization, no cap. */
 export const cleanFull = (value: string) => clean(value, Infinity);
+
+/** One assistant turn's own words, split into a headline (`ownProse`, first
+ * non-empty line) and the rest (`ownProseRest`), each with an untruncated
+ * `xFull` counterpart (iterate-2026-09-05-mission-feed-ux-gaps: "nie
+ * croppen"). A turn's own explanation replaces the generic bucket sentence
+ * when Claude wrote one (iterate-2026-08-13-mission-mobile-visual), reusing
+ * the same raw-JSONL `assistantText()` narrator-transcript.ts already
+ * narrates from — purely deterministic text extraction, never a new LLM
+ * call. Extracted out of `deriveActivityFeed`'s per-turn loop
+ * (iterate-2026-09-05-mission-feed-ux-gaps, bloat-ceiling split) — pure text
+ * transform with no dependency on the reducer's mutation state machine.
+ */
+export function extractOwnProse(event: AssistantEvent): {
+  ownProse: string; ownProseFull: string; ownProseRest: string; ownProseRestFull: string;
+} {
+  const assistantLines = assistantText(event).split("\n");
+  const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
+  const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
+  const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(assistantLines[firstNonEmptyIdx]);
+  // The turn's own words BEYOND its headline — never a bare `slice(1)`,
+  // which would leak a leading blank line's absence of content back in as
+  // if it were the headline (Internal Plan/External LLM Review finding).
+  // `join("\n")`, never space-joined or empty-line-filtered like
+  // `excerpt()`: this is plain-text-rendered prose, and blank lines are
+  // real paragraph breaks in it.
+  const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
+  const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
+  const ownProseRestFull = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw, Infinity, Infinity) : "";
+  return { ownProse, ownProseFull, ownProseRest, ownProseRestFull };
+}
 
 export function isCompactionMarker(event: ParsedEvent): boolean {
   return event.kind === "system" && (

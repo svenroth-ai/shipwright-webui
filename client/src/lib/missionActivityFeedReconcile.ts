@@ -38,7 +38,12 @@ export function reconcileArtifactCards(
         : gate === "fail" ? "Tests have a recorded failing result." : "No reliable test result is recorded.";
       cards.push({ kind: "test", text, commands: [], artifact: artifact(context, "tests") ? "tests" : undefined, status });
     } else if (pendingTest) {
-      latest.text = "The latest test attempt needs attention.";
+      // Same "own words win" rule as the fallback three lines below (spec-
+      // reviewer catch, iterate-2026-09-05-mission-feed-ux-gaps): `latest`
+      // may itself carry real narration from its own turn even though some
+      // OTHER, earlier test card is still unresolved — that narration must
+      // not be clobbered by this generic caveat about the run as a whole.
+      if (!latest.text) latest.text = "The latest test attempt needs attention.";
       // A real "fail" gate still escalates the pill (code review catch: a
       // hardcoded "warn" could under-claim a genuine failure), but "pass"
       // cannot claim "ok" here (doubt-review catch, high): something in

@@ -21,6 +21,7 @@ import type { MissionContext } from "./missionContextApi";
 const event = (value: unknown) => JSON.stringify(value);
 const tool = (id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] } });
 const turn = (text: string, id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }, { type: "tool_use", id, name, input }] } });
+const narrationOnly = (text: string) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }] } });
 const okResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: false }] } });
 const errorResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: true }] } });
 
@@ -98,6 +99,56 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
     const events = parseSessionJsonl(tool("b", "Bash", { command: "npm test" })).events;
     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test" || c.kind === "implement");
     expect(card?.commandFullText).toBeUndefined();
+  });
+});
+
+describe("deriveActivityFeed — test-bucket cards use only their own narration (issue #1, 2nd spec-reviewer pass)", () => {
+  it("shows a test-bucket card's own narration without stealing an older turn's still-waiting narration", () => {
+    const events = parseSessionJsonl([
+      narrationOnly("Investigating why the login redirect intermittently fails."),
+      turn("Re-running the suite with verbose output.", "t1", "Bash", { command: "npm test" }),
+      okResult("t1", "ok"),
+      tool("i1", "Read", { file_path: "login.ts" }),
+    ].join("\n")).events;
+    const feed = deriveActivityFeed(events, context("unknown"));
+    const testCard = feed.cards.find((c) => c.kind === "test");
+    const investigateCard = feed.cards.find((c) => c.kind === "investigate");
+    // The test card shows its OWN words...
+    expect(testCard?.text).toBe("Re-running the suite with verbose output.");
+    // ...and the earlier, still-waiting narration survives past this
+    // narrated test turn to reach the next real turn, instead of being
+    // wrongly discarded because the test turn happened to have words of
+    // its own too (spec-reviewer catch: a test turn's own narration must
+    // not null out an unrelated older pendingNarration).
+    expect(investigateCard?.text).toBe("Investigating why the login redirect intermittently fails.");
+  });
+
+  it("does not carry a test-bucket card's own narration forward onto a later, unrelated card", () => {
+    const events = parseSessionJsonl([
+      turn("Re-running the suite with verbose output.", "t1", "Bash", { command: "npm test" }),
+      okResult("t1", "ok"),
+      tool("i1", "Read", { file_path: "login.ts" }),
+    ].join("\n")).events;
+    const feed = deriveActivityFeed(events, context("unknown"));
+    const investigateCard = feed.cards.find((c) => c.kind === "investigate");
+    // The test turn's own words already have a home on the test card; they
+    // must not duplicate onto the next card too.
+    expect(investigateCard?.text).toBe("");
+  });
+
+  it("does not let an unrelated pending test's caveat pill clobber a resolved test card's own narration", () => {
+    const events = parseSessionJsonl([
+      tool("first", "Bash", { command: "npm test suiteA" }), // never resolves — stays "awaiting a result"
+      turn("Re-running suite B after the fix.", "second", "Bash", { command: "npm test suiteB" }),
+      okResult("second", "ok"),
+    ].join("\n")).events;
+    const cards = deriveActivityFeed(events, context("pass")).cards.filter((c) => c.kind === "test");
+    // suiteA is still open, so the aggregate pill stays cautious (existing
+    // behaviour) — but suiteB's own narration must survive that caveat,
+    // not get overwritten by the generic "needs attention" sentence
+    // (spec-reviewer catch: the pendingTest branch clobbered it
+    // unconditionally, unlike the sibling fallback three lines below it).
+    expect(cards.at(-1)?.text).toBe("Re-running suite B after the fix.");
   });
 });
 
