@@ -77,12 +77,13 @@ describe("deriveActivityFeed — /shipwright-iterate intro banner recognition", 
     // The banner turn's OWN narration is boilerplate usage text (a `====`
     // border line), not a real explanation of the next tool call — it must
     // not leak into the implement card's headline as if it were real
-    // narration. With no real prose to draw on, the card falls back to its
-    // ordinary solo-command label sentence (missionActivityFeedText.ts),
-    // never the raw border line.
+    // narration. With no real prose to draw on and no more generic/label-
+    // derived fallback (iterate-2026-09-05-mission-feed-ux-gaps), the
+    // headline stays empty; the real command still shows in the chip.
     const implement = feed.cards.find((c) => c.kind === "implement");
     expect(implement?.text).not.toMatch(/={5,}/);
-    expect(implement?.text).toMatch(/cat shipwright_run_config\.json/);
+    expect(implement?.text).toBe("");
+    expect(implement?.commands[0]).toMatch(/cat shipwright_run_config\.json/);
   });
 
   it("does NOT fire on ordinary prose that merely mentions the banner phrase mid-sentence (external code review, openai MEDIUM)", () => {

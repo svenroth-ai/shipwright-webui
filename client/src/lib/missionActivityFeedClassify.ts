@@ -6,13 +6,6 @@
  * no dependency on the reducer's mutation state machine.
  */
 
-export const GENERIC_TEXT = {
-  review: "Review work is in progress.",
-  spec: "The intended change was captured in the run record.",
-  investigate: "The existing behaviour was examined before changes were made.",
-  implement: "The implementation was updated in compact steps.",
-} as const;
-
 /**
  * The `/shipwright-iterate` skill's fixed intro banner (SKILL.md "Print Intro
  * Banner") prints this exact line, alone, as its second row, inside a turn

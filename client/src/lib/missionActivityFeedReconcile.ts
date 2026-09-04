@@ -67,10 +67,20 @@ export function reconcileArtifactCards(
     }
   }
   for (const kind of ["spec", "requirement", "decisions"] as const) {
-    if (artifact(context, kind) && !cards.some((card) => card.artifact === kind)) {
-      const text = kind === "spec" ? "Specification evidence is available."
+    // The server already writes a rich, always-populated `summary` for every
+    // `state: "available"` artifact (`server/src/core/mission-context/
+    // artifacts.ts`) — prefer it over the generic placeholder text, which
+    // was rendering unconditionally regardless of what actually happened
+    // (iterate-2026-09-05-mission-feed-ux-gaps: "Requirement evidence is
+    // available. ist irgendwie leer immer am Ende der Kette"). The fallback
+    // stays for the rare artifact shape with no `summary` field at all
+    // (`CommitArtifact`, `TestsArtifact`, `ReviewArtifact` — not reachable
+    // through this loop's three kinds, but kept as a defensive floor).
+    const item = context?.artifacts.find((entry) => entry.kind === kind && entry.state === "available");
+    if (item && !cards.some((card) => card.artifact === kind)) {
+      const fallback = kind === "spec" ? "Specification evidence is available."
         : kind === "requirement" ? "Requirement evidence is available." : "A recorded decision is available.";
-      cards.push({ kind: "spec", text, commands: [], artifact: kind, status: "ok" });
+      cards.push({ kind: "spec", text: item.summary ?? fallback, commands: [], artifact: kind, status: "ok" });
     }
   }
   if (artifact(context, "review")) {

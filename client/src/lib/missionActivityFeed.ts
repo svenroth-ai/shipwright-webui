@@ -1,7 +1,8 @@
 import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
-import { clean, commandDetail, commandLabel, explanationExcerpt, isCompactionMarker, sentenceFromLabel } from "./missionActivityFeedText";
-import { containsIterateBanner, GENERIC_TEXT, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { attachCommand, clean, cleanFull, commandDetail, commandLabel, commandLabelFull, explanationExcerpt, isCompactionMarker } from "./missionActivityFeedText";
+import { containsIterateBanner, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
 import type { ActivityCard, ActivityFeed, ActivityKind } from "./missionActivityFeedTypes";
@@ -92,28 +93,8 @@ export function deriveActivityFeed(
   // wrong headline. The cap is generous enough for a realistic retry-until-
   // green burst (a handful of `test` turns) or a single clarifying question,
   // not for an open-ended run of unrelated intervening turns.
-  let pendingNarration: { prose: string; proseRest: string; staleness: number } | null = null;
-  const add = (
-    kind: ActivityKind,
-    text: string,
-    command: string,
-    artifact?: ArtifactKind,
-    coalesce = true,
-    timestamp?: string,
-  ): ActivityCard => {
-    const previous = cards[cards.length - 1];
-    if (coalesce && previous?.kind === kind && previous.text === text && previous.artifact === artifact) {
-      if (!previous.commands.includes(command)) previous.commands.push(command);
-      cardEventCounts.set(previous, (cardEventCounts.get(previous) ?? 1) + 1);
-      return previous;
-    }
-    // `timestamp` is set ONLY at creation — a card reused via coalescing above
-    // keeps marking when the activity STARTED, not each event folded into it.
-    const card: ActivityCard = { kind, text, commands: [command], artifact, timestamp };
-    cards.push(card);
-    cardEventCounts.set(card, 1);
-    return card;
-  };
+  let pendingNarration: { prose: string; proseFull: string; proseRest: string; proseRestFull: string; staleness: number } | null = null;
+  const add = createCardAdder(cards, cardEventCounts);
   for (const event of events) {
     if (isCompactionMarker(event)) {
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
@@ -134,6 +115,11 @@ export function deriveActivityFeed(
     const assistantLines = assistantText(event).split("\n");
     const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
     const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
+    // The untruncated counterpart of `ownProse` — a real turn is very often
+    // ONE long paragraph with no internal newline, so this is often the
+    // turn's ENTIRE explanation (iterate-2026-09-05-mission-feed-ux-gaps:
+    // "nie croppen" — never crop).
+    const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(assistantLines[firstNonEmptyIdx]);
     // The turn's own words BEYOND its headline (`ownProse`) — never a bare
     // `slice(1)`, which would leak a leading blank line's absence of
     // content back in as if it were the headline (Internal Plan/External
@@ -142,6 +128,7 @@ export function deriveActivityFeed(
     // prose, and blank lines are real paragraph breaks in it.
     const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
     const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
+    const ownProseRestFull = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw, Infinity, Infinity) : "";
 
     const tools = toolUses(event);
     if (tools.length === 0) {
@@ -167,7 +154,7 @@ export function deriveActivityFeed(
       // The banner turn's own "prose" is its `====` border line, not real
       // explanatory narration — it must not become the next tool-bearing
       // turn's headline (the goal card above already carries the meaning).
-      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseRest: ownProseRest, staleness: 0 };
+      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
       continue;
     }
     // This turn called tools. Prefer ITS OWN text when it wrote any (the
@@ -175,7 +162,9 @@ export function deriveActivityFeed(
     // otherwise fall back to the immediately preceding pure-narration turn's
     // words, which is the shape a real autonomous session actually produces.
     const prose = ownProse || pendingNarration?.prose || "";
+    const proseFull = ownProse ? ownProseFull : (pendingNarration?.proseFull ?? "");
     const proseRest = ownProse ? ownProseRest : (pendingNarration?.proseRest ?? "");
+    const proseRestFull = ownProse ? ownProseRestFull : (pendingNarration?.proseRestFull ?? "");
     // Cleared below only once actually consumed — NOT here. A turn whose
     // tools are entirely `test`/`user-input` never reads `prose`/`proseRest`
     // (neither bucket's branch below references them), so nulling
@@ -210,20 +199,22 @@ export function deriveActivityFeed(
         : /\.shipwright[\\/].*(spec|plan)/i.test(String(input?.file_path ?? "")) ? "spec"
         : "implement";
       const label = commandLabel(tool.name, tool.input);
+      const labelFull = commandLabelFull(tool.name, tool.input);
       const commandKey = `${tool.name}\u0000${commandDetail(tool.input)}`;
       if (bucket === "test") {
         const card: ActivityCard = {
           kind: "test",
           text: "This test command needs attention: it is awaiting a result.",
-          commands: [label],
+          commands: [],
           artifact: artifact(context, "tests") ? "tests" : undefined,
           timestamp: event.timestamp,
         };
+        attachCommand(card, label, labelFull);
         cards.push(card);
         testCards.push(card);
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
       } else if (bucket === "user-input") {
-        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp);
+        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp, undefined, labelFull);
         // Always set `card.question` — even the `fallback` shape carries a
         // real (if generic) placeholder question. Gating this on
         // `!summary.fallback` (code review catch) silently dropped the
@@ -232,22 +223,31 @@ export function deriveActivityFeed(
         // `card.question` is truthy.
         const summary = askUserQuestionSummary(tool.input);
         card.question = { text: summary.question, options: summary.options, resolved: false };
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
       } else {
-        const card = bucket === "review" ? add("review", prose || GENERIC_TEXT.review, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp)
-          : bucket === "spec" ? add("spec", prose || GENERIC_TEXT.spec, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp)
-          : bucket === "investigate" ? add("investigate", prose || GENERIC_TEXT.investigate, label, undefined, true, event.timestamp)
-          : add("implement", prose || GENERIC_TEXT.implement, label, undefined, true, event.timestamp);
+        // No more generic-bucket-sentence fallback (`GENERIC_TEXT`): the
+        // user already sees the tool call in their own terminal, and a
+        // templated "The implementation was updated in compact steps."
+        // added no information of its own — an empty `text` here means the
+        // card renders only its command chip(s)
+        // (iterate-2026-09-05-mission-feed-ux-gaps).
+        const card = bucket === "review" ? add("review", prose, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, proseFull, labelFull)
+          : bucket === "spec" ? add("spec", prose, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp, proseFull, labelFull)
+          : bucket === "investigate" ? add("investigate", prose, label, undefined, true, event.timestamp, proseFull, labelFull)
+          : add("implement", prose, label, undefined, true, event.timestamp, proseFull, labelFull);
         proseConsumedThisTurn = true;
         if (!cardsTouchedThisTurn.has(card)) {
           cardsTouchedThisTurn.add(card);
           cardTurnCounts.set(card, (cardTurnCounts.get(card) ?? 0) + 1);
         }
         if (!explanationAttachedThisTurn) {
-          if (proseRest) card.explanation = proseRest;
+          if (proseRest) {
+            card.explanation = proseRest;
+            if (proseRestFull && proseRestFull.length > proseRest.length) card.explanationFull = proseRestFull;
+          }
           explanationAttachedThisTurn = true;
         }
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, background });
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
       }
     }
     // Clear only once actually used (an eligible bucket read it this turn),
@@ -262,7 +262,7 @@ export function deriveActivityFeed(
     if (proseConsumedThisTurn) {
       pendingNarration = null;
     } else if (ownProse) {
-      pendingNarration = { prose: ownProse, proseRest: ownProseRest, staleness: 0 };
+      pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
     } else if (pendingNarration) {
       pendingNarration = pendingNarration.staleness + 1 >= MAX_PENDING_NARRATION_CARRY
         ? null
@@ -270,28 +270,20 @@ export function deriveActivityFeed(
     }
   }
 
-  // Second-tier, always-available fallback: a card that (a) never got a
-  // turn's own prose and (b) ended up representing EXACTLY ONE tool_use
-  // event (never coalesced) gets its generic sentence replaced with one
-  // derived from that event's own already-computed, already-sanitized
-  // label — the same text already shown in its command chip. A coalesced
-  // multi-command card keeps the generic sentence unchanged: no single
-  // derived sentence can represent several distinct commands.
+  // A card that never got a turn's own prose (`text === ""`, no more
+  // `GENERIC_TEXT` fallback — iterate-2026-09-05-mission-feed-ux-gaps)
+  // still renders its command chip(s); nothing to clear here for it.
+  //
+  // This pass clears a stale `explanation` written for a card that turned
+  // out to span MORE than one assistant turn — an explanation is only ever
+  // exactly one turn's words (see `ActivityCard.explanation`'s doc comment)
+  // and a later turn coalescing into the same card must not leave an
+  // earlier turn's words looking like they cover the whole card.
   for (const card of cards) {
-    if (card.kind !== "investigate" && card.kind !== "implement" && card.kind !== "review" && card.kind !== "spec") continue;
-    if (card.text !== GENERIC_TEXT[card.kind]) continue;
-    if (cardEventCounts.get(card) !== 1) continue;
-    card.text = sentenceFromLabel(card.commands[0]);
-  }
-
-  // Deliberately its OWN, separate, unconditional pass — NOT folded into
-  // the sweep above. That sweep's own `card.text !== GENERIC_TEXT[...]`
-  // guard `continue`s past every card that has real prose, which is
-  // exactly every card that could ever carry an explanation; folding this
-  // clear in there would make it a permanent no-op (Internal Plan Review
-  // HIGH finding).
-  for (const card of cards) {
-    if (card.explanation && cardTurnCounts.get(card) !== 1) delete card.explanation;
+    if (card.explanation && cardTurnCounts.get(card) !== 1) {
+      delete card.explanation;
+      delete card.explanationFull;
+    }
   }
 
   return reconcileArtifactCards(cards, context, testCards, unresolvedTest);

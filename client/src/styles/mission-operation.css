@@ -132,6 +132,17 @@
 .mc-feed-pr-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mc-feed-pr-title { color: var(--ink); font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mc-feed-pr-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; gap: 8px; }
+/* iterate-2026-09-05-mission-feed-ux-gaps — "nie croppen": a click-to-expand
+   affordance for every bounded field that now carries an untruncated `xFull`
+   counterpart, modeled on StopHookCard.tsx's collapsed-by-default pattern. */
+.mc-feed-expand-btn { display: block; margin-top: 4px; padding: 0; border: none; background: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.mc-feed-expand-btn:hover { text-decoration: underline; }
+.mc-feed-qa-answer-label { font-weight: 600; color: var(--ink); }
+.mc-feed-chip-wrap { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
+.mc-feed-chip-clickable { cursor: pointer; }
+.mc-feed-chip-clickable:hover { border-color: var(--accent-line); color: var(--accent); }
+.mc-feed-chip-detail { width: 100%; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .03); border-radius: 6px; overflow: hidden; }
+.mc-feed-chip-detail pre { margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--body); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 .mc-feed-pr-meta [data-merged="true"] { color: var(--ok); }
 .mc-hero .t { color: #5fc9b4; }
 .mc-hero .p { color: #3fbf9a; }

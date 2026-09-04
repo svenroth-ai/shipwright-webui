@@ -101,7 +101,9 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     });
     setup(transcript);
     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
-    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit /x/login.tsx.");
+    // No headline sentence any more (iterate-2026-09-05-mission-feed-ux-gaps
+    // removed the generic/label-derived fallback) — the real command chip is
+    // the only thing this card has to show.
     expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
     expect(screen.queryByText(/No run data yet/i)).not.toBeInTheDocument();
     // The left panel shows the business summary + the inferred stage.

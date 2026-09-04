@@ -9,8 +9,21 @@
 import stripAnsi from "strip-ansi";
 import type { ParsedEvent } from "../external/session-parser";
 import { sanitizeProofText, stripBidiOverrides, stripC1Controls, stripControl } from "./proofLines";
+import type { ActivityCard } from "./missionActivityFeedTypes";
 
-export const clean = (value: string) => sanitizeProofText(value.split("\n")[0] ?? "", 280);
+/**
+ * First-line headline text, sanitized and length-capped for compact display.
+ * `maxLen` defaults to the existing 280-char headline budget; pass
+ * `Infinity` (`cleanFull`) to recover the complete first line — needed
+ * because a real turn is very often ONE long paragraph with no internal
+ * newline, so `ownProseRest` (everything after the first line) is empty and
+ * the 280-char cap was silently discarding the rest of that paragraph with
+ * no way to ever see it again (reported: "nie croppen",
+ * iterate-2026-09-05-mission-feed-ux-gaps).
+ */
+export const clean = (value: string, maxLen = 280) => sanitizeProofText(value.split("\n")[0] ?? "", maxLen);
+/** The untruncated counterpart of `clean()` — same sanitization, no cap. */
+export const cleanFull = (value: string) => clean(value, Infinity);
 
 export function isCompactionMarker(event: ParsedEvent): boolean {
   return event.kind === "system" && (
@@ -26,21 +39,34 @@ export function commandDetail(input: unknown): string {
     : typeof value?.pattern === "string" ? value.pattern : "";
 }
 
-export function commandLabel(name: string, input: unknown): string {
+/**
+ * The compact chip label shown inline in the feed. `maxLen` defaults to the
+ * existing 180-char chip budget; pass `Infinity` (`commandLabelFull`) to
+ * recover the complete, untruncated command/detail text for a click-to-
+ * expand affordance (reported: commands could not be inspected in full,
+ * iterate-2026-09-05-mission-feed-ux-gaps).
+ */
+export function commandLabel(name: string, input: unknown, maxLen = 180): string {
   const detail = commandDetail(input);
-  return detail ? `${name}: ${sanitizeProofText(detail, 180)}` : `Used ${name}`;
+  return detail ? `${name}: ${sanitizeProofText(detail, maxLen)}` : `Used ${name}`;
+}
+/** The untruncated counterpart of `commandLabel()`. */
+export function commandLabelFull(name: string, input: unknown): string {
+  return commandLabel(name, input, Infinity);
 }
 
 /**
- * Turns an already-sanitized `commandLabel()` chip ("Tool: detail") into a
- * short standalone sentence ("Tool detail.") — reuses the exact same
- * sanitized/truncated text already shown in the command chip, never a new
- * raw-text exposure path.
+ * Attaches one command chip's label to a card, deduplicated by label (same
+ * contract `add()`'s coalescing already relied on), and records the FULL
+ * untruncated text under `commandFullText` only when it actually differs
+ * from the label — never a needless map entry for a chip that was never
+ * truncated. Shared between `missionActivityFeed.ts` (card creation) and
+ * `missionActivityFeedResolve.ts` (retry/recovery, which re-attaches a
+ * command to an EXISTING card) so both stay byte-identical.
  */
-export function sentenceFromLabel(label: string): string {
-  const colonIndex = label.indexOf(": ");
-  const sentence = colonIndex === -1 ? label : `${label.slice(0, colonIndex)} ${label.slice(colonIndex + 2)}`;
-  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+export function attachCommand(card: Pick<ActivityCard, "commands" | "commandFullText">, label: string, full: string): void {
+  if (!card.commands.includes(label)) card.commands.push(label);
+  if (full !== label) card.commandFullText = { ...card.commandFullText, [label]: full };
 }
 
 /**
@@ -101,7 +127,7 @@ const normalizeForMatch = (value: string) => value.trim().toLowerCase();
  * defensively since `askUserQuestionSummary()` only surfaces the FIRST
  * question (existing precedent), matching that shape's first block.
  */
-export function resolveQuestionAnswer(rawContent: string, options: string[]): { picked?: string; answer?: string } {
+export function resolveQuestionAnswer(rawContent: string, options: string[]): { picked?: string; answer?: string; answerFull?: string } {
   const trimmed = rawContent.trim();
   const direct = options.find((option) => normalizeForMatch(option) === normalizeForMatch(trimmed));
   if (direct) return { picked: direct };
@@ -109,6 +135,9 @@ export function resolveQuestionAnswer(rawContent: string, options: string[]): { 
   const body = (block ? block[1] : trimmed).trim();
   const bodyMatch = options.find((option) => normalizeForMatch(option) === normalizeForMatch(body));
   if (bodyMatch) return { picked: bodyMatch };
-  const excerpted = excerpt(body || trimmed);
-  return excerpted ? { answer: excerpted } : {};
+  const source = body || trimmed;
+  const excerpted = excerpt(source);
+  if (!excerpted) return {};
+  const full = excerpt(source, Infinity, Infinity);
+  return full.length > excerpted.length ? { answer: excerpted, answerFull: full } : { answer: excerpted };
 }

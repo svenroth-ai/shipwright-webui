@@ -1,7 +1,18 @@
 import { toolResults, type UserEvent } from "../external/session-parser";
 import type { MissionContext } from "./missionContextApi";
-import { excerpt, resolveQuestionAnswer } from "./missionActivityFeedText";
+import { attachCommand, excerpt, resolveQuestionAnswer } from "./missionActivityFeedText";
 import type { ActivityCard, ActivityKind } from "./missionActivityFeedTypes";
+
+/** Attaches `detail`/`detailFull` from a bounded excerpt of raw tool-result
+ *  content, the same "set `xFull` only when truncation actually happened"
+ *  contract as every other `xFull` field (iterate-2026-09-05-mission-feed-
+ *  ux-gaps — "nie croppen"). */
+function attachDetail(card: ActivityCard, content: string): void {
+  card.detail = excerpt(content);
+  const full = excerpt(content, Infinity, Infinity);
+  if (full.length > card.detail.length) card.detailFull = full;
+  else delete card.detailFull;
+}
 
 /** A tool_use id awaiting its matching `tool_result` — set when the card is
  *  created (deriveActivityFeed), consumed here once the result arrives. */
@@ -10,6 +21,11 @@ export interface PendingTool {
   card: ActivityCard;
   commandKey: string;
   label: string;
+  /** The untruncated counterpart of `label` — carried alongside it so a
+   *  recovered/retried command re-attached here can still populate
+   *  `commandFullText` via `attachCommand()` (iterate-2026-09-05-mission-
+   *  feed-ux-gaps). */
+  full: string;
   background: boolean;
 }
 
@@ -52,13 +68,14 @@ export function resolveToolResults(
         const resolved = resolveQuestionAnswer(result.content, pending.card.question.options);
         pending.card.question.picked = resolved.picked;
         pending.card.question.answer = resolved.answer;
+        pending.card.question.answerFull = resolved.answerFull;
         pending.card.text = "The requested user input was received and work could continue.";
       }
     } else if (pending.bucket === "test") {
       if (result.is_error) {
         pending.card.text = "This test command needs attention.";
         pending.card.status = "err";
-        pending.card.detail = excerpt(result.content);
+        attachDetail(pending.card, result.content);
         unresolvedTest = pending.card;
       } else if (pending.background) {
         // A shell acknowledgement is not proof that the spawned job ended.
@@ -80,7 +97,8 @@ export function resolveToolResults(
           : "This test command completed after an earlier failure.";
         unresolvedTest.status = undefined;
         unresolvedTest.detail = undefined;
-        if (!unresolvedTest.commands.includes(pending.label)) unresolvedTest.commands.push(pending.label);
+        delete unresolvedTest.detailFull;
+        attachCommand(unresolvedTest, pending.label, pending.full);
         cards.splice(cards.indexOf(pending.card), 1);
         testCards.splice(testCards.indexOf(pending.card), 1);
         unresolvedTest = null;
@@ -99,12 +117,13 @@ export function resolveToolResults(
       // guard alone would miss this transition — clearing at the
       // mutation site itself is unconditional and needs no counter).
       delete pending.card.explanation;
+      delete pending.card.explanationFull;
       // `add()` coalesces same-kind/text/artifact cards across several
       // tool_use ids (the "many-files-in-a-row" case) — attaching this
       // one command's error excerpt would misattribute it to a card
       // whose `commands` chip list still names other, unrelated,
       // non-erroring commands. Only attach when unambiguous.
-      if (pending.card.commands.length === 1) pending.card.detail = excerpt(result.content);
+      if (pending.card.commands.length === 1) attachDetail(pending.card, result.content);
       unresolvedBlockers.set(pending.commandKey, { card: pending.card, bucket: pending.bucket });
     } else if (unresolvedBlockers.has(pending.commandKey)) {
       const blocker = unresolvedBlockers.get(pending.commandKey)!;
@@ -124,10 +143,20 @@ export function resolveToolResults(
         blocker.card.text = "A command error recovered after a successful retry.";
         blocker.card.status = undefined;
         blocker.card.detail = undefined;
-        if (!blocker.card.commands.includes(pending.label)) blocker.card.commands.push(pending.label);
+        delete blocker.card.detailFull;
+        attachCommand(blocker.card, pending.label, pending.full);
         cards.splice(cards.indexOf(pending.card), 1);
         unresolvedBlockers.delete(pending.commandKey);
       }
+    } else if (pending.bucket === "review") {
+      // A successful review tool_result carries the actual verdict/findings
+      // text — previously discarded entirely (no branch matched it), so the
+      // card sat with no detail unless a DURABLE review artifact happened
+      // to exist later (missionActivityFeedReconcile.ts); a lighter one-off
+      // review (no `record_review_pass.py` call) never got that, leaving
+      // the card permanently empty (iterate-2026-09-05-mission-feed-ux-gaps,
+      // "External plan review wird angezeigt, aber das resultat nicht").
+      attachDetail(pending.card, result.content);
     }
   }
   return unresolvedTest;

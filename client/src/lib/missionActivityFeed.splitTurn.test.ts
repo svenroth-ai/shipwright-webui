@@ -47,12 +47,13 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
     const investigate = cards.find((c) => c.kind === "investigate");
     const implement = cards.find((c) => c.kind === "implement");
     expect(investigate?.text).toBe("Auditing the login flow for a session-fixation gap.");
-    // Not stale narration leaking from the first turn, and not the generic
-    // bucket sentence either — this card represents exactly one uncoalesced
-    // tool_use event, so the existing label-derived-sentence fallback
-    // (`sentenceFromLabel`) fires, same as it would for any card with no
-    // prose of its own at all.
-    expect(implement?.text).toBe("Write login.ts.");
+    // Not stale narration leaking from the first turn — this card's own
+    // turn wrote no narration at all, so `text` stays empty (no more
+    // generic-bucket-sentence or label-derived fallback,
+    // iterate-2026-09-05-mission-feed-ux-gaps); the chip still carries the
+    // real command.
+    expect(implement?.text).toBe("");
+    expect(implement?.commands).toContain("Write: login.ts");
   });
 
   it("two consecutive narration-only turns: the SECOND (most recent) turn's words win, not the first", () => {
@@ -129,8 +130,10 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
     ].join("\n")).events;
     const card = deriveActivityFeed(events, null).cards.find((c) => c.kind === "implement");
     expect(card?.text).not.toBe("Investigating the race condition in the scheduler.");
-    // Falls back to the existing label-derived sentence, same as any card with no prose at all.
-    expect(card?.text).toBe("Write emailTemplate.ts.");
+    // No fallback sentence any more — stays empty, same as any card with no
+    // prose of its own (iterate-2026-09-05-mission-feed-ux-gaps).
+    expect(card?.text).toBe("");
+    expect(card?.commands).toContain("Write: emailTemplate.ts");
   });
 
   it("trailing narration with no following tool call is dropped, not crashed on or leaked onto an unrelated later card", () => {
@@ -140,8 +143,10 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
     ].join("\n")).events;
     const feed = deriveActivityFeed(events, null);
     // The trailing narration produces no second card and does not overwrite
-    // this one — label-derived fallback, same as any card with no prose.
+    // this one — no fallback sentence, same as any card with no prose
+    // (iterate-2026-09-05-mission-feed-ux-gaps).
     expect(feed.cards).toHaveLength(1);
-    expect(feed.cards[0].text).toBe("Read auth.ts.");
+    expect(feed.cards[0].text).toBe("");
+    expect(feed.cards[0].commands).toContain("Read: auth.ts");
   });
 });

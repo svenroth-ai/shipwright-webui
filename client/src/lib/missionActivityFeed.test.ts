@@ -183,51 +183,81 @@ describe("deriveActivityFeed", () => {
     expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Checking how the auth guard handles a stale token.");
   });
 
-  it("derives a label-based sentence from a solo command when the turn carries no explanation", () => {
+  // iterate-2026-09-05-mission-feed-ux-gaps: the generic bucket sentence AND
+  // its label-derived second-tier fallback (`GENERIC_TEXT`/`sentenceFromLabel`)
+  // are both gone — reported as pure noise, since the same tool call already
+  // shows in the user's own terminal ("ich würde nur das printen, was claude
+  // sagt, keine Toolcalls mit standard Satz"). A card with no turn-authored
+  // prose now leaves `text` empty and renders through its command chip(s)
+  // alone; nothing invents a sentence from the chip label any more.
+  it("leaves the headline empty for a solo command with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("read1", "Read", { file_path: "auth.ts" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Read auth.ts.");
+    const card = feed.cards.find((card) => card.kind === "investigate");
+    expect(card?.text).toBe("");
+    expect(card?.textFull).toBeUndefined();
+    expect(card?.commands).toEqual(["Read: auth.ts"]);
   });
 
-  it("keeps the fully-generic sentence when several distinct commands coalesce into one card", () => {
+  it("leaves the headline empty when several distinct commands coalesce into one card", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), result("a"), tool("b", "Read", { file_path: "b.ts" }), result("b")].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("The existing behaviour was examined before changes were made.");
+    const card = feed.cards.find((card) => card.kind === "investigate");
+    expect(card?.text).toBe("");
+    expect(card?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
   });
 
-  it("keeps the fully-generic sentence when two distinct events share the same derived label", () => {
+  it("leaves the headline empty when two distinct events share the same derived label", () => {
     const events = parseSessionJsonl([tool("a", "TodoWrite", { todos: [] }), result("a"), tool("b", "TodoWrite", { todos: [] }), result("b")].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
     const card = feed.cards.find((c) => c.commands.includes("Used TodoWrite"));
-    expect(card?.text).toBe("The implementation was updated in compact steps.");
+    expect(card?.text).toBe("");
   });
 
-  it("derives a sentence for a solo TodoWrite call with no explanatory prose", () => {
+  it("leaves the headline empty for a solo TodoWrite call with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("a", "TodoWrite", { todos: [] })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))?.text).toBe("Used TodoWrite.");
+    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))?.text).toBe("");
   });
 
-  it("renders a token-like argument identically in the command chip and the promoted sentence", () => {
+  it("still shows the command chip's real label even when the headline is empty", () => {
     const events = parseSessionJsonl(tool("read1", "Read", { file_path: "src/config/api-key-rotation.ts" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
     const card = feed.cards.find((c) => c.kind === "investigate");
     expect(card?.commands[0]).toBe("Read: src/config/api-key-rotation.ts");
-    expect(card?.text).toBe("Read src/config/api-key-rotation.ts.");
+    expect(card?.text).toBe("");
   });
 
-  // External code review (low) — the second-tier fallback tests above only
-  // exercised `investigate`/`implement`; `review` and `spec` share the same
-  // backfill pass and must be covered independently.
-  it("derives a label-based sentence for a solo review card with no explanatory prose", () => {
+  // External code review (low) — the tests above only exercised
+  // `investigate`/`implement`; `review` and `spec` share the same
+  // empty-headline path and must be covered independently.
+  it("leaves the headline empty for a solo review card with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("t1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "review")?.text).toBe("Task Review the auth diff.");
+    const card = feed.cards.find((card) => card.kind === "review");
+    expect(card?.text).toBe("");
+    expect(card?.commands[0]).toBe("Task: Review the auth diff");
   });
 
-  it("derives a label-based sentence for a solo spec card with no explanatory prose", () => {
+  it("leaves the headline empty for a solo spec card with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("w1", "Write", { file_path: ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "spec")?.text).toBe("Write .shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md.");
+    expect(feed.cards.find((card) => card.kind === "spec")?.text).toBe("");
+  });
+
+  it("carries a card's headline into textFull only when the real turn text is longer than the 280-char cap (\"nie croppen\")", () => {
+    const longSentence = `${"This change touches a lot of surface area and needs a careful, thorough explanation. ".repeat(4)}Done.`;
+    const events = parseSessionJsonl(event({
+      type: "assistant",
+      message: { role: "assistant", content: [
+        { type: "text", text: longSentence },
+        { type: "tool_use", id: "read1", name: "Read", input: { file_path: "auth.ts" } },
+      ] },
+    })).events;
+    const feed = deriveActivityFeed(events, context("unknown"));
+    const card = feed.cards.find((card) => card.kind === "investigate");
+    expect(card?.text.length).toBeLessThanOrEqual(280);
+    expect(card?.textFull).toBe(longSentence);
+    expect(card?.textFull?.length).toBeGreaterThan(card!.text.length);
   });
 });
