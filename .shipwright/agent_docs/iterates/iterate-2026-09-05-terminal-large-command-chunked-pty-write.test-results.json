@@ -3,14 +3,14 @@
   "iterate_latest": {
     "run_id": "iterate-2026-09-05-terminal-large-command-chunked-pty-write",
     "date": "2026-09-05",
-    "unit": "PASS \u2014 client 3761 passed (409 files); server 3868 passed / 3 skipped (339 files)",
-    "integration": "n/a \u2014 no CRUD or service-boundary change; the fix is internal to PtyManager.write(), no route/schema/service surface changed",
-    "pgtap": "n/a \u2014 no RLS or schema change",
-    "e2e": "advisory-skip (small complexity, no touches_io_boundary/UI risk flag; the exact production failure mode requires a real macOS termios pty, unavailable in this Windows dev environment \u2014 flagged for a macOS tester per the operator's own plan)",
-    "design_fidelity": "n/a \u2014 no UI/visual change, server-only fix",
-    "smoke": "n/a \u2014 no server-wide behaviour change beyond the write chokepoint itself, covered by the full server unit suite above",
+    "unit": "PASS — client 3761 passed (409 files); server 3869 passed / 3 skipped (339 files)",
+    "integration": "n/a — no CRUD or service-boundary change; the fix is internal to PtyManager.write(), no route/schema/service surface changed",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "advisory-skip (small complexity, no touches_io_boundary/UI risk flag; the exact production failure mode requires a real macOS termios pty, unavailable in this Windows dev environment — flagged for a macOS tester per the operator's own plan)",
+    "design_fidelity": "n/a — no UI/visual change, server-only fix",
+    "smoke": "n/a — no server-wide behaviour change beyond the write chokepoint itself, covered by the full server unit suite above",
     "degraded": [
-      "The original production failure mode (macOS canonical-mode tty deadlock on an oversized pty write) could not be reproduced live in this environment: this development machine runs Windows (node-pty \u2192 ConPTY), which does not exhibit the same termios input-queue behavior as macOS. The fix's mechanism (chunking, UTF-8 safety, same-task write serialization, kill-abort) is unit-verified end to end; the original failure mode itself is not independently re-confirmed to be gone on macOS by this run."
+      "The original production failure mode (macOS canonical-mode tty deadlock on an oversized pty write) could not be reproduced live in this environment: this development machine runs Windows (node-pty → ConPTY), which does not exhibit the same termios input-queue behavior as macOS. The fix's mechanism (chunking, UTF-8 safety, same-task write serialization, kill-abort) is unit-verified end to end; the original failure mode itself is not independently re-confirmed to be gone on macOS by this run."
     ],
     "test_completeness": {
       "status": "complete",
@@ -71,6 +71,11 @@
           "evidence": "pty-manager.test.ts: 'a write that would exceed the pendingWrites byte cap is dropped whole...'"
         },
         {
+          "behavior": "Draining a very large queue of small writes does not overflow the call stack, and preserves delivery order (external Tier-3 PR review finding: the drain was mutually recursive with deliverOrChunk, one stack frame per queued write)",
+          "disposition": "tested",
+          "evidence": "pty-manager.test.ts: 'draining a very large queue of small writes does not overflow the stack, and preserves delivery order' (20,000-entry queue)"
+        },
+        {
           "behavior": "The original macOS production failure (canonical-mode tty input-queue deadlock on an oversized single pty write) is closed on a real macOS shell",
           "disposition": "untestable",
           "reason_code": "requires-physical-device",
@@ -78,8 +83,8 @@
         }
       ],
       "counts": {
-        "testable": 11,
-        "tested": 11,
+        "testable": 12,
+        "tested": 12,
         "untestable": 1,
         "untested_testable": 0
       },

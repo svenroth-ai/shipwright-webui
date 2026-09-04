@@ -68,6 +68,11 @@
         "evidence": "pty-manager.test.ts: 'a write that would exceed the pendingWrites byte cap is dropped whole...'"
       },
       {
+        "behavior": "Draining a very large queue of small writes does not overflow the call stack, and preserves delivery order (external Tier-3 PR review finding: the drain was mutually recursive with deliverOrChunk, one stack frame per queued write)",
+        "disposition": "tested",
+        "evidence": "pty-manager.test.ts: 'draining a very large queue of small writes does not overflow the stack, and preserves delivery order' (20,000-entry queue)"
+      },
+      {
         "behavior": "The original macOS production failure (canonical-mode tty input-queue deadlock on an oversized single pty write) is closed on a real macOS shell",
         "disposition": "untestable",
         "reason_code": "requires-physical-device",
@@ -75,8 +80,8 @@
       }
     ],
     "counts": {
-      "testable": 11,
-      "tested": 11,
+      "testable": 12,
+      "tested": 12,
       "untestable": 1,
       "untested_testable": 0
     },
