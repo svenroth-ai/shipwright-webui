@@ -50,7 +50,9 @@ __all__ = [
 # Full swap history and rationale (DeepSeek -> GLM 5.3 -> GPT-5.6 Luna; GLM's
 # silent-hang availability defect on the shared ZDR provider pool; the
 # Luna-vs-Sonnet benchmark/price check): mirrors the canonical shipwright
-# monorepo's iterate-2026-09-03-pr-review-sonnet-default.
+# monorepo's iterate-2026-09-03-pr-review-sonnet-default (run-id kept for
+# history — the swap landed on Luna, not Sonnet, after an empirical
+# benchmark/price check mid-run; same run-id, same reasoning, both repos).
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-pro"
 GLM_MODEL = "z-ai/glm-5.3"
 LUNA_MODEL = "openai/gpt-5.6-luna"
