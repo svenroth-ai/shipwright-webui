@@ -7,8 +7,8 @@
  * event-driven card-building loop above it: this half reads `context`, the
  * loop above never does except to gate whether an artifact chip is shown.
  */
-import type { ActivityCard, ActivityFeed } from "./missionActivityFeed";
 import type { ArtifactKind, CommitArtifact, MissionContext } from "./missionContextApi";
+import type { ActivityCard, ActivityFeed } from "./missionActivityFeedTypes";
 
 function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
   return context?.artifacts.some((item) => item.kind === kind && item.state === "available") ?? false;

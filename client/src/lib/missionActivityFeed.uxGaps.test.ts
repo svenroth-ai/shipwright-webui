@@ -100,6 +100,23 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "test" || c.kind === "implement");
     expect(card?.commandFullText).toBeUndefined();
   });
+
+  it("keeps the FIRST command's full text when two different commands share the same truncated chip label (code review catch)", () => {
+    const sharedPrefix = "a".repeat(200);
+    const events = parseSessionJsonl([
+      tool("w1", "Write", { file_path: `${sharedPrefix}/first.ts` }),
+      tool("w2", "Write", { file_path: `${sharedPrefix}/second.ts` }),
+    ].join("\n")).events;
+    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
+    // Both calls truncate to the identical chip label (the divergence point
+    // is past the 180-char cap), so `commands` coalesces them into one chip
+    // — but the click-to-expand text must stay stable rather than silently
+    // flip to whichever command attached second (would misrepresent the
+    // first command's own full path as belonging to the chip).
+    expect(card?.commands).toHaveLength(1);
+    const label = card!.commands[0];
+    expect(card?.commandFullText?.[label]).toBe(`Write: ${sharedPrefix}/first.ts`);
+  });
 });
 
 describe("deriveActivityFeed — test-bucket cards use only their own narration (issue #1, 2nd spec-reviewer pass)", () => {

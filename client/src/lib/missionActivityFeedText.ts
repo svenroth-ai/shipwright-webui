@@ -80,7 +80,13 @@ export function commandLabel(name: string, input: unknown, maxLen = 180): string
   const detail = commandDetail(input);
   return detail ? `${name}: ${sanitizeProofText(detail, maxLen)}` : `Used ${name}`;
 }
-/** The untruncated counterpart of `commandLabel()`. */
+/** The untruncated counterpart of `commandLabel()`. Still routes through
+ * `sanitizeProofText`'s single-line collapse (code review note), so a
+ * multi-line command (heredoc, multi-line commit message body) loses its
+ * real line breaks in the expanded view same as the truncated chip already
+ * did — accepted for this iterate; `excerpt()`/`explanationExcerpt()` are
+ * the newline-preserving alternatives used for `detailFull`/`explanationFull`
+ * where that mattered more. */
 export function commandLabelFull(name: string, input: unknown): string {
   return commandLabel(name, input, Infinity);
 }
@@ -96,7 +102,15 @@ export function commandLabelFull(name: string, input: unknown): string {
  */
 export function attachCommand(card: Pick<ActivityCard, "commands" | "commandFullText">, label: string, full: string): void {
   if (!card.commands.includes(label)) card.commands.push(label);
-  if (full !== label) card.commandFullText = { ...card.commandFullText, [label]: full };
+  // Never overwrite an already-recorded full text for this label (code
+  // review catch): two DIFFERENT commands can share the same truncated
+  // 180-char label (e.g. two long paths that diverge only past the cap),
+  // and the chip lookup is by label alone — silently flipping the stored
+  // full text to whichever command happened to attach second would make
+  // the click-to-expand view lie about which command it belongs to.
+  if (full !== label && !card.commandFullText?.[label]) {
+    card.commandFullText = { ...card.commandFullText, [label]: full };
+  }
 }
 
 /**
