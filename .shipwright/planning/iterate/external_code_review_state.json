@@ -1,15 +1,15 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-03T21:59:50.774563+00:00",
-  "provider": "openrouter",
-  "findings_count": 2,
+  "timestamp": "2026-09-05T05:56:42.098308+00:00",
+  "provider": null,
+  "findings_count": 4,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (2) may understate what was found",
+  "reason": "only some provider legs could be itemized \u2014 the count (4) may understate what was found",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "approve",
-    "openai": "approve"
+    "openai": "approve",
+    "glm": "approve"
   },
   "contradiction": {
     "detected": false,

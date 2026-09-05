@@ -1,0 +1,84 @@
+{
+  "run_id": "iterate-2026-09-05-nav-collapse-and-version-badges",
+  "date": "2026-09-05T06:07:46.193091Z",
+  "event_at": "2026-09-03T22:30:10.226264+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/nav-collapse-version-badges",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-05-nav-collapse-and-version-badges",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Desktop sidebar defaults to expanded (full labels, brand logo, collapse button visible)",
+        "disposition": "tested",
+        "evidence": "E2E 98-sidebar-collapse-persist.spec.ts; unit SidebarNav.test.tsx"
+      },
+      {
+        "behavior": "Clicking collapse shows an icons-only rail (w-[60px]) and swaps in the expand button",
+        "disposition": "tested",
+        "evidence": "E2E 98-sidebar-collapse-persist.spec.ts (asserts width class, not boundingBox, to avoid a CSS-transition race); unit SidebarNav.test.tsx"
+      },
+      {
+        "behavior": "The collapsed/expanded choice persists across a reload",
+        "disposition": "tested",
+        "evidence": "E2E 98-sidebar-collapse-persist.spec.ts (localStorage read + reload); unit SidebarNav.test.tsx"
+      },
+      {
+        "behavior": "Expanding back clears the collapsed rail and updates storage to false",
+        "disposition": "tested",
+        "evidence": "E2E 98-sidebar-collapse-persist.spec.ts; unit SidebarNav.test.tsx"
+      },
+      {
+        "behavior": "The pre-existing <=1023px compact/tablet viewport-driven auto-collapse (useMediaCollapse) is unaffected by the new desktop preference",
+        "disposition": "tested",
+        "evidence": "unit SidebarNav.org-presence.test.tsx + existing SidebarNav.test.tsx compact-band cases, all re-verified green"
+      },
+      {
+        "behavior": "shipwright-plugin-version-reader.ts reads the marketplace manifest's suite version, or returns null on any error",
+        "disposition": "tested",
+        "evidence": "server/src/core/shipwright-plugin-version-reader.test.ts (8 unit tests)"
+      },
+      {
+        "behavior": "/api/diagnostics surfaces shipwrightPlugin.version alongside the existing app.version",
+        "disposition": "tested",
+        "evidence": "server/src/routes/diagnostics.plugin-version.test.ts; server/src/routes/diagnostics.app-version.test.ts"
+      },
+      {
+        "behavior": "Diagnostics page renders both the WebUI version and the plugin version in a new Versions section",
+        "disposition": "tested",
+        "evidence": "E2E 98-diagnostics-versions.spec.ts"
+      },
+      {
+        "behavior": "Diagnostics shows \"(not detected)\" instead of a blank value when the plugin version is unresolvable (null)",
+        "disposition": "tested",
+        "evidence": "E2E 98-diagnostics-versions.spec.ts"
+      },
+      {
+        "behavior": "Diagnostics degrades to the fallback (no crash) when a stale server omits shipwrightPlugin entirely",
+        "disposition": "tested",
+        "evidence": "E2E 98-diagnostics-versions.spec.ts"
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 5,
+    "exit_code": 0,
+    "justification": "Both features are DOM/layout and cross-page-load behaviors verified in a real browser via the project's isolated-stack Playwright harness against a production build. 5/5 tests passed."
+  },
+  "declared_removals": []
+}

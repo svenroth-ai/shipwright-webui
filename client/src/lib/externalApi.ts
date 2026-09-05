@@ -151,6 +151,8 @@ export type {
 } from "./inboxItemTypes";
 
 export interface DiagnosticsSnapshot {
+  app: { name: string; version: string };
+  shipwrightPlugin: { version: string | null };
   claudeCli: {
     raw: string;
     parsed: { major: number; minor: number; patch: number } | null;

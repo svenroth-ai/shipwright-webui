@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-05-nav-collapse-and-version-badges",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-05T05:49:11.625802+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-05T05:56:32.946475+00:00",
+      "disposition": "mini-plan is FEATURE-only at small complexity per the Phase Matrix; this run is a CHANGE-type intent",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-05T05:49:32.495492+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-05T05:56:32.842746+00:00",
+      "disposition": "doubt-reviewer is conditional on a non-trivial surface (migrations, async/concurrency, cross-plugin imports, irreversible ops) per iteration-reviews.md; this diff touches none of those",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/pages/DiagnosticsPage.tsx` (Versions section, `data.shipwrightPlugin.version ?? \"(not detected)\")` The `??` only guards a `null` version, not a missing `shipwrightPlugin` object. If the client build ever runs against an older server (deploy skew, cached response, or a snapshot from before this change), `data.shipwrightPlugin` is `undefined` and `data.shipwrightPlugin.versio […truncated]",
+          "line": null,
+          "finding": "Use `data.shipwrightPlugin?.version ?? \"(not detected)\"` (and consider the same for `data.app`).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/core/shipwright-plugin-version-reader.test.ts` All reader tests inject manifest content; nothing validates that the real `~/.claude/plugins/marketplaces/shipwright/.claude-plugin/marketplace.json` actually has a top-level `version` field (Claude Code marketplace manifests commonly carry versions per-plugin under `plugins[]`, not top-level). If the real schema lacks it, the  […truncated]",
+          "line": null,
+          "finding": "Add a one-shot sanity check (e.g., a skipped-by-default integration test or a logged manual verification against the actual repo manifest) that the top-level `version` stamp exists.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/sidebar/SidebarNav.tsx:58-60 (`useLocalStorage` call) `useLocalStorage` is pre-existing and not shown here; if it doesn't guard `JSON.parse` failures, a corrupt or non-JSON value under `shipwright:sidebar-collapsed` (e.g., `\"yes\"`, set by an older build or by hand) would throw during render and take down the entire sidebar chrome on every page.",
+          "line": null,
+          "finding": "Confirm the hook falls back to the default on parse errors; if it doesn't, wrap the read. (Only actionable if the hook lacks that guard.)",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/routes/diagnostics.ts` (`readPluginVersion` seam) The handler now `await`s `readPluginVersion()` with no try/catch. The real reader never rejects, but any injected/custom seam that rejects turns the whole diagnostics route into a 500 — a regression for the previously fully-synchronous, never-throwing route.",
+          "line": null,
+          "finding": "Wrap the await (`try { ... } catch { null }`) or rely on the reader's own guarantee and document it as a contract.",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-05T05:56:42.091286+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Review\n\n### Spec compliance\n\nBoth acceptance criteria are implemented:\n\n1. **Collapsible sidebar with icons-only rail, persisted, default expanded** — `SidebarNav.tsx` adds `userCollapsed` via `useLocalStorage('shipwright:sidebar-collapsed', false)`, default `false` (expanded), and selects it only on desktop (`isCompact ? mediaCollapsed : userCollapsed`), leaving the ≤1023px session-only behavior untouched. The toggle's visibility gate is widened from `isCompact && !drawer` to `!drawer`. Both unit tests and a real-browser E2E cover default, collapse, persistence-across-reload, and expand-back. Compliant.\n2. **Diagnostics versions** — `/api/diagnostics` now returns `shipwrightPlugin.version` read from the marketplace manifest; `DiagnosticsPage.tsx` renders both the WebUI version and the plugin version with a `(not detected)` fallback. Compliant.\n\n### Findings\n\n- **Category: edge-case** — **Severity: medium**\n  **File: `client/src/pages/DiagnosticsPage.tsx` (Versions section, `data.shipwrightPlugin.version ?? \"(not detected)\")`**\n  The `??` only guards a `null` version, not a missing `shipwrightPlugin` object. If the client build ever runs against an older server (deploy skew, cached response, or a snapshot from before this change), `data.shipwrightPlugin` is `undefined` and `data.shipwrightPlugin.version` throws, breaking the whole Diagnostics page — exactly the class of failure the `null` fallback is meant to prevent.\n  **Suggestion:** Use `data.shipwrightPlugin?.version ?? \"(not detected)\"` (and consider the same for `data.app`).\n\n- **Category: test** — **Severity: low**\n  **File: `server/src/core/shipwright-plugin-version-reader.test.ts`**\n  All reader tests inject manifest content; nothing validates that the *real* `~/.claude/plugins/marketplaces/shipwright/.claude-plugin/marketplace.json` actually has a top-level `version` field (Claude Code marketplace manifests commonly carry versions per-plugin under `plugins[]`, not top-level). If the real sc […truncated]\n\n[openai] No concrete defects found. The change implements the specified desktop-only persisted sidebar collapse and diagnostics version display; error handling for an unavailable/malformed marketplace manifest correctly falls back to `null`, and the added tests exercise both primary behavior and fallback paths.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-05T05:49:32.397539+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-05T05:56:33.055732+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

@@ -19,6 +19,7 @@ import { Hono } from "hono";
 
 import { MIN_SUPPORTED_CLI, type ClaudeVersionInfo } from "../core/cli-compat.js";
 import { SdkSessionsStore } from "../core/sdk-sessions-store.js";
+import { readShipwrightPluginVersion } from "../core/shipwright-plugin-version-reader.js";
 
 export interface ClaudeCliDiagnostic {
   /** Stdout of `where claude` / `which claude`, trimmed. Empty if cmd failed. */
@@ -48,6 +49,14 @@ export interface DiagnosticsSnapshot {
    * hardcoded literal ("0.1.0") and is left untouched.
    */
   app: { name: string; version: string };
+  /**
+   * iterate-2026-09-05-nav-collapse-and-version-badges — the shipwright
+   * plugin SUITE version (all 14 plugin.json + marketplace.json stamps
+   * release in lockstep, see CLAUDE.md memory), read from the "shipwright"
+   * marketplace manifest. `null` when the plugin isn't installed / not
+   * found — never a fatal condition for this route.
+   */
+  shipwrightPlugin: { version: string | null };
   claudeCli: {
     raw: string;
     parsed: ClaudeVersionInfo["parsed"];
@@ -172,11 +181,14 @@ export function createDiagnosticsRoutes(args: {
   versionInfo: () => ClaudeVersionInfo;
   /** A06 — override the reported app version (test seam). Defaults to package.json. */
   appVersion?: string;
+  /** Test seam — defaults to the real ~/.claude marketplace-manifest reader. */
+  readPluginVersion?: () => Promise<string | null>;
 }) {
   const app = new Hono();
   const appVersion = args.appVersion ?? readAppVersion();
+  const readPluginVersion = args.readPluginVersion ?? (() => readShipwrightPluginVersion());
 
-  app.get("/api/diagnostics", (c) => {
+  app.get("/api/diagnostics", async (c) => {
     const v = args.versionInfo();
     const tasks = args.store.list();
     const byState: Record<string, number> = {};
@@ -194,6 +206,7 @@ export function createDiagnosticsRoutes(args: {
     }
     const snapshot: DiagnosticsSnapshot = {
       app: { name: APP_NAME, version: appVersion },
+      shipwrightPlugin: { version: await readPluginVersion() },
       claudeCli,
       sessions: {
         total: tasks.length,

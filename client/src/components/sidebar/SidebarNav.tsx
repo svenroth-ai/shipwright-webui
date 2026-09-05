@@ -5,6 +5,15 @@ import { InboxBadge } from './InboxBadge';
 import { TriageBadge } from './TriageBadge';
 import { COMPACT_MEDIA_QUERY, useIsCompactViewport } from '../../hooks/useIsCompactViewport';
 import { useOrgChartPresence } from '../../hooks/useOrgChartPresence';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+
+/**
+ * Desktop (non-compact) rail preference, persisted across reloads —
+ * separate from the compact/tablet band's `useMediaCollapse` (viewport-
+ * driven necessity, session-only). Default `false` = expanded, per the
+ * explicit ask ("Default ist expanded").
+ */
+export const SIDEBAR_COLLAPSED_STORAGE_KEY = 'shipwright:sidebar-collapsed';
 
 interface SidebarNavProps {
   inboxCount: number;
@@ -43,11 +52,19 @@ function useMediaCollapse() {
 }
 
 export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate }: SidebarNavProps) {
-  const [collapsed, setCollapsed] = useMediaCollapse();
-  // Read-only compact signal (does NOT track the user's expand/collapse like
-  // `collapsed` does) — gates the collapse affordance so it only appears in the
-  // ≤1023 band. Desktop has room for the permanent 200px sidebar, so no toggle.
+  const [mediaCollapsed, setMediaCollapsed] = useMediaCollapse();
+  // Desktop rail preference — user-toggleable, persisted (default expanded).
+  const [userCollapsed, setUserCollapsed] = useLocalStorage<boolean>(
+    SIDEBAR_COLLAPSED_STORAGE_KEY,
+    false,
+  );
+  // Read-only compact signal — picks which of the two collapse states above
+  // is authoritative right now: the ≤1023 band keeps its viewport-driven,
+  // session-only state (tablet-view-polish AC-1); desktop reads the
+  // persisted preference.
   const isCompact = useIsCompactViewport();
+  const collapsed = isCompact ? mediaCollapsed : userCollapsed;
+  const setCollapsed = isCompact ? setMediaCollapsed : setUserCollapsed;
   // Drawer always shows full labels — the ≤1023 rail (sr-only labels) must not
   // leak into the ≤767 drawer (plan-review H2).
   const railed = drawer ? false : collapsed;
@@ -83,9 +100,10 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
             />
             {/* AC-1 (tablet-view-polish): collapse-back affordance. Without it
                 the user could expand the rail but never collapse it again
-                (the reported "Menu kann man nicht collapsen" bug). Compact
-                band only; the phone drawer closes via the Radix overlay. */}
-            {isCompact && !drawer && (
+                (the reported "Menu kann man nicht collapsen" bug). Now also
+                on desktop, where it drives the persisted preference above;
+                the phone drawer closes via the Radix overlay instead. */}
+            {!drawer && (
               <button
                 type="button"
                 onClick={() => setCollapsed(true)}
