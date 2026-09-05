@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-05-terminal-large-command-chunked-pty-write",
+  "date": "2026-09-05",
+  "section": "Iterate — bug: embedded-terminal-large-command-hang",
+  "title": "Chunk pty.write() to stop the macOS large-command hang",
+  "context": "Prod incident (macOS): a first launch with a ~5.8KB prompt baked into the command froze the server. PtyManager.write() forwarded the whole burst in one call; macOS's ~1KB canonical-mode tty queue can't drain until the trailing newline arrives, which was stuck at the end of that same blocked write() — deadlocking the Node main thread and every session on it. See spec-ref for full incident/root-cause detail.",
+  "decision": "PtyManager.write() now measures UTF-8 byte length; a burst over ptyWriteChunkBytes (default 512) is split by the new chunkUtf8ForPtyWrite() helper into UTF-8-safe sub-cap chunks, written one per real-timer tick (default 5ms, via injectable scheduleChunkWrite) instead of one atomic write(). A killed/torn-down task aborts remaining chunks. Small writes take the old single-call path unchanged.",
+  "consequences": "No architectural change to the write chokepoint or to DO-NOT #19 (auto-execute stays a client WS data-frame). +89 LOC in the already-exception pty-manager.ts (ADR-101, baseline updated) + 5 new unit tests (+123 LOC in the already-grandfathered test file, baseline updated). A long first-launch prompt now takes tens of ms longer to fully type; imperceptible against Claude Code's cold start.",
+  "rationale": "Chunking at the single existing write chokepoint fixes every caller (keystrokes, launch command, paste-path) in one place. Sub-cap size keeps each write under the queue that deadlocked; the real-timer gap between chunks yields the event loop so the OS scheduler and other sessions both get to run — node-pty's IPty exposes no drain signal to wait on directly.",
+  "rejected": "(1) Only wait longer for shell-readiness — already shipped (ADR-068-A1), provably insufficient: readiness is timing, this is a burst-size deadlock. (2) Chunk client-side before the WS send — would touch DO-NOT #19 for no gain; paste-image writes never go through the client auto-launch path at all. (3) A prompt-length validation cap — treats the symptom; a long legitimate prompt isn't the bug.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-05-terminal-large-command-chunked-pty-write-chunked-pty-write.md"
+}

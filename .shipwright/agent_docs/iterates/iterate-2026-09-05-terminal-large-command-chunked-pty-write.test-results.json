@@ -1,0 +1,109 @@
+{
+  "last_updated": "2026-09-05",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-05-terminal-large-command-chunked-pty-write",
+    "date": "2026-09-05",
+    "unit": "PASS — client 3761 passed (409 files); server 3869 passed / 3 skipped (339 files)",
+    "integration": "n/a — no CRUD or service-boundary change; the fix is internal to PtyManager.write(), no route/schema/service surface changed",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "advisory-skip (small complexity, no touches_io_boundary/UI risk flag; the exact production failure mode requires a real macOS termios pty, unavailable in this Windows dev environment — flagged for a macOS tester per the operator's own plan)",
+    "design_fidelity": "n/a — no UI/visual change, server-only fix",
+    "smoke": "n/a — no server-wide behaviour change beyond the write chokepoint itself, covered by the full server unit suite above",
+    "degraded": [
+      "The original production failure mode (macOS canonical-mode tty deadlock on an oversized pty write) could not be reproduced live in this environment: this development machine runs Windows (node-pty → ConPTY), which does not exhibit the same termios input-queue behavior as macOS. The fix's mechanism (chunking, UTF-8 safety, same-task write serialization, kill-abort) is unit-verified end to end; the original failure mode itself is not independently re-confirmed to be gone on macOS by this run."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A write at/under the chunk cap is forwarded as a single, unmodified pty.write call (no behavior change for the common case)",
+          "disposition": "tested",
+          "evidence": "pty-manager.test.ts: 'a write at/under the chunk cap is forwarded as a single, unmodified pty.write call'"
+        },
+        {
+          "behavior": "An oversized single-burst write (6KB repro) is split into sub-cap chunks that reconstruct the exact original bytes",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'an oversized single-burst write (repro: 6 KB launch command) is split into sub-cap chunks...'"
+        },
+        {
+          "behavior": "chunkUtf8ForPtyWrite never splits a multi-byte UTF-8 sequence across a chunk boundary",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'never splits a multi-byte UTF-8 sequence across a chunk boundary'"
+        },
+        {
+          "behavior": "chunkUtf8ForPtyWrite terminates and round-trips exactly for a misconfigured maxBytes <= 0 (would otherwise hang forever)",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: it.each([0,-5,1,2,3]) 'terminates and round-trips exactly when maxBytes=%d (clamped to a 4-byte floor)'"
+        },
+        {
+          "behavior": "The default scheduler yields real event-loop turns between chunks (not one synchronous burst)",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'the default scheduler yields real event-loop turns between chunks...' (vi.useFakeTimers)"
+        },
+        {
+          "behavior": "A task killed mid-chunked-write stops delivering the remaining chunks",
+          "disposition": "tested",
+          "evidence": "pty-manager.test.ts: 'a task killed mid-chunked-write stops delivering the remaining chunks'"
+        },
+        {
+          "behavior": "A respawn for the same taskId after a kill-mid-drain starts with a clean write queue",
+          "disposition": "tested",
+          "evidence": "pty-manager.test.ts: 'a respawn for the same taskId after a kill-mid-drain starts with a clean write queue...'"
+        },
+        {
+          "behavior": "A second (small) write arriving mid-drain is queued, not interleaved, behind the in-flight chunked write",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'a write arriving mid-drain is queued, not interleaved, behind the in-flight chunked write'"
+        },
+        {
+          "behavior": "A second oversized write queued mid-drain is itself chunked once its turn comes",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'a second oversized write queued mid-drain is itself chunked once its turn comes'"
+        },
+        {
+          "behavior": "A mouse report (writeMouseReport) arriving mid-drain is queued behind the in-flight burst, not spliced into it",
+          "disposition": "tested",
+          "evidence": "pty-manager.test.ts: 'a mouse report arriving mid-drain is queued behind the in-flight burst, not spliced into it'"
+        },
+        {
+          "behavior": "A write that would exceed the pendingWrites byte cap is dropped whole, without corrupting the already-queued writes",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'a write that would exceed the pendingWrites byte cap is dropped whole...'"
+        },
+        {
+          "behavior": "Draining a very large queue of small writes does not overflow the call stack, and preserves delivery order (external Tier-3 PR review finding: the drain was mutually recursive with deliverOrChunk, one stack frame per queued write)",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'draining a very large queue of small writes does not overflow the stack, and preserves delivery order' (20,000-entry queue)"
+        },
+        {
+          "behavior": "A synchronous scheduleChunkWrite scheduler chunking a very large payload does not overflow the call stack (external Tier-3 PR review finding, 2nd pass: writeNext recursed into itself once per chunk when the injectable scheduler fired synchronously)",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'a synchronous scheduler chunking a very large payload does not overflow the stack' (200,000-byte payload, 12,500 chunks)"
+        },
+        {
+          "behavior": "The original macOS production failure (canonical-mode tty input-queue deadlock on an oversized single pty write) is closed on a real macOS shell",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "This dev environment is Windows (node-pty -> ConPTY), which does not reproduce macOS's termios canonical-mode input-queue behavior; needs a real macOS tester per the operator's own plan."
+        }
+      ],
+      "counts": {
+        "testable": 13,
+        "tested": 13,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-05-terminal-large-command-chunked-pty-write",
+    "commit": "dfe80bc0c66854a06d2f1b18607cc4620c1553f8",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

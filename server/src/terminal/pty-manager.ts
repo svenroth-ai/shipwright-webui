@@ -29,6 +29,7 @@ import { IdleReaper, DEFAULT_IDLE_TIMEOUT_MS } from "./idle-reaper.js";
 import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
 import { writeSnapshotPreservingLarger } from "./snapshot-preserve.js";
 import { BackpressureTelemetry, type BackpressureNotice } from "./backpressure-telemetry.js";
+import { ChunkedPtyWriter, type ChunkWriteScheduler } from "./pty-write-chunker.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -302,6 +303,16 @@ interface PtyEntry {
    *  scrollback appends so a parked flush / stuck shell can't resurrect a wiped
    *  side-file. Lives on the entry (which the parked flush holds) → no leak. */
   tornDown?: boolean;
+  /**
+   * Chunked-write serialization state (iterate-2026-09-05-terminal-large-
+   * command-chunked-pty-write) — owned and documented by `ChunkedPtyWriter`
+   * in `pty-write-chunker.ts`, which is the sole reader/writer of these
+   * three fields. Declared here only because `PtyEntry` is the concrete
+   * object passed to it (structurally satisfying `ChunkedPtyWriteEntry`).
+   */
+  chunkWriteBusy?: boolean;
+  pendingWrites?: string[];
+  pendingWritesBytes?: number;
 }
 
 export interface PtyManagerOpts {
@@ -350,6 +361,15 @@ export interface PtyManagerOpts {
    * @xterm/headless's package.json on disk.
    */
   expectedTerminalVersion?: string;
+  /**
+   * Chunked-write options (iterate-2026-09-05-terminal-large-command-
+   * chunked-pty-write) — passed straight through to `ChunkedPtyWriter`;
+   * see `pty-write-chunker.ts` for what each one does and why.
+   */
+  ptyWriteChunkBytes?: number;
+  ptyWriteChunkDelayMs?: number;
+  scheduleChunkWrite?: ChunkWriteScheduler;
+  pendingWriteBytesCap?: number;
 }
 
 /** Sentinel for the legacy token-less pause()/resume() API. */
@@ -370,6 +390,8 @@ export class PtyManager {
   private readonly watchdogIntervalMs: number;
   private readonly watchdogEnabledOpt: boolean;
   private readonly nowFn: () => number;
+  /** Chunking + same-task write serialization for the pty.write() chokepoint (pty-write-chunker.ts). */
+  private readonly chunkedWriter: ChunkedPtyWriter;
   private watchdogTimer: ReturnType<typeof setInterval> | null = null;
   /**
    * Per-conn capability tracking (per external review code-pass —
@@ -413,6 +435,12 @@ export class PtyManager {
     this.watchdogIntervalMs = opts.watchdogIntervalMs ?? 2_000;
     this.watchdogEnabledOpt = opts.watchdogEnabled ?? false;
     this.nowFn = opts.now ?? Date.now;
+    this.chunkedWriter = new ChunkedPtyWriter({
+      ptyWriteChunkBytes: opts.ptyWriteChunkBytes,
+      ptyWriteChunkDelayMs: opts.ptyWriteChunkDelayMs,
+      scheduleChunkWrite: opts.scheduleChunkWrite,
+      pendingWriteBytesCap: opts.pendingWriteBytesCap,
+    });
     if (this.watchdogEnabledOpt) {
       this.watchdogTimer = setInterval(
         () => this.watchdogTick(),
@@ -582,6 +610,11 @@ export class PtyManager {
     }
   }
 
+  /**
+   * Forwards to `ChunkedPtyWriter` (pty-write-chunker.ts) — see that module
+   * for why an oversized single write can deadlock the pty on macOS, and
+   * how chunking + same-task serialization fix it.
+   */
   write(taskId: string, data: string): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
@@ -589,7 +622,7 @@ export class PtyManager {
     // The one signal for "no longer virgin" — set on real input, never
     // at attach-time (iterate-2026-08-16-task-lifecycle-ux-fixes).
     entry.hadDataWritten = true;
-    entry.pty.write(data);
+    this.chunkedWriter.write(entry, data);
   }
 
   /**
@@ -598,13 +631,18 @@ export class PtyManager {
    * BOTH roles reach this, since it is how a reader scrolls/selects inside
    * Claude's live TUI. Deliberately skips the `hadDataWritten` latch above:
    * a scroll or selection gesture is not "real input" for the reused-pty
-   * heuristic that latch feeds.
+   * heuristic that latch feeds. Routed through the SAME `ChunkedPtyWriter`
+   * as `write()` (doubt-review finding, 2026-09-05): a mouse report used to
+   * write straight to `entry.pty`, which was safe when every write() call
+   * was one atomic statement, but chunking opened a real multi-tick window
+   * during which a reader's scroll gesture could splice bytes into the
+   * middle of a still-draining launch-command burst.
    */
   writeMouseReport(taskId: string, data: string): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
     this.touchIdle(entry);
-    entry.pty.write(data);
+    this.chunkedWriter.write(entry, data);
   }
 
   resize(taskId: string, cols: number, rows: number): void {

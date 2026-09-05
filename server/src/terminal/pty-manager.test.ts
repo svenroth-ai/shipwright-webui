@@ -214,6 +214,108 @@ describe("PtyManager — spawn / write / resize / kill", () => {
   });
 });
 
+describe("PtyManager — chunked pty write (iterate-2026-09-05-terminal-large-command-chunked-pty-write)", () => {
+  // `chunkUtf8ForPtyWrite` and `ChunkedPtyWriter`'s own chunking/queuing/
+  // stack-safety behavior are unit-tested directly in
+  // pty-write-chunker.test.ts (extracted as a cohesive split alongside
+  // pty-write-chunker.ts). The tests below stay here because they verify
+  // PtyManager-level WIRING: real spawn/kill/respawn lifecycle interacting
+  // with the shared writer, and that writeMouseReport() shares the same
+  // queue as write().
+  let spawn: ReturnType<typeof makeSpawn>;
+
+  beforeEach(() => {
+    spawn = makeSpawn();
+  });
+
+  // @covers FR-01.28
+  it("a write at/under the chunk cap is forwarded as a single, unmodified pty.write call", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn, ptyWriteChunkBytes: 512 });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    mgr.write("t1", "ls\n");
+    expect(spawn.lastPty().__writes).toEqual(["ls\n"]);
+  });
+
+  // @covers FR-01.28
+  it("a task killed mid-chunked-write stops delivering the remaining chunks", () => {
+    const scheduled: Array<() => void> = [];
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      ptyWriteChunkBytes: 512,
+      scheduleChunkWrite: (cb) => scheduled.push(cb),
+    });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    mgr.write("t1", "z".repeat(2000));
+    const fake = spawn.lastPty();
+    expect(fake.__writes.length).toBe(1);
+
+    void mgr.kill("t1");
+    expect(fake.__killed).toBe(true);
+
+    // Draining the still-pending scheduled callbacks must not resurrect
+    // writes into the now-torn-down pty.
+    while (scheduled.length > 0) {
+      const next = scheduled.shift()!;
+      next();
+    }
+    expect(fake.__writes.length).toBe(1);
+  });
+
+  // Doubt-review finding (2026-09-05, info-level): the respawn-safety claim
+  // (a fresh entry object always starts with chunkWriteBusy/pendingWrites
+  // unset) held by construction but had no dedicated test. Converts that
+  // structural argument into a guarded invariant.
+  it("a respawn for the same taskId after a kill-mid-drain starts with a clean write queue (not blocked by the old entry's stale busy state)", () => {
+    const scheduled: Array<() => void> = [];
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      ptyWriteChunkBytes: 512,
+      scheduleChunkWrite: (cb) => scheduled.push(cb),
+    });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    mgr.write("t1", "z".repeat(2000)); // starts draining, chunkWriteBusy = true on the OLD entry
+    void mgr.kill("t1");
+
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" }); // respawn — a fresh entry/pty
+    const respawned = spawn.lastPty();
+    mgr.write("t1", "ready\n");
+
+    // The new entry's write must land immediately — not queued behind the
+    // old, torn-down entry's now-irrelevant busy state.
+    expect(respawned.__writes).toEqual(["ready\n"]);
+  });
+
+  // Doubt-review finding (2026-09-05): writeMouseReport() used to write
+  // straight to entry.pty, bypassing the same-task queue entirely — a
+  // reader's scroll gesture could splice into a still-draining burst.
+  it("a mouse report arriving mid-drain is queued behind the in-flight burst, not spliced into it", () => {
+    const scheduled: Array<() => void> = [];
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      ptyWriteChunkBytes: 512,
+      scheduleChunkWrite: (cb) => scheduled.push(cb),
+    });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const firstBurst = "x".repeat(2000);
+    mgr.write("t1", firstBurst);
+    expect(scheduled.length).toBe(1);
+
+    const mouseReport = "\x1b[<64;30;7M";
+    mgr.writeMouseReport("t1", mouseReport);
+    // Must NOT land immediately — that would splice it into the burst.
+    expect(spawn.lastPty().__writes.length).toBe(1);
+
+    while (scheduled.length > 0) {
+      const next = scheduled.shift()!;
+      next();
+    }
+
+    const writes = spawn.lastPty().__writes;
+    expect(writes[writes.length - 1]).toBe(mouseReport);
+    expect(writes.slice(0, -1).join("")).toBe(firstBurst);
+  });
+});
+
 describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
   let spawn: ReturnType<typeof makeSpawn>;
 

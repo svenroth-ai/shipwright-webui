@@ -600,17 +600,18 @@
     {
       "path": "server/src/terminal/pty-manager.test.ts",
       "limit": 300,
-      "current": 519,
+      "current": 621,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-17-test-traceability-retrofit"
+      "adr": "iterate-2026-07-17-test-traceability-retrofit",
+      "note": "iterate-2026-09-05-terminal-large-command-chunked-pty-write: grew to 837 across four review passes, then most of that (216 lines, 9 of 13 new tests) was extracted to the new pty-write-chunker.test.ts (under-limit, no exception) as part of the same iterate's cohesive split -- see the pty-manager.ts note below. Net effect on this file: +102 (519 -> 621), 4 tests that verify PtyManager-level wiring only (kill/respawn lifecycle interacting with the shared writer; writeMouseReport sharing the same queue as write())."
     },
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1299,
+      "current": 1337,
       "state": "exception",
       "adr": "ADR-101",
-      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern"
+      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern. iterate-2026-09-05-terminal-large-command-chunked-pty-write: write() first grew in-place to chunk an oversized single-burst write (chunkUtf8ForPtyWrite + deliverOrChunk/drainPendingWrites, 4 new PtyManagerOpts knobs) to close a real production hang -- an unchunked write() of a multi-KB first-launch command deadlocked the macOS pty's canonical-mode input queue and froze the server's event loop -- reaching 1523 lines (+224) across three internal review passes plus one external Tier-3 PR review (which found a genuinely new stack-overflow bug in the recursive drain, fixed by making it iterative). The user then asked whether this could be made SMALLER instead of just raising the ratchet again: the whole chunking/serialization mechanism was a cohesive, self-contained concern (touches only entry.pty.write() + its own busy/queue bookkeeping, nothing else PtyManager owns), so it was extracted to a new module pty-write-chunker.ts (254 lines, under the 300 limit, no exception needed) as a ChunkedPtyWriter class -- mirroring this file's own existing BackpressureTelemetry precedent (backpressure-telemetry.ts). PtyManager now holds one `chunkedWriter` field and delegates write()/writeMouseReport() to it; PtyEntry keeps only the three data fields (chunkWriteBusy/pendingWrites/pendingWritesBytes) since ChunkedPtyWriter needs a concrete object to mutate, with their detailed doc comments moved to the new module. Net effect on THIS file: +38 over the pre-iterate baseline (1299 -> 1337) instead of +224 -- same responsibility bullet 6, smaller than it would otherwise be, not a new concern."
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
