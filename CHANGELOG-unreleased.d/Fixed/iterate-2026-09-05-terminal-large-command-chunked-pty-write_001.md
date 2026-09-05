@@ -1,1 +1,0 @@
-Embedded terminal: a first task launch with a long prompt could freeze the whole server on macOS — the launch command is now written into the pty in sub-KB chunks instead of one oversized burst that could deadlock the shell's input queue.

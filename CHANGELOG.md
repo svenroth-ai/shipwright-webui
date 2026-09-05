@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.27.0] - 2026-09-05
+
+### Added
+
+- Task Board: Bot dropdown + BellDot toolbar filters for lead-agent work (lead:/lead-wait:/lead-dedup: tags), an in-place TaskCard expander showing domain/priority/complexity, and a bot glyph beside the project pill for lead-originated cards (FR-04.11).
+- Inbox: a new 'lead_question' card kind surfaces a leadwright follow-up question with an inline answer field (PATCHes the task's PO feedback) and Dismiss.
+- Org page now renders each lead's follow-up conversation (question/answer rounds, in order, with open rounds clearly marked) beneath their card, once leadwright's round data lands (FR-04.42).
+- Task Board: claimed cards now show a chip naming who holds them and since when, and a toolbar toggle filters the board to claimed tasks only.
+- Org page follow-up threads now render leadwright's real round-store data (GET /api/org/threads) instead of an empty stub.
+- Desktop sidebar can now be collapsed to icons-only via a toggle button; the choice persists across reloads and defaults to expanded.
+- Diagnostics page now shows the WebUI version and the current Shipwright plugin version.
+
+### Changed
+
+- The vendored Tier-3 PR-review gate now defaults to GLM 5.3 (z-ai/glm-5.3) instead of DeepSeek, after DeepSeek was found to repeatedly hallucinate a false block verdict on the canonical monorepo's PR #668. DeepSeek remains available as an operator override via SHIPWRIGHT_PR_REVIEW_MODEL.
+- Org lead cards now label spend as '{N}-day USD consumed' (never 'budget'), name the un-counted subagent-spend gap, surface unpriced-call counts, and distinguish no-data / partial / complete measurement windows.
+
+### Fixed
+
+- Bootstrapper port probe now follows SHIPWRIGHT_NETWORK_PROFILE instead of hardcoding loopback, fixing attach/swap detection under `SHIPWRIGHT_NETWORK_PROFILE=tailscale` (#415)
+- The claim holder can now (re)launch a claimed task by presenting the current claimToken within a 24h window, instead of being refused by the same 409 that blocks everyone else
+- pr_review.py now logs a bounded, scrubbed decision excerpt (decision, exit code, summary) to CI stderr on every outcome, not just unknown decisions — a legitimate block/approve/comment no longer looks like a silent hang in CI logs (ports canonical shipwright PR #674)
+- Mission Activity Feed no longer prints templated filler text ("The implementation was updated in compact steps.", "This test command completed.", etc.) for tool calls — cards show Claude's own narration or nothing; long text (headlines, explanations, test output, question answers) and long Bash commands can now be expanded to their full untruncated content instead of being permanently cropped; a successful review's own findings now reach the feed even without a durable review artifact; and the requirement/spec/decision backfill cards show the server's real summary instead of a generic placeholder
+- Embedded terminal: a first task launch with a long prompt could freeze the whole server on macOS — the launch command is now written into the pty in sub-KB chunks instead of one oversized burst that could deadlock the shell's input queue.
+
+### Security
+
+- Launch's claim check now re-reads the claim fresh from disk under the store's write lock before refusing, closing a stale-cache window where a long-running webui process could miss a claim another process (e.g. the leadwright daemon) had already written, letting two runners launch the same task
+
 ## [0.26.0] - 2026-09-01
 
 ### Added
