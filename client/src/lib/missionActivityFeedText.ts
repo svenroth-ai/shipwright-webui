@@ -7,10 +7,53 @@
  * transforms with no dependency on the reducer's mutation state machine.
  */
 import stripAnsi from "strip-ansi";
-import type { ParsedEvent } from "../external/session-parser";
+import { assistantText, type AssistantEvent, type ParsedEvent } from "../external/session-parser";
 import { sanitizeProofText, stripBidiOverrides, stripC1Controls, stripControl } from "./proofLines";
+import type { ActivityCard } from "./missionActivityFeedTypes";
 
-export const clean = (value: string) => sanitizeProofText(value.split("\n")[0] ?? "", 280);
+/**
+ * First-line headline text, sanitized and length-capped for compact display.
+ * `maxLen` defaults to the existing 280-char headline budget; pass
+ * `Infinity` (`cleanFull`) to recover the complete first line — needed
+ * because a real turn is very often ONE long paragraph with no internal
+ * newline, so `ownProseRest` (everything after the first line) is empty and
+ * the 280-char cap was silently discarding the rest of that paragraph with
+ * no way to ever see it again (reported: "nie croppen",
+ * iterate-2026-09-05-mission-feed-ux-gaps).
+ */
+export const clean = (value: string, maxLen = 280) => sanitizeProofText(value.split("\n")[0] ?? "", maxLen);
+/** The untruncated counterpart of `clean()` — same sanitization, no cap. */
+export const cleanFull = (value: string) => clean(value, Infinity);
+
+/** One assistant turn's own words, split into a headline (`ownProse`, first
+ * non-empty line) and the rest (`ownProseRest`), each with an untruncated
+ * `xFull` counterpart (iterate-2026-09-05-mission-feed-ux-gaps: "nie
+ * croppen"). A turn's own explanation replaces the generic bucket sentence
+ * when Claude wrote one (iterate-2026-08-13-mission-mobile-visual), reusing
+ * the same raw-JSONL `assistantText()` narrator-transcript.ts already
+ * narrates from — purely deterministic text extraction, never a new LLM
+ * call. Extracted out of `deriveActivityFeed`'s per-turn loop
+ * (iterate-2026-09-05-mission-feed-ux-gaps, bloat-ceiling split) — pure text
+ * transform with no dependency on the reducer's mutation state machine.
+ */
+export function extractOwnProse(event: AssistantEvent): {
+  ownProse: string; ownProseFull: string; ownProseRest: string; ownProseRestFull: string;
+} {
+  const assistantLines = assistantText(event).split("\n");
+  const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
+  const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
+  const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(assistantLines[firstNonEmptyIdx]);
+  // The turn's own words BEYOND its headline — never a bare `slice(1)`,
+  // which would leak a leading blank line's absence of content back in as
+  // if it were the headline (Internal Plan/External LLM Review finding).
+  // `join("\n")`, never space-joined or empty-line-filtered like
+  // `excerpt()`: this is plain-text-rendered prose, and blank lines are
+  // real paragraph breaks in it.
+  const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
+  const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
+  const ownProseRestFull = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw, Infinity, Infinity) : "";
+  return { ownProse, ownProseFull, ownProseRest, ownProseRestFull };
+}
 
 export function isCompactionMarker(event: ParsedEvent): boolean {
   return event.kind === "system" && (
@@ -26,21 +69,55 @@ export function commandDetail(input: unknown): string {
     : typeof value?.pattern === "string" ? value.pattern : "";
 }
 
-export function commandLabel(name: string, input: unknown): string {
+/**
+ * The compact chip label shown inline in the feed. `maxLen` defaults to the
+ * existing 180-char chip budget; pass `Infinity` (`commandLabelFull`) to
+ * recover the complete, untruncated command/detail text for a click-to-
+ * expand affordance (reported: commands could not be inspected in full,
+ * iterate-2026-09-05-mission-feed-ux-gaps).
+ */
+export function commandLabel(name: string, input: unknown, maxLen = 180): string {
   const detail = commandDetail(input);
-  return detail ? `${name}: ${sanitizeProofText(detail, 180)}` : `Used ${name}`;
+  return detail ? `${name}: ${sanitizeProofText(detail, maxLen)}` : `Used ${name}`;
+}
+/** The untruncated counterpart of `commandLabel()`. Still routes through
+ * `sanitizeProofText`'s single-line collapse (code review note), so a
+ * multi-line command (heredoc, multi-line commit message body) loses its
+ * real line breaks in the expanded view same as the truncated chip already
+ * did — accepted for this iterate; `excerpt()`/`explanationExcerpt()` are
+ * the newline-preserving alternatives used for `detailFull`/`explanationFull`
+ * where that mattered more. */
+export function commandLabelFull(name: string, input: unknown): string {
+  return commandLabel(name, input, Infinity);
 }
 
 /**
- * Turns an already-sanitized `commandLabel()` chip ("Tool: detail") into a
- * short standalone sentence ("Tool detail.") — reuses the exact same
- * sanitized/truncated text already shown in the command chip, never a new
- * raw-text exposure path.
+ * Attaches one command chip's label to a card, deduplicated by label (same
+ * contract `add()`'s coalescing already relied on), and records the FULL
+ * untruncated text under `commandFullText` only when it actually differs
+ * from the label — never a needless map entry for a chip that was never
+ * truncated. Shared between `missionActivityFeed.ts` (card creation) and
+ * `missionActivityFeedResolve.ts` (retry/recovery, which re-attaches a
+ * command to an EXISTING card) so both stay byte-identical.
  */
-export function sentenceFromLabel(label: string): string {
-  const colonIndex = label.indexOf(": ");
-  const sentence = colonIndex === -1 ? label : `${label.slice(0, colonIndex)} ${label.slice(colonIndex + 2)}`;
-  return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`;
+export function attachCommand(card: Pick<ActivityCard, "commands" | "commandFullText">, label: string, full: string, options: { overwrite?: boolean } = {}): void {
+  if (!card.commands.includes(label)) card.commands.push(label);
+  // Never overwrite an already-recorded full text for this label by default
+  // (code review catch): two DIFFERENT commands can share the same
+  // truncated 180-char label (e.g. two long paths that diverge only past
+  // the cap), and the chip lookup is by label alone — silently flipping the
+  // stored full text to whichever command happened to attach second would
+  // make the click-to-expand view lie about which command it belongs to.
+  //
+  // `options.overwrite` is the deliberate exception (doubt-review catch):
+  // a retry/recovery call site isn't attaching a SIBLING command that
+  // happens to share a label — it's replacing the ENTIRE card's stale
+  // state (status/detail already get cleared unconditionally right next to
+  // these call sites) with the incoming, just-succeeded command's own
+  // data, so that data must win even over a same-label collision.
+  if (full !== label && (options.overwrite || !card.commandFullText?.[label])) {
+    card.commandFullText = { ...card.commandFullText, [label]: full };
+  }
 }
 
 /**
@@ -101,7 +178,7 @@ const normalizeForMatch = (value: string) => value.trim().toLowerCase();
  * defensively since `askUserQuestionSummary()` only surfaces the FIRST
  * question (existing precedent), matching that shape's first block.
  */
-export function resolveQuestionAnswer(rawContent: string, options: string[]): { picked?: string; answer?: string } {
+export function resolveQuestionAnswer(rawContent: string, options: string[]): { picked?: string; answer?: string; answerFull?: string } {
   const trimmed = rawContent.trim();
   const direct = options.find((option) => normalizeForMatch(option) === normalizeForMatch(trimmed));
   if (direct) return { picked: direct };
@@ -109,6 +186,9 @@ export function resolveQuestionAnswer(rawContent: string, options: string[]): { 
   const body = (block ? block[1] : trimmed).trim();
   const bodyMatch = options.find((option) => normalizeForMatch(option) === normalizeForMatch(body));
   if (bodyMatch) return { picked: bodyMatch };
-  const excerpted = excerpt(body || trimmed);
-  return excerpted ? { answer: excerpted } : {};
+  const source = body || trimmed;
+  const excerpted = excerpt(source);
+  if (!excerpted) return {};
+  const full = excerpt(source, Infinity, Infinity);
+  return full.length > excerpted.length ? { answer: excerpted, answerFull: full } : { answer: excerpted };
 }

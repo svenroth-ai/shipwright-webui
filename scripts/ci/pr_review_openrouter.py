@@ -10,7 +10,7 @@ Stdlib urllib only: the script carries no third-party HTTP dependency and runs
 under whatever environment the CI runner's Python resolves.
 
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
-# canonical-source-commit: 4146a610295e900d01af3865228a0ec9af028918
+# canonical-source-commit: fee93227c391e3d641aec75fba99eb1ef0908bff
 # canonical-source-paths:
 #   plugins/shipwright-security/scripts/lib/pr_review_openrouter.py
 #   plugins/shipwright-security/scripts/tools/pr_review.py  (the ADR-117 extraction)
@@ -20,6 +20,9 @@ under whatever environment the CI runner's Python resolves.
 #     `extra_body` merge, mirroring the monorepo's DeepSeek ZDR routing)
 #   + iterate-2026-09-01-pr-review-glm-model (DEFAULT_MODEL swap to GLM 5.3,
 #     DeepSeek kept as the named operator-override constant)
+#   + iterate-2026-09-03-pr-review-sonnet-default (DEFAULT_MODEL swap to
+#     GPT-5.6 Luna after GLM 5.3 was found to silently hang on the shared ZDR
+#     provider pool; GLM kept as the named operator-override constant)
 # adaptation: NOT byte-identical, so no canonical-source-hash line is claimed
 #   (spelled without the leading marker on purpose; `tests/test_accepted_risks_vendored.py`
 #   scans for that literal string). Divergences from any single upstream blob:
@@ -35,18 +38,25 @@ import urllib.error
 import urllib.request
 
 __all__ = [
-    "DEEPSEEK_MODEL", "GLM_MODEL", "DEFAULT_MODEL", "DEFAULT_TIMEOUT",
-    "OPENROUTER_URL", "call_openrouter",
+    "DEEPSEEK_MODEL", "GLM_MODEL", "LUNA_MODEL", "DEFAULT_MODEL",
+    "DEFAULT_TIMEOUT", "OPENROUTER_URL", "call_openrouter",
 ]
 
 # Named constants — DEFAULT_MODEL, the ZDR-routing model match in
 # pr_review_model_policy.py, and every test/workflow assertion all read these,
-# so they cannot drift into separate copies of the same literal. DeepSeek stays
-# a fully wired operator override (SHIPWRIGHT_PR_REVIEW_MODEL=deepseek/...)
-# after the GLM 5.3 swap below — never treat "kept as a constant" as dead code.
+# so they cannot drift into separate copies of the same literal. DeepSeek and
+# GLM stay fully wired operator overrides (SHIPWRIGHT_PR_REVIEW_MODEL=...)
+# after the Luna swap below — never treat "kept as a constant" as dead code.
+# Full swap history and rationale (DeepSeek -> GLM 5.3 -> GPT-5.6 Luna; GLM's
+# silent-hang availability defect on the shared ZDR provider pool; the
+# Luna-vs-Sonnet benchmark/price check): mirrors the canonical shipwright
+# monorepo's iterate-2026-09-03-pr-review-sonnet-default (run-id kept for
+# history — the swap landed on Luna, not Sonnet, after an empirical
+# benchmark/price check mid-run; same run-id, same reasoning, both repos).
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-pro"
 GLM_MODEL = "z-ai/glm-5.3"
-DEFAULT_MODEL = GLM_MODEL
+LUNA_MODEL = "openai/gpt-5.6-luna"
+DEFAULT_MODEL = LUNA_MODEL
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # ONE default for the whole tool — the CLI flag and the direct call share it.

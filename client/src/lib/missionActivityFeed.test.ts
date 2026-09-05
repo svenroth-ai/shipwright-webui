@@ -31,6 +31,11 @@ describe("deriveActivityFeed", () => {
   it("ignores a stale result that appears before its matching tool call", () => {
     const events = parseSessionJsonl([result("test"), tool("test", "Bash", { command: "npm test" })].join("\n")).events;
     const feed = deriveActivityFeed(events, context("pass"));
+    // The stale result has no matching pending tool at the time it is seen,
+    // so it is dropped and the card is left genuinely still awaiting a
+    // result — reconcile's `pendingTest` fallback is what supplies this
+    // text, not an invented per-card sentence (iterate-2026-09-05-mission-
+    // feed-ux-gaps).
     expect(feed.cards.find((card) => card.kind === "test")?.text).toMatch(/needs attention/i);
   });
 
@@ -47,7 +52,12 @@ describe("deriveActivityFeed", () => {
   });
 
   it("keeps a short security run honest when its test gate fails", () => {
-    expect(deriveActivityFeed(shortSecurityFixture, fixtureContext("fail")).cards.find((card) => card.kind === "test")?.text).toMatch(/needs attention/i);
+    // No hardcoded per-card sentence any more (iterate-2026-09-05-mission-
+    // feed-ux-gaps) — the failure is carried structurally via `status`/
+    // `detail`, since the fixture's turn wrote no narration of its own.
+    const card = deriveActivityFeed(shortSecurityFixture, fixtureContext("fail")).cards.find((card) => card.kind === "test");
+    expect(card?.status).toBe("err");
+    expect(card?.detail).toBeTruthy();
   });
 
   it("renders a release from durable artifacts without a transcript", () => {
@@ -75,14 +85,25 @@ describe("deriveActivityFeed", () => {
   it("keeps a later unresolved failure from being reported as a pass", () => {
     const events = parseSessionJsonl([tool("test", "Bash", { command: "npm test" }), result("test", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("pass"));
-    expect(feed.cards.find((card) => card.kind === "test")?.text).toMatch(/needs attention/i);
+    // The recorded gate ("pass") still owns the pill (documented, pre-
+    // existing behaviour — a stale local failure must never contradict it),
+    // but the stale failure evidence must not linger under it either
+    // (iterate-2026-09-05-mission-feed-ux-gaps: no more hardcoded caveat
+    // sentence, so the "was not verified" signal is the cleared `detail`).
+    const card = feed.cards.find((card) => card.kind === "test");
+    expect(card?.status).toBe("ok");
+    expect(card?.detail).toBeUndefined();
   });
 
   it("requires a verified retry before a failed test episode can recover", () => {
     const failed = parseSessionJsonl([tool("first", "Bash", { command: "npm test" }), result("first", true)].join("\n")).events;
-    expect(deriveActivityFeed(failed, context("pass")).cards.find((card) => card.kind === "test")?.text).toMatch(/needs attention/i);
+    const failedCard = deriveActivityFeed(failed, context("pass")).cards.find((card) => card.kind === "test");
+    expect(failedCard?.status).toBe("ok");
+    expect(failedCard?.detail).toBeUndefined();
     const recovered = parseSessionJsonl([tool("first", "Bash", { command: "npm test" }), result("first", true), tool("retry", "Bash", { command: "npm test" }), result("retry")].join("\n")).events;
-    expect(deriveActivityFeed(recovered, context("pass")).cards.filter((card) => card.kind === "test").at(-1)?.text).toMatch(/recovered/i);
+    const recoveredCard = deriveActivityFeed(recovered, context("pass")).cards.filter((card) => card.kind === "test").at(-1);
+    expect(recoveredCard?.status).toBe("ok");
+    expect(recoveredCard?.text).toBe("Tests have a recorded passing result.");
   });
 
   it("keeps a new test failure unresolved after an earlier recovery", () => {
@@ -92,8 +113,14 @@ describe("deriveActivityFeed", () => {
       tool("last", "Bash", { command: "npm test" }), result("last", true),
     ].join("\n")).events;
     const cards = deriveActivityFeed(events, context("pass")).cards.filter((card) => card.kind === "test");
-    expect(cards.at(-1)?.text).toMatch(/needs attention/i);
-    expect(cards.some((card) => /recovered/i.test(card.text))).toBe(true);
+    // The last locally-observed attempt failed again — the gate ("pass")
+    // still owns the pill, but no stale detail from that failure survives
+    // onto it (same rationale as above; only the LAST test card gets the
+    // reconcile-time fallback text, so the merged-recovery card in the
+    // middle legitimately has none of its own).
+    expect(cards.at(-1)?.status).toBe("ok");
+    expect(cards.at(-1)?.detail).toBeUndefined();
+    expect(cards.length).toBe(2);
   });
 
   it("coalesces a recovered non-test blocker into one finished episode", () => {
@@ -183,51 +210,81 @@ describe("deriveActivityFeed", () => {
     expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Checking how the auth guard handles a stale token.");
   });
 
-  it("derives a label-based sentence from a solo command when the turn carries no explanation", () => {
+  // iterate-2026-09-05-mission-feed-ux-gaps: the generic bucket sentence AND
+  // its label-derived second-tier fallback (`GENERIC_TEXT`/`sentenceFromLabel`)
+  // are both gone — reported as pure noise, since the same tool call already
+  // shows in the user's own terminal ("ich würde nur das printen, was claude
+  // sagt, keine Toolcalls mit standard Satz"). A card with no turn-authored
+  // prose now leaves `text` empty and renders through its command chip(s)
+  // alone; nothing invents a sentence from the chip label any more.
+  it("leaves the headline empty for a solo command with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("read1", "Read", { file_path: "auth.ts" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Read auth.ts.");
+    const card = feed.cards.find((card) => card.kind === "investigate");
+    expect(card?.text).toBe("");
+    expect(card?.textFull).toBeUndefined();
+    expect(card?.commands).toEqual(["Read: auth.ts"]);
   });
 
-  it("keeps the fully-generic sentence when several distinct commands coalesce into one card", () => {
+  it("leaves the headline empty when several distinct commands coalesce into one card", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), result("a"), tool("b", "Read", { file_path: "b.ts" }), result("b")].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("The existing behaviour was examined before changes were made.");
+    const card = feed.cards.find((card) => card.kind === "investigate");
+    expect(card?.text).toBe("");
+    expect(card?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
   });
 
-  it("keeps the fully-generic sentence when two distinct events share the same derived label", () => {
+  it("leaves the headline empty when two distinct events share the same derived label", () => {
     const events = parseSessionJsonl([tool("a", "TodoWrite", { todos: [] }), result("a"), tool("b", "TodoWrite", { todos: [] }), result("b")].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
     const card = feed.cards.find((c) => c.commands.includes("Used TodoWrite"));
-    expect(card?.text).toBe("The implementation was updated in compact steps.");
+    expect(card?.text).toBe("");
   });
 
-  it("derives a sentence for a solo TodoWrite call with no explanatory prose", () => {
+  it("leaves the headline empty for a solo TodoWrite call with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("a", "TodoWrite", { todos: [] })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))?.text).toBe("Used TodoWrite.");
+    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))?.text).toBe("");
   });
 
-  it("renders a token-like argument identically in the command chip and the promoted sentence", () => {
+  it("still shows the command chip's real label even when the headline is empty", () => {
     const events = parseSessionJsonl(tool("read1", "Read", { file_path: "src/config/api-key-rotation.ts" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
     const card = feed.cards.find((c) => c.kind === "investigate");
     expect(card?.commands[0]).toBe("Read: src/config/api-key-rotation.ts");
-    expect(card?.text).toBe("Read src/config/api-key-rotation.ts.");
+    expect(card?.text).toBe("");
   });
 
-  // External code review (low) — the second-tier fallback tests above only
-  // exercised `investigate`/`implement`; `review` and `spec` share the same
-  // backfill pass and must be covered independently.
-  it("derives a label-based sentence for a solo review card with no explanatory prose", () => {
+  // External code review (low) — the tests above only exercised
+  // `investigate`/`implement`; `review` and `spec` share the same
+  // empty-headline path and must be covered independently.
+  it("leaves the headline empty for a solo review card with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("t1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "review")?.text).toBe("Task Review the auth diff.");
+    const card = feed.cards.find((card) => card.kind === "review");
+    expect(card?.text).toBe("");
+    expect(card?.commands[0]).toBe("Task: Review the auth diff");
   });
 
-  it("derives a label-based sentence for a solo spec card with no explanatory prose", () => {
+  it("leaves the headline empty for a solo spec card with no explanatory prose", () => {
     const events = parseSessionJsonl(tool("w1", "Write", { file_path: ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md" })).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "spec")?.text).toBe("Write .shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md.");
+    expect(feed.cards.find((card) => card.kind === "spec")?.text).toBe("");
+  });
+
+  it("carries a card's headline into textFull only when the real turn text is longer than the 280-char cap (\"nie croppen\")", () => {
+    const longSentence = `${"This change touches a lot of surface area and needs a careful, thorough explanation. ".repeat(4)}Done.`;
+    const events = parseSessionJsonl(event({
+      type: "assistant",
+      message: { role: "assistant", content: [
+        { type: "text", text: longSentence },
+        { type: "tool_use", id: "read1", name: "Read", input: { file_path: "auth.ts" } },
+      ] },
+    })).events;
+    const feed = deriveActivityFeed(events, context("unknown"));
+    const card = feed.cards.find((card) => card.kind === "investigate");
+    expect(card?.text.length).toBeLessThanOrEqual(280);
+    expect(card?.textFull).toBe(longSentence);
+    expect(card?.textFull?.length).toBeGreaterThan(card!.text.length);
   });
 });

@@ -11,12 +11,30 @@ export interface ActivityQuestion {
   resolved: boolean;
   picked?: string;
   answer?: string;
+  /** The untruncated counterpart of `answer` — set only when the real
+   * content is actually longer than the bounded excerpt shown by default
+   * (iterate-2026-09-05-mission-feed-ux-gaps: an answer's own excerpt was
+   * silently cropped with no way to read the rest). */
+  answerFull?: string;
 }
 
 export interface ActivityCard {
   kind: ActivityKind;
   text: string;
+  /** The untruncated counterpart of `text` — set only when the turn's real
+   * headline text is actually longer than the 280-char display cap (most
+   * often a real turn's ENTIRE explanation, since a genuine turn is very
+   * often one long paragraph with no internal newline — so there is no
+   * separate `explanation` to fall back to). Never set for a static/generic
+   * card text (nothing to expand). iterate-2026-09-05-mission-feed-ux-gaps. */
+  textFull?: string;
   commands: string[];
+  /** Untruncated command/detail text for one of `commands`' entries, keyed
+   * by that (possibly-truncated) label — populated only when the full text
+   * actually differs from the label shown, so a click-to-expand affordance
+   * has something real to reveal (iterate-2026-09-05-mission-feed-ux-gaps:
+   * a long Bash command could not be inspected past its 180-char preview). */
+  commandFullText?: Record<string, string>;
   artifact?: ArtifactKind;
   /** ISO-8601 timestamp of the JSONL event that created this card (its OWN
    * transcript timestamp, never a client-side "now") — absent when the source
@@ -45,9 +63,16 @@ export interface ActivityCard {
    * one assistant turn contributed to this card (see `cardTurnCounts` in
    * `missionActivityFeed.ts`); never an empty string. */
   explanation?: string;
+  /** The untruncated counterpart of `explanation` — same "set only when
+   * real truncation happened" contract as `textFull`
+   * (iterate-2026-09-05-mission-feed-ux-gaps). */
+  explanationFull?: string;
   /** Pill state, always derived from MissionContext — never string-matched
    * from `text`. */
   status?: "ok" | "err" | "warn";
+  /** The untruncated counterpart of `detail` — same contract as `textFull`
+   * (iterate-2026-09-05-mission-feed-ux-gaps). */
+  detailFull?: string;
   question?: ActivityQuestion;
 }
 
