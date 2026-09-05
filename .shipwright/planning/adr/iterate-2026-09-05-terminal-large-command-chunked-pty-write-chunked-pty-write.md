@@ -80,6 +80,59 @@ falls back to the default chunk size for any non-finite input.
 across four review passes) and `pty-manager.test.ts` to 837 lines (+318,
 13 new tests) — both bloat-baseline entries updated accordingly.
 
+### Amendment 4 (extraction, post external Tier-3 PR review)
+
+The PR's Tier-3 review approved Amendment 3's fix outright but still blocked
+on policy: raising the recorded bloat-baseline `current` for two
+already-oversized files requires explicit maintainer sign-off before merge.
+Asked whether the file could be made smaller instead of the ratchet simply
+being raised again, the growth was re-examined under the same lens ADR-101
+and the `feedback_bloat_retirement_split` convention both apply: is this a
+COHESIVE, self-contained concern that can move across a file boundary
+verbatim, rather than a per-handler/per-branch fragmentation (which ADR-101
++ ADR-103 both reject as "moving complexity outward")?
+
+It was. The entire chunking/serialization mechanism — `chunkUtf8ForPtyWrite`,
+`deliverOrChunk`/`drainPendingWrites`, the `chunkWriteBusy`/`pendingWrites`/
+`pendingWritesBytes` bookkeeping, and the four `PtyManagerOpts` knobs — only
+ever touches an entry's `pty.write()` call and its own busy/queue state,
+never anything else `PtyManager` owns. This file already carries the exact
+precedent for this move: `BackpressureTelemetry` (`backpressure-telemetry.ts`)
+was extracted the same way for the opposite (pty→WS) direction's cap/notify
+logic. So the mechanism moved to a new module, `pty-write-chunker.ts`,
+as a `ChunkedPtyWriter` class:
+
+- `PtyEntry` is not imported into the new file. `ChunkedPtyWriteEntry` is a
+  narrow *structural* interface (`pty.write()` + the three bookkeeping
+  fields + `tornDown`) that `PtyEntry` satisfies without any change on its
+  side — no dependency cycle, and a fresh `PtyEntry` on respawn still starts
+  with all three fields unset by construction, so the existing
+  respawn-safety test needed no change.
+- `PtyManager` now holds one `private readonly chunkedWriter: ChunkedPtyWriter`
+  field (constructed once from the same `PtyManagerOpts` knobs) and
+  `write()`/`writeMouseReport()` both delegate to `chunkedWriter.write(entry, data)`.
+- `PtyEntry`'s three bookkeeping fields stay (a concrete object has to carry
+  them), but their detailed doc comments moved to the new module, which is
+  now their sole reader/writer.
+- Tests split the same way: `chunkUtf8ForPtyWrite`'s 4 pure-function tests
+  and 5 of the `ChunkedPtyWriter`-behavior tests (oversized-split, default-
+  scheduler, mid-drain queuing ×2, byte-cap-drop, the 20k-entry stack-safety
+  test — 9 of the 13 new tests) moved verbatim to a new `pty-write-chunker.test.ts`,
+  testable directly against `ChunkedPtyWriter` with a minimal fake `pty.write()`
+  sink, no `PtyManager`/spawn harness needed. The remaining 4 stayed in
+  `pty-manager.test.ts` because they specifically verify PtyManager-level
+  WIRING, not the chunker's own logic: kill()-mid-drain and respawn (real
+  lifecycle interacting with the shared writer instance) and the mouse-report
+  test (proving `writeMouseReport()` shares the same queue as `write()`).
+
+Net result: `pty-manager.ts` 1523 → 1337 lines (+38 over the pre-iterate
+baseline of 1299, down from +224), `pty-manager.test.ts` 837 → 621 lines
+(+102 over the pre-iterate baseline of 519, down from +318). The two new
+files are 254 and 237 lines respectively — both under the 300-line default,
+needing no bloat-baseline exception at all. Full server suite re-verified
+green (339 files, 3869 passed / 3 skipped) after the split; `tsc --noEmit`
+and `oxlint` clean.
+
 ## Context
 
 Production incident (macOS): a task's first launch bakes the full task prompt
@@ -129,14 +182,20 @@ DO-NOT #19 (auto-execute stays a client-side WS data-frame).
 ## Consequences
 
 - `server/src/terminal/pty-manager.ts` grows from a pre-iterate baseline of
-  1299 to 1523 lines (+224 net, across four review passes — see Amendment 3
-  for the final pass). It is already an ADR-101 bloat-baseline "exception";
-  the baseline's `current` + `note` were updated in the same commit, same
-  responsibility bullet (the writer path), not a new concern.
-- `server/src/terminal/pty-manager.test.ts` grows from a pre-iterate baseline
-  of 519 to 837 lines (+318, 13 new tests + a `chunkUtf8ForPtyWrite`
-  unit-test block); it is already a grandfathered bloat entry, `current`
-  updated likewise.
+  1299 to 1337 lines (+38 net). It peaked at 1523 (+224) across the first
+  four review passes before Amendment 4 extracted the whole chunking
+  mechanism to a new module (`pty-write-chunker.ts`, 254 lines, no bloat
+  exception needed) as a cohesive split. It is already an ADR-101
+  bloat-baseline "exception"; the baseline's `current` + `note` were
+  updated in the same commit, same responsibility bullet (the writer
+  path), not a new concern.
+- `server/src/terminal/pty-manager.test.ts` grows from a pre-iterate
+  baseline of 519 to 621 lines (+102). It peaked at 837 (+318, 13 new
+  tests) before Amendment 4 moved 9 of those 13 tests (the chunker's own
+  pure-function + behavior coverage) to a new `pty-write-chunker.test.ts`
+  (237 lines, no bloat exception needed), keeping only the 4 tests that
+  verify PtyManager-level wiring. It is already a grandfathered bloat
+  entry, `current` updated likewise.
 - New `PtyManagerOpts` fields: `ptyWriteChunkBytes`, `ptyWriteChunkDelayMs`,
   `scheduleChunkWrite` — all optional, all defaulted, no call-site changes
   required at either of `write()`'s two production call sites

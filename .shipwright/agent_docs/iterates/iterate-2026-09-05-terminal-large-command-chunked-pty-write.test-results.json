@@ -23,22 +23,22 @@
         {
           "behavior": "An oversized single-burst write (6KB repro) is split into sub-cap chunks that reconstruct the exact original bytes",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'an oversized single-burst write (repro: 6 KB launch command) is split into sub-cap chunks...'"
+          "evidence": "pty-write-chunker.test.ts: 'an oversized single-burst write (repro: 6 KB launch command) is split into sub-cap chunks...'"
         },
         {
           "behavior": "chunkUtf8ForPtyWrite never splits a multi-byte UTF-8 sequence across a chunk boundary",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'never splits a multi-byte UTF-8 sequence across a chunk boundary'"
+          "evidence": "pty-write-chunker.test.ts: 'never splits a multi-byte UTF-8 sequence across a chunk boundary'"
         },
         {
           "behavior": "chunkUtf8ForPtyWrite terminates and round-trips exactly for a misconfigured maxBytes <= 0 (would otherwise hang forever)",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: it.each([0,-5,1,2,3]) 'terminates and round-trips exactly when maxBytes=%d (clamped to a 4-byte floor)'"
+          "evidence": "pty-write-chunker.test.ts: it.each([0,-5,1,2,3]) 'terminates and round-trips exactly when maxBytes=%d (clamped to a 4-byte floor)'"
         },
         {
           "behavior": "The default scheduler yields real event-loop turns between chunks (not one synchronous burst)",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'the default scheduler yields real event-loop turns between chunks...' (vi.useFakeTimers)"
+          "evidence": "pty-write-chunker.test.ts: 'the default scheduler yields real event-loop turns between chunks...' (vi.useFakeTimers)"
         },
         {
           "behavior": "A task killed mid-chunked-write stops delivering the remaining chunks",
@@ -53,12 +53,12 @@
         {
           "behavior": "A second (small) write arriving mid-drain is queued, not interleaved, behind the in-flight chunked write",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'a write arriving mid-drain is queued, not interleaved, behind the in-flight chunked write'"
+          "evidence": "pty-write-chunker.test.ts: 'a write arriving mid-drain is queued, not interleaved, behind the in-flight chunked write'"
         },
         {
           "behavior": "A second oversized write queued mid-drain is itself chunked once its turn comes",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'a second oversized write queued mid-drain is itself chunked once its turn comes'"
+          "evidence": "pty-write-chunker.test.ts: 'a second oversized write queued mid-drain is itself chunked once its turn comes'"
         },
         {
           "behavior": "A mouse report (writeMouseReport) arriving mid-drain is queued behind the in-flight burst, not spliced into it",
@@ -68,12 +68,12 @@
         {
           "behavior": "A write that would exceed the pendingWrites byte cap is dropped whole, without corrupting the already-queued writes",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'a write that would exceed the pendingWrites byte cap is dropped whole...'"
+          "evidence": "pty-write-chunker.test.ts: 'a write that would exceed the pendingWrites byte cap is dropped whole...'"
         },
         {
           "behavior": "Draining a very large queue of small writes does not overflow the call stack, and preserves delivery order (external Tier-3 PR review finding: the drain was mutually recursive with deliverOrChunk, one stack frame per queued write)",
           "disposition": "tested",
-          "evidence": "pty-manager.test.ts: 'draining a very large queue of small writes does not overflow the stack, and preserves delivery order' (20,000-entry queue)"
+          "evidence": "pty-write-chunker.test.ts: 'draining a very large queue of small writes does not overflow the stack, and preserves delivery order' (20,000-entry queue)"
         },
         {
           "behavior": "The original macOS production failure (canonical-mode tty input-queue deadlock on an oversized single pty write) is closed on a real macOS shell",

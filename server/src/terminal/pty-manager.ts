@@ -29,6 +29,7 @@ import { IdleReaper, DEFAULT_IDLE_TIMEOUT_MS } from "./idle-reaper.js";
 import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
 import { writeSnapshotPreservingLarger } from "./snapshot-preserve.js";
 import { BackpressureTelemetry, type BackpressureNotice } from "./backpressure-telemetry.js";
+import { ChunkedPtyWriter, type ChunkWriteScheduler } from "./pty-write-chunker.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -303,22 +304,14 @@ interface PtyEntry {
    *  side-file. Lives on the entry (which the parked flush holds) → no leak. */
   tornDown?: boolean;
   /**
-   * iterate-2026-09-05-terminal-large-command-chunked-pty-write (code-review
-   * finding 2) — true while a chunked write is still draining its remaining
-   * chunks over multiple scheduler ticks. A `write()` call that lands while
-   * this is set must NOT execute immediately (it would interleave into the
-   * middle of the still-draining burst); it queues onto `pendingWrites`
-   * instead and is delivered, in order, once the in-flight burst finishes.
+   * Chunked-write serialization state (iterate-2026-09-05-terminal-large-
+   * command-chunked-pty-write) — owned and documented by `ChunkedPtyWriter`
+   * in `pty-write-chunker.ts`, which is the sole reader/writer of these
+   * three fields. Declared here only because `PtyEntry` is the concrete
+   * object passed to it (structurally satisfying `ChunkedPtyWriteEntry`).
    */
   chunkWriteBusy?: boolean;
-  /** FIFO of `write()` payloads that arrived while `chunkWriteBusy` was set. */
   pendingWrites?: string[];
-  /**
-   * External-review finding (2026-09-05, Tier-3): running total of
-   * `pendingWrites`' UTF-8 byte length, maintained incrementally on push/shift
-   * so the `pendingWriteBytesCap` check is O(1) instead of an O(n) `reduce`
-   * per queued write (which made flooding the queue O(n^2) overall).
-   */
   pendingWritesBytes?: number;
 }
 
@@ -369,77 +362,14 @@ export interface PtyManagerOpts {
    */
   expectedTerminalVersion?: string;
   /**
-   * iterate-2026-09-05-terminal-large-command-chunked-pty-write — max UTF-8
-   * bytes per single entry.pty.write() call. Default 512, kept safely under
-   * the ~1 KiB canonical-mode tty input queue macOS enforces (see decision
-   * log for this run-id). Tests lower this to force the chunked path
-   * deterministically.
+   * Chunked-write options (iterate-2026-09-05-terminal-large-command-
+   * chunked-pty-write) — passed straight through to `ChunkedPtyWriter`;
+   * see `pty-write-chunker.ts` for what each one does and why.
    */
   ptyWriteChunkBytes?: number;
-  /** Real-time delay between chunk writes; default 5ms. */
   ptyWriteChunkDelayMs?: number;
-  /** Scheduler for the delay between chunk writes. Defaults to setTimeout; tests substitute a synchronous or fake-timer-friendly stub. */
   scheduleChunkWrite?: ChunkWriteScheduler;
-  /**
-   * Doubt-review finding (2026-09-05) — cap (bytes) on a task's
-   * `pendingWrites` queue (writes that arrive while a chunked burst is
-   * still draining). Mirrors `wsBufferBytes`, the existing cap on the
-   * opposite (pty→WS) direction. Default 1 MiB; a write that would push
-   * the queue over this is dropped whole (never truncated) with a
-   * console.warn — guards a pathological flood, not normal use.
-   */
   pendingWriteBytesCap?: number;
-}
-
-/** Callback scheduler used to space out chunked pty writes (see `ptyWriteChunkBytes`). */
-export type ChunkWriteScheduler = (cb: () => void, delayMs: number) => void;
-
-const DEFAULT_PTY_WRITE_CHUNK_BYTES = 512;
-const DEFAULT_PTY_WRITE_CHUNK_DELAY_MS = 5;
-
-/**
- * Split `data` into chunks whose UTF-8 byte length is <= maxBytes, never
- * splitting a multi-byte UTF-8 sequence across a chunk boundary. Exported
- * for direct unit coverage — see iterate-2026-09-05-terminal-large-command-
- * chunked-pty-write.
- */
-export function chunkUtf8ForPtyWrite(data: string, maxBytes: number): string[] {
-  const buf = Buffer.from(data, "utf8");
-  if (buf.length === 0) return [data];
-  // Code-review finding (2026-09-05): an unclamped maxBytes <= 0 never lets
-  // `start` advance below, spinning the while-loop forever — exactly the
-  // "whole main thread blocked" failure this chunking exists to eliminate,
-  // just triggered by a bad config value instead of an oversized burst. A
-  // UTF-8 code point is at most 4 bytes, so clamping the floor to 4
-  // guarantees both termination and that a chunk boundary always has room
-  // to land clear of a multi-byte sequence.
-  // External-review finding (2026-09-05, Tier-3): Math.max(4, NaN) is NaN,
-  // so a non-finite maxBytes (misconfiguration, not just <= 0) must also
-  // fall back rather than silently propagate NaN into subarray() below,
-  // which would clamp to an empty first chunk and drop the whole write.
-  const safeMaxBytes = Math.max(
-    4,
-    Number.isFinite(maxBytes) ? Math.floor(maxBytes) : DEFAULT_PTY_WRITE_CHUNK_BYTES,
-  );
-  const chunks: string[] = [];
-  let start = 0;
-  while (start < buf.length) {
-    let end = Math.min(start + safeMaxBytes, buf.length);
-    // Back off past continuation bytes (0b10xxxxxx) so a multi-byte UTF-8
-    // sequence is never split across a chunk boundary.
-    while (end > start && end < buf.length && (buf[end]! & 0xc0) === 0x80) {
-      end--;
-    }
-    if (end === start) {
-      // No valid split point within safeMaxBytes — unreachable for
-      // well-formed UTF-8 given the >=4 floor above, but fail safe by
-      // forcing progress rather than looping forever on malformed input.
-      end = Math.min(start + safeMaxBytes, buf.length);
-    }
-    chunks.push(buf.subarray(start, end).toString("utf8"));
-    start = end;
-  }
-  return chunks;
 }
 
 /** Sentinel for the legacy token-less pause()/resume() API. */
@@ -460,10 +390,8 @@ export class PtyManager {
   private readonly watchdogIntervalMs: number;
   private readonly watchdogEnabledOpt: boolean;
   private readonly nowFn: () => number;
-  private readonly ptyWriteChunkBytes: number;
-  private readonly ptyWriteChunkDelayMs: number;
-  private readonly scheduleChunkWrite: ChunkWriteScheduler;
-  private readonly pendingWriteBytesCap: number;
+  /** Chunking + same-task write serialization for the pty.write() chokepoint (pty-write-chunker.ts). */
+  private readonly chunkedWriter: ChunkedPtyWriter;
   private watchdogTimer: ReturnType<typeof setInterval> | null = null;
   /**
    * Per-conn capability tracking (per external review code-pass —
@@ -507,13 +435,12 @@ export class PtyManager {
     this.watchdogIntervalMs = opts.watchdogIntervalMs ?? 2_000;
     this.watchdogEnabledOpt = opts.watchdogEnabled ?? false;
     this.nowFn = opts.now ?? Date.now;
-    this.ptyWriteChunkBytes = opts.ptyWriteChunkBytes ?? DEFAULT_PTY_WRITE_CHUNK_BYTES;
-    this.ptyWriteChunkDelayMs = opts.ptyWriteChunkDelayMs ?? DEFAULT_PTY_WRITE_CHUNK_DELAY_MS;
-    // Code-review finding 3: unref so a lone pending chunk-write timer can't
-    // hold the process open a beat past graceful shutdown (matches the
-    // existing setTimeout(...).unref?.() convention used by kill() below).
-    this.scheduleChunkWrite = opts.scheduleChunkWrite ?? ((cb, ms) => { setTimeout(cb, ms).unref?.(); });
-    this.pendingWriteBytesCap = opts.pendingWriteBytesCap ?? 1_048_576;
+    this.chunkedWriter = new ChunkedPtyWriter({
+      ptyWriteChunkBytes: opts.ptyWriteChunkBytes,
+      ptyWriteChunkDelayMs: opts.ptyWriteChunkDelayMs,
+      scheduleChunkWrite: opts.scheduleChunkWrite,
+      pendingWriteBytesCap: opts.pendingWriteBytesCap,
+    });
     if (this.watchdogEnabledOpt) {
       this.watchdogTimer = setInterval(
         () => this.watchdogTick(),
@@ -683,6 +610,11 @@ export class PtyManager {
     }
   }
 
+  /**
+   * Forwards to `ChunkedPtyWriter` (pty-write-chunker.ts) — see that module
+   * for why an oversized single write can deadlock the pty on macOS, and
+   * how chunking + same-task serialization fix it.
+   */
   write(taskId: string, data: string): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
@@ -690,124 +622,7 @@ export class PtyManager {
     // The one signal for "no longer virgin" — set on real input, never
     // at attach-time (iterate-2026-08-16-task-lifecycle-ux-fixes).
     entry.hadDataWritten = true;
-    this.writePossiblyChunked(entry, data);
-  }
-
-  /**
-   * iterate-2026-09-05-terminal-large-command-chunked-pty-write — a single
-   * unchunked pty.write() of an oversized burst (e.g. a first-launch
-   * command with a multi-KB task prompt baked in as an argument) can
-   * deadlock the pty on macOS: canonical-mode tty input queues (~1 KiB)
-   * hold the whole unterminated line unread until its trailing newline
-   * arrives, so one write() bigger than the queue blocks the Node main
-   * thread forever waiting for room a blocked event loop can never free —
-   * freezing every other session on the same process. Splitting into
-   * sub-KB UTF-8-safe chunks with a real scheduler delay between them
-   * keeps each individual write() under the queue's capacity and lets
-   * other work (including the shell draining the queue) run between
-   * chunks. The overwhelmingly common case (a single keystroke or a short
-   * command) stays a single direct write — no scheduling overhead.
-   *
-   * Code-review finding 2: a chunked burst now spans multiple scheduler
-   * ticks (it didn't before this fix), so a second write() for the same
-   * task arriving mid-drain — a keystroke, or the paste-image path — could
-   * otherwise interleave its bytes into the middle of the still-draining
-   * first burst. `entry.chunkWriteBusy` + `entry.pendingWrites` serialize
-   * same-task writes: a call that lands while a chunked write is in flight
-   * queues instead of executing, and is delivered, in order, once the
-   * in-flight burst (and any writes queued ahead of it) fully drains.
-   */
-  private writePossiblyChunked(entry: PtyEntry, data: string): void {
-    if (entry.chunkWriteBusy) {
-      const queue = (entry.pendingWrites ??= []);
-      // External-review finding (2026-09-05, Tier-3): a running total on the
-      // entry keeps this an O(1) check; a `reduce` over the whole queue on
-      // every queued write made flooding the queue O(n^2) in queue length.
-      const queuedBytes = entry.pendingWritesBytes ?? 0;
-      const dataBytes = Buffer.byteLength(data, "utf8");
-      // Doubt-review finding (2026-09-05): the queue itself must not become
-      // an unbounded-memory vector — mirrors the existing wsBufferBytes cap
-      // this file already enforces on the opposite (pty→WS) direction. A
-      // sane local user never hits this; it only guards a buggy/flooding
-      // client. Failing safe means dropping the NEW write whole (never
-      // truncating/corrupting an already-queued item).
-      if (queuedBytes + dataBytes > this.pendingWriteBytesCap) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[pty-manager] pendingWrites cap exceeded for a chunked write in flight — dropping a queued write (${dataBytes} bytes)`,
-        );
-        return;
-      }
-      queue.push(data);
-      entry.pendingWritesBytes = queuedBytes + dataBytes;
-      return;
-    }
-    this.deliverOrChunk(entry, data);
-  }
-
-  private deliverOrChunk(entry: PtyEntry, data: string): void {
-    if (Buffer.byteLength(data, "utf8") <= this.ptyWriteChunkBytes) {
-      entry.pty.write(data);
-      this.drainPendingWrites(entry);
-      return;
-    }
-    entry.chunkWriteBusy = true;
-    const chunks = chunkUtf8ForPtyWrite(data, this.ptyWriteChunkBytes);
-    let i = 0;
-    const writeNext = (): void => {
-      // The task may have been closed/killed mid-flight (iterate-2026-05-08
-      // v0.8.7 AC-2's tornDown flag is the existing signal for exactly this).
-      if (entry.tornDown) {
-        entry.chunkWriteBusy = false;
-        // Doubt-review finding (2026-09-05): any writes still queued behind
-        // a torn-down burst are intentionally DROPPED here (not delivered,
-        // not logged) — there is nothing left to deliver them to.
-        return;
-      }
-      entry.pty.write(chunks[i]!);
-      i++;
-      if (i < chunks.length) {
-        this.scheduleChunkWrite(writeNext, this.ptyWriteChunkDelayMs);
-      } else {
-        entry.chunkWriteBusy = false;
-        this.drainPendingWrites(entry);
-      }
-    };
-    writeNext();
-  }
-
-  /**
-   * Delivers (or re-chunks) queued writes once the entry is free.
-   *
-   * External-review finding (2026-09-05, Tier-3, BLOCKING): this used to
-   * call `deliverOrChunk`, which for a small write calls straight back into
-   * `drainPendingWrites` — mutual recursion with one stack frame per queued
-   * write. `pendingWriteBytesCap` bounds bytes, not COUNT, so a client
-   * flooding thousands of tiny writes during a burst's drain window could
-   * exceed the call stack and crash the whole process with an uncaught
-   * `RangeError` — the exact "frozen/dead server" failure this fix exists
-   * to eliminate, now reachable via the very flooding scenario the cap was
-   * added to guard against. Small queued writes are now delivered directly
-   * in an iterative loop (no re-entry into `deliverOrChunk`), so stack depth
-   * stays O(1) regardless of queue length. An oversized queued write still
-   * hands off to `deliverOrChunk`'s async chunked path (which sets
-   * `chunkWriteBusy` and returns after scheduling — not a recursive call),
-   * and the loop stops there; that path's own completion calls
-   * `drainPendingWrites` again to continue the queue.
-   */
-  private drainPendingWrites(entry: PtyEntry): void {
-    while (!entry.chunkWriteBusy) {
-      const next = entry.pendingWrites?.shift();
-      if (next === undefined) return;
-      const nextBytes = Buffer.byteLength(next, "utf8");
-      entry.pendingWritesBytes = Math.max(0, (entry.pendingWritesBytes ?? 0) - nextBytes);
-      if (nextBytes <= this.ptyWriteChunkBytes) {
-        entry.pty.write(next);
-        continue;
-      }
-      this.deliverOrChunk(entry, next);
-      return;
-    }
+    this.chunkedWriter.write(entry, data);
   }
 
   /**
@@ -816,19 +631,18 @@ export class PtyManager {
    * BOTH roles reach this, since it is how a reader scrolls/selects inside
    * Claude's live TUI. Deliberately skips the `hadDataWritten` latch above:
    * a scroll or selection gesture is not "real input" for the reused-pty
-   * heuristic that latch feeds. Routed through the SAME chunked-write gate
+   * heuristic that latch feeds. Routed through the SAME `ChunkedPtyWriter`
    * as `write()` (doubt-review finding, 2026-09-05): a mouse report used to
    * write straight to `entry.pty`, which was safe when every write() call
    * was one atomic statement, but chunking opened a real multi-tick window
    * during which a reader's scroll gesture could splice bytes into the
-   * middle of a still-draining launch-command burst. Going through
-   * `writePossiblyChunked` queues it behind an in-flight burst instead.
+   * middle of a still-draining launch-command burst.
    */
   writeMouseReport(taskId: string, data: string): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
     this.touchIdle(entry);
-    this.writePossiblyChunked(entry, data);
+    this.chunkedWriter.write(entry, data);
   }
 
   resize(taskId: string, cols: number, rows: number): void {
