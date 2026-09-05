@@ -4344,3 +4344,161 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** OIDC (tokenless) is strictly stronger than the NPM_TOKEN alternative the old stance avoided; tag-as-gate plus provenance is auditable. The first bootstrap publish already exists, so the trusted-publisher prerequisite can be satisfied.
 - **Consequences:** Future latest releases publish automatically on tag; no OTP step; npm provenance attached automatically; no long-lived token exists. A one-time npmjs.com Trusted Publisher config (org svenroth-ai / repo shipwright-webui / workflow publish-npm.yml) is REQUIRED before the first tag or the job fails. Uses only GitHub-owned actions on mutable tags (CLAUDE.md rule 25).
 - **Rejected:** Keep manual 2FA publish (error-prone, no provenance, release blocked on operator availability). NPM_TOKEN secret in CI (long-lived credential, weaker than OIDC, larger blast radius).
+
+---
+
+### ADR-297: Board surface for lead-agent work (FR-04.11)
+- **Date:** 2026-09-02
+- **Section:** Iterate — feature: lead board surface
+- **Run-ID:** iterate-2026-09-01-lead-board-surface
+- **Context:** Lead-agent tasks persist tags/domain/priority/complexityHint (iterate-2026-05-14) but the board surfaced none of it, so a PO could not find or recognize lead-originated work without opening each task.
+- **Decision:** Add a Bot dropdown + BellDot shortcut filtering the three closed lead-tag prefixes, an in-place TaskCard expander for the unrendered fields, and a bot glyph beside ProjectPill for lead-originated cards.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Client-side surfacing of already-persisted data keeps scope minimal, reuses the existing ?tag= server filter and BoardStatusFilter's menu anatomy, per the task brief's own traps.
+- **Consequences:** TaskBoardPage.tsx filter state moved into a new useBoardFilters.ts hook (absorbing the pre-existing status filter too) to stay under its bloat baseline; no new persisted field, no new route.
+- **Rejected:** A dedicated lead-work page was rejected — the brief scoped this to the existing board surface, deferring org-page/claim-chip work to a later W5d.
+
+---
+
+### ADR-298: Lead-question inbox kind
+- **Date:** 2026-09-01
+- **Section:** Iterate — feature: lead-question inbox
+- **Run-ID:** iterate-2026-09-01-lead-question-inbox
+- **Context:** leadwright needs a PO-answerable follow-up surfaced in webui's Inbox; the 3 existing kinds are all derived, bestEffort, and read-only.
+- **Decision:** Add lead_question: WRITTEN off a description marker, no bestEffort (base/common type split), dismiss/answer reuse existing fields, compile-time exhaustiveness guard on the dispatcher.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing existing fields keeps this additive and matches small complexity; a compile-time guard closes two pre-existing dispatcher traps for free.
+- **Consequences:** No new schema; provably unaffects the 3 existing kinds. One caveat: suppression is per-task not per-question (documented contract).
+- **Rejected:** Hash-based per-question dismiss key (invents an answer schema, out of scope); keeping bestEffort for uniformity (fails the type-level acceptance criterion); full Playwright E2E (disproportionate at small complexity, already covered by real component+route tests).
+- **Details:** [iterate-2026-09-01-lead-question-inbox.md](../planning/adr/iterate-2026-09-01-lead-question-inbox.md)
+
+---
+
+### ADR-299: Org-page conversation thread (FR-04.42)
+- **Date:** 2026-09-01
+- **Section:** Iterate — feature: org-page conversation thread view
+- **Run-ID:** iterate-2026-09-01-org-thread-view
+- **Context:** FR-04.42/section 10.6 (PO decision, 2026-08-16, option b) makes the Org page the sole surface where leadwright's per-card question/answer rounds are readable; today nothing renders any thread, and the round store (L8) has not shipped yet.
+- **Decision:** Add OrgThread/OrgThreadList as sibling components rendered under each lead's LeadCard on OrgPage.tsx, fed by a stub useOrgThreads() hook returning {} until leadwright's producer lands.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Decoupling avoids touching LeadCard's test-ratcheted 5-block order and avoids fabricating a data model ahead of leadwright's real producer; fixture-driven tests prove ordering, open-round state, and text-escaping now, against >2 rounds.
+- **Consequences:** OrgPage renders correctly today with no thread (AC-d); the stub hook is the seam for a real query once L8 ships, and LeadCard's block-order contract stays untouched.
+- **Rejected:** Rejected reusing the existing poFeedback field (unrelated single-string data from a different prior iterate); rejected a second page (spec designates OrgPage as the host surface).
+- **Details:** [2026-09-01-org-thread-view-miniplan.md](../planning/iterate/2026-09-01-org-thread-view-miniplan.md)
+
+---
+
+### ADR-300: Swap the vendored Tier-3 PR-review gate's default model to GLM 5.3
+- **Date:** 2026-09-01
+- **Section:** Iterate — change: swap Tier-3 PR-review gate default model to GLM 5.3
+- **Run-ID:** iterate-2026-09-01-pr-review-glm-model-webui
+- **Context:** The monorepo's Tier-3 PR-review gate defaulted to deepseek/deepseek-v4-pro. On real PR #668, DeepSeek repeatedly (3x) hallucinated a false BLOCK verdict citing a NameError that did not exist. The monorepo swapped to GLM 5.3 after ZDR vetting + a live probe (iterate-2026-09-01-pr-review-glm-model, PR #669); see spec-ref for detail.
+- **Decision:** Ported the identical swap into webui's vendored gate copy: generalized the DeepSeek-only ZDR validation into a shared helper reused by both DeepSeek/GLM, renamed deepseek_routing.json to pr_review_routing.json (both blocks), flipped DEFAULT_MODEL to GLM_MODEL, kept DEEPSEEK_MODEL live as an operator override. See spec-ref for full rationale.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A faithful, minimal port keeps both repos' gates behaviorally identical and auditable against the same incident record.
+- **Consequences:** Tier-3 gate now reviews with GLM 5.3 by default; DeepSeek stays one env-var away. GLM's ZDR verification is vendored/cited from the monorepo, not re-probed here (same precedent as the original DeepSeek routing config). See spec-ref.
+- **Rejected:** Independently re-running a live GLM ZDR probe inside webui: would duplicate infra for a claim about OpenRouter's own service, not this repo.
+- **Details:** [iterate-2026-09-01-pr-review-glm-model-webui-pr-review-glm-swap.md](../planning/adr/iterate-2026-09-01-pr-review-glm-model-webui-pr-review-glm-swap.md)
+
+---
+
+### ADR-301: Claim chip + filter keyed on claimedBy, not state
+- **Date:** 2026-09-03
+- **Section:** FR-04.22 / lead-model-spec.md section 5.2
+- **Run-ID:** iterate-2026-09-02-claim-chip-filter
+- **Context:** Section 5.2 settles the claim marker: a claim never touches state; a claimed card stays draft until launched. leadwright's claimTask still sets state=active today but that falls away without replacement in a later iterate (L11).
+- **Decision:** Added a ClaimChip on TaskCard's meta row and a ClaimFilterToggle in the board toolbar. Both read exclusively claimedBy/claimedAt via a new independent boolean axis in useBoardFilters. resolveBoardColumn and the status filter are untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Keying on claimedBy per section 5.2 is forward-compatible; keying on state would work today and break the day L11 removes claimTask's state side-effect.
+- **Consequences:** The claim indicator and filter stay correct across the L11 transition instead of breaking silently. PO can see who holds a card and since when, and filter to claimed cards, without a column move or a new state value.
+- **Rejected:** A state-derived chip/filter (breaks under L11); folding claim into the existing status filter (would invent a 5th ExternalTaskState value the spec does not define).
+
+---
+
+### ADR-302: Bootstrapper probe host follows SHIPWRIGHT_NETWORK_PROFILE (webui#415)
+- **Date:** 2026-09-03
+- **Section:** Iterate — bug: bootstrapper tailscale probe
+- **Run-ID:** iterate-2026-09-03-bootstrapper-tailscale-probe
+- **Context:** The bootstrapper's port probe hardcoded loopback (127.0.0.1) for both TCP occupancy and the /api/diagnostics fetch, while the packaged server's bind address follows SHIPWRIGHT_NETWORK_PROFILE. Under the tailscale profile the server binds only the tailnet interface, so the probe never saw it — attach/swap/foreign were all unreachable and every launch redundantly re-booted onto a live incumbent, dying on EADDRINUSE (webui#415).
+- **Decision:** Added resolveProbeHost(pkgRoot, env, importFn) to bootstrapper/lib/server.mjs: dynamically imports the server's own compiled resolveHonoHost from pkgRoot/server/dist/lib/ (the dir bootSpawnPlan already targets) instead of re-deriving profile precedence here. A wildcard bind (0.0.0.0/::) maps back to loopback; a concrete address (e.g. the tailscale IP) is probed directly. Threaded through probeServer's host option and ensureServer's reported/opened url.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing the server's own resolver avoids a second SHIPWRIGHT_NETWORK_PROFILE implementation that could drift from the server's; the bootstrapper already reaches into pkgRoot/server/dist for bootSpawnPlan, so this is consistent with the existing coupling rather than a new one.
+- **Consequences:** Attach/swap/foreign now work under SHIPWRIGHT_NETWORK_PROFILE=tailscale; the change is a no-op for local/unset/open profiles (all resolve to loopback). Any resolution failure (missing build, tailscale CLI unreachable) falls back to the pre-fix loopback probe, never fatal. Slightly deepens the bootstrapper's existing runtime coupling to pkgRoot/server/dist's layout.
+- **Rejected:** Re-implementing resolveNetworkProfile/resolveTailscaleIp verbatim in the bootstrapper (client/server already mirror this pair with a sync test; a third copy multiplies drift surface). Also rejected the issue's narrower fallback (probe loopback, then retry the profile address on failure) as an unnecessary extra round-trip on every non-local-profile launch.
+
+---
+
+### ADR-303: Consumed-spend display replaces budget label
+- **Date:** 2026-09-04
+- **Section:** Iterate — change: budget display (V4b)
+- **Run-ID:** iterate-2026-09-03-budget-display-usage-widen
+- **Context:** LeadCard labelled spend as a '7-day budget' and hid partial-measurement and unpriced-call signals, misleading the reader about remaining allowance.
+- **Decision:** Relabel as '{N}-day USD consumed', name the subagent-spend gap in a note, surface unpricedCallsTotal when >0, and distinguish no-data/partial/complete via UsageResponse.anyNotMeasured.
+- **Commit:** (assigned post-merge)
+- **Rationale:** AC forbids any remaining-allowance wording; costUsd:0 must render as a real zero, not 'not measured', so branching is on .measured not truthiness.
+- **Consequences:** UsageResponse gains two optional fields (unpricedCallsTotal, anyNotMeasured); older leadwright producers still validate and render unchanged.
+- **Rejected:** Quantifying the subagent-spend gap was rejected — the counter cannot measure it, so a number would be a fabricated precision.
+
+---
+
+### ADR-304: Claim-holder launch exception + fresh-disk-read gate
+- **Date:** 2026-09-03
+- **Section:** FR-04.22 / V5 (leadwright lead-model-spec.md sec 5.2, 10.9)
+- **Run-ID:** iterate-2026-09-03-claim-holder-launch
+- **Context:** launch/routes.ts refused every /launch while claimToken was set (409 task_claimed), forcing the unsafe order launch-then-claim. The gate also read a stale in-memory Map -- load() runs once at boot -- so a claim written to disk by leadwright's own store instance was invisible to a webui process that had not itself persisted since, an unbounded window for an idle daemon with no browser open.
+- **Decision:** Added SdkSessionsStore.refreshRowFromDisk(taskId): re-reads ONE row under the persist() lock, 3-way-merges it (mergeRow) into both sessions and baseline -- never a blind overwrite, which would drop this instance's own unpersisted patches. routes.ts calls it before the claim check; checkClaimHolderGate allows the request when body.claimToken matches the fresh claimToken AND claimedAt is within CLAIM_LAUNCH_WINDOW_MS (24h); else 409 with claimExpired:true when only the window failed.
+- **Commit:** (assigned post-merge)
+- **Rationale:** PO decision 2026-08-16 (leadwright spec sec 10.9): variant (a) plus a time window -- consistent with the threat model's own boundary (local-user, not local-attacker) rather than an inconsistent per-claim secret. Window value (24h) is not spec-fixed; chosen so a slow beat or sleeping daemon still restarts, while bounding an abandoned claim's replay life.
+- **Consequences:** A launch bearing the current claimToken succeeds, incl. a late restart (AC FR-04.22); a foreign or expired one still 409s, now correctly even against a stale webui process. Every /launch costs one extra disk read+lock. Residual named risk (leadwright spec sec 8/10.9): both sides run as the same local user with sdk-sessions.json readable -- defends a mistake, not a local attacker.
+- **Rejected:** Single-use token gated on launchedAt being unset -- cheap but breaks AC FR-04.22 (a late restart by the holder must succeed). A per-claim secret (variant b) -- inconsistent with the threat model FR-04.38 already accepts, and useless against a process that can already read sdk-sessions.json.
+
+---
+
+### ADR-305: Wire the Org page thread to leadwright's real round store
+- **Date:** 2026-09-03
+- **Section:** Iterate — feature: Org page thread live source
+- **Run-ID:** iterate-2026-09-03-org-thread-live-source
+- **Context:** leadwright#35 shipped the lead-question-threads.json producer (versioned, threads[taskId].rounds[]); useOrgThreads() was still a stub returning empty data, so the Org page thread UI (PR #409) never showed a real conversation.
+- **Decision:** Add a server reader (lead-question-threads.ts, mirroring usage.ts/last-run.ts's lstat+LEAD_ID_RE+realPathGuard chain), a composite builder mapping taskId->rounds into the client wire shape (dropping round/questionType, reusing extractLeadQuestionBody for marker-stripping), and GET /api/org/threads. Any read failure (missing/symlink/invalid/unknown-version) degrades to an empty card list, never an error.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Composite read (one round trip for all leads) matches the existing usage/last-run/beat-register pattern; reusing extractLeadQuestionBody avoids a second marker-stripping implementation.
+- **Consequences:** Org page now shows real follow-up threads once leadwright writes them; still reads webui's own SHIPWRIGHT_LEADS_ROOT (not leadwright's LEADWRIGHT_LEADS_ROOT env var) since both processes already point at the same directory in practice.
+- **Rejected:** A dedicated per-lead thread env var was rejected: webui already has one leadsRoot resolution point every org reader shares, and introducing a second would only add drift risk for no benefit.
+
+---
+
+### ADR-306: Log every PR-review decision, not just unknown ones (webui port)
+- **Date:** 2026-09-03
+- **Section:** scripts/ci/pr_review
+- **Run-ID:** iterate-2026-09-03-webui-pr-review-block-visibility
+- **Context:** Ported canonical shipwright PR #674: pr_review.py's vendored copy here printed nothing past the initial reviewing-PR line for a legitimate block/approve/comment decision, making a correct gate outcome indistinguishable from a hang. Same 4-CI-run misdiagnosis risk as PR #672 in the canonical repo.
+- **Decision:** Print an unconditional, bounded (300-char), scrubbed (strip_display_unsafe) and redacted stderr excerpt of decision+exit_code+summary after every review, pointing readers at the full PR comment.
+- **Commit:** (assigned post-merge)
+- **Consequences:** CI logs now self-explain a block/approve/comment outcome; no exit-code or comment-posting behavior changed. Bumped the scripts/ci/pr_review.py bloat-baseline exception 365->370 in the same commit.
+
+---
+
+### ADR-307: Persisted desktop sidebar collapse + plugin/webui version badges
+- **Date:** 2026-09-05
+- **Section:** SidebarNav + Diagnostics
+- **Run-ID:** iterate-2026-09-05-nav-collapse-and-version-badges
+- **Context:** User asked for two independent things: (1) the desktop sidebar should collapse to icons-only and remember that choice across reloads, defaulting to expanded; (2) Diagnostics should show both the current Shipwright plugin version and the webui's own version.
+- **Decision:** Added a separate desktop-only persisted collapse preference (localStorage key shipwright:sidebar-collapsed, default false), selected via isCompact ? mediaCollapsed : userCollapsed, leaving the existing <=1023px viewport-driven useMediaCollapse untouched. Added shipwright-plugin-version-reader.ts reading the shipwright marketplace manifest's suite version; /api/diagnostics gained shipwrightPlugin.version, rendered beside the existing app.version in a new Versions section.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing the existing generic useLocalStorage<T> hook and the claude-theme-reader.ts DI pattern for the new version reader kept both additions small and consistent with established conventions instead of inventing new mechanisms.
+- **Consequences:** Desktop users get a stable, remembered nav width; the tablet/compact auto-collapse fix (Menu-kann-man-nicht-collapsen) is unaffected since it uses a separate state slice. Diagnostics degrades to "(not detected)" instead of crashing when shipwrightPlugin is null or absent (stale-server guard), verified by a dedicated E2E test.
+- **Rejected:** Considered reusing the single useMediaCollapse state for both desktop and compact, but that would have coupled two independently-evolving behaviors (viewport-driven vs. user-chosen) and risked regressing the hard-won compact-band fix.
+
+---
+
+### ADR-308: Chunk pty.write() to stop the macOS large-command hang
+- **Date:** 2026-09-05
+- **Section:** Iterate — bug: embedded-terminal-large-command-hang
+- **Run-ID:** iterate-2026-09-05-terminal-large-command-chunked-pty-write
+- **Context:** Prod incident (macOS): a first launch with a ~5.8KB prompt baked into the command froze the server. PtyManager.write() forwarded the whole burst in one call; macOS's ~1KB canonical-mode tty queue can't drain until the trailing newline arrives, which was stuck at the end of that same blocked write() — deadlocking the Node main thread and every session on it. See spec-ref for full incident/root-cause detail.
+- **Decision:** PtyManager.write() now measures UTF-8 byte length; a burst over ptyWriteChunkBytes (default 512) is split by the new chunkUtf8ForPtyWrite() helper into UTF-8-safe sub-cap chunks, written one per real-timer tick (default 5ms, via injectable scheduleChunkWrite) instead of one atomic write(). A killed/torn-down task aborts remaining chunks. Small writes take the old single-call path unchanged.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Chunking at the single existing write chokepoint fixes every caller (keystrokes, launch command, paste-path) in one place. Sub-cap size keeps each write under the queue that deadlocked; the real-timer gap between chunks yields the event loop so the OS scheduler and other sessions both get to run — node-pty's IPty exposes no drain signal to wait on directly.
+- **Consequences:** No architectural change to the write chokepoint or to DO-NOT #19 (auto-execute stays a client WS data-frame). +89 LOC in the already-exception pty-manager.ts (ADR-101, baseline updated) + 5 new unit tests (+123 LOC in the already-grandfathered test file, baseline updated). A long first-launch prompt now takes tens of ms longer to fully type; imperceptible against Claude Code's cold start.
+- **Rejected:** (1) Only wait longer for shell-readiness — already shipped (ADR-068-A1), provably insufficient: readiness is timing, this is a burst-size deadlock. (2) Chunk client-side before the WS send — would touch DO-NOT #19 for no gain; paste-image writes never go through the client auto-launch path at all. (3) A prompt-length validation cap — treats the symptom; a long legitimate prompt isn't the bug.
+- **Details:** [iterate-2026-09-05-terminal-large-command-chunked-pty-write-chunked-pty-write.md](../planning/adr/iterate-2026-09-05-terminal-large-command-chunked-pty-write-chunked-pty-write.md)
