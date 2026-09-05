@@ -11,7 +11,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 const snapshot = {
   app: { name: 'shipwright-command-center', version: '9.9.9-e2e' },
-  shipwrightPlugin: { version: '0.42.0' },
+  shipwrightPlugin: { version: '0.42.0' as string | null },
   claudeCli: {
     raw: 'claude 2.0.0 (Claude Code)',
     parsed: { major: 2, minor: 0, patch: 0 },
