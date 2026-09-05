@@ -75,7 +75,11 @@ describe("ChunkedPtyWriter", () => {
       scheduleChunkWrite: (cb) => scheduled.push(cb),
     });
     const { entry, writes } = makeEntry();
-    const command = `claude --session-id abc "${"x".repeat(6000)}"\r`;
+    // Includes multi-byte UTF-8 ("€", 3 bytes) throughout — proves the
+    // round-trip stays exact through the full ChunkedPtyWriter path (queue +
+    // scheduler + drain), not just through chunkUtf8ForPtyWrite in isolation
+    // (external-review comment, 2026-09-05, Tier-3, non-blocking, 2nd pass).
+    const command = `claude --session-id abc "${"x€".repeat(3000)}"\r`;
     writer.write(entry, command);
 
     // First chunk is written synchronously; the rest wait on the injected
@@ -88,7 +92,7 @@ describe("ChunkedPtyWriter", () => {
       next();
     }
 
-    expect(writes.length).toBeGreaterThan(10); // 6KB / 512B ≈ 12 chunks
+    expect(writes.length).toBeGreaterThan(10); // ~12KB / 512B ≈ 24 chunks
     for (const w of writes) {
       expect(Buffer.byteLength(w, "utf8")).toBeLessThanOrEqual(512);
     }

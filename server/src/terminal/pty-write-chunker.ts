@@ -32,14 +32,10 @@
  * owns, so `ChunkedPtyWriteEntry` below is a narrow structural interface
  * rather than a dependency on `PtyEntry` itself.
  *
- * Four review passes hardened this: two HIGH code-review findings (an
- * unclamped chunk size could spin forever; a second same-task write could
- * interleave mid-drain), two doubt-review findings (a mouse report bypassed
- * the same gate; the pending queue had no byte cap), and one external
- * Tier-3 finding (the drain was mutually recursive with `deliverOrChunk`,
- * one stack frame per queued write — a flooding client could overflow the
- * stack and crash the process, the exact failure this module exists to
- * eliminate). Full history: the run-id's ADR.
+ * Six review passes hardened this (unclamped chunk size, mid-drain
+ * interleaving, an unguarded mouse-report path, an uncapped pending queue,
+ * a mutually-recursive drain, a recursive scheduler callback — each fixed
+ * where found). Full history: the run-id's ADR.
  */
 
 /** Callback scheduler used to space out chunked pty writes (see `ptyWriteChunkBytes`). */
@@ -95,6 +91,11 @@ export function chunkUtf8ForPtyWrite(data: string, maxBytes: number): string[] {
 /** Falls back to `fallback` for any non-finite or negative input. */
 function normalizeNonNegative(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) && value >= 0 ? value : fallback;
+}
+
+/** Falls back to `fallback` for any non-finite or non-positive input. */
+function normalizePositive(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
 /**
@@ -158,7 +159,10 @@ export class ChunkedPtyWriter {
   private readonly pendingWriteBytesCap: number;
 
   constructor(opts: ChunkedPtyWriterOpts = {}) {
-    this.ptyWriteChunkBytes = opts.ptyWriteChunkBytes ?? DEFAULT_PTY_WRITE_CHUNK_BYTES;
+    // External-review finding (2026-09-05, Tier-3, non-blocking, 2nd pass): a
+    // 0/negative/non-finite ptyWriteChunkBytes made the "at/under cap"
+    // fast-path check disagree with chunkUtf8ForPtyWrite's own 4-byte floor.
+    this.ptyWriteChunkBytes = normalizePositive(opts.ptyWriteChunkBytes, DEFAULT_PTY_WRITE_CHUNK_BYTES);
     // External-review finding (2026-09-05, Tier-3, non-blocking): a
     // non-finite/negative delay or cap produced "surprising" behavior
     // (setTimeout clamping a bad delay; a NaN cap making every `>` comparison

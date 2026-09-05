@@ -165,6 +165,15 @@ default, no bloat-baseline exception needed) and
 re-verified green (340 files, 3870 passed / 3 skipped); `tsc --noEmit` and
 `oxlint` clean.
 
+The same review pass's two non-blocking comments were fixed too:
+`ptyWriteChunkBytes` was un-normalized, so a 0/negative/non-finite config
+value disagreed with `chunkUtf8ForPtyWrite`'s own 4-byte floor (fixed with
+the same normalize-on-construction pattern as the delay/cap fields); and the
+6KB-burst repro test only proved round-trip exactness for ASCII, not for the
+full `ChunkedPtyWriter` path with multi-byte UTF-8 (fixed by weaving `€`
+through the repro command). `pty-write-chunker.ts` ends at 299 lines,
+`pty-write-chunker.test.ts` at 261 — both still under 300.
+
 ## Context
 
 Production incident (macOS): a task's first launch bakes the full task prompt
