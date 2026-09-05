@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-05-nav-collapse-and-version-badges",
+  "date": "2026-09-05",
+  "section": "SidebarNav + Diagnostics",
+  "title": "Persisted desktop sidebar collapse + plugin/webui version badges",
+  "context": "User asked for two independent things: (1) the desktop sidebar should collapse to icons-only and remember that choice across reloads, defaulting to expanded; (2) Diagnostics should show both the current Shipwright plugin version and the webui's own version.",
+  "decision": "Added a separate desktop-only persisted collapse preference (localStorage key shipwright:sidebar-collapsed, default false), selected via isCompact ? mediaCollapsed : userCollapsed, leaving the existing <=1023px viewport-driven useMediaCollapse untouched. Added shipwright-plugin-version-reader.ts reading the shipwright marketplace manifest's suite version; /api/diagnostics gained shipwrightPlugin.version, rendered beside the existing app.version in a new Versions section.",
+  "consequences": "Desktop users get a stable, remembered nav width; the tablet/compact auto-collapse fix (Menu-kann-man-nicht-collapsen) is unaffected since it uses a separate state slice. Diagnostics degrades to \"(not detected)\" instead of crashing when shipwrightPlugin is null or absent (stale-server guard), verified by a dedicated E2E test.",
+  "rationale": "Reusing the existing generic useLocalStorage<T> hook and the claude-theme-reader.ts DI pattern for the new version reader kept both additions small and consistent with established conventions instead of inventing new mechanisms.",
+  "rejected": "Considered reusing the single useMediaCollapse state for both desktop and compact, but that would have coupled two independently-evolving behaviors (viewport-driven vs. user-chosen) and risked regressing the hard-won compact-band fix.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

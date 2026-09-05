@@ -37,6 +37,7 @@ async function probe(appVersion?: string): Promise<{ app: { name: string; versio
       store: fakeStore(),
       versionInfo: versionInfoStub() as never,
       appVersion,
+      readPluginVersion: async () => null,
     }),
   );
   const res = await app.request("/api/diagnostics");

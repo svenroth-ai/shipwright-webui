@@ -1,0 +1,94 @@
+{
+  "last_updated": "2026-09-05",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-05-nav-collapse-and-version-badges",
+    "date": "2026-09-05",
+    "unit": "PASS \u2014 client 3764 passed; server 3862 passed",
+    "integration": "n/a \u2014 additive read-only server surface (shipwright-plugin-version-reader.ts) and a client-side localStorage preference, no service-boundary or CRUD change",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 5/5, real-browser isolated-stack run of client/e2e/flows/98-sidebar-collapse-persist.spec.ts, client/e2e/flows/98-diagnostics-versions.spec.ts, client/e2e/flows/diagnostics-launchers-removed.spec.ts (Playwright, chromium project)",
+    "design_fidelity": "n/a \u2014 no new visual design; sidebar collapse reuses the pre-existing compact-band rail styling, Versions section reuses the existing Diagnostics Section/KV components",
+    "smoke": "n/a \u2014 no server-wide behaviour change; new field is additive on /api/diagnostics",
+    "degraded": [
+      "A pre-existing, unrelated E2E fixture-ordering issue was found while spot-checking: client/e2e/flows/80-tablet-responsive.spec.ts board-column tests fail (7/7) when run in isolation because those tests rely on ambient seed data created by other spec files earlier in the full default suite run, and never seed their own tasks. Reproduced identically running spec 80 alone before and after this diff \u2014 confirmed NOT caused by this change, out of scope to fix here."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Desktop sidebar defaults to expanded (full labels, brand logo, collapse button visible)",
+          "disposition": "tested",
+          "evidence": "E2E 98-sidebar-collapse-persist.spec.ts; unit SidebarNav.test.tsx"
+        },
+        {
+          "behavior": "Clicking collapse shows an icons-only rail (w-[60px]) and swaps in the expand button",
+          "disposition": "tested",
+          "evidence": "E2E 98-sidebar-collapse-persist.spec.ts (asserts width class, not boundingBox, to avoid a CSS-transition race); unit SidebarNav.test.tsx"
+        },
+        {
+          "behavior": "The collapsed/expanded choice persists across a reload",
+          "disposition": "tested",
+          "evidence": "E2E 98-sidebar-collapse-persist.spec.ts (localStorage read + reload); unit SidebarNav.test.tsx"
+        },
+        {
+          "behavior": "Expanding back clears the collapsed rail and updates storage to false",
+          "disposition": "tested",
+          "evidence": "E2E 98-sidebar-collapse-persist.spec.ts; unit SidebarNav.test.tsx"
+        },
+        {
+          "behavior": "The pre-existing <=1023px compact/tablet viewport-driven auto-collapse (useMediaCollapse) is unaffected by the new desktop preference",
+          "disposition": "tested",
+          "evidence": "unit SidebarNav.org-presence.test.tsx + existing SidebarNav.test.tsx compact-band cases, all re-verified green; the desktop preference is a separate state slice selected only when !isCompact"
+        },
+        {
+          "behavior": "shipwright-plugin-version-reader.ts reads the marketplace manifest's suite version, or returns null on any error (missing file, malformed JSON, missing/blank version field)",
+          "disposition": "tested",
+          "evidence": "server/src/core/shipwright-plugin-version-reader.test.ts (8 unit tests)"
+        },
+        {
+          "behavior": "/api/diagnostics surfaces shipwrightPlugin.version alongside the existing app.version",
+          "disposition": "tested",
+          "evidence": "server/src/routes/diagnostics.plugin-version.test.ts; server/src/routes/diagnostics.app-version.test.ts (updated test seam)"
+        },
+        {
+          "behavior": "Diagnostics page renders both the WebUI version and the plugin version in a new Versions section",
+          "disposition": "tested",
+          "evidence": "E2E 98-diagnostics-versions.spec.ts"
+        },
+        {
+          "behavior": "Diagnostics shows \"(not detected)\" instead of a blank value when the plugin version is unresolvable (null)",
+          "disposition": "tested",
+          "evidence": "E2E 98-diagnostics-versions.spec.ts"
+        },
+        {
+          "behavior": "Diagnostics degrades to the fallback (no crash) when a stale/rolled-back server omits shipwrightPlugin entirely \u2014 deploy-skew guard, added after external code review flagged the un-guarded access",
+          "disposition": "tested",
+          "evidence": "E2E 98-diagnostics-versions.spec.ts ('degrades to the fallback (no crash) when a stale server omits shipwrightPlugin entirely')"
+        }
+      ],
+      "counts": {
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 2,
+        "covered_acs": 2
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 5,
+      "exit_code": 0,
+      "justification": "Both features are DOM/layout and cross-page-load behaviors (a CSS width transition and class swap, localStorage persistence across a real page reload, a rendered API field) invisible or unreliable to assert in jsdom unit tests \u2014 verified in a real browser via the project's isolated-stack Playwright harness (client/e2e/isolated-stack.mjs) against a production build. 5/5 tests passed."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-05-nav-collapse-and-version-badges",
+    "commit": "dfe80bc0c66854a06d2f1b18607cc4620c1553f8",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -53,6 +53,14 @@ export default function DiagnosticsPage() {
             </div>
           ) : (
             <div className="flex flex-col" style={{ gap: "16px" }}>
+              <Section title="Versions">
+                <KV label="WebUI version" value={data.app.version} />
+                <KV
+                  label="Shipwright plugin version"
+                  value={data.shipwrightPlugin?.version ?? "(not detected)"}
+                />
+              </Section>
+
               <Section title="Claude CLI">
                 <KV
                   label="Detected"
