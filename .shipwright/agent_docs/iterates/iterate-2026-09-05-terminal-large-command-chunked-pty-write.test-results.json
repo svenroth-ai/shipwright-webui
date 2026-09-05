@@ -76,6 +76,11 @@
           "evidence": "pty-write-chunker.test.ts: 'draining a very large queue of small writes does not overflow the stack, and preserves delivery order' (20,000-entry queue)"
         },
         {
+          "behavior": "A synchronous scheduleChunkWrite scheduler chunking a very large payload does not overflow the call stack (external Tier-3 PR review finding, 2nd pass: writeNext recursed into itself once per chunk when the injectable scheduler fired synchronously)",
+          "disposition": "tested",
+          "evidence": "pty-write-chunker.test.ts: 'a synchronous scheduler chunking a very large payload does not overflow the stack' (200,000-byte payload, 12,500 chunks)"
+        },
+        {
           "behavior": "The original macOS production failure (canonical-mode tty input-queue deadlock on an oversized single pty write) is closed on a real macOS shell",
           "disposition": "untestable",
           "reason_code": "requires-physical-device",
@@ -83,8 +88,8 @@
         }
       ],
       "counts": {
-        "testable": 12,
-        "tested": 12,
+        "testable": 13,
+        "tested": 13,
         "untestable": 1,
         "untested_testable": 0
       },

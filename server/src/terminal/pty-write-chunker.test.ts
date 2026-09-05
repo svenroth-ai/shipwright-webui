@@ -234,4 +234,24 @@ describe("ChunkedPtyWriter", () => {
       Array.from({ length: QUEUED }, (_, i) => `${i}\n`).join(""),
     );
   });
+
+  // External-review finding (2026-09-05, Tier-3, BLOCKING, 2nd pass): a
+  // synchronous scheduleChunkWrite used to make the chunk-delivery loop call
+  // itself directly, one stack frame per chunk — a large enough payload
+  // would overflow the call stack. The trampoline fix keeps the loop in the
+  // ORIGINAL call frame regardless of whether the scheduler is sync or
+  // async; this proves a synchronous scheduler with many chunks neither
+  // throws nor recurses, and still delivers every byte in order.
+  it("a synchronous scheduler chunking a very large payload does not overflow the stack", () => {
+    const writer = new ChunkedPtyWriter({
+      ptyWriteChunkBytes: 16,
+      scheduleChunkWrite: (cb) => cb(), // fires synchronously, no deferral
+    });
+    const { entry, writes } = makeEntry();
+    const data = "z".repeat(200_000); // 200,000 / 16 = 12,500 chunks
+
+    expect(() => writer.write(entry, data)).not.toThrow();
+    expect(writes.join("")).toBe(data);
+    for (const w of writes) expect(Buffer.byteLength(w, "utf8")).toBeLessThanOrEqual(16);
+  });
 });

@@ -133,6 +133,38 @@ needing no bloat-baseline exception at all. Full server suite re-verified
 green (339 files, 3869 passed / 3 skipped) after the split; `tsc --noEmit`
 and `oxlint` clean.
 
+### Amendment 5 (post external Tier-3 PR review, on the extracted module)
+
+A third external Tier-3 review pass (`openai/gpt-5.6-luna`, on the
+post-extraction `pty-write-chunker.ts`) approved the extraction itself but
+found a new blocking defect in the moved code: `writeNext`'s own scheduled
+continuation called itself directly via `this.scheduleChunkWrite(writeNext,
+...)`. `scheduleChunkWrite` is a public, injectable option (tests already
+substitute a synchronous stub for determinism) — if it is ever invoked
+synchronously, `writeNext` recurses into itself once per chunk, so a large
+enough oversized write could overflow the call stack. The same bug class
+Amendment 3 fixed for `drainPendingWrites`, one call site over, and missed
+there because the extraction moved the code before this fix landed. Fixed
+with a trampoline: `deliverOrChunk`'s inner `step()` runs its own `for(;;)`
+loop over the chunks; a synchronous reentrant call from inside
+`scheduleChunkWrite` is caught by a `running` guard and only flags "keep
+going" for that loop rather than recursing, while a genuinely async call
+finds `running` already false and re-enters `step` fresh on a later tick —
+preserving the real event-loop yield the whole chunking fix depends on.
+Covered by a new regression test: a synchronous scheduler chunking a
+200,000-byte payload (12,500 chunks) neither throws nor drops bytes. The
+same review's non-blocking suggestion — normalize `ptyWriteChunkDelayMs`/
+`pendingWriteBytesCap` against non-finite/negative input (a `NaN` cap made
+the byte-cap check permanently `false`, silently defeating the queue's
+memory-safety guard) — was also fixed, falling back to the documented
+default for either.
+
+`pty-write-chunker.ts` grew from 254 to 295 lines (still under the 300-line
+default, no bloat-baseline exception needed) and
+`pty-write-chunker.test.ts` from 237 to 257 (same). Full server suite
+re-verified green (340 files, 3870 passed / 3 skipped); `tsc --noEmit` and
+`oxlint` clean.
+
 ## Context
 
 Production incident (macOS): a task's first launch bakes the full task prompt
@@ -184,18 +216,18 @@ DO-NOT #19 (auto-execute stays a client-side WS data-frame).
 - `server/src/terminal/pty-manager.ts` grows from a pre-iterate baseline of
   1299 to 1337 lines (+38 net). It peaked at 1523 (+224) across the first
   four review passes before Amendment 4 extracted the whole chunking
-  mechanism to a new module (`pty-write-chunker.ts`, 254 lines, no bloat
-  exception needed) as a cohesive split. It is already an ADR-101
-  bloat-baseline "exception"; the baseline's `current` + `note` were
-  updated in the same commit, same responsibility bullet (the writer
-  path), not a new concern.
+  mechanism to a new module (`pty-write-chunker.ts`, now 295 lines after
+  Amendment 5's fix, still no bloat exception needed) as a cohesive split.
+  It is already an ADR-101 bloat-baseline "exception"; the baseline's
+  `current` + `note` were updated in the same commit, same responsibility
+  bullet (the writer path), not a new concern.
 - `server/src/terminal/pty-manager.test.ts` grows from a pre-iterate
   baseline of 519 to 621 lines (+102). It peaked at 837 (+318, 13 new
   tests) before Amendment 4 moved 9 of those 13 tests (the chunker's own
   pure-function + behavior coverage) to a new `pty-write-chunker.test.ts`
-  (237 lines, no bloat exception needed), keeping only the 4 tests that
-  verify PtyManager-level wiring. It is already a grandfathered bloat
-  entry, `current` updated likewise.
+  (now 257 lines after Amendment 5's regression test, no bloat exception
+  needed), keeping only the 4 tests that verify PtyManager-level wiring. It
+  is already a grandfathered bloat entry, `current` updated likewise.
 - New `PtyManagerOpts` fields: `ptyWriteChunkBytes`, `ptyWriteChunkDelayMs`,
   `scheduleChunkWrite` — all optional, all defaulted, no call-site changes
   required at either of `write()`'s two production call sites
