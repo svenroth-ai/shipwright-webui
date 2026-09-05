@@ -102,7 +102,7 @@ from pr_review_gh import (  # noqa: E402
     post_pr_review_state,
 )
 from pr_review_openrouter import (  # noqa: E402
-    DEEPSEEK_MODEL, DEFAULT_MODEL, DEFAULT_TIMEOUT, GLM_MODEL, OPENROUTER_URL, call_openrouter,
+    DEEPSEEK_MODEL, DEFAULT_MODEL, DEFAULT_TIMEOUT, GLM_MODEL, LUNA_MODEL, OPENROUTER_URL, call_openrouter,
 )
 # ZDR provider-routing constraint for the DeepSeek/GLM namespaces; `{}` for any
 # other override, which never reads `pr_review_routing.json` (see module docstring).
@@ -128,7 +128,7 @@ __all__ = [
     "parse_review_response", "post_pr_comment", "post_pr_review_state",
     "read_reviewed_head", "render_comment", "safe_path", "stamp_review_body",
     "strip_display_unsafe", "truncate_diff", "call_openrouter", "DEFAULT_MODEL",
-    "DEFAULT_TIMEOUT", "OPENROUTER_URL", "DEEPSEEK_MODEL", "GLM_MODEL",
+    "DEFAULT_TIMEOUT", "OPENROUTER_URL", "DEEPSEEK_MODEL", "GLM_MODEL", "LUNA_MODEL",
     "DeepSeekRoutingPolicyError", "GlmRoutingPolicyError", "resolve_extra_body",
 ]
 
