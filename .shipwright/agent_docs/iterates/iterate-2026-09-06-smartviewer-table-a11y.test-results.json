@@ -1,0 +1,112 @@
+{
+  "last_updated": "2026-09-06",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-06-smartviewer-table-a11y",
+    "date": "2026-09-06",
+    "unit": {
+      "status": "passed",
+      "passed": 7755,
+      "total": 7760
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [
+      "E2E is Advisory at small complexity with no risk flags (Override Classes, SKILL.md); skipped the full Playwright suite. Did run a live-browser Playwright boot smoke (app loads, no new console errors) against this diff's built client, and separately live-verified the actual column-width fix (before/after screenshots at 900/700/520px pane widths) earlier in this run against the real MarkdownRenderer/DocumentMarkdown component tree before the Stage-1 review round's scope-gate fix landed \u2014 that fix and the colSpan-hole normalization are pure-JS changes to the gating/measurement logic, unchanged CSS mechanism, so no re-shoot was done.",
+      "Server suite (3928 passed / 5 skipped, 350 files) was re-run in full because this is a shared-repo F0 gate, though no server file was changed by this iterate."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      },
+      "behaviors": [
+        {
+          "behavior": "computeAutoFitColumnWidths: columns under 320px are left untouched (returns null when no column qualifies)",
+          "disposition": "tested",
+          "evidence": "tableAutoFit.test.ts (4 cases: all-comfortable, empty array, boundary at exactly 320px, short columns kept exact)"
+        },
+        {
+          "behavior": "computeAutoFitColumnWidths: a column over 320px is floored at 200px and given the container's remaining space, split evenly across multiple flex columns",
+          "disposition": "tested",
+          "evidence": "tableAutoFit.test.ts (flex-column remaining-space case; multi-flex-column even-split case)"
+        },
+        {
+          "behavior": "useAutoFitTableColumns: adds a <colgroup> with explicit widths when one column is free text",
+          "disposition": "tested",
+          "evidence": "useAutoFitTableColumns.test.tsx ('adds a colgroup with explicit widths...')"
+        },
+        {
+          "behavior": "useAutoFitTableColumns: leaves the table untouched when every column is already short",
+          "disposition": "tested",
+          "evidence": "useAutoFitTableColumns.test.tsx ('leaves the table untouched...')"
+        },
+        {
+          "behavior": "useAutoFitTableColumns: re-measures on ResizeObserver callback and the applied width actually changes with the new container width",
+          "disposition": "tested",
+          "evidence": "useAutoFitTableColumns.test.tsx ('re-measures on ResizeObserver callback...', strengthened after external review to assert an actual width change, not just colgroup presence)"
+        },
+        {
+          "behavior": "useAutoFitTableColumns is a no-op (no colgroup, no tableLayout mutation, no ResizeObserver installed) outside a .smart-viewer-markdown ancestor, so the 4 other DocumentMarkdown consumers are unaffected",
+          "disposition": "tested",
+          "evidence": "useAutoFitTableColumns.test.tsx ('is a no-op outside a .smart-viewer-markdown ancestor...') \u2014 added after Stage-1 spec-reviewer REJECT; re-review PASSed"
+        },
+        {
+          "behavior": "a table with a long free-text column visibly scrolls horizontally instead of wrapping character-by-character, in a real browser",
+          "disposition": "tested",
+          "evidence": "live Playwright verification against the real MarkdownRenderer/DocumentMarkdown component tree at 900/700/520px pane widths, using the real FR-01.01..04 table text from a sibling project's spec.md (before/after screenshots); see scratchpad iterate-spec-brief.md 'Verification performed'"
+        },
+        {
+          "behavior": "DocumentMarkdown table headers carry scope=\"col\" (WCAG 1.3.1)",
+          "disposition": "tested",
+          "evidence": "DocumentMarkdown.test.tsx (\"a11y \u2014 table column headers carry scope=col\")"
+        },
+        {
+          "behavior": "MarkdownRenderer's scrollable preview pane is a focusable, named region (WCAG 2.1.1) and ViewerTabBar's close control is a real, keyboard-reachable sibling button that does not also activate the tab",
+          "disposition": "tested",
+          "evidence": "MarkdownRenderer.test.tsx (region/aria-label/tabIndex); ViewerTabBar.test.tsx (real button not nested, tabindex!=-1, close doesn't call onActivate)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 1,
+      "exit_code": 0,
+      "justification": "The rendering-mechanism claim (table-layout:auto ignoring <col> hints; off-DOM measurement needing the real container for correct CSS cascade) is invisible to jsdom and was verified via live Playwright reproduction against the real component tree earlier in this run (before/after screenshots at three pane widths). This finalization pass additionally ran a basic Playwright app-boot smoke (page loads, no new console errors) against the current diff to confirm nothing regressed at the app level; full E2E suite is Advisory-skipped at small complexity with no UI risk flag."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-06-smartviewer-table-a11y",
+    "commit": "d3b3652de70dc4d79cfe82fd9c1b57ac23c6feaa",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -83,6 +83,50 @@ describe("createOrgApiRouter — /api/org/* plain-surface proxy (file GET / char
       expect([400, 403]).toContain(res.status);
     });
 
+    // Task requirement (c), iterate-2026-09-06-decisions-proposed-
+    // countersign: "The charter PUT's 403 on decision files is unchanged —
+    // add a test that pins it if none exists." No prior test targeted
+    // `decision_log.md` / `decisions-proposed.md` directly by name (only
+    // the traversal-trick variant above, which accepts either 400 or 403).
+    // The route can only ever construct `relpath = "${leadId}/charter.md"`
+    // — it structurally can never resolve to the bare literal
+    // `decision_log.md` / `decisions-proposed.md` through an ordinary
+    // leadId — so this pins the guarantee at the layer that actually
+    // decides it: `resolveOrgAllowlistedTarget` resolves each file to its
+    // OWN non-charter kind, and the route's `target.kind !== "charter"`
+    // check is what would 403 it if it were ever reached (the traversal
+    // test above is the closest a raw HTTP request can get to reaching that
+    // branch; this test pins the invariant it relies on).
+    it("AC-10 invariant: decision_log.md and decisions-proposed.md resolve to their OWN kind, never charter — the guard the PUT route's kind-check depends on", async () => {
+      writeFileSync(path.join(leadsRoot, "decision_log.md"), "log", "utf8");
+      writeFileSync(path.join(leadsRoot, "decisions-proposed.md"), "proposed", "utf8");
+
+      const { resolveOrgAllowlistedTarget } = await import("../../external/org/_helpers.js");
+      const log = resolveOrgAllowlistedTarget(leadsRoot, "decision_log.md");
+      const proposed = resolveOrgAllowlistedTarget(leadsRoot, "decisions-proposed.md");
+      expect(log.ok && log.kind).toBe("decision_log");
+      expect(proposed.ok && proposed.kind).toBe("decisions_proposed");
+
+      // And the plain-surface GET (unrestricted by kind, unlike the PUT)
+      // can read them — confirming they are reachable ONLY through the
+      // read-only `/file` route and the gated countersign action, never
+      // through the charter PUT.
+      const app = createOrgApiRouter({ leadsRoot, honoHost: "127.0.0.1" });
+      const getLog = await app.request("/api/org/file?path=decision_log.md");
+      expect(getLog.status).toBe(200);
+      const putLog = await app.request(`/api/org/leads/${encodeURIComponent("decision_log")}/charter`, {
+        method: "PUT",
+        body: "hijack",
+        headers: { "if-match": '"abc"' },
+      });
+      // `decision_log/charter.md` is a DIFFERENT, syntactically-valid
+      // charter path (not the literal decision_log.md) — it 404s on a
+      // missing/invalid org-chart rather than writing decision_log.md
+      // itself, which is the point: no leadId value can make this route
+      // land on the literal file.
+      expect(putLog.status).not.toBe(200);
+    });
+
     it("writes charter.md successfully with a matching If-Match", async () => {
       writeFileSync(path.join(leadsRoot, "org-chart.json"), JSON.stringify(CHART), "utf8");
       mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
