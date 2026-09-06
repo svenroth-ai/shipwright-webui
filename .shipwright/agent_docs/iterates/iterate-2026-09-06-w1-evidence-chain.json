@@ -1,0 +1,64 @@
+{
+  "run_id": "iterate-2026-09-06-w1-evidence-chain",
+  "date": "2026-09-06T22:14:17.416790Z",
+  "event_at": "2026-09-06T21:02:12.866670+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/campaign-w1-evidence-chain",
+  "spec": ".shipwright/planning/iterate/campaigns/req3-06-mechanics-webui/sub-iterates/w1-evidence-chain.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-06-w1-evidence-chain",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    },
+    "behaviors": [
+      {
+        "behavior": "CI regenerates the manifest and diffs it against the current commit's FR<->test topology",
+        "disposition": "tested",
+        "evidence": "test_traceability_manifest_gate_run.py::test_run_returns_0_when_regen_matches_committed and ::test_run_returns_1_when_requirements_actually_drift PASSED"
+      },
+      {
+        "behavior": "A manifest with drifted FR<->test topology fails the build (non-zero exit)",
+        "disposition": "tested",
+        "evidence": "test_traceability_manifest_gate_run.py::test_run_returns_1_when_requirements_actually_drift PASSED (exit_code == 1)"
+      },
+      {
+        "behavior": "source_commit mismatch alone must NOT fail the gate (self-referential provenance field)",
+        "disposition": "tested",
+        "evidence": "test_traceability_manifest_gate.py::test_source_commit_mismatch_alone_does_not_count_as_drift and test_traceability_manifest_gate_run.py::test_run_returns_0_when_only_source_commit_differs PASSED"
+      },
+      {
+        "behavior": "the traceability-manifest CI job runs only on push/workflow_dispatch, never pull_request/schedule",
+        "disposition": "tested",
+        "evidence": "test_traceability_manifest_ci_job.py::test_the_job_excludes_pull_request_and_schedule PASSED (exact condition-string assertion)"
+      },
+      {
+        "behavior": "the pinned third-party checkout and astral-sh/setup-uv are full-SHA-pinned, never a mutable tag",
+        "disposition": "tested",
+        "evidence": "test_traceability_manifest_ci_job.py::test_the_pinned_checkout_targets_a_full_commit_sha and ::test_setup_uv_is_sha_pinned PASSED"
+      },
+      {
+        "behavior": "the real CI job successfully imports and runs the pinned shipwright-compliance collector against a live network checkout",
+        "disposition": "untestable",
+        "reason_code": "requires-external-nondeterministic-service",
+        "reason": "needs network access + the real pinned svenroth-ai/shipwright checkout, unavailable in this offline sandbox; validated instead via a stub collector covering the same control-flow branches, per the CI job's own first live push."
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "none",
+    "justification": "CI-only change (.github/workflows/ci.yml + scripts/ci/*): no client/server route, component, or user-facing behavior was touched, so there is no browser/E2E surface to run.",
+    "tests_run": 0
+  },
+  "declared_removals": []
+}

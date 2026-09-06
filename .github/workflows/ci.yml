@@ -271,6 +271,89 @@ jobs:
       - name: Run tests
         run: npm test -- --run
 
+  # ── iterate-2026-09-06-w1-evidence-chain (campaign req3-06-mechanics-webui) ─
+  # Evidence chain: regenerates `.shipwright/compliance/test-traceability.json`
+  # (the requirement<->test manifest — see CHANGELOG "traceability manifest
+  # reader" / "requirement-traceability data and matrix") from the CURRENT
+  # commit and fails the build if it disagrees with what is committed.
+  #
+  # PUSH-ONLY, deliberately not `pull_request`: this repo's iterate PRs never
+  # carry a regenerated manifest (`shared/scripts/lib/derived_snapshots.py`'s
+  # `TEST_TRACEABILITY` — iterate-2026-07-27-derived-snapshots-off-branch,
+  # collision avoidance across parallel iterates), so gating an open PR on an
+  # artifact its own workflow structurally forbids it from updating would
+  # make every ordinary iterate PR red for a reason it cannot fix. Gating
+  # `push` to main is where the manifest SHOULD already be current — main is
+  # exactly where a compliance regen (`/shipwright-compliance` or
+  # `update_compliance.py --phase ...`) is committed directly.
+  #
+  # WHAT COUNTS AS "STALE" — corrected 2026-09-06 after external code review
+  # (reject-severity finding): the gate does NOT compare the committed
+  # manifest's `source_commit` to `HEAD`. A manifest can never embed the hash
+  # of the commit it will be committed inside of (that hash is a function of
+  # the tree, which includes the manifest file) — comparing the two would make
+  # the gate permanently unsatisfiable, on every commit, not merely "red until
+  # a regen lands". `source_commit` is informational provenance only, exactly
+  # like `generated_at`. The gate's real signal is the FR<->test TOPOLOGY
+  # (added/removed requirements, `@covers` bindings, orphans, invalid tags,
+  # `spec_hash`) — see the SCOPE DECISION in
+  # `scripts/ci/traceability_manifest_gate.py` for the full rationale and the
+  # empirical proof from this repo's own history.
+  #
+  # No job-level `permissions:` block is added here on purpose — this workflow's
+  # top-level `permissions: contents: read` (see near the top of this file)
+  # already applies to every job including this one, and no step below needs
+  # a write scope or a secret; the third-party checkout stays least-privilege
+  # by inheritance, not by a redundant per-job override.
+  #
+  # The `test_links` collector this regenerates with is NOT vendored into this
+  # repo (~850 lines across four files, plus `shared/scripts` dependencies —
+  # the `scripts/ci/accepted_risks*` hash-drift-guard vendor pattern would be
+  # disproportionate for a script this repo does not own or fork). Instead the
+  # exact plugin + its `shared/scripts` dependency are checked out at a PINNED
+  # commit of the public `svenroth-ai/shipwright` monorepo, same posture as
+  # `diff-coverage-gate@<sha>` above. Re-pin by bumping the `ref:` below; there
+  # is no local vendored copy to keep in lockstep. `traceability_manifest_gate.py`
+  # itself fails loud (naming this pin) if the collector's import surface ever
+  # moves — see its `run()`.
+  #
+  # Execution evidence (`status`/`executed` on each test link) is deliberately
+  # EXCLUDED from the diff — this job does not run the test suites itself, so
+  # a bare regen always reads every link as `not_run`. See the SCOPE DECISION
+  # in `scripts/ci/traceability_manifest_gate.py` for the full rationale.
+  traceability-manifest:
+    name: Traceability manifest (gate)
+    # `!= 'schedule' && != 'pull_request'` (not `== 'push' || == 'workflow_dispatch'`):
+    # the weekly-schedule reverse-guard (test_bootstrapper_ci_schedule.py ::
+    # test_every_other_job_opts_out_of_the_weekly_schedule) conservatively treats
+    # ANY `||` as unable to prove it excludes `schedule`, and `&&` can only ever
+    # narrow, never re-admit, an already-excluding condition — so this form is
+    # both correct and legible to that guard.
+    if: github.event_name != 'schedule' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout shipwright-compliance plugin (pinned)
+        uses: actions/checkout@v4
+        with:
+          repository: svenroth-ai/shipwright
+          ref: 7e106939fbf82331f5e54a4ea27d90b4f279f1ce  # main, 2026-09-06
+          sparse-checkout: |
+            plugins/shipwright-compliance
+            shared/scripts
+          path: .ci-shipwright-compliance
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
+
+      - name: Regenerate + diff the traceability manifest
+        run: |
+          uv run --project .ci-shipwright-compliance/plugins/shipwright-compliance \
+            python scripts/ci/traceability_manifest_gate.py \
+            --plugin-root .ci-shipwright-compliance/plugins/shipwright-compliance \
+            --project-root .
+
   # ── iterate-2026-08-01-bootstrapper-ci-contract ─────────────────────────────
   # `bootstrapper/` is the published npm package @svenroth-ai/shipwright — the
   # WIDEST blast radius in this repo, since every `npx @svenroth-ai/shipwright`
