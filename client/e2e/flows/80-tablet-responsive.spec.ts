@@ -6,18 +6,18 @@
  *   - No horizontal PAGE overflow on the daily-driver routes (P1).
  *   - Sidebar rails across the whole compact band, not just phones (AC-2).
  *   - Board columns become a flush, internally-scrollable swipe carousel at
- *     tablet (justify-start) and keep desktop justify-between at ≥1024px (P3).
- *   - Task detail collapses to the compact PaneTabBar at tablet and keeps the
- *     resizable 3-pane (with visible splitters) on desktop (AC-4).
+ *     tablet (justify-start) at ≥1024px (P3).
+ *   - Task detail collapses to the compact PaneTabBar at tablet, and the
+ *     embedded terminal survives a live breakpoint crossing (P1b).
  *
- * iterate-2026-09-06-tablet-ipad-ux-pass added the task-title truncation
- * cases below (AC-2/AC-4/AC-4b): a long title single-line-truncates at both
- * tablet and desktop widths instead of wrapping unbounded, with a
- * tap-to-expand popover at tablet and a native `title` tooltip at desktop.
- * The exact grace/threshold arithmetic has no JS branch to unit-test in
- * jsdom (no real layout engine) — `EditableTaskTitle.mobile.test.tsx`
- * unit-tests the CLASSES; only a real browser can prove the box actually
- * renders as one line.
+ * iterate-2026-09-06-tablet-ipad-ux-pass added the tablet-width task-title
+ * truncation case below (AC-2/AC-4): a long title single-line-truncates
+ * instead of wrapping unbounded, with a tap-to-expand popover. The desktop
+ * (native tooltip) and 1024px-boundary title cases, plus the desktop
+ * non-regression checks, live in 80b-tablet-responsive-desktop.spec.ts —
+ * split out to keep this file under the bloat ceiling; both files assert
+ * against the SAME breakpoint contract (useIsCompactViewport,
+ * COMPACT_MEDIA_QUERY).
  *
  * Component-level coverage (PaneTabBar mount-preservation, hook reactivity,
  * sidebar threshold) lives in the vitest specs; this proves the real CSS +
@@ -29,7 +29,6 @@ import { createTask, cleanupTask, makeTaskCwd, cleanupCwd } from "../helpers/tas
 
 const TABLET = { width: 820, height: 1180 }; // iPad portrait — compact band
 const DESKTOP = { width: 1280, height: 800 }; // full desktop
-const LG_BOUNDARY = { width: 1024, height: 768 }; // exactly lg → desktop
 
 // Long enough that, unbounded, it would wrap across many lines at every
 // viewport tested below (mirrors the AC-4b live-browser finding: 5 full
@@ -270,111 +269,6 @@ test.describe("Terminal survives a breakpoint crossing (P1b — C1 guard)", () =
       await page.waitForTimeout(300);
       // Same DOM node ⇒ React never unmounted the subtree ⇒ WS/scrollback intact.
       expect(await handle!.evaluate((el) => el.isConnected)).toBe(true);
-    } finally {
-      await cleanupTask(request, taskId);
-      await cleanupCwd(cwd);
-    }
-  });
-});
-
-test.describe("Desktop non-regression (≥1024px)", () => {
-  test.use({ viewport: DESKTOP });
-
-  test("sidebar is expanded (brand logo visible)", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("sidebar-brand-logo")).toBeVisible();
-    await expect(page.getByRole("button", { name: /expand sidebar/i })).toHaveCount(0);
-  });
-
-  test("board columns keep desktop justify-between (P3)", async ({ page }) => {
-    await page.goto("/");
-    const cols = page.getByTestId("task-board-columns");
-    await expect(cols).toBeVisible();
-    expect(await cols.evaluate((el) => getComputedStyle(el).justifyContent)).toBe("space-between");
-  });
-
-  test("list view shows the Commit column on desktop (lg:table-cell)", async ({ page }) => {
-    await page.goto("/");
-    await page.getByTestId("view-toggle-list").click();
-    await expect(page.getByTestId("task-list-header-commit")).toBeVisible();
-  });
-
-  test("task detail keeps the resizable 3-pane (visible splitters, no tab bar)", async ({
-    page,
-    request,
-  }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd, "desktop-detail-smoke");
-    try {
-      await page.goto(`/tasks/${taskId}`);
-      await expect(page.getByTestId("task-detail-page")).toBeVisible();
-      await expect(page.getByTestId("pane-tab-bar")).toHaveCount(0);
-      await expect(page.getByTestId("splitter-left")).toBeVisible();
-      await expect(page.getByTestId("splitter-right")).toBeVisible();
-    } finally {
-      await cleanupTask(request, taskId);
-      await cleanupCwd(cwd);
-    }
-  });
-
-  test("a long task title single-line-truncates with a native tooltip instead of wrapping (AC-4b)", async ({
-    page,
-    request,
-  }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd, LONG_TITLE);
-    try {
-      await page.goto(`/tasks/${taskId}`);
-      const display = page.getByTestId("task-title-display");
-      await expect(display).toBeVisible();
-
-      // Single-line box — before AC-4b this wrapped across ~5 lines and ate
-      // most of the header's height before the terminal even started.
-      const box = (await display.boundingBox())!;
-      expect(box.height).toBeLessThan(SINGLE_LINE_HEIGHT_CEILING);
-      // Native hover tooltip carries the untruncated title (desktop only —
-      // tablet uses the tap-to-expand popover instead).
-      await expect(display).toHaveAttribute("title", LONG_TITLE);
-
-      // Desktop click still opens direct inline edit (not a popover).
-      await display.click();
-      await expect(page.getByTestId("task-title-input-edit")).toHaveValue(LONG_TITLE);
-    } finally {
-      await cleanupTask(request, taskId);
-      await cleanupCwd(cwd);
-    }
-  });
-});
-
-test.describe("Breakpoint boundary — 1024px is desktop", () => {
-  test.use({ viewport: LG_BOUNDARY });
-
-  test("at exactly 1024px the board uses the desktop layout (justify-between)", async ({ page }) => {
-    await page.goto("/");
-    const cols = page.getByTestId("task-board-columns");
-    await expect(cols).toBeVisible();
-    expect(await cols.evaluate((el) => getComputedStyle(el).justifyContent)).toBe("space-between");
-  });
-
-  test("a long title single-line-truncates at exactly 1024px — the classic iPad/mini landscape width (AC-4b)", async ({
-    page,
-    request,
-  }) => {
-    // Reproduces the AC-4b live-browser finding directly: 1024px sits 1px
-    // outside the ≤1023px compact breakpoint (so it gets the DESKTOP title
-    // branch), and before the fix that branch had no truncation at all — the
-    // title wrapped across ~5 lines before Grade/Tests/Serves even appeared.
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd, LONG_TITLE);
-    try {
-      await page.goto(`/tasks/${taskId}`);
-      const display = page.getByTestId("task-title-display");
-      await expect(display).toBeVisible();
-      const box = (await display.boundingBox())!;
-      expect(box.height).toBeLessThan(SINGLE_LINE_HEIGHT_CEILING);
-      await expect(display).toHaveAttribute("title", LONG_TITLE);
-      // The desktop title branch renders here, not the tablet popover.
-      await expect(page.getByTestId("pane-tab-bar")).toHaveCount(0);
     } finally {
       await cleanupTask(request, taskId);
       await cleanupCwd(cwd);

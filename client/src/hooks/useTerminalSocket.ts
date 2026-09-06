@@ -579,10 +579,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       openState: WebSocket.OPEN,
       isReplayOnly: () => sessionReplayOnlyRef.current,
       isCancelled: () => cancelled,
-      rearmBudget: () => {
-        attemptsRef.current = 0;
-        setReconnectAttempts(0);
-      },
+      rearmBudget: () => { attemptsRef.current = 0; setReconnectAttempts(0); },
       reconnect: () => {
         if (reconnectTimerRef.current) {
           clearTimeout(reconnectTimerRef.current);
@@ -590,31 +587,6 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         }
         connect();
       },
-      // iterate-2026-09-06-tablet-ipad-ux-pass — surface the SAME "Connection
-      // lost — reconnecting…" banner the instant an eager probe starts, not
-      // only once it fails and the socket actually closes. A probe that
-      // succeeds (pong within the deadline) flips this back off via the
-      // `false` call from `clearProbe`; one that fails leaves it on through
-      // the close → scheduleReconnect handoff (which sets the same state
-      // again, a no-op) until the fresh connection's `open` handler clears it.
-      //
-      // Accepted trade-off (doubt-review MEDIUM, same iterate): before this,
-      // `reconnecting` only ever went true after an actual socket close. Now
-      // it also goes true while a probe is merely in flight, so a healthy
-      // connection whose pong lands in the ~1.5-4s band (this hook's own
-      // `RECONNECTING_BANNER_GRACE_MS` grace timer already suppresses
-      // anything under 1.5s) will visibly flash the banner for a bounded
-      // window where before it stayed silent. That flash is the SAME
-      // philosophy the grace timer already encodes ("only an outage that
-      // outlives the grace is worth telling the user about") applied to a
-      // new signal source, not a new threshold — and staying silent instead
-      // would leave exactly the slow-but-recovering population this iterate
-      // targets unsignalled, reintroducing the "frozen frame, no indication
-      // anything is happening" bug for that band. Proven bounded (arms only
-      // past the grace, self-dismisses the instant the pong lands, never
-      // stuck) by useTerminalShellEffects.reconnecting.test.ts's composed
-      // suite, which drives this exact onProbing source through the real
-      // grace timer.
       onProbing: (probing) => setReconnecting(probing),
     });
 
