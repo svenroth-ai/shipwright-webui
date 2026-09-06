@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-claim-launch-permission-perimeter",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:19:50.191981+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:19:14.358675+00:00",
+      "disposition": "Mini-Plan is medium+ only (or FEATURE at small); this run classified small/CHANGE",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "server/src/external/launch/claim-executor-template-arming.ts",
+          "line": 69,
+          "finding": "armActionTemplatePermissionPerimeter matched only the FIRST occurrence of the --session-id anchor via indexOf, so a custom command_template placing a caller-controlled placeholder before {task.uuid} could let the flags land in the wrong place while the real flag stayed unarmed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test-coverage",
+          "file": "server/src/external/launch/action-substitution-branch.ts",
+          "line": 154,
+          "finding": "The fail-closed 409 conversion had no end-to-end test through the real branch/route.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/core/launcher-permission-flags.ts",
+          "line": 33,
+          "finding": "Flag literals (--tools, --permission-mode, comma-join) are independently hardcoded in two files.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/launch/claim-executor-template-arming.ts",
+          "line": 55,
+          "finding": "Doc comment overclaimed the anchor match 'cannot collide with unrelated command-template content'.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T06:47:14.576256+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "server/src/external/launch/claim-executor-template-arming.ts",
+          "line": null,
+          "finding": "a unique textual match of '--session-id <uuid>' in the rendered command proves the permission-perimeter flags land on a real, functioning CLI flag",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "server/src/external/launch/claim-executor-permissions.ts",
+          "line": null,
+          "finding": "the injected --tools/--permission-mode flags cannot be neutralized by anything else in the rendered command",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "hidden coupling & blast radius",
+          "file": "server/src/external/launch/routes.ts",
+          "line": null,
+          "finding": "claimAuthorized reaches every launch path a claim-authorized caller can take",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:01:52.729526+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T07:01:59.705953+00:00",
+      "disposition": "External LLM Review is Advisory/skip at small complexity per the shipwright-iterate phase matrix (Override Classes table); this run classified small with risk_flags:[touches_auth], which forces mandatory Full Code Review (already run: spec+code+doubt cascade) but not external LLM review.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:37:05.909059+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:19:14.469011+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

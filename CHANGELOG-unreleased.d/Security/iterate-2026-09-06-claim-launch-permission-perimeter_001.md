@@ -1,0 +1,1 @@
+A claim-authorized task launch (leadwright's stage-2 executor) now runs with an explicit --tools allow-list and --permission-mode dontAsk instead of unrestricted authority; manual/human launches are unchanged.
