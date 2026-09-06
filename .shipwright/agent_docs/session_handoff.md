@@ -8,28 +8,41 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 # Session Handoff
 
-> Auto-generated 2026-08-08 20:38:36 UTC
+> Auto-generated 2026-09-06 07:59:30 UTC
 
 ## Session Info
 
-- **Session ID**: b24c7537-4b35-4585-be92-02ee02b3ff6b
-- **Timestamp**: 2026-08-08 20:38:36 UTC
-- **Reason**: release v0.24.0
+- **Session ID**: 38877717-d36f-414b-a196-7038dba3ff75
+- **Timestamp**: 2026-09-06 07:59:30 UTC
+- **Reason**: iterate completion: iterate-2026-09-06-tablet-ipad-ux-pass
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-08-08-tests-total-skip-contract
-- **Date**: 2026-08-08T10:36:25.721563Z
+- **Run ID**: iterate-2026-09-06-tablet-ipad-ux-pass
+- **Date**: 2026-09-06T08:05:59.301667Z
 - **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/tests-total-skip-contract
-- **ADR**: iterate-2026-08-08-tests-total-skip-contract
+- **Branch**: iterate/tablet-ipad-ux-pass
+- **ADR**: iterate-2026-09-06-tablet-ipad-ux-pass
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-08-08-tests-total-skip-contract.md
+- **Spec**: .shipwright/planning/iterate/2026-09-06-tablet-ipad-ux-pass.md
+
+## Current Iterate Progress
+
+- **Branch**: iterate/tablet-ipad-ux-pass
+- **Spec**: .shipwright/planning/iterate/2026-09-06-tablet-ipad-ux-pass.md
+- **Complexity**: medium (`classify_complexity.py`: estimate=medium,
+- **External Review Marker**: stale (predates spec (2026-09-01T20:56:59))
+- **Review Cascade**: no run_id resolved
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
-- **Phase**: changelog
+- **Phase**: design
 - **Current Split**: 01-adopted
 - **Current Section**: adopted-baseline
 
@@ -38,8 +51,8 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 ## Git State
 
-- **Branch**: feat/track-model-config-allowlist
-- **Last Commit**: e76e3fc1 chore(release): v0.24.0
+- **Branch**: iterate/tablet-ipad-ux-pass
+- **Last Commit**: 75aa857c chore(iterate): correct F0.5 evidence in the per-run test-results snapshot
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -55,23 +68,23 @@ timestamp: "2026-08-08T20:38:36.160644+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-85922e16 | phase_completed | changelog | 2026-08-08 |
-| evt-922b9978 | grade_snapshot | — | 2026-08-08 |
-| evt-53b4782d | work_completed | iterate (Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches.) | 2026-08-08 |
-| evt-a444cb0d | work_completed | iterate (Epoch-gated resolution of tests.total (collected vs executed) — resolves the cross-repo contract conflict with the monorepo's tests_block.py producer, so a host-gated skip reads as a genuine pass with the skip disclosed instead of a failure.) | 2026-08-08 |
-| evt-2d0b9be9 | event_amended | — | 2026-08-05 |
+| evt-f269fd1e | grade_snapshot | — | 2026-09-06 |
+| evt-12aa1dda | work_completed | iterate (Tablet/iPad UX pass: terminal reconnecting banner now surfaces the existing WS liveness probe instead of a silent stale frame; task titles single-line-truncate with tap-to-expand/tooltip at tablet AND desktop widths instead of wrapping; Ships Log Documents panel scrolls independently of the Log column at every viewport width.) | 2026-09-06 |
+| evt-24451fc7 | work_completed | iterate (Chunk PtyManager.write() into sub-KB UTF-8-safe pieces (with a same-task write queue) to stop a production macOS hang: an oversized single-burst write into a task's first-launch command could deadlock the whole server by overrunning the shell's tty input queue.) | 2026-09-04 |
+| evt-35d58ea9 | grade_snapshot | — | 2026-09-05 |
+| evt-99f0f682 | work_completed | iterate (Desktop sidebar collapse/expand (icons-only, persisted, default expanded) + Diagnostics page shows WebUI version and Shipwright plugin version) | 2026-09-05 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 398
-- **Last iterate**: feature — Adds view-only Priority/Domain/Complexity filters and an independent two-level sort (Domain/Name/Modified) to the Triage tab; drops the per-source group heading; adds a Parked filter (default-hidden) with due-park and dateless-park escape hatches. (2026-08-08)
+- **Total work events**: 456
+- **Last iterate**: change — Tablet/iPad UX pass: terminal reconnecting banner now surfaces the existing WS liveness probe instead of a silent stale frame; task titles single-line-truncate with tap-to-expand/tooltip at tablet AND desktop widths instead of wrapping; Ships Log Documents panel scrolls independently of the Log column at every viewport width. (2026-09-06)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-264: Mission stage derived from real phase markers; TodoWrite premise falsified empirically
-- **Date:** 2026-07-19
-- **Section:** Iterate - change: mission lifecycle stage
-- **Run-ID:** iterate-2026-07-19-mission-s4-honest-lifecycle-stage
-- **Context:** The 'Where it stands' stepper left Analyze far too early: inferStage was furthest-along-wins over coarse tool signals, so the first Edit/Write to any non-spec file set Build, and Build outranks Analyze. A scratchpad probe or memory note written d
+### ADR-308: Chunk pty.write() to stop the macOS large-command hang
+- **Date:** 2026-09-05
+- **Section:** Iterate — bug: embedded-terminal-large-command-hang
+- **Run-ID:** iterate-2026-09-05-terminal-large-command-chunked-pty-write
+- **Context:** Prod incident (macOS): a first launch with a ~5.8KB prompt baked into the command froze the server. PtyManager.write() forwarded the whole burst in one call; macOS's ~1KB canonical-mode tty queue can't drain until the trailing newline arrives, which was stuck a
