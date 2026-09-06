@@ -1,0 +1,758 @@
+diff --git a/client/package-lock.json b/client/package-lock.json
+index e7659e5e..a71a55d5 100644
+--- a/client/package-lock.json
++++ b/client/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "shipwright-command-center-client",
+-  "version": "0.26.0",
++  "version": "0.27.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "shipwright-command-center-client",
+-      "version": "0.26.0",
++      "version": "0.27.0",
+       "dependencies": {
+         "@dnd-kit/core": "^6.3.1",
+         "@fontsource-variable/geist-mono": "^5.2.8",
+diff --git a/client/src/components/external/EditableTaskTitle.mobile.test.tsx b/client/src/components/external/EditableTaskTitle.mobile.test.tsx
+index abffd440..e68bda72 100644
+--- a/client/src/components/external/EditableTaskTitle.mobile.test.tsx
++++ b/client/src/components/external/EditableTaskTitle.mobile.test.tsx
+@@ -14,7 +14,7 @@ import { EditableTaskTitle } from "./EditableTaskTitle";
+ const task = {
+   taskId: "task-1",
+   sessionUuid: "11111111-1111-1111-1111-111111111111",
+-  title: "A very long <script>task title</script> that must not grow the phone header",
++  title: "A very long <script>task title</script> that must not grow the header",
+   cwd: "/tmp/p",
+   pluginDirs: [],
+   projectId: "p1",
+@@ -25,9 +25,17 @@ const task = {
+ 
+ const originalMatchMedia = window.matchMedia;
+ 
+-function setPhone(phone: boolean) {
++/**
++ * The component reads the COMPACT query (`max-width: 1023px`, tablet+phone —
++ * iterate-2026-09-06-tablet-ipad-ux-pass), not the narrower PHONE query
++ * directly. `phoneMatches` defaults to mirroring `compact` (a real phone
++ * viewport matches both queries at once); passing `false` while `compact` is
++ * `true` simulates a tablet-width viewport (phone query false, compact query
++ * true) to prove the component does NOT key off the phone query.
++ */
++function setViewport(compact: boolean, phoneMatches: boolean = compact) {
+   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+-    matches: query === "(max-width: 767px)" ? phone : false,
++    matches: query === "(max-width: 1023px)" ? compact : query === "(max-width: 767px)" ? phoneMatches : false,
+     media: query,
+     onchange: null,
+     addEventListener: vi.fn(),
+@@ -42,9 +50,10 @@ afterEach(() => {
+   window.matchMedia = originalMatchMedia;
+   vi.clearAllMocks();
+ });
+-describe("EditableTaskTitle — phone disclosure", () => {
+-  it("truncates the trigger and opens the full title as inert text", async () => {
+-    setPhone(true);
++
++describe("EditableTaskTitle — compact (tablet + phone) disclosure", () => {
++  it("phone: truncates the trigger and opens the full title as inert text", async () => {
++    setViewport(true);
+     const user = userEvent.setup();
+     render(<EditableTaskTitle task={task} />);
+     expect(screen.getByTestId("task-title-display")).toHaveClass("truncate");
+@@ -54,8 +63,20 @@ describe("EditableTaskTitle — phone disclosure", () => {
+     expect(content.querySelector("script")).toBeNull();
+   });
+ 
++  // @covers iterate-2026-09-06-tablet-ipad-ux-pass — the same tap-to-expand
++  // disclosure now covers iPad-width viewports (768-1023px), not only phone.
++  it("tablet (compact but not phone-width): also truncates and opens the tap-to-expand popover", async () => {
++    setViewport(true, false);
++    const user = userEvent.setup();
++    render(<EditableTaskTitle task={task} />);
++    expect(screen.getByTestId("task-title-display")).toHaveClass("truncate");
++    await user.click(screen.getByTestId("task-title-display"));
++    const content = await screen.findByTestId("task-title-popover");
++    expect(content).toHaveTextContent(task.title);
++  });
++
+   it("Rename closes the overlay and focuses the existing editor", async () => {
+-    setPhone(true);
++    setViewport(true);
+     const user = userEvent.setup();
+     render(<EditableTaskTitle task={task} />);
+     await user.click(screen.getByTestId("task-title-display"));
+@@ -66,13 +87,21 @@ describe("EditableTaskTitle — phone disclosure", () => {
+   });
+ 
+   it("desktop click keeps the existing direct edit path", async () => {
+-    setPhone(false);
++    setViewport(false);
+     const user = userEvent.setup();
+     render(<EditableTaskTitle task={task} />);
+     const display = screen.getByTestId("task-title-display");
+-    expect(display).not.toHaveClass("truncate");
+-    expect(display.querySelector("span")).not.toHaveClass("truncate");
+     await user.click(display);
+     expect(screen.getByTestId("task-title-input-edit")).toBeInTheDocument();
+   });
++
++  // @covers iterate-2026-09-06-tablet-ipad-ux-pass
++  it("desktop also single-line truncates a long title instead of wrapping unbounded", () => {
++    setViewport(false);
++    render(<EditableTaskTitle task={task} />);
++    const display = screen.getByTestId("task-title-display");
++    expect(display).toHaveClass("min-w-0");
++    expect(display.querySelector("span")).toHaveClass("truncate");
++    expect(display).toHaveAttribute("title", task.title);
++  });
+ });
+diff --git a/client/src/components/external/EditableTaskTitle.tsx b/client/src/components/external/EditableTaskTitle.tsx
+index 025484f1..3b01b197 100644
+--- a/client/src/components/external/EditableTaskTitle.tsx
++++ b/client/src/components/external/EditableTaskTitle.tsx
+@@ -23,7 +23,7 @@ import * as Popover from "@radix-ui/react-popover";
+ 
+ import type { ExternalTask } from "../../lib/externalApi";
+ import { useRenameTask } from "../../hooks/useExternalTasks";
+-import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
++import { useIsCompactViewport } from "../../hooks/useIsCompactViewport";
+ 
+ interface Props {
+   task: ExternalTask;
+@@ -37,7 +37,7 @@ export interface EditableTaskTitleHandle {
+ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
+   function EditableTaskTitle({ task }, ref) {
+   const renameMut = useRenameTask();
+-  const isPhone = useIsPhoneViewport();
++  const isCompact = useIsCompactViewport();
+   const [editing, setEditing] = useState(false);
+   const [phonePopoverOpen, setPhonePopoverOpen] = useState(false);
+   const [draft, setDraft] = useState(task.title);
+@@ -91,18 +91,30 @@ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
+       <button
+         ref={displayButtonRef}
+         type="button"
+-        onClick={isPhone ? undefined : () => setEditing(true)}
+-        className={isPhone
++        onClick={isCompact ? undefined : () => setEditing(true)}
++        className={isCompact
+           ? "inline-flex min-h-11 min-w-0 items-center gap-2 truncate rounded px-1 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+-          : "inline-flex items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"}
+-        aria-label={isPhone ? "Show full task title" : "Edit task title"}
++          : "inline-flex min-w-0 items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"}
++        aria-label={isCompact ? "Show full task title" : "Edit task title"}
++        title={!isCompact ? task.title : undefined}
+         data-testid="task-title-display"
+       >
+-        <span className={isPhone ? "truncate" : undefined}>{task.title}</span>
+-        {!isPhone && <Pencil size={14} className="shrink-0 text-[var(--color-muted)]" />}
++        {/* iterate-2026-09-06-tablet-ipad-ux-pass: the desktop branch had NO
++            truncate/min-w-0 at all — a long title just wrapped unbounded
++            across as many lines as it took, eating most of the header's
++            height before the terminal even started. Classic iPad/mini
++            landscape (1024px CSS width) falls 1px outside the compact
++            breakpoint and hit exactly this; a real desktop window with a
++            long title and a narrow-ish viewport hits the same bug. Single-
++            line ellipsis on BOTH branches — clicking still opens the edit
++            input with the full untruncated value, and `title` gives desktop
++            a native hover tooltip (compact already has the tap-to-expand
++            popover). */}
++        <span className="truncate">{task.title}</span>
++        {!isCompact && <Pencil size={14} className="shrink-0 text-[var(--color-muted)]" />}
+       </button>
+     );
+-    if (!isPhone) return titleButton;
++    if (!isCompact) return titleButton;
+     return (
+       <Popover.Root modal open={phonePopoverOpen} onOpenChange={setPhonePopoverOpen}>
+         <Popover.Trigger asChild>{titleButton}</Popover.Trigger>
+diff --git a/client/src/components/external/TaskDetailHeader.phone.test.tsx b/client/src/components/external/TaskDetailHeader.phone.test.tsx
+index 4a2c85b1..18b22b5d 100644
+--- a/client/src/components/external/TaskDetailHeader.phone.test.tsx
++++ b/client/src/components/external/TaskDetailHeader.phone.test.tsx
+@@ -1,10 +1,16 @@
+ /*
+- * TaskDetailHeader — phone header-condense tests (iterate-2026-06-20 AC-1).
++ * TaskDetailHeader — compact header-condense tests (iterate-2026-06-20 AC-1;
++ * extended to the full tablet band by iterate-2026-09-06-tablet-ipad-ux-pass).
+  *
+  * Split out of TaskDetailHeader.test.tsx to keep that file under its bloat
+- * baseline. On a phone (≤767px) the breadcrumb + the Started/last-event/model
+- * meta sub-line are dropped (terminal gets more room); desktop (≥768px) keeps
+- * them. Everything stays reachable (project via the chip, metadata via ⋮).
++ * baseline. On a COMPACT viewport (≤1023px = tablet + phone) the breadcrumb +
++ * the Started/last-event/model meta sub-line are dropped (terminal gets more
++ * room); desktop (≥1024px) keeps them. Everything stays reachable (project via
++ * the chip, metadata via ⋮). Originally phone-only (≤767px) — an iPad hit the
++ * full desktop row (breadcrumb + title + badge + gate pill + project menu +
++ * Instruments + CTA + menu all on one `flex` line) and it wrapped across
++ * several lines, eating most of the header's height before the terminal even
++ * started (Sven, 2026-09-06).
+  */
+ 
+ import { describe, it, expect, vi, afterEach } from "vitest";
+@@ -64,9 +70,15 @@ function renderHeader(task: ExternalTask) {
+   );
+ }
+ 
+-function mockPhone(isPhone: boolean) {
++/**
++ * The header reads the COMPACT query (`max-width: 1023px`), not the narrower
++ * PHONE query directly. `phoneMatches` defaults to mirroring `compact` (a
++ * real phone viewport matches both); pass `false` while `compact` is `true`
++ * to simulate a tablet-width viewport (phone query false, compact query true).
++ */
++function mockCompact(compact: boolean, phoneMatches: boolean = compact) {
+   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+-    matches: query === "(max-width: 767px)" ? isPhone : false,
++    matches: query === "(max-width: 1023px)" ? compact : query === "(max-width: 767px)" ? phoneMatches : false,
+     media: query,
+     onchange: null,
+     addEventListener: vi.fn(),
+@@ -77,15 +89,15 @@ function mockPhone(isPhone: boolean) {
+   })) as unknown as typeof window.matchMedia;
+ }
+ 
+-describe("TaskDetailHeader — phone header condense (AC-1)", () => {
++describe("TaskDetailHeader — compact (tablet + phone) header condense (AC-1)", () => {
+   afterEach(() => {
+-    // Restore jsdom default (no matchMedia → useIsPhoneViewport() === false).
++    // Restore jsdom default (no matchMedia → useIsCompactViewport() === false).
+     delete (window as { matchMedia?: unknown }).matchMedia;
+     vi.restoreAllMocks();
+   });
+ 
+   it("drops the breadcrumb + meta sub-line on a phone", () => {
+-    mockPhone(true);
++    mockCompact(true);
+     renderHeader(makeTask());
+     expect(screen.queryByTestId("task-detail-breadcrumb")).toBeNull();
+     expect(screen.queryByTestId("task-detail-subline")).toBeNull();
+@@ -94,8 +106,17 @@ describe("TaskDetailHeader — phone header condense (AC-1)", () => {
+     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+   });
+ 
+-  it("keeps the breadcrumb + meta sub-line on desktop (≥768px)", () => {
+-    mockPhone(false);
++  // @covers iterate-2026-09-06-tablet-ipad-ux-pass
++  it("also drops the breadcrumb + meta sub-line on a tablet-width (compact, non-phone) viewport", () => {
++    mockCompact(true, false);
++    renderHeader(makeTask());
++    expect(screen.queryByTestId("task-detail-breadcrumb")).toBeNull();
++    expect(screen.queryByTestId("task-detail-subline")).toBeNull();
++    expect(screen.getByTestId("task-detail-title-row")).toBeInTheDocument();
++  });
++
++  it("keeps the breadcrumb + meta sub-line on desktop (≥1024px)", () => {
++    mockCompact(false);
+     renderHeader(makeTask());
+     expect(screen.getByTestId("task-detail-breadcrumb")).toBeInTheDocument();
+     expect(screen.getByTestId("task-detail-subline")).toBeInTheDocument();
+diff --git a/client/src/components/external/mission/Instruments.tsx b/client/src/components/external/mission/Instruments.tsx
+index 865dc05a..e70934f0 100644
+--- a/client/src/components/external/mission/Instruments.tsx
++++ b/client/src/components/external/mission/Instruments.tsx
+@@ -49,7 +49,20 @@ export function Instruments({ task }: Props) {
+ 
+   return (
+     <div
+-      className="hidden items-center gap-2 md:flex"
++      // iterate-2026-09-06-tablet-ipad-ux-pass: was `md:flex` (Tailwind's
++      // default 768px), which — despite the header comment's "hidden on
++      // phones" intent — only ever hid these three chips below 768px. The
++      // rest of the header's own compact/phone split reads the codebase's
++      // CUSTOM 1023px COMPACT_MEDIA_QUERY (useIsCompactViewport), so
++      // Instruments kept rendering across the whole 768-1023px tablet band
++      // that split treats as compact — three extra chips competing for a
++      // row that, on an iPad, was already crowded by title + CTA + menu
++      // (Sven, 2026-09-06: the header "takes an insane amount of space" and
++      // "isn't on one line" on iPad). `lg:flex` (Tailwind's default 1024px)
++      // is the one Tailwind breakpoint that lines up with that same 1023px
++      // cutoff, so Instruments now hides for the ENTIRE compact band and
++      // reappears only at genuine desktop width, matching MissionTopRow.
++      className="hidden items-center gap-2 lg:flex"
+       data-testid="mission-instruments"
+       aria-label="Run instruments"
+     >
+diff --git a/client/src/components/external/mission/MissionTopRow.tsx b/client/src/components/external/mission/MissionTopRow.tsx
+index a5b6bcda..115be09d 100644
+--- a/client/src/components/external/mission/MissionTopRow.tsx
++++ b/client/src/components/external/mission/MissionTopRow.tsx
+@@ -20,7 +20,7 @@ import type { ExternalTask } from "../../../lib/externalApi";
+ import { useProjects } from "../../../hooks/useProjects";
+ import { useDeleteExternalTask } from "../../../hooks/useExternalTasks";
+ import { hasLaunchedBefore } from "../../../lib/taskLifecycle";
+-import { useIsPhoneViewport } from "../../../hooks/useIsCompactViewport";
++import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
+ import { useMissionState } from "../../../hooks/useMissionState";
+ import { type EditableTaskTitleHandle } from "../EditableTaskTitle";
+ import { ProjectChipMenu } from "../ProjectChipMenu";
+@@ -57,8 +57,13 @@ export function MissionTopRow({ task, modelName }: Props) {
+   const projectsQ = useProjects();
+   const deleteMut = useDeleteExternalTask();
+   const navigate = useNavigate();
+-  // Phone (≤767px): the breadcrumb + meta sub-line drop for terminal headroom.
+-  const isPhone = useIsPhoneViewport();
++  // Compact (≤1023px = tablet + phone, iterate-2026-09-06-tablet-ipad-ux-pass):
++  // the breadcrumb + meta sub-line drop for terminal headroom. Was phone-only
++  // (≤767px) — on an iPad the full desktop row (breadcrumb + title + badge +
++  // gate pill + project menu + Instruments + CTA + menu, all fighting for one
++  // line) wrapped across several lines and ate most of the visible header
++  // height before the terminal even started (Sven, 2026-09-06).
++  const isCompact = useIsCompactViewport();
+   // The cluster's shared mission-state derivation (A11) — drives the additive
+   // design-gate pill; never re-derived (DO-NOT #16, no JSONL-mtime staleness).
+   const missionState = useMissionState(task);
+@@ -123,7 +128,7 @@ export function MissionTopRow({ task, modelName }: Props) {
+         <LaunchCTA task={task} onError={setCtaError} />
+       )}
+       {missionState !== "designgate" && cta === "resume" && (
+-        <ResumeCTA task={task} onError={setCtaError} iconOnly={isPhone} />
++        <ResumeCTA task={task} onError={setCtaError} iconOnly={isCompact} />
+       )}
+       <HeaderMenu
+         task={task}
+@@ -146,14 +151,14 @@ export function MissionTopRow({ task, modelName }: Props) {
+       // Phone splits into two rows (top: back+title+actions, bottom: status pills)
+       // so items-center never centers against the whole two-line block.
+       className={
+-        isPhone
++        isCompact
+           ? "mc-top relative flex w-full flex-col gap-2 px-3 py-2"
+           : "mc-top relative flex w-full items-center gap-2 px-3 py-2 md:gap-4 md:py-[17px] md:pl-[22px] md:pr-[28px]"
+       }
+       data-testid="task-detail-header"
+     >
+       <style>{STATE_BADGE_KEYFRAMES}</style>
+-      {isPhone ? (
++      {isCompact ? (
+         <>
+           <div className="flex min-w-0 items-center gap-2">
+             <Link to="/" className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]" aria-label="Back to board" data-testid="task-detail-back">
+diff --git a/client/src/components/shipslog/ShipsLogDocumentsPanel.tsx b/client/src/components/shipslog/ShipsLogDocumentsPanel.tsx
+index f77b82ce..31ef46b6 100644
+--- a/client/src/components/shipslog/ShipsLogDocumentsPanel.tsx
++++ b/client/src/components/shipslog/ShipsLogDocumentsPanel.tsx
+@@ -54,7 +54,13 @@ export function ShipsLogDocumentsPanel({ projectId }: { projectId: string }) {
+ 
+   return (
+     <div className="sl-docs" data-testid="shipslog-docs-panel">
+-      <h2 className="sl-lead">Project documents</h2>
++      {/* iterate-2026-09-06-tablet-ipad-ux-pass: the panel is visually
++          self-evident (three labeled groups) once it sits in its own
++          scrollable column, so the redundant "Project documents" caption
++          is dropped — kept as an sr-only heading so the region still has
++          a name in the accessibility tree (h2, matches ShipsLogPage's h3
++          group headings one level down). */}
++      <h2 className="sl-lead sr-only">Project documents</h2>
+ 
+       <DocGroup title="Specs" loading={isLoading} loadError={loadError}>
+         <ShipsLogSpecsTabs
+diff --git a/client/src/components/sidebar/SidebarNav.tsx b/client/src/components/sidebar/SidebarNav.tsx
+index aa91ef1e..859f7f87 100644
+--- a/client/src/components/sidebar/SidebarNav.tsx
++++ b/client/src/components/sidebar/SidebarNav.tsx
+@@ -117,8 +117,17 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
+         )}
+       </div>
+ 
+-      {/* Nav items */}
+-      <nav className="flex flex-col gap-1 py-2 px-3">
++      {/* Nav items — `flex-1 overflow-y-auto min-h-0` (CLAUDE.md rule 27) so
++          THIS list scrolls internally when it outgrows the available height,
++          instead of pushing Settings below the fold with no way to reach it
++          (iterate-2026-09-06-tablet-ipad-ux-pass: "Settings wird
++          abgeschnitten" on iPad — the rail's fixed `h-screen` plus a plain
++          `flex-1` spacer had no scroll owner at all once Triage/Org/
++          Diagnostics grew the list past a short tablet viewport's height).
++          With room to spare this behaves exactly like the old spacer: the
++          items stack at the top and the unused flex-1 space is simply blank
++          below them, inside `<nav>` rather than in a sibling div. */}
++      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto py-2 px-3 [&>*]:shrink-0">
+         <SidebarNavItem icon={LayoutDashboard} label="Task Board" to="/" collapsed={railed} onSelect={onNavigate} />
+         <SidebarNavItem icon={FolderOpen} label="Projects" to="/projects" collapsed={railed} onSelect={onNavigate} />
+         <SidebarNavItem
+@@ -143,11 +152,6 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
+         <SidebarNavItem icon={Activity} label="Diagnostics" to="/diagnostics" collapsed={railed} onSelect={onNavigate} />
+       </nav>
+ 
+-      {/* Spacer — pushes Settings to the bottom. Phase B1 removed the
+-          project list from the sidebar; the TaskBoard header dropdown is
+-          now the single source of truth for project selection. */}
+-      <div className="flex-1" />
+-
+       {/* Bottom: Settings */}
+       <div className="border-t border-white/10 px-3 py-3">
+         <SidebarNavItem icon={Settings} label="Settings" to="/settings" collapsed={railed} onSelect={onNavigate} />
+diff --git a/client/src/hooks/useTerminalSocket.refocus.test.ts b/client/src/hooks/useTerminalSocket.refocus.test.ts
+index c094ca9f..d80c9fe3 100644
+--- a/client/src/hooks/useTerminalSocket.refocus.test.ts
++++ b/client/src/hooks/useTerminalSocket.refocus.test.ts
+@@ -10,6 +10,12 @@
+  *   AC-5b a probe does NOT close a socket that answers in time
+  *   AC-5c a stale probe does NOT close a healthy reconnected socket
+  *   AC-6  a replay-only (done) attach is NEVER reconnected on refocus
++ *   AC-7  `reconnecting` flips true the INSTANT an eager probe starts
++ *         (iterate-2026-09-06-tablet-ipad-ux-pass) — not only once the probe
++ *         fails and the socket actually closes. Without this a returning
++ *         user stares at a silent, unexplained stale frame for up to
++ *         WS_REFOCUS_PROBE_MS before any banner appears.
++ *   AC-7b a probe answered in time flips `reconnecting` back off
+  */
+ 
+ import { afterEach, beforeEach, describe, expect, it } from "vitest";
+@@ -152,6 +158,41 @@ describe("useTerminalSocket — reconnect-on-refocus", () => {
+     expect(ws2.readyState).toBe(FakeWebSocket.OPEN);
+   });
+ 
++  it("AC-7: reconnecting flips true the instant a refocus probe starts, before the probe deadline", async () => {
++    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
++    await flush();
++    const ws1 = FakeWebSocket.last;
++    await act(async () => {
++      ws1.__message(
++        JSON.stringify({ type: "ready", role: "writer", shellKind: "pwsh", cwd: "C:\\x" }),
++      );
++    });
++    expect(result.current.reconnecting).toBe(false);
++    await act(async () => {
++      window.dispatchEvent(new Event("focus"));
++    });
++    // The probe was just sent — no timer advanced, no close yet — but the
++    // banner must already be honest about a suspect connection.
++    expect(result.current.reconnecting).toBe(true);
++  });
++
++  it("AC-7b: a probe answered in time flips reconnecting back off", async () => {
++    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
++    await flush();
++    const ws1 = FakeWebSocket.last;
++    await act(async () => {
++      window.dispatchEvent(new Event("focus"));
++    });
++    expect(result.current.reconnecting).toBe(true);
++    await act(async () => {
++      ws1.__message(JSON.stringify({ type: "pong" }));
++    });
++    expect(result.current.reconnecting).toBe(false);
++    await advance(WS_REFOCUS_PROBE_MS + 50);
++    expect(result.current.reconnecting).toBe(false);
++    expect(FakeWebSocket.instances).toHaveLength(1);
++  });
++
+   it("AC-6: a focus regain NEVER reconnects a replay-only (done) attach", async () => {
+     renderHook(() => useTerminalSocket({ taskId: "t1" }));
+     await flush();
+diff --git a/client/src/hooks/useTerminalSocket.ts b/client/src/hooks/useTerminalSocket.ts
+index ce49a35a..4fa2e7df 100644
+--- a/client/src/hooks/useTerminalSocket.ts
++++ b/client/src/hooks/useTerminalSocket.ts
+@@ -590,6 +590,14 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
+         }
+         connect();
+       },
++      // iterate-2026-09-06-tablet-ipad-ux-pass — surface the SAME "Connection
++      // lost — reconnecting…" banner the instant an eager probe starts, not
++      // only once it fails and the socket actually closes. A probe that
++      // succeeds (pong within the deadline) flips this back off via the
++      // `false` call from `clearProbe`; one that fails leaves it on through
++      // the close → scheduleReconnect handoff (which sets the same state
++      // again, a no-op) until the fresh connection's `open` handler clears it.
++      onProbing: (probing) => setReconnecting(probing),
+     });
+ 
+     // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — see the
+diff --git a/client/src/hooks/wsLiveness.interaction.test.ts b/client/src/hooks/wsLiveness.interaction.test.ts
+index ec509eb2..4d8bd3f1 100644
+--- a/client/src/hooks/wsLiveness.interaction.test.ts
++++ b/client/src/hooks/wsLiveness.interaction.test.ts
+@@ -46,6 +46,7 @@ afterEach(() => {
+ function setup(socketRef: { current: ReturnType<typeof fakeSocket> | null }) {
+   let now = 100_000;
+   const reconnect = vi.fn();
++  const onProbing = vi.fn();
+   controller = attachWsLiveness({
+     getSocket: () => socketRef.current,
+     openState: OPEN,
+@@ -53,6 +54,7 @@ function setup(socketRef: { current: ReturnType<typeof fakeSocket> | null }) {
+     isCancelled: () => false,
+     rearmBudget: vi.fn(),
+     reconnect,
++    onProbing,
+     nowFn: () => now,
+     // No real timers: neutralise the heartbeat + wake-detector interval seams.
+     setIntervalFn: () => 0 as unknown as ReturnType<typeof setInterval>,
+@@ -62,6 +64,7 @@ function setup(socketRef: { current: ReturnType<typeof fakeSocket> | null }) {
+   });
+   return {
+     reconnect,
++    onProbing,
+     advance: (ms: number) => {
+       now += ms;
+     },
+@@ -115,6 +118,17 @@ describe("wsLiveness — interaction-triggered revive", () => {
+     expect(t.reconnect).toHaveBeenCalledTimes(1);
+   });
+ 
++  it("iterate-2026-09-06-tablet-ipad-ux-pass: onProbing(true) fires the instant the probe is sent, onProbing(false) once a pong answers it", () => {
++    const socketRef = { current: fakeSocket(OPEN) };
++    const t = setup(socketRef);
++    t.advance(WS_INTERACTION_STALE_MS + 1_000);
++    t.keydown();
++    expect(t.onProbing).toHaveBeenCalledWith(true);
++    expect(t.onProbing).toHaveBeenLastCalledWith(true);
++    t.noteInbound(); // pong lands before the probe deadline
++    expect(t.onProbing).toHaveBeenLastCalledWith(false);
++  });
++
+   it("dispose() unbinds the interaction listeners", () => {
+     const socketRef = { current: fakeSocket(OPEN) };
+     const t = setup(socketRef);
+diff --git a/client/src/hooks/wsLiveness.ts b/client/src/hooks/wsLiveness.ts
+index 2a4754b6..a8b062a0 100644
+--- a/client/src/hooks/wsLiveness.ts
++++ b/client/src/hooks/wsLiveness.ts
+@@ -45,6 +45,23 @@ export interface AttachWsLivenessDeps {
+   rearmBudget(): void;
+   /** Reconnect now: drop any pending backoff, open a fresh socket. */
+   reconnect(): void;
++  /**
++   * Called `true` the instant `reviveIfStale` commits to an eager probe (the
++   * socket LOOKS open but is suspect), and `false` once that probe resolves —
++   * either a pong lands before the deadline, or a fresh connection opens.
++   * Wire into the caller's `reconnecting` banner state (iterate-2026-09-06-
++   * tablet-ipad-ux-pass): without this, a returning user sees a silent,
++   * unexplained stale/frozen frame for up to `refocusProbeMs` (default 4s)
++   * before the existing close→reconnect→replay path (which DOES heal it —
++   * see CLAUDE.md rule 29) even starts. On iOS Safari — which suspends a
++   * backgrounded tab's WebSocket far more readily than desktop — that silent
++   * window is exactly what a "tapping back into the terminal, it's smeared,
++   * then heals itself" report describes: the frame on screen was never
++   * corrupted, it was simply the last one received before the socket went
++   * silently half-open, shown with no indication that a refresh was already
++   * in flight. This does not shorten the window; it makes it honest.
++   */
++  onProbing?: (probing: boolean) => void;
+   // Seams (tests / tuning).
+   intervalMs?: number;
+   maxMissed?: number;
+@@ -105,11 +122,13 @@ export function attachWsLiveness(
+     }
+   };
+   const clearProbe = () => {
++    const wasProbing = awaitingProbe;
+     awaitingProbe = false;
+     if (probeTimer !== null) {
+       clearT(probeTimer);
+       probeTimer = null;
+     }
++    if (wasProbing) deps.onProbing?.(false);
+   };
+ 
+   const onConnected = () => {
+@@ -183,6 +202,7 @@ export function attachWsLiveness(
+     // refocusProbeMs, close it so the close → reconnect path runs.
+     sendPing();
+     awaitingProbe = true;
++    deps.onProbing?.(true);
+     // Bind the probe to THIS socket instance: a reconnect may swap in a fresh,
+     // healthy socket within the probe window, and a timer armed for the old
+     // socket must never close the new one (review MED).
+diff --git a/client/src/pages/ShipsLogPage.tsx b/client/src/pages/ShipsLogPage.tsx
+index c0a39855..71ae7714 100644
+--- a/client/src/pages/ShipsLogPage.tsx
++++ b/client/src/pages/ShipsLogPage.tsx
+@@ -149,11 +149,28 @@ export default function ShipsLogPage() {
+         }
+       />
+ 
+-      <div className="flex-1 overflow-y-auto">
+-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 32 }}>
++      <div className="flex-1 overflow-hidden">
++        <div className="page-container h-full" style={{ paddingTop: 24, paddingBottom: 32 }}>
+           {project && (
+-            <div className="ships-log">
+-              <div className="sl-main">
++            <div className="ships-log h-full">
++              {/* iterate-2026-09-06-tablet-ipad-ux-pass (CLAUDE.md rule 27):
++                  the log column owns its OWN bounded scroll instead of
++                  handing scrolling up to the page — that is what let the
++                  Documents column (own overflow, see ships-log-docs.css)
++                  scroll independently of it, side by side on wide screens
++                  and stacked on narrow ones (see the ships-log.css media
++                  query). Previously this div had no overflow of its own,
++                  the page wrapper above scrolled everything as one unit,
++                  and the Documents column faked independence with
++                  `position: sticky` — which only decoupled the two on
++                  wide screens and stopped decoupling them below 900px.
++                  `flex-1` here is a no-op (`.ships-log` is a CSS Grid
++                  container, not flex — real sizing comes from Grid's stretch
++                  + ships-log.css); it stays so shell-scroll-invariant.test.ts's
++                  `flex-1`+`overflow-y-*` Diagnostics-pattern check keeps
++                  recognising this as a registered scroll owner (code-reviewer
++                  LOW, this iterate). */}
++              <div className="sl-main flex-1 overflow-y-auto min-h-0">
+                 <CaptainsDrawer projectId={project.id} />
+                 <div className="sl-lead">Start the next change — a new iterate on this project</div>
+                 <ScopedIteratePromptbox project={project} />
+diff --git a/client/src/styles/ships-log-docs.css b/client/src/styles/ships-log-docs.css
+index bf19bca0..72f13864 100644
+--- a/client/src/styles/ships-log-docs.css
++++ b/client/src/styles/ships-log-docs.css
+@@ -6,27 +6,26 @@
+    applies — the panel deliberately REUSES `.sheet`/`.sheet-h`/`.logentry`
+    for its group cards and rows rather than inventing new surfaces. */
+ 
+-/* The right-column Documents panel. `.ships-log`'s grid row is auto-sized
+-   (no `grid-template-rows`), so a percentage height on a grid item is NOT
+-   definite — `height: 100%` does not reliably resolve against sl-main's
+-   height, and a tall panel simply grows the row instead of scrolling
+-   internally (caught by external code review, iterate-2026-08-31-
+-   shipslog-documents-panel: confirmed empirically — a short logbook next
+-   to a fully-populated panel stretched the grid row to the panel's own
+-   content height rather than clipping it). `position: sticky` sidesteps
+-   the row-height circularity entirely: the panel just tracks the page
+-   scroll and caps itself to the viewport, independent of sl-main's
+-   height. `top: 24px` matches `page-container`'s own `paddingTop` (set
+-   inline in ShipsLogPage.tsx) so the panel sits flush with the top of the
+-   scroll area, not 24px below it. */
++/* The right-column Documents panel — its OWN independent scroll owner
++   (iterate-2026-09-06-tablet-ipad-ux-pass, CLAUDE.md rule 27), not tied to
++   `.sl-main`'s scroll position. `.ships-log` now gives its grid row a
++   DEFINITE height (`height: 100%`, see ships-log.css), so `height: 100%`
++   here resolves against that row rather than against content — replacing
++   the old `position: sticky` + `max-height: calc(100vh - …)` viewport-math
++   hack that (a) only decoupled the two columns while the page itself was
++   the scroll owner, which stopped being true below 900px (the sticky panel
++   fell back to `position: static` and merged into the single-column page
++   scroll — this is the exact "Project Documents doesn't scroll along, only
++   the Log does" defect reported on iPad, Sven 2026-09-06) and (b) still
++   only ever felt "independent" via a hover-targeted wheel event, never a
++   genuinely separate scrollable pane the way the left column already was. */
+ .ships-log .sl-docs {
+   display: flex;
+   flex-direction: column;
+   gap: 14px;
+   min-width: 0;
+-  position: sticky;
+-  top: 24px;
+-  max-height: calc(100vh - 120px);
++  min-height: 0;
++  height: 100%;
+   overflow-y: auto;
+ }
+ /* CLAUDE.md rule 24: a direct child of a self-scrolling column-flex
+@@ -41,12 +40,6 @@
+ .ships-log .sl-docs > * {
+   flex-shrink: 0;
+ }
+-@media (max-width: 900px) {
+-  .ships-log .sl-docs {
+-    position: static;
+-    max-height: none;
+-  }
+-}
+ 
+ .ships-log .doc-tabs-list {
+   display: flex;
+diff --git a/client/src/styles/ships-log.css b/client/src/styles/ships-log.css
+index ed61ae12..70b6ab34 100644
+--- a/client/src/styles/ships-log.css
++++ b/client/src/styles/ships-log.css
+@@ -6,14 +6,28 @@
+    RESETS .sheet/.logentry/.promptbox/.glass-card text tokens to the AA ladder
+    inside the scene, so bare var(--ink|body|muted|accent) resolve legibly. */
+ 
++/* iterate-2026-09-06-tablet-ipad-ux-pass: both columns are independent
++   scroll owners (CLAUDE.md rule 27 — "a page with TWO body modes needs a
++   bounded scroller in EACH"), so the grid row itself needs a DEFINITE
++   height for `.sl-main` / `.sl-docs` to bound their own overflow against —
++   `height: 100%` resolves against ShipsLogPage's `.page-container.h-full`,
++   which in turn resolves against the route's own `flex-1` body (no longer
++   `overflow-y-auto` — the page itself does not scroll any more, its two
++   columns do). Below 900px the grid stacks to one column; `minmax(0, …)`
++   on both rows is what lets EITHER row shrink below its content's natural
++   height instead of the second row being pushed off-screen (a bare `1fr`
++   track has an automatic minimum of `auto`, i.e. its content size). */
+ .ships-log {
+   display: grid;
+   grid-template-columns: 2fr 1fr;
+   gap: 18px;
++  height: 100%;
++  min-height: 0;
+ }
+ @media (max-width: 900px) {
+   .ships-log {
+     grid-template-columns: 1fr;
++    grid-template-rows: minmax(0, 1fr) minmax(0, 40%);
+   }
+ }
+ 
+@@ -23,6 +37,13 @@
+   gap: 18px;
+   min-width: 0;
+ }
++/* CLAUDE.md rule 24: without `flex-shrink: 0` on each direct child, the
++   drawer/promptbox/graduation-card/logbook would each shrink toward their
++   own minimum instead of `.sl-main` genuinely overflowing — the same trap
++   `.sl-docs > *` below (ships-log-docs.css) already guards against. */
++.ships-log .sl-main > * {
++  flex-shrink: 0;
++}
+ 
+ /* The right-column Documents panel's own rules live in ships-log-docs.css
+    (iterate-2026-08-31-shipslog-documents-panel) — split out to keep this
+diff --git a/server/package-lock.json b/server/package-lock.json
+index 31dd3700..745174b8 100644
+--- a/server/package-lock.json
++++ b/server/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "shipwright-command-center-server",
+-  "version": "0.26.0",
++  "version": "0.27.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "shipwright-command-center-server",
+-      "version": "0.26.0",
++      "version": "0.27.0",
+       "dependencies": {
+         "@hono/node-server": "^1.14.0",
+         "@hono/node-ws": "^1.3.1",
+diff --git a/shipwright_bloat_baseline.json b/shipwright_bloat_baseline.json
+index 4a7267bb..84433c47 100644
+--- a/shipwright_bloat_baseline.json
++++ b/shipwright_bloat_baseline.json
+@@ -288,10 +288,10 @@
+     {
+       "path": "client/src/hooks/useTerminalSocket.ts",
+       "limit": 300,
+-      "current": 693,
++      "current": 701,
+       "state": "grandfathered",
+       "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus",
+-      "note": "outbound `redraw` envelope in the send union (iterate-2026-07-27). iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +118 lines -- the Reopen-reconnect fix (sessionEnded option, an always-current sessionEndedRef read from the close handler for the reopen-races-the-close case an external review caught, a ref-held forceReconnectRef, and a dedicated edge-detection effect kept separate from the main connect-effect's own deps so an already-live socket is never torn down on an unrelated state tick). Most of the added lines are WHY comments recording two things that are easy to get wrong silently: the strict undefined-vs-false distinction on sessionEnded (a caller with no opinion must never be read as 'confirmed live'), and why this is a second effect rather than one more dependency-array entry (regressed a pre-existing test on the first attempt) -- both already caught real bugs during implementation, so they stay. +24 more lines (external review, openai HIGH #1, independently reconfirmed by spec-reviewer): forceReconnectRef can install a new socket while the prior replay-only socket's own close is still in flight (Reopen racing between `ready` and its close) -- a socket-identity guard (`socketRef.current !== ws`) on every listener (open/message/close/error), mirroring the `isCurrent` check `wsReconnectSchedule`'s own watchdog already used for the identical reason, makes the stale socket's eventual close a no-op instead of nulling out the live replacement and scheduling a spurious third connection. +15 more lines (code-reviewer, MEDIUM): neither reconnect call site (the close handler's inline branch, nor forceReconnectRef) reset envelope-derived state (replayOnly/role/terminalReset/ptyReused/scrollback fields) before reconnecting, so the 'Session ended...' banner kept rendering until the new attach's own `ready` overwrote those fields -- visibly recreating the frozen-looking symptom this iterate exists to fix, right when Reopen is supposed to read as quiet. Both call sites now call the existing `resetSessionState()` helper before their `connect()`. +8 more lines (doubt-reviewer, LOW/advisory, third pass): the `sessionEnded` edge-detection effect's `prevSessionEndedRef` was never resynced on a taskId change, so AC-4/AC-5's no-spurious-reconnect guarantee held only via an untested, undocumented cross-effect-declaration-order dependency on `sessionReplayOnlyRef` already being reset first -- moved the ref's declaration up and reset it in the connect-effect's setup alongside `replayOnlyRef`/`sessionReplayOnlyRef`, removing the implicit ordering dependency structurally rather than leaving it to hold by accident."
++      "note": "outbound `redraw` envelope in the send union (iterate-2026-07-27). iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +118 lines -- the Reopen-reconnect fix (sessionEnded option, an always-current sessionEndedRef read from the close handler for the reopen-races-the-close case an external review caught, a ref-held forceReconnectRef, and a dedicated edge-detection effect kept separate from the main connect-effect's own deps so an already-live socket is never torn down on an unrelated state tick). Most of the added lines are WHY comments recording two things that are easy to get wrong silently: the strict undefined-vs-false distinction on sessionEnded (a caller with no opinion must never be read as 'confirmed live'), and why this is a second effect rather than one more dependency-array entry (regressed a pre-existing test on the first attempt) -- both already caught real bugs during implementation, so they stay. +24 more lines (external review, openai HIGH #1, independently reconfirmed by spec-reviewer): forceReconnectRef can install a new socket while the prior replay-only socket's own close is still in flight (Reopen racing between `ready` and its close) -- a socket-identity guard (`socketRef.current !== ws`) on every listener (open/message/close/error), mirroring the `isCurrent` check `wsReconnectSchedule`'s own watchdog already used for the identical reason, makes the stale socket's eventual close a no-op instead of nulling out the live replacement and scheduling a spurious third connection. +15 more lines (code-reviewer, MEDIUM): neither reconnect call site (the close handler's inline branch, nor forceReconnectRef) reset envelope-derived state (replayOnly/role/terminalReset/ptyReused/scrollback fields) before reconnecting, so the 'Session ended...' banner kept rendering until the new attach's own `ready` overwrote those fields -- visibly recreating the frozen-looking symptom this iterate exists to fix, right when Reopen is supposed to read as quiet. Both call sites now call the existing `resetSessionState()` helper before their `connect()`. +8 more lines (doubt-reviewer, LOW/advisory, third pass): the `sessionEnded` edge-detection effect's `prevSessionEndedRef` was never resynced on a taskId change, so AC-4/AC-5's no-spurious-reconnect guarantee held only via an untested, undocumented cross-effect-declaration-order dependency on `sessionReplayOnlyRef` already being reset first -- moved the ref's declaration up and reset it in the connect-effect's setup alongside `replayOnlyRef`/`sessionReplayOnlyRef`, removing the implicit ordering dependency structurally rather than leaving it to hold by accident. +8 more lines (iterate-2026-09-06-tablet-ipad-ux-pass): an onProbing(probing) callback into wsLiveness surfaces the existing eager-probe window as the same reconnecting banner instead of a silent stale frame -- the iPad tap-in smear report traced to that silent window, not new corruption."
+     },
+     {
+       "path": "client/src/lib/externalApi.ts",
+@@ -713,10 +713,10 @@
+     {
+       "path": "client/src/hooks/wsLiveness.ts",
+       "limit": 300,
+-      "current": 305,
++      "current": 325,
+       "state": "grandfathered",
+       "adr": "iterate-2026-07-27-mac-terminal-fast-dead-socket",
+-      "note": "The 305-line hook keeps the socket liveness, wake detection, and interaction-revival contract together from the prior terminal recovery decision; extracting part of it would create a new coordination seam."
++      "note": "The 305-line hook keeps the socket liveness, wake detection, and interaction-revival contract together from the prior terminal recovery decision; extracting part of it would create a new coordination seam. +20 lines (iterate-2026-09-06-tablet-ipad-ux-pass): added an optional onProbing(probing) callback fired true when reviveIfStale commits to an eager probe and false once it resolves, so the caller can surface a reconnecting banner instead of leaving the last stale frame on screen with no indication a refresh is already in flight."
+     },
+     {
+       "path": "server/scripts/regen-triage-fixtures.py",

@@ -45,6 +45,23 @@ export interface AttachWsLivenessDeps {
   rearmBudget(): void;
   /** Reconnect now: drop any pending backoff, open a fresh socket. */
   reconnect(): void;
+  /**
+   * Called `true` the instant `reviveIfStale` commits to an eager probe (the
+   * socket LOOKS open but is suspect), and `false` once that probe resolves —
+   * either a pong lands before the deadline, or a fresh connection opens.
+   * Wire into the caller's `reconnecting` banner state (iterate-2026-09-06-
+   * tablet-ipad-ux-pass): without this, a returning user sees a silent,
+   * unexplained stale/frozen frame for up to `refocusProbeMs` (default 4s)
+   * before the existing close→reconnect→replay path (which DOES heal it —
+   * see CLAUDE.md rule 29) even starts. On iOS Safari — which suspends a
+   * backgrounded tab's WebSocket far more readily than desktop — that silent
+   * window is exactly what a "tapping back into the terminal, it's smeared,
+   * then heals itself" report describes: the frame on screen was never
+   * corrupted, it was simply the last one received before the socket went
+   * silently half-open, shown with no indication that a refresh was already
+   * in flight. This does not shorten the window; it makes it honest.
+   */
+  onProbing?: (probing: boolean) => void;
   // Seams (tests / tuning).
   intervalMs?: number;
   maxMissed?: number;
@@ -105,11 +122,13 @@ export function attachWsLiveness(
     }
   };
   const clearProbe = () => {
+    const wasProbing = awaitingProbe;
     awaitingProbe = false;
     if (probeTimer !== null) {
       clearT(probeTimer);
       probeTimer = null;
     }
+    if (wasProbing) deps.onProbing?.(false);
   };
 
   const onConnected = () => {
@@ -183,6 +202,7 @@ export function attachWsLiveness(
     // refocusProbeMs, close it so the close → reconnect path runs.
     sendPing();
     awaitingProbe = true;
+    deps.onProbing?.(true);
     // Bind the probe to THIS socket instance: a reconnect may swap in a fresh,
     // healthy socket within the probe window, and a timer armed for the old
     // socket must never close the new one (review MED).

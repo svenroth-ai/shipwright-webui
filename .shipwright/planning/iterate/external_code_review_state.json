@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-05T05:56:42.098308+00:00",
+  "timestamp": "2026-09-06T07:33:11.520808+00:00",
   "provider": null,
-  "findings_count": 4,
+  "findings_count": 6,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (4) may understate what was found",
+  "reason": "OpenAI MEDIUM (ships-log.css desktop grid height-bounding) empirically verified FALSE POSITIVE at 1440px viewport (computed grid-template-rows resolves to a definite 749.156px, both .sl-main/.sl-docs clamped + overflow-y:auto). GLM MEDIUM (package.json/lockfile) FALSE POSITIVE (package.json already 0.27.0, zero diff). GLM LOW (ShipsLogPage non-project scroll owner) FALSE POSITIVE (the not-found branch already has its own overflow-y-auto wrapper, unaffected by the change). GLM LOW (audit reconnecting consumers) verified sound (only TerminalBanners reads it). GLM LOW (synchronous-batching assumption) FALSE POSITIVE (state is idempotent-true across the close->scheduleReconnect handoff, not timing-dependent; documented in useTerminalSocket.ts comment). GLM LOW (missing negative test) FIXED (added onProbing assertion to wsLiveness.interaction.test.ts's existing healthy-socket test).",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "approve",
-    "glm": "approve"
+    "openai": "revise",
+    "glm": "revise"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
   },
   "contradiction_resolution": null
 }

@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-09-06-tablet-ipad-ux-pass",
+  "date": "2026-09-06T07:58:45.878711Z",
+  "event_at": "2026-09-05T06:09:45.114405+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/tablet-ipad-ux-pass",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-09-06-tablet-ipad-ux-pass.md",
+  "adr": "iterate-2026-09-06-tablet-ipad-ux-pass"
+}

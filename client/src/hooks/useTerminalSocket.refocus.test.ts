@@ -10,6 +10,12 @@
  *   AC-5b a probe does NOT close a socket that answers in time
  *   AC-5c a stale probe does NOT close a healthy reconnected socket
  *   AC-6  a replay-only (done) attach is NEVER reconnected on refocus
+ *   AC-7  `reconnecting` flips true the INSTANT an eager probe starts
+ *         (iterate-2026-09-06-tablet-ipad-ux-pass) — not only once the probe
+ *         fails and the socket actually closes. Without this a returning
+ *         user stares at a silent, unexplained stale frame for up to
+ *         WS_REFOCUS_PROBE_MS before any banner appears.
+ *   AC-7b a probe answered in time flips `reconnecting` back off
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -150,6 +156,41 @@ describe("useTerminalSocket — reconnect-on-refocus", () => {
     // Let the ORIGINAL probe deadline elapse — it must not touch ws2.
     await advance(WS_REFOCUS_PROBE_MS + 100);
     expect(ws2.readyState).toBe(FakeWebSocket.OPEN);
+  });
+
+  it("AC-7: reconnecting flips true the instant a refocus probe starts, before the probe deadline", async () => {
+    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await flush();
+    const ws1 = FakeWebSocket.last;
+    await act(async () => {
+      ws1.__message(
+        JSON.stringify({ type: "ready", role: "writer", shellKind: "pwsh", cwd: "C:\\x" }),
+      );
+    });
+    expect(result.current.reconnecting).toBe(false);
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    // The probe was just sent — no timer advanced, no close yet — but the
+    // banner must already be honest about a suspect connection.
+    expect(result.current.reconnecting).toBe(true);
+  });
+
+  it("AC-7b: a probe answered in time flips reconnecting back off", async () => {
+    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await flush();
+    const ws1 = FakeWebSocket.last;
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(result.current.reconnecting).toBe(true);
+    await act(async () => {
+      ws1.__message(JSON.stringify({ type: "pong" }));
+    });
+    expect(result.current.reconnecting).toBe(false);
+    await advance(WS_REFOCUS_PROBE_MS + 50);
+    expect(result.current.reconnecting).toBe(false);
+    expect(FakeWebSocket.instances).toHaveLength(1);
   });
 
   it("AC-6: a focus regain NEVER reconnects a replay-only (done) attach", async () => {

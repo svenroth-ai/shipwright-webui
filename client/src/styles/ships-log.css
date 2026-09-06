@@ -6,14 +6,28 @@
    RESETS .sheet/.logentry/.promptbox/.glass-card text tokens to the AA ladder
    inside the scene, so bare var(--ink|body|muted|accent) resolve legibly. */
 
+/* iterate-2026-09-06-tablet-ipad-ux-pass: both columns are independent
+   scroll owners (CLAUDE.md rule 27 — "a page with TWO body modes needs a
+   bounded scroller in EACH"), so the grid row itself needs a DEFINITE
+   height for `.sl-main` / `.sl-docs` to bound their own overflow against —
+   `height: 100%` resolves against ShipsLogPage's `.page-container.h-full`,
+   which in turn resolves against the route's own `flex-1` body (no longer
+   `overflow-y-auto` — the page itself does not scroll any more, its two
+   columns do). Below 900px the grid stacks to one column; `minmax(0, …)`
+   on both rows is what lets EITHER row shrink below its content's natural
+   height instead of the second row being pushed off-screen (a bare `1fr`
+   track has an automatic minimum of `auto`, i.e. its content size). */
 .ships-log {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 18px;
+  height: 100%;
+  min-height: 0;
 }
 @media (max-width: 900px) {
   .ships-log {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 40%);
   }
 }
 
@@ -22,6 +36,13 @@
   flex-direction: column;
   gap: 18px;
   min-width: 0;
+}
+/* CLAUDE.md rule 24: without `flex-shrink: 0` on each direct child, the
+   drawer/promptbox/graduation-card/logbook would each shrink toward their
+   own minimum instead of `.sl-main` genuinely overflowing — the same trap
+   `.sl-docs > *` below (ships-log-docs.css) already guards against. */
+.ships-log .sl-main > * {
+  flex-shrink: 0;
 }
 
 /* The right-column Documents panel's own rules live in ships-log-docs.css

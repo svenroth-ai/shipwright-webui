@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-tablet-ipad-ux-pass",
+  "date": "2026-09-06",
+  "section": "AC-1 through AC-6",
+  "title": "Tablet/iPad UX pass: terminal reconnect visibility, title truncation, Ship's Log independent scroll",
+  "context": "iPad reports: terminal appears smeared/frozen when tapping back in with no indication anything is wrong (top priority); task titles wrap unbounded at tablet AND classic-iPad-landscape desktop widths; sidebar Settings clipped in short viewports; Ship's Log Documents column scrolled together with the Log instead of independently.",
+  "decision": "Surface the existing WS liveness probe as a visible 'reconnecting' banner via a new onProbing callback in wsLiveness.ts wired into useTerminalSocket. Truncate EditableTaskTitle to one line with tap-to-expand/tooltip on BOTH tablet and desktop branches. Give ShipsLogPage's log column its own bounded overflow-y:auto (rule 27 pattern) so Documents scrolls independently. Full detail in the linked spec.",
+  "consequences": "A probe resolving in the 1.5-4s band now visibly flashes the banner for a bounded window (accepted trade-off, proven bounded by a new test). Both external reviewers' MEDIUM findings verified as false positives (desktop grid bounding confirmed live; lockfile drift pre-existing). No spec.md changes (spec_impact=none).",
+  "rationale": "Root-caused rather than patched: the terminal 'smear' was never corrupted pixels, it was a stale frame with zero indication a silent reconnect was already in flight.",
+  "rejected": "Widening the shared COMPACT_MEDIA_QUERY (1023px) breakpoint to fix the classic-iPad-landscape title wrap — rejected: 30 app-wide consumers, would recreate the md:/lg: mismatch this iterate fixed elsewhere; fixed the title's own missing truncate class instead.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-06-tablet-ipad-ux-pass.md"
+}

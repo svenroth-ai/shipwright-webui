@@ -23,7 +23,7 @@ import * as Popover from "@radix-ui/react-popover";
 
 import type { ExternalTask } from "../../lib/externalApi";
 import { useRenameTask } from "../../hooks/useExternalTasks";
-import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
+import { useIsCompactViewport } from "../../hooks/useIsCompactViewport";
 
 interface Props {
   task: ExternalTask;
@@ -37,7 +37,7 @@ export interface EditableTaskTitleHandle {
 export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
   function EditableTaskTitle({ task }, ref) {
   const renameMut = useRenameTask();
-  const isPhone = useIsPhoneViewport();
+  const isCompact = useIsCompactViewport();
   const [editing, setEditing] = useState(false);
   const [phonePopoverOpen, setPhonePopoverOpen] = useState(false);
   const [draft, setDraft] = useState(task.title);
@@ -91,18 +91,30 @@ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
       <button
         ref={displayButtonRef}
         type="button"
-        onClick={isPhone ? undefined : () => setEditing(true)}
-        className={isPhone
+        onClick={isCompact ? undefined : () => setEditing(true)}
+        className={isCompact
           ? "inline-flex min-h-11 min-w-0 items-center gap-2 truncate rounded px-1 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          : "inline-flex items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"}
-        aria-label={isPhone ? "Show full task title" : "Edit task title"}
+          : "inline-flex min-w-0 items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"}
+        aria-label={isCompact ? "Show full task title" : "Edit task title"}
+        title={!isCompact ? task.title : undefined}
         data-testid="task-title-display"
       >
-        <span className={isPhone ? "truncate" : undefined}>{task.title}</span>
-        {!isPhone && <Pencil size={14} className="shrink-0 text-[var(--color-muted)]" />}
+        {/* iterate-2026-09-06-tablet-ipad-ux-pass: the desktop branch had NO
+            truncate/min-w-0 at all — a long title just wrapped unbounded
+            across as many lines as it took, eating most of the header's
+            height before the terminal even started. Classic iPad/mini
+            landscape (1024px CSS width) falls 1px outside the compact
+            breakpoint and hit exactly this; a real desktop window with a
+            long title and a narrow-ish viewport hits the same bug. Single-
+            line ellipsis on BOTH branches — clicking still opens the edit
+            input with the full untruncated value, and `title` gives desktop
+            a native hover tooltip (compact already has the tap-to-expand
+            popover). */}
+        <span className="truncate">{task.title}</span>
+        {!isCompact && <Pencil size={14} className="shrink-0 text-[var(--color-muted)]" />}
       </button>
     );
-    if (!isPhone) return titleButton;
+    if (!isCompact) return titleButton;
     return (
       <Popover.Root modal open={phonePopoverOpen} onOpenChange={setPhonePopoverOpen}>
         <Popover.Trigger asChild>{titleButton}</Popover.Trigger>
