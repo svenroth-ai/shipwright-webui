@@ -30,6 +30,11 @@ import {
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ParsedLaunchBody } from "./parse-body.js";
 import type { LaunchBranchResult } from "./_helpers.js";
+import { claimExecutorLaunchOverrides } from "./claim-executor-permissions.js";
+import {
+  armActionTemplatePermissionPerimeter,
+  templateDeclaresSessionIdAnchor,
+} from "./claim-executor-template-arming.js";
 
 export function applyActionSubstitutionBranch(args: {
   task: ExternalTask;
@@ -38,8 +43,20 @@ export function applyActionSubstitutionBranch(args: {
   getProjectById:
     | ((id: string) => ExternalRouteProjectView | undefined)
     | undefined;
+  /**
+   * FR-04.22 (iterate-2026-09-06-claim-launch-permission-perimeter) — see
+   * `legacy-fallback-branch.ts`'s own doc comment for the field's meaning.
+   * THIS branch, not the legacy fallback, is the one leadwright's real
+   * tasks actually reach (Stage-1 spec review, see
+   * `claim-executor-template-arming.ts`'s header) — leadwright always sets
+   * `actionId` at task creation (a required field on its side), and
+   * `parse-body.ts`'s once-set-always-used contract resolves `parsed.actionId`
+   * from that persisted value even though the launch body itself carries
+   * only `{ claimToken }`.
+   */
+  claimAuthorized?: boolean;
 }): LaunchBranchResult | null {
-  const { task, parsed, effectivelyFreshStart, getProjectById } = args;
+  const { task, parsed, effectivelyFreshStart, getProjectById, claimAuthorized } = args;
   if (!parsed.actionId || !effectivelyFreshStart) return null;
 
   const project = getProjectById?.(task.projectId);
@@ -125,6 +142,43 @@ export function applyActionSubstitutionBranch(args: {
       };
     }
     throw err;
+  }
+
+  if (claimAuthorized) {
+    // Stage-3 doubt review: a rendered-output anchor search alone can be
+    // fooled by a caller-supplied placeholder (e.g. {task.description?},
+    // settable in this very request) that coincidentally contains this
+    // task's own uuid formatted like the anchor. Requiring the literal
+    // placeholder in the RAW template first closes that hole — the
+    // template is project configuration, never launch-body content.
+    if (!templateDeclaresSessionIdAnchor(action.command_template)) {
+      return {
+        error: {
+          error: "claim_launch_permission_perimeter_unavailable",
+          detail: `action "${action.id}"'s command_template does not declare a literal '--session-id {task.uuid}' placeholder — cannot arm the permission perimeter`,
+        },
+        status: 409,
+      };
+    }
+    const armed = armActionTemplatePermissionPerimeter(
+      commands,
+      task.sessionUuid,
+      claimExecutorLaunchOverrides(),
+    );
+    // Fail closed (this branch's own doc comment): a custom project
+    // command_template not shaped like the bundled defaults must refuse
+    // the launch rather than hand back an unrestricted command that looks
+    // armed because the caller asked for arming.
+    if (!armed.ok) {
+      return {
+        error: {
+          error: "claim_launch_permission_perimeter_unavailable",
+          detail: armed.detail,
+        },
+        status: 409,
+      };
+    }
+    commands = armed.commands;
   }
 
   const taskUpdate: Partial<ExternalTask> = {

@@ -23,7 +23,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | ID | Area | Name | Priority | Description | Origin |
 |----|------|------|----------|-------------|--------|
 | FR-01.01 | BRD | Task board (multi-project kanban) | Must | The landing kanban board: every task across all projects as cards grouped by state (active / idle / done / failed), newest first, with a sortable List view. A sidebar button creates a new Pipeline, Iterate, or Task. Each card has a state icon, actions menu, and launch button; clicking opens its detail. A multi-phase Run shows its child steps inline with a progress bar.<br>**Updates:** Gained: priority/domain/blocked-by badges, a project colour pill, Move-to-Backlog and Re-open, the single-session Run card and its design-gate panel, every launch state made visible/recoverable, and a lead-agent-work surface (toolbar Bot/BellDot filters over the closed lead-tag vocabulary, an in-place card expander, and a bot glyph beside the project pill, FR-04.11); and a claim indicator (who holds a card and since when, keyed on claimedBy/claimedAt not state, plus an independent toolbar filter for claimed tasks, FR-04.22). | crawl+enrichment, iterate-2026-07-09-w3, iterate-2026-09-01-lead-board-surface, iterate-2026-09-02-claim-chip-filter |
-| FR-01.10 | BRD | Launch / resume / relaunch a task | Must | Launch, resume, or relaunch a task. Clicking Launch / Resume / Relaunch runs the pre-built command straight inside the task's embedded terminal once it is ready, so the user no longer has to copy and paste it (they still can). A launch is either a freeform action or a specific pipeline phase; the app refuses to mix the two, and rejects a phase launch whose session identity does not match. While a task is claimed by another agent, launch/resume/relaunch is refused for anyone but the claim holder (matching claim token, claimed within the last 24h), re-checked fresh from disk on every attempt so a long-running webui process still sees a claim written by another process.<br>**Updates:** Gained one-click auto-execution into the embedded terminal (copying is no longer required), plus Start-Campaign and every launch state made visible and recoverable; and the claim-holder launch exception described above (FR-04.22). | ast+enrichment + iterate-2026-05-04, iterate-2026-09-03-claim-holder-launch |
+| FR-01.10 | BRD | Launch / resume / relaunch a task | Must | Launch, resume, or relaunch a task. Clicking Launch / Resume / Relaunch runs the pre-built command straight inside the task's embedded terminal once it is ready, so the user no longer has to copy and paste it (they still can). A launch is either a freeform action or a specific pipeline phase; the app refuses to mix the two, and rejects a phase launch whose session identity does not match. While a task is claimed by another agent, launch/resume/relaunch is refused for anyone but the claim holder (matching claim token, claimed within the last 24h), re-checked fresh from disk on every attempt so a long-running webui process still sees a claim written by another process. A claim-holder's own launch command carries an explicit tool allow-list and non-interactive permission mode (never OS-level containment); a manual/human launch is always unaffected.<br>**Updates:** Gained one-click auto-execution into the embedded terminal (copying is no longer required), plus Start-Campaign and every launch state made visible and recoverable; the claim-holder launch exception (FR-04.22); and the claim-holder permission perimeter described above (FR-04.22, iterate-2026-09-06-claim-launch-permission-perimeter). | ast+enrichment + iterate-2026-05-04, iterate-2026-09-03-claim-holder-launch, iterate-2026-09-06-claim-launch-permission-perimeter |
 
 ### Area TSK — Task Detail, Mission & Transcript
 
@@ -1255,6 +1255,23 @@ write surface; gated, path-guarded, and concurrency-safe.
   surface + `GET /api/org/threads`; a lead with no thread history (or an
   unreadable/invalid/unknown-version file) legitimately shows no thread,
   which the page renders cleanly. No new write surface.
+- (E) **(iterate-2026-09-06-org-lead-staleness-register, leadwright
+  FR-04.06/FR-04.41)** The Now block renders the server's `staleness`
+  verdict verbatim: `stale` reads "Overdue" (amber, never "Resting");
+  `unknown` renders the last-active time plus a worded
+  `cadenceUnresolvedReason` (a genuine third state, never a synonym for
+  fresh or stale). An open/fault beat-register entry (from the same
+  `beatRegisterHealthCore` read that feeds `now`, never a second read)
+  renders a visible finding on the card with no modal; `open` gets a
+  Release button, `fault` (duplicate sessionId) and `unknown` (a read
+  failure) do not. Releasing issues the SAME `performRelease` action from
+  (B), now also reachable through this plain surface via `POST
+  /api/org/leads/:leadId/beat-register/release` — the plain surface's
+  second browser-reachable write (superseding (C)'s "only browser write"
+  claim, scoped there to that earlier iterate). The register path is
+  derived solely from the route's own chart-validated `leadId`, never the
+  request body, so a sessionId belonging to a different lead's register
+  is refused 404, never releases across leads.
 
 ## Quality Requirements
 

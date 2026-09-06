@@ -50,7 +50,7 @@ export const CLAIM_LAUNCH_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const CLAIM_CLOCK_SKEW_TOLERANCE_MS = 5 * 60 * 1000;
 
 export type ClaimGateResult =
-  | { allowed: true }
+  | { allowed: true; claimAuthorized: boolean }
   | { allowed: false; error: Record<string, unknown> };
 
 /**
@@ -61,13 +61,21 @@ export type ClaimGateResult =
  * envelope — `claimExpired: true` distinguishes "right token, too old" from
  * a foreign/absent token (trap: an expired claim must read differently from
  * someone else's).
+ *
+ * `claimAuthorized` (iterate-2026-09-06-claim-launch-permission-perimeter,
+ * FR-04.22 follow-up) distinguishes the TWO shapes of `allowed: true`: "no
+ * claim was ever on record" (an ordinary human/manual launch) vs. "the
+ * caller proved it holds the CURRENT, unexpired claim" (leadwright's stage-2
+ * executor). The launch route uses this — not a second, independently
+ * re-derived token-match check — to decide whether to arm the executor's
+ * permission perimeter, so the two conditions can never drift apart.
  */
 export function checkClaimHolderGate(
   task: ExternalTask,
   bodyClaimToken: string | undefined,
 ): ClaimGateResult {
   if (typeof task.claimToken !== "string" || task.claimToken.length === 0) {
-    return { allowed: true };
+    return { allowed: true, claimAuthorized: false };
   }
 
   const tokenMatches =
@@ -80,7 +88,7 @@ export function checkClaimHolderGate(
     age <= CLAIM_LAUNCH_WINDOW_MS;
 
   if (tokenMatches && withinWindow) {
-    return { allowed: true };
+    return { allowed: true, claimAuthorized: true };
   }
 
   console.warn(

@@ -15,6 +15,7 @@
  */
 
 import { qPs, qCmd, qPosix, toPosixPath } from "./shell-quote.js";
+import { appendPermissionPerimeter } from "./launcher-permission-flags.js";
 
 export interface CopyCommandForms {
   powershell: string;
@@ -51,6 +52,24 @@ export interface LaunchArgs {
    * are rejected here as defense-in-depth.
    */
   slashCommand?: string;
+  /**
+   * FR-04.22 permission perimeter (iterate-2026-09-06-claim-launch-
+   * permission-perimeter) — emitted as `--tools <names>` when non-empty.
+   * ONLY set by a caller that has independently established this launch is
+   * claim-authorized (see `external/launch/claim-executor-permissions.ts`);
+   * a plain human/manual launch never sets this field, so its command
+   * string is byte-identical to before this change. Genuinely restricts
+   * the spawned process's function set (verified live) — NOT the same as
+   * `--allowed-tools`, which only pre-approves combos without removing
+   * anything.
+   */
+  toolsAllowlist?: readonly string[];
+  /**
+   * FR-04.22 permission perimeter — emitted as `--permission-mode <mode>`
+   * alongside `toolsAllowlist`. See `claimExecutorLaunchOverrides()` for
+   * the verified value and why.
+   */
+  permissionMode?: string;
 }
 
 export interface LaunchResult {
@@ -125,6 +144,8 @@ interface Argv {
   pluginDirs: string[];
   title?: string;
   slashCommand?: string;
+  toolsAllowlist: string[];
+  permissionMode?: string;
 }
 
 function buildArgv(args: LaunchArgs): Argv {
@@ -139,6 +160,8 @@ function buildArgv(args: LaunchArgs): Argv {
     pluginDirs: args.pluginDirs ?? [],
     title,
     slashCommand,
+    toolsAllowlist: [...(args.toolsAllowlist ?? [])],
+    permissionMode: args.permissionMode,
   };
 }
 
@@ -176,6 +199,7 @@ function normalizeSlashCommand(raw: string | undefined): string | undefined {
 function renderPowershell(a: Argv): string {
   const parts: string[] = ["claude"];
   appendSessionFlags(a, parts, qPs);
+  appendPermissionPerimeter(a, parts, qPs);
   parts.push("--add-dir", qPs(a.cwd));
   appendResumeFork(a, parts, qPs);
   appendName(a, parts, qPs);
@@ -189,6 +213,7 @@ function renderPowershell(a: Argv): string {
 function renderCmd(a: Argv): string {
   const parts: string[] = ["claude"];
   appendSessionFlags(a, parts, qCmd);
+  appendPermissionPerimeter(a, parts, qCmd);
   parts.push("--add-dir", qCmd(a.cwd));
   appendResumeFork(a, parts, qCmd);
   appendName(a, parts, qCmd);
@@ -204,6 +229,7 @@ function renderPosix(a: Argv): string {
   const plugins = a.pluginDirs.map(toPosixPath);
   const parts: string[] = ["claude"];
   appendSessionFlags(a, parts, qPosix);
+  appendPermissionPerimeter(a, parts, qPosix);
   parts.push("--add-dir", qPosix(cwd));
   appendResumeFork(a, parts, qPosix);
   appendName(a, parts, qPosix);

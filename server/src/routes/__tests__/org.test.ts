@@ -6,8 +6,9 @@ import { tmpdir } from "node:os";
 import { createOrgApiRouter } from "../org.js";
 
 // The "file GET" / "charter PUT" / mount-collision (AC-9) groups live in the
-// sibling org-charter-write.test.ts — split out to keep both files under the
-// 300-line convention.
+// sibling org-charter-write.test.ts, and staleness + beat-register health
+// (FR-04.06 / FR-04.41) live in org-leads-staleness-register.test.ts — both
+// split out to keep every file under the 300-line convention.
 const CHART = {
   version: 1,
   po: "sven",
@@ -168,5 +169,9 @@ describe("createOrgApiRouter — /api/org/* plain-surface proxy", () => {
         anyNotMeasured: true,
       });
     });
+
+    // Staleness + beat-register health (FR-04.06 / FR-04.41) now live in the
+    // sibling org-leads-staleness-register.test.ts — split out to keep both
+    // files under the 300-line convention.
   });
 });

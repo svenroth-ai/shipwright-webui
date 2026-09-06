@@ -110,14 +110,34 @@ export type BeatRegisterHealthResponse =
 // org-chart read itself (`GET /api/org/org-chart`, 502 `org_chart_invalid`).
 // ---------------------------------------------------------------------------
 
+/**
+ * `resting`'s last-run sub-shape — a NAMED type (not inlined into
+ * `LeadNowState`) so `org-schema-sync.test.ts`'s per-arm comparison, which
+ * only walks TOP-LEVEL arm fields, actually checks it: an inlined nested
+ * object is invisible to that guard (internal-plan-review finding,
+ * iterate-2026-09-06-org-lead-staleness-register).
+ *
+ * Carries the SAME staleness verdict `lastRunCore` already computes —
+ * `staleness`/`cadenceUnresolvedReason` are taken verbatim, never
+ * recomputed from `lastRunAt` + a cron string client-side (two
+ * implementations of one rule drift). `staleness: "unknown"` is a THIRD
+ * state, not a synonym for fresh or stale — it must never render as if the
+ * cadence were resolved.
+ */
+export type LeadLastRunView =
+  | { measured: false }
+  | {
+      measured: true;
+      lastRunAt: string;
+      staleness: Staleness | "unknown";
+      cadenceUnresolvedReason?: CadenceUnresolvedReason;
+    };
+
 /** The Now block's four states (iterate spec AC-2) — "waiting on you" is
  *  deliberately absent, see the iterate spec's Design Notes. */
 export type LeadNowState =
   | { state: "running" }
-  | {
-      state: "resting";
-      lastRun: { measured: false } | { measured: true; lastRunAt: string };
-    }
+  | { state: "resting"; lastRun: LeadLastRunView }
   | { state: "needs-attention"; reason: "duplicate-session" }
   | { state: "not-measured" };
 
@@ -126,6 +146,31 @@ export type LeadRoleView = { measured: false } | { measured: true; text: string 
 export type LeadCadenceView =
   | { measured: false }
   | { measured: true; text: string; cron: string };
+
+/**
+ * The roster's OWN register-health view — deliberately NOT
+ * `BeatRegisterHealthResponse` (that type's `clear`/`open`/`fault` are
+ * exactly what `evaluateRegisterHealth` returns for the secret-gated route,
+ * and stays that way). This adds a FOURTH arm, `unknown`, for a genuine
+ * read failure (symlink refusal, corrupt file, path traversal, read
+ * error) — internal-plan-review finding: those failures are not "no open
+ * entry", and collapsing them into `clear` would fabricate a health claim
+ * for exactly the fault cases that matter. Arms are spelled out literally
+ * (not `BeatRegisterHealthResponse | {...unknown}`) because
+ * `org-schema-sync.test.ts`'s arm parser requires each union member to be
+ * its own `{ ... }` literal with a discriminant, not a bare type reference.
+ */
+export type LeadRegisterView =
+  | { leadId: string; status: "clear" }
+  | { leadId: string; status: "open"; entry: BeatRegisterEntryView }
+  | {
+      leadId: string;
+      status: "fault";
+      reason: "duplicate-session-id";
+      sessionId: string;
+      entries: BeatRegisterEntryView[];
+    }
+  | { leadId: string; status: "unknown" };
 
 export interface LeadRosterEntry {
   leadId: string;
@@ -136,6 +181,10 @@ export interface LeadRosterEntry {
   now: LeadNowState;
   cadence: LeadCadenceView;
   usage: UsageResponse;
+  /** FR-04.41 — the beat-register's own classification. See
+   *  `LeadRegisterView`'s doc comment for why a read failure is `unknown`,
+   *  never silently `clear`. */
+  register: LeadRegisterView;
 }
 
 export interface LeadsRosterResponse {

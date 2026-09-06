@@ -3,25 +3,21 @@
  * /api/external/org/leads/:leadId/beat-register/release
  * (iterate-2026-08-18-org-route-beat-register, V4a-2B point 4.4).
  *
- * Hono route shell only — request validation + error-to-status mapping.
- * The release action itself (locking, register mutation, audit append,
- * mirrored leadwright contract) lives in `beat-register-release-core.ts`,
- * split out to stay under the 300-line file guideline.
+ * Hono route shell only — parses the request and hands off to
+ * `handleReleaseRequest` (`beat-register-release-request.ts`), which is
+ * ALSO used by the plain browser-facing proxy's release route
+ * (`routes/org.ts`, iterate-2026-09-06-org-lead-staleness-register) so the
+ * two route shells cannot drift on validation or status-mapping. The
+ * release action itself (locking, register mutation, audit append,
+ * mirrored leadwright contract) lives in `beat-register-release-core.ts`.
  */
 
 import type { Hono } from "hono";
-import { lstatSync } from "node:fs";
 
 import { LEAD_ID_RE } from "./_helpers.js";
 import type { LstatFn } from "./beat-register.js";
-import {
-  performRelease,
-  DEFAULT_LOCK_OPTIONS,
-  OrgSymlinkEscapeError,
-  BeatRegisterInvalidError,
-  type ReleaseOutcome,
-  type BeatRegisterLockOptions,
-} from "./beat-register-release-core.js";
+import type { BeatRegisterLockOptions } from "./beat-register-release-core.js";
+import { handleReleaseRequest } from "./beat-register-release-request.js";
 
 export {
   performRelease,
@@ -31,17 +27,8 @@ export {
   RESIDUAL_LOCK_WARNING,
 } from "./beat-register-release-core.js";
 export type { ReleaseOutcome, BeatRegisterLockOptions } from "./beat-register-release-core.js";
-
-const RELEASE_REASON_MAX_LENGTH = 500;
-// Doubt-review fix (Stage 3, medium/correctness): no `/i` flag. Entry
-// matching in `beat-register-release-core.ts` is an exact `===` string
-// comparison, never normalized — leadwright's own writer always produces
-// `crypto.randomUUID()`, which is defined to be lowercase, so the register
-// can never legitimately hold an uppercase-cased entry. Accepting a
-// differently-cased-but-otherwise-valid sessionId here let it pass
-// validation and then silently miss its real (lowercase) register entry,
-// returning 404 not-found for an entry that genuinely exists.
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export { handleReleaseRequest } from "./beat-register-release-request.js";
+export type { ReleaseRequestResult } from "./beat-register-release-request.js";
 
 export interface ReleaseRouteDeps {
   leadsRoot: string;
@@ -51,10 +38,7 @@ export interface ReleaseRouteDeps {
 }
 
 export function registerBeatRegisterReleaseRoute(app: Hono, deps: ReleaseRouteDeps): void {
-  const leadsRoot = deps.leadsRoot;
-  const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
-  const lockOptions = deps.lockOptions ?? DEFAULT_LOCK_OPTIONS;
-  const now = deps.now ?? (() => new Date());
+  const { leadsRoot } = deps;
 
   app.post("/api/external/org/leads/:leadId/beat-register/release", async (c) => {
     const leadId = c.req.param("leadId");
@@ -68,56 +52,14 @@ export function registerBeatRegisterReleaseRoute(app: Hono, deps: ReleaseRouteDe
     } catch {
       return c.json({ error: "invalid_json" }, 400);
     }
-    const { sessionId, reason } = (body ?? {}) as { sessionId?: unknown; reason?: unknown };
-    if (typeof sessionId !== "string" || !UUID_RE.test(sessionId)) {
-      return c.json({ error: "sessionId_invalid" }, 400);
-    }
-    if (
-      typeof reason !== "string" ||
-      reason.length === 0 ||
-      reason.length > RELEASE_REASON_MAX_LENGTH
-    ) {
-      return c.json(
-        { error: "reason_invalid", detail: `must be 1-${RELEASE_REASON_MAX_LENGTH} chars` },
-        400,
-      );
-    }
-
-    let outcome: ReleaseOutcome;
-    try {
-      outcome = await performRelease(
-        { leadsRoot, lockOptions, now, lstat },
-        leadId,
-        sessionId,
-        reason,
-      );
-    } catch (err) {
-      if (err instanceof OrgSymlinkEscapeError) {
-        return c.json({ error: "symlink_forbidden", path: err.path }, 403);
-      }
-      if (err instanceof BeatRegisterInvalidError) {
-        return c.json({ error: "beat_register_invalid", leadId }, 502);
-      }
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code === "ELOCKED") {
-        return c.json({ error: "beat_register_locked", leadId }, 409);
-      }
-      throw err;
-    }
-
-    if (!outcome.ok) {
-      // "fault" (duplicate sessionId — trap #3, never resolved by picking
-      // one) is a structural data conflict, not "nothing here": 409, not
-      // 404.
-      const status = outcome.reason === "fault" ? 409 : 404;
-      return c.json({ ok: false, reason: outcome.reason, detail: outcome.detail }, status);
-    }
-    if (!outcome.recovered) {
-      return c.json({ ok: true, recovered: false }, 200);
-    }
-    return c.json(
-      { ok: true, recovered: true, residualLockWarning: outcome.residualLockWarning },
-      200,
+    // `handleReleaseRequest` owns the `lstatSync`/`lockOptions`/`now`
+    // defaulting itself (external-review fix, GLM) — this shell just
+    // passes deps through, never resolving them a second time.
+    const result = await handleReleaseRequest(
+      { leadsRoot, lstatSync: deps.lstatSync, lockOptions: deps.lockOptions, now: deps.now },
+      leadId,
+      body,
     );
+    return c.json(result.body, result.status);
   });
 }

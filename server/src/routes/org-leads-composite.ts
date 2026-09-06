@@ -13,6 +13,7 @@
 import type {
   LeadCadenceView,
   LeadNowState,
+  LeadRegisterView,
   LeadRoleView,
   LeadRosterEntry,
   OrgChartLeadView,
@@ -20,7 +21,7 @@ import type {
 } from "../types/org.js";
 import { usageCore } from "../external/org/usage.js";
 import { lastRunCore } from "../external/org/last-run.js";
-import { beatRegisterHealthCore } from "../external/org/beat-register.js";
+import { beatRegisterHealthCore, type BeatRegisterHealthCoreResult } from "../external/org/beat-register.js";
 import { orgFileReadCore, type OrgFileReadDeps } from "../external/org/file-read.js";
 import type { LeadOrgInfoResult } from "../external/org/org-chart-lookup.js";
 import { cronIntervalMs } from "../external/org/cron.js";
@@ -58,8 +59,29 @@ function buildCadence(orgInfo: LeadOrgInfoResult, now: Date): LeadCadenceView {
   return { measured: true, text: formatCadence(interval.ms), cron: orgInfo.cron };
 }
 
-function buildNow(deps: LeadRosterBuildDeps, leadId: string, orgInfo: LeadOrgInfoResult): LeadNowState {
-  const health = beatRegisterHealthCore({ leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync }, leadId);
+/** The `register` roster field's own degrade — a read failure (symlink
+ *  refusal, corrupt file, path traversal, read error) is `{status:
+ *  "unknown"}`, NEVER `{status: "clear"}` (internal-plan-review finding,
+ *  HIGH: `clear` is an assertion "no open entry", not an absence-of-data
+ *  marker — collapsing a deliberate security refusal or a corrupt register
+ *  into "no problem here" would fabricate exactly the health claim this
+ *  field exists to surface honestly). ENOENT (no register file at all) is
+ *  already mapped to `200 clear` INSIDE `beatRegisterHealthCore` (mirrors
+ *  leadwright's own "no file = clear" reading) — it never reaches this
+ *  degrade at all. Deliberately DIFFERENT from `buildNow`'s degrade for the
+ *  SAME read failure (`not-measured`, unchanged from before this field
+ *  existed) — the Now line's failure semantics are not touched by adding
+ *  this sibling field. */
+function registerFieldFor(health: BeatRegisterHealthCoreResult, leadId: string): LeadRegisterView {
+  return health.status === 200 ? health.body : { leadId, status: "unknown" };
+}
+
+function buildNow(
+  deps: LeadRosterBuildDeps,
+  leadId: string,
+  orgInfo: LeadOrgInfoResult,
+  health: BeatRegisterHealthCoreResult,
+): LeadNowState {
   if (health.status !== 200) return { state: "not-measured" };
 
   if (health.body.status === "fault") {
@@ -69,10 +91,11 @@ function buildNow(deps: LeadRosterBuildDeps, leadId: string, orgInfo: LeadOrgInf
     return { state: "running" };
   }
 
-  // status === "clear" — Resting; text sourced from last-run. `orgInfo` was
-  // already resolved once for the whole composite request (see
-  // `buildLeadRosterEntry`) — passed through so `lastRunCore` doesn't
-  // re-parse `org-chart.json` per lead.
+  // status === "clear" — Resting; text + staleness sourced from last-run,
+  // taken verbatim (never recomputed here). `orgInfo` was already resolved
+  // once for the whole composite request (see `buildLeadRosterEntry`) —
+  // passed through so `lastRunCore` doesn't re-parse `org-chart.json` per
+  // lead.
   const lastRun = lastRunCore({ leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync, orgInfo }, leadId);
   if (lastRun.status !== 200) return { state: "not-measured" };
   if (lastRun.body.measured === false) {
@@ -80,7 +103,12 @@ function buildNow(deps: LeadRosterBuildDeps, leadId: string, orgInfo: LeadOrgInf
   }
   return {
     state: "resting",
-    lastRun: { measured: true, lastRunAt: lastRun.body.lastRunAt },
+    lastRun: {
+      measured: true,
+      lastRunAt: lastRun.body.lastRunAt,
+      staleness: lastRun.body.staleness,
+      cadenceUnresolvedReason: lastRun.body.cadenceUnresolvedReason,
+    },
   };
 }
 
@@ -107,14 +135,19 @@ export function buildLeadRosterEntry(
   orgInfo: LeadOrgInfoResult,
 ): LeadRosterEntry {
   const now = deps.now ?? (() => new Date());
+  // Read once, feed both `now` (running/needs-attention/clear branching,
+  // unchanged) and the `register` field below — was two reads before this
+  // field existed (buildNow had its own private call).
+  const registerHealth = beatRegisterHealthCore({ leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync }, leadId);
   return {
     leadId,
     domain: lead.domain,
     name: lead.name,
     reportsTo: lead.reports_to,
     role: buildRole(deps, leadId),
-    now: buildNow(deps, leadId, orgInfo),
+    now: buildNow(deps, leadId, orgInfo, registerHealth),
     cadence: buildCadence(orgInfo, now()),
     usage: buildUsage(deps, leadId),
+    register: registerFieldFor(registerHealth, leadId),
   };
 }
