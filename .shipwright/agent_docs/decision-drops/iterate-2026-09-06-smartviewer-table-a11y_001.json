@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-smartviewer-table-a11y",
+  "date": "2026-09-06",
+  "section": "Iterate — change: SmartViewer table auto-fit + a11y",
+  "title": "Off-DOM measured column auto-fit, scoped to the SmartViewer pane",
+  "context": "SmartViewer markdown tables with one long free-text column crushed that column into many wrapped lines instead of using the pane's existing horizontal scroll (table-layout:auto shrinks to the longest word).",
+  "decision": "Measure natural column widths by cloning the table INSIDE its real container (preserves CSS cascade), apply via colgroup + table-layout:fixed, gated to run only inside .smart-viewer-markdown so DocumentMarkdown's 4 other non-SmartViewer consumers are untouched.",
+  "consequences": "Tables with a long column now scroll horizontally instead of wrapping character-by-character; re-fits on ResizeObserver. Also added th scope=col, a focusable/labelled preview region, and a keyboard-reachable ViewerTabBar close button.",
+  "rationale": "table-layout:fixed is required because auto treats an explicit <col> width as a mere hint; measuring from document.body (instead of inside the container) silently dropped .markdown-body's padding/weight rules and under-measured columns, both verified live before landing.",
+  "rejected": "Wrapping every DocumentMarkdown table unconditionally was rejected (Stage-1 spec-reviewer REJECT): inert but still cloning/mutating DOM + installing a ResizeObserver on 4 unrelated modals/panels.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

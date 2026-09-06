@@ -108,6 +108,9 @@ export function MarkdownRenderer({
         className="smart-viewer-markdown h-full overflow-auto p-5"
         style={{ background: "var(--color-surface, #ffffff)" }}
         data-testid="smart-viewer-markdown"
+        role="region"
+        aria-label="File preview"
+        tabIndex={0}
       >
         <DocumentMarkdown
           text={text}
