@@ -1,0 +1,1 @@
+SmartViewer accessibility: table headers now carry scope=col, the scrollable preview pane is keyboard-focusable and labelled, and the per-tab close control is a real, keyboard-reachable button instead of a nested unreachable span.

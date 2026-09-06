@@ -84,3 +84,13 @@ describe("MarkdownRenderer — Edit / Pop out legibility (Sven 2026-07-17, AC7)"
     }
   });
 });
+
+describe("MarkdownRenderer — scrollable preview is keyboard-reachable (a11y)", () => {
+  it("exposes the preview pane as a focusable, named region", () => {
+    render(<MarkdownRenderer text="# hi" />);
+    const pane = screen.getByTestId("smart-viewer-markdown");
+    expect(pane.getAttribute("role")).toBe("region");
+    expect(pane.getAttribute("aria-label")).toBeTruthy();
+    expect(pane.getAttribute("tabindex")).toBe("0");
+  });
+});

@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-06T09:43:51.229650+00:00",
-  "provider": "openrouter",
-  "findings_count": 7,
+  "timestamp": "2026-09-06T14:44:53.744966+00:00",
+  "provider": "codex",
+  "findings_count": 1,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "only some provider legs could be itemized \u2014 the count (1) may understate what was found",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "revise",
-    "openai": "revise"
+    "glm": "unavailable",
+    "openai": "approve"
   },
   "contradiction": {
     "detected": false,
-    "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 glm did not (glm=unavailable, openai=approve)"
   },
   "contradiction_resolution": null
 }

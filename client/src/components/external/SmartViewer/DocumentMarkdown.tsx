@@ -35,6 +35,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./MermaidRenderer";
+import { useAutoFitTableColumns } from "./useAutoFitTableColumns";
 
 const SANITIZE_SCHEMA = {
   ...defaultSchema,
@@ -151,6 +152,13 @@ const COMPONENTS = {
       </code>
     );
   },
+  // Column headers get `scope="col"` so a screen reader announces which
+  // column a cell belongs to when reading down the table (WCAG 1.3.1) —
+  // react-markdown's default <th> carries no scope at all.
+  th(props: { children?: ReactNode; node?: unknown }) {
+    const { node: _node, ...rest } = props;
+    return <th scope="col" {...rest} />;
+  },
   a(props: { href?: string; children?: ReactNode; id?: string }) {
     const { href, ...rest } = props;
     // Bare anchor target (`<a id="trg-…"></a>`) — invisible jump target.
@@ -207,6 +215,8 @@ export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment }: Pro
     const target = findAnchorTarget(container, scrollToFragment);
     if (target) scrollTargetIntoPane(container, target);
   }, [scrollToFragment, processed]);
+
+  useAutoFitTableColumns(ref, [processed]);
 
   return (
     <div

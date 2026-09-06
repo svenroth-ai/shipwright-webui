@@ -159,4 +159,14 @@ describe("DocumentMarkdown rendering", () => {
     expect(scrolled).toHaveLength(1);
     expect(scrolled[0].id).toBe("user-content-rtm-fr-0166");
   });
+
+  // @covers FR-01.35
+  it("a11y — table column headers carry scope=\"col\" (WCAG 1.3.1)", () => {
+    const { container } = render(
+      <DocumentMarkdown text={"| ID | Name |\n|----|------|\n| 1 | Alice |\n"} />,
+    );
+    const headers = container.querySelectorAll("th");
+    expect(headers.length).toBe(2);
+    headers.forEach((th) => expect(th.getAttribute("scope")).toBe("col"));
+  });
 });
