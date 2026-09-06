@@ -22,6 +22,7 @@ describe("checkClaimHolderGate", () => {
   it("allows launch when there is no claim on record", () => {
     const result = checkClaimHolderGate(makeTask(), undefined);
     expect(result.allowed).toBe(true);
+    if (result.allowed) expect(result.claimAuthorized).toBe(false);
   });
 
   it("allows launch when claimedBy/claimedAt exist without claimToken (stale metadata, HIGH-2 semantics)", () => {
@@ -30,9 +31,10 @@ describe("checkClaimHolderGate", () => {
       undefined,
     );
     expect(result.allowed).toBe(true);
+    if (result.allowed) expect(result.claimAuthorized).toBe(false);
   });
 
-  it("allows the holder — matching token, within the launch window", () => {
+  it("allows the holder — matching token, within the launch window — and marks it claim-authorized", () => {
     const task = makeTask({
       claimToken: "tok-1",
       claimedBy: "lead-7",
@@ -40,6 +42,7 @@ describe("checkClaimHolderGate", () => {
     });
     const result = checkClaimHolderGate(task, "tok-1");
     expect(result.allowed).toBe(true);
+    if (result.allowed) expect(result.claimAuthorized).toBe(true);
   });
 
   it("refuses a foreign token, no claimExpired flag", () => {

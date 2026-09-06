@@ -1,0 +1,111 @@
+{
+  "run_id": "iterate-2026-09-06-claim-launch-permission-perimeter",
+  "date": "2026-09-06T07:08:30.298812Z",
+  "event_at": "2026-09-06T07:07:37.860754+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/claim-launch-permission-perimeter",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-06-claim-launch-permission-perimeter",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A claim-authorized launch on a task with a persisted actionId (leadwright's real shape) carries --tools/--permission-mode on all three shell forms",
+        "disposition": "tested",
+        "evidence": "action-substitution-branch.claim-permission.test.ts: 'a claim-authorized launch on a task with a PERSISTED actionId...is armed'"
+      },
+      {
+        "behavior": "The same task, launched without a claim (a human clicking Launch), is unarmed",
+        "disposition": "tested",
+        "evidence": "action-substitution-branch.claim-permission.test.ts: 'the SAME task, launched WITHOUT a claim...is unarmed'"
+      },
+      {
+        "behavior": "The legacy-fallback branch's manual launch command is byte-identical whether claimAuthorized is omitted or explicitly false",
+        "disposition": "tested",
+        "evidence": "legacy-fallback-branch.test.ts: 'a manual launch with claimAuthorized: false is byte-identical to claimAuthorized omitted'"
+      },
+      {
+        "behavior": "The legacy-fallback branch's claim-authorized launch carries the allow-list and permission-mode on every shell form, and excludes Task/WebFetch",
+        "disposition": "tested",
+        "evidence": "legacy-fallback-branch.test.ts: 'a claim-authorized launch carries an explicit --tools allow-list...' + 'does not include Bash-adjacent escalation tools'"
+      },
+      {
+        "behavior": "checkClaimHolderGate correctly derives claimAuthorized=false for no-claim/stale-metadata and claimAuthorized=true for a verified current holder",
+        "disposition": "tested",
+        "evidence": "claim-holder-gate.test.ts (claimAuthorized assertions added to existing no-claim/stale/holder-match tests)"
+      },
+      {
+        "behavior": "Template arming inserts --tools/--permission-mode immediately after --session-id <uuid>, before --name, on all three shell forms",
+        "disposition": "tested",
+        "evidence": "claim-executor-template-arming.test.ts: 'inserts --tools and --permission-mode...' + 'the inserted flags land BEFORE --name'"
+      },
+      {
+        "behavior": "Template arming fails closed when no --session-id <uuid> anchor is found in the rendered command",
+        "disposition": "tested",
+        "evidence": "claim-executor-template-arming.test.ts: 'fails closed (ok:false) when a custom template has no --session-id...anchor'"
+      },
+      {
+        "behavior": "Template arming fails closed when the anchor belongs to a different session than the one being armed",
+        "disposition": "tested",
+        "evidence": "claim-executor-template-arming.test.ts: 'fails closed when the anchor uuid belongs to a DIFFERENT session'"
+      },
+      {
+        "behavior": "Template arming fails closed when the --session-id anchor appears more than once in the rendered command (Stage-2 code-review HIGH finding)",
+        "disposition": "tested",
+        "evidence": "claim-executor-template-arming.test.ts: 'fails closed when the --session-id anchor appears more than once'"
+      },
+      {
+        "behavior": "Template arming fails closed when the rendered command already contains a --tools or --permission-mode flag before arming (Stage-3 doubt-review HIGH finding)",
+        "disposition": "tested",
+        "evidence": "claim-executor-template-arming.test.ts: 'fails closed when the rendered command already contains a --tools or --permission-mode flag'"
+      },
+      {
+        "behavior": "templateDeclaresSessionIdAnchor correctly detects the literal --session-id {task.uuid} placeholder in a raw (pre-substitution) command_template, and correctly rejects templates without it",
+        "disposition": "tested",
+        "evidence": "claim-executor-template-arming.test.ts describe('templateDeclaresSessionIdAnchor') \u2014 3 cases (present, absent/--resume, differently-shaped)"
+      },
+      {
+        "behavior": "A claim-authorized launch against a custom project action whose command_template has no --session-id anchor at all is refused with 409, over a real HTTP request through the real route + a real temp-directory actions.json",
+        "disposition": "tested",
+        "evidence": "action-substitution-branch.claim-permission.test.ts: 'a claim-authorized launch against a custom template with no --session-id anchor returns 409'"
+      },
+      {
+        "behavior": "Stage-3 doubt-review attack: a template with NO real --session-id anchor is still refused (409) even when a caller-supplied description is crafted to coincidentally contain the literal anchor text \u2014 proves the template-source check, not just the rendered-output check, is load-bearing",
+        "disposition": "tested",
+        "evidence": "action-substitution-branch.claim-permission.test.ts: 'a template with NO --session-id {task.uuid} placeholder is refused even when a caller-supplied description coincidentally contains the literal anchor text'"
+      },
+      {
+        "behavior": "A claim-authorized launch combined with a valid phaseTaskRef (one of the 4 launch-precedence branches never wired for claimAuthorized) is refused by the centralized backstop rather than silently dispatched unarmed",
+        "disposition": "tested",
+        "evidence": "claim-permission-perimeter-centralized.test.ts: '409 claim_launch_permission_perimeter_missing when a claimed launch carries a valid phaseTaskRef'"
+      },
+      {
+        "behavior": "The same phaseTaskRef launch, without a claim, still succeeds unarmed \u2014 phase-task/manual launches are untouched by the new backstop",
+        "disposition": "tested",
+        "evidence": "claim-permission-perimeter-centralized.test.ts: 'the SAME phaseTaskRef launch, WITHOUT a claim, still succeeds unarmed'"
+      },
+      {
+        "behavior": "Extracting the three mixed_launch_intents checks into mixed-intents-guard.ts (300-line-guideline split) does not change routes.ts's existing behavior",
+        "disposition": "tested",
+        "evidence": "Full pre-existing routes.test.ts suite (mixed_launch_intents, phase_task_session_uuid_mismatch, legacy-fallback 200) re-verified green after the extraction"
+      },
+      {
+        "behavior": "The full server test suite and typecheck are unaffected by this change (no regressions)",
+        "disposition": "tested",
+        "evidence": "npx vitest run: 346 files, 3901 passed / 3 skipped; npx tsc --noEmit: clean"
+      }
+    ],
+    "counts": {
+      "testable": 17,
+      "tested": 17,
+      "untestable": 0,
+      "untested_testable": 0
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "justification": "Backend-only permission-perimeter change to POST /api/external/tasks/:id/launch, no UI surface. The security-relevant behavior (which command string the route returns to the caller) is exercised directly by real Hono app.request() integration tests against the actual router (not mocked internals) in claim-permission-perimeter-centralized.test.ts and action-substitution-branch.claim-permission.test.ts, including a real temp-directory .shipwright-webui/actions.json for the custom-template attack scenarios \u2014 this is the wire-level contract a live-server probe would additionally exercise. Small complexity; F0.5 is advisory, not mandatory, below medium."
+  }
+}
