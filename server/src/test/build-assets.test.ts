@@ -3,11 +3,20 @@
  * runtime non-TS assets the server reads at runtime.
  *
  * `tsc` emits only `.js` / `.d.ts` — it does NOT copy JSON/config that
- * is read via `fs.readFileSync` (as opposed to `import`ed). The single
- * such asset today is `src/config/default-actions.json`, read by
+ * is read via `fs.readFileSync` (as opposed to `import`ed). Two such
+ * assets exist today: `src/config/default-actions.json`, read by
  * `core/project-actions-loader.ts loadBundledDefault()` from
- * `<module-dir>/../config/default-actions.json` — i.e.
- * `dist/config/default-actions.json` in production.
+ * `<module-dir>/../config/default-actions.json` (i.e.
+ * `dist/config/default-actions.json` in production), and
+ * `src/vendor/leadwright/claim-record-lock-contract.json`, read by
+ * `core/claim-record-lock.ts` from `<module-dir>/../vendor/leadwright/...`
+ * (i.e. `dist/vendor/leadwright/claim-record-lock-contract.json`) —
+ * that one THROWS at import time if missing (doubt-review finding,
+ * iterate-2026-09-06-claim-lock-contract-explicit: a stale `dist/`
+ * reused by a manual bootstrapper build, or a future `copy-assets.mjs`
+ * edit that drops this half, would otherwise ship a build that crashes
+ * on first import of `index.ts` — loud, but only after publish, which is
+ * irreversible).
  *
  * The bug this guards: `server`'s `npm run build` used to be bare
  * `tsc`, so `dist/config/` never existed and `node dist/index.js`
@@ -36,15 +45,26 @@ const copyAssetsScript = resolve(serverRoot, "scripts", "copy-assets.mjs");
 const srcConfigFile = resolve(serverRoot, "src", "config", "default-actions.json");
 const distConfigDir = resolve(serverRoot, "dist", "config");
 const distConfigFile = resolve(distConfigDir, "default-actions.json");
+const srcVendorFile = resolve(
+  serverRoot,
+  "src",
+  "vendor",
+  "leadwright",
+  "claim-record-lock-contract.json",
+);
+const distVendorDir = resolve(serverRoot, "dist", "vendor");
+const distVendorFile = resolve(distVendorDir, "leadwright", "claim-record-lock-contract.json");
 
 describe("production dist/ build includes runtime non-TS assets", () => {
   let copyResult: SpawnSyncReturns<string>;
 
   beforeAll(() => {
-    // Clear dist/config so the assertions below prove the copy step
-    // (re)created it — not that a stale leftover from an earlier build
-    // happens to be present. `force` makes this a no-op when absent.
+    // Clear dist/config and dist/vendor so the assertions below prove the
+    // copy step (re)created them — not that a stale leftover from an
+    // earlier build happens to be present. `force` makes this a no-op
+    // when absent.
     rmSync(distConfigDir, { recursive: true, force: true });
+    rmSync(distVendorDir, { recursive: true, force: true });
     // Run the real production copy artifact. cwd = serverRoot because
     // copy-assets.mjs resolves "src/config" / "dist/config" relative to
     // the process cwd (the same cwd `npm run build` uses).
@@ -78,6 +98,18 @@ describe("production dist/ build includes runtime non-TS assets", () => {
     // The loader JSON.parses this file; a faithful copy is the contract.
     const src = JSON.parse(readFileSync(srcConfigFile, "utf-8"));
     const dist = JSON.parse(readFileSync(distConfigFile, "utf-8"));
+    expect(dist).toEqual(src);
+  });
+
+  it("the vendored FR-04.28 lock contract lands at claim-record-lock.ts's runtime path dist/vendor/leadwright/", () => {
+    expect(existsSync(distVendorFile)).toBe(true);
+  });
+
+  it("the copied claim-record-lock-contract.json is faithful to src/vendor/leadwright/", () => {
+    // core/claim-record-lock.ts JSON.parses this file at import time and
+    // throws if it's missing/malformed — a faithful copy is the contract.
+    const src = JSON.parse(readFileSync(srcVendorFile, "utf-8"));
+    const dist = JSON.parse(readFileSync(distVendorFile, "utf-8"));
     expect(dist).toEqual(src);
   });
 });

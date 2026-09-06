@@ -25,6 +25,7 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, lstatSync } from "n
 import { dirname } from "node:path";
 
 import { resolveOrgAllowlistedTarget } from "./_helpers.js";
+import { claimRecordLockOptions } from "../../core/claim-record-lock.js";
 
 // ---------------------------------------------------------------------------
 // Entry format — strict, anchored, full-line header shapes (plan-review
@@ -222,10 +223,12 @@ export interface DecisionsLockContext {
 
 /**
  * Acquire the FR-04.28 lock on `decisions-proposed.md`
- * (`stale: 10_000`, `realpath: true` — both explicit, per the contract;
- * neither side sets `lockfilePath`, so proper-lockfile's own default
- * `<path>.lock` is what leadwright's daemon must also target), run `fn`
- * inside the critical section, then release. The target file is created
+ * (`stale`/`realpath` from the shared `CLAIM_RECORD_LOCK_CONTRACT` —
+ * `claimRecordLockOptions`, `../../core/claim-record-lock.js` — both
+ * explicit, per the contract; neither side sets `lockfilePath`, so
+ * proper-lockfile's own default `<path>.lock` is what leadwright's daemon
+ * must also target), run `fn` inside the critical section, then release.
+ * The target file is created
  * (empty) before acquisition if missing. Both files are symlink-checked
  * before the lock is taken, AND re-checked immediately after it is held
  * (doubt-review fix, MEDIUM-HIGH): `lockfile.lock()` retries for up to
@@ -248,11 +251,12 @@ export async function withDecisionsLock<T>(
   assertNotSymlink(proposedPath, lstat);
   assertNotSymlink(loggedPath, lstat);
 
-  const release = await lockfile.lock(proposedPath, {
-    stale: 10_000,
-    realpath: true,
-    retries: { retries: 8, minTimeout: 50, maxTimeout: 500, factor: 2 },
-  });
+  const release = await lockfile.lock(
+    proposedPath,
+    claimRecordLockOptions({
+      retries: { retries: 8, minTimeout: 50, maxTimeout: 500, factor: 2 },
+    }),
+  );
   try {
     assertNotSymlink(proposedPath, lstat);
     assertNotSymlink(loggedPath, lstat);

@@ -1,0 +1,16 @@
+{
+  "section": "iterate-2026-09-06-claim-lock-contract-explicit",
+  "review": [
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/core/claim-record-lock.ts",
+      "line": 6,
+      "finding": "The module header comment framed the shared contract as feeding exactly two call sites, but index.ts's single lockPath factory (built from lockClaimRecordFile) is also shared by projects.json and settings.json, which leadwright does not touch. Functionally harmless today (proper-lockfile's own defaults already equal stale:10000/realpath:true) but a future contractVersion bump would silently also change locking for those two files.",
+      "suggestion": "Add a line to the header noting the wider blast radius.",
+      "disposition": "accepted-and-fixed",
+      "fix": "Added a sentence to claim-record-lock.ts's header comment naming projects.json/settings.json as additional lockPath consumers and the future-bump risk."
+    }
+  ],
+  "verdict": "clean_after_one_low_fix"
+}

@@ -1,0 +1,66 @@
+{
+  "run_id": "iterate-2026-09-06-claim-lock-contract-explicit",
+  "date": "2026-09-06T10:14:06.549986Z",
+  "event_at": "2026-09-06T10:13:33.917477+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/claim-lock-contract-explicit",
+  "spec": ".shipwright/planning/iterate/iterate-2026-09-06-claim-lock-contract-explicit-brief.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-06-claim-lock-contract-explicit",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "index.ts's sdk-sessions.json lock site states stale/realpath explicitly (contract values), not proper-lockfile's defaults",
+        "disposition": "tested",
+        "evidence": "claim-record-lock-callsites-sync.test.ts: index.ts's lockPath delegates to lockClaimRecordFile and contains no inline stale/realpath literals or a direct lockfile.lock() call; claim-record-lock.test.ts: lockClaimRecordFile calls lockfile.lock with the contract's stale/realpath"
+      },
+      {
+        "behavior": "decisions-lock.ts's decisions-proposed.md lock site states stale/realpath from the same shared contract, not retyped literals",
+        "disposition": "tested",
+        "evidence": "claim-record-lock-callsites-sync.test.ts: decisions-lock.ts imports and calls claimRecordLockOptions and contains no inline stale/realpath literals; decisions-lock.test.ts: withDecisionsLock's proper-lockfile.lock call is asserted (via an independently-read copy of the vendored JSON, not the module under test) to carry stale/realpath equal to the vendored contract"
+      },
+      {
+        "behavior": "Both call sites are pinned against the PUBLISHED contract's values (contractVersion 1, staleMs 10000, realpath true, lockPathSuffix '.lock'), not numbers retyped into the test",
+        "disposition": "tested",
+        "evidence": "claim-record-lock.test.ts: CLAIM_RECORD_LOCK_CONTRACT compared against an independent readFileSync+JSON.parse of the vendored copy, plus a deliberate ratchet-pin test asserting today's literal values so a future silent re-copy fails until reviewed"
+      },
+      {
+        "behavior": "No call site sets lockfilePath \u2014 the lock marker derives from the canonical target path, not a hand-picked path string",
+        "disposition": "tested",
+        "evidence": "claim-record-lock.test.ts: claimRecordLockOptions structurally drops an extra.lockfilePath (expect(opts).not.toHaveProperty('lockfilePath')); lockClaimRecordFile's call to lockfile.lock asserted to carry no lockfilePath key"
+      },
+      {
+        "behavior": "realpath:true unifies a lock on sdk-sessions.json's real path with a lock attempted via a FILE-symlinked alias to the same file (not a directory junction, which proves nothing about path resolution)",
+        "disposition": "tested",
+        "evidence": "claim-record-lock-symlink.test.ts: a lock held via the real path blocks a concurrent lock attempted via a symlink('file' type) alias, observed lock order [real-enter, real-exit, alias-enter, alias-exit]; self-skips with an explanatory title on a host that cannot create a file symlink without elevation, verified for real on CI (ubuntu-latest)"
+      },
+      {
+        "behavior": "Two genuinely different files never contend under the shared lock helper (the symlink-unification result above is about path resolution, not accidental over-serialization)",
+        "disposition": "tested",
+        "evidence": "claim-record-lock-symlink.test.ts sanity check: a lock on a second, unrelated file enters well before the first lock's held file is released"
+      },
+      {
+        "behavior": "The vendored contract JSON ships in the production dist/ build, at the exact runtime path claim-record-lock.ts reads (a missing copy throws at import time)",
+        "disposition": "tested",
+        "evidence": "build-assets.test.ts: real copy-assets.mjs run against a cleared dist/vendor asserts dist/vendor/leadwright/claim-record-lock-contract.json exists post-build and is byte-faithful to src/vendor/leadwright/"
+      },
+      {
+        "behavior": "index.ts's other two lockPath consumers (projects.json, settings.json \u2014 not part of leadwright's contract) are unaffected by routing lockPath through the shared helper",
+        "disposition": "tested",
+        "evidence": "Full server suite green (3928 passed/5 skipped), including existing project-manager and settings persistence tests exercising the same lockPath local; contract values equal proper-lockfile's prior defaults so behavior for these two files is unchanged"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  }
+}
