@@ -1,8 +1,8 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-06T14:44:53.744966+00:00",
-  "provider": "codex",
-  "findings_count": 1,
+  "timestamp": "2026-09-06T16:22:08.986904+00:00",
+  "provider": null,
+  "findings_count": 10,
   "self_review_fallback_ran": false,
   "reason": "only some provider legs could be itemized \u2014 the count (1) may understate what was found",
   "review_mode": "code",

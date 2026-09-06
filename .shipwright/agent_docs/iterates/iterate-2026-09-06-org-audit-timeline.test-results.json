@@ -1,0 +1,188 @@
+{
+  "last_updated": "2026-09-06",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-06-org-audit-timeline",
+    "date": "2026-09-06",
+    "unit": {
+      "status": "passed",
+      "passed": 3841,
+      "total": 3841
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "total": 3
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "Server suite (3928 passed / 5 skipped, 350 files) was re-run in full for F0 completeness, but no server file was changed by this iterate \u2014 recorded for completeness, not because server code was touched.",
+      "Internal review cascade (spec/code/doubt) plus external code review (Codex + GLM, both legs 'revise') found and fixed a real correctness gap: hasMoreToLoad/isAtWindowCeiling only checked per-lead page saturation and silently under-reported when the COMBINED filtered total across leads exceeded windowSize \u2014 fixed and covered by a new regression test before merge.",
+      "External code review also flagged the default-all checkbox state as visually ambiguous (unchecked = 'everything included' rather than 'nothing selected'); addressed via clarifying legend text + tooltip rather than inverting the checked-by-default state, since inverting would have broken the separate, spec-mandated guarantee that an unmapped event kind (no checkbox exists for it) still renders by default."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 24,
+        "tested": 24,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      },
+      "behaviors": [
+        {
+          "behavior": "Two leads' entries interleave correctly, sorted by numeric timestamp",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts \u2014 the card's own required probe"
+        },
+        {
+          "behavior": "Re-running the merge against a lead whose file GREW (simulating a concurrent daemon append) shows the new entries with no gap and no duplicate",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts \u2014 the drift scenario round 2 review caught"
+        },
+        {
+          "behavior": "A lead with a smaller windowSize/fewer entries doesn't stall or corrupt the merge",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "Event-type filter narrows output without needing any cursor adjustment (stateless \u2014 just filters the fetched window)",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "Time-window filter (since/until, numeric epoch compare, not string compare)",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "Mixed-precision ISO timestamps sort correctly (numeric, not lexicographic)",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "An entry with no valid timestamp sorts after all valid-timestamp entries, deterministically, and still renders",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "computeLastNightWindow returns yesterday-18:00\u2192today-06:00 local, including the pre-06:00-now edge case",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "windowSize never exceeds MAX_LIMIT (200)",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts"
+        },
+        {
+          "behavior": "Client: known AuditKind renders its plain-language label",
+          "disposition": "tested",
+          "evidence": "auditKindLabels.test.ts"
+        },
+        {
+          "behavior": "Client: an unseen kind string renders itself, not hidden",
+          "disposition": "tested",
+          "evidence": "auditKindLabels.test.ts"
+        },
+        {
+          "behavior": "Client: unparseable/unknown entries still render in the modal",
+          "disposition": "tested",
+          "evidence": "AuditTimelineModal.test.tsx"
+        },
+        {
+          "behavior": "Client: a time-window filter jumps windowSize straight to 200 instead of growing gradually",
+          "disposition": "tested",
+          "evidence": "AuditTimelineModal.test.tsx"
+        },
+        {
+          "behavior": "Client: changing a filter resets windowSize to its filter-appropriate default",
+          "disposition": "tested",
+          "evidence": "AuditTimelineModal.test.tsx (strengthened after external-review finding \u2014 now grows the window via Load-more first so the reset is actually exercised)"
+        },
+        {
+          "behavior": "Client: lead multi-select narrows which leads are fetched at all",
+          "disposition": "tested",
+          "evidence": "AuditTimelineModal.test.tsx"
+        },
+        {
+          "behavior": "Client: an unregistered/out-of-roster leadId in the request set is refused per-lead exactly like the existing route",
+          "disposition": "tested",
+          "evidence": "AuditTimelineModal.test.tsx (mocked fetchLeadAuditLog rejection surfaces per-row, doesn't crash the whole view)"
+        },
+        {
+          "behavior": "E2E: PO opens the modal, sees rows from 2+ leads sorted by time, expands a row to raw JSON",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/105-org-audit-timeline.spec.ts"
+        },
+        {
+          "behavior": "Client: a manual date/time-range input (not just \"Last night\") sets since/until and narrows the merge",
+          "disposition": "tested",
+          "evidence": "AuditTimelineModal.test.tsx (spec-reviewer Stage-1 fix \u2014 a manual range was named in \"What to build\" but not implemented in the first diff)"
+        },
+        {
+          "behavior": "hasMoreToLoad/isAtWindowCeiling catch the COMBINED filtered total exceeding windowSize even when no single lead's own page is individually saturated",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts (external code-review finding, GLM \u2014 a real silent-drop gap: 2 sub-saturated leads whose combined total exceeds windowSize)"
+        },
+        {
+          "behavior": "E2E: \"Last night\" narrows to exactly the entries inside the computed window, not a vacuous either/or assertion",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/105-org-audit-timeline.spec.ts (external code-review finding, both legs independently \u2014 the original assertion passed even if the preset were a no-op)"
+        },
+        {
+          "behavior": "Load-more/window-growth in-flight state surfaces a loading indicator instead of the control silently vanishing (placeholderData staleness)",
+          "disposition": "tested",
+          "evidence": "manual verification against the running app + isWindowLoading wiring (doubt-review finding)"
+        },
+        {
+          "behavior": "untilMs is inclusive \u2014 an entry logged at the exact window-end instant still renders",
+          "disposition": "tested",
+          "evidence": "auditTimelineMerge.test.ts (external code-review finding, GLM)"
+        },
+        {
+          "behavior": "Row expand/collapse key is stable even when two entries for the same lead serialize identically",
+          "disposition": "tested",
+          "evidence": "leadId|index keying (external code-review finding, Codex \u2014 not content-based) \u2014 covered by the existing multi-row AuditTimelineModal.test.tsx fixtures + E2E expand assertion"
+        },
+        {
+          "behavior": "No new server route, no new write path anywhere in the diff (strictly read-only)",
+          "disposition": "tested",
+          "evidence": "server/src/external/org/audit-log.ts and server/src/routes/org.ts are byte-for-byte unchanged from main; grep confirms no new app.post/put/patch in this diff"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 3,
+      "exit_code": 0,
+      "justification": "The k-way merge core is unit-tested in jsdom, but the actual cross-lead modal wiring (TanStack Query fan-out, real per-lead audit.jsonl fixtures including an unparseable line and an unknown event kind, the Activity button on OrgPage) needed a real browser \u2014 verified via this repo's isolated-stack Playwright harness (client/e2e/isolated-stack.mjs) against client/e2e/flows/105-org-audit-timeline.spec.ts. 3/3 passed, including a deterministic \"Last night\" assertion (fixture timestamps pinned relative to the computed window, rewritten after external review flagged the original either/or assertion as vacuous)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-06-org-audit-timeline",
+    "commit": "f8e28f27f417fc81da0df9084dc8d91740ee3118",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

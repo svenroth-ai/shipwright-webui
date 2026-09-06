@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-org-audit-timeline",
+  "date": "2026-09-06",
+  "section": "Iterate — feature: cross-lead audit timeline",
+  "title": "Client-side stateless merge for the cross-lead audit timeline",
+  "context": "PO cannot see what one or more leads did overnight without opening a per-lead raw-JSON audit modal for each. The per-lead route's 'before' cursor is a physical position count into that lead's own newest-first stream, not a timestamp, so a naive shared offset across merged leads drops or repeats entries.",
+  "decision": "New 'Activity' view merges each selected lead's freshly-fetched top-windowSize entries (unmodified GET /api/org/leads/:leadId/audit, always before:0) client-side, sorted by numeric epoch ts, capped at MAX_LIMIT=200. No cursor is persisted between rounds; Load-more grows windowSize (200 immediately when a time filter is active). No server change.",
+  "consequences": "New client files only: auditTimelineMerge.ts, auditKindLabels.ts, AuditTimelineModal/FilterBar/RowList.tsx. No new read/write surface. Self-healing under concurrent daemon writes by construction (no stale cursor to desync). Bounded re-read cost: up to 200 lines per lead re-fetched on every Load-more click, accepted as proportionate at single-digit-lead scale.",
+  "rationale": "Two rounds of external LLM review (architecture then iterate mode, both legs each round) drove this: round 1 rejected a server-side merged endpoint with an opaque cursor as disproportionate; round 2 found that even a client-side per-lead consumed-count cursor produces gaps and repeats once the underlying file grows between rounds -- exactly the PO's overnight-daemon-write scenario. A stateless design has no cursor to desync.",
+  "rejected": "(1) Server-side merged endpoint owning one opaque composite cursor -- permanent API/wire contract for one browser-only consumer, rejected round 1. (2) Client-side merge with a persisted per-lead consumed-count cursor -- provably wrong under concurrent appends (position drift), rejected round 2.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

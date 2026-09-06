@@ -1,0 +1,9 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "verdicts": {"openai": "revise", "glm": "revise"},
+  "note": "Both legs recommended dropping the new server-side merged endpoint and opaque composite cursor in favor of a client-side k-way merge over the existing, unmodified per-lead route. Adopted. Full text captured in the iterate spec's External / Architecture Review section."
+}
