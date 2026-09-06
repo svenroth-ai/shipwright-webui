@@ -173,6 +173,10 @@
   overflow-x: visible;
   max-width: none;
 }
+.smart-viewer-markdown .markdown-body table th,
+.smart-viewer-markdown .markdown-body table td {
+  vertical-align: top;
+}
 .smart-viewer-markdown .markdown-body pre {
   overflow-x: visible;
   max-width: none;

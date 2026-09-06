@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-table-cell-top-align",
+  "date": "2026-09-06",
+  "section": "Iterate — change: table cell top-align",
+  "title": "Top-align SmartViewer table cells, scoped only to that pane",
+  "context": "Cells vertically centered by default; a row mixing short and wrapped multi-line cells looked broken.",
+  "decision": "Add vertical-align: top scoped to .smart-viewer-markdown .markdown-body table th/td, mirroring the sibling scoped rule already in index.css.",
+  "consequences": "SmartViewer cells top-align; the ~5 other DocumentMarkdown consumers (chat bubbles, OrgDocViewerModal, ComplianceDetailModal, MissionArtifactBody, MissionSlice2Details) are unaffected.",
+  "rationale": "First draft touched the shared base rule and would have silently re-flowed those 5 other consumers; spec-reviewer caught it and the existing scoped-rule pattern was the fix.",
+  "rejected": "Unscoped base-rule edit (rejected: leaks into unrelated consumers, no visual re-verification there).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
