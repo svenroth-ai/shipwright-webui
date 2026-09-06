@@ -1,0 +1,1 @@
+Org page gains an "Activity" view merging every lead's audit log into one time-sorted, filterable timeline (by lead, event type, and time window — a "Last night" preset or a manual date/time range) — no more opening a raw-JSON modal per lead

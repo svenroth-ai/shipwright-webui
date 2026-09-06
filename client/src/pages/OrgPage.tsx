@@ -10,11 +10,14 @@
  * entries filter on, so a direct `/org` visit and the nav entry agree.
  */
 
+import { useState } from "react";
+
 import { PageHead } from "../components/common/PageHead";
 import { OrgChart } from "../components/org/OrgChart";
 import { OrgSharedDocs } from "../components/org/OrgSharedDocs";
 import { LeadCard } from "../components/org/LeadCard";
 import { OrgThreadList } from "../components/org/OrgThread";
+import { AuditTimelineModal } from "../components/org/AuditTimelineModal";
 import { useOrgChartPresence } from "../hooks/useOrgChartPresence";
 import { useOrgChart } from "../hooks/useOrgChart";
 import { useOrgRoster } from "../hooks/useOrgRoster";
@@ -22,10 +25,34 @@ import { useOrgThreads } from "../hooks/useOrgThreads";
 
 export default function OrgPage() {
   const presence = useOrgChartPresence();
+  const [activityOpen, setActivityOpen] = useState(false);
+  const { data: roster } = useOrgRoster();
 
   return (
     <div className="org-page flex h-full flex-col bg-[var(--color-bg)]" data-testid="org-page">
-      <PageHead title="Org" testId="org-header" />
+      <PageHead
+        title="Org"
+        testId="org-header"
+        actions={
+          presence === "present" && roster && roster.leads.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setActivityOpen(true)}
+              data-testid="org-activity-button"
+              className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
+            >
+              Activity
+            </button>
+          ) : undefined
+        }
+      />
+      {roster && (
+        <AuditTimelineModal
+          open={activityOpen}
+          onOpenChange={setActivityOpen}
+          leads={roster.leads.map((l) => ({ leadId: l.leadId, name: l.name }))}
+        />
+      )}
       <div className="flex-1 overflow-y-auto">
         {presence === "loading" && (
           <div className="page-container w-full" style={{ padding: "32px 0" }}>

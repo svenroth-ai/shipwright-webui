@@ -1,0 +1,393 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-org-audit-timeline",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:33:17.596774+00:00",
+      "disposition": "7-point self-review completed: verified implementation matches v3 (stateless, drift-safe) design; verified all 19 AuditKind labels present and tested; verified no server change made; verified circular type import removed; typecheck+lint+full client suite green (3836 tests).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The no-gap/no-repeat proof holds only for a static log, but the entire premise of this card is that the daemon writes the log overnight — and possibly while the PO is browsing (beats are the writer). `before` is a positional count anchored to the newest end of the stream, so every append shifts all positions. If entries are appended between rounds, a next-round fetch with `before = consumedCount` returns a shifted window: entries already emitted reappear (the held-back bookkeeping counts physical positions that no longer line up), and entries are skipped. Worse, TanStack Query will happily serve the cached response for a previously-seen `(leadId, before, limit)` key while a fresh call for a new key reads the post-append file — mixing two inconsistent snapshots of the same stream. The test ledger has no \"log grew between rounds\" probe; every listed merge test uses static fixtures, so the card's central correctness claim is proven only in a state that won't hold in its primary use case.",
+          "suggestion": "Decide on and test a drift policy. Cheapest correct options: (a) per-lead dedupe key (leadId + ts + raw hash) applied to the merged output so an append can never produce a visible repeat, plus an explicit \"log changed underneath you — list may be offset\" behavior for gaps; or (b) detect drift (a round's fetch for a lead returns a newest entry newer than anything seen at open) and reset that lead's cursor state from `before=0`. Add a merge-core test where the backing array grows mid-pagination. Note that the external reviewers' \"grow the window and refetch\" framing was stateless — statelessness is precisely what made it trivially correct under appends; the revised design reintroduced per-round state, which is where this hazard lives.  2. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The cursor-advance rule is undefined for the case that matters most under filters: a lead whose fetched batch contains zero filter-matching entries. \"Walk from the front and find the first entry that matches but was not emitted\" has no such position. Additionally, the spec is internally contradictory about how the cursor advances: \"one `fetchLeadAuditLog` call per candidate lead\" per round, but also \"by issuing one more `before`-cursor call to reach that depth.\" Since `before` is literally a consumed-count, no extra fetch is ever needed — the client can pass the exact count directly. As written, an implementer could reasonably add N extra network calls per round.",
+          "suggestion": "State explicitly: (a) zero-match batch ⇒ advance past the entire batch, `hasMore` carried by the route's own `nextCursor`; (b) cursor advance is pure arithmetic on counts already known client-side — never an extra fetch. Remove the \"one more call\" phrasing.  3. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "\"Lexicographic compare is valid\" for ISO-8601 is only true under uniform formatting. Mixed precision breaks it: `\"…T18:00:00.5Z\"` sorts lexicographically before `\"…T18:00:00Z\"` (`'.' < 'Z'`) when it is 500ms later. The writer fills `ts` when absent but nothing shown guarantees uniform millisecond precision, and any hand-written or older entry can differ. Similarly, \"unparseable entry inherits nearest valid neighboring timestamp\" has no defined fallback when a batch is entirely unparseable (no neighbor exists) — the comparator gets `undefined`.",
+          "suggestion": "Parse to `Date` (or epoch ms) and compare numerically; define the no-timestamp fallback explicitly (e.g., sorts after all timestamped entries, preserving fetch order). Drop the lexicographic claim — it's one line of `Date.parse` and removes a whole class of silent misordering in the card whose correctness is the point.  4. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "\"Last night\" is the PO's headline question, but under the fetch-K-per-lead-per-round design it can be practically unreachable: if leads have been active since 06:00, every round fetches the newest K per lead, all outside the window, all filtered out. With K = 50 and a noisy morning, the PO clicks \"Load more\" dozens of times before a single overnight row appears. The spec acknowledges short rounds but frames this as \"a few more clicks,\" which understates it.",
+          "suggestion": "When a time-window filter is active, fetch at the route's `MAX_LIMIT` (200) per lead per round instead of the display page size, and state the expected worst case. This needs no server change and directly reuses the existing clamp. Consider surfacing \"fetched through HH:MM, keep loading\" in the UI so the user knows the click is making progress toward the window.  5. Category: dependency — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AUDIT_KIND_LABELS` hand-duplicates the 19-value `AuditKind` union from the sibling leadwright repo. The graceful unknown-kind fallback prevents breakage, but the map will silently rot as kind #20 lands — labels fine, but the \"complete vocabulary\" claim in this spec becomes false without any signal.",
+          "suggestion": "If the client can import the type from leadwright, type the record as `Record<AuditKind, string>` so a new kind is a compile error; otherwise add a sync test that asserts the label map's keys against the union (or a pinned copy of it) so drift is loud.  6. Category: security — Severity: low (no action required, confirming)",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "No new surface: the merge fans out through the existing per-lead route, so per-lead authorization is inherited verbatim; rendering is React-escaped raw text/JSON exactly like the existing modal; no new write path. The only thing worth confirming is that the lead multi-select's option list comes from the same authorized org-directory source the existing UI uses, not a broader enumeration.",
+          "suggestion": "None beyond confirming the lead list source; this is already implied by the design.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The proposed cursor advancement cannot be implemented solely by chaining the route’s returned `nextCursor`. When a batch has emitted or filtered entries before a held-back entry, the desired next position is inside that batch; the existing route only returns the cursor after the entire batch.",
+          "suggestion": "Store each lead cursor as the numeric consumed count the route already defines, and advance it by the exact resolved-prefix length. Alternatively, add an extra prefix-sized fetch to obtain that cursor, but that conflicts with the stated one-fetch-per-lead-per-round design and adds needless traffic.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The design calls sorting unparseable audit lines by an inherited neighboring timestamp an approximation, yet promises a correctly sorted cross-lead timeline. A corrupt line has no reliably known position relative to entries from other leads, so it can be shown in the wrong time neighborhood.",
+          "suggestion": "Define an explicit degraded rendering rule: extract `ts` defensively if possible; otherwise place undated/corrupt entries in a clearly labeled “Unknown time” group, with deterministic ordering. Do not present approximated placement as chronological ordering.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "“Last night” is ambiguous before 06:00 local time: `yesterday 18:00 → today 06:00` includes future time. DST transitions can also produce ambiguous or nonexistent local times.",
+          "suggestion": "Define it as the most recently completed 18:00–06:00 local interval, construct boundaries from local calendar dates, and add tests for pre-06:00 use and DST boundaries.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Filter resets and changing lead selections can race with in-flight `useQueries` results. Without a reset generation/query identity guard, an older round can update cursor/output state after a newer filter state has begun.",
+          "suggestion": "Include a reset generation in the merge-round state/query keys or discard completions whose generation no longer matches; test rapid filter changes while requests are unresolved.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Equal timestamps have no specified deterministic tie-breaker. This can make rows reorder between renders or pages and makes the no-repeat behavior harder to reason about.",
+          "suggestion": "Sort by timestamp, then stable lead ID, then the entry’s physical per-lead offset.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The modal turns per-lead audit access into bulk browser retrieval. It is safe only if the existing per-lead endpoint enforces authorization for every requested lead rather than relying on the prior UI’s narrower usage.",
+          "suggestion": "Explicitly verify and retain per-lead organization/role authorization on the existing endpoint; add a negative integration test for a lead outside the caller’s permitted scope.  The client-side approach is proportionate and avoids an unnecessary server API, but the mid-batch cursor mechanism must be made concrete before implementation. With deterministic degraded timestamp behavior and reset-race handling, this is a sound change.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter+codex",
+      "completed_at": "2026-09-06T15:34:22.748661+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: edge-case — Severity: high**\n**Finding:** The no-gap/no-repeat proof holds only for a *static* log, but the entire premise of this card is that the daemon writes the log overnight — and possibly *while the PO is browsing* (beats are the writer). `before` is a **positional count anchored to the newest end of the stream**, so every append shifts all positions. If entries are appended between rounds, a next-round fetch with `before = consumedCount` returns a shifted window: entries already emitted reappear (the held-back bookkeeping counts physical positions that no longer line up), and entries are skipped. Worse, TanStack Query will happily serve the *cached* response for a previously-seen `(leadId, before, limit)` key while a *fresh* call for a new key reads the post-append file — mixing two inconsistent snapshots of the same stream. The test ledger has no \"log grew between rounds\" probe; every listed merge test uses static fixtures, so the card's central correctness claim is proven only in a state that won't hold in its primary use case.\n**Suggestion:** Decide on and test a drift policy. Cheapest correct options: (a) per-lead dedupe key (leadId + ts + raw hash) applied to the merged output so an append can never produce a visible repeat, plus an explicit \"log changed underneath you — list may be offset\" behavior for gaps; or (b) detect drift (a round's fetch for a lead returns a newest entry newer than anything seen at open) and reset that lead's cursor state from `before=0`. Add a merge-core test where the backing array grows mid-pagination. Note that the external reviewers' \"grow the window and refetch\" framing was *stateless* — statelessness is precisely what made it trivially correct under appends; the revised design reintroduced per-round state, which is where this hazard lives.\n\n**2. Category: edge-case — Severity: medium**\n**Finding:** The cursor-advance rule is undefined for the case that matters most under filters: a […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The proposed cursor advancement cannot be implemented solely by chaining the route’s returned `nextCursor`. When a batch has emitted or filtered entries before a held-back entry, the desired next position is inside that batch; the existing route only returns the cursor after the entire batch.  \n   **Suggestion:** Store each lead cursor as the numeric consumed count the route already defines, and advance it by the exact resolved-prefix length. Alternatively, add an extra prefix-sized fetch to obtain that cursor, but that conflicts with the stated one-fetch-per-lead-per-round design and adds needless traffic.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The design calls sorting unparseable audit lines by an inherited neighboring timestamp an approximation, yet promises a correctly sorted cross-lead timeline. A corrupt line has no reliably known position relative to entries from other leads, so it can be shown in the wrong time neighborhood.  \n   **Suggestion:** Define an explicit degraded rendering rule: extract `ts` defensively if possible; otherwise place undated/corrupt entries in a clearly labeled “Unknown time” group, with deterministic ordering. Do not present approximated placement as chronological ordering.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** “Last night” is ambiguous before 06:00 local time: `yesterday 18:00 → today 06:00` includes future time. DST transitions can also produce ambiguous or nonexistent local times.  \n   **Suggestion:** Define it as the most recently completed 18:00–06:00 local interval, construct boundaries from local calendar dates, and add tests for pre-06:00 use and DST boundaries.\n\n4. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** Filter resets and changing lead selections can race with in-flight `useQueries` results. Without a reset generation/query identity guard, an older round c […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/org/AuditTimelineFilterBar.tsx",
+          "line": null,
+          "finding": "Clear time filter did not reset the local sinceInput/untilInput, so re-clicking Apply immediately reinstated the just-cleared range.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/org/AuditTimelineFilterBar.tsx",
+          "line": null,
+          "finding": "Last night button stayed highlighted after a manual range was applied, since highlighting was driven by hasTimeWindow alone.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/org/AuditTimelineFilterBar.tsx",
+          "line": null,
+          "finding": "applyRange did not guard since <= until; a reversed manual range silently produced zero rows.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "client/src/components/org/AuditTimelineModal.tsx",
+          "line": null,
+          "finding": "useQueries had no placeholderData, so Load More / a windowSize change wiped already-rendered rows for a beat instead of appending below them.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/auditTimelineMerge.ts",
+          "line": null,
+          "finding": "compareRowsNewestFirst's doc comment described a sort mechanism (ascending compare of -tsMs) that does not match the actual code (NEGATIVE_INFINITY fallback, descending bKey - aKey compare).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/auditTimelineMerge.ts",
+          "line": null,
+          "finding": "DEFAULT_WINDOW/MAX_WINDOW mirror the server's DEFAULT_LIMIT/MAX_LIMIT with no comment cross-referencing the source of truth.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/org/AuditTimelineRowList.tsx",
+          "line": null,
+          "finding": "The raw/parsed-JSON <pre> rendering block is near-duplicated with AuditLogModal.tsx's EntryRow; small enough to leave as-is unless a third consumer appears.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T16:00:44.533423+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/org/AuditTimelineModal.tsx",
+          "line": null,
+          "finding": "Claim under doubt: the placeholderData: (prev) => prev fix for Load-More flicker introduces no new staleness/race issue — hasMoreToLoad/isAtWindowCeiling were computed from perLeadPages, which during an in-flight windowSize-driven fetch holds the OLD (smaller) placeholder page evaluated against the NEW target windowSize, so both silently reported false — the Load More control vanished with zero user feedback until the real page arrived.",
+          "suggestion": "Gate the Load-more/ceiling UI on a fetching flag (mirroring AuditLogModal.tsx's isFetching pattern) so it shows a loading state instead of vanishing.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": ".shipwright/planning/iterate/iterate-2026-09-06-org-audit-timeline.md",
+          "line": null,
+          "finding": "Claim under doubt: the iterate doc's stated race-safety mechanism matches the implementation — The doc claimed leadIds/eventTypes/since/until were part of the useQueries queryKey; the actual key is [leadId, windowSize] only, with filters applied by re-deriving the merge from already-cached perLeadPages on every render. The outcome (race-free) was correct but the written mechanism was wrong, which could mislead a future editor.",
+          "suggestion": "Correct the doc to describe the actual mechanism.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/lib/auditTimelineMerge.ts",
+          "line": null,
+          "finding": "Claim under doubt: the client MAX_WINDOW/DEFAULT_WINDOW hand-mirror of the server's MAX_LIMIT/DEFAULT_LIMIT is a settled, low-risk manual mirror — There is no drift guard or test tying these two constant pairs together, unlike the AuditKind mirror which has one; a future server-side bump would silently stale the client's ceiling messaging even though the server's own clamp prevents an over-large request.",
+          "suggestion": "Add a unit test asserting MAX_WINDOW/DEFAULT_WINDOW equal the server's MAX_LIMIT/DEFAULT_LIMIT.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T16:10:43.520680+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/105-org-audit-timeline.spec.ts:100-103 (\"Last night preset narrows to the overnight window\")",
+          "line": null,
+          "finding": "The assertion `expect(empty.or(rows)).toBeVisible()` is vacuous — one of the empty-state or the rows container is visible in essentially every non-crashing state, including if the \"Last night\" button does nothing at all. The test cannot distinguish a working filter from a no-op (exactly the failure mode it claims to rule out), and the spec's ledger lists it as \"tested\".",
+          "suggestion": "Pin the fixture to a known relationship to \"now\" (e.g., compute entry timestamps relative to `new Date()` at write time, or inject a fixed clock) and assert a concrete row count/content after applying the preset.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/components/org/AuditTimelineModal.test.tsx:155-163 (\"changing a filter resets the window back to the default\")",
+          "line": null,
+          "finding": "The test never grows `windowSize` past 50 before toggling the lead filter, and the initial fetches already use `limit: 50`. A broken implementation that never resets (or never grows) the window on filter change passes this test identically — the \"reset\" behavior is not actually exercised.",
+          "suggestion": "First click \"Load more\" (or apply/clear a time window to force 200), assert `limit: 200`, then toggle a lead/kind filter and assert the fetch drops back to `limit: 50`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/org/AuditTimelineRowList.tsx:104 — `const key = \\`${row.leadId}|${row.entry.raw}\\",
+          "line": null,
+          "finding": "Row keys are `leadId + raw JSON`. Two physically distinct entries in one lead's log whose serialized lines are byte-identical (same `ts`, `kind`, `summary` — plausible for repeated `beat_no_band_justification` / liveness events) produce duplicate React keys: rendering warnings, and expanding one row opens both.",
+          "suggestion": "Include the row's physical `index` (already carried on `AuditTimelineRow`) in the key, e.g. `${leadId}|${index}|${raw}`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/auditTimelineMerge.ts:161-173 — `computeLastNightWindow` pre-06:00 branch",
+          "line": null,
+          "finding": "At, say, 03:00 the preset shows the previous completed night (day-before 18:00 → yesterday 06:00), excluding everything the daemon has written during the currently running night — precisely the \"what did the leads do overnight\" moment when a PO checks in early while the run is still finishing. The spec's test codifies this, so it's compliant, but it's a plausible real-world gap worth a deliberate re-read: `since = yesterday 18:00, until = now` (or today 06:00 as an open upper bound) serves the early-morning check better.",
+          "suggestion": "If the behavior is intentional, at minimum document it in the UI (e.g., \"Last night (completed 06:00–18:00 window)\"); otherwise clamp `untilMs` to `now` and use yesterday-18:00 as `since` when now < 06:00.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/org/AuditTimelineModal.test.tsx:138-150 (manual range test) and AuditTimelineFilterBar.tsx:57-62",
+          "line": null,
+          "finding": "Date.parse(\"2026-09-06T00:00\")` on a `datetime-local` value (no timezone) parses in the machine's local timezone, while the fixture timestamps are UTC. In any non-UTC dev/CI environment the range `[00:00, 23:59]` local may not contain `2026-09-06T10:00:00.000Z`, making this test flaky and, more importantly, making the feature's semantics timezone-dependent (arguably correct for a human-entered local range, but worth noting).",
+          "suggestion": "Keep local-time semantics in the filter (it's a human-facing range) but make the test timezone-independent by generating fixture timestamps inside the local day under test, or by pinning `TZ=UTC` for the test run.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/lib/auditTimelineMerge.ts:139-157 — `hasMoreToLoad` / `isAtWindowCeiling",
+          "line": null,
+          "finding": "Spec: `hasMore` = \"windowSize < 200 && fetched === windowSize OR windowSize === 200 (the hard ceiling — surfaced in the UI …rather than silently looking complete)\". The implementation only shows the ceiling notice when some lead's page is exactly saturated at 200. If `windowSize` is 200 but no lead returned exactly 200 entries, neither \"Load more\" nor the ceiling notice appears — mostly benign (all fetched data is shown), but it deviates from the letter of the spec's ceiling-surfacing rule.",
+          "suggestion": "Either relax `isAtWindowCeiling` to `windowSize >= MAX_WINDOW` whenever a time filter or filtering could hide older data, or amend the spec text to the implemented (narrower) rule.  No security findings: the change adds no server surface; every per-lead fetch goes through the existing gated route, and per-lead failures surface without crashing the view (verified by a real test). The merge core itself matches the spec (stateless re-fetch, numeric sort, no-timestamp fallback with deterministic tiebreak, window clamp, lockstep growth, filter-change reset), and the drift-guard test syncing `DEFAULT_WINDOW`/`MAX_WINDOW` against the server source is a nice touch.  Overall: solid, spec-faithful implementation; the two medium test-quality findings (vacuous \"Last night\" E2E assertion, un-exercised window-reset) should be fixed so the ledger's \"tested\" claims are actually true, but the production code itself is sound.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "client/src/components/org/AuditTimelineRowList.tsx",
+          "line": 62,
+          "finding": "When a filter yields zero matches in the initial 50-entry window, the component renders only “No activity” and never renders `Load more` or the 200-entry ceiling notice, even if `hasMore` is true. An older matching event is therefore unreachable, and the empty state is misleading.",
+          "suggestion": "Render loading, load-more, and ceiling controls independently of `rows.length > 0`; retain the ability to grow the window whenever a fetched lead filled its current window.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/org/AuditTimelineModal.tsx",
+          "line": 45,
+          "finding": "Empty `selectedLeads`/`selectedKinds` means “all” for fetching and merging, but the corresponding checkboxes render unchecked. Clicking a lead/event that appears unchecked changes the effective selection from all to only that item, rather than deselecting it from the default-all set. This violates the required multi-selects with “default all.”",
+          "suggestion": "Initialize selection state to all lead IDs/kinds, or represent “all” explicitly and render checked states accordingly; ensure toggling initially selected items removes only that item.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/105-org-audit-timeline.spec.ts",
+          "line": 103,
+          "finding": "The Last night assertion accepts either the empty state or the row container, so it passes both when the filter correctly narrows results and when it is a no-op that leaves all initial rows visible.",
+          "suggestion": "Use a deterministic clock/fixture window and assert the expected rows or empty count after applying the preset.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/components/org/AuditTimelineModal.test.tsx",
+          "line": 158,
+          "finding": "The “changing a filter resets the window” test never first grows the window and does not clear initial mock calls. Its `limit: 50` assertion is satisfied by the modal’s initial fetch, so it would pass if filter changes failed to reset `windowSize`.",
+          "suggestion": "First drive the modal to a larger window, clear mock calls, then change a filter and assert a new 50-entry request for the active lead set.  Ship-with-fixes: the merge core is sound, but filtered empty windows can hide reachable activity, and the default-all multi-select behavior is incorrect and misleading.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T16:22:08.979266+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] - Category: test\n- Severity: medium\n- File: client/e2e/flows/105-org-audit-timeline.spec.ts:100-103 (\"Last night preset narrows to the overnight window\")\n- Finding: The assertion `expect(empty.or(rows)).toBeVisible()` is vacuous — one of the empty-state or the rows container is visible in essentially every non-crashing state, including if the \"Last night\" button does nothing at all. The test cannot distinguish a working filter from a no-op (exactly the failure mode it claims to rule out), and the spec's ledger lists it as \"tested\".\n- Suggestion: Pin the fixture to a known relationship to \"now\" (e.g., compute entry timestamps relative to `new Date()` at write time, or inject a fixed clock) and assert a concrete row count/content after applying the preset.\n\n- Category: test\n- Severity: medium\n- File: client/src/components/org/AuditTimelineModal.test.tsx:155-163 (\"changing a filter resets the window back to the default\")\n- Finding: The test never grows `windowSize` past 50 before toggling the lead filter, and the initial fetches already use `limit: 50`. A broken implementation that never resets (or never grows) the window on filter change passes this test identically — the \"reset\" behavior is not actually exercised.\n- Suggestion: First click \"Load more\" (or apply/clear a time window to force 200), assert `limit: 200`, then toggle a lead/kind filter and assert the fetch drops back to `limit: 50`.\n\n- Category: edge-case\n- Severity: low\n- File: client/src/components/org/AuditTimelineRowList.tsx:104 — `const key = \\`${row.leadId}|${row.entry.raw}\\``\n- Finding: Row keys are `leadId + raw JSON`. Two physically distinct entries in one lead's log whose serialized lines are byte-identical (same `ts`, `kind`, `summary` — plausible for repeated `beat_no_band_justification` / liveness events) produce duplicate React keys: rendering warnings, and expanding one row opens both.\n- Suggestion: Include the row's physical `index` (already carried on `AuditTimelineRow`) in th […truncated]\n\n[openai] - Category: bug\n- Severity: high\n- File: `client/src/components/org/AuditTimelineRowList.tsx:62`\n- Finding: When a filter yields zero matches in the initial 50-entry window, the component renders only “No activity” and never renders `Load more` or the 200-entry ceiling notice, even if `hasMore` is true. An older matching event is therefore unreachable, and the empty state is misleading.\n- Suggestion: Render loading, load-more, and ceiling controls independently of `rows.length > 0`; retain the ability to grow the window whenever a fetched lead filled its current window.\n\n- Category: spec\n- Severity: medium\n- File: `client/src/components/org/AuditTimelineModal.tsx:45`\n- Finding: Empty `selectedLeads`/`selectedKinds` means “all” for fetching and merging, but the corresponding checkboxes render unchecked. Clicking a lead/event that appears unchecked changes the effective selection from all to only that item, rather than deselecting it from the default-all set. This violates the required multi-selects with “default all.”\n- Suggestion: Initialize selection state to all lead IDs/kinds, or represent “all” explicitly and render checked states accordingly; ensure toggling initially selected items removes only that item.\n\n- Category: test\n- Severity: medium\n- File: `client/e2e/flows/105-org-audit-timeline.spec.ts:103`\n- Finding: The Last night assertion accepts either the empty state or the row container, so it passes both when the filter correctly narrows results and when it is a no-op that leaves all initial rows visible.\n- Suggestion: Use a deterministic clock/fixture window and assert the expected rows or empty count after applying the preset.\n\n- Category: test\n- Severity: medium\n- File: `client/src/components/org/AuditTimelineModal.test.tsx:158`\n- Finding: The “changing a filter resets the window” test never first grows the window and does not clear initial mock calls. Its `limit: 50` assertion is satisfied by the modal’s initial fetch, so it would pass if f […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:52:48.655756+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:34:09.544427+00:00",
+      "disposition": "standalone iterate (not /shipwright-plan) — no internal opus-plan-reviewer agent in this lifecycle; two external review rounds (architecture + iterate mode, both legs each round) already provided that scrutiny",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
