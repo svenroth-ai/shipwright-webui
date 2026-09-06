@@ -1,0 +1,15 @@
+{
+  "$id": "https://github.com/svenroth-ai/leadwright/schemas/claim-record-lock-contract.json",
+  "title": "ClaimRecordLockContract",
+  "contractVersion": 1,
+  "description": "The FR-04.28 shared claim record's three lock fixings (model spec §5.4): the settings a writer MUST use, alongside the record shape in the sibling schemas/claim-record.schema.json, to hold a lock that leadwright's own two shared-file lock sites (sdk-sessions.json, decisions-proposed.md) will actually respect. GENERATED from lib/claim-contract.ts's CLAIM_RECORD_LOCK_CONTRACT by scripts/generate-claim-record-schema.ts — do not hand-edit.",
+  "lockPathSuffix": ".lock",
+  "lockPathDescription": "The lock marker is `<target>.lock`, formed by the `proper-lockfile` library ITSELF from the target file's CANONICAL (realpath-resolved) path — neither side of this contract ever sets `lockfilePath` to override that. A consumer that builds the marker path by string-appending \".lock\" to whatever path string it happens to hold, without first canonicalizing it (resolving symlinks), can compute a DIFFERENT lock marker than a peer holding the canonical path to the same file — the exact failure the realpath fixing below exists to prevent. Canonicalize the target path first (e.g. Node's `fs.realpath`/`fs.realpathSync`), THEN append lockPathSuffix, if you must compute the marker path yourself instead of letting your lock library do it.",
+  "staleMs": 10000,
+  "realpath": true,
+  "usageNotes": [
+    "Set your lock library's staleness threshold to staleMs (this contract's value, in milliseconds) for locks on this target file — a shorter or longer value than the peer's does not fail loudly, it lets one side steal a lock the other side still believes it holds.",
+    "Set realpath: true (or your library's equivalent canonical-path resolution) — otherwise a symlinked path and the canonical path to the same target are treated as two different lock targets, and two writers can hold what they each believe is an exclusive lock at once.",
+    "Create an empty file at the target path BEFORE acquiring the lock, if it does not already exist. realpath: true resolves the target's canonical path via the equivalent of fs.realpath, which throws ENOENT when the target is missing — acquiring the lock on a not-yet-created file fails outright rather than creating it for you. (leadwright's own lib/file-locks.ts does this via its ensureFileExists helper, called immediately before every lock acquisition.)"
+  ]
+}

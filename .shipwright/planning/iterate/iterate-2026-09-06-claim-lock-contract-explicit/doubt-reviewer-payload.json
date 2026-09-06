@@ -1,0 +1,29 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "concurrency + cross-repo lock contract",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "reversibility",
+      "claim_under_doubt": "adding a new runtime-required vendored JSON under server/src/vendor, wired only through copy-assets.mjs, is safely covered by the existing build/publish pipeline",
+      "disposition": "accepted-and-partially-fixed",
+      "fix": "Extended server/src/test/build-assets.test.ts with two new assertions (dist/vendor/leadwright/claim-record-lock-contract.json exists post-build; its content is faithful to src/vendor/leadwright/) plus a beforeAll rmSync of dist/vendor so the test proves the copy step re-creates it, and corrected the file's stale docstring that only mentioned default-actions.json.",
+      "deferred_with_reason": "The reviewer's other two sub-fixes — a publish-npm.yml pre-publish check for dist/vendor, and making bootstrapper/build-package.mjs's ensureBuilt re-run the build instead of trusting mere dist/ existence — touch the npm publish workflow and the bootstrapper build script, both unrelated systems with their own risk surface outside this iterate's scope (a lock-contract-explicitness change). The build-assets.test.ts fix already closes the loop for this repo's own `npm run build`, which is what every CI/publish path actually invokes; the residual gap (a stale local dist/ being reused by a manual bootstrapper run) is a pre-existing property of build-package.mjs's ensureBuilt, not something this change introduces or worsens. Recommend a follow-up iterate scoped to hardening the publish pipeline's asset-completeness checks generally, rather than folding it into this one."
+    },
+    {
+      "severity": "medium",
+      "lens": "concurrency & ordering",
+      "claim_under_doubt": "the deferred-signal pattern in claim-record-lock-symlink.test.ts eliminates timing-dependence, not just narrows it",
+      "disposition": "accepted-and-fixed",
+      "fix": "Widened the alias attempt's retry budget from {retries:8, minTimeout:20, maxTimeout:100} (~3x margin over the 200ms hold) to {retries:12, minTimeout:20, maxTimeout:150} (well over 1s cumulative budget), and added a comment naming the still-present (but now much wider-margin) retry-budget-vs-hold-duration dependence as inherent to proper-lockfile's poll-based retries rather than a bug in the deferred-signal fix."
+    },
+    {
+      "severity": "low",
+      "lens": "hidden coupling & blast radius",
+      "claim_under_doubt": "this change fully localizes the FR-04.28 lock-contract concern — a future edit can't drift the two call sites from each other",
+      "disposition": "accepted-and-fixed",
+      "fix": "Added a paragraph to claim-record-lock.ts's header comment naming core/triage-lock.ts and external/org/beat-register-release-core.ts as deliberately separate, un-migrated lock call sites, with the specific reason each must stay separate (lockfilePath override; a different, intentionally 30x-longer stale window)."
+    }
+  ]
+}

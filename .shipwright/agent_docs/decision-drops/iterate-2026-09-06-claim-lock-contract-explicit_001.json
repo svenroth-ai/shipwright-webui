@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-claim-lock-contract-explicit",
+  "date": "2026-09-06",
+  "section": "FR-04.28",
+  "title": "State the FR-04.28 lock contract explicitly at both call sites",
+  "context": "leadwright published a machine-readable lock contract (staleMs:10000, realpath:true) for sdk-sessions.json/decisions-proposed.md. decisions-lock.ts already set these explicitly; index.ts's sdk-sessions.json lock relied on proper-lockfile's own defaults happening to equal the contract, an accidental agreement a library version bump could silently break.",
+  "decision": "Vendor the contract JSON at server/src/vendor/leadwright/, add core/claim-record-lock.ts exporting the parsed constant plus claimRecordLockOptions()/lockClaimRecordFile() helpers, and route both call sites through it. claimRecordLockOptions structurally drops any lockfilePath a caller passes.",
+  "consequences": "Both lock sites now agree by contract, not by coincidence, and a vendored-copy drift is caught by a pinned test. index.ts's shared lockPath also now covers projects.json/settings.json (harmless: contract values equal proper-lockfile's defaults). New read surface: the vendored JSON, copied into dist/ by copy-assets.mjs and asserted there by build-assets.test.ts.",
+  "rationale": "Vendoring (a human re-copies on a leadwright contractVersion bump) avoids a live cross-repo build/runtime dependency, which the task explicitly ruled out. A pinned contractVersion test forces deliberate review of a bump instead of silent drift.",
+  "rejected": "Reading the leadwright checkout live at build or test time — rejected: creates a cross-repo dependency neither side can keep green, and this repo cannot assume a sibling leadwright checkout exists.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/iterate/iterate-2026-09-06-claim-lock-contract-explicit-brief.md"
+}

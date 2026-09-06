@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Both lock call sites (index.ts sdk-sessions.json, decisions-lock.ts decisions-proposed.md) now state stale/realpath explicitly from a shared, vendored-contract-backed constant; the contract is vendored (not read live from leadwright); tests assert both call sites against the vendored copy; the .lock marker derivation and realpath:true are proven with a real FILE symlink (gated, self-explaining skip) rather than a directory junction; no lock TIMING/retry-policy change, no new dependency, no cross-repo build dependency."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "n/a",
+      "note": "No new system boundary (API route, external call) added — a shared internal helper module plus tests. The vendored contract read uses readFileSync at module load; if missing it throws at import time, same failure shape as this codebase's existing profile-loader.ts JSON reads."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input involved. `claimRecordLockOptions` now structurally drops any `lockfilePath` a caller might pass, closing a footgun the classify_complexity `touches_auth` risk flag flagged for mandatory review."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Tests assert observable behavior (options actually passed to proper-lockfile.lock via a forwarding vi.mock, real interleaving order via a genuine FILE symlink) rather than internal state; each new test file has both a positive and a negative/sanity case."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "n/a",
+      "note": "No query, list endpoint, or hot path touched — a one-time lock-options object construction."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New module lives under server/src/core/ (existing convention); vendored JSON under server/src/vendor/leadwright/ (kept inside rootDir so the JSON asset is copyable by the existing copy-assets.mjs pattern); every new/changed file stays under 300 lines (largest is 146 LOC)."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Producer: leadwright's lib/claim-contract.ts (generates schemas/claim-record-lock-contract.json). Consumer: this repo's core/claim-record-lock.ts (vendored copy, read via fs.readFileSync). Round-trip probe: claim-record-lock.test.ts reads the vendored JSON independently from disk and asserts it equals what the runtime constant exposes — proves the vendored-file-to-constant path round-trips correctly. Cross-repo liveness is deliberately NOT probed (out of scope per the iterate instructions — vendoring is a one-way, human-refreshed copy, not a live boundary)."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --files over all 4 touched/added test files: no findings. The gated realpath test's it.skip fallback follows the existing write-symlink-guard.test.ts shape (bare ternary, not a chained .bind() call) specifically because the probe treats a chained-call skip as an unconditional declaration requiring a @quarantine block; each test's own title names the skip condition instead."
+    }
+  ]
+}
