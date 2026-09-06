@@ -38,6 +38,8 @@ import {
   type LaunchBranchResult,
 } from "./_helpers.js";
 import { checkClaimHolderGate } from "./claim-holder-gate.js";
+import { commandsCarryPermissionPerimeter } from "./claim-permission-perimeter-assert.js";
+import { checkMixedLaunchIntents } from "./mixed-intents-guard.js";
 
 export interface LaunchRouterDeps {
   store: SdkSessionsStore;
@@ -105,6 +107,23 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
     if (!claimGate.allowed) {
       return c.json(claimGate.error, 409);
     }
+    // FR-04.22 (iterate-2026-09-06-claim-launch-permission-perimeter) —
+    // true only for the leadwright stage-2 executor (the ONE caller that
+    // ever proves it holds the CURRENT claim). Threaded into BOTH branches
+    // a claim-only `{ claimToken }` launch body can actually reach: the
+    // action-substitution branch (leadwright always sets `actionId` at
+    // task creation — a required field on its side — and parse-body.ts's
+    // once-set-always-used contract resolves it from the persisted task
+    // even though the launch body carries no `actionId` itself) and the
+    // legacy fallback (a task launched before ever having an actionId set).
+    // phaseTaskRef/campaignSlug/campaignStep/masterRun are NEVER
+    // once-set-always-used (parse-body.ts: "Launch-body only (never
+    // persisted)"), so those branches structurally cannot fire for a
+    // `{ claimToken }`-only body and are left untouched. Every human/manual
+    // launch takes `claimGate.claimAuthorized === false` here, so its
+    // command string is unchanged byte-for-byte. See
+    // `./claim-executor-permissions.ts` for what gets armed and why.
+    const claimAuthorized = claimGate.claimAuthorized;
 
     // Parse + apply once-set-always-used (v0.4.1 fallback contract).
     const parseResult = parseLaunchBody(body, task);
@@ -113,61 +132,13 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
     }
     const parsed = parseResult;
 
-    // FR-01.34 — campaign autonomous launch is its own intent. Reject an
-    // EXPLICIT-body mix with actionId / phaseTaskRef (mirrors the existing
-    // phaseTaskRef+actionId rule). Checked on the raw body so a task's
-    // once-set-always-used persisted actionId never spuriously trips it.
-    if (
-      typeof body.campaignSlug === "string" &&
-      body.campaignSlug.trim().length > 0 &&
-      (body.actionId !== undefined || body.phaseTaskRef !== undefined)
-    ) {
-      return c.json(
-        {
-          error: "mixed_launch_intents",
-          detail: "campaignSlug is mutually exclusive with actionId / phaseTaskRef",
-        },
-        400,
-      );
-    }
-
-    // FR-01.36 — a single-sub-iterate launch is its own intent too. Reject a
-    // mix with actionId / phaseTaskRef / campaignSlug. Presence is the parsed
-    // (well-formed) campaignStep so a malformed body never trips it.
-    if (
-      parsed.campaignStep &&
-      (body.actionId !== undefined ||
-        body.phaseTaskRef !== undefined ||
-        (typeof body.campaignSlug === "string" && body.campaignSlug.trim().length > 0))
-    ) {
-      return c.json(
-        {
-          error: "mixed_launch_intents",
-          detail: "campaignStep is mutually exclusive with actionId / phaseTaskRef / campaignSlug",
-        },
-        400,
-      );
-    }
-
-    // Campaign webui-pipeline-convergence W2 — a single-session master launch is
-    // its own intent. Reject a mix with any other explicit intent. Checked on
-    // the raw body (`parsed.masterRun` is derived from `body.masterRun`, which is
-    // never persisted) so a once-set-always-used field can't spuriously trip it.
-    if (
-      Boolean(body.masterRun) &&
-      (body.actionId !== undefined ||
-        body.phaseTaskRef !== undefined ||
-        (typeof body.campaignSlug === "string" && body.campaignSlug.trim().length > 0) ||
-        body.campaignStep !== undefined)
-    ) {
-      return c.json(
-        {
-          error: "mixed_launch_intents",
-          detail:
-            "masterRun is mutually exclusive with actionId / phaseTaskRef / campaignSlug / campaignStep",
-        },
-        400,
-      );
+    // FR-01.34 / FR-01.36 / webui-pipeline-convergence W2 — campaignSlug,
+    // campaignStep and masterRun are each their own launch intent, mutually
+    // exclusive with actionId / phaseTaskRef / each other. See
+    // ./mixed-intents-guard.ts.
+    const mixedIntents = checkMixedLaunchIntents(body, parsed);
+    if (mixedIntents) {
+      return c.json(mixedIntents.error, mixedIntents.status);
     }
 
     // iterate-2026-05-18-fix-resume-description — a Resume click on a
@@ -237,6 +208,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         parsed,
         effectivelyFreshStart,
         getProjectById,
+        claimAuthorized,
       });
     }
 
@@ -255,7 +227,31 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         task,
         parsed,
         jsonlObserved,
+        claimAuthorized,
       }));
+    }
+
+    // FR-04.22 Stage-3 doubt review — a per-branch opt-in (only
+    // action-substitution-branch.ts and legacy-fallback-branch.ts take
+    // `claimAuthorized`) rests on an assumption about which body shapes
+    // leadwright sends today; it is not a code-enforced invariant against a
+    // FUTURE body that combines a valid `claimToken` with `phaseTaskRef` /
+    // `campaignSlug` / `campaignStep` / `masterRun` and reaches one of the
+    // four branches that never learned about claims. This centralized
+    // assertion is the actual enforcement: no matter which branch produced
+    // `commands`, a claim-authorized launch must carry the permission
+    // perimeter on every shell form, or the request is refused — never
+    // silently downgraded to an unrestricted command that looks armed
+    // because the caller held a claim.
+    if (claimAuthorized && !commandsCarryPermissionPerimeter(commands)) {
+      return c.json(
+        {
+          error: "claim_launch_permission_perimeter_missing",
+          detail:
+            "claim-authorized launch resolved to a branch that did not arm the permission perimeter",
+        },
+        409,
+      );
     }
 
     if (parsed.dryRun) {

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-claim-launch-permission-perimeter",
+  "date": "2026-09-06",
+  "section": "Iterate — change: claim-authorized launch permission perimeter",
+  "title": "Claim-authorized launch gets an explicit permission perimeter",
+  "context": "leadwright's stage-2 executor spawns a detached, unattended process with full shell/credential access and no permission restriction whenever it holds a valid task claim.",
+  "decision": "Arm --tools <allow-list> --permission-mode dontAsk on a claim-authorized launch only, via a single config module + a centralized post-dispatch 409 backstop; manual launches unchanged.",
+  "consequences": "Executor keeps Bash/git/npm ability but cannot use unlisted tools without an unanswerable prompt. Does NOT close OS-level containment (nested claude via Bash is invisible to this perimeter).",
+  "rationale": "checkClaimHolderGate's own claimAuthorized boolean is the single source of truth; a centralized backstop closes the gap where per-branch opt-in wiring reaches only 2 of 6 launch branches.",
+  "rejected": "Allowed-tools alone (proven not to block Bash); --restricted (strips needed plugins/settings); rendered-output-only anchor uniqueness (defeatable by a coincidental caller-supplied match).",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-06-claim-launch-permission-perimeter.md"
+}

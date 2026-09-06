@@ -139,6 +139,35 @@ describe("POST /launch — claim holder gate (FR-04.22/V5)", () => {
     expect(launch.status).toBe(200);
   });
 
+  it("[FR-04.22] a claim-authorized launch's command carries the permission perimeter; an ordinary launch on the same task before any claim does not", async () => {
+    const before = await app.request(`/api/external/tasks/${taskId}/launch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dryRun: true }),
+    });
+    expect(before.status).toBe(200);
+    const beforeBody = await before.json() as { commands: { posix: string } };
+    expect(beforeBody.commands.posix).not.toContain("--tools");
+
+    daemonStore.patch(taskId, {
+      claimToken: "tok-daemon",
+      claimedBy: "lead-7",
+      claimedAt: new Date().toISOString(),
+    });
+    await daemonStore.persist();
+
+    const launch = await app.request(`/api/external/tasks/${taskId}/launch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ claimToken: "tok-daemon" }),
+    });
+    expect(launch.status).toBe(200);
+    const launchBody = await launch.json() as { commands: { posix: string; cmd: string } };
+    expect(launchBody.commands.posix).toMatch(/--tools\s+'Bash,Read,Write,Edit,Glob,Grep'/);
+    expect(launchBody.commands.posix).toMatch(/--permission-mode\s+'dontAsk'/);
+    expect(launchBody.commands.cmd).toMatch(/--tools\s+"Bash,Read,Write,Edit,Glob,Grep"/);
+  });
+
   it("[AC b] a launch bearing a foreign or absent token is refused", async () => {
     daemonStore.patch(taskId, {
       claimToken: "tok-daemon",
