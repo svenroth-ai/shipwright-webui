@@ -46,6 +46,7 @@ afterEach(() => {
 function setup(socketRef: { current: ReturnType<typeof fakeSocket> | null }) {
   let now = 100_000;
   const reconnect = vi.fn();
+  const onProbing = vi.fn();
   controller = attachWsLiveness({
     getSocket: () => socketRef.current,
     openState: OPEN,
@@ -53,6 +54,7 @@ function setup(socketRef: { current: ReturnType<typeof fakeSocket> | null }) {
     isCancelled: () => false,
     rearmBudget: vi.fn(),
     reconnect,
+    onProbing,
     nowFn: () => now,
     // No real timers: neutralise the heartbeat + wake-detector interval seams.
     setIntervalFn: () => 0 as unknown as ReturnType<typeof setInterval>,
@@ -62,6 +64,7 @@ function setup(socketRef: { current: ReturnType<typeof fakeSocket> | null }) {
   });
   return {
     reconnect,
+    onProbing,
     advance: (ms: number) => {
       now += ms;
     },
@@ -95,6 +98,11 @@ describe("wsLiveness — interaction-triggered revive", () => {
     t.noteInbound(); // a pong just arrived → socket is fresh
     t.keydown();
     expect(pinged(socketRef.current!)).toBe(0);
+    // external-review GLM LOW (iterate-2026-09-06-tablet-ipad-ux-pass): a
+    // fresh socket must never arm the "reconnecting" banner either — not
+    // just skip the ping. onProbing(true) firing here would flash the
+    // banner on every normal keystroke.
+    expect(t.onProbing).not.toHaveBeenCalledWith(true);
   });
 
   it("throttles: rapid keystrokes on a dead socket do not re-arm the probe every keystroke", () => {
@@ -113,6 +121,17 @@ describe("wsLiveness — interaction-triggered revive", () => {
     t.advance(WS_INTERACTION_STALE_MS + 1_000);
     t.keydown();
     expect(t.reconnect).toHaveBeenCalledTimes(1);
+  });
+
+  it("iterate-2026-09-06-tablet-ipad-ux-pass: onProbing(true) fires the instant the probe is sent, onProbing(false) once a pong answers it", () => {
+    const socketRef = { current: fakeSocket(OPEN) };
+    const t = setup(socketRef);
+    t.advance(WS_INTERACTION_STALE_MS + 1_000);
+    t.keydown();
+    expect(t.onProbing).toHaveBeenCalledWith(true);
+    expect(t.onProbing).toHaveBeenLastCalledWith(true);
+    t.noteInbound(); // pong lands before the probe deadline
+    expect(t.onProbing).toHaveBeenLastCalledWith(false);
   });
 
   it("dispose() unbinds the interaction listeners", () => {

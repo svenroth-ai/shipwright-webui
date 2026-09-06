@@ -6,9 +6,18 @@
  *   - No horizontal PAGE overflow on the daily-driver routes (P1).
  *   - Sidebar rails across the whole compact band, not just phones (AC-2).
  *   - Board columns become a flush, internally-scrollable swipe carousel at
- *     tablet (justify-start) and keep desktop justify-between at ≥1024px (P3).
- *   - Task detail collapses to the compact PaneTabBar at tablet and keeps the
- *     resizable 3-pane (with visible splitters) on desktop (AC-4).
+ *     tablet (justify-start) at ≥1024px (P3).
+ *   - Task detail collapses to the compact PaneTabBar at tablet, and the
+ *     embedded terminal survives a live breakpoint crossing (P1b).
+ *
+ * iterate-2026-09-06-tablet-ipad-ux-pass added the tablet-width task-title
+ * truncation case below (AC-2/AC-4): a long title single-line-truncates
+ * instead of wrapping unbounded, with a tap-to-expand popover. The desktop
+ * (native tooltip) and 1024px-boundary title cases, plus the desktop
+ * non-regression checks, live in 80b-tablet-responsive-desktop.spec.ts —
+ * split out to keep this file under the bloat ceiling; both files assert
+ * against the SAME breakpoint contract (useIsCompactViewport,
+ * COMPACT_MEDIA_QUERY).
  *
  * Component-level coverage (PaneTabBar mount-preservation, hook reactivity,
  * sidebar threshold) lives in the vitest specs; this proves the real CSS +
@@ -20,7 +29,18 @@ import { createTask, cleanupTask, makeTaskCwd, cleanupCwd } from "../helpers/tas
 
 const TABLET = { width: 820, height: 1180 }; // iPad portrait — compact band
 const DESKTOP = { width: 1280, height: 800 }; // full desktop
-const LG_BOUNDARY = { width: 1024, height: 768 }; // exactly lg → desktop
+
+// Long enough that, unbounded, it would wrap across many lines at every
+// viewport tested below (mirrors the AC-4b live-browser finding: 5 full
+// lines before Grade/Tests/Serves even appeared).
+const LONG_TITLE =
+  "This is a deliberately very long task title used to prove single-line " +
+  "truncation instead of unbounded wrapping across the header at tablet " +
+  "and desktop widths on the iPad UX pass";
+// A generous single-line ceiling. The tablet/phone variant additionally
+// carries `min-h-11` (a 44px tap target) which floors a single truncated
+// line right at 44px; wrapped across even 2 lines it would clear ~70px.
+const SINGLE_LINE_HEIGHT_CEILING = 60;
 
 async function pageOverflowPx(page: Page): Promise<number> {
   return page.evaluate(() => {
@@ -192,6 +212,39 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
     expect(t).toBeGreaterThan(state);
     expect(t).toBeGreaterThan(updated);
   });
+
+  test("a long task title truncates to one line and tap reveals the full title (AC-2/AC-4)", async ({
+    page,
+    request,
+  }) => {
+    const cwd = await makeTaskCwd();
+    const taskId = await createTask(request, cwd, LONG_TITLE);
+    try {
+      await page.goto(`/tasks/${taskId}`);
+      const display = page.getByTestId("task-title-display");
+      await expect(display).toBeVisible();
+      await expect(display).toContainText(LONG_TITLE.slice(0, 20));
+
+      // Single-line box, not wrapped across the long title.
+      const box = (await display.boundingBox())!;
+      expect(box.height).toBeLessThan(SINGLE_LINE_HEIGHT_CEILING);
+      // The truncated span genuinely overflows its own box horizontally —
+      // proving the full title didn't just happen to fit.
+      const span = display.locator("span").first();
+      expect(
+        await span.evaluate((el) => el.scrollWidth - el.clientWidth),
+      ).toBeGreaterThan(0);
+
+      // Tap-to-expand: a popover reveals the untruncated title.
+      await display.click();
+      const popover = page.getByTestId("task-title-popover");
+      await expect(popover).toBeVisible();
+      await expect(popover).toContainText(LONG_TITLE);
+    } finally {
+      await cleanupTask(request, taskId);
+      await cleanupCwd(cwd);
+    }
+  });
 });
 
 test.describe("Terminal survives a breakpoint crossing (P1b — C1 guard)", () => {
@@ -220,57 +273,5 @@ test.describe("Terminal survives a breakpoint crossing (P1b — C1 guard)", () =
       await cleanupTask(request, taskId);
       await cleanupCwd(cwd);
     }
-  });
-});
-
-test.describe("Desktop non-regression (≥1024px)", () => {
-  test.use({ viewport: DESKTOP });
-
-  test("sidebar is expanded (brand logo visible)", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.getByTestId("sidebar-brand-logo")).toBeVisible();
-    await expect(page.getByRole("button", { name: /expand sidebar/i })).toHaveCount(0);
-  });
-
-  test("board columns keep desktop justify-between (P3)", async ({ page }) => {
-    await page.goto("/");
-    const cols = page.getByTestId("task-board-columns");
-    await expect(cols).toBeVisible();
-    expect(await cols.evaluate((el) => getComputedStyle(el).justifyContent)).toBe("space-between");
-  });
-
-  test("list view shows the Commit column on desktop (lg:table-cell)", async ({ page }) => {
-    await page.goto("/");
-    await page.getByTestId("view-toggle-list").click();
-    await expect(page.getByTestId("task-list-header-commit")).toBeVisible();
-  });
-
-  test("task detail keeps the resizable 3-pane (visible splitters, no tab bar)", async ({
-    page,
-    request,
-  }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd, "desktop-detail-smoke");
-    try {
-      await page.goto(`/tasks/${taskId}`);
-      await expect(page.getByTestId("task-detail-page")).toBeVisible();
-      await expect(page.getByTestId("pane-tab-bar")).toHaveCount(0);
-      await expect(page.getByTestId("splitter-left")).toBeVisible();
-      await expect(page.getByTestId("splitter-right")).toBeVisible();
-    } finally {
-      await cleanupTask(request, taskId);
-      await cleanupCwd(cwd);
-    }
-  });
-});
-
-test.describe("Breakpoint boundary — 1024px is desktop", () => {
-  test.use({ viewport: LG_BOUNDARY });
-
-  test("at exactly 1024px the board uses the desktop layout (justify-between)", async ({ page }) => {
-    await page.goto("/");
-    const cols = page.getByTestId("task-board-columns");
-    await expect(cols).toBeVisible();
-    expect(await cols.evaluate((el) => getComputedStyle(el).justifyContent)).toBe("space-between");
   });
 });

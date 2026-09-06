@@ -20,7 +20,7 @@ import type { ExternalTask } from "../../../lib/externalApi";
 import { useProjects } from "../../../hooks/useProjects";
 import { useDeleteExternalTask } from "../../../hooks/useExternalTasks";
 import { hasLaunchedBefore } from "../../../lib/taskLifecycle";
-import { useIsPhoneViewport } from "../../../hooks/useIsCompactViewport";
+import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
 import { useMissionState } from "../../../hooks/useMissionState";
 import { type EditableTaskTitleHandle } from "../EditableTaskTitle";
 import { ProjectChipMenu } from "../ProjectChipMenu";
@@ -57,8 +57,13 @@ export function MissionTopRow({ task, modelName }: Props) {
   const projectsQ = useProjects();
   const deleteMut = useDeleteExternalTask();
   const navigate = useNavigate();
-  // Phone (≤767px): the breadcrumb + meta sub-line drop for terminal headroom.
-  const isPhone = useIsPhoneViewport();
+  // Compact (≤1023px = tablet + phone, iterate-2026-09-06-tablet-ipad-ux-pass):
+  // the breadcrumb + meta sub-line drop for terminal headroom. Was phone-only
+  // (≤767px) — on an iPad the full desktop row (breadcrumb + title + badge +
+  // gate pill + project menu + Instruments + CTA + menu, all fighting for one
+  // line) wrapped across several lines and ate most of the visible header
+  // height before the terminal even started (Sven, 2026-09-06).
+  const isCompact = useIsCompactViewport();
   // The cluster's shared mission-state derivation (A11) — drives the additive
   // design-gate pill; never re-derived (DO-NOT #16, no JSONL-mtime staleness).
   const missionState = useMissionState(task);
@@ -123,7 +128,7 @@ export function MissionTopRow({ task, modelName }: Props) {
         <LaunchCTA task={task} onError={setCtaError} />
       )}
       {missionState !== "designgate" && cta === "resume" && (
-        <ResumeCTA task={task} onError={setCtaError} iconOnly={isPhone} />
+        <ResumeCTA task={task} onError={setCtaError} iconOnly={isCompact} />
       )}
       <HeaderMenu
         task={task}
@@ -146,14 +151,14 @@ export function MissionTopRow({ task, modelName }: Props) {
       // Phone splits into two rows (top: back+title+actions, bottom: status pills)
       // so items-center never centers against the whole two-line block.
       className={
-        isPhone
+        isCompact
           ? "mc-top relative flex w-full flex-col gap-2 px-3 py-2"
           : "mc-top relative flex w-full items-center gap-2 px-3 py-2 md:gap-4 md:py-[17px] md:pl-[22px] md:pr-[28px]"
       }
       data-testid="task-detail-header"
     >
       <style>{STATE_BADGE_KEYFRAMES}</style>
-      {isPhone ? (
+      {isCompact ? (
         <>
           <div className="flex min-w-0 items-center gap-2">
             <Link to="/" className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]" aria-label="Back to board" data-testid="task-detail-back">

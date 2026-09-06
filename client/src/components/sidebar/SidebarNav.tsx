@@ -117,8 +117,17 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
         )}
       </div>
 
-      {/* Nav items */}
-      <nav className="flex flex-col gap-1 py-2 px-3">
+      {/* Nav items — `flex-1 overflow-y-auto min-h-0` (CLAUDE.md rule 27) so
+          THIS list scrolls internally when it outgrows the available height,
+          instead of pushing Settings below the fold with no way to reach it
+          (iterate-2026-09-06-tablet-ipad-ux-pass: "Settings wird
+          abgeschnitten" on iPad — the rail's fixed `h-screen` plus a plain
+          `flex-1` spacer had no scroll owner at all once Triage/Org/
+          Diagnostics grew the list past a short tablet viewport's height).
+          With room to spare this behaves exactly like the old spacer: the
+          items stack at the top and the unused flex-1 space is simply blank
+          below them, inside `<nav>` rather than in a sibling div. */}
+      <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto py-2 px-3 [&>*]:shrink-0">
         <SidebarNavItem icon={LayoutDashboard} label="Task Board" to="/" collapsed={railed} onSelect={onNavigate} />
         <SidebarNavItem icon={FolderOpen} label="Projects" to="/projects" collapsed={railed} onSelect={onNavigate} />
         <SidebarNavItem
@@ -142,11 +151,6 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
         )}
         <SidebarNavItem icon={Activity} label="Diagnostics" to="/diagnostics" collapsed={railed} onSelect={onNavigate} />
       </nav>
-
-      {/* Spacer — pushes Settings to the bottom. Phase B1 removed the
-          project list from the sidebar; the TaskBoard header dropdown is
-          now the single source of truth for project selection. */}
-      <div className="flex-1" />
 
       {/* Bottom: Settings */}
       <div className="border-t border-white/10 px-3 py-3">

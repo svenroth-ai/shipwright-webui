@@ -24,6 +24,7 @@ import {
   type HeartbeatTimer,
 } from "./wsHeartbeat";
 import { startWakeDetector, type WakeDetector } from "./wsWakeDetector";
+import { createWsProbe } from "./wsProbe";
 
 /** Structural slice of a WebSocket the liveness controller depends on. */
 export interface WsLivenessSocket {
@@ -45,6 +46,8 @@ export interface AttachWsLivenessDeps {
   rearmBudget(): void;
   /** Reconnect now: drop any pending backoff, open a fresh socket. */
   reconnect(): void;
+  /** true while an eager probe is in flight, false once resolved — feeds a `reconnecting` banner (AC-1, iterate-2026-09-06-tablet-ipad-ux-pass). */
+  onProbing?: (probing: boolean) => void;
   // Seams (tests / tuning).
   intervalMs?: number;
   maxMissed?: number;
@@ -87,8 +90,6 @@ export function attachWsLiveness(
 
   const now: () => number = deps.nowFn ?? (() => Date.now());
   let heartbeat: ClientHeartbeatHandle | null = null;
-  let probeTimer: HeartbeatTimer | null = null;
-  let awaitingProbe = false;
   // Wall-clock of the last inbound frame (any message, incl. pongs): fresh on a
   // healthy socket, stale on a silently-dead one. `lastInteractionReviveAt`
   // spaces out interaction-triggered revives (see onInteraction).
@@ -104,18 +105,21 @@ export function attachWsLiveness(
       /* socket mid-close */
     }
   };
-  const clearProbe = () => {
-    awaitingProbe = false;
-    if (probeTimer !== null) {
-      clearT(probeTimer);
-      probeTimer = null;
-    }
-  };
+  const probe = createWsProbe({
+    getSocket: deps.getSocket,
+    openState: deps.openState,
+    sendPing,
+    isCancelled: deps.isCancelled,
+    onProbing: deps.onProbing,
+    refocusProbeMs,
+    setTimeoutFn: setT,
+    clearTimeoutFn: clearT,
+  });
 
   const onConnected = () => {
     // A fresh connection makes any probe armed for the PRIOR socket moot —
     // drop it so a stale timer can never act on this new socket (review MED).
-    clearProbe();
+    probe.clear();
     lastInboundAt = now();
     heartbeat?.stop();
     heartbeat = startClientHeartbeat({
@@ -144,7 +148,7 @@ export function attachWsLiveness(
   const noteInbound = () => {
     lastInboundAt = now();
     heartbeat?.notePong();
-    clearProbe();
+    probe.clear();
   };
 
   /**
@@ -181,25 +185,7 @@ export function attachWsLiveness(
     // Socket LOOKS open but a full partition leaves it silently dead with no
     // `close` event. Probe: ping now, and if nothing answers within
     // refocusProbeMs, close it so the close → reconnect path runs.
-    sendPing();
-    awaitingProbe = true;
-    // Bind the probe to THIS socket instance: a reconnect may swap in a fresh,
-    // healthy socket within the probe window, and a timer armed for the old
-    // socket must never close the new one (review MED).
-    const probedSocket = s;
-    if (probeTimer !== null) clearT(probeTimer);
-    probeTimer = setT(() => {
-      probeTimer = null;
-      if (deps.isCancelled() || !awaitingProbe) return;
-      const cur = deps.getSocket();
-      if (cur === probedSocket && cur.readyState === deps.openState) {
-        try {
-          cur.close();
-        } catch {
-          /* ignore */
-        }
-      }
-    }, refocusProbeMs);
+    probe.arm();
   };
 
   const onRefocus = () => {
@@ -288,7 +274,7 @@ export function attachWsLiveness(
     noteInbound,
     dispose() {
       onDisconnected();
-      clearProbe();
+      probe.clear();
       wakeDetector.stop();
       if (hasWindow) {
         window.removeEventListener("focus", onRefocus);

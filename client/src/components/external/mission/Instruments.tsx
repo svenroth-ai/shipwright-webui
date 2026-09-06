@@ -49,7 +49,20 @@ export function Instruments({ task }: Props) {
 
   return (
     <div
-      className="hidden items-center gap-2 md:flex"
+      // iterate-2026-09-06-tablet-ipad-ux-pass: was `md:flex` (Tailwind's
+      // default 768px), which — despite the header comment's "hidden on
+      // phones" intent — only ever hid these three chips below 768px. The
+      // rest of the header's own compact/phone split reads the codebase's
+      // CUSTOM 1023px COMPACT_MEDIA_QUERY (useIsCompactViewport), so
+      // Instruments kept rendering across the whole 768-1023px tablet band
+      // that split treats as compact — three extra chips competing for a
+      // row that, on an iPad, was already crowded by title + CTA + menu
+      // (Sven, 2026-09-06: the header "takes an insane amount of space" and
+      // "isn't on one line" on iPad). `lg:flex` (Tailwind's default 1024px)
+      // is the one Tailwind breakpoint that lines up with that same 1023px
+      // cutoff, so Instruments now hides for the ENTIRE compact band and
+      // reappears only at genuine desktop width, matching MissionTopRow.
+      className="hidden items-center gap-2 lg:flex"
       data-testid="mission-instruments"
       aria-label="Run instruments"
     >

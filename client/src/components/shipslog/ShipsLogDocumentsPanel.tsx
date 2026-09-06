@@ -54,7 +54,13 @@ export function ShipsLogDocumentsPanel({ projectId }: { projectId: string }) {
 
   return (
     <div className="sl-docs" data-testid="shipslog-docs-panel">
-      <h2 className="sl-lead">Project documents</h2>
+      {/* iterate-2026-09-06-tablet-ipad-ux-pass: the panel is visually
+          self-evident (three labeled groups) once it sits in its own
+          scrollable column, so the redundant "Project documents" caption
+          is dropped — kept as an sr-only heading so the region still has
+          a name in the accessibility tree (h2, matches ShipsLogPage's h3
+          group headings one level down). */}
+      <h2 className="sl-lead sr-only">Project documents</h2>
 
       <DocGroup title="Specs" loading={isLoading} loadError={loadError}>
         <ShipsLogSpecsTabs

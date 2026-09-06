@@ -6,27 +6,26 @@
    applies — the panel deliberately REUSES `.sheet`/`.sheet-h`/`.logentry`
    for its group cards and rows rather than inventing new surfaces. */
 
-/* The right-column Documents panel. `.ships-log`'s grid row is auto-sized
-   (no `grid-template-rows`), so a percentage height on a grid item is NOT
-   definite — `height: 100%` does not reliably resolve against sl-main's
-   height, and a tall panel simply grows the row instead of scrolling
-   internally (caught by external code review, iterate-2026-08-31-
-   shipslog-documents-panel: confirmed empirically — a short logbook next
-   to a fully-populated panel stretched the grid row to the panel's own
-   content height rather than clipping it). `position: sticky` sidesteps
-   the row-height circularity entirely: the panel just tracks the page
-   scroll and caps itself to the viewport, independent of sl-main's
-   height. `top: 24px` matches `page-container`'s own `paddingTop` (set
-   inline in ShipsLogPage.tsx) so the panel sits flush with the top of the
-   scroll area, not 24px below it. */
+/* The right-column Documents panel — its OWN independent scroll owner
+   (iterate-2026-09-06-tablet-ipad-ux-pass, CLAUDE.md rule 27), not tied to
+   `.sl-main`'s scroll position. `.ships-log` now gives its grid row a
+   DEFINITE height (`height: 100%`, see ships-log.css), so `height: 100%`
+   here resolves against that row rather than against content — replacing
+   the old `position: sticky` + `max-height: calc(100vh - …)` viewport-math
+   hack that (a) only decoupled the two columns while the page itself was
+   the scroll owner, which stopped being true below 900px (the sticky panel
+   fell back to `position: static` and merged into the single-column page
+   scroll — this is the exact "Project Documents doesn't scroll along, only
+   the Log does" defect reported on iPad, Sven 2026-09-06) and (b) still
+   only ever felt "independent" via a hover-targeted wheel event, never a
+   genuinely separate scrollable pane the way the left column already was. */
 .ships-log .sl-docs {
   display: flex;
   flex-direction: column;
   gap: 14px;
   min-width: 0;
-  position: sticky;
-  top: 24px;
-  max-height: calc(100vh - 120px);
+  min-height: 0;
+  height: 100%;
   overflow-y: auto;
 }
 /* CLAUDE.md rule 24: a direct child of a self-scrolling column-flex
@@ -40,12 +39,6 @@
    (and scrolls) instead of quietly squeezing every group's list to zero. */
 .ships-log .sl-docs > * {
   flex-shrink: 0;
-}
-@media (max-width: 900px) {
-  .ships-log .sl-docs {
-    position: static;
-    max-height: none;
-  }
 }
 
 .ships-log .doc-tabs-list {

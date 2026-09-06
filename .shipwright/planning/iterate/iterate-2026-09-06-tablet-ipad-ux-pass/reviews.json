@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-tablet-ipad-ux-pass",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:55:51.416640+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:56:13.818906+00:00",
+      "disposition": "no separate pre-build mini-plan-review step was run: this run went investigation-first (root-cause traced for the terminal-smear bug) directly into TDD implementation and live-browser-verified fixes, with the iterate spec authored retroactively to match the completed, tested diff",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/pages/ShipsLogPage.tsx",
+          "line": 167,
+          "finding": "`.sl-main`'s `flex-1` Tailwind class is a no-op under its CSS Grid parent (`.ships-log`) — real sizing comes from CSS Grid stretch + ships-log.css, not flexbox. Functionally correct (verified live) but could mislead a future maintainer into thinking `.sl-main` is a flex item.",
+          "suggestion": "Add a one-line comment noting flex-1 is a deliberate no-op kept only so shell-scroll-invariant.test.ts's flex-1+overflow-y-* Diagnostics-pattern check recognises this as a registered scroll owner — accepted and fixed in this same pass.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:05:03.844252+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "user-visible-regression",
+          "file": "client/src/hooks/useTerminalSocket.ts",
+          "line": 618,
+          "finding": "Claim under doubt: Wiring onProbing into the reconnecting banner (AC-1) has no negative user-visible side effect. — A probe that resolves in the ~1.5-4s band — an otherwise-healthy connection merely slow to pong, plausible on the exact flaky iPad networks this iterate targets — now visibly flashes the banner for a bounded window where before it was silent, because onProbing(true) fires the instant the probe is SENT rather than only after an actual socket close. Addressed: documented as an accepted trade-off in useTerminalSocket.ts's onProbing wiring comment and in the iterate spec under AC-1, and proven bounded (arms only past the existing RECONNECTING_BANNER_GRACE_MS grace timer, self-dismisses the instant the pong lands, never stuck) by a new composed test in useTerminalShellEffects.reconnecting.test.ts that drives the real attachWsLiveness probe timer through the real grace timer end to end.",
+          "suggestion": "Resolved by design: the grace timer already encodes \"only an outage that outlives the grace is worth telling the user about\" and this reuses that threshold rather than inventing a new one. Staying silent instead would leave exactly the slow-but-recovering population this iterate targets unsignalled. Proof: useTerminalShellEffects.reconnecting.test.ts composed suite (2 new tests, both pass).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency",
+          "file": "client/src/hooks/wsLiveness.ts",
+          "line": 209,
+          "finding": "Claim under doubt: reviveIfStale's probe-arming is safe against a near-simultaneous second revive trigger (e.g. keydown immediately followed by a focus event) re-arming the probe timer mid-flight. — reviveIfStale can be invoked twice in quick succession from independent event sources (onInteraction, onRefocus, onOnline, wake detector) before the first probe resolves, replacing probeTimer without first confirming the prior timer was cleared, which could in theory extend or reset the probe window unexpectedly.",
+          "suggestion": "Assessed as pre-existing behavior, not introduced by this diff — reviveIfStale already guarded re-entrancy via the readyState CONNECTING/CLOSING early-return (line 193-199) before this iterate touched the function; this iterate only added the onProbing(true)/onProbing(false) calls around the existing probe-arm/clear sites, it did not change the re-entrancy shape of reviveIfStale itself. No behavior change in scope for this iterate; not fixed.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:32:58.021193+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/package-lock.json:4 (and server/package-lock.json:4)",
+          "line": null,
+          "finding": "Both lockfiles bump the root package version 0.26.0 → 0.27.0, but neither `client/package.json` nor `server/package.json` appears in the diff. With `lockfileVersion: 3`, `npm ci` validates `packages.\"\".version` against `package.json` and hard-fails on mismatch, breaking every clean install/CI run.",
+          "suggestion": "Confirm both `package.json` files are bumped to 0.27.0 in the same change (or that they were already bumped and just trimmed from this diff).  2. ShipsLogPage non-project states lost their scroll owner",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/pages/ShipsLogPage.tsx:152 (`flex-1 overflow-hidden` wrapper)",
+          "line": null,
+          "finding": "The page wrapper went from `overflow-y-auto` (page scrolls) to `overflow-hidden` (columns scroll). But the scrollable columns only exist inside `{project && …}`. Whatever renders when `project` is falsy (loading, load-error, project-picker/empty state) now sits under an `overflow-hidden` parent with no scroll owner — any content taller than the viewport is clipped and unreachable, where it previously scrolled.",
+          "suggestion": "Give the non-project branch its own `overflow-y-auto min-h-0` container, or render it outside the `overflow-hidden` wrapper.  3. No negative test for the probe gate — an over-eager implementation passes the new tests",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/hooks/wsLiveness.interaction.test.ts (new case, ~line 121) and client/src/hooks/useTerminalSocket.refocus.test.ts (AC-7)",
+          "line": null,
+          "finding": "The new tests assert `onProbing(true)`→`(false)` and `reconnecting` true→false around a stale socket, but nothing asserts that a fresh (non-stale) socket + keydown/focus fires no probe and leaves `reconnecting` false. If the 8s staleness guard in `reviveIfStale` were broken or removed, the probe would still succeed (pong in time), `reconnect` would never be called, all existing and new tests would stay green — while production shows a flashing \"Connection lost — reconnecting…\" banner on every keystroke after any pause.",
+          "suggestion": "Add one case per level: socket with recent inbound + `keydown`/focus → `onProbing` not called / `reconnecting` stays false.  4. Verify `reconnecting` is banner-only in all consumers",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/hooks/useTerminalSocket.ts:597 (`onProbing: (probing) => setReconnecting(probing)`)",
+          "line": null,
+          "finding": "reconnecting` is now forced `true` for up to `WS_REFOCUS_PROBE_MS` (4s) on any socket that's merely been inbound-silent — a state that also occurs on healthy desktop connections after a long-running quiet command, not just suspended iOS tabs. The spec asserts this state drives only the banner, but `useTerminalSocket` is a 700-line hook and the diff doesn't show its other consumers; if any consumer gates terminal input, send paths, or overlays on `reconnecting`, the probe window becomes a 4s interaction freeze on healthy sockets.",
+          "suggestion": "Confirm the only readers of `reconnecting` render the banner; if anything else keys off it, gate that consumer on actual socket state instead.  5. Probe-failure path relies on synchronous batching to avoid a banner flicker",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/hooks/wsLiveness.ts:125 (`clearProbe` now emits `onProbing(false)`)",
+          "line": null,
+          "finding": "clearProbe` is the single reset path for `awaitingProbe`, so the probe-deadline handler almost certainly routes through it before close→`scheduleReconnect`. That fires `setReconnecting(false)` then `setReconnecting(true)` in quick succession; the \"no-op\" claim in the `useTerminalSocket` comment only holds if both happen in the same synchronous task (React batching). If the close event or reconnect scheduling is ever deferred to a later task (e.g., close-event-driven rather than called inline from the timer), the banner visibly blinks off→on.",
+          "suggestion": "Ensure the deadline path calls `scheduleReconnect` synchronously in the same timer callback that clears the probe, or skip the `onProbing(false)` emission on the failure branch (let the new connection's `open`/`clearProbe` handle it).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "[ships-log.css](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-qmyy5xpw\\client\\src\\styles\\ships-log.css:24)",
+          "line": null,
+          "finding": "The base `.ships-log` grid has a definite container height but no definite row track. Its implicit `auto` row can still expand to the content’s max-content height, so `.sl-main` and `.sl-docs` are not reliably height-bounded above 900px; long content is clipped by the new outer `overflow-hidden` rather than becoming independently scrollable. The ≤900px media rule defines rows correctly, but AC-6 requires independent scrolling at all widths.",
+          "suggestion": "Define a bounded base row, e.g. `grid-template-rows: minmax(0, 1fr)`, then retain the narrow-screen two-row override. Add a browser-level desktop-width overflow/independent-`scrollTop` check.  Ship-with-fixes: the tablet-specific layout and liveness changes appear aligned with the specification, but the Ship’s Log desktop scroll implementation does not reliably satisfy AC-6.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:33:11.514191+00:00",
+      "disposition": "OpenAI MEDIUM (ships-log.css desktop grid height-bounding) empirically verified FALSE POSITIVE at 1440px viewport (computed grid-template-rows resolves to a definite 749.156px, both .sl-main/.sl-docs clamped + overflow-y:auto). GLM MEDIUM (package.json/lockfile) FALSE POSITIVE (package.json already 0.27.0, zero diff). GLM LOW (ShipsLogPage non-project scroll owner) FALSE POSITIVE (the not-found branch already has its own overflow-y-auto wrapper, unaffected by the change). GLM LOW (audit reconnecting consumers) verified sound (only TerminalBanners reads it). GLM LOW (synchronous-batching assumption) FALSE POSITIVE (state is idempotent-true across the close->scheduleReconnect handoff, not timing-dependent; documented in useTerminalSocket.ts comment). GLM LOW (missing negative test) FIXED (added onProbing assertion to wsLiveness.interaction.test.ts's existing healthy-socket test).",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Lockfile version bumped without a visible `package.json` bump — `npm ci` will fail if they're out of sync**\n- Category: regression\n- Severity: medium\n- File: client/package-lock.json:4 (and server/package-lock.json:4)\n- Finding: Both lockfiles bump the root package version 0.26.0 → 0.27.0, but neither `client/package.json` nor `server/package.json` appears in the diff. With `lockfileVersion: 3`, `npm ci` validates `packages.\"\".version` against `package.json` and hard-fails on mismatch, breaking every clean install/CI run.\n- Suggestion: Confirm both `package.json` files are bumped to 0.27.0 in the same change (or that they were already bumped and just trimmed from this diff).\n\n**2. ShipsLogPage non-project states lost their scroll owner**\n- Category: edge-case\n- Severity: low\n- File: client/src/pages/ShipsLogPage.tsx:152 (`flex-1 overflow-hidden` wrapper)\n- Finding: The page wrapper went from `overflow-y-auto` (page scrolls) to `overflow-hidden` (columns scroll). But the scrollable columns only exist inside `{project && …}`. Whatever renders when `project` is falsy (loading, load-error, project-picker/empty state) now sits under an `overflow-hidden` parent with no scroll owner — any content taller than the viewport is clipped and unreachable, where it previously scrolled.\n- Suggestion: Give the non-project branch its own `overflow-y-auto min-h-0` container, or render it outside the `overflow-hidden` wrapper.\n\n**3. No negative test for the probe gate — an over-eager implementation passes the new tests**\n- Category: test\n- Severity: low\n- File: client/src/hooks/wsLiveness.interaction.test.ts (new case, ~line 121) and client/src/hooks/useTerminalSocket.refocus.test.ts (AC-7)\n- Finding: The new tests assert `onProbing(true)`→`(false)` and `reconnecting` true→false around a *stale* socket, but nothing asserts that a **fresh** (non-stale) socket + keydown/focus fires *no* probe and leaves `reconnecting` false. If the 8s staleness guard in `re […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: [ships-log.css](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-qmyy5xpw\\client\\src\\styles\\ships-log.css:24)\n- Finding: The base `.ships-log` grid has a definite container height but no definite row track. Its implicit `auto` row can still expand to the content’s max-content height, so `.sl-main` and `.sl-docs` are not reliably height-bounded above 900px; long content is clipped by the new outer `overflow-hidden` rather than becoming independently scrollable. The ≤900px media rule defines rows correctly, but AC-6 requires independent scrolling at all widths.\n- Suggestion: Define a bounded base row, e.g. `grid-template-rows: minmax(0, 1fr)`, then retain the narrow-screen two-row override. Add a browser-level desktop-width overflow/independent-`scrollTop` check.\n\nShip-with-fixes: the tablet-specific layout and liveness changes appear aligned with the specification, but the Ship’s Log desktop scroll implementation does not reliably satisfy AC-6.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:59:34.476425+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:56:13.930096+00:00",
+      "disposition": "counterpart to the plan row: the medium+ internal opus-plan-reviewer arm runs against a pre-build mini-plan, and no separate mini-plan was authored before build in this investigation-first run",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

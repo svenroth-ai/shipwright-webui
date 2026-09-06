@@ -579,10 +579,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       openState: WebSocket.OPEN,
       isReplayOnly: () => sessionReplayOnlyRef.current,
       isCancelled: () => cancelled,
-      rearmBudget: () => {
-        attemptsRef.current = 0;
-        setReconnectAttempts(0);
-      },
+      rearmBudget: () => { attemptsRef.current = 0; setReconnectAttempts(0); },
       reconnect: () => {
         if (reconnectTimerRef.current) {
           clearTimeout(reconnectTimerRef.current);
@@ -590,6 +587,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         }
         connect();
       },
+      onProbing: (probing) => setReconnecting(probing),
     });
 
     // iterate-2026-08-27-terminal-replay-reset-reopen-reconnect — see the

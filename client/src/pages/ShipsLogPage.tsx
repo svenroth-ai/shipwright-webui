@@ -149,11 +149,28 @@ export default function ShipsLogPage() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto">
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 32 }}>
+      <div className="flex-1 overflow-hidden">
+        <div className="page-container h-full" style={{ paddingTop: 24, paddingBottom: 32 }}>
           {project && (
-            <div className="ships-log">
-              <div className="sl-main">
+            <div className="ships-log h-full">
+              {/* iterate-2026-09-06-tablet-ipad-ux-pass (CLAUDE.md rule 27):
+                  the log column owns its OWN bounded scroll instead of
+                  handing scrolling up to the page — that is what let the
+                  Documents column (own overflow, see ships-log-docs.css)
+                  scroll independently of it, side by side on wide screens
+                  and stacked on narrow ones (see the ships-log.css media
+                  query). Previously this div had no overflow of its own,
+                  the page wrapper above scrolled everything as one unit,
+                  and the Documents column faked independence with
+                  `position: sticky` — which only decoupled the two on
+                  wide screens and stopped decoupling them below 900px.
+                  `flex-1` here is a no-op (`.ships-log` is a CSS Grid
+                  container, not flex — real sizing comes from Grid's stretch
+                  + ships-log.css); it stays so shell-scroll-invariant.test.ts's
+                  `flex-1`+`overflow-y-*` Diagnostics-pattern check keeps
+                  recognising this as a registered scroll owner (code-reviewer
+                  LOW, this iterate). */}
+              <div className="sl-main flex-1 overflow-y-auto min-h-0">
                 <CaptainsDrawer projectId={project.id} />
                 <div className="sl-lead">Start the next change — a new iterate on this project</div>
                 <ScopedIteratePromptbox project={project} />
