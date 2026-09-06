@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-smartviewer-table-a11y",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T14:40:52.014921+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T14:45:01.822620+00:00",
+      "disposition": "mini-plan is medium+ (or FEATURE-only at small) per the Phase Matrix; this run is a small CHANGE",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/useAutoFitTableColumns.ts",
+          "line": 51,
+          "finding": "measureNaturalColumnWidths can leave a sparse hole for a column only ever covered by colSpan>1 cells, which for...of would surface as 'undefinedpx'. Unreachable via remark-gfm output today. Fixed with a normalization pass.",
+          "suggestion": "Fixed: widths array is normalized (holes -> 0) before returning.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/useAutoFitTableColumns.ts",
+          "line": 124,
+          "finding": "Initial auto-fit pass has no document.fonts.ready gate; a loading web font would measure fallback metrics until the next resize. Not applicable today (system/fallback fonts only) — documented via comment.",
+          "suggestion": "Documented as a known, accepted limitation in the hook's doc comment.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T15:08:10.119394+00:00",
+      "disposition": "approve",
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:08:26.584403+00:00",
+      "disposition": "no migrations, no cross-plugin imports, no irreversible ops; only async surface is a debounced ResizeObserver+rAF with no shared state",
+      "recorded_by": "iterate",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "[useAutoFitTableColumns.test.tsx](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-29so4rda\\client\\src\\components\\external\\SmartViewer\\useAutoFitTableColumns.test.tsx:126)",
+          "line": null,
+          "finding": "The ResizeObserver test does not verify that the callback triggers a new measurement or reapplies widths; it only confirms the colgroup that existed before the callback still exists. A no-op observer callback would pass.",
+          "suggestion": "Change the mocked container width before invoking the callback and assert the flex column’s width changes, or spy on `getBoundingClientRect` and assert it is called again after the rAF callback.  The implementation otherwise matches the stated auto-fit and accessibility requirements, with no concrete security or runtime defect apparent in the diff. Ship as-is; strengthen the resize regression test when practical.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-09-06T14:44:53.736715+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] <no review returned: openai package not installed>\n\n[openai] - Category: test\n- Severity: low\n- File: [useAutoFitTableColumns.test.tsx](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-29so4rda\\client\\src\\components\\external\\SmartViewer\\useAutoFitTableColumns.test.tsx:126)\n- Finding: The ResizeObserver test does not verify that the callback triggers a new measurement or reapplies widths; it only confirms the colgroup that existed before the callback still exists. A no-op observer callback would pass.\n- Suggestion: Change the mocked container width before invoking the callback and assert the flex column’s width changes, or spy on `getBoundingClientRect` and assert it is called again after the rAF callback.\n\nThe implementation otherwise matches the stated auto-fit and accessibility requirements, with no concrete security or runtime defect apparent in the diff. Ship as-is; strengthen the resize regression test when practical.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "unavailable",
+        "openai": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:03:19.087446+00:00",
+      "disposition": "approve",
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T14:45:01.932330+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

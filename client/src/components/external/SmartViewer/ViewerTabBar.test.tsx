@@ -8,7 +8,7 @@
  * strip itself renders.
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 
 import { ViewerTabBar } from "./ViewerTabBar";
 
@@ -37,5 +37,40 @@ describe("ViewerTabBar — icon-by-extension colour map (A04 sweep)", () => {
     expect(screen.getByText("diagram.png")).toBeTruthy();
     expect(screen.getByText("flow.mmd")).toBeTruthy();
     expect(screen.getByText("LICENSE")).toBeTruthy();
+  });
+});
+
+describe("ViewerTabBar — close control is a real, keyboard-reachable button (a11y)", () => {
+  it("renders the close control as its own <button>, not nested inside the tab button", () => {
+    render(
+      <ViewerTabBar
+        paths={["a.md"]}
+        activePath="a.md"
+        onActivate={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    const closeBtn = screen.getByTestId("viewer-tab-close-a.md");
+    expect(closeBtn.tagName).toBe("BUTTON");
+    expect(closeBtn.getAttribute("tabindex")).not.toBe("-1");
+    // Not a descendant of the tab button — no interactive-in-interactive nesting.
+    const tabBtn = screen.getByTestId("viewer-tab-a.md");
+    expect(tabBtn.contains(closeBtn)).toBe(false);
+  });
+
+  it("closing a tab does not also activate it", () => {
+    const onActivate = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <ViewerTabBar
+        paths={["a.md", "b.md"]}
+        activePath="a.md"
+        onActivate={onActivate}
+        onClose={onClose}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("viewer-tab-close-b.md"));
+    expect(onClose).toHaveBeenCalledWith("b.md");
+    expect(onActivate).not.toHaveBeenCalled();
   });
 });
