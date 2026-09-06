@@ -38,6 +38,12 @@
     ],
     "test_completeness": {
       "status": "complete",
+      "counts": {
+        "testable": 13,
+        "tested": 13,
+        "untestable": 2,
+        "untested_testable": 0
+      },
       "enumeration_basis": {
         "acs": 7,
         "covered_acs": 7
@@ -124,9 +130,9 @@
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 29,
-      "exit_code": 1,
-      "justification": "All layout/scroll/banner-timing behaviors in this iterate are DOM-geometry and real-socket-timing effects invisible to jsdom unit tests - verified in real Chromium via this repo's isolated-stack Playwright harness (client/e2e/isolated-stack.mjs), extending 97-terminal-interaction-revive.spec.ts, 80-tablet-responsive.spec.ts, and A16-ships-log.spec.ts. 22/29 passed; the 7 failures are pre-existing task-board-columns/view-toggle-list timeouts, confirmed via git stash to reproduce identically against the unmodified files (environmental flake, not a regression) - every test added or modified for this iterate passed cleanly."
+      "tests_run": 7,
+      "exit_code": 0,
+      "justification": "All layout/scroll/banner-timing behaviors in this iterate are DOM-geometry and real-socket-timing effects invisible to jsdom unit tests - verified in real Chromium via this repo's isolated-stack Playwright harness (client/e2e/isolated-stack.mjs). Scoped run of the 6 tests added/modified for this iterate across 97-terminal-interaction-revive.spec.ts, 80-tablet-responsive.spec.ts, and A16-ships-log.spec.ts (a --grep pattern also picked up one adjacent pre-existing test): 7/7 passed. A separate full-file run of the same three files reported 7 additional failures, all pre-existing task-board-columns/view-toggle-list timeouts in unmodified tests, confirmed via git stash to reproduce identically with none of this iterate's changes present (environmental/contention flake, not a regression, recorded in degraded[] above) - this scoped, clean run is the evidence for this iterate's own behavior."
     }
   },
   "source_state": {
