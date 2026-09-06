@@ -30,6 +30,7 @@ const UNMEASURED_LEAD: LeadRosterEntry = {
   now: { state: "not-measured" },
   cadence: { measured: false },
   usage: { leadId: "acme-lead", measured: false },
+  register: { leadId: "acme-lead", status: "clear" },
 };
 
 afterEach(() => {
@@ -98,7 +99,11 @@ describe("LeadCard — Now block renders relative time, not an absolute timestam
       ...UNMEASURED_LEAD,
       now: {
         state: "resting",
-        lastRun: { measured: true, lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString() },
+        lastRun: {
+          measured: true,
+          lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          staleness: "fresh",
+        },
       },
     };
     render(
@@ -110,6 +115,128 @@ describe("LeadCard — Now block renders relative time, not an absolute timestam
     expect(nowLine).toHaveTextContent(/Last active \d+m ago/);
     // Never an absolute locale timestamp (the bug this test guards against).
     expect(nowLine.textContent).not.toMatch(/\d{1,2}\/\d{1,2}\/\d{2,4}/);
+  });
+});
+
+describe("LeadCard — staleness (FR-04.06, iterate-2026-09-06-org-lead-staleness-register)", () => {
+  it("AC-1: a stale last run reads 'Overdue', never 'Resting', and the header badge also reads 'overdue'", () => {
+    const Wrapper = makeWrapper();
+    const lead: LeadRosterEntry = {
+      ...UNMEASURED_LEAD,
+      now: {
+        state: "resting",
+        lastRun: {
+          measured: true,
+          lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          staleness: "stale",
+        },
+      },
+    };
+    render(
+      <Wrapper>
+        <LeadCard lead={lead} />
+      </Wrapper>,
+    );
+    const nowLine = screen.getByTestId("lead-now-resting");
+    expect(nowLine).toHaveTextContent(/Overdue/);
+    expect(nowLine.textContent).not.toContain("Resting");
+    expect(screen.getByTestId("lead-status-badge")).toHaveTextContent("overdue");
+  });
+
+  it("AC-2: an unresolved cadence names the reason in words and never reads as fresh", () => {
+    const Wrapper = makeWrapper();
+    const lead: LeadRosterEntry = {
+      ...UNMEASURED_LEAD,
+      now: {
+        state: "resting",
+        lastRun: {
+          measured: true,
+          lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          staleness: "unknown",
+          cadenceUnresolvedReason: "invalid_cron",
+        },
+      },
+    };
+    render(
+      <Wrapper>
+        <LeadCard lead={lead} />
+      </Wrapper>,
+    );
+    const nowLine = screen.getByTestId("lead-now-resting");
+    expect(nowLine).toHaveTextContent(/cadence schedule invalid/);
+    expect(nowLine.textContent).not.toContain("Resting —");
+    // The header badge must not fabricate "overdue" for an unresolved cadence.
+    expect(screen.getByTestId("lead-status-badge")).toHaveTextContent("resting");
+  });
+
+  it("a lead with no cron trigger configured reads 'cadence not configured for this lead' (finding #10 — org_chart_invalid is overloaded server-side, but this code path only ever reaches it via a missing per-lead cron)", () => {
+    const Wrapper = makeWrapper();
+    const lead: LeadRosterEntry = {
+      ...UNMEASURED_LEAD,
+      now: {
+        state: "resting",
+        lastRun: {
+          measured: true,
+          lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          staleness: "unknown",
+          cadenceUnresolvedReason: "org_chart_invalid",
+        },
+      },
+    };
+    render(
+      <Wrapper>
+        <LeadCard lead={lead} />
+      </Wrapper>,
+    );
+    const nowLine = screen.getByTestId("lead-now-resting");
+    expect(nowLine).toHaveTextContent(/cadence not configured for this lead/);
+    expect(nowLine.textContent).not.toContain("org chart invalid");
+  });
+
+  it("staleness 'unknown' with NO cadenceUnresolvedReason still reads as unresolved, never as fresh (external-review fix — this arm is reachable and was previously undocumented)", () => {
+    const Wrapper = makeWrapper();
+    const lead: LeadRosterEntry = {
+      ...UNMEASURED_LEAD,
+      now: {
+        state: "resting",
+        lastRun: {
+          measured: true,
+          lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          staleness: "unknown",
+        },
+      },
+    };
+    render(
+      <Wrapper>
+        <LeadCard lead={lead} />
+      </Wrapper>,
+    );
+    const nowLine = screen.getByTestId("lead-now-resting");
+    expect(nowLine).toHaveAttribute("data-staleness", "unknown");
+    expect(nowLine).toHaveTextContent(/cadence unresolved/);
+    expect(nowLine.textContent).not.toContain("Resting —");
+  });
+
+  it("a fresh last run still reads 'Resting — Last active …' (no behavior change)", () => {
+    const Wrapper = makeWrapper();
+    const lead: LeadRosterEntry = {
+      ...UNMEASURED_LEAD,
+      now: {
+        state: "resting",
+        lastRun: {
+          measured: true,
+          lastRunAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          staleness: "fresh",
+        },
+      },
+    };
+    render(
+      <Wrapper>
+        <LeadCard lead={lead} />
+      </Wrapper>,
+    );
+    expect(screen.getByTestId("lead-now-resting")).toHaveTextContent(/Resting — Last active/);
+    expect(screen.getByTestId("lead-status-badge")).toHaveTextContent("resting");
   });
 });
 

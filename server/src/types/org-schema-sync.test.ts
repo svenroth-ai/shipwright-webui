@@ -207,10 +207,12 @@ describe("org-schema sync — discriminated unions (per-arm)", () => {
   it.each([
     "UsageResponse",
     "LeadNowState",
+    "LeadLastRunView",
     "LeadRoleView",
     "LeadCadenceView",
     "LastRunResponse",
     "BeatRegisterHealthResponse",
+    "LeadRegisterView",
   ])(
     "%s: every arm's discriminant AND field set matches between server and client",
     (name) => {

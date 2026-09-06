@@ -30,6 +30,7 @@ const UNMEASURED_LEAD: LeadRosterEntry = {
   now: { state: "not-measured" },
   cadence: { measured: false },
   usage: { leadId: "acme-lead", measured: false },
+  register: { leadId: "acme-lead", status: "clear" },
 };
 
 describe("LeadCard — consumed-spend label + gap disclosure (FR-04.30)", () => {

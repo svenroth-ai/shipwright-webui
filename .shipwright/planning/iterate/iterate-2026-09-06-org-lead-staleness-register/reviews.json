@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-org-lead-staleness-register",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:59:07.553275+00:00",
+      "disposition": null,
+      "recorded_by": "self-review-checklist",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "codex+openrouter",
+      "completed_at": "2026-09-06T06:55:07.760409+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] Design sound overall (sibling field over union arm decision, unknown-degrade reversal correct). Findings: mini-plan/spec disagree on component structure (LeadRegisterFinding split vs inline) - pick one; window.prompt E2E needs explicit dialog-handler documentation or it will hang; staleness unknown-without-reason case underspecified - what does it render; shared base fixture coverage across 3 sibling test files should be confirmed; audit writer's handling of arbitrary reason strings likely already safe via the existing secret-gated route; two independent deps-defaulting sites (per-route) for lstat/lockOptions/now is drift risk given finding #5's own stated rationale; new route's own tests are thin relative to handleReleaseRequest being new code.\n\nSHIPWRIGHT_VERDICT: approve\n\n[openai] 1. Category: approach, Severity: medium. Finding: The mini-plan conflicts with the revised design in several implementation-significant places: inline vs separate LeadRegisterFinding, confirm vs window.prompt, and extending org-page.spec.ts vs adding a sibling E2E spec. This leaves the intended test/component boundaries ambiguous. Suggestion: Make the post-review design authoritative and update the mini-plan sections to match it before implementation.\n\n2. Category: edge-case, Severity: medium. Finding: cadenceUnresolvedReason is optional while staleness: unknown is displayable. A response with unknown staleness but no reason could fall through to fresh/resting wording or render an empty explanation. Suggestion: Define and test a neutral fallback such as 'Last active ... - cadence unavailable'; unknown must never use the fresh/resting presentation.\n\n3. Category: risk, Severity: medium. Finding: A register finding can become stale between roster fetch and Release: another operator may release it, or the register may change. The plan displays the error but only invalidates on 200, leaving a stale open finding after a 404/409 response. Suggestion: Invalidate/refetch the roster after any terminal release response that may reflect changed state, including not-found/already-closed/conflict, while retaining an explanatory message if useful.\n\n4. Category: security, Severity: medium. Finding: requireChartLead prevents unknown lead IDs, but the plan does not explicitly state that sessionId is resolved only within the selected lead's register and is never used in path construction. A path/body mismatch must not permit releasing another lead's entry. Suggestion: Ensure handleReleaseRequest/performRelease derives the register path solely from the validated route leadId, verifies the requested session belongs to that register, and add a cross-lead mismatch test.\n\n5. Category: dependency, Severity: low. Finding: The E2E flow depends on native prompt handling and real f […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/org/LeadRegisterFinding.tsx",
+          "line": null,
+          "finding": "LeadRegisterFinding.tsx's error/releasing state was not reset when the register entry's identity changed between renders (e.g. a new open entry for the same lead after a roster refetch), risking a stale error message misattributed to the wrong entry. Fixed: added a useEffect keyed on a status+sessionId identity key that resets both error and releasing.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test-coverage",
+          "file": "server/src/routes/__tests__/org-leads-staleness-register.test.ts",
+          "line": null,
+          "finding": "The corrupt-JSON regression test in org-leads-staleness-register.test.ts asserted only 'register', missing the 'now' === not-measured assertion the spec claimed was covered. Fixed: added the missing assertion, mirroring the symlink test above it.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test-coverage",
+          "file": "client/src/components/org/LeadRegisterFinding.test.tsx",
+          "line": null,
+          "finding": "No test covered the thrown-ApiError catch branch of handleRelease in LeadRegisterFinding.tsx (covering sessionId_invalid/symlink_forbidden/beat_register_locked/beat_register_invalid). Fixed: added a test using mockedRelease.mockRejectedValue(new ApiError(...)) asserting the error code renders, the button re-enables, and invalidateQueries still runs.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "file-size",
+          "file": "client/src/lib/orgApi.ts",
+          "line": null,
+          "finding": "orgApi.ts is 309-310 lines, over the project's 300-line convention, contradicting the Self-Review's claim that every touched file was under 300.",
+          "suggestion": "Not split: every type declared in orgApi.ts is individually bound to that exact file path by org-schema-sync.test.ts's hardcoded CLIENT_PATH, so the only safely-extractable content is ~90 lines of fetcher functions, which would require retargeting imports and vi.mock() targets across roughly 10 unrelated consumer files for a 9-line overage unrelated to this task's scope. Resolved by correcting the iterate spec's Self-Review section to document this as a deliberate, cited exception instead.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "documentation",
+          "file": "client/src/components/org/leadNowDisplay.tsx",
+          "line": null,
+          "finding": "statusBadge's doc comment (and the iterate spec) claimed it mirrors NowLine's three-way fresh/stale/unknown split; the code only implements a binary split (stale->overdue, everything else including unknown->resting).",
+          "suggestion": "fixed — corrected the doc comment on statusBadge and the spec's Design Notes point 5 to accurately describe the binary split and why the unknown-cadence detail lives only in NowLine, not the header badge",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:17:21.836553+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "boundary_and_contract",
+          "file": "client/src/components/org/LeadRegisterFinding.tsx",
+          "line": null,
+          "finding": "Claim under doubt: LeadRegisterFinding's status branching safely covers every LeadRegisterView the server can ever send — There is no exhaustive/default arm after clear/unknown/fault — the final branch assumes status === 'open' and destructures `register.entry` unconditionally. If the server ever added a 5th status arm (or the two sides drifted), `entry` would be `undefined` and the render (`entry.startedAt`, `entry.beatId`) would throw, crashing the whole LeadCard with no visible error boundary in this component tree.",
+          "suggestion": "Fixed: added an explicit exhaustiveness check (`never` assertion) in LeadRegisterFinding.tsx before the open-status render, so a future 5th status arm throws a caught type error instead of an undefined-property crash deep in render.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:23:09.547457+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/org/LeadRegisterFinding.test.tsx` (~line 100–115, the \"cancelling the reason prompt\" test)",
+          "line": null,
+          "finding": "The spec (Design Notes point 7) explicitly claims \"an empty/whitespace-only reason is rejected client-side before the call.\" The test suite covers the `prompt → null` (cancel) path but never covers the `prompt → \"\"` or `prompt → \"   \"` path. The implementation does have the `trimmed.length === 0` guard in `LeadRegisterFinding.tsx`, but nothing proves it — a regression that removed the trim/empty check (sending the raw empty string to the server, which would then 400) would pass every test in this file.",
+          "suggestion": "Add one test: stub `prompt` to return `\"   \"`, click release, assert `mockedRelease` was not called and `lead-register-release-error` is visible.  2. Category: bug — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/org/LeadRegisterFinding.tsx:36–42` (the `identityKey` effect)",
+          "line": null,
+          "finding": "The effect resets `setReleasing(false)` on identity change, but a roster refetch (the 5-minute interval, or a prior invalidation) can swap the open entry while a release request is still in flight (e.g., the register lock is held, or the fs is slow). The button re-enables mid-flight, and a second click fires a second concurrent `POST` for the new entry while the first is unresolved. The double-click-during-prompt race is mostly serialized by the modal `window.prompt`, but this refetch-during-hung-request window is real.",
+          "suggestion": "Reset only `error` in the effect, not `releasing`; or use a ref to track the in-flight request so an identity change can't re-arm the button while a request is pending.  3. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/lib/orgRegisterApi.ts:38–43",
+          "line": null,
+          "finding": "Any 404 — including a non-route Hono default 404 with an unparseable body — maps to `{ok:false, reason:\"not-found\", detail:\"\"}`, and `LeadRegisterFinding` then renders `\"Could not release: \"` with a trailing empty detail. Cosmetic only (the invalidation still runs, so the stale-finding race the fix targets is still handled), but the message reads as a server \"not found\" verdict even when the 404 is a client-side URL/proxy bug.",
+          "suggestion": "Fall back `detail` to something like `` `HTTP ${r.status}` `` when the body has no `detail` string, as the error-code path already does.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "[beat-register-release-request.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-427k6hhg/server/src/external/org/beat-register-release-request.ts:71)",
+          "line": null,
+          "finding": "Server-side validation accepts a whitespace-only `reason`. The UI trims it, but callers can invoke the new browser-facing endpoint directly with `\"   \"`, force a release, and create an audit record with no meaningful operator-authored justification—contrary to the release-reason requirement.",
+          "suggestion": "Validate `reason.trim()` for 1–500 characters (and pass the trimmed value to `performRelease`); add a route test that whitespace-only input returns `400 reason_invalid`.  Ship-with-fixes: the implementation otherwise covers the requested data shaping, rendering, failure degradation, and release flow, but the server must enforce the audit-reason invariant rather than relying on the browser.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T07:31:52.118665+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: test — Severity: low**\nFile: `client/src/components/org/LeadRegisterFinding.test.tsx` (~line 100–115, the \"cancelling the reason prompt\" test)\nFinding: The spec (Design Notes point 7) explicitly claims \"an empty/whitespace-only reason is rejected client-side before the call.\" The test suite covers the `prompt → null` (cancel) path but never covers the `prompt → \"\"` or `prompt → \"   \"` path. The implementation does have the `trimmed.length === 0` guard in `LeadRegisterFinding.tsx`, but nothing proves it — a regression that removed the trim/empty check (sending the raw empty string to the server, which would then 400) would pass every test in this file.\nSuggestion: Add one test: stub `prompt` to return `\"   \"`, click release, assert `mockedRelease` was not called and `lead-register-release-error` is visible.\n\n**2. Category: bug — Severity: low**\nFile: `client/src/components/org/LeadRegisterFinding.tsx:36–42` (the `identityKey` effect)\nFinding: The effect resets `setReleasing(false)` on identity change, but a roster refetch (the 5-minute interval, or a prior invalidation) can swap the open entry while a release request is still in flight (e.g., the register lock is held, or the fs is slow). The button re-enables mid-flight, and a second click fires a second concurrent `POST` for the new entry while the first is unresolved. The double-click-during-prompt race is mostly serialized by the modal `window.prompt`, but this refetch-during-hung-request window is real.\nSuggestion: Reset only `error` in the effect, not `releasing`; or use a ref to track the in-flight request so an identity change can't re-arm the button while a request is pending.\n\n**3. Category: edge-case — Severity: low**\nFile: `client/src/lib/orgRegisterApi.ts:38–43`\nFinding: Any 404 — including a non-route Hono default 404 with an unparseable body — maps to `{ok:false, reason:\"not-found\", detail:\"\"}`, and `LeadRegisterFinding` then renders `\"Could not release: \"` with […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: [beat-register-release-request.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-427k6hhg/server/src/external/org/beat-register-release-request.ts:71)\n- Finding: Server-side validation accepts a whitespace-only `reason`. The UI trims it, but callers can invoke the new browser-facing endpoint directly with `\"   \"`, force a release, and create an audit record with no meaningful operator-authored justification—contrary to the release-reason requirement.\n- Suggestion: Validate `reason.trim()` for 1–500 characters (and pass the trimmed value to `performRelease`); add a route test that whitespace-only input returns `400 reason_invalid`.\n\nShip-with-fixes: the implementation otherwise covers the requested data shaping, rendering, failure degradation, and release flow, but the server must enforce the audit-reason invariant rather than relying on the browser.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T07:02:12.806948+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T06:46:19.199663+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

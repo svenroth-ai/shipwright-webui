@@ -3,7 +3,10 @@
  * (iterate-2026-08-18-org-route-beat-register, V4a-2B point 4.4), split out
  * of `beat-register-release.ts` (the Hono route shell) to stay under the
  * 300-line file guideline. The `beat_recovered` audit-append half is split
- * further into `beat-register-release-audit.ts` for the same reason.
+ * further into `beat-register-release-audit.ts`, and the request-validation
+ * + status-mapping half shared by both route shells into
+ * `beat-register-release-request.ts` (iterate-2026-09-06-org-lead-
+ * staleness-register), for the same reason.
  *
  * A JSON-safe MIRROR of leadwright's `lib/beat-register.ts`
  * `recoverRegisterEntry` — not an import, cross-repo — matching its
