@@ -1,15 +1,22 @@
 /*
  * OrgSharedDocs — the `.rost` shared-documents block (AC-1, between the
  * chart and the lead cards): GET/view-only tiles for `org-chart.json`,
- * `conventions.md`, `principal.md`, `decision_log.md`. Editing any of these
- * is out of scope this iterate (see the iterate spec's Out of Scope) — every
- * tile opens the same read-only `OrgDocViewerModal`, never a write path.
+ * `conventions.md`, `principal.md`, `decision_log.md`. Editing any of the
+ * four is out of scope (see the iterate spec's Out of Scope) — each opens
+ * the same read-only `OrgDocViewerModal`, never a write path.
+ *
+ * A fifth tile, `decisions-proposed.md` (FR-01.71 (F), iterate-2026-09-06-
+ * decisions-proposed-countersign), is DELIBERATELY different: it opens the
+ * dedicated, write-capable `OrgDecisionsProposedModal` instead — parsed
+ * entries with a Countersign button each, never the generic viewer (which
+ * stays read-only-only, per its own doc comment).
  */
 
 import { useState } from "react";
 
 import { fetchOrgChart, fetchOrgFileText } from "../../lib/orgApi";
 import { OrgDocViewerModal } from "./OrgDocViewerModal";
+import { OrgDecisionsProposedModal } from "./OrgDecisionsProposedModal";
 
 interface Tile {
   path: string;
@@ -56,6 +63,7 @@ const TILES: Tile[] = [
 
 export function OrgSharedDocs() {
   const [openTile, setOpenTile] = useState<Tile | null>(null);
+  const [decisionsProposedOpen, setDecisionsProposedOpen] = useState(false);
 
   return (
     <div className="rost" data-testid="org-shared-docs">
@@ -77,6 +85,20 @@ export function OrgSharedDocs() {
             </button>
           </div>
         ))}
+        <div className="dtile">
+          <span className="dn">
+            <span className="t">decisions-proposed.md</span>
+          </span>
+          <span className="dm">Waiting decisions</span>
+          <button
+            type="button"
+            className="da"
+            data-testid="org-shared-doc-view-decisions-proposed.md"
+            onClick={() => setDecisionsProposedOpen(true)}
+          >
+            View
+          </button>
+        </div>
       </div>
       {openTile && (
         <OrgDocViewerModal
@@ -86,6 +108,12 @@ export function OrgSharedDocs() {
           queryKey={["org", "shared-doc", openTile.path]}
           fetcher={openTile.fetcher}
           renderAs={openTile.renderAs}
+        />
+      )}
+      {decisionsProposedOpen && (
+        <OrgDecisionsProposedModal
+          open={decisionsProposedOpen}
+          onOpenChange={setDecisionsProposedOpen}
         />
       )}
     </div>

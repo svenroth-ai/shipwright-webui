@@ -118,7 +118,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | FR-01.31 | PLT | Network access profile | Should | By default the app's servers are reachable only from the same machine, for safety. Reaching them from other devices on your LAN or over Tailscale is opt-in: one network-profile setting flips both halves of the app to a matching, coherent access mode at once. | backfill (iterate-2026-05-16) |
 | FR-01.49 | PLT | npx installer / updater | Should | One installer command that both installs and updates the whole system (the Shipwright plugins and the Command Center), first run and every run after. It checks prerequisites up front and refuses loudly if a required tool (Claude, Python, Node, git) is missing, rather than leaving a broken install. It never starts a Claude session; if the app is already running it attaches to a same-or-newer one, safely swaps an older one, and leaves an unrelated program on the port untouched. | iterate-2026-07-10-npx-bootstrapper |
 | FR-01.70 | PLT | Leads org route | Should | A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file.<br>**Updates:** Gained the runtime-store half of the leadwright coordination contract — a release action for a hung beat-register entry (mirrors leadwright's own recovery contract exactly, one audit line per release, idempotent on retry), a per-lead last-run timestamp with server-computed staleness (3× that lead's own cron cadence, never a hardcoded interval), and an open-register finding (clear / open / fault-on-duplicate-sessionId). | iterate-2026-08-17-org-route-leads + iterate-2026-08-18-org-route-beat-register |
-| FR-01.71 | PLT | Organization overview for AI leads | Should | The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it — the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface. The card's spend stat is labelled as consumed spend (never "budget"), names the un-counted subagent-spend share, surfaces unpriced-call counts, and distinguishes a no-data/partial/complete measurement window (iterate-2026-09-03-budget-display-usage-widen). | iterate-2026-08-26-org-page + iterate-2026-09-01-org-thread-view + iterate-2026-09-03-org-thread-live-source + iterate-2026-09-03-budget-display-usage-widen |
+| FR-01.71 | PLT | Organization overview for AI leads | Should | The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it — the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface. The card's spend stat is labelled as consumed spend (never "budget"), names the un-counted subagent-spend share, surfaces unpriced-call counts, and distinguishes a no-data/partial/complete measurement window (iterate-2026-09-03-budget-display-usage-widen). The shared-documents block gained a fifth tile for `decisions-proposed.md` (parsed into entries, never dumped raw) with a Countersign button per entry — the plain surface's third browser-reachable write, sharing the existing gated route's own core action (iterate-2026-09-06-decisions-proposed-countersign). | iterate-2026-08-26-org-page + iterate-2026-09-01-org-thread-view + iterate-2026-09-03-org-thread-live-source + iterate-2026-09-03-budget-display-usage-widen + iterate-2026-09-06-decisions-proposed-countersign |
 
 ## FR-Fold-Map
 
@@ -1272,6 +1272,25 @@ write surface; gated, path-guarded, and concurrency-safe.
   derived solely from the route's own chart-validated `leadId`, never the
   request body, so a sessionId belonging to a different lead's register
   is refused 404, never releases across leads.
+- (F) **(iterate-2026-09-06-decisions-proposed-countersign)** The
+  shared-documents block renders a fifth tile for `decisions-proposed.md`,
+  parsed into its header-delimited entries client-side (never dumped raw):
+  each shows what was proposed, by which lead, when, and its evidence
+  pointer when the body carries one. A file with no entries shows an
+  explicit "no decisions waiting" state, never a blank modal. Each entry
+  gets a Countersign button, issuing `POST /api/org/decisions/countersign`
+  — the plain surface's THIRD browser-reachable write, sharing the same
+  `handleCountersignRequest` core the existing gated
+  `/api/external/org/decisions/countersign` route uses (same validation,
+  same status mapping, same lock/mutate action) — never a second
+  implementation. On success the assigned `ADR-NNNN` number is shown and
+  both this view and the `decision_log.md` tile refresh. `409
+  duplicate_proposal_identity` reads as "two proposals share an identity,
+  resolve by hand", distinct from an idempotent retry that finds the entry
+  already logged (shows the existing number, not an error). The charter
+  PUT's 403 refusal of `decision_log.md` / `decisions-proposed.md` (C) is
+  unchanged — countersign is the only write this iterate adds for either
+  file, and no lead-side write path exists.
 
 ## Quality Requirements
 

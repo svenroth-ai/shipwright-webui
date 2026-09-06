@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-decisions-proposed-countersign",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:25:49.270573+00:00",
+      "disposition": null,
+      "recorded_by": "main-session",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:26:04.905019+00:00",
+      "disposition": "External/mini-plan LLM review is skip at small complexity per the Phase Matrix (Iterate Spec/Mini-Plan/External LLM Review row) — this run is small",
+      "recorded_by": "main-session",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": 204,
+          "finding": "DecisionEntryRow renders the proposal body in a bare <pre> instead of through DocumentMarkdown, the pipeline every other OrgSharedDocs tile uses -- including decision_log.md, which renders the SAME body text (byte-preserved by toLoggedBlock) one click later, through DocumentMarkdown's sanitized rehype-raw pipeline. The 'untrusted body' rationale doesn't hold since the trust level doesn't change pre/post countersign. The client's own EVIDENCE_LINE_RE expects markdown bold syntax (- **Evidence:**), confirming the body is authored as markdown and renders wrong (literal asterisks/hashes) in a <pre>.",
+          "suggestion": "Render entry.block (minus its header line) through DocumentMarkdown for consistency with decision_log.md's rendering of the same content, or document explicitly why this one tile is exempt.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": 204,
+          "finding": "The row's own summary line already shows {timestamp} - {leadId}, then the raw block underneath repeats the identical header (## [<ts>] <leadId>) as unrendered text.",
+          "suggestion": "Strip the first line of block before display (or add a header-stripped 'body' field to ProposedDecisionEntry) so the identity is shown once.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": 46,
+          "finding": "entryKey = `${timestamp}|${leadId}` is used as both the React list key and the statuses map key, but the server explicitly allows two distinct proposals to share (timestamp, leadId) (duplicate_identity). Two such entries in the list would collide on React key (console warning, possible DOM node reuse) and share one status slot.",
+          "suggestion": "Include the array index in the key, e.g. `${timestamp}|${leadId}|${i}`, so duplicate-identity entries still render as distinct rows.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T15:40:26.941044+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "reversibility",
+          "file": "server/src/external/org/countersign-core.ts",
+          "line": null,
+          "finding": "Claim under doubt: the duplicate_identity fix means a (timestamp, leadId) collision can no longer cause a proposal to be silently discarded — performCountersign's idempotent-retry branch only guarded the count>1 case; a single still-proposed match sharing an already-logged identity was assumed to be safe residual cleanup without comparing bodies, so a genuinely distinct later proposal reusing the identity would be silently deleted and reported as already-countersigned under the old ADR number.",
+          "suggestion": "FIXED: compare bodyAfterHeader(stillProposed.block) against bodyAfterHeader(existing.block); a mismatch now returns duplicate_identity instead of deleting. Added a regression test in countersign.test.ts covering exactly this scenario.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": null,
+          "finding": "Claim under doubt: the Stage-2 fix (index-based entryKey) closes the duplicate-identity collision on the client — every data-testid inside DecisionEntryRow still interpolated only timestamp-leadId with no index, so two duplicate-identity rows still collided on every testid even though the React key/status map key was fixed.",
+          "suggestion": "FIXED: DecisionEntryRow now takes a rowKey prop (the same index-inclusive entryKey) and every data-testid uses it. Added a test rendering two duplicate-identity entries asserting independently addressable rows/buttons/result banners.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/org/OrgDecisionsProposedModal.tsx",
+          "line": null,
+          "finding": "Claim under doubt: per-row transient UI state (pending/error/duplicate banners) is stable across a refetch triggered by an unrelated row's action — statuses is keyed by array index; a refetch after a sibling row's success/not-found shifts indices, orphaning another row's non-idle status back to idle.",
+          "suggestion": "REBUTTAL (not fixed): documented inline next to entryKey. Cosmetic staleness only (a banner resets, no data loss or wrong action), underlying file state is always correct, and reproducing it requires one row mid-error while a sibling independently succeeds in the same instant. Deferred rather than adding a second keying scheme.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/external/org/countersign-request.ts",
+          "line": null,
+          "finding": "Claim under doubt: ISO_TIMESTAMP_RE rejects any non-canonical timestamp before it reaches performCountersign — the regex's trailing $ (no /m flag) still matches just before a single trailing newline, so '<valid-ts>\\n' passed validation and only failed later, less precisely, as proposal_not_found.",
+          "suggestion": "FIXED: reject timestamp.includes(\"\\n\") explicitly before the regex test, so it 400s as timestamp_invalid.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T15:55:53.115817+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:26:05.126940+00:00",
+      "disposition": "External LLM code review is skip at small complexity per the Phase Matrix — the internal spec/code/doubt subagent cascade runs instead (touches_public_api risk flag)",
+      "recorded_by": "main-session",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:31:06.569577+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T15:26:05.016589+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "main-session",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

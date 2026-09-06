@@ -25,19 +25,15 @@
  *     resolve to a non-`charter` kind (AC-10) — in particular
  *     `decision_log.md` / `decisions-proposed.md`, which stay lock-guarded
  *     on the existing gated route only.
- *   POST /api/org/leads/:leadId/beat-register/release — the SECOND browser
- *     write (iterate-2026-09-06-org-lead-staleness-register, FR-04.41):
- *     force-closes one open beat-register entry, mirroring the secret-gated
- *     route's contract exactly via the shared `handleReleaseRequest` core
- *     (`beat-register-release-request.ts`) — same validation, same status
- *     mapping, same `performRelease` lock/mutate/audit action. Gated by
- *     `requireChartLead` BEFORE body parsing (an unregistered leadId never
- *     reaches the register at all).
+ *   POST /api/org/leads/:leadId/beat-register/release,
+ *   POST /api/org/decisions/countersign — the second and third browser
+ *     writes; see `org-writes.ts`, which owns both (split out once this
+ *     file crossed the 300-line convention).
  */
 
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 
-import { isAllowedOrgRouteHost, resolveOrgAllowlistedTarget, LEAD_ID_RE } from "../external/org/_helpers.js";
+import { isAllowedOrgRouteHost, resolveOrgAllowlistedTarget } from "../external/org/_helpers.js";
 import { orgChartCore } from "../external/org/org-chart.js";
 import { readAllLeadOrgInfo, type LeadOrgInfoResult } from "../external/org/org-chart-lookup.js";
 import { orgFileReadCore, type OrgFileReadDeps } from "../external/org/file-read.js";
@@ -47,7 +43,8 @@ import { buildOrgThreads, type TaskTitleLookup } from "./org-threads-composite.j
 import { leadLearningsReadCore, type LeadDocReadDeps } from "../external/org/lead-doc-read.js";
 import { auditLogCore, type AuditLogDeps } from "../external/org/audit-log.js";
 import type { BeatRegisterLockOptions } from "../external/org/beat-register-release-core.js";
-import { handleReleaseRequest } from "../external/org/beat-register-release-request.js";
+import { requireChartLead } from "./org-chart-lead-guard.js";
+import { registerOrgWriteActions } from "./org-writes.js";
 import type { LeadsRosterResponse } from "../types/org.js";
 
 const NO_TASKS: TaskTitleLookup = { get: () => undefined };
@@ -146,48 +143,14 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
     return c.body(new Uint8Array(result.body), result.status);
   });
 
-  // Code-review fix (LOW, consistency): the charter PUT route below refuses
-  // an unregistered leadId (the HIGH external-review fix); these two GET
-  // routes previously only shape-checked the leadId and never checked chart
-  // membership, so a stale/decommissioned lead directory left on disk would
-  // still serve through the browser-facing proxy. Same posture, both verbs.
-  //
-  // Doubt-review fix (HIGH, security): a shape-invalid RAW leadId must be
-  // REJECTED here, never deferred to a downstream core's own check. That
-  // deferral was safe for the two GET routes (their cores re-validate the
-  // SAME raw string), but not for the PUT charter route below:
-  // `resolveOrgAllowlistedTarget` derives its OWN, more lenient "leadId" by
-  // slicing the path.resolve()-normalized absolute path, and Hono decodes a
-  // `%2f` in the route param (but not in path segmentation) — so a raw
-  // leadId of `"ghost-lead/"` (from the URL `ghost-lead%2f`) normalizes to
-  // the clean, registered `"acme-lead"`-shaped target while `LEAD_ID_RE`
-  // (correctly) rejects the RAW string with its trailing slash. Deferring
-  // on that rejection let the write proceed with NO chart-membership check
-  // at all. `LEAD_ID_RE` matches only `[a-z0-9][a-z0-9-]*` — no `/` or `.`
-  // — so a raw string that passes it can never diverge from its own
-  // path-normalized form; rejecting here closes the whole class, not just
-  // the one PoC. Same 400 `invalid_lead_id` shape the GET routes' cores
-  // already used, so their existing 400 contract is unchanged.
-  function requireChartLead(c: Context, leadId: string) {
-    if (!LEAD_ID_RE.test(leadId)) {
-      return { ok: false as const, response: c.json({ error: "invalid_lead_id" }, 400) };
-    }
-    const chart = orgChartCore({ leadsRoot, lstatSync: deps.lstatSync });
-    if (chart.status !== 200) {
-      return { ok: false as const, response: c.json(chart.body, chart.status) };
-    }
-    if (!Object.hasOwn(chart.body.leads, leadId)) {
-      return {
-        ok: false as const,
-        response: c.json({ error: "unknown_lead", detail: "leadId is not a chart entry" }, 403),
-      };
-    }
-    return { ok: true as const };
-  }
+  // Every `:leadId`-scoped route below shares ONE chart-membership check —
+  // see `org-chart-lead-guard.ts` for the full rationale (moved there once
+  // this file crossed the 300-line convention).
+  const chartLeadDeps = { leadsRoot, lstatSync: deps.lstatSync };
 
   app.get("/api/org/leads/:leadId/learnings", async (c) => {
     const leadId = c.req.param("leadId");
-    const gate = requireChartLead(c, leadId);
+    const gate = requireChartLead(c, leadId, chartLeadDeps);
     if (!gate.ok) return gate.response;
     const leadDeps: LeadDocReadDeps = { leadsRoot, openSync: deps.openSync };
     const result = leadLearningsReadCore(leadDeps, leadId);
@@ -202,7 +165,7 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
 
   app.get("/api/org/leads/:leadId/audit", async (c) => {
     const leadId = c.req.param("leadId");
-    const gate = requireChartLead(c, leadId);
+    const gate = requireChartLead(c, leadId, chartLeadDeps);
     if (!gate.ok) return gate.response;
     const auditDeps: AuditLogDeps = { leadsRoot, openSync: deps.openSync };
     const beforeRaw = c.req.query("before");
@@ -243,7 +206,7 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
     // have a charter.md written (and later read back through the same
     // allowlist) with no corresponding org-chart.json entry. Require the
     // lead to be a real roster member before the write proceeds.
-    const gate = requireChartLead(c, leadId);
+    const gate = requireChartLead(c, leadId, chartLeadDeps);
     if (!gate.ok) return gate.response;
 
     const writeDeps: OrgFileWriteDeps = {
@@ -260,31 +223,12 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
     return c.json(result.body, result.status as 200 | 400 | 403 | 404 | 409 | 413 | 500);
   });
 
-  app.post("/api/org/leads/:leadId/beat-register/release", async (c) => {
-    const leadId = c.req.param("leadId");
-    // Gate BEFORE any body parsing (finding #11) — an unregistered leadId
-    // never reaches the register lock/read/write at all.
-    const gate = requireChartLead(c, leadId);
-    if (!gate.ok) return gate.response;
-
-    let body: unknown;
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json({ error: "invalid_json" }, 400);
-    }
-
-    // `handleReleaseRequest` owns the `lstatSync`/`lockOptions`/`now`
-    // defaulting itself (external-review fix, GLM: two independent
-    // defaulting sites for the same deps is the drift risk finding #5
-    // already extracted this function to prevent) — pass deps through
-    // unresolved.
-    const result = await handleReleaseRequest(
-      { leadsRoot, lstatSync: deps.lstatSync, lockOptions: deps.releaseLockOptions, now: deps.now },
-      leadId,
-      body,
-    );
-    return c.json(result.body, result.status);
+  registerOrgWriteActions(app, {
+    leadsRoot,
+    lstatSync: deps.lstatSync,
+    withDecisionsLock: deps.withDecisionsLock,
+    now: deps.now,
+    releaseLockOptions: deps.releaseLockOptions,
   });
 
   return app;
