@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-decisions-proposed-countersign",
+  "date": "2026-09-06",
+  "section": "Iterate — feature: decisions-proposed.md countersign browser surface",
+  "title": "Decisions-proposed.md countersign — browser surface",
+  "context": "PO had no browser way to see/countersign AI-lead decision proposals; only the secret-gated API or terminal could.",
+  "decision": "Add a fifth OrgSharedDocs tile parsing decisions-proposed.md client-side; its Countersign button calls a new plain route sharing the gated route's exact performCountersign/handleCountersignRequest core.",
+  "consequences": "PO can countersign from the browser without the secret; one implementation proven shared by a cross-mount test; charter PUT's 403 on decision files stays pinned by a new regression test.",
+  "rationale": "Mirrors the beat-register/release one-core-two-mounts precedent so the shared-core proof is meaningful; client-side parsing avoids a second server-side definition of decisions-lock.ts's own transfer format.",
+  "rejected": "A typed JSON GET endpoint pre-parsing entries server-side was rejected as duplicate logic with no behavioral gain over parsing the existing raw-text /api/org/file response.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-06-decisions-proposed-countersign.md"
+}

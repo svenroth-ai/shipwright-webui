@@ -66,6 +66,20 @@ describe("POST /api/external/org/decisions/countersign", () => {
     },
   );
 
+  it(
+    "doubt-review fix (LOW): a valid timestamp with a trailing newline 400s as " +
+      "timestamp_invalid instead of passing the boundary check (JS regex `$` " +
+      "matches before a single trailing newline even without the /m flag)",
+    async () => {
+      const res = await post(app(), {
+        timestamp: "2026-08-17T09:00:00.000Z\n",
+        leadId: "acme-lead",
+      });
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toBe("timestamp_invalid");
+    },
+  );
+
   it("moves exactly one entry: decision_log grows, decisions-proposed shrinks by the same entry", async () => {
     writeFileSync(
       path.join(leadsRoot, "decisions-proposed.md"),
@@ -224,6 +238,39 @@ describe("POST /api/external/org/decisions/countersign", () => {
       const proposed = readFileSync(path.join(leadsRoot, "decisions-proposed.md"), "utf8");
       expect(proposed).toContain("first distinct proposal");
       expect(proposed).toContain("second distinct proposal");
+    },
+  );
+
+  it(
+    "doubt-review fix (HIGH): an already-logged (timestamp, leadId) with a " +
+      "SINGLE still-proposed match whose BODY DIFFERS is a genuinely distinct " +
+      "proposal reusing the identity, not residual cleanup — 409s instead of " +
+      "silently deleting it and reporting the OLD ADR number",
+    async () => {
+      writeFileSync(
+        path.join(leadsRoot, "decision_log.md"),
+        "## ADR-0001 [2026-08-17T09:00:00.000Z] acme-lead\noriginal proposal\n",
+        "utf8",
+      );
+      writeFileSync(
+        path.join(leadsRoot, "decisions-proposed.md"),
+        "## [2026-08-17T09:00:00.000Z] acme-lead\na later, unrelated proposal\n",
+        "utf8",
+      );
+
+      const res = await post(app(), {
+        timestamp: "2026-08-17T09:00:00.000Z",
+        leadId: "acme-lead",
+      });
+      expect(res.status).toBe(409);
+      expect((await res.json()).error).toBe("duplicate_proposal_identity");
+
+      // Neither side was mutated — the distinct proposal survives for a
+      // human to resolve, instead of vanishing with no trace.
+      const proposed = readFileSync(path.join(leadsRoot, "decisions-proposed.md"), "utf8");
+      expect(proposed).toContain("a later, unrelated proposal");
+      const logged = readFileSync(path.join(leadsRoot, "decision_log.md"), "utf8");
+      expect(logged).toContain("original proposal");
     },
   );
 

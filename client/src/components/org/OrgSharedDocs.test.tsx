@@ -4,11 +4,19 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { OrgSharedDocs } from "./OrgSharedDocs";
 import { fetchOrgChart, fetchOrgFileText } from "../../lib/orgApi";
+import { fetchProposedDecisions } from "../../lib/orgDecisionsApi";
 
 vi.mock("../../lib/orgApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../lib/orgApi")>();
   return { ...actual, fetchOrgChart: vi.fn(), fetchOrgFileText: vi.fn() };
 });
+
+vi.mock("../../lib/orgDecisionsApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../lib/orgDecisionsApi")>();
+  return { ...actual, fetchProposedDecisions: vi.fn() };
+});
+
+const mockedFetchProposedDecisions = vi.mocked(fetchProposedDecisions);
 
 const mockedFetchOrgChart = vi.mocked(fetchOrgChart);
 const mockedFetchOrgFileText = vi.mocked(fetchOrgFileText);
@@ -28,12 +36,26 @@ function renderTiles() {
 }
 
 describe("OrgSharedDocs", () => {
-  it("renders all four document tiles", () => {
+  it("renders all five document tiles", () => {
     renderTiles();
     expect(screen.getByTestId("org-shared-doc-view-org-chart.json")).toBeInTheDocument();
     expect(screen.getByTestId("org-shared-doc-view-conventions.md")).toBeInTheDocument();
     expect(screen.getByTestId("org-shared-doc-view-principal.md")).toBeInTheDocument();
     expect(screen.getByTestId("org-shared-doc-view-decision_log.md")).toBeInTheDocument();
+    expect(screen.getByTestId("org-shared-doc-view-decisions-proposed.md")).toBeInTheDocument();
+  });
+
+  it("opens the dedicated write-capable modal for decisions-proposed.md, not the generic read-only viewer", async () => {
+    mockedFetchProposedDecisions.mockResolvedValue([]);
+    renderTiles();
+
+    fireEvent.click(screen.getByTestId("org-shared-doc-view-decisions-proposed.md"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("org-decisions-proposed-modal")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("org-doc-viewer-modal")).not.toBeInTheDocument();
+    expect(mockedFetchProposedDecisions).toHaveBeenCalled();
   });
 
   it("opens the markdown viewer for a markdown tile and fetches its text", async () => {

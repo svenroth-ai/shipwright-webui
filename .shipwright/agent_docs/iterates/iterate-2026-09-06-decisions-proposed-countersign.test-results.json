@@ -1,0 +1,150 @@
+{
+  "last_updated": "2026-09-06",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-06-decisions-proposed-countersign",
+    "date": "2026-09-06",
+    "unit": {
+      "status": "passed",
+      "passed": 7774,
+      "total": 7779
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 17,
+        "tested": 17,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      },
+      "behaviors": [
+        {
+          "behavior": "OrgSharedDocs renders a fifth decisions-proposed.md tile that opens a dedicated write-capable modal, not the generic read-only viewer",
+          "disposition": "tested",
+          "evidence": "OrgSharedDocs.test.tsx (renders all five tiles; opens dedicated modal)"
+        },
+        {
+          "behavior": "An empty/absent decisions-proposed.md shows an explicit 'No decisions waiting.' state, never a blank modal",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.test.tsx; E2E org-page.decisions-proposed.spec.ts (real 404 via not-found state)"
+        },
+        {
+          "behavior": "Entries are parsed client-side into lead/timestamp/evidence, header line not duplicated in the rendered body",
+          "disposition": "tested",
+          "evidence": "orgDecisionsApi.test.ts (parseProposedDecisions, body excludes header); OrgDecisionsProposedModal.test.tsx"
+        },
+        {
+          "behavior": "Countersign success shows the assigned ADR number and stays visible despite the immediate list refetch removing the entry (E2E-caught race)",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.test.tsx; E2E org-page.decisions-proposed.spec.ts (real browser, real files on disk)"
+        },
+        {
+          "behavior": "An idempotent retry (alreadyCountersigned) reads as a quiet already-done state, not an error",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.test.tsx; countersign.test.ts (server, number reused, never double-logged)"
+        },
+        {
+          "behavior": "409 duplicate_proposal_identity reads as 'two proposals share an identity, resolve by hand', distinct wording",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.test.tsx; countersign.test.ts (two independent 409 scenarios: initial-match and idempotent-retry paths)"
+        },
+        {
+          "behavior": "Two entries sharing an identity render as independently addressable rows/buttons/banners (doubt-review MEDIUM fix)",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.test.tsx (two duplicate-identity entries, distinct testids)"
+        },
+        {
+          "behavior": "A single still-proposed entry sharing an already-logged identity is only treated as safe cleanup when its body matches; a body mismatch 409s instead of silently deleting a distinct proposal (doubt-review HIGH fix)",
+          "disposition": "tested",
+          "evidence": "countersign.test.ts (new case: distinct body, already-logged identity)"
+        },
+        {
+          "behavior": "A timestamp with a trailing newline 400s as timestamp_invalid (doubt-review LOW fix)",
+          "disposition": "tested",
+          "evidence": "countersign.test.ts (new case)"
+        },
+        {
+          "behavior": "Countersign is shared, unforked logic: countersigning via the plain browser route is visible as already-countersigned via the gated route",
+          "disposition": "tested",
+          "evidence": "org-decisions-countersign.test.ts (cross-mount proof, one shared core)"
+        },
+        {
+          "behavior": "The charter PUT's 403 refusal of decision_log.md / decisions-proposed.md is unchanged (AC-10 invariant this iterate must not weaken)",
+          "disposition": "tested",
+          "evidence": "org-charter-write.test.ts (new pinning test)"
+        },
+        {
+          "behavior": "A symlinked decisions-proposed.md refuses the lock with 403 symlink_forbidden (pre-existing defense, exercised by the same shared core the new route now also calls)",
+          "disposition": "tested",
+          "evidence": "countersign.test.ts (existing case, unchanged)"
+        },
+        {
+          "behavior": "Lock contention (ELOCKED) surfaces as a retryable 409, not a bare 500",
+          "disposition": "tested",
+          "evidence": "countersign.test.ts (existing case, unchanged)"
+        },
+        {
+          "behavior": "countersignDecision client fetcher maps every server outcome (200/404/409/400) to a typed result or a thrown ApiError",
+          "disposition": "tested",
+          "evidence": "orgDecisionsApi.test.ts"
+        },
+        {
+          "behavior": "A 404 on countersign (resolved elsewhere meanwhile) reads distinctly and refetches the list",
+          "disposition": "tested",
+          "evidence": "OrgDecisionsProposedModal.test.tsx"
+        },
+        {
+          "behavior": "Full real-browser flow: Countersign moves the entry from decisions-proposed.md into decision_log.md on disk and the decision_log.md tile's own content reflects the new ADR (cross-tile cache invalidation)",
+          "disposition": "tested",
+          "evidence": "E2E org-page.decisions-proposed.spec.ts (isolated-stack, real files, real fetch, no mocks)"
+        },
+        {
+          "behavior": "org.ts split (org-chart-lead-guard.ts + org-writes.ts) preserves the existing beat-register/release route's behavior",
+          "disposition": "tested",
+          "evidence": "org-leads-beat-register-release.test.ts (existing suite, re-verified green after the split)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs client/e2e/flows/org-page.decisions-proposed.spec.ts --project=chromium",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "New feature+UI at small complexity, safety-enforced per the Phase Matrix. First run (exit 1) caught a real defect unit tests could not: the immediate post-success refetch unmounted the countersigned row before its 'Countersigned as ADR-NNNN' banner could ever be observed in a real browser. Fixed by pinning settled entries in view; re-run is green (2/2, real files on disk)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-06-decisions-proposed-countersign",
+    "commit": "8ec1fa5a6246e8855033bf21319159bee828da0a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -43,4 +43,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [spec — Root cause of the residual embedded-terminal table smear](iterate-2026-09-01-terminal-table-smear-root-cause.md)
 - [ADR: Chunk pty.write() to stop the macOS large-command hang](iterate-2026-09-05-terminal-large-command-chunked-pty-write-chunked-pty-write.md)
 - [Claim-authorized launch gets an explicit permission perimeter](iterate-2026-09-06-claim-launch-permission-perimeter.md)
+- [Decisions-proposed.md countersign — browser surface](iterate-2026-09-06-decisions-proposed-countersign.md)
 - [Surface server-computed staleness + beat-register findings on the org card](iterate-2026-09-06-org-lead-staleness-register.md)
