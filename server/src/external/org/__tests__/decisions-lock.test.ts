@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
+import * as lockfile from "proper-lockfile";
 
 import {
   parseProposedEntries,
@@ -11,6 +12,28 @@ import {
   toLoggedBlock,
   withDecisionsLock,
 } from "../decisions-lock.js";
+
+// Read independently from disk rather than importing `CLAIM_RECORD_LOCK_CONTRACT`
+// from `core/claim-record-lock.js` — external review finding (both GLM and
+// OpenAI): comparing against that module's own export is circular, since a
+// `decisions-lock.ts` bug that fed the wrong contract into the shared helper
+// would still pass a test asserting against the same helper's export. This
+// must land on the vendored JSON itself, same as `claim-record-lock.test.ts`.
+const vendoredContract = JSON.parse(
+  readFileSync(
+    path.join(import.meta.dirname, "..", "..", "..", "vendor", "leadwright", "claim-record-lock-contract.json"),
+    "utf-8",
+  ),
+) as { staleMs: number; realpath: boolean };
+
+// Forwarding mock (ESM namespaces are read-only — vi.spyOn can't wrap
+// `lockfile.lock` directly, see vitest#3300) so the test below can inspect
+// the options `withDecisionsLock` actually passes, while every other test
+// in this file still exercises the real proper-lockfile behavior.
+vi.mock("proper-lockfile", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("proper-lockfile")>();
+  return { ...actual, lock: vi.fn(actual.lock) };
+});
 
 describe("parseProposedEntries", () => {
   it("splits multiple entries at header boundaries", () => {
@@ -191,6 +214,43 @@ describe("withDecisionsLock — ensureFile does not clobber an existing path", (
       });
 
       expect(readFileSync(proposedPath, "utf8")).toBe("## [T] a\npre-existing content\n");
+    },
+  );
+});
+
+describe("withDecisionsLock — FR-04.28 contract values reach proper-lockfile.lock", () => {
+  let leadsRoot: string;
+
+  beforeEach(() => {
+    leadsRoot = mkdtempSync(path.join(tmpdir(), "org-lock-contract-fixture-"));
+    vi.mocked(lockfile.lock).mockClear();
+  });
+
+  afterEach(() => {
+    rmSync(leadsRoot, { recursive: true, force: true });
+  });
+
+  it(
+    "passes the PUBLISHED contract's stale/realpath (read from the vendored JSON, " +
+      "not the shared module's own export) — not retyped numbers — and no lockfilePath override",
+    async () => {
+      await withDecisionsLock({ leadsRoot }, () => {
+        // no-op — only the lock call's own options matter here
+      });
+
+      const proposedPath = path.join(leadsRoot, "decisions-proposed.md");
+      expect(vi.mocked(lockfile.lock)).toHaveBeenCalledWith(
+        proposedPath,
+        expect.objectContaining({
+          stale: vendoredContract.staleMs,
+          realpath: vendoredContract.realpath,
+        }),
+      );
+      const calledOptions = vi.mocked(lockfile.lock).mock.calls.at(-1)?.[1] as Record<
+        string,
+        unknown
+      >;
+      expect(calledOptions).not.toHaveProperty("lockfilePath");
     },
   );
 });

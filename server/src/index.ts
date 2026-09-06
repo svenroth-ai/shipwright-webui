@@ -21,7 +21,6 @@ import { serve } from "@hono/node-server";
 import fs from "fs";
 import { readFile, writeFile } from "fs/promises";
 import { execSync } from "node:child_process";
-import * as lockfile from "proper-lockfile";
 
 import { getConfig } from "./config.js";
 import { formatBindError } from "./lib/bind-errors.js";
@@ -40,6 +39,7 @@ import {
   getProfilesDir,
 } from "./core/profile-loader.js";
 import { evaluatePreviewCoherence } from "./core/preview-coherence.js";
+import { lockClaimRecordFile } from "./core/claim-record-lock.js";
 
 import { createProjectRoutes } from "./routes/projects.js";
 import { cascadeDeleteProjectTasks } from "./core/cascade-delete-project-tasks.js";
@@ -151,8 +151,8 @@ if (isMainModule) {
         );
       });
 
-      // Shared cross-process lock + file-exists guard.
-      const lockPath = async (p: string) => lockfile.lock(p, { retries: 3 });
+      // Shared cross-process lock + file-exists guard — FR-04.28 contract, see core/claim-record-lock.ts.
+      const lockPath = async (p: string) => lockClaimRecordFile(p, 3);
       const ensureFileExists = (p: string) => {
         if (!fs.existsSync(p)) fs.writeFileSync(p, "");
       };

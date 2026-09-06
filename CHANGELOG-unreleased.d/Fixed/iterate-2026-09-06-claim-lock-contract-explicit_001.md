@@ -1,0 +1,1 @@
+Server's sdk-sessions.json lock now states FR-04.28's stale/realpath values explicitly (vendored contract) instead of relying on proper-lockfile's defaults coincidentally matching leadwright's published contract

@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-claim-lock-contract-explicit",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T09:35:16.300447+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T09:35:28.547195+00:00",
+      "disposition": "Path B (CHANGE) at small complexity: mini-plan is FEATURE-only per the Phase Matrix, skipped for a CHANGE at this complexity",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/claim-record-lock.ts",
+          "line": 6,
+          "finding": "The module header comment framed the shared contract as feeding exactly two call sites, but index.ts's single lockPath factory (built from lockClaimRecordFile) is also shared by projects.json and settings.json, which leadwright does not touch. Functionally harmless today (proper-lockfile's own defaults already equal stale:10000/realpath:true) but a future contractVersion bump would silently also change locking for those two files.",
+          "suggestion": "Add a line to the header noting the wider blast radius.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T09:51:30.525675+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "adding a new runtime-required vendored JSON under server/src/vendor, wired only through copy-assets.mjs, is safely covered by the existing build/publish pipeline",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "the deferred-signal pattern in claim-record-lock-symlink.test.ts eliminates timing-dependence, not just narrows it",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": null,
+          "line": null,
+          "finding": "this change fully localizes the FR-04.28 lock-contract concern — a future edit can't drift the two call sites from each other",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-06T10:02:59.413248+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/claim-record-lock-symlink.test.ts` (~line 100–120, first `itRealSymlink` test)",
+          "line": null,
+          "finding": "The \"real path blocks alias\" assertion is timing-based and order-dependent. The test assumes the real-path lock lands within 30 ms (`await sleep(30)` before starting the alias attempt) and that the alias's retry loop then holds off until `real-exit`. On a slow/loaded CI runner, the alias lock can win the race and acquire first, flipping the observed order to `[\"alias-enter\", \"alias-exit\", \"real-enter\", \"real-exit\"]` (the real-path side only retries 3 times by default) — a spurious failure that says nothing about `realpath: true`.",
+          "suggestion": "Make the ordering deterministic: await the first `lockClaimRecordFile` promise to resolution (lock held) before starting the alias attempt, instead of a fixed 30 ms sleep. The `order` events can stay; only the launch sequencing needs to be awaited.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/core/claim-record-lock-symlink.test.ts` (~line 130–145, second `itRealSymlink` test)",
+          "line": null,
+          "finding": "The \"two different files never contend\" sanity check asserts `b-enter < a-exit` with only a 15 ms head start against an 80 ms hold. Heavy CI load can delay `b`'s lock past `a-exit` and fail the test spuriously. The property it wants (non-contention) doesn't need tight timing at all.",
+          "suggestion": "Assert that both locks complete and that `b-enter` occurs while `a` still holds (or simply that both succeed concurrently) with a wider margin, or record acquisition timestamps rather than racing fixed sleeps.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/org/__tests__/decisions-lock.test.ts` (~line 218–240)",
+          "line": null,
+          "finding": "The callsite test compares the options `withDecisionsLock` passes against `CLAIM_RECORD_LOCK_CONTRACT` (the shared module's own export), not against the published/vendored JSON — it is circular on its own: if the shared module were fed a wrong file, this test still passes. It only holds transitively via `claim-record-lock.test.ts`'s fidelity + pin tests. The spec asks that both call sites be asserted \"against the PUBLISHED contract values — read from a vendored copy of the JSON.\" Also note the pin test (`contractVersion: 1`, `staleMs: 10000`, …) does retype the numbers, which the spec's \"never retyped numbers\" wording argues against — the in-file rationale (deliberate ratchet pin) is coherent, but the callsite test could read the vendored JSON directly to close the loop without touching the pin.",
+          "suggestion": "In the decisions-lock callsite test, read `src/vendor/leadwright/claim-record-lock-contract.json` (same pattern as `claim-record-lock.test.ts`) and assert `stale`/`realpath` against those parsed values rather than the module export.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/claim-record-lock.ts` (~lines 25–40)",
+          "line": null,
+          "finding": "The vendored JSON is read with a top-level `readFileSync` at module import. If the file is missing or malformed (e.g. a bad re-copy, or a packaging path that skips `src/vendor`), the failure is an uncaught exception at import time with no message tying it to the contract file — worse, it takes down whichever entry point first imports `index.ts` or `decisions-lock.ts`. The `copy-assets.mjs` step covers the standard `tsc` layout, but any bundling or non-standard outDir silently breaks the `../vendor` relative path.",
+          "suggestion": "Wrap the read in a try/catch that rethrows with the resolved `vendoredContractPath` named, so a missing/malformed copy is diagnosable rather than an opaque ENOENT/JSON parse error at import.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/core/claim-record-lock.test.ts",
+          "line": 54,
+          "finding": "The pinned test retypes `staleMs`, `realpath`, and `lockPathSuffix` (`10000`, `true`, `.lock`). The specification requires published contract values to be read from the vendored JSON rather than retyped; only the version pin is required to force deliberate review of a version bump.",
+          "suggestion": "Keep the explicit `contractVersion` pin, but derive the other expected values from the independently read vendored JSON when asserting the helper and call-site behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/test/claim-record-lock-callsites-sync.test.ts",
+          "line": 26,
+          "finding": "The `index.ts` test only proves that the file imports and calls `lockClaimRecordFile` somewhere. It does not prove that the actual `lockPath` used for `sdk-sessions.json` delegates to that helper. A broken implementation could leave an unused helper call in the file while routing `lockPath` through different options, and this test would still pass.",
+          "suggestion": "Assert the `lockPath` assignment/delegation specifically, or expose and test the lock-path factory so the production `sdk-sessions.json` path is directly verified against the contract-derived options.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/core/claim-record-lock-symlink.test.ts",
+          "line": 101,
+          "finding": "The symlink proof assumes the first asynchronous lock has been acquired after a fixed 30 ms delay. Under CI or local scheduling contention, the alias lock can acquire first and produce a valid-but-unexpected ordering, causing a flaky failure.",
+          "suggestion": "Signal acquisition from the first lock (for example, await a promise resolved immediately after `real-enter`) before starting the alias attempt.  Ship-with-fixes: the production locking implementation appears aligned with the contract, but the tests do not fully meet the stated contract-testing requirement and the realpath proof is timing-flaky. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-06T09:43:51.220994+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ### Findings\n\n- Category: bug\n  Severity: medium\n  File: `server/src/core/claim-record-lock-symlink.test.ts` (~line 100–120, first `itRealSymlink` test)\n  Finding: The \"real path blocks alias\" assertion is timing-based and order-dependent. The test assumes the real-path lock lands within 30 ms (`await sleep(30)` before starting the alias attempt) and that the alias's retry loop then holds off until `real-exit`. On a slow/loaded CI runner, the alias lock can win the race and acquire first, flipping the observed order to `[\"alias-enter\", \"alias-exit\", \"real-enter\", \"real-exit\"]` (the real-path side only retries 3 times by default) — a spurious failure that says nothing about `realpath: true`.\n  Suggestion: Make the ordering deterministic: await the first `lockClaimRecordFile` promise to resolution (lock held) before starting the alias attempt, instead of a fixed 30 ms sleep. The `order` events can stay; only the launch sequencing needs to be awaited.\n\n- Category: test\n  Severity: low\n  File: `server/src/core/claim-record-lock-symlink.test.ts` (~line 130–145, second `itRealSymlink` test)\n  Finding: The \"two different files never contend\" sanity check asserts `b-enter < a-exit` with only a 15 ms head start against an 80 ms hold. Heavy CI load can delay `b`'s lock past `a-exit` and fail the test spuriously. The property it wants (non-contention) doesn't need tight timing at all.\n  Suggestion: Assert that both locks complete and that `b-enter` occurs while `a` still holds (or simply that both succeed concurrently) with a wider margin, or record acquisition timestamps rather than racing fixed sleeps.\n\n- Category: test\n  Severity: low\n  File: `server/src/external/org/__tests__/decisions-lock.test.ts` (~line 218–240)\n  Finding: The callsite test compares the options `withDecisionsLock` passes against `CLAIM_RECORD_LOCK_CONTRACT` (the shared module's own export), not against the published/vendored JSON — it is circular on its own: if the shared module were fed a  […truncated]\n\n[openai] - Category: test  \n  Severity: medium  \n  File: server/src/core/claim-record-lock.test.ts:54  \n  Finding: The pinned test retypes `staleMs`, `realpath`, and `lockPathSuffix` (`10000`, `true`, `.lock`). The specification requires published contract values to be read from the vendored JSON rather than retyped; only the version pin is required to force deliberate review of a version bump.  \n  Suggestion: Keep the explicit `contractVersion` pin, but derive the other expected values from the independently read vendored JSON when asserting the helper and call-site behavior.\n\n- Category: test  \n  Severity: medium  \n  File: server/src/test/claim-record-lock-callsites-sync.test.ts:26  \n  Finding: The `index.ts` test only proves that the file imports and calls `lockClaimRecordFile` somewhere. It does not prove that the actual `lockPath` used for `sdk-sessions.json` delegates to that helper. A broken implementation could leave an unused helper call in the file while routing `lockPath` through different options, and this test would still pass.  \n  Suggestion: Assert the `lockPath` assignment/delegation specifically, or expose and test the lock-path factory so the production `sdk-sessions.json` path is directly verified against the contract-derived options.\n\n- Category: test  \n  Severity: low  \n  File: server/src/core/claim-record-lock-symlink.test.ts:101  \n  Finding: The symlink proof assumes the first asynchronous lock has been acquired after a fixed 30 ms delay. Under CI or local scheduling contention, the alias lock can acquire first and produce a valid-but-unexpected ordering, causing a flaky failure.  \n  Suggestion: Signal acquisition from the first lock (for example, await a promise resolved immediately after `real-enter`) before starting the alias attempt.\n\nShip-with-fixes: the production locking implementation appears aligned with the contract, but the tests do not fully meet the stated contract-testing requirement and the realpath proof is timing-flaky.  \n […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T09:46:56.834842+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T09:35:28.656297+00:00",
+      "disposition": "Internal Plan Review sub-step is medium+ only per iteration-planning.md; this run is small complexity",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
