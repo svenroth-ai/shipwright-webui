@@ -1,0 +1,39 @@
+{
+  "run_id": "iterate-2026-09-06-table-cell-top-align",
+  "date": "2026-09-06T21:01:31.763190Z",
+  "event_at": "2026-09-06T16:33:23.115749+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/table-cell-top-align",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-06-table-cell-top-align",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 1,
+      "tested": 1,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    },
+    "behaviors": [
+      {
+        "behavior": "SmartViewer (.smart-viewer-markdown) markdown table header/data cells vertical-align to top instead of the browser default middle, and the shared/unscoped .markdown-body table th/td rule used by ~5 other DocumentMarkdown consumers is left untouched",
+        "disposition": "tested",
+        "evidence": "client/src/test/markdown-table-vertical-align.test.ts (source-rule fence); live-Chromium computed-style probe against the actual index.css confirming the two selectors resolve differently at runtime"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 1,
+    "exit_code": 0,
+    "justification": "Throwaway real-Chromium probe (Playwright headless) loaded the actual index.css against a two-table fixture (inside vs outside .smart-viewer-markdown) and read getComputedStyle().verticalAlign: scoped=top, unscoped=middle on both header and data cells."
+  },
+  "declared_removals": []
+}

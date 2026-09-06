@@ -1,0 +1,72 @@
+{
+  "last_updated": "2026-09-06",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-06-table-cell-top-align",
+    "date": "2026-09-06",
+    "unit": {
+      "status": "passed",
+      "passed": 3882,
+      "total": 3882
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [
+      "E2E is Advisory at small complexity with no risk flags; full Playwright suite skipped. The rendering mechanism (vertical-align:top, scoped vs unscoped selector) was verified via a live-Chromium probe against the actual index.css (getContext-free, no dev server needed): computed vertical-align resolves to 'top' inside .smart-viewer-markdown and stays 'middle' everywhere else, confirming no leak into the ~5 other DocumentMarkdown consumers.",
+      "Server suite (3936 passed / 5 skipped, 352 files) was re-run in full as this touches a globally-shared CSS file (client/src/index.css), though no server file was changed by this iterate."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 1,
+        "tested": 1,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      },
+      "behaviors": [
+        {
+          "behavior": "SmartViewer (.smart-viewer-markdown) markdown table header/data cells vertical-align to top instead of the browser's default middle, and the shared/unscoped .markdown-body table th/td rule used by ~5 other DocumentMarkdown consumers (chat transcript bubbles, OrgDocViewerModal, ComplianceDetailModal, MissionArtifactBody, MissionSlice2Details) is left untouched",
+          "disposition": "tested",
+          "evidence": "client/src/test/markdown-table-vertical-align.test.ts (source-rule fence, both the scoped rule's presence and the shared rule's absence of vertical-align); live-Chromium computed-style probe against the actual index.css confirming the two selectors resolve differently at runtime"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 1,
+      "exit_code": 0,
+      "justification": "vertical-align is a single, unambiguous CSS property (unlike the prior table-layout:auto/<col> quirk in this same file's history) so a full dev-server E2E was not required at small/Advisory complexity. Instead ran a throwaway real-Chromium probe (Playwright, headless) loading the actual index.css against a two-table fixture (one inside .smart-viewer-markdown, one outside) and read getComputedStyle().verticalAlign for both: scoped='top', unscoped='middle' on both header and data cells - proving the fix applies and does not leak."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-06-table-cell-top-align",
+    "commit": "abe8e37e2f962d11ac4a4f360f93a132bd7f3ee0",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
