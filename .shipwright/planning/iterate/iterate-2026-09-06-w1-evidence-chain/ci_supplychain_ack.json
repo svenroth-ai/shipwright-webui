@@ -3,9 +3,9 @@
   "run_id": "iterate-2026-09-06-w1-evidence-chain",
   "ci_supplychain_ack": {
     "run_id": "iterate-2026-09-06-w1-evidence-chain",
-    "paths_fingerprint": "e2139c07949e8ec21cc1a2d2365da532894903da5b1e878e2d9f607da8b114a5",
+    "paths_fingerprint": "f818f20949cacd32e29abc20ef4b774c03be396a4cf4d4bb69494cacbe393829",
     "consistent_with": "#290",
-    "statement": "Adds a push/workflow_dispatch-only CI job (never pull_request) checking out svenroth-ai/shipwright pinned by full SHA (7e106939fbf82331f5e54a4ea27d90b4f279f1ce) and astral-sh/setup-uv pinned by SHA (c771a70e6277c0a99b617c7a806ffedaca235ff9, v9.0.0), consistent with PR 290 posture (GitHub-owned actions stay mutable, third-party stays SHA-pinned). Unchanged since the operator-approved original ack for this run (2026-09-06) except explanatory comments and a corrected error-handling / sys.path fix in the Python gate script, applied after external code review; no new external action, checkout, secret, or permission was added. Operator pre-approved equivalent acks for this campaign.",
+    "statement": "Round 4/5 code-review fixes re-touched .github/workflows/ci.yml (persist-credentials: false on both checkouts, --locked on the uv run invocation, a comment naming the exact pinned collector symbols) after the original ack; same asymmetric action-pinning posture as before (GitHub-owned actions on mutable tags, third-party actions SHA-pinned, no new GitHub-hosted proprietary service). Re-recorded to refresh the diff fingerprint per F6-verify; operator (Sven Roth) pre-approved this and any further such re-acks for the remainder of this campaign.",
     "ci_paths": [
       ".github/workflows/ci.yml"
     ]

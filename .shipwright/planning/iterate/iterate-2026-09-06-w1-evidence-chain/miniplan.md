@@ -32,8 +32,9 @@ None. Reads the existing committed manifest; writes nothing.
 ## Test strategy
 
 - Unit tests over `traceability_manifest_gate.py`'s normalize/diff functions
-  using small fixture manifests (added/removed requirement, evidence-field-only
-  diff treated as clean, `source_commit` diff treated as stale).
+  using small fixture manifests (added/removed requirement; evidence-field-only,
+  `coverage`-value-only, link-order-only, and `source_commit`-only diffs all
+  treated as clean — none of those is FR<->test topology drift).
 - Structural test over `ci.yml` parsing the new job's `if:` condition and
   pinned action refs (SHA format, not a mutable tag, for the third-party
   checkout and `astral-sh/setup-uv`).

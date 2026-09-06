@@ -332,8 +332,20 @@ jobs:
     if: github.event_name != 'schedule' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
+      # `persist-credentials: false` on both checkouts (external code review,
+      # 2026-09-06, low severity): neither step below performs a git
+      # operation, and third-party Python from the pinned checkout runs in
+      # this same job — no reason for GITHUB_TOKEN to sit in `.git/config`.
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
+      # Pinned symbols this gate calls (re-check these on every re-pin, not
+      # just that the ref still resolves): `build_manifest`, `_validate_manifest`,
+      # `_test_links_io.{configured_test_roots,configured_prune_dirs,git_head}` —
+      # two of these three names are PRIVATE upstream API (leading underscore),
+      # the part of this unvendored coupling most likely to move without notice
+      # (external code review, 2026-09-06, low severity).
       - name: Checkout shipwright-compliance plugin (pinned)
         uses: actions/checkout@v4
         with:
@@ -343,13 +355,14 @@ jobs:
             plugins/shipwright-compliance
             shared/scripts
           path: .ci-shipwright-compliance
+          persist-credentials: false
 
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
 
       - name: Regenerate + diff the traceability manifest
         run: |
-          uv run --project .ci-shipwright-compliance/plugins/shipwright-compliance \
+          uv run --locked --project .ci-shipwright-compliance/plugins/shipwright-compliance \
             python scripts/ci/traceability_manifest_gate.py \
             --plugin-root .ci-shipwright-compliance/plugins/shipwright-compliance \
             --project-root .

@@ -15,121 +15,23 @@ directly from a second, SHA-pinned checkout of the monorepo (see the
 ~850-line, multi-file vendor-with-hash-drift-guard (the `scripts/ci/accepted_risks*`
 pattern) for a script this repo does not own and cannot usefully fork. This file is
 the CI-local glue: it locates the plugin, calls its pure `build_manifest()`, and
-diffs the result against what is committed here.
-
-SCOPE DECISION — execution evidence is deliberately excluded from the diff. The
-collector's `status`/`executed` fields on each test link come ONLY from a raw
-JUnit/Vitest/Playwright report dropped at a conventional location
-(`_execution_evidence_io.refresh_index`); this job does not run the test suites
-itself (they already run in `client-checks` / `server-checks`), so a bare regen
-here always yields `status=enabled, executed=not_run` for every link. Comparing
-those fields would make the gate permanently red, for a reason that has nothing to
-do with the manifest being stale. What this gate DOES catch — and what "stale"
-means for this acceptance criterion — is drift between the FR<->test topology
-(added/removed requirements, added/removed `@covers` bindings, orphans, invalid
-tags, `spec_hash`) and the current commit; `generated_at` is a timestamp and is
-excluded for the same reason `status`/`executed` are.
-
-`source_commit` IS ALSO excluded from the pass/fail comparison — **reversed from
-this file's first draft** after external code review (2026-09-06, reject-severity
-finding) proved the original design unsatisfiable by construction, and this
-repo's own history confirms it empirically: every commit that carries a
-regenerated manifest necessarily writes a `source_commit` equal to that
-manifest's own PARENT commit, never to the commit it is about to become part of
-— a manifest cannot embed the hash of the commit it will be committed inside of
-(the hash is a function of the tree, which includes the manifest). Checked
-empirically on `c9d3170c` ("Release v0.27.0"): its committed manifest reads
-`source_commit: dd7857d7` — `c9d3170c`'s OWN PARENT, not `c9d3170c` itself. A gate
-comparing `committed.source_commit == HEAD` at `push` time (where `HEAD` IS that
-just-landed commit) can therefore never pass, on ANY commit, by construction —
-not "starts red until a regen lands" (the original, now-corrected framing) but
-permanently red regardless of whether a regen ever lands. Worse, even comparing
-against `HEAD^` only works for the one commit that carries the regen itself; any
-later commit that touches nothing FR/test-relevant still advances `HEAD` while
-the manifest (correctly still current) keeps its older `source_commit`, so that
-comparison would go red on the very next unrelated push. The only sound
-staleness signal is CONTENT (the FR<->test topology fields below) — `source_commit`
-is provenance metadata, like `generated_at`, not a value this gate can require to
-equal any particular commit. It remains in the JSON output as informational
-context (never gates the exit code).
+diffs the result (via `traceability_manifest_diff.py`, split out at the bloat
+ceiling — see that module's docstring for the full normalization SCOPE DECISION,
+including why `status`/`executed`/`coverage`/link-order/`source_commit` are all
+deliberately excluded from what counts as staleness) against what is committed
+here.
 """
 
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 import sys
 from pathlib import Path
 
+from traceability_manifest_diff import _normalize, _summarize_diff
+
 _COMMITTED_MANIFEST_REL = Path(".shipwright/compliance/test-traceability.json")
-
-# Fields whose value is allowed to differ without failing the gate (see the
-# module docstring's SCOPE DECISION). Applied only at the locations named below.
-_EVIDENCE_LINK_FIELDS = ("status", "executed")
-_TOP_LEVEL_IGNORED_FIELDS = ("generated_at", "source_commit")
-
-
-def _normalize(manifest: dict) -> dict:
-    """Strip the fields this gate deliberately does not police (a deep copy;
-    never mutates the caller's dict)."""
-    out = copy.deepcopy(manifest)
-    for field in _TOP_LEVEL_IGNORED_FIELDS:
-        out.pop(field, None)
-    for node in out.get("requirements", {}).values():
-        tests_by_layer = node.get("tests", {})
-        for links in tests_by_layer.values():
-            for link in links:
-                # A hand-edited or older-schema committed manifest could hold a
-                # malformed link (a bare string, not a dict) — tolerate it as a
-                # content difference (the equality check below will then catch
-                # it) rather than crashing with AttributeError on `.pop`.
-                if isinstance(link, dict):
-                    for field in _EVIDENCE_LINK_FIELDS:
-                        link.pop(field, None)
-    return out
-
-
-def _summarize_diff(committed: dict, fresh: dict) -> list[str]:
-    """Human-readable, best-effort summary of what changed (not a full diff —
-    just enough for a CI log to point at the right spec/test file)."""
-    lines: list[str] = []
-
-    # NOTE: `source_commit` is intentionally absent here — `_normalize` already
-    # stripped it from both `committed` and `fresh` before this function is
-    # called (see the module docstring), so it would always read `None == None`.
-    for field in ("schema_version", "collector_version", "spec_hash"):
-        if committed.get(field) != fresh.get(field):
-            lines.append(
-                f"- {field}: committed={committed.get(field)!r} fresh={fresh.get(field)!r}"
-            )
-
-    committed_reqs = committed.get("requirements", {})
-    fresh_reqs = fresh.get("requirements", {})
-    added = sorted(set(fresh_reqs) - set(committed_reqs))
-    removed = sorted(set(committed_reqs) - set(fresh_reqs))
-    if added:
-        lines.append(f"- requirements added by regen (missing from committed manifest): {added}")
-    if removed:
-        lines.append(f"- requirements removed by regen (stale in committed manifest): {removed}")
-    for key in sorted(set(committed_reqs) & set(fresh_reqs)):
-        if committed_reqs[key] != fresh_reqs[key]:
-            # Best-effort (module docstring): a hand-edited/malformed committed
-            # manifest could map a requirement key to something other than a
-            # dict — report the drift without letting the id lookup itself
-            # crash the failure-reporting path.
-            fresh_req = fresh_reqs[key]
-            req_id = fresh_req.get("id", "?") if isinstance(fresh_req, dict) else "?"
-            lines.append(f"- requirement {key} ({req_id}) test bindings changed")
-
-    for field in ("orphans", "invalid_tags", "invalid_layers", "untagged_tests"):
-        c, f = committed.get(field), fresh.get(field)
-        if c != f:
-            c_len = len(c) if isinstance(c, list) else c
-            f_len = len(f) if isinstance(f, list) else f
-            lines.append(f"- {field}: committed={c_len!r} fresh={f_len!r}")
-
-    return lines
 
 
 def run(plugin_root: Path, project_root: Path, committed_path: Path) -> int:
@@ -177,21 +79,65 @@ def run(plugin_root: Path, project_root: Path, committed_path: Path) -> int:
             source_commit=io.git_head(project_root),
         )
         _validate_manifest(fresh)  # fail loud on a schema-invalid regen, same as the real collector
-    except (ImportError, AttributeError, TypeError) as exc:
+    except ImportError as exc:
+        # The module could not even be found — the pin almost certainly moved,
+        # was renamed, or removed the module entirely.
         print(json.dumps({
             "success": False,
             "reason": (
-                "could not regenerate the manifest via the pinned "
-                f"shipwright-compliance checkout at '{plugin_root_str}'. The "
-                "pinned commit (see `ref:` on the `Checkout shipwright-compliance "
-                "plugin (pinned)` step in .github/workflows/ci.yml) likely moved, "
-                "renamed, or reshaped an entrypoint this gate depends on "
-                f"(`build_manifest` / `_validate_manifest` / `_test_links_io`'s "
-                f"helpers) — re-pin and update this gate to match. "
-                f"({type(exc).__name__}: {exc})"
+                "could not import the pinned shipwright-compliance checkout at "
+                f"'{plugin_root_str}'. The pinned commit (see `ref:` on the "
+                "`Checkout shipwright-compliance plugin (pinned)` step in "
+                ".github/workflows/ci.yml) likely moved, renamed, or removed "
+                f"`build_manifest` / `_validate_manifest` / `_test_links_io` — "
+                f"re-pin and update this gate to match. ({type(exc).__name__}: {exc})"
             ),
         }, indent=2))
-        return 1
+        return 2
+    except (AttributeError, TypeError) as exc:
+        # The module imported fine, but calling it failed — this is either a
+        # signature/shape change in the pinned commit, OR a genuine internal
+        # error inside the collector itself; distinguishing the two from here
+        # is not reliable, so this is reported as "infra failure", the same
+        # exit code as an import failure and distinct from "stale" (external
+        # code review, 2026-09-06, medium severity) — this is NOT a manifest
+        # staleness verdict, it never got far enough to compute one.
+        print(json.dumps({
+            "success": False,
+            "reason": (
+                "the pinned shipwright-compliance checkout at "
+                f"'{plugin_root_str}' imported, but calling `build_manifest`/"
+                "`_validate_manifest` failed. The pinned commit (see `ref:` on "
+                "the `Checkout shipwright-compliance plugin (pinned)` step in "
+                ".github/workflows/ci.yml) likely reshaped an entrypoint's "
+                "signature this gate depends on, OR the collector itself has a "
+                f"genuine internal bug — re-pin and update this gate to match, "
+                f"or investigate the collector. ({type(exc).__name__}: {exc})"
+            ),
+        }, indent=2))
+        return 2
+    except Exception as exc:  # noqa: BLE001
+        # Catch-all for what the collector itself can raise that is neither
+        # of the two typed cases above: `_validate_manifest` raises
+        # `ValueError` on a schema-invalid regen (by its own inline comment,
+        # "fail loud"), and its `ManifestIntegrityError` deliberately
+        # subclasses bare `Exception`, not `ValueError` — both are reachable
+        # collector-internal failures, not "the pin moved" and not "the
+        # manifest is stale" (external code review, 2026-09-06 round 2,
+        # medium severity: without this, either exception escaped uncaught
+        # and exited 1 — the SAME code as a genuine staleness verdict, with
+        # no JSON envelope at all).
+        print(json.dumps({
+            "success": False,
+            "reason": (
+                "the pinned shipwright-compliance checkout at "
+                f"'{plugin_root_str}' raised regenerating or validating the "
+                "manifest — this is a collector-internal failure (a "
+                "schema-invalid regen, or a genuine bug), not a manifest "
+                f"staleness verdict. ({type(exc).__name__}: {exc})"
+            ),
+        }, indent=2))
+        return 2
 
     if not committed_path.is_file():
         print(json.dumps({
@@ -209,7 +155,8 @@ def run(plugin_root: Path, project_root: Path, committed_path: Path) -> int:
         }, indent=2))
         return 1
 
-    # Informational only (module docstring) — never gates success/failure.
+    # Informational only (see traceability_manifest_diff.py's docstring) —
+    # never gates success/failure.
     source_commit_info = {
         "committed_source_commit": committed.get("source_commit"),
         "head": fresh.get("source_commit"),

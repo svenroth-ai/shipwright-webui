@@ -117,6 +117,20 @@ def test_setup_uv_is_sha_pinned(job: dict) -> None:
     assert len(ref) == 40 and set(ref.lower()) <= _HEX40, f"setup-uv ref {ref!r} is not SHA-pinned"
 
 
+def test_both_checkouts_do_not_persist_credentials(job: dict) -> None:
+    """Neither checkout step performs a git operation, and third-party Python
+    from the pinned checkout runs in this same job — no reason for
+    GITHUB_TOKEN to sit in either checkout's `.git/config` (external code
+    review, 2026-09-06, low severity)."""
+    checkouts = [s for s in _steps(job) if str(s.get("uses", "")).startswith("actions/checkout@")]
+    assert len(checkouts) == 2, f"expected exactly 2 checkout steps, found {len(checkouts)}"
+    for step in checkouts:
+        assert step.get("with", {}).get("persist-credentials") is False, (
+            f"checkout step {step.get('name', '<unnamed>')!r} does not set "
+            "persist-credentials: false"
+        )
+
+
 def test_the_job_runs_the_gate_script(job: dict) -> None:
     """A SINGLE step's `run:` must invoke the gate script via `uv run`/`python`
     with both required flags — external code review, 2026-09-06, low
@@ -135,3 +149,10 @@ def test_the_job_runs_the_gate_script(job: dict) -> None:
     )
     assert "--plugin-root" in run_text
     assert "--project-root" in run_text
+    assert "--locked" in run_text, (
+        "`uv run` should be `--locked` — the pinned plugin ships a uv.lock; "
+        "without this flag, a lock/pyproject drift at the pinned commit "
+        "silently re-resolves fresh third-party dependencies instead of "
+        "failing the step (external code review, 2026-09-06 round 2, low "
+        "severity)"
+    )
