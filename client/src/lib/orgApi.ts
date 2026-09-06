@@ -61,11 +61,14 @@ export type UsageResponse =
     };
 
 // ---------------------------------------------------------------------------
-// GET /leads/:leadId/last-run and GET /leads/:leadId/beat-register — NOT
-// reachable through the plain `/api/org/*` browser proxy (secret-gated
-// family only); mirrored verbatim anyway per the iterate spec's Design
-// Notes "Type mirror" fix (Internal Review, HIGH) — the discriminated-union
-// schema-sync guard was proved against exactly this set of six types.
+// GET /leads/:leadId/last-run and GET /leads/:leadId/beat-register are read
+// ONLY through the secret-gated family — mirrored verbatim anyway per the
+// iterate spec's Design Notes "Type mirror" fix (Internal Review, HIGH) —
+// the discriminated-union schema-sync guard was proved against exactly this
+// set of six types. `POST .../beat-register/release` (below) IS reachable
+// through the plain `/api/org/*` browser proxy as of
+// iterate-2026-09-06-org-lead-staleness-register (FR-04.41's release
+// action) — the two GET reads stay secret-gated only.
 // ---------------------------------------------------------------------------
 
 /** Mirrors `server/src/external/org/cron.ts`'s `Staleness`. */
@@ -117,12 +120,21 @@ export type BeatRegisterHealthResponse =
 // GET /leads — the composite roster read (one call, not N+1).
 // ---------------------------------------------------------------------------
 
+/** See `server/src/types/org.ts`'s `LeadLastRunView` doc comment — a named
+ *  type, not inlined, so `org-schema-sync.test.ts`'s per-arm comparison
+ *  (which only walks top-level arm fields) actually checks it. */
+export type LeadLastRunView =
+  | { measured: false }
+  | {
+      measured: true;
+      lastRunAt: string;
+      staleness: Staleness | "unknown";
+      cadenceUnresolvedReason?: CadenceUnresolvedReason;
+    };
+
 export type LeadNowState =
   | { state: "running" }
-  | {
-      state: "resting";
-      lastRun: { measured: false } | { measured: true; lastRunAt: string };
-    }
+  | { state: "resting"; lastRun: LeadLastRunView }
   | { state: "needs-attention"; reason: "duplicate-session" }
   | { state: "not-measured" };
 
@@ -131,6 +143,21 @@ export type LeadRoleView = { measured: false } | { measured: true; text: string 
 export type LeadCadenceView =
   | { measured: false }
   | { measured: true; text: string; cron: string };
+
+/** See `server/src/types/org.ts`'s `LeadRegisterView` doc comment — the
+ *  roster's own register-health view, with a fourth `unknown` arm a read
+ *  failure degrades to (never silently `clear`). */
+export type LeadRegisterView =
+  | { leadId: string; status: "clear" }
+  | { leadId: string; status: "open"; entry: BeatRegisterEntryView }
+  | {
+      leadId: string;
+      status: "fault";
+      reason: "duplicate-session-id";
+      sessionId: string;
+      entries: BeatRegisterEntryView[];
+    }
+  | { leadId: string; status: "unknown" };
 
 export interface LeadRosterEntry {
   leadId: string;
@@ -141,6 +168,7 @@ export interface LeadRosterEntry {
   now: LeadNowState;
   cadence: LeadCadenceView;
   usage: UsageResponse;
+  register: LeadRegisterView;
 }
 
 export interface LeadsRosterResponse {

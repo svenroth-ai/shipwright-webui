@@ -14,10 +14,11 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
-import type { LeadCadenceView, LeadNowState, LeadRoleView, LeadRosterEntry } from "../../lib/orgApi";
+import type { LeadCadenceView, LeadRoleView, LeadRosterEntry } from "../../lib/orgApi";
 import { fetchLeadLearnings } from "../../lib/orgApi";
 import { usageLabel, usageNoteText, usageValueText } from "./leadUsageDisplay";
-import { formatRelativeTime } from "../../lib/formatTime";
+import { NowLine, statusBadge } from "./leadNowDisplay";
+import { LeadRegisterFinding } from "./LeadRegisterFinding";
 import { loadMarkdownForEdit, saveMarkdown } from "../../lib/orgMarkdownFileApi";
 import { ORG_ROSTER_QUERY_KEY } from "../../hooks/useOrgRoster";
 import { MarkdownEditorModal } from "../external/SmartViewer/MarkdownEditorModal";
@@ -32,58 +33,8 @@ const AVATAR_ICON = (
   </svg>
 );
 
-function NowLine({ now }: { now: LeadNowState }) {
-  if (now.state === "running") {
-    return (
-      <div className="nowline" data-testid="lead-now-running">
-        <span className="pulse" />
-        Running
-      </div>
-    );
-  }
-  if (now.state === "resting") {
-    const text =
-      now.lastRun.measured === false
-        ? "No runs recorded yet"
-        : `Last active ${formatRelativeTime(now.lastRun.lastRunAt)}`;
-    return (
-      <div className="nowline idle" data-testid="lead-now-resting">
-        <span className="pulse" />
-        Resting — {text}
-      </div>
-    );
-  }
-  if (now.state === "needs-attention") {
-    return (
-      <div className="nowline attn" data-testid="lead-now-attention">
-        <span className="pulse" />
-        Needs attention — duplicate session
-      </div>
-    );
-  }
-  return (
-    <div className="nowline idle" data-testid="lead-now-unmeasured">
-      <span className="pulse" />
-      not measured
-    </div>
-  );
-}
-
 function roleText(role: LeadRoleView): string {
   return role.measured ? role.text : "not measured";
-}
-
-/**
- * The header's status badge is derived from the already-honest `now`
- * state — never a fabricated "active"/"paused" value (there is no
- * `paused` field in the strict org-chart projection to read one from, by
- * design; see the iterate spec's Design Notes).
- */
-function statusBadge(now: LeadNowState): { label: string; className: string } {
-  if (now.state === "running") return { label: "running", className: "badge acc" };
-  if (now.state === "needs-attention") return { label: "needs attention", className: "badge warn" };
-  if (now.state === "resting") return { label: "resting", className: "badge" };
-  return { label: "not measured", className: "badge" };
 }
 
 function cadenceText(cadence: LeadCadenceView): string {
@@ -133,9 +84,12 @@ export function LeadCard({ lead }: { lead: LeadRosterEntry }) {
         <b>Role.</b> {roleText(lead.role)}
       </div>
 
-      {/* Block 3 — Now: running / resting / needs-attention / not-measured. */}
+      {/* Block 3 — Now: running / resting / needs-attention / not-measured,
+          plus the beat-register finding (FR-04.41) when there's one to
+          show — an open/fault/unknown register status, never for "clear". */}
       <div data-block="now" data-testid="lead-card-now">
         <NowLine now={lead.now} />
+        <LeadRegisterFinding leadId={lead.leadId} register={lead.register} />
       </div>
 
       {/* Block 4 — Stats: cadence, parallel, N-day consumed spend, projects, runs. */}

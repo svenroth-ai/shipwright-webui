@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-org-lead-staleness-register",
+  "date": "2026-09-06",
+  "section": "Iterate — change: org lead staleness + beat-register findings",
+  "title": "Surface server staleness + beat-register findings on the org card",
+  "context": "FR-04.06/FR-04.41 filed for months as 'not shown'; server already computed both (lastRunCore, evaluateRegisterHealth) and the release action already existed, but the client discarded the values and the release action was not browser-reachable.",
+  "decision": "Widen LeadLastRunView/LeadRegisterView to carry the server's verdicts verbatim; render with no second vocabulary; proxy the existing release action to a new POST /api/org/leads/:leadId/beat-register/release sharing one handleReleaseRequest with the secret-gated route.",
+  "consequences": "Browser can release a stuck beat directly; staleness 'unknown' is a genuine third UI state with a worded reason; the plain org surface gains its first browser-reachable mutating route.",
+  "rationale": "Task brief pre-approved wiring the existing release button (not inventing a new endpoint); cross-lead mutation is prevented structurally (leadId-derived path, sessionId/entry matching), regression-tested.",
+  "rejected": "Option B (release stays secret-gated-only) rejected per Architecture Review — required inventing an out-of-scope endpoint shape for a security benefit already achieved structurally. Folding register into LeadNowState rejected as circular.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-06-org-lead-staleness-register.md"
+}

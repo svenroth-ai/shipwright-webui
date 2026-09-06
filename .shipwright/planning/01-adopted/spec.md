@@ -1255,6 +1255,23 @@ write surface; gated, path-guarded, and concurrency-safe.
   surface + `GET /api/org/threads`; a lead with no thread history (or an
   unreadable/invalid/unknown-version file) legitimately shows no thread,
   which the page renders cleanly. No new write surface.
+- (E) **(iterate-2026-09-06-org-lead-staleness-register, leadwright
+  FR-04.06/FR-04.41)** The Now block renders the server's `staleness`
+  verdict verbatim: `stale` reads "Overdue" (amber, never "Resting");
+  `unknown` renders the last-active time plus a worded
+  `cadenceUnresolvedReason` (a genuine third state, never a synonym for
+  fresh or stale). An open/fault beat-register entry (from the same
+  `beatRegisterHealthCore` read that feeds `now`, never a second read)
+  renders a visible finding on the card with no modal; `open` gets a
+  Release button, `fault` (duplicate sessionId) and `unknown` (a read
+  failure) do not. Releasing issues the SAME `performRelease` action from
+  (B), now also reachable through this plain surface via `POST
+  /api/org/leads/:leadId/beat-register/release` — the plain surface's
+  second browser-reachable write (superseding (C)'s "only browser write"
+  claim, scoped there to that earlier iterate). The register path is
+  derived solely from the route's own chart-validated `leadId`, never the
+  request body, so a sessionId belonging to a different lead's register
+  is refused 404, never releases across leads.
 
 ## Quality Requirements
 

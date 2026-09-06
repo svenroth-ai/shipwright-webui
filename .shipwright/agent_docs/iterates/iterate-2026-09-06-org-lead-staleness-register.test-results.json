@@ -1,0 +1,122 @@
+{
+  "last_updated": "2026-09-06",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-06-org-lead-staleness-register",
+    "date": "2026-09-06",
+    "unit": "PASS \u2014 client 3805 passed (413 files); server 3901 passed / 3 skipped (344 files)",
+    "integration": "n/a \u2014 no CRUD/service-boundary change beyond the covered POST release route, covered directly below",
+    "pgtap": "n/a \u2014 no RLS or schema change",
+    "e2e": "PASS \u2014 7/7, real-Chromium isolated-stack run of client/e2e/flows/org-page.spec.ts + org-page.register.spec.ts (Playwright, chromium project)",
+    "design_fidelity": "n/a \u2014 amber/muted styling reuses existing .nowline.attn/.thread-open tokens, no new design surface",
+    "smoke": "n/a \u2014 no server-wide behaviour change; new route is additive and scoped to /api/org/leads/:leadId/beat-register/release",
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "AC-1: an overdue lead (staleness===stale) renders 'Overdue', never 'Resting'",
+          "disposition": "tested",
+          "evidence": "LeadCard.test.tsx AC-1 case; E2E org-page.register.spec.ts 'a lead well past its cadence reads Overdue on the real page, never Resting'"
+        },
+        {
+          "behavior": "AC-2: staleness===unknown renders the worded cadenceUnresolvedReason and is never confused with fresh",
+          "disposition": "tested",
+          "evidence": "LeadCard.test.tsx: invalid_cron wording, org_chart_invalid wording ('cadence not configured for this lead'), and unknown-with-no-named-reason falling to the load-bearing default case"
+        },
+        {
+          "behavior": "AC-3: register.status===open renders a finding + Release button; clear renders neither",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.test.tsx 'renders nothing for a clear register' + 'an open entry shows a finding...'"
+        },
+        {
+          "behavior": "AC-4: clicking Release POSTs sessionId+reason, and a 200 response clears the finding via query invalidation",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.test.tsx 'an open entry shows a finding naming the beat and a working Release button'; E2E org-page.register.spec.ts 'an open register entry shows a finding with a Release button; releasing it closes the entry for real' (real on-disk closedAt + single audit line asserted)"
+        },
+        {
+          "behavior": "AC-5: org-schema-sync.test.ts stays green with the widened LeadLastRunView/LeadRegisterView kept in lock-step",
+          "disposition": "tested",
+          "evidence": "org-schema-sync.test.ts full suite green (both interfaces and discriminated unions registered and checked per-arm)"
+        },
+        {
+          "behavior": "AC-6: a beat-register read failure (symlink, corrupt JSON) degrades BOTH now and register to unmeasured/unknown in the same request, never clear",
+          "disposition": "tested",
+          "evidence": "org-leads-staleness-register.test.ts symlink test (now+register) and corrupt-JSON test (now+register, the missing now assertion added this session per code-review finding #2)"
+        },
+        {
+          "behavior": "AC-7: register.status===fault (duplicate sessionId) names the session with no release button",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.test.tsx fault case; org-leads-staleness-register.test.ts + org-leads-beat-register-release.test.ts duplicate-session-id tests (409, never picks one)"
+        },
+        {
+          "behavior": "AC-8: createOrgApiRouter with neither lstatSync nor now supplied still serves the release route without throwing",
+          "disposition": "tested",
+          "evidence": "org-leads-beat-register-release.test.ts: two tests deliberately construct the router with no test-only deps (unregistered-lead 403 case and the real-release-success case)"
+        },
+        {
+          "behavior": "AC-9: an unregistered leadId is refused 403 before any register file is touched",
+          "disposition": "tested",
+          "evidence": "org-leads-beat-register-release.test.ts 'refuses an unregistered leadId (403) BEFORE touching the register'"
+        },
+        {
+          "behavior": "Cross-lead sessionId isolation: a sessionId belonging to a DIFFERENT lead's register never releases that lead's entry through this lead's route (external-review fix)",
+          "disposition": "tested",
+          "evidence": "org-leads-beat-register-release.test.ts 'a sessionId that belongs to a DIFFERENT lead's register is not-found, never releases the other lead's entry' \u2014 asserts 404 AND the other lead's on-disk entry stays closedAt:null"
+        },
+        {
+          "behavior": "A whitespace-only release reason is rejected both client-side (no network call) and server-side (400, even bypassing the UI) (external-review fixes, GLM + OpenAI)",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.test.tsx 'a whitespace-only reason makes no network call...'; org-leads-beat-register-release.test.ts 'a whitespace-only reason is rejected 400 before any register access'"
+        },
+        {
+          "behavior": "A thrown ApiError from the release fetcher (locked/invalid/forbidden) surfaces its code visibly and still invalidates the roster",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.test.tsx 'a thrown ApiError (e.g. symlink_forbidden, beat_register_locked) surfaces its code visibly...'"
+        },
+        {
+          "behavior": "The finding's error/releasing state resets when the register entry's identity changes, so a stale error never misattributes to a new entry (code-review fix #1)",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.test.tsx 'an error clears when the register entry's identity changes'"
+        },
+        {
+          "behavior": "The client's register-status branching has a runtime exhaustiveness guard, not an implicit fallthrough (doubt-review fix)",
+          "disposition": "tested",
+          "evidence": "LeadRegisterFinding.tsx: `never` assertion before the open-status render; covered indirectly by every status-branch test continuing to pass (the guard is unreachable on the current 4-arm union by construction, verified via tsc)"
+        },
+        {
+          "behavior": "Full pre-existing org-page E2E flows (absent chart, invalid chart, threads, charter edit) are unaffected by the widened types",
+          "disposition": "tested",
+          "evidence": "E2E org-page.spec.ts: all 5 pre-existing scenarios green in the same isolated-stack run"
+        },
+        {
+          "behavior": "Existing client/server suites and both workspaces' typecheck are unaffected",
+          "disposition": "tested",
+          "evidence": "Full client (3805) + server (3901/3 skipped) suites pass; tsc --noEmit clean both workspaces; oxlint clean (no new warnings in touched files)"
+        }
+      ],
+      "counts": {
+        "testable": 16,
+        "tested": 16,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 7,
+      "exit_code": 0,
+      "justification": "Staleness wording and the beat-register release action (a real file lock + mutation + audit-log append) are behaviors invisible to jsdom unit tests \u2014 verified in real Chromium via the project's isolated-stack Playwright harness (client/e2e/flows/org-page.register.spec.ts + the pre-existing org-page.spec.ts), asserting real on-disk artifacts (register closedAt, a single beat_recovered audit line) and the native window.prompt dialog flow, not just DOM state. 7/7 tests passed."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-06-org-lead-staleness-register",
+    "commit": "347f95d16601660a880aa771a92f392ac069380c",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
