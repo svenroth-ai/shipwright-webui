@@ -32,6 +32,11 @@ header map, so a renamed/added column is read correctly by that reader
 class of tool without any code change here; this webui repo does not
 itself vendor or run that reader (confirmed: no `_fr_table_columns` /
 `fr_table_reader` / `check_fr_hygiene` tooling exists under this repo).
+**Note (superseded by the ADR's Self-Review #7, corrected 2026-09-07):**
+this repo does have its own in-repo consumer of `spec.md`'s FR table —
+`server/src/core/mission-context/fold-map.ts` — which resolves columns
+positionally, not by header name; see the ADR for the full analysis. It
+is unaffected here because both new columns are right-edge appends.
 
 ## Change detail
 
@@ -70,8 +75,12 @@ itself vendor or run that reader (confirmed: no `_fr_table_columns` /
      values against the closed vocabulary, this repo's 32 rows will read as
      non-conforming until a dedicated pass maps each provenance string to
      `interview`/`code`/`observed`/`tests`/`assumed`/`other`. Confirmed
-     empirically (grep, this run): no such validator exists in this repo
-     today, so nothing is broken by shipping the header-only rename now.
+     empirically (grep, this run): no validator of `Basis` VALUES against
+     that closed vocabulary exists in this repo today, so nothing is
+     broken by shipping the header-only rename now. (This is a narrower
+     claim than "no consumer of the file at all" — see the note above and
+     the ADR's Self-Review #7 for the in-repo positional consumer that
+     does exist and is unaffected by this change.)
 2. **Layers column added.** Appended as the last column of all 14 headers +
    all 32 data rows, cell value the literal `(inferred)` for every row (the
    campaign's own German intent text: "alle Zellen (inferred)"; the
@@ -103,16 +112,25 @@ itself vendor or run that reader (confirmed: no `_fr_table_columns` /
      now has **32** living `| FR-01.NN |` table rows (independently confirmed
      three ways: `spec.md` itself, `traceability-matrix.md`'s `rtm-fr-`
      anchors, `test-traceability.json`'s `requirements` object) and **38**
-     `### FR-01.NN` AC-heading blocks. The +3/+3 growth in both numbers is
-     exactly the three capability FRs minted after the 2026-07-22 snapshot
-     and never retired (`FR-01.70` Leads org route, `FR-01.71` Organization
-     overview for AI leads, `FR-01.72` Lead-question inbox). Re-running the
-     same set decomposition today: the same **17** orphaned folded-ID
-     AC-blocks (`FR-01.07`…`FR-01.26`, byte-identical set — no further
-     folding happened since 2026-07-17), **11** living rows still without an
-     AC-block (`FR-01.37, 45, 47, 48, 49, 50, 51, 59, 64, 65, 72`), and **21**
-     living FRs with both (up from 18 — `FR-01.70` and `FR-01.71` each
-     picked up an AC-block after minting; `FR-01.72` has not yet).
+     `### FR-01.NN` AC-heading blocks. **Correction (Stage-2 code review,
+     2026-09-07):** the growth is +3 rows but only +2 AC-blocks from new
+     FRs. The three capability FRs minted after the 2026-07-22 snapshot
+     account for the row growth (`FR-01.70` Leads org route, `FR-01.71`
+     Organization overview for AI leads, `FR-01.72` Lead-question inbox —
+     all three still living rows today), but there is no `### FR-01.72`
+     heading in `spec.md` (38 headings total, none numbered 72) — only
+     `FR-01.70` and `FR-01.71` picked up an AC-block. The third new
+     AC-block belongs to `FR-01.38`, a pre-existing living row that was
+     AC-less at the 2026-07-22 snapshot and gained its block afterward
+     (its AC entries date `iterate-2026-08-02` and `iterate-2026-09-05`,
+     both after the snapshot). Re-running the same set decomposition
+     today: the same **17** orphaned folded-ID AC-blocks
+     (`FR-01.07`…`FR-01.26`, byte-identical set — no further folding
+     happened since 2026-07-17), **11** living rows still without an
+     AC-block (`FR-01.37, 45, 47, 48, 49, 50, 51, 59, 64, 65, 72` —
+     `FR-01.72` newly joins this set, `FR-01.38` leaves it), and **21**
+     living FRs with both (up from 18 — `FR-01.70`, `FR-01.71`, and
+     `FR-01.38` account for the three new intersections).
    - **Resolution recorded:** "29-vs-35" was never a wrong number to correct
      — it is an accurately-measured, already-diagnosed internal mismatch
      between two different countable things in the same document (live

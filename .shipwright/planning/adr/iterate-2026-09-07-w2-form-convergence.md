@@ -55,11 +55,21 @@ to resolve it and record the reason.
    - Living rows with no AC-block: **11** — `FR-01.37,45,47,48,49,50,51,
      59,64,65,72`.
 
-   The +3/+3 growth in both totals (29->32, 35->38) is exactly the three
-   capability FRs minted after the 2026-07-22 snapshot and never retired:
-   `FR-01.70` (Leads org route), `FR-01.71` (Organization overview for AI
-   leads) — both already picked up an AC-block — and `FR-01.72` (Lead-
-   question inbox), which has not.
+   **Correction (Stage-2 code review, 2026-09-07):** the growth is +3 rows
+   but only +2 AC-blocks from new FRs, not +3/+3 as first stated. The three
+   capability FRs minted after the 2026-07-22 snapshot account for the row
+   growth (`FR-01.70` Leads org route, `FR-01.71` Organization overview for
+   AI leads, `FR-01.72` Lead-question inbox — all three still living rows
+   today), but only `FR-01.70` and `FR-01.71` have picked up an AC-block;
+   there is no `### FR-01.72` heading in `spec.md` (confirmed: 38 headings
+   total, none numbered 72). The third new AC-block instead belongs to
+   `FR-01.38`, a pre-existing living row that was AC-less at the
+   2026-07-22 snapshot and gained its block afterward (its AC entries date
+   `iterate-2026-08-02` and `iterate-2026-09-05`, both after the snapshot).
+   That reconciles every other number above: intersection 18->21 is
+   `+FR-01.70, +FR-01.71, +FR-01.38`; the 17-orphan set is unchanged;
+   AC-less living rows are 11 (`FR-01.72` newly joins as AC-less, `FR-01.38`
+   leaves).
 
    **Resolution:** "29-vs-35" was never a wrong number needing correction —
    it is an accurately-measured, already-diagnosed internal mismatch between
@@ -163,11 +173,17 @@ Two rounds (`--mode code`, diff against `HEAD~1`). Round 1 was run against a
 diff accidentally polluted by an uncommitted, unrelated working-tree change
 to the shared `external_review_state.json` legacy marker (a record-keeping
 side effect of Step 3.5, not a real code change) — both reviewers correctly
-flagged this as suspicious; **fixed by amending the commit** to include the
-legitimate review-bookkeeping artifacts (`miniplan.md`, `reviews.json`,
-`risk_recheck.json`, the marker update) before re-diffing, matching this
-repo's convention (verified: w1's own committed tree includes the same
-class of files). Round 2 ran a clean diff.
+flagged this as suspicious. The actual fix was re-diffing against two
+explicit refs instead of `git diff HEAD~1` (which diffs the WORKING TREE
+against `HEAD~1`, so any uncommitted change leaks in regardless of
+relevance); `external_review_state.json` itself is gitignored
+(`.gitignore` line 93) and stays untracked by design — it was never part
+of any commit, in this run or w1's. **Correction (Stage-2 code review,
+2026-09-07):** the earlier wording here ("fixed by amending the commit to
+include ... the marker update") wrongly implied that file was committed;
+it was not, and could not have been without `git add -f`. The legitimate
+committed review-bookkeeping artifacts are `miniplan.md`, `reviews.json`,
+and `risk_recheck.json`. Round 2 ran a clean diff.
 
 | # | Round | Reviewer | Severity | Finding | Disposition |
 |---|---|---|---|---|---|
