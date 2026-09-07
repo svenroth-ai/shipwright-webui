@@ -1,0 +1,1 @@
+Lead-question inbox card: 'Discuss in terminal' opens a real terminal session on the task (no ping-pong with the slow daemon round-trip), and 'Take the outcome as the answer' brings you back to send the one answer.

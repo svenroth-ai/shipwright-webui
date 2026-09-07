@@ -1,0 +1,64 @@
+{
+  "run_id": "iterate-2026-09-08-lead-question-discuss-terminal",
+  "date": "2026-09-07T22:42:34.685619Z",
+  "event_at": "2026-09-07T22:38:00.479404+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/lead-question-discuss-terminal",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-08-lead-question-discuss-terminal",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Discuss in terminal spawns the pty via the existing route and navigates to the task (AC a)",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx::Discuss in terminal prewarms the pty and navigates to the task PASSED; client/e2e/flows/inbox-lead-question-discuss-terminal.spec.ts (real spawn+WS pipeline) PASSED"
+      },
+      {
+        "behavior": "The not-the-lead caveat renders on the card itself, not a tooltip (AC b)",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx::shows the not the lead caveat next to Discuss in terminal PASSED; inbox-lead-question-discuss-terminal.spec.ts asserts the same text before any hover/click PASSED"
+      },
+      {
+        "behavior": "Take the outcome as the answer focuses the answer field (AC c)",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx::Take the outcome as the answer focuses the answer field PASSED"
+      },
+      {
+        "behavior": "No thread/round affordance is presented -- one answer field, no round counter or reply history (AC d)",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx::presents no thread/round affordance PASSED (asserts exactly one textarea and no round/thread testid or text)"
+      },
+      {
+        "behavior": "Existing one-shot answer flow (PATCH poFeedback) and Dismiss are unchanged (AC e)",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx pre-existing 3 tests (Send answer PATCHes poFeedback, disabled on empty, Dismiss calls the lq-<taskId> endpoint) all still PASS unmodified"
+      },
+      {
+        "behavior": "Card-level Enter/Space keydown does not swallow a nested button own keyboard activation (code-review fix)",
+        "disposition": "tested",
+        "evidence": "InboxCard.LeadQuestion.test.tsx::pressing Enter on a nested button does not navigate away or swallow its own action PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "client/e2e/isolated-stack.mjs --grep inbox-lead-question-discuss-terminal",
+    "exit_code": 0,
+    "tests_run": 1
+  },
+  "declared_removals": []
+}

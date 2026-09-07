@@ -10,6 +10,12 @@
  *
  * Same chrome family as the sibling cards (amber left strip, context pill,
  * time-ago, click-through to the task) so the Inbox reads as one system.
+ *
+ * "Discuss in terminal" / "Take the outcome as the answer" (PO decision
+ * 2026-09-07 — no ping-pong: the daemon round-trip is too slow for a real
+ * conversation) live in the sibling `InboxCard.LeadQuestion.TerminalDiscuss`
+ * component. FR-04.42's round mechanics stay server-side and unused here —
+ * this card still sends exactly one answer.
  */
 import {
   useLayoutEffect,
@@ -29,6 +35,7 @@ import { useAnswerLeadQuestion, useDismissInboxItem } from "../../hooks/useExter
 import type { ExternalTask } from "../../lib/externalApi";
 import type { LeadQuestionInboxItem } from "../../lib/leadQuestionApi";
 import { inboxItemKey, KNOWN_PHASES, MAX_BODY_PREVIEW_PX, PHASE_ICON } from "./InboxCard";
+import { LeadQuestionTerminalDiscussRow } from "./InboxCard.LeadQuestion.TerminalDiscuss";
 
 // The answer marker (`answerLeadQuestion`) appends ~40 chars to the typed
 // text before it is checked against the server's own DESCRIPTION_MAX_LENGTH
@@ -49,6 +56,7 @@ export function LeadQuestionCard({
   const dismissMutation = useDismissInboxItem();
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const answerRef = useRef<HTMLTextAreaElement | null>(null);
   const [overflowing, setOverflowing] = useState(false);
   useLayoutEffect(() => {
     const el = bodyRef.current;
@@ -79,6 +87,13 @@ export function LeadQuestionCard({
   };
   const handleCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!task) return;
+    // A keydown from a nested interactive element (Dismiss/Send/the new
+    // terminal-discuss buttons) bubbles here too — only the card's own
+    // Enter/Space should navigate. Reacting to the bubbled event and
+    // preventDefault()-ing it would cancel the button's native
+    // Enter-triggers-click activation, making it keyboard-unreachable
+    // (code-review finding, iterate-2026-09-08-lead-question-discuss-terminal).
+    if (e.target !== e.currentTarget) return;
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
       e.preventDefault();
       navigate(`/tasks/${task.taskId}`);
@@ -192,7 +207,17 @@ export function LeadQuestionCard({
         )}
       </div>
 
+      <LeadQuestionTerminalDiscussRow
+        taskId={item.taskId}
+        itemKey={itemKey}
+        onTakeOutcome={() => {
+          answerRef.current?.focus();
+          answerRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+        }}
+      />
+
       <textarea
+        ref={answerRef}
         data-testid={`inbox-lead-answer-input-${itemKey}`}
         value={answerText}
         onChange={(e) => setAnswerText(e.target.value)}

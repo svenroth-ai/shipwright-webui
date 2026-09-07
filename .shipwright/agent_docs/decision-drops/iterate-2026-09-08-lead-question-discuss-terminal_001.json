@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-08-lead-question-discuss-terminal",
+  "date": "2026-09-08",
+  "section": "inbox/lead-question",
+  "title": "Lead-question 'Discuss in terminal' escape hatch",
+  "context": "The lead-daemon question round-trip takes 1-3 min per turn, too slow for real discussion; PO decided (2026-09-07) against multi-round ping-pong in the inbox card.",
+  "decision": "Add 'Discuss in terminal' (reuses the existing POST /api/terminal/:taskId/spawn + navigate, no new route) and 'Take the outcome as the answer' (focuses the card's answer field) to the lead_question inbox card. FR-04.42's server round mechanics are untouched.",
+  "consequences": "A terminal session opened this way spawns a real, separate Claude process not attributed to the lead's own weekly budget; flagged as a follow-up, not addressed here. Fixed code-review finding: the card's Enter/Space keydown handler no longer swallows nested-button keyboard activation.",
+  "rationale": "",
+  "rejected": "Extending the daemon round-trip UI into a real back-and-forth thread (PO explicitly rejected ping-pong given the 1-3 min per-round latency).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}
