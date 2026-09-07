@@ -47,7 +47,7 @@ def _args(**kwargs) -> argparse.Namespace:
     base = dict(
         project_root=".", manifest_path=None, spec_path=None, ledger_path=None,
         vitest_report=[], escalation_out=None, ack_path=None,
-        evidence_max_age_seconds=3600, expect_plugin_commit=None,
+        evidence_max_age_seconds=3600, expect_plugin_commit=None, expect_project_commit=None,
     )
     base.update(kwargs)
     return argparse.Namespace(**base)
@@ -139,4 +139,55 @@ def test_run_refuses_an_unverified_plugin_checkout(tmp_path):
     )
     assert run(args) == 2
     assert spec_path.read_text(encoding="utf-8") == _SPEC_TEXT
+    assert not manifest_path.is_file()
+
+
+def test_run_refuses_when_project_root_is_not_the_expected_commit(stub_plugin_root, tmp_path):
+    """PR Review (blocking, round 2): the evidence freshness check only
+    looked at report mtime -- an old report copied/touched recently would
+    pass. `--expect-project-commit`, when it does not match project_root's
+    actual HEAD, must refuse before any vitest report is even considered."""
+    spec_path, manifest_path, ledger_path = _write_inputs(
+        tmp_path, {"FR-01.01": {"unit": [{"id": "a.test.ts::x", "status": "enabled"}]}}
+    )
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "test"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=tmp_path, check=True)
+
+    vitest = tmp_path / "vitest.json"
+    vitest.write_text(json.dumps({"results": {"a.test.ts::x": {"status": "enabled", "executed": "pass"}}}), encoding="utf-8")
+
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=str(manifest_path), spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[f"server={vitest}"],
+        expect_project_commit="0" * 40,
+    )
+    assert run(args) == 2
+    assert spec_path.read_text(encoding="utf-8") == _SPEC_TEXT
+    assert not manifest_path.is_file()
+
+
+def test_run_rejects_a_future_dated_vitest_report(stub_plugin_root, tmp_path):
+    """PR Review (comment): clock skew or a deliberately advanced mtime must
+    be rejected the same as a stale one, not silently accepted as fresh."""
+    import os
+    import time as time_mod
+
+    spec_path, manifest_path, ledger_path = _write_inputs(
+        tmp_path, {"FR-01.01": {"unit": [{"id": "a.test.ts::x", "status": "enabled"}]}}
+    )
+    vitest = tmp_path / "vitest.json"
+    vitest.write_text(json.dumps({"results": {"a.test.ts::x": {"status": "enabled", "executed": "pass"}}}), encoding="utf-8")
+    future_mtime = time_mod.time() + 3600
+    os.utime(vitest, (future_mtime, future_mtime))
+
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=str(manifest_path), spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[f"server={vitest}"],
+    )
+    assert run(args) == 2
     assert not manifest_path.is_file()

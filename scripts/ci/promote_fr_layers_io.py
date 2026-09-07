@@ -31,33 +31,35 @@ _SPEC_REL = Path(".shipwright/planning/01-adopted/spec.md")
 _LEDGER_REL = Path(".shipwright/compliance/layer-promotion-ledger.json")
 
 
-def verify_plugin_pin(plugin_root: Path, expect_commit: str) -> None:
-    """Fail closed unless the checkout at ``plugin_root`` is EXACTLY the
-    commit the caller expects (code review, blocking): a caller-controlled
-    ``--plugin-root`` with no integrity check would let a modified checkout
-    control manifest generation and file-writing behavior. This is the
-    runtime half of the guarantee, not a substitute for the other half: a
-    SHA-pinned ``actions/checkout`` step (mirroring the ``Traceability
-    manifest (gate)`` job in ``ci.yml``) is what makes a given ref
-    trustworthy in the first place; this only confirms the path a CI
-    invocation actually points ``--plugin-root`` at is that same checkout,
-    not one that moved or was swapped after the checkout step ran."""
-    monorepo_root = plugin_root.resolve().parent.parent
+def verify_commit_pin(root: Path, expect_commit: str) -> None:
+    """Fail closed unless ``root``'s git HEAD is EXACTLY the commit the
+    caller expects (code review, blocking): a caller-controlled path with no
+    integrity check would let a modified/swapped checkout control manifest
+    generation and file-writing behavior. This is the runtime half of the
+    guarantee, not a substitute for the other half: a SHA-pinned
+    ``actions/checkout`` step (mirroring the ``Traceability manifest (gate)``
+    job in ``ci.yml``) is what makes a given ref trustworthy in the first
+    place; this only confirms the path a CI invocation actually names is
+    still that same checkout, not one that moved after the checkout step
+    ran. Used for BOTH the plugin checkout (``import_cross_repo``) and the
+    project checkout itself (``promote_fr_layers.run``'s evidence-freshness
+    binding) -- same check, two different trees."""
+    resolved = root.resolve()
     try:
         proc = subprocess.run(
-            ["git", "-C", str(monorepo_root), "rev-parse", "HEAD"],
+            ["git", "-C", str(resolved), "rev-parse", "HEAD"],
             capture_output=True, text=True, check=True, timeout=30,
         )
     except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         raise RuntimeError(
-            f"could not read the git HEAD of the checkout at '{monorepo_root}' to verify "
-            f"it matches the expected pinned commit {expect_commit!r}: {type(exc).__name__}: {exc}"
+            f"could not read the git HEAD of '{resolved}' to verify it matches the expected "
+            f"commit {expect_commit!r}: {type(exc).__name__}: {exc}"
         ) from exc
     actual = proc.stdout.strip()
     if actual != expect_commit:
         raise RuntimeError(
-            f"the checkout at '{monorepo_root}' is at commit {actual!r}, not the expected "
-            f"pinned commit {expect_commit!r} -- refusing to import from an unverified checkout"
+            f"'{resolved}' is at commit {actual!r}, not the expected commit {expect_commit!r} "
+            "-- refusing to proceed against an unverified checkout"
         )
 
 
@@ -67,13 +69,13 @@ def import_cross_repo(plugin_root: Path, expect_commit: str | None = None):
     SEPARATE sys.path entry, so the plugin's ``scripts.*`` namespace and the
     shared ``lib.*`` namespace never collide). When ``expect_commit`` is
     given, the checkout's HEAD is verified against it BEFORE anything is
-    added to ``sys.path`` or imported (see ``verify_plugin_pin``); omitted
+    added to ``sys.path`` or imported (see ``verify_commit_pin``); omitted
     for a local/manual invocation, where the operator already trusts their
     own checkout the same way they trust any other local script."""
     import sys
 
     if expect_commit:
-        verify_plugin_pin(plugin_root, expect_commit)
+        verify_commit_pin(plugin_root.resolve().parent.parent, expect_commit)
 
     plugin_root_str = str(plugin_root.resolve())
     if plugin_root_str not in sys.path:
@@ -277,6 +279,6 @@ def write_promotions(
 
 __all__ = [
     "_MANIFEST_REL", "_SPEC_REL", "_LEDGER_REL",
-    "verify_plugin_pin", "import_cross_repo", "build_evidence", "regen_manifest",
+    "verify_commit_pin", "import_cross_repo", "build_evidence", "regen_manifest",
     "rewrite_spec_row", "atomic_write_text", "write_promotions",
 ]

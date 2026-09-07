@@ -91,6 +91,18 @@ def run(args: argparse.Namespace) -> int:
     spec_path = Path(args.spec_path) if args.spec_path else project_root / _SPEC_REL
     ledger_path = Path(args.ledger_path) if args.ledger_path else project_root / _LEDGER_REL
 
+    # PR Review (blocking, round 2): `--expect-project-commit` binds the
+    # evidence freshness check below to a commit the CALLER names explicitly,
+    # not merely to a filesystem mtime a stale-but-recently-touched report
+    # could satisfy on its own. Checked here (not via `import_cross_repo`,
+    # which verifies the PLUGIN checkout, a different tree entirely).
+    if args.expect_project_commit:
+        try:
+            io_mod.verify_commit_pin(project_root, args.expect_project_commit)
+        except RuntimeError as exc:
+            print(json.dumps({"success": False, "reason": str(exc)}, indent=2))
+            return 2
+
     try:
         mods = io_mod.import_cross_repo(Path(args.plugin_root), expect_commit=args.expect_plugin_commit)
     except (ImportError, RuntimeError) as exc:
@@ -109,14 +121,22 @@ def run(args: argparse.Namespace) -> int:
             return 2
         vitest_reports.append((name, Path(raw_path)))
 
-    # External plan review (openai, high): "fresh CI evidence" was previously
-    # asserted only in prose — any JSON file of any age was accepted as if it
-    # were just-collected. This does not prove the report ran against the
-    # CURRENT tree (vitest's JSON has no commit field to check), but it DOES
-    # make "stale claim" a checked, rejectable condition rather than a purely
-    # asserted one: a report older than `--evidence-max-age-seconds` (default
-    # 1h — long enough for a real full suite run, short enough to catch a
-    # leftover report from a much earlier session) is refused outright.
+    # External plan review (openai, high) + PR Review (blocking, round 2):
+    # "fresh CI evidence" was previously asserted only in prose, then only
+    # checked by mtime -- a copied-and-touched old report would pass. This
+    # still does not prove the report's CONTENT came from the current tree
+    # (vitest's JSON carries no commit field), but combined with the
+    # mandatory `--expect-project-commit` check above, an accepted report
+    # must now be BOTH freshly written (mtime within the ceiling) AND
+    # produced while `project_root` was pinned to the exact commit the
+    # caller names -- not merely "some file that happens to be new". A
+    # NEGATIVE age (a future-dated mtime -- clock skew or a deliberately
+    # advanced timestamp) is rejected too, not just an old one. A small
+    # tolerance (not a hard 0 floor) absorbs ordinary write-then-stat skew: a
+    # file this process just wrote can observe `st_mtime` a few ms AHEAD of
+    # `time.time()` from filesystem timestamp rounding, which would otherwise
+    # reject a report that is, in fact, brand new.
+    _CLOCK_SKEW_TOLERANCE_SECONDS = 5
     now = time.time()
     for name, path in vitest_reports:
         try:
@@ -124,13 +144,13 @@ def run(args: argparse.Namespace) -> int:
         except OSError as exc:
             print(json.dumps({"success": False, "reason": f"--vitest-report {name}={path} unreadable: {exc}"}))
             return 2
-        if age > args.evidence_max_age_seconds:
+        if age > args.evidence_max_age_seconds or age < -_CLOCK_SKEW_TOLERANCE_SECONDS:
             print(json.dumps({
                 "success": False,
-                "reason": f"--vitest-report {name}={path} is {age:.0f}s old, over the "
-                          f"{args.evidence_max_age_seconds}s freshness ceiling — supply a report "
-                          "collected just now, not a stale claim (raise --evidence-max-age-seconds "
-                          "only with a documented reason)",
+                "reason": f"--vitest-report {name}={path} is {age:.0f}s old (ceiling "
+                          f"{args.evidence_max_age_seconds}s, floor -{_CLOCK_SKEW_TOLERANCE_SECONDS}s) — "
+                          "supply a report collected just now, not a stale or future-dated claim "
+                          "(raise --evidence-max-age-seconds only with a documented reason)",
             }, indent=2))
             return 2
 
@@ -244,11 +264,17 @@ def main() -> int:
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--plugin-root", required=True, help="<monorepo>/plugins/shipwright-compliance")
     parser.add_argument(
-        "--expect-plugin-commit", default=None,
+        "--expect-plugin-commit", required=True,
         help="full SHA the --plugin-root checkout's HEAD must match, verified before anything is "
-             "imported from it (PR Review, blocking); any CI wiring of this script MUST pass this, "
-             "bound to the SAME ref its actions/checkout step pins (mirroring the "
-             "`Traceability manifest (gate)` job) -- omit only for a trusted local/manual run",
+             "imported from it (PR Review, blocking, round 2: mandatory, no bypass) -- bind this to "
+             "the SAME ref this invocation's actions/checkout step pins (mirroring the "
+             "`Traceability manifest (gate)` job)",
+    )
+    parser.add_argument(
+        "--expect-project-commit", required=True,
+        help="full SHA --project-root's HEAD must match, verified before any --vitest-report is "
+             "trusted (PR Review, blocking, round 2): binds the freshness check below to a commit "
+             "the caller names explicitly, not merely to a filesystem mtime",
     )
     parser.add_argument("--manifest-path", default=None)
     parser.add_argument("--spec-path", default=None)
@@ -262,7 +288,8 @@ def main() -> int:
     parser.add_argument("--ack-path", default=None)
     parser.add_argument(
         "--evidence-max-age-seconds", type=int, default=3600,
-        help="reject a --vitest-report older than this (freshness ceiling, external plan review)",
+        help="reject a --vitest-report older than this, or a future-dated one (freshness ceiling, "
+             "external plan review + PR Review)",
     )
     args = parser.parse_args()
     return run(args)
