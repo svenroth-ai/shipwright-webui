@@ -123,24 +123,34 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": null,
+          "category": "correctness",
+          "file": "client/e2e/flows/markdown-editor.spec.ts",
+          "line": 26,
+          "finding": "HIGH-severity finding from the prior pass (FR-01.34 fold-map row blanket-applied, mis-resolving these two markdown-editor files to FR-01.33 instead of FR-01.35) is fixed in eb3df0df. Independently re-verified: full read of both files confirms all 8 @covers sites plus header/describe-title text now say FR-01.35, zero stray FR-01.33/FR-01.34 references remain; spec.md's FR-01.33/FR-01.35 definitions corroborate FR-01.35 is substantively correct (markdown-editor ACs name smart-viewer-edit/md-editor-warn/markdown-diff/PUT .../file with If-Match/409 fingerprint_mismatch, an exact match); 4 sibling files in the same original diff already resolved correctly to FR-01.35; mechanically confirmed via `git show eb3df0df` that every changed line is a comment/docstring/describe-title string, no test body/assertion touched. ADR disposition table (row 3) and its 2368-vs-2357 count clarification (871f85e1, 9680b557) accurately describe the fix without overclaiming.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-09-07T08:50:36.524639+00:00",
-      "disposition": "delegated_to_orchestrator: sub-iterate runner has no Agent tool, cannot spawn spec-reviewer/code-reviewer/doubt-reviewer cascade; orchestrator runs it at campaign-mode.md 3f-bis before merge (ADR-029)",
-      "recorded_by": "none",
+      "completed_at": "2026-09-07T12:18:28.077745+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_run",
+      "status": "not_applicable",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-09-07T08:50:36.630704+00:00",
-      "disposition": "delegated_to_orchestrator: sub-iterate runner has no Agent tool, cannot spawn spec-reviewer/code-reviewer/doubt-reviewer cascade; orchestrator runs it at campaign-mode.md 3f-bis before merge (ADR-029)",
+      "completed_at": "2026-09-07T12:18:36.470084+00:00",
+      "disposition": "not_applicable: comment-only @covers-tag backfill, no migrations/async/concurrency/cross-plugin imports/irreversible ops touched (doubt-reviewer triggers per shipwright-build:doubt-reviewer scope); w2 precedent (iterate-2026-09-07-w2-form-convergence) closed the same way",
       "recorded_by": "none",
       "parse_status": null,
       "raw_excerpt": null
