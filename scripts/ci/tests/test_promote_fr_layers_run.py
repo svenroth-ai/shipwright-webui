@@ -54,7 +54,7 @@ def _args(**kwargs) -> argparse.Namespace:
     base = dict(
         project_root=".", manifest_path=None, spec_path=None, ledger_path=None,
         vitest_report=[], escalation_out=None, ack_path=None,
-        evidence_max_age_seconds=3600,
+        evidence_max_age_seconds=3600, expect_plugin_commit=None,
     )
     base.update(kwargs)
     return argparse.Namespace(**base)

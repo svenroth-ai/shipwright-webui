@@ -76,14 +76,24 @@ def run(args: argparse.Namespace) -> int:
         }, indent=2))
         return 2
 
+    # PR Review (comment): a negative value makes EVERY report look stale
+    # (`age > negative_ceiling` is always true), which silently behaves like
+    # "reject all evidence" rather than the misconfiguration it actually is.
+    if args.evidence_max_age_seconds < 0:
+        print(json.dumps({
+            "success": False,
+            "reason": f"--evidence-max-age-seconds must be >= 0, got {args.evidence_max_age_seconds}",
+        }, indent=2))
+        return 2
+
     project_root = Path(args.project_root).resolve()
     manifest_path = Path(args.manifest_path) if args.manifest_path else project_root / _MANIFEST_REL
     spec_path = Path(args.spec_path) if args.spec_path else project_root / _SPEC_REL
     ledger_path = Path(args.ledger_path) if args.ledger_path else project_root / _LEDGER_REL
 
     try:
-        mods = io_mod.import_cross_repo(Path(args.plugin_root))
-    except ImportError as exc:
+        mods = io_mod.import_cross_repo(Path(args.plugin_root), expect_commit=args.expect_plugin_commit)
+    except (ImportError, RuntimeError) as exc:
         print(json.dumps({
             "success": False,
             "reason": f"could not import the pinned shipwright-compliance checkout at "
@@ -157,22 +167,6 @@ def run(args: argparse.Namespace) -> int:
         print(json.dumps({"success": False, "reason": f"failed rewriting spec.md row: {exc}"}, indent=2))
         return 2
 
-    if promotions:
-        # This write is NOT git-atomic -- nothing is committed until F6, well
-        # after this process exits -- but it MUST be atomic with respect to
-        # the working tree this process leaves behind (see
-        # `promote_fr_layers_io.write_promotions`'s docstring for why the
-        # spec.md/manifest/ledger writes and regen #2 are one all-or-nothing
-        # unit, restored to `original_spec_text` on ANY failure).
-        failure = io_mod.write_promotions(
-            spec_path=spec_path, manifest_path=manifest_path, ledger_path=ledger_path,
-            spec_text=spec_text, original_spec_text=original_spec_text, promotions=promotions,
-            evidence=evidence, ledger=ledger, project_root=project_root, mods=mods,
-        )
-        if failure is not None:
-            print(json.dumps(failure, indent=2))
-            return 2
-
     systemic = lp.systemic_pattern(escalations, result["total_evaluated"])
     output = {
         "success": True,
@@ -184,16 +178,51 @@ def run(args: argparse.Namespace) -> int:
         "systemic_pattern": systemic,
     }
 
+    escalation_out = ack_path = escalation_content = fingerprint = None
+    if escalations:
+        ack_dir = project_root / ".shipwright" / "planning" / "iterate" / args.run_id
+        escalation_out = Path(args.escalation_out) if args.escalation_out else ack_dir / "layer_promotion_escalation.json"
+        ack_path = Path(args.ack_path) if args.ack_path else ack_dir / "layer_promotion_ack.json"
+        fingerprint = _ack_fingerprint(escalations)
+        escalation_content = json.dumps({**output, "fingerprint": fingerprint}, indent=2, ensure_ascii=False) + "\n"
+
+    if promotions:
+        # This write is NOT git-atomic -- nothing is committed until F6, well
+        # after this process exits -- but it MUST be atomic with respect to
+        # the working tree this process leaves behind (see
+        # `promote_fr_layers_io.write_promotions`'s docstring for why the
+        # spec.md/manifest/ledger/escalation-report writes and regen #2 are
+        # one all-or-nothing unit, restored to `original_spec_text` on ANY
+        # failure). PR Review (blocking): the escalation report used to be
+        # written separately, AFTER this call, so a failure writing IT left a
+        # terminal promotion committed with no matching escalation record --
+        # folding it into the same call closes that gap.
+        failure = io_mod.write_promotions(
+            spec_path=spec_path, manifest_path=manifest_path, ledger_path=ledger_path,
+            spec_text=spec_text, original_spec_text=original_spec_text, promotions=promotions,
+            evidence=evidence, ledger=ledger, project_root=project_root, mods=mods,
+            escalation_write=(escalation_out, escalation_content) if escalations else None,
+        )
+        if failure is not None:
+            print(json.dumps(failure, indent=2))
+            return 2
+    elif escalations:
+        # Nothing else was written this run (no promotions at all) -- there
+        # is no wider transaction to roll back, just this one file; guard it
+        # for a structured failure instead of an uncaught traceback.
+        try:
+            escalation_out.parent.mkdir(parents=True, exist_ok=True)
+            io_mod.atomic_write_text(escalation_out, escalation_content)
+        except OSError as exc:
+            print(json.dumps({
+                "success": False,
+                "reason": f"failed writing the escalation report to {escalation_out}: {type(exc).__name__}: {exc}",
+            }, indent=2))
+            return 2
+
     if not escalations:
         print(json.dumps(output, indent=2, ensure_ascii=False))
         return 0
-
-    ack_dir = project_root / ".shipwright" / "planning" / "iterate" / args.run_id
-    escalation_out = Path(args.escalation_out) if args.escalation_out else ack_dir / "layer_promotion_escalation.json"
-    ack_path = Path(args.ack_path) if args.ack_path else ack_dir / "layer_promotion_ack.json"
-    fingerprint = _ack_fingerprint(escalations)
-    escalation_out.parent.mkdir(parents=True, exist_ok=True)
-    escalation_out.write_text(json.dumps({**output, "fingerprint": fingerprint}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     acked = False
     if ack_path.is_file():
@@ -214,6 +243,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", default=".")
     parser.add_argument("--plugin-root", required=True, help="<monorepo>/plugins/shipwright-compliance")
+    parser.add_argument(
+        "--expect-plugin-commit", default=None,
+        help="full SHA the --plugin-root checkout's HEAD must match, verified before anything is "
+             "imported from it (PR Review, blocking); any CI wiring of this script MUST pass this, "
+             "bound to the SAME ref its actions/checkout step pins (mirroring the "
+             "`Traceability manifest (gate)` job) -- omit only for a trusted local/manual run",
+    )
     parser.add_argument("--manifest-path", default=None)
     parser.add_argument("--spec-path", default=None)
     parser.add_argument("--ledger-path", default=None)
