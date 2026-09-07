@@ -25,7 +25,7 @@
       {
         "behavior": "Origin is renamed Basis in all 14 per-area FR-table headers, with no stray remaining Origin FR-table header",
         "disposition": "tested",
-        "evidence": "grep-count of the old/new header strings across spec.md (0 old, 14 new); repo-wide grep confirms zero remaining FR-table Origin occurrences"
+        "evidence": "grep-count of the old/new header strings in the adopted spec.md (0 old, 14 new); zero remaining FR-table Origin header occurrences there. Correction (Stage-1 spec review, 2026-09-07): a repo-wide grep is NOT zero-hit — three synthetic fixture/test documents still construct the pre-retrofit shape (server/src/core/mission-context/fold-map.test.ts:20, client/e2e/helpers/mission-s3-fixtures.ts:93, client/e2e/flows/mission-artifacts-s1.spec.ts:184), out of scope and harmless since fold-map.ts's parser is positional, not header-aware"
       },
       {
         "behavior": "Layers column exists on all 14 headers and all 32 data rows, every data-row cell the literal (inferred)",

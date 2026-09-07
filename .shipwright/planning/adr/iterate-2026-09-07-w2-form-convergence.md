@@ -121,10 +121,18 @@ renamed Basis", not "Basis values are corrected".
 **header-converged** (any reader that resolves columns by name, like the
 monorepo's shared `_fr_table_columns.py`, will find `Basis`/`Layers`
 correctly) but **not value-converged** on `Basis` — 32 rows hold
-non-vocabulary provenance strings. Confirmed empirically this run: no
-validator of any kind (`_fr_table_columns`, `fr_table_reader`,
-`check_fr_hygiene`, or equivalent) is vendored in this repo today, so
-nothing is broken by shipping the header-only rename now. If shared
+non-vocabulary provenance strings. **Correction (Stage-1 spec review,
+2026-09-07):** this repo DOES have an in-repo consumer of this file —
+`server/src/core/mission-context/fold-map.ts` reads
+`.shipwright/planning/01-adopted/spec.md` (`SPEC_REL_PARTS`, L29) and
+resolves `Name`/`Description` **positionally** (`cols[2]`/`cols[4]`,
+L105-106), not by header name. It is exactly the consumer that makes the
+sub-iterate spec's column-order constraint load-bearing. This run's rename
+is safe against it — both new columns are right-edge appends, so indices
+0-4 are untouched — but the earlier claim that "no validator of any kind…
+is vendored in this repo today" was wrong; it was scoped to monorepo tool
+names (`_fr_table_columns`, `fr_table_reader`, `check_fr_hygiene`) and
+missed this repo's own bespoke, header-agnostic reader. If shared
 compliance tooling is ever run against this repo and validates `Basis`
 values, these 32 rows will read as non-conforming until a dedicated
 revaluation pass runs — unowned, as stated above.
@@ -194,11 +202,20 @@ separators also independently confirmed at `NF==9`.
 ## Self-Review
 
 1. **Spec Compliance** — PASS. All 3 sub-iterate ACs satisfied: Origin
-   renamed Basis in all 14 tables (repo-wide grep for the FR-table `Origin`
-   header returns zero hits; the two residual `Origin` occurrences in
-   `spec.md` are unrelated WS-CORS prose, confirmed by content); Layers
-   column present with literal `(inferred)` in all 32 rows; 29-vs-35 traced
-   to its source, re-measured, and recorded (this ADR).
+   renamed Basis in the adopted `spec.md` (zero remaining FR-table `Origin`
+   header occurrences there; the two residual `Origin` hits in `spec.md`
+   are unrelated WS-CORS prose, confirmed by content). **Correction
+   (Stage-1 spec review, 2026-09-07):** "repo-wide grep returns zero hits"
+   was inaccurate — three synthetic fixture/test documents still construct
+   the pre-retrofit FR-table shape: `server/src/core/mission-context/fold-map.test.ts:20`,
+   `client/e2e/helpers/mission-s3-fixtures.ts:93`,
+   `client/e2e/flows/mission-artifacts-s1.spec.ts:184`. These are out of
+   this unit's scope (the sub-iterate spec retrofits the adopted FR table,
+   not synthetic sample documents) and harmless (`fold-map.ts`'s parser is
+   positional, not header-aware, so it ignores the header row entirely) —
+   left deliberately, not missed. Layers column present with literal
+   `(inferred)` in all 32 rows; 29-vs-35 traced to its source, re-measured,
+   and recorded (this ADR).
 2. **Error Handling** — N/A/PASS. Pure Markdown edit; no runtime error
    paths introduced or touched.
 3. **Security Basics** — PASS. No secrets, no auth surface, no code
@@ -212,18 +229,23 @@ separators also independently confirmed at `NF==9`.
    converged shape exactly (verified against `shipwright/shared/fr-
    authoring.md` §4a and the monorepo's own live `spec.md`); CRLF line
    endings preserved consistently (confirmed: 100% CRLF before and after).
-7. **Affected Boundaries (ADR-024)** — PASS, with an honest scope note.
-   `spec.md`'s FR table is, in principle, a producer read by the monorepo's
-   shared `_fr_table_columns.py`-based tooling family — but this repo does
-   not vendor or run any such consumer (confirmed by grep: no
-   `_fr_table_columns`/`fr_table_reader`/`check_fr_hygiene` anywhere in this
-   repo), so there is no real in-repo round-trip to probe. The probe run
-   instead was the cross-repo check: grepping the sibling monorepo for any
-   reference to this repo's `spec.md` path (none found) and reading the
-   shared reader's actual column-resolution logic (`header_map`/`pick`/
-   `named_cell`) to confirm the rename is compatible with it by
-   construction (columns resolved by name, first-match-wins, no positional
-   assumption) rather than merely by inspection of this repo alone.
+7. **Affected Boundaries (ADR-024)** — PASS, corrected. `spec.md`'s FR
+   table is a producer read by the monorepo's shared
+   `_fr_table_columns.py`-based tooling family, cross-repo-confirmed safe
+   (grepped the sibling monorepo for any reference to this repo's
+   `spec.md` path — none found; the shared reader resolves columns by
+   name, first-match-wins, no positional assumption, so the rename is
+   compatible with it by construction). **Correction (Stage-1 spec review,
+   2026-09-07):** the earlier claim "this repo does not vendor or run any
+   such consumer… no real in-repo round-trip to probe" was wrong — there
+   IS an in-repo consumer, `server/src/core/mission-context/fold-map.ts`
+   (`SPEC_REL_PARTS`, L29), and unlike the monorepo's reader it resolves
+   `Name`/`Description` **positionally** at `cols[2]`/`cols[4]` (L105-106),
+   not by header name. The round-trip probe actually needed was: do the
+   two new columns land at indices 5-6, past every index `fold-map.ts`
+   reads? Yes — both are right-edge appends, so indices 0-4 (and this
+   reader's behavior) are untouched. Safe, but for a different, narrower
+   reason than originally recorded.
 
 ## Confidence Calibration
 
