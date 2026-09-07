@@ -1,0 +1,317 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-w5-bind-and-promote",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T15:38:51.918929+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "Get the scope relaxation recorded as a decision (a one-paragraph amendment in the campaign or spec noting \"AC granularity deferred — blocked on schema v4 / AC enumeration\"), and open a follow-up unit for the AC-binding work so the title's promise isn't silently dropped. As written, a reviewer checking the AC checkbox would be checking something the code doesn't do.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Record the evidence (suite results / test ids / commit) in the ledger entry per promoted FR (the plan implies this via \"evidence named\" — confirm it includes the actual test result set, not just a summary), and document that the only reversal path is a deliberate demotion recorded in the ledger (`contradicts_ledger` is one-way in the other direction too — verify a human-recorded demotion CAN override a stale `explicit`, otherwise a bad promotion is permanently unfixable).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "Either run the `@smoke` e2e subset as a third evidence source, or add one sentence to the plan explaining why even the gated subset was excluded (e.g., smoke coverage doesn't overlap the escalated FRs' bound tests).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Confirm `evaluate_requirement` treats a bound test marked skipped/disabled in the manifest as either an escalation (`absent_ci_evidence`) or at minimum a named finding, rather than excluding it from the observed-layer set.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Note the drift repair explicitly in the commit message (the plan does document it here — carry that into the commit body).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not implement the requested AC-to-test binding. It explicitly retains an FR-level manifest with no `acs` schema and promotes based on FR-bound tests, while declaring actual `FR/ACnn` bindings out of scope. This cannot establish the required predicate that “ACs [are] bound,” and can promote an FR even if one or more of its acceptance criteria have no coverage.",
+          "suggestion": "Make AC-level traceability a prerequisite of promotion: add/consume AC identifiers in the source specification and manifest, then evaluate coverage and green evidence per AC. If that prerequisite is intentionally deferred, this unit must not claim or perform AC-based layer promotion.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan skips all Playwright evidence even though the repository convention says the `@smoke` subset is a CI gate. That leaves 17 FRs escalated for evidence that appears obtainable through an existing required test path, rather than because the cases are inherently undecidable.",
+          "suggestion": "Run and ingest the CI-equivalent Playwright smoke suite, or explicitly establish that none of the relevant e2e bindings are part of that subset. Full Playwright need not run, but the promotion predicate needs fresh evidence from every enabled observable CI layer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Regenerating and committing a full manifest as part of this targeted promotion also repairs unrelated “pre-existing drift” (three untagged tests). That mixes an unrelated reconciliation with the promotion change, inflates the diff, and makes review/rollback of the nine decisions less reliable.",
+          "suggestion": "Separate the stale-manifest repair into its own reviewed change, or require the promotion command to fail on pre-existing manifest drift and regenerate only after the baseline is explicitly reconciled.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The `contradicts_ledger` escalation rule depends on authoritative historical demotion records, but the proposed new “one-way ledger” description only explains promotion records. It is unclear where prior demotions are read from, how legacy records are migrated, and how concurrent runs avoid lost or conflicting ledger updates.",
+          "suggestion": "Define the ledger schema, authoritative location, migration behavior, and locking/atomic-write semantics. Ensure evaluation reads historical demotions before editing `spec.md`, and that a run refuses to proceed on malformed or conflicting ledger state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "“Enabled” and “fresh” are not operationally pinned. A JSON result can be green while a conditional test is skipped, filtered out, retried, duplicated by title, or executed from a different commit/configuration than the manifest/spec being edited.",
+          "suggestion": "Record and validate source commit, command/config, test IDs, status (including skip), timestamps, and report completeness. Treat filtered, skipped, ambiguous-name, and mismatched-revision results as absent evidence unless the shared evidence contract explicitly defines them otherwise.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The orchestration imports executable helpers from a sibling checkout. A path pin alone does not establish the code revision or integrity, so a locally modified shared checkout could influence a command that rewrites compliance artifacts.",
+          "suggestion": "Pin and verify the expected shared-tool revision (or invoke a versioned installed artifact), and emit that revision in the ledger/evidence artifacts.  Overall, the fail-closed handling of missing and unjoinable evidence is sound, and avoiding a guessed `test.each` match is correct. However, the central FR-level substitution for AC-level binding means this approach does not satisfy the stated change and should be revised before promotion is accepted.  SHIPWRIGHT_VERDICT: reject",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T15:37:47.036620+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category: approach · Severity: medium**\nThe sub-iterate is titled \"Bind AC to test and promote Layers,\" but the actual AC-to-test binding (individual `@covers(\"FR-XX.YY/ACnn\")` tags) is explicitly excluded. The spec's predicate — \"ACs bound\" — is therefore not literally satisfied; what's implemented is an FR-level predicate. The justification (no enumerated AC list exists in this repo; manifest schema v3 has no `acs` field) is sound and honest, but this is a real deviation from the unit's stated contract, not a detail.\n*Suggestion:* Get the scope relaxation recorded as a decision (a one-paragraph amendment in the campaign or spec noting \"AC granularity deferred — blocked on schema v4 / AC enumeration\"), and open a follow-up unit for the AC-binding work so the title's promise isn't silently dropped. As written, a reviewer checking the AC checkbox would be checking something the code doesn't do.\n\n**Category: edge-case · Severity: medium**\nPromotion is terminal and one-way, but the \"fresh evidence\" is a single vitest run per suite. A transiently-green flaky test therefore produces an irreversible `explicit` status. The 5 pre-existing server skips show the suites aren't perfectly deterministic in composition, and CI flake is a known failure mode in vitest projects.\n*Suggestion:* Record the evidence (suite results / test ids / commit) in the ledger entry per promoted FR (the plan implies this via \"evidence named\" — confirm it includes the actual test result set, not just a summary), and document that the only reversal path is a deliberate demotion recorded in the ledger (`contradicts_ledger` is one-way in the other direction too — verify a human-recorded demotion CAN override a stale `explicit`, otherwise a bad promotion is permanently unfixable).\n\n**Category: approach · Severity: low**\n17 of 23 escalations stem from simply not feeding e2e evidence, and the repo's own CI convention runs an `@smoke` Playwright subset as a gate. Running the smok […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The plan does not implement the requested AC-to-test binding. It explicitly retains an FR-level manifest with no `acs` schema and promotes based on FR-bound tests, while declaring actual `FR/ACnn` bindings out of scope. This cannot establish the required predicate that “ACs [are] bound,” and can promote an FR even if one or more of its acceptance criteria have no coverage.  \n   **Suggestion:** Make AC-level traceability a prerequisite of promotion: add/consume AC identifiers in the source specification and manifest, then evaluate coverage and green evidence per AC. If that prerequisite is intentionally deferred, this unit must not claim or perform AC-based layer promotion.\n\n2. **Category:** dependency  \n   **Severity:** high  \n   **Finding:** The plan skips all Playwright evidence even though the repository convention says the `@smoke` subset is a CI gate. That leaves 17 FRs escalated for evidence that appears obtainable through an existing required test path, rather than because the cases are inherently undecidable.  \n   **Suggestion:** Run and ingest the CI-equivalent Playwright smoke suite, or explicitly establish that none of the relevant e2e bindings are part of that subset. Full Playwright need not run, but the promotion predicate needs fresh evidence from every enabled observable CI layer.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** Regenerating and committing a full manifest as part of this targeted promotion also repairs unrelated “pre-existing drift” (three untagged tests). That mixes an unrelated reconciliation with the promotion change, inflates the diff, and makes review/rollback of the nine decisions less reliable.  \n   **Suggestion:** Separate the stale-manifest repair into its own reviewed change, or require the promotion command to fail on pre-existing manifest drift and regenerate only after the baseline is explicitly reconciled.\n\n4. **Category:* […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "reject"
+      },
+      "contradiction_resolution": "glm=approve vs openai=reject resolved per-finding in mini-plan.md External-Plan-Review-Findings table: 7 findings dispositioned (2 rejected-with-reason with empirical backing, 4 accepted-and-fixed via code+doc, 1 split), triage item trg-f2c8df89 filed for the AC-scoped-binding scope deferral both reviewers flagged"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T15:39:01.561462+00:00",
+      "disposition": "blocker 1 (no Agent tool): the sub-iterate-runner cannot spawn the cascade; delegated to the campaign orchestrator (ADR-029, campaign mode only) — runs at 3f-bis before merge, never fabricated here",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T15:39:01.671366+00:00",
+      "disposition": "blocker 1 (no Agent tool): Stage 3 runs only behind a Stage 2 pass, and the internal cascade did not run in this campaign sub-iterate; delegated with the rest at 3f-bis",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": ".shipwright/compliance/layer-promotion-ledger.json:2-289",
+          "line": null,
+          "finding": "The committed ledger entries contain no `evidence_source_commit` key, but `ledger_record()` (scripts/ci/layer_promotion.py:263-283) unconditionally emits that key, even when empty. The committed artifact therefore cannot have been produced by the committed script — it was hand-authored or generated by an earlier script revision. This breaks the provenance chain the whole design leans on (\"this promotion's green run was against THIS tree\").",
+          "suggestion": "Regenerate the ledger with the committed script (or add the `evidence_source_commit` for the run's git HEAD) so the artifact is reproducible by the tool that claims to own it.  2. Category: spec — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": ".shipwright/planning/01-adopted/spec.md` (post-diff state) + missing `.shipwright/planning/iterate/iterate-2026-09-07-w5-bind-and-promote/layer_promotion_escalation.json",
+          "line": null,
+          "finding": "The post-diff spec still has many `(inferred)` FRs (FR-01.04, 01.31, 01.37, 01.43, 01.71, …). `evaluate_manifest` evaluates every requirement, so those FRs necessarily produced either escalations (`no_observable_layer` / `absent_ci_evidence`, exit code 3) or `skip_not_green` decisions — yet no escalation/decision artifact is committed. AC \"Only undecidable cases escalate, each naming which one\" has no committed evidence, and if escalations occurred the run exited 3 (unresolved stop) with no ack trail.",
+          "suggestion": "Commit the run's `layer_promotion_escalation.json` (and ack, if the operator cleared any stop) so the disposition of every non-promoted FR is auditable.  3. Category: spec — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/promote_fr_layers.py:168-253",
+          "line": null,
+          "finding": "The scope says escalation goes \"via the diff_risk_recheck contract.\" The script instead invents its own mechanism (`layer_promotion_ack.json` + sha256 fingerprint + exit code 3). No `diff_risk_recheck` integration exists anywhere in the diff.",
+          "suggestion": "Either wire the escalation into the repo's existing diff_risk_recheck path, or document in the sub-iterate why the ack-file contract is the accepted substitute — as-is, the named contract is simply not implemented.  4. Category: bug — Severity: high",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/promote_fr_layers.py:213-229",
+          "line": null,
+          "finding": "Non-atomic multi-file write with a terminal-state trap. `spec.md` is written first (line 214), then regen #2 runs, then manifest and ledger. If regen #2 raises (only `OSError, ValueError` are caught — a `KeyError` from the real `build_manifest` escapes entirely), or the process dies between writes, the repo is left with promoted spec rows but no ledger entries. Because `required_layers_source == \"explicit\"` is terminal and never re-evaluated, a rerun will `skip_already_explicit` those FRs and never backfill the ledger — a permanent hole in the one-way ledger the `contradicts_ledger` check depends on. Also, `manifest_path.write_text` (line 224) has no `parent.mkdir`, unlike the ledger write two lines later — a custom `--manifest-path` in a nonexistent directory throws after spec is already mutated.",
+          "suggestion": "Compute everything (post-regen included) before touching disk, then write ledger → manifest → spec (or write all three via temp files and rename). Broaden the regen #2 exception handling.  5. Category: spec — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/layer_promotion.py:126-160` (`evaluate_requirement`)",
+          "line": null,
+          "finding": "The scope says \"do not re-derive\" the p3.5 rule, whose predicate is \"binding includes the highest observable layer, those tests green in CI.\" The implementation instead requires every bound enabled test across every observed layer to be green, and the docstring openly justifies the re-derivation. The stricter predicate means FRs where the p3.5 rule's predicate holds (highest layer green, lower layer red) get `skip_not_green` instead of the autonomous promotion AC 1 mandates.",
+          "suggestion": "Either match the p3.5 predicate exactly, or get the deviation recorded in the sub-iterate plan as a sanctioned strengthening — right now the diff contradicts its own \"do not re-derive\" instruction.  6. Category: test — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/tests/promote_fr_layers_stub.py` (whole file) and `test_promote_fr_layers_run.py",
+          "line": null,
+          "finding": "Every load-bearing cross-repo contract is validated only against stubs written by the same author in the same commit: `read_fr_rows` returning a 0-based `lineno` index into `splitlines()`, `render_layers(layers, , inferred)` signature, `escape_cell`, `read_vitest(data, root=, base=)`, `merge_into`, `build_manifest` kwargs. If the real pinned checkout's `read_fr_rows` is 1-based (rewriting the wrong spec line — the stub's `FrTableRow.lineno` is asserted by nothing external), or `render_layers` formats layers differently (making the rewritten cell unparseable as `explicit` by the real collector, silently regressing regen #2), the entire integration test suite still passes green.",
+          "suggestion": "Add at least one smoke test that runs against the real pinned checkout in an environment that has it (CI), or pin contract assertions (expected rendered cell format, lineno semantics) in a place that fails when the checkout changes.  7. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/layer_promotion.py:141-143",
+          "line": null,
+          "finding": "evidence[t[\"id\"]].get(\"executed\")` assumes every evidence value is a dict; a non-dict entry raises `AttributeError`. Similarly, `run()`'s input try-block catches only `OSError, json.JSONDecodeError, ValueError` — a malformed vitest JSON that makes the real `read_vitest` raise `KeyError`/`TypeError` produces a raw traceback instead of the structured `{\"success\": false}` failure.",
+          "suggestion": "Guard with `isinstance(ent, dict)` and broaden the caught exception set (or catch `Exception` around evidence building and report it as the structured failure).  8. Category: spec — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/promote_fr_layers.py:168-180` (module docstring) and `:236-244",
+          "line": null,
+          "finding": "\"The run cannot author its own promotion approval\" is enforced only by convention: the script never writes the ack (tested — good), but the exact fingerprint needed to forge a valid ack is published by the run itself into `layer_promotion_escalation.json`, sitting in the same directory as the ack path. Any automated process driving this script can trivially self-approve with a two-line JSON write; nothing distinguishes operator authorship.",
+          "suggestion": "Acknowledge this is convention-only, or require the ack to carry something the run cannot derive (e.g., operator-signed content, or an out-of-band review reference) if the AC is meant to be enforceable.  9. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "scripts/ci/layer_promotion.py:60-70` and `:185-190",
+          "line": null,
+          "finding": "(a) `observed_layers` silently drops bindings at layer names outside `{unit, integration, e2e}` — a typo'd or future layer (\"perf\", \"component\") makes an FR's coverage invisible, and it escalates `no_observable_layer` without naming the dropped layer. (b) `ACTION_SKIP_REMOVED` decisions `continue` before being appended anywhere, so removed FRs appear in no output list at all — invisible to the operator reading the run report.",
+          "suggestion": "Include the raw non-empty layer names in the escalation detail, and list removed FRs in the output (even just a count).",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 80,
+          "finding": "The “fresh CI evidence” predicate is not enforced. The script accepts any JSON file path and treats its parsed `executed: \"pass\"` values as fresh, including an old report from a different commit or a manually supplied report. `generated_at` only timestamps manifest regeneration; it does not establish when or against which tree the test report ran.",
+          "suggestion": "Require CI-produced evidence with verifiable run/commit provenance matching the current `git_head`, or execute the declared test commands in this run and consume their output.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 209,
+          "finding": "Promotion mutates `spec.md` before the required second manifest regeneration succeeds. If `_regen_manifest` fails at line 214, the command exits with failure but leaves promoted Layers cells behind while the manifest and ledger remain stale or absent, violating the source-of-truth/evidence-chain contract.",
+          "suggestion": "Build and validate all post-promotion outputs before replacing any destination, then commit spec, manifest, and ledger atomically (or roll back the spec on failure).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 237,
+          "finding": "args.run_id` is concatenated into an output path without validation. A run ID containing `..` or path separators can cause the script to create and write `layer_promotion_escalation.json` outside `.shipwright/planning/iterate`, if an untrusted CI variable reaches this CLI.",
+          "suggestion": "Validate `run_id` against a strict identifier pattern and reject path separators/`..`; additionally resolve and verify the output path remains below the intended iterate directory.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "scripts/ci/tests/test_promote_fr_layers_run.py",
+          "line": 53,
+          "finding": "The integration tests use a stub evidence reader and only test supplied `executed` values; they never test stale or mismatched-commit reports. Consequently, the tests would still pass while the implementation promoted from arbitrary historical green evidence.",
+          "suggestion": "Add an integration test with evidence provenance from a different commit/run and assert that it cannot promote.  Overall assessment: ship-with-fixes. The per-FR decision structure is largely aligned, but promotion currently lacks the required fresh-CI guarantee and can leave partial state after failure. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T15:57:17.271636+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: spec — Severity: medium**\nFile: `.shipwright/compliance/layer-promotion-ledger.json:2-289`\nFinding: The committed ledger entries contain no `evidence_source_commit` key, but `ledger_record()` (scripts/ci/layer_promotion.py:263-283) unconditionally emits that key, even when empty. The committed artifact therefore cannot have been produced by the committed script — it was hand-authored or generated by an earlier script revision. This breaks the provenance chain the whole design leans on (\"this promotion's green run was against THIS tree\").\nSuggestion: Regenerate the ledger with the committed script (or add the `evidence_source_commit` for the run's git HEAD) so the artifact is reproducible by the tool that claims to own it.\n\n**2. Category: spec — Severity: medium**\nFile: `.shipwright/planning/01-adopted/spec.md` (post-diff state) + missing `.shipwright/planning/iterate/iterate-2026-09-07-w5-bind-and-promote/layer_promotion_escalation.json`\nFinding: The post-diff spec still has many `(inferred)` FRs (FR-01.04, 01.31, 01.37, 01.43, 01.71, …). `evaluate_manifest` evaluates every requirement, so those FRs necessarily produced either escalations (`no_observable_layer` / `absent_ci_evidence`, exit code 3) or `skip_not_green` decisions — yet no escalation/decision artifact is committed. AC \"Only undecidable cases escalate, each naming which one\" has no committed evidence, and if escalations occurred the run exited 3 (unresolved stop) with no ack trail.\nSuggestion: Commit the run's `layer_promotion_escalation.json` (and ack, if the operator cleared any stop) so the disposition of every non-promoted FR is auditable.\n\n**3. Category: spec — Severity: medium**\nFile: `scripts/ci/promote_fr_layers.py:168-253`\nFinding: The scope says escalation goes \"via the diff_risk_recheck contract.\" The script instead invents its own mechanism (`layer_promotion_ack.json` + sha256 fingerprint + exit code 3). No `diff_risk_recheck` integration exists anywhe […truncated]\n\n[openai] - Category: spec\n- Severity: high\n- File: scripts/ci/promote_fr_layers.py:80\n- Finding: The “fresh CI evidence” predicate is not enforced. The script accepts any JSON file path and treats its parsed `executed: \"pass\"` values as fresh, including an old report from a different commit or a manually supplied report. `generated_at` only timestamps manifest regeneration; it does not establish when or against which tree the test report ran.\n- Suggestion: Require CI-produced evidence with verifiable run/commit provenance matching the current `git_head`, or execute the declared test commands in this run and consume their output.\n\n- Category: bug\n- Severity: medium\n- File: scripts/ci/promote_fr_layers.py:209\n- Finding: Promotion mutates `spec.md` before the required second manifest regeneration succeeds. If `_regen_manifest` fails at line 214, the command exits with failure but leaves promoted Layers cells behind while the manifest and ledger remain stale or absent, violating the source-of-truth/evidence-chain contract.\n- Suggestion: Build and validate all post-promotion outputs before replacing any destination, then commit spec, manifest, and ledger atomically (or roll back the spec on failure).\n\n- Category: security\n- Severity: medium\n- File: scripts/ci/promote_fr_layers.py:237\n- Finding: `args.run_id` is concatenated into an output path without validation. A run ID containing `..` or path separators can cause the script to create and write `layer_promotion_escalation.json` outside `.shipwright/planning/iterate`, if an untrusted CI variable reaches this CLI.\n- Suggestion: Validate `run_id` against a strict identifier pattern and reject path separators/`..`; additionally resolve and verify the output path remains below the intended iterate directory.\n\n- Category: test\n- Severity: medium\n- File: scripts/ci/tests/test_promote_fr_layers_run.py:53\n- Finding: The integration tests use a stub evidence reader and only test supplied `executed` values; they never test st […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T15:39:01.450814+00:00",
+      "disposition": "blocker 1 (no Agent tool): the sub-iterate-runner cannot spawn the Stage-1 spec-reviewer; delegated with the rest of the cascade (ADR-029, campaign mode only) — orchestrator runs it at 3f-bis before merge",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T15:37:54.171299+00:00",
+      "disposition": "plan_internal is the internal-reviewer plan pass (spec-reviewer over the mini-plan); this runner has no Agent tool and cannot spawn it (ADR-029) — permanently not_run per iteration-reviews.md's documented gap, never promoted. The external plan review (Step 3.5, recorded above as 'plan') is the review that fired for this run.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
