@@ -1,8 +1,8 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "collector_version": "test_links/1.0.0",
   "generated_at": "1970-01-01T00:00:00+00:00",
-  "source_commit": "821bc205c02ab9e6a932e7ea3786ee7388abe8b5",
+  "source_commit": "2c4ba5c0088dd853d897e6b3882b7ef4dc988326",
   "spec_hash": "sha256:6dd5919f82633ce6510e2132c7cbc634c8fe0ebdc4e2818b963385eebd9578f7",
   "requirements": {
     "01::FR-01.01": {
