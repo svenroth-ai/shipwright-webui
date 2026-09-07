@@ -163,11 +163,20 @@ def atomic_write_text(path: Path, text: str) -> None:
     """Write via temp-file + ``os.replace`` so `path` is never observable in a
     partially-written (e.g. truncated) state -- code review (orchestrator,
     high): a plain ``open(path, 'w')`` truncates before writing, so a crash
-    mid-write leaves the file EMPTY rather than merely stale."""
+    mid-write leaves the file EMPTY rather than merely stale.
+
+    PR Review (comment, round 5): a failure between creating ``tmp`` and the
+    ``os.replace`` (a full disk, a permissions error) used to leave the temp
+    file behind forever -- clean it up on any failure. ``unlink(missing_ok)``
+    also covers the success path, where ``os.replace`` has already removed
+    ``tmp`` by renaming it to ``path``."""
     tmp = path.with_name(f"{path.name}.tmp-{os.getpid()}-{int(time.time() * 1000)}")
-    with open(tmp, "w", encoding="utf-8", newline="") as fh:
-        fh.write(text)
-    os.replace(tmp, path)
+    try:
+        with open(tmp, "w", encoding="utf-8", newline="") as fh:
+            fh.write(text)
+        os.replace(tmp, path)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def _read_prior(path: Path) -> str | None:

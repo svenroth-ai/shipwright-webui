@@ -136,6 +136,17 @@ def run(args: argparse.Namespace) -> int:
         with open(spec_path, encoding="utf-8", newline="") as fh:
             original_spec_text = fh.read()
         ledger = json.loads(ledger_path.read_text(encoding="utf-8")) if ledger_path.is_file() else {}
+        # PR Review (blocking, round 5): a syntactically valid but non-object
+        # ledger.json (`[]`, `null`, a bare string) used to reach
+        # `evaluate_manifest` unchecked, which calls `ledger.get(fr_id)` and
+        # crashes with an uncaught AttributeError instead of the structured
+        # `{"success": false}` failure every other bad-input path here
+        # produces.
+        if not isinstance(ledger, dict):
+            raise ValueError(
+                f"ledger at '{ledger_path}' must decode to a JSON object, got "
+                f"{type(ledger).__name__}"
+            )
         evidence = io_mod.build_evidence(vitest_reports, project_root, mods)
         pre_manifest = io_mod.regen_manifest(project_root, evidence, mods)
     except Exception as exc:  # noqa: BLE001 — the real cross-repo collector can

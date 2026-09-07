@@ -62,5 +62,28 @@ def verify_commit_pin(root: Path, expect_commit: str) -> None:
             "-- refusing to proceed against an unverified checkout"
         )
 
+    # PR Review (blocking, round 5): matching HEAD is not enough -- a caller
+    # can leave HEAD untouched while modifying tracked files (e.g. editing a
+    # test after running it), producing a Vitest report that looks "fresh
+    # and pinned" but does not correspond to the pinned commit's actual
+    # committed tree. Require a clean worktree/index too, so the evidence is
+    # bound to what was actually committed, not merely to a HEAD sha that
+    # can be true of many different working trees.
+    try:
+        status_proc = subprocess.run(
+            ["git", "-C", str(resolved), "status", "--porcelain"],
+            capture_output=True, text=True, check=True, timeout=30,
+        )
+    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        raise RuntimeError(
+            f"could not check whether '{resolved}' has a clean worktree to verify commit "
+            f"{expect_commit!r}: {type(exc).__name__}: {exc}"
+        ) from exc
+    if status_proc.stdout.strip():
+        raise RuntimeError(
+            f"'{resolved}' is at the expected commit {expect_commit!r} but has uncommitted "
+            "changes -- refusing to trust evidence produced against a modified worktree"
+        )
+
 
 __all__ = ["resolve_confined_path", "verify_commit_pin"]
