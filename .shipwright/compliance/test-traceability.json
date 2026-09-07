@@ -1,8 +1,8 @@
 {
   "schema_version": 3,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-09-07T12:58:58.485993+00:00",
-  "source_commit": "1a5c3df339a557edca011f1f9300c7e25bbf7908",
+  "generated_at": "2026-09-07T18:38:16.553939+00:00",
+  "source_commit": "543b6da02c975a1bef34b554aead846fe8f36e19",
   "spec_hash": "sha256:822a21047a5aa33d4500e1435eded7787f7f437e84984bd3dc60e16b4e2a4fef",
   "requirements": {
     "01::FR-01.01": {
@@ -22780,6 +22780,9 @@
     "server/src/core/mission-context/traceability.test.ts::returns null for an empty or non-string id",
     "server/src/core/mission-context/traceability.test.ts::skips malformed entries without abandoning the good ones",
     "server/src/core/mission-context/traceability.test.ts::splits `<file>::<test name>` on the FIRST separator",
+    "server/src/core/mission-context/traceability.v4-fixture.test.ts::accepts a v4 manifest carrying an AC-scoped tag (`ac_id` + `acs`) without warning or corruption",
+    "server/src/core/mission-context/traceability.v4-fixture.test.ts::accepts a v4 manifest with NO AC tag anywhere — the v3-shaped bare FR tag case (AC2)",
+    "server/src/core/mission-context/traceability.v4-fixture.test.ts::handles an AC-scoped requirement and a bare-tag requirement in the SAME manifest without cross-contamination",
     "server/src/core/model-tier-config-reader.test.ts::fails soft to inherited tiers when the framework config is malformed",
     "server/src/core/model-tier-config-reader.test.ts::ignores inherited Git directory overrides when resolving a linked worktree",
     "server/src/core/model-tier-config-reader.test.ts::never reads a divergent linked-worktree config when Git cannot identify its main worktree",
