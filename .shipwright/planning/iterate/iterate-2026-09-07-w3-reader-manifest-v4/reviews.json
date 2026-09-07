@@ -114,15 +114,62 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/traceability.v4-fixture.test.ts",
+          "line": 117,
+          "finding": "The whole compatibility claim rests on an unverified PRODUCER POPULATION invariant: that every AC-scoped link filed under `acs[ac_id].tests` ALSO appears in the requirement's top-level `tests`. The reader walks only `r.tests` (traceability.ts:172), so a link filed under `acs` and nowhere else is dropped silently.",
+          "suggestion": "Read the v4 collector and confirm the top-level `tests` array remains the complete superset; cite the function in the ADR.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/contract-version.ts",
+          "line": 61,
+          "finding": "Doc comment says reader inputs are 'unchanged and REQUIRED in both v3 and v4' but resolved_from is optional per the shipped schema (omitted for a direct/non-folded tag), and BARE_FR_TAG in the new fixture deliberately omits it.",
+          "suggestion": "Reword to '.id and .layer are required; .resolved_from is optional (fold provenance only) and the reader guards for its absence.'",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/traceability.v4-fixture.test.ts",
+          "line": 202,
+          "finding": "`expect(TRACEABILITY_SCHEMA_VERSION).toBe(4)` inside a v4-behavior test couples a frozen fixture to the current known max; a future v5 bump will fail this test under a misleading name.",
+          "suggestion": "Use toBeGreaterThanOrEqual(4) or move the exact pin into its own test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/core/mission-context/traceability.v4-fixture.test.ts",
+          "line": 174,
+          "finding": "MIXED_MANIFEST hand-copies the root envelope instead of reusing v4Envelope(), duplicating an envelope literal that could drift on a future schema bump.",
+          "suggestion": "Widen the helper to take requirements and build all three fixtures through it.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/mission-context/traceability.v4-fixture.test.ts",
+          "line": 193,
+          "finding": "All three tests repeat the same console.warn spy + try/finally scaffold and reset the module-global warn memo twice per test (redundant), diverging from the sibling test file's hoisted beforeEach/afterEach convention.",
+          "suggestion": "Hoist warnSpy into beforeEach/afterEach matching the sibling file.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-09-07T14:24:08.682660+00:00",
-      "disposition": "delegated_to_orchestrator: the internal reviewer cascade (spec-reviewer -> code-reviewer -> doubt-reviewer) is the orchestrator's job at campaign 3f-bis, before the merge; runner has no Agent tool and cannot spawn subagents.",
-      "recorded_by": "none",
+      "completed_at": "2026-09-07T14:41:37.675433+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
@@ -130,8 +177,8 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-09-07T14:24:08.812878+00:00",
-      "disposition": "not_applicable: comment-only/constant-only change plus a new frozen test-fixture file, no migrations/async/concurrency/cross-plugin imports/irreversible ops touched (doubt-reviewer triggers per shipwright-build:doubt-reviewer scope).",
+      "completed_at": "2026-09-07T14:41:46.205625+00:00",
+      "disposition": "Stage 3 is conditional and did not trigger for this diff (a constant bump + new test fixtures; no migrations, async/concurrency, cross-plugin imports, or irreversible ops); Stage 2 passed at 3f-bis",
       "recorded_by": "none",
       "parse_status": null,
       "raw_excerpt": null
@@ -200,15 +247,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-09-07T14:24:08.552269+00:00",
-      "disposition": "delegated_to_orchestrator: Stage-1 spec-reviewer is the orchestrator's responsibility at campaign 3f-bis, before merge; runner has no Agent tool and cannot spawn spec-reviewer.",
-      "recorded_by": "none",
+      "completed_at": "2026-09-07T14:36:26.185958+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
