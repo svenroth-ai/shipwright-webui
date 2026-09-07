@@ -47,6 +47,12 @@ import { registerCountersignRoute } from "./countersign.js";
 import { registerLastRunRoute } from "./last-run.js";
 import { registerBeatRegisterHealthRoute } from "./beat-register.js";
 import { registerBeatRegisterReleaseRoute } from "./beat-register-release.js";
+import { registerDaemonConfigReadRoute } from "./daemon-config-read.js";
+import { registerVerdictRoute } from "./verdict.js";
+import { registerCommitRoute } from "./commit.js";
+import { registerDomainsRoute, type TaskDomainLookup } from "./domains.js";
+
+const NO_TASKS: TaskDomainLookup = { list: () => [] };
 
 const SECRET_HEADER = "x-shipwright-leads-secret";
 const MIN_SECRET_LENGTH = 20;
@@ -58,6 +64,15 @@ export interface OrgRouterDeps {
   leadsRouteSecret: string | undefined;
   lstatSync?: OrgFileWriteDeps["lstatSync"];
   withDecisionsLock?: OrgFileWriteDeps["withDecisionsLock"];
+  /** iterate-2026-09-07-leadwright-setup-wizard (W14) — local checkout of
+   *  leadwright, for the verdict/commit routes' `check-setup.ts` subprocess.
+   *  Unset ⇒ those two routes fail closed with 503 leadwright_not_configured. */
+  leadwrightCheckoutRoot: string | undefined;
+  /** The value written into a freshly-templated daemon-config.json's
+   *  `webuiBaseUrl` field when no daemon-config.json exists yet. */
+  webuiBaseUrl: string;
+  /** GET /api/external/org/domains task-store aggregation. */
+  store?: TaskDomainLookup;
 }
 
 export function createOrgRouter(deps: OrgRouterDeps): Hono {
@@ -103,6 +118,22 @@ export function createOrgRouter(deps: OrgRouterDeps): Hono {
   registerLastRunRoute(app, { leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync });
   registerBeatRegisterHealthRoute(app, { leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync });
   registerBeatRegisterReleaseRoute(app, { leadsRoot: deps.leadsRoot, lstatSync: deps.lstatSync });
+  registerDaemonConfigReadRoute(app, {
+    leadsRoot: deps.leadsRoot,
+    webuiBaseUrl: deps.webuiBaseUrl,
+    lstatSync: deps.lstatSync,
+  });
+  registerVerdictRoute(app, {
+    leadsRoot: deps.leadsRoot,
+    leadwrightCheckoutRoot: deps.leadwrightCheckoutRoot,
+    webuiBaseUrl: deps.webuiBaseUrl,
+  });
+  registerCommitRoute(app, {
+    leadsRoot: deps.leadsRoot,
+    leadwrightCheckoutRoot: deps.leadwrightCheckoutRoot,
+    webuiBaseUrl: deps.webuiBaseUrl,
+  });
+  registerDomainsRoute(app, { leadsRoot: deps.leadsRoot, store: deps.store ?? NO_TASKS });
 
   return app;
 }

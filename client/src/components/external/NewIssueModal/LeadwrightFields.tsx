@@ -12,6 +12,8 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import { FieldLabel } from "./FieldLabel";
+import { DomainSelect } from "../../common/DomainSelect";
+import { useDomainVocabulary } from "../../../hooks/useDomainVocabulary";
 
 export interface LeadwrightFieldsProps {
   showLeadDomain: boolean;
@@ -41,6 +43,8 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
     showLeadTags,
     showLeadBlockedBy,
   } = props;
+  const domainVocabulary = useDomainVocabulary();
+
   if (
     !showLeadDomain &&
     !showLeadPriority &&
@@ -49,17 +53,21 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
     !showLeadBlockedBy
   )
     return null;
+  const inputClassName =
+    "w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]";
   return (
     <div data-testid="new-issue-lead-fields" className="grid grid-cols-2 gap-3">
       {showLeadDomain && (
         <FieldLabel label="Domain" hint="optional — routing key">
-          <input
-            type="text"
+          <DomainSelect
             value={props.leadDomain}
-            onChange={(e) => props.setLeadDomain(e.target.value)}
-            data-testid="new-issue-domain-input"
-            placeholder="e.g. shipwright"
-            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+            onChange={props.setLeadDomain}
+            domains={domainVocabulary.data?.domains ?? []}
+            unclaimedCounts={domainVocabulary.data?.unclaimedCounts}
+            className={inputClassName}
+            createInputClassName={inputClassName}
+            testIdPrefix="new-issue-domain-input"
+            unavailable={domainVocabulary.isError}
           />
         </FieldLabel>
       )}

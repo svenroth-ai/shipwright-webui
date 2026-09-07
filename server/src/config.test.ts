@@ -105,4 +105,27 @@ describe("getConfig", () => {
     const config = getConfig();
     expect(config.leadsRoot).toBe("/custom/path/to/leads");
   });
+
+  // iterate-2026-09-07-leadwright-setup-wizard (W14) — points at a local
+  // leadwright CHECKOUT (for spawning scripts/check-setup.ts), distinct
+  // from leadsRoot (leadwright's DATA dir). No default: absence is the
+  // fail-closed signal the new verdict/commit routes key off, same posture
+  // as leadsRouteSecret.
+  it("leadwrightCheckoutRoot is undefined when SHIPWRIGHT_LEADWRIGHT_CHECKOUT is unset", () => {
+    delete process.env.SHIPWRIGHT_LEADWRIGHT_CHECKOUT;
+    const config = getConfig();
+    expect(config.leadwrightCheckoutRoot).toBeUndefined();
+  });
+
+  it("reads SHIPWRIGHT_LEADWRIGHT_CHECKOUT as leadwrightCheckoutRoot", () => {
+    process.env.SHIPWRIGHT_LEADWRIGHT_CHECKOUT = "/custom/path/to/leadwright";
+    const config = getConfig();
+    expect(config.leadwrightCheckoutRoot).toBe("/custom/path/to/leadwright");
+  });
+
+  it("treats an empty-string SHIPWRIGHT_LEADWRIGHT_CHECKOUT as unset (mirrors leadsRouteSecret's `|| undefined` posture)", () => {
+    process.env.SHIPWRIGHT_LEADWRIGHT_CHECKOUT = "";
+    const config = getConfig();
+    expect(config.leadwrightCheckoutRoot).toBeUndefined();
+  });
 });

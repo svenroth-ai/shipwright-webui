@@ -98,6 +98,15 @@ export interface ServerConfig {
    * accepting unauthenticated calls.
    */
   leadsRouteSecret: string | undefined;
+  /**
+   * iterate-2026-09-07-leadwright-setup-wizard (W14) — local filesystem
+   * CHECKOUT of the leadwright repo (for spawning
+   * `scripts/check-setup.ts --stdin --json`), distinct from `leadsRoot`
+   * (leadwright's DATA dir, above). Unset ⇒ the verdict/commit routes fail
+   * closed with a named "leadwright not configured" state rather than
+   * silently skipping the check — same posture as `leadsRouteSecret`.
+   */
+  leadwrightCheckoutRoot: string | undefined;
 }
 
 function clampPositiveInt(raw: string | undefined, fallback: number): number {
@@ -185,5 +194,6 @@ export function getConfig(): ServerConfig {
       process.env.SHIPWRIGHT_LEADS_ROOT ??
       path.join(os.homedir(), ".claude", "leads"),
     leadsRouteSecret: process.env.SHIPWRIGHT_LEADS_ROUTE_SECRET || undefined,
+    leadwrightCheckoutRoot: process.env.SHIPWRIGHT_LEADWRIGHT_CHECKOUT || undefined,
   };
 }

@@ -1,0 +1,49 @@
+{
+  "section": "leadwright lead-setup Intent Wizard (W14) -- internal plan review (opus-plan-reviewer), run retrospectively as a gate-closure step since implementation, spec/code/doubt review, and testing were already complete by the time reviews.json was initialized for this run",
+  "verdict": "APPROVE (retrospective) -- every finding below was ALREADY caught and fixed by the subsequent external-architecture-review rounds and/or the internal spec/code/doubt cascade before this pass ran; none is a new, unresolved issue",
+  "review": [
+    {
+      "finding": "The mini-plan specified four new routes under the secret-gated /api/external/org/* mount for a browser-facing wizard, without noticing that mount requires a header a browser client cannot supply without embedding a credential client-side.",
+      "severity": "high",
+      "category": "architecture",
+      "suggestion": "ALREADY FIXED before this review ran -- caught during spec-reviewer round 1, resolved by adding the plain-surface /api/org/* proxy (server/src/routes/org-lead-setup-wizard.ts) sharing pure cores with the secret-gated family; documented in the iterate spec's Correction section."
+    },
+    {
+      "finding": "The mini-plan's approach paragraph omitted charter.md from the write list even though the card's own premise names three files.",
+      "severity": "high",
+      "category": "completeness",
+      "suggestion": "ALREADY FIXED before this review ran -- caught by external-architecture-review round 2 (both legs, high); charter.md is now written first in the single server-side commit endpoint."
+    },
+    {
+      "finding": "The mini-plan described client-sequenced writes to org-chart.json and daemon-config.json with no atomicity or recovery story.",
+      "severity": "high",
+      "category": "architecture",
+      "suggestion": "ALREADY FIXED before this review ran -- caught by external-architecture-review round 2 (both legs, high); collapsed into one ordered, partially-idempotent server-side commit endpoint."
+    },
+    {
+      "finding": "The chosen write ordering put the only leadId collision check on the LAST write (org-chart.json), so a duplicate leadId would corrupt daemon-config.json's entries for an already-active lead before being rejected.",
+      "severity": "medium",
+      "category": "completeness",
+      "suggestion": "ALREADY FIXED before this review ran -- caught by doubt-reviewer (Stage 3, high severity, same run) and fixed same-session: commitCore now checks for an existing, differing leadId upfront, before any write runs."
+    },
+    {
+      "finding": "The mini-plan's 'structural copy of decisions-lock.ts's shape' didn't call out that assertNotSymlink specifically should be shared, not re-duplicated.",
+      "severity": "low",
+      "category": "architecture",
+      "suggestion": "ALREADY FIXED before this review ran -- caught by code-reviewer (medium finding #3, same run); org-file-lock.ts now exports assertNotSymlink/LstatFn, commit-writes.ts imports rather than redeclares."
+    },
+    {
+      "finding": "The Confidence Calibration section never called out VerdictStep.tsx (the wizard's most complex component) as needing dedicated test coverage.",
+      "severity": "low",
+      "category": "completeness",
+      "suggestion": "ALREADY FIXED before this review ran -- caught by code-reviewer (high finding #1, same run); VerdictStep.test.tsx added (10 tests)."
+    },
+    {
+      "finding": "GET /domains' per-project fan-out cost was not discussed in the mini-plan.",
+      "severity": "low",
+      "category": "performance",
+      "suggestion": "Mitigated via a react-query staleTime during external review; no further action needed -- noted as a plan-writing lesson (name the fan-out cost of any route iterating all projects), not an outstanding defect."
+    }
+  ],
+  "summary": "The plan's reuse discipline and defaults-not-invented posture held up end-to-end. It under-specified the client-auth surface for its own routes, silently dropped one of the three files the card exists to fix, and left the multi-file write path non-atomic with a collision check that arrived too late -- exactly the class of gap a plan review exists to catch. All were caught and fixed via the external-architecture-review rounds, the internal spec/code/doubt cascade, and this session's own work, before this retrospective pass ran. No new, unresolved issue. The shipped design is correct."
+}

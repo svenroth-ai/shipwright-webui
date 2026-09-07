@@ -10,6 +10,7 @@
  */
 import { render, screen, within, cleanup, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import OrgPage from "./OrgPage";
@@ -66,9 +67,11 @@ function renderPresentPage() {
   >);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={qc}>
-      <OrgPage />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={qc}>
+        <OrgPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -125,9 +128,11 @@ describe("OrgPage — thread wiring (FR-04.42, V4c)", () => {
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { container } = render(
-      <QueryClientProvider client={qc}>
-        <OrgPage />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <OrgPage />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
     await waitFor(() => expect(screen.getAllByTestId("org-thread-list")).toHaveLength(2));
 

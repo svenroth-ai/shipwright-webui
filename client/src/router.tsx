@@ -12,6 +12,7 @@ import OrgPage from './pages/OrgPage';
 import PreviewPage from './pages/PreviewPage';
 import IntentWizardPage from './components/wizard/IntentWizard/IntentWizardPage';
 import FirstContact from './components/wizard/IntentWizard/FirstContact';
+import LeadSetupWizardPage from './components/wizard/LeadSetupWizard/LeadSetupWizardPage';
 
 export const router = createBrowserRouter([
   {
@@ -47,6 +48,9 @@ export const router = createBrowserRouter([
       // at both SidebarNav and CommandCenter's read of getNavDestinations(); see
       // the iterate spec's Design Notes, "Nav presence".
       { path: 'org', element: <OrgPage />, handle: { nav: { label: 'Org', order: 3.5 } } },
+      // W14 — the guided lead-setup wizard. Reached from a CTA on OrgPage, not
+      // a top-level nav entry: it is a create-flow off Org, not a new section.
+      { path: 'org/new-lead', element: <LeadSetupWizardPage /> },
       { path: 'settings', element: <SettingsPage />, handle: { nav: { label: 'Settings', order: 4 } } },
       { path: 'diagnostics', element: <DiagnosticsPage />, handle: { nav: { label: 'Diagnostics', order: 5 } } },
     ],

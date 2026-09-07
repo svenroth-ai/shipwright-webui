@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-07-leadwright-setup-wizard",
+  "date": "2026-09-07",
+  "section": "Iterate — feature: leadwright lead-setup wizard",
+  "title": "Lead-setup wizard: real-verdict re-verification + single write-sequence lock",
+  "context": "Wizard's Finish action must be gated on a real leadwright preflight verdict, not a client-side approximation, and the commit write sequence (3 files) must be race-safe under true concurrency.",
+  "decision": "Re-run leadwright's real check-setup.ts subprocess server-side at commit (not just preview); treat expectedProposalDigest as staleness-UX only; hold ONE org-chart.json lock across the whole write sequence; pass existingCharters into the merged proposal.",
+  "consequences": "Closes an unsigned-digest bypass and a true-concurrency double-write race (both flagged high by external review); one extra subprocess call per commit; commit.ts split into 4 files to stay under the bloat ceiling.",
+  "rationale": "External reviewers (openai+GLM) independently flagged both issues; cross-checked against the real local leadwright source, which confirmed the fixes and disproved this repo's own doc comment about a nonexistent 'path mode' charter fallback.",
+  "rejected": "HMAC-signing the digest (still stale vs current rules); per-file locks (reopens the sequential-resubmission race for true concurrency); keeping the path-mode charter read (contradicted by leadwright's real setup-preflight.ts).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-07-leadwright-setup-wizard.md"
+}

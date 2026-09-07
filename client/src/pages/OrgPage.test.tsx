@@ -9,6 +9,7 @@
  */
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import OrgPage from "./OrgPage";
@@ -85,9 +86,11 @@ function threadsQuery(overrides: Partial<ReturnType<typeof useOrgThreads>> = {})
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={qc}>
-      <OrgPage />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={qc}>
+        <OrgPage />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 

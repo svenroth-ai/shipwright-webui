@@ -81,6 +81,16 @@ export interface DiagnosticsSnapshot {
     vscode: { available: false; reason: "deferred to v2 (variant-a narrow)" };
     desktop: { available: false; reason: "awaiting Claude Desktop URL scheme" };
   };
+  /**
+   * iterate-2026-09-07-leadwright-setup-wizard (W14), external-review
+   * addition (GLM architecture pass): `leadwrightCheckoutRoot` config
+   * presence, surfaced on the page an operator already checks for health —
+   * so a rotted/unset checkout is visible outside the setup wizard, not
+   * only discovered mid-session as an in-wizard "not reachable" state.
+   * Config-pointer presence only — never a live subprocess spawn on every
+   * health poll.
+   */
+  org: { leadwrightCheckout: "unconfigured" | "configured" };
 }
 
 const PATH_SAMPLE_LIMIT = 8;
@@ -183,6 +193,9 @@ export function createDiagnosticsRoutes(args: {
   appVersion?: string;
   /** Test seam — defaults to the real ~/.claude marketplace-manifest reader. */
   readPluginVersion?: () => Promise<string | null>;
+  /** iterate-2026-09-07-leadwright-setup-wizard (W14) — same value as
+   *  `ServerConfig.leadwrightCheckoutRoot`; presence-only check. */
+  leadwrightCheckoutRoot?: string;
 }) {
   const app = new Hono();
   const appVersion = args.appVersion ?? readAppVersion();
@@ -218,6 +231,7 @@ export function createDiagnosticsRoutes(args: {
         vscode: { available: false, reason: "deferred to v2 (variant-a narrow)" },
         desktop: { available: false, reason: "awaiting Claude Desktop URL scheme" },
       },
+      org: { leadwrightCheckout: args.leadwrightCheckoutRoot ? "configured" : "unconfigured" },
     };
     return c.json(snapshot);
   });

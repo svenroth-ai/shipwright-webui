@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/svenroth-ai/leadwright/schemas/preflight-input.schema.json",
+  "title": "PreflightStdinInput",
+  "contractVersion": 1,
+  "description": "The setup-preflight INPUT contract: what `scripts/check-setup.ts --stdin` reads on stdin to produce a PreflightResult (schemas/preflight-result.schema.json) — a proposed org chart, per-lead charter content, and a daemon config, submitted inline (no filesystem access on the caller's side). GENERATED from daemon/setup-preflight-input-contract.ts by scripts/generate-preflight-input-schema.ts — do not hand-edit. See the `daemonConfig` field description for the absolute-path requirement every path-shaped field inside it must satisfy.",
+  "type": "object",
+  "properties": {
+    "orgChart": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 2
+        },
+        "po": {
+          "type": "string",
+          "minLength": 1
+        },
+        "leads": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9-]*$": {
+              "$ref": "#/$defs/Lead"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "version",
+        "po",
+        "leads"
+      ],
+      "additionalProperties": false,
+      "description": "The proposed org-chart.json document, parsed — the same shape schemas/org-chart.schema.json validates."
+    },
+    "charters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "leadId": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Must match a key in orgChart.leads. A lead with no matching entry here is reported as its own unsatisfied 'charter-bands:<leadId>' finding, never a submission error."
+          },
+          "content": {
+            "type": "string",
+            "description": "This lead's charter file content, inlined — the same text runSetupPreflight reads from disk in path mode. May be empty (an empty/missing charter is a valid submission — it surfaces as the 'charter-bands:<leadId>' finding, same as an empty charter.md file in path mode, never a submission error)."
+          }
+        },
+        "required": [
+          "leadId",
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "description": "One entry per lead orgChart.leads declares."
+    },
+    "daemonConfig": {
+      "type": "object",
+      "properties": {
+        "orgChartPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "leadsRoot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sdkSessionsPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "webuiBaseUrl": {
+          "type": "string",
+          "minLength": 1
+        },
+        "leadProjectRoots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": {}
+        },
+        "leadActionIds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": {}
+        },
+        "pluginDirs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "leadPluginDirs": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "default": {}
+        },
+        "pollIntervalMs": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "default": 30000
+        },
+        "beatTimeoutMs": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "default": 120000
+        }
+      },
+      "required": [
+        "orgChartPath",
+        "webuiBaseUrl"
+      ],
+      "additionalProperties": false,
+      "description": "Every path-shaped field in this document (leadsRoot, sdkSessionsPath, pluginDirs, each leadProjectRoots/leadPluginDirs value) resolves against the CALLING PROCESS's current directory when submitted inline here — never against this proposal. For a caller running in a different process (e.g. a setup wizard), a relative value therefore has no well-defined meaning: resolve every path to absolute before submitting. A relative value here is reported as the 'proposal-paths-absolute' finding (layer MUSS) — never silently resolved against the wrong directory. (orgChartPath is not part of this rule: an inline submission's org chart is always read from this document's separate top-level `orgChart` field, never from daemonConfig.orgChartPath.)"
+    }
+  },
+  "required": [
+    "orgChart",
+    "charters",
+    "daemonConfig"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Lead": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "reports_to": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            }
+          ]
+        },
+        "manages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "$comment": "Additional runtime invariant(s) enforced by the zod schema (lib/org-chart.ts) via superRefine/refine are NOT enforced by this generated mirror."
+        },
+        "charter_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!.*\\.\\.).+$"
+        },
+        "learnings_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!.*\\.\\.).+$"
+        },
+        "triggers": {
+          "type": "object",
+          "properties": {
+            "cron": {
+              "type": "string",
+              "minLength": 1
+            },
+            "on": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "answer_received",
+                  "chat_session_ended"
+                ]
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "cron",
+            "on"
+          ],
+          "additionalProperties": false
+        },
+        "max_concurrent_tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "window": {
+              "const": "rolling-7d"
+            },
+            "usd": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "pause_at": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.85
+            },
+            "hard_stop_at": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.95
+            }
+          },
+          "required": [
+            "window"
+          ],
+          "additionalProperties": false,
+          "$comment": "Additional runtime invariant(s) enforced by the zod schema (lib/org-chart.ts) via superRefine/refine are NOT enforced by this generated mirror."
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "allowed_skills": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\/[a-z0-9][a-z0-9-]*$"
+          },
+          "minItems": 1
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "escalation_target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "balanced",
+            "deep"
+          ]
+        },
+        "paused": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name",
+        "domain",
+        "reports_to",
+        "manages",
+        "charter_path",
+        "learnings_path",
+        "triggers",
+        "max_concurrent_tasks",
+        "budget",
+        "projects",
+        "allowed_skills",
+        "escalation_target",
+        "model"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
