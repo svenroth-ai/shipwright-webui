@@ -56,6 +56,7 @@ test.describe("Org page — absent chart (AC-6a/AC-6b)", () => {
   test.beforeEach(() => removeChart());
   test.afterEach(() => removeChart());
 
+  // @covers FR-01.71
   test("hides the nav entries and shows the not-installed empty state on direct navigation", async ({ page }) => {
     await page.goto("/");
     // AC-6a: neither nav site offers "Org" when the chart is a confirmed 404.
@@ -79,6 +80,7 @@ test.describe("Org page — invalid chart (AC-7)", () => {
   });
   test.afterEach(() => removeChart());
 
+  // @covers FR-01.71
   test("keeps the nav entries and shows a page-level error naming the failure", async ({ page }) => {
     await page.goto("/");
     // AC-7: still offered on both nav sites — a non-404 failure must not
@@ -113,6 +115,7 @@ test.describe("Org page — present, one lead (AC-1/AC-2/AC-3/AC-8)", () => {
   });
   test.afterEach(() => removeChart());
 
+  // @covers FR-01.71
   test("renders chart -> shared docs -> lead cards in that fixed order, five blocks per card, unmeasured fields read 'not measured'", async ({ page }) => {
     await page.goto("/org");
     await expect(page.getByTestId("org-page")).toBeVisible();
@@ -150,6 +153,7 @@ test.describe("Org page — present, one lead (AC-1/AC-2/AC-3/AC-8)", () => {
     await expect(page.getByTestId("org-thread-list")).toHaveCount(0);
   });
 
+  // @covers FR-01.71
   test("renders a real lead-question-threads.json thread — round order, marker stripped, open + answered rounds (FR-04.42 AC-a/c)", async ({ page }) => {
     const threadsPath = path.join(LEADS_ROOT, LEAD_ID, "lead-question-threads.json");
     writeFileSync(
@@ -213,6 +217,7 @@ test.describe("Org page — present, one lead (AC-1/AC-2/AC-3/AC-8)", () => {
     }
   });
 
+  // @covers FR-01.71
   test("Edit charter -> MarkdownEditorModal loads fresh content -> Save writes the file (AC-8)", async ({ page }) => {
     await page.goto("/org");
     const card = page.getByTestId("lead-card").first();

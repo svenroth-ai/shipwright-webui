@@ -64,6 +64,7 @@ function ruleFor(selector: string): string {
   return out;
 }
 
+// @covers FR-01.66
 describe("mission rail — label/value hierarchy", () => {
   it("renders the artifact label and its receipt as BLOCKS, not inline", () => {
     expect(ruleFor(".rn-k")).toMatch(/display:\s*block/);
@@ -79,6 +80,7 @@ describe("mission rail — label/value hierarchy", () => {
   });
 });
 
+// @covers FR-01.66
 describe("DO-NOT #24 — the scrolling column-flex panel keeps its children's minimum size", () => {
   it("`.mc-left` children do not shrink", () => {
     expect(s3Block).toMatch(/\.mc-left\s*>\s*\*\s*\{[^}]*flex-shrink:\s*0/);
@@ -92,6 +94,7 @@ describe("DO-NOT #24 — the scrolling column-flex panel keeps its children's mi
   });
 });
 
+// @covers FR-01.66
 describe("the typography pass introduces no motion", () => {
   it("adds no animation, transition or transform", () => {
     expect(s3Block).not.toMatch(/\banimation\b/);
@@ -110,6 +113,7 @@ describe("the typography pass introduces no motion", () => {
   });
 });
 
+// @covers FR-01.66
 describe("detail bodies are styled at all (S1 left these hooks empty on purpose)", () => {
   it.each([".a-meta", ".a-rows", ".a-note"])("%s has a rule in the S3 block", (sel) => {
     expect(s3Block).toContain(sel);
@@ -120,12 +124,14 @@ describe("detail bodies are styled at all (S1 left these hooks empty on purpose)
     expect(rule).toMatch(/font-weight:\s*600/);
   });
 
+  // @covers FR-01.66
   it("collapses the two-column fact grid on narrow screens", () => {
     const narrow = css.slice(css.lastIndexOf("@media (max-width: 1023px)"));
     expect(narrow).toMatch(/a-meta[^}]*grid-template-columns:\s*1fr/);
   });
 });
 
+// @covers FR-01.66
 describe("artifact close controls retain their scenario-specific placement", () => {
   it("keeps the legacy panel close button absolute while the shared header owns normal flow", () => {
     expect(ruleFor(".artifact .a-close")).toMatch(/position:\s*absolute/);

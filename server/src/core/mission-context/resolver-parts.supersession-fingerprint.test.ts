@@ -19,6 +19,7 @@ import { _clearSupersessionMemo, markSupersessionResult, supersessionMemoHit } f
 const UUID = "3c9e3e11-4b53-424e-8062-f9f5a24f6b68";
 const ASSOCIATION_RUN_ID = "iterate-2026-07-01-stale";
 
+// @covers FR-01.66
 describe("supersession memo — content fingerprint collision resistance", () => {
   it(
     "a memoized result for one transcript is NOT served for a different transcript that " +

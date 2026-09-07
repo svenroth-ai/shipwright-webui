@@ -38,6 +38,7 @@ test.describe("visual: launch states", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.10
   test("board-launch-failed", async ({ page, request }) => {
     project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas-a17", adopted: true });
     seedCampaign(project.path, {
@@ -88,6 +89,7 @@ test.describe("visual: launch states", () => {
     });
   });
 
+  // @covers FR-01.10
   test("task-detail-launch-failed", async ({ page, request }) => {
     project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas-a17b", adopted: true });
     const task = await seedTask(request, { title: "Launch the rigging", projectId: project.projectId });

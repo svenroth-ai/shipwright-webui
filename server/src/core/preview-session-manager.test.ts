@@ -53,7 +53,7 @@ function fakeChild(): {
   return child as unknown as ReturnType<typeof fakeChild>;
 }
 
-describe("PreviewSessionManager.tokenizeCommand", () => {
+describe("PreviewSessionManager.tokenizeCommand", () => { // @covers FR-01.17
   it("tokenizes 'npm run dev' into ['npm', 'run', 'dev']", () => {
     expect(PreviewSessionManager.tokenizeCommand("npm run dev")).toEqual([
       "npm",
@@ -94,7 +94,7 @@ describe("PreviewSessionManager.tokenizeCommand", () => {
   });
 });
 
-describe("PreviewSessionManager.spawn", () => {
+describe("PreviewSessionManager.spawn", () => { // @covers FR-01.17
   let mgr: PreviewSessionManager;
 
   beforeEach(() => {

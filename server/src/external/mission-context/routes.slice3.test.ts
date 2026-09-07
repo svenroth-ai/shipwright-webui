@@ -150,6 +150,7 @@ afterEach(() => {
   for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
 });
 
+// @covers FR-01.66
 describe("GET mission-context — pipeline (scenario 3), real run-config", () => {
   it("resolves the EXACT phase task and links the adopted spec", async () => {
     const root = makeProject();
@@ -191,6 +192,7 @@ describe("GET mission-context — pipeline (scenario 3), real run-config", () =>
   });
 });
 
+// @covers FR-01.66
 describe("GET mission-context — campaign (scenario 5), real campaign store", () => {
   const campaignTask = () => makeTask({ title: `campaign: ${SLUG}` });
 

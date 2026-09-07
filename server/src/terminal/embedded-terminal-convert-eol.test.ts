@@ -152,6 +152,7 @@ function countIndentedLines(lines: string[]): number {
   return lines.filter((l) => re.test(l)).length;
 }
 
+// @covers FR-01.28
 describe("EmbeddedTerminal convertEol — Bug B regression guard", () => {
   it("the fixture is a bare-LF Claude byte-stream (convertEol precondition)", () => {
     // convertEol only changes rendering when the stream contains bare LF.

@@ -43,6 +43,7 @@ function inMemoryDeps(): SdkSessionsStoreDeps {
 
 const SLUG = "2026-06-02-hook-consolidation";
 
+// @covers FR-01.33
 describe("launch campaign branch — POST /launch { campaignSlug }", () => {
   let projectRoot: string;
   let store: SdkSessionsStore;

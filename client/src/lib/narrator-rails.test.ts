@@ -32,6 +32,7 @@ const REAL_ITERATE_PHASES: IteratePhaseInput[] = [
 ];
 
 /* ---- Pipeline rail: 7 nodes, NO secure node (AC2) --------------------- */
+// @covers FR-01.66
 describe("pipeline rail (7 phases, no secure node)", () => {
   it("has exactly the 7 approved phases in order", () => {
     const rail = buildPipelineRail();
@@ -101,6 +102,7 @@ describe("pipeline rail (7 phases, no secure node)", () => {
 });
 
 /* ---- Iterate rail: 5 display groups derived from phases[].group (AC2) - */
+// @covers FR-01.66
 describe("iterate rail (5-node display grouping from sessionPlan.phases[].group)", () => {
   it("collapses the ~10 real phases to 5 ordered groups", () => {
     const rail = buildIterateRail(REAL_ITERATE_PHASES);
@@ -170,6 +172,7 @@ describe("iterate rail (5-node display grouping from sessionPlan.phases[].group)
   });
 });
 
+// @covers FR-01.66
 describe("narrateIteratePhase group validation (matches buildIterateRail)", () => {
   it("returns null for a non-canonical group instead of a 'Secure' label", () => {
     expect(narrateIteratePhase({ id: "secure_scan", group: "secure" })).toBeNull();

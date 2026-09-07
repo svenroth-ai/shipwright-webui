@@ -66,6 +66,7 @@ test.describe("Mission viewer — internal scroll + pop-out", () => {
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("the card scrolls internally, the page does not, and Pop out opens a centered modal", async ({
     page,
     request,

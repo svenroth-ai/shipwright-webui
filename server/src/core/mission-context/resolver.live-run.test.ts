@@ -88,6 +88,7 @@ function resolve(projectRoot: string, git: GitRunner, taskTerminal = false) {
   );
 }
 
+// @covers FR-01.66
 describe("runLive + the unregistered-worktree fallback", () => {
   beforeEach(() => {
     _clearResolverCache();

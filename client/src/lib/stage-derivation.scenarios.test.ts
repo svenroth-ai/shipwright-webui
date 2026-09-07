@@ -32,6 +32,7 @@ const slashCommand = (name: string) => ({
 
 const parse = (...e: Record<string, unknown>[]) => parseSessionJsonl(jsonl(...e)).events;
 
+// @covers FR-01.66
 describe("AC4 — scenario-gated: the iterate rule never runs on a non-iterate card", () => {
   // A genuinely NON-iterate fixture: no `/shipwright-iterate` kickoff anywhere,
   // just a scratch write. Under the iterate branch this would STICK to Analyze;
@@ -96,6 +97,7 @@ describe("AC4 — scenario-gated: the iterate rule never runs on a non-iterate c
   });
 });
 
+// @covers FR-01.66
 describe("AC5 — a plain / pure session gets a coarse read, never a fabricated stage", () => {
   it("claims NO lifecycle position, and states what it is doing in plain words", () => {
     const editing = parse(toolUse("Edit", { file_path: "/repo/src/thing.ts" }));
@@ -163,6 +165,7 @@ describe("AC5 — a plain / pure session gets a coarse read, never a fabricated 
   });
 });
 
+// @covers FR-01.66
 describe("back-compat — an unresolved scenario still behaves", () => {
   it("reads iterate-ness off the transcript's own kickoff when the resolver is silent", () => {
     const events = parse(

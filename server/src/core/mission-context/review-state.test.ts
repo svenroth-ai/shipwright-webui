@@ -49,6 +49,7 @@ function row(rows: ReviewRow[], t: ReviewType): ReviewRow {
   return rows.find((r) => r.reviewType === t)!;
 }
 
+// @covers FR-01.66
 describe("readReviewState", () => {
   it("ALWAYS returns the five contract types, in order (AC4)", () => {
     const root = projectWithMarkers({});

@@ -25,6 +25,7 @@ const ANSWERS = {
   where: "On the web",
 };
 
+// @covers FR-01.51
 describe("New plan card → Go builds a new-pipeline request with the brief (AC3)", () => {
   it("Go is inert until a target folder is given (can't register a project blind)", () => {
     const onLaunch = vi.fn();
@@ -66,6 +67,7 @@ describe("New plan card → Go builds a new-pipeline request with the brief (AC3
   });
 });
 
+// @covers FR-01.51
 describe("Adopt result → start builds a new-task + adopt request (AC2/AC3)", () => {
   it("emits actionId new-task + adopt phase + a non-empty brief, carrying the path", () => {
     const onLaunch = vi.fn();
@@ -103,6 +105,7 @@ describe("Adopt result → start builds a new-task + adopt request (AC2/AC3)", (
   });
 });
 
+// @covers FR-01.51
 describe("LaunchingScreen (transient + failure states)", () => {
   it("renders the in-flight hand-off state", () => {
     render(<LaunchingScreen door="new" failed={false} onBack={vi.fn()} onRetry={vi.fn()} />);

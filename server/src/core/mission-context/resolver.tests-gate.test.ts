@@ -69,6 +69,7 @@ const BASE_EVENT = {
   commit: "abc1234",
 };
 
+// @covers FR-01.66
 describe("resolveMissionContext — context.tests is gate-resolved, not raw-compared", () => {
   beforeEach(() => {
     _clearResolverCache();

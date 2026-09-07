@@ -76,6 +76,7 @@ const REQUIRED_CLAUSES: [name: string, pattern: RegExp][] = [
   ["what the client does with it", /pending/i],
 ];
 
+// @covers FR-01.66
 describe("runLive — documentation parity between the server SoT and the client mirror", () => {
   it.each([
     ["server", SERVER_TYPES],

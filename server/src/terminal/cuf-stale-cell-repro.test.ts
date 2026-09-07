@@ -77,6 +77,7 @@ async function renderOnto(prime: string | null): Promise<string> {
   return row7(term);
 }
 
+// @covers FR-01.28
 describe("CUF differential repaint — stale cells are the smear mechanism", () => {
   it("renders correctly when the buffer AGREES with Claude's screen model", async () => {
     expect(await renderOnto(INTENDED)).toBe(INTENDED.trim());

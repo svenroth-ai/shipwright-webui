@@ -27,6 +27,7 @@ import { _clearEventIndexCache, findWorkCompleted } from "./iterate-record.js";
  *
  * @covers FR-01.66
  */
+// @covers FR-01.66
 describe("findWorkCompleted (indexed run_id lookup)", () => {
   const RUN_A = {
     id: "e1",

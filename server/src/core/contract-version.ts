@@ -48,12 +48,27 @@ export const PROFILE_SCHEMA_VERSION = 1;
  * (it consumes `Object.values(requirements)` then inner `.id`/`.tests`), so v3
  * is a pure data-shape acknowledgement — no reader-logic change.
  *
+ * **v4** (shipwright monorepo campaign req3-04c-ac-identity-wave2, P3.2:
+ * "AC-scoped `@covers` tag grammar + test-traceability manifest v4") —
+ * additive AC-scoped test binding. A test link may carry an optional
+ * `ac_id` (e.g. `covers("FR-01.11/AC07")` → `"AC07"`), and a requirement
+ * node may carry an optional `acs` breakdown mirroring its own
+ * `tests`/`coverage` shape, scoped per AC. Both are OMITTED ENTIRELY when
+ * the requirement has no AC-scoped tag anywhere, so a repo with none of
+ * these tags yet emits a byte-identical v3-shaped body (only the
+ * `schema_version` const moves). This reader does not consume `ac_id` or
+ * `acs` — it still only reads `.id`/`.tests[<layer>][*].id/.layer/.resolved_from`,
+ * every one of which is unchanged and required in both v3 and v4 — so a
+ * v4 manifest with NO AC tags at all (a "v3-shaped bare FR tag" body) and
+ * one WITH AC tags both invert identically; frozen fixture in
+ * `traceability.v4-fixture.test.ts` pins both shapes.
+ *
  * A manifest declaring a HIGHER version is warned once (via
  * `checkContractVersion`) and still read best-effort — the inner shape the
  * reader consumes has been stable across the bumps seen so far, so an
  * ahead-of-us manifest still yields a useful index.
  */
-export const TRACEABILITY_SCHEMA_VERSION = 3;
+export const TRACEABILITY_SCHEMA_VERSION = 4;
 
 interface WarnOnceKey {
   artefact: string;

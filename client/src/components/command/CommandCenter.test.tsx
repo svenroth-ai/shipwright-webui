@@ -43,6 +43,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// @covers FR-01.71
 describe("CommandCenter — Org command palette entry (FR-01.71, both call sites)", () => {
   it("shows 'Open Org' while presence is still loading (only 'absent' hides it)", () => {
     mockedPresence.mockReturnValue("loading");

@@ -25,6 +25,7 @@ function z(...pairs: [string, string][]): string {
   return pairs.map(([s, p]) => `${s}\0${p}\0`).join("");
 }
 
+// @covers FR-01.66
 describe("parseNameStatus", () => {
   it("classifies added / modified / REMOVED from git's status letters", () => {
     const { files } = parseNameStatus(
@@ -127,6 +128,7 @@ describe("parseNameStatus", () => {
   });
 });
 
+// @covers FR-01.66
 describe("isTestFile / inferLayer", () => {
   it("recognises both real conventions and rejects production code", () => {
     expect(isTestFile("client/src/lib/x.test.ts")).toBe(true);
@@ -147,6 +149,7 @@ describe("isTestFile / inferLayer", () => {
   });
 });
 
+// @covers FR-01.66
 describe("readChangedTestFiles", () => {
   const neverCalled = () => {
     throw new Error("git must not be invoked");

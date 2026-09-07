@@ -71,6 +71,7 @@ test.describe("Mission activity feed — card.explanation through the real chain
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("a solo-turn card with multi-line prose shows both its headline and the rest of the explanation", async ({
     page,
     request,

@@ -63,6 +63,7 @@ function byKind(list: ArtifactDescriptor[], kind: string): ArtifactDescriptor | 
   return list.find((a) => a.kind === kind);
 }
 
+// @covers FR-01.66
 describe("buildNonIterateContext", () => {
   const base = (root: string) => ({
     taskId: "task-1",

@@ -30,6 +30,7 @@ import {
  * a shipwright PR number would render a false "Delivered", which is exactly the
  * claim CONTRACT §5.3 says must be real.
  */
+// @covers FR-01.66
 describe("PR marker repo binding", () => {
   const WEBUI_SLUG = { owner: "svenroth-ai", repo: "shipwright-webui" };
 
@@ -62,6 +63,7 @@ describe("PR marker repo binding", () => {
   });
 });
 
+// @covers FR-01.66
 describe("parseOriginSlug", () => {
   it("parses https, ssh and .git-suffixed remotes", () => {
     for (const url of [
@@ -92,6 +94,7 @@ describe("parseOriginSlug", () => {
   });
 });
 
+// @covers FR-01.66
 describe("readOriginSlug", () => {
   beforeEach(() => _clearOriginSlugCache());
 

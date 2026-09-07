@@ -21,6 +21,7 @@ function lines(n: number): ProofLine[] {
   }));
 }
 
+// @covers FR-01.64
 describe("ProofSummary — proof lines slide in but rest visible", () => {
   it("renders EVERY line as a staggered-entrance item (nothing gated behind motion)", () => {
     render(<ProofSummary lines={lines(12)} />);

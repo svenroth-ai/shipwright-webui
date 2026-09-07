@@ -41,6 +41,7 @@ async function specDocId(app: ReturnType<typeof harness>["app"]): Promise<string
   return artifact(ctx, "spec")?.detail?.documentId;
 }
 
+// @covers FR-01.66
 describe("mission-context document endpoint", () => {
   beforeEach(() => _clearResolverCache());
 

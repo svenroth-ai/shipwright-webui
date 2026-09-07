@@ -17,6 +17,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("iterate-2026-05-13 — dynamic stack-profile rendering (FR-01.03)", () => {
+  // @covers FR-01.03
   test("guided new-project flow derives the persistent Stack Profile from the selected answers", async ({
     page,
   }) => {
@@ -46,6 +47,7 @@ test.describe("iterate-2026-05-13 — dynamic stack-profile rendering (FR-01.03)
     await expect(page.getByTestId("wizard-plan-envvars")).toBeVisible();
   });
 
+  // @covers FR-01.03
   test("guided new-project flow selects the local Stack Profile when persistence is not needed", async ({ page }) => {
     await page.goto("/wizard");
     await expect(page.getByTestId("intent-wizard")).toBeVisible();

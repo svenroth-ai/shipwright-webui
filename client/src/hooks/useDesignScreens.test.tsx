@@ -29,6 +29,7 @@ function mockFetch(status: number, body: string) {
 beforeEach(() => vi.restoreAllMocks());
 afterEach(() => vi.restoreAllMocks());
 
+// @covers FR-01.01
 describe("useDesignScreens — honest empty vs real error (A14, AC5)", () => {
   it("parses the manifest into screens", async () => {
     mockFetch(200, MANIFEST);

@@ -61,6 +61,7 @@ const PINNED: ReviewRow[] = [
   row({ reviewType: "external_code", status: "completed", findingsCount: 2 }),
 ];
 
+// @covers FR-01.66
 describe("an unrecognised review pass", () => {
   it("gets a row of its own beside the pinned five", () => {
     render(<ReviewDetail artifact={artifact([...PINNED, row({ reviewType: "spec" })])} />);
@@ -116,6 +117,7 @@ describe("an unrecognised review pass", () => {
   });
 });
 
+// @covers FR-01.66
 describe("reviewTypeLabel derives, it does not guess", () => {
   it.each([
     ["self", "Self-review"],

@@ -157,6 +157,7 @@ describe("SingleSessionRunCard", () => {
     expect(screen.getByTestId(`single-session-progress-${RUN_ID}`)).toHaveTextContent("7/7");
   });
 
+  // @covers FR-01.45
   it("renders the DesignGatePanel ONLY when the design gate is active (FR-01.45)", () => {
     mockUseDesignGate.mockReturnValue({
       data: { active: true, phaseTaskId: "ptk-x", phase: "design" },

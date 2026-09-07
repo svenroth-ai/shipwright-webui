@@ -35,6 +35,7 @@ test.describe("A21 command palette + keyboard map", () => {
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.65
   test("Ctrl+K opens the palette, Esc closes it, ? opens the cheat-sheet", async ({
     page,
     request,
@@ -62,6 +63,7 @@ test.describe("A21 command palette + keyboard map", () => {
     await expect(page.getByTestId("shortcuts-sheet")).toBeHidden();
   });
 
+  // @covers FR-01.65
   test("j/k move a visible board selection and Enter opens the task", async ({
     page,
     request,
@@ -81,6 +83,7 @@ test.describe("A21 command palette + keyboard map", () => {
     await expect(page).toHaveURL(new RegExp(`/tasks/${t.taskId}$`));
   });
 
+  // @covers FR-01.65
   test("THE FENCE — the terminal keeps every keystroke, byte for byte (AC1)", async ({
     page,
     request,

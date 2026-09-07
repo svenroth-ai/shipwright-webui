@@ -1,0 +1,16 @@
+{
+  "run_id": "iterate-2026-09-07-w4-tagging-backfill-webui",
+  "date": "2026-09-07T08:59:35.672060Z",
+  "event_at": "2026-09-07T08:57:31.751881+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/campaign-w4-tagging-backfill-webui",
+  "spec": ".shipwright/planning/iterate/campaigns/req3-06-mechanics-webui/sub-iterates/w4-tagging-backfill-webui.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-07-w4-tagging-backfill-webui",
+  "test_completeness": {
+    "status": "n/a",
+    "justification": "This runs scope (w4) is tag-backfill only (comment annotations); no new test logic, no behavior to enumerate. Verification: unchanged server/client suite pass counts, tsc clean, real round-trip probe of the pinned test_links collector (0 invalid_tags, no new orphans)."
+  },
+  "declared_removals": []
+}

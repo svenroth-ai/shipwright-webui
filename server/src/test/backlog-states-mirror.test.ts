@@ -29,6 +29,7 @@ function extractTuple(source: string, constName: string): string[] {
   return [...m[1].matchAll(/["']([^"']+)["']/g)].map((x) => x[1]);
 }
 
+// @covers FR-01.01
 describe("In-Progress state tuple — server/client mirror parity", () => {
   it("BACKLOG_SOURCE_STATES (server) equals IN_PROGRESS_STATES (client)", () => {
     const serverSrc = readFileSync(

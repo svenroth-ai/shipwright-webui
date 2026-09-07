@@ -57,6 +57,7 @@ function recordRun(root: string): void {
  * schedule is the behaviour: asserting one poll's budget passes whether or not
  * the next one repeats it.
  */
+// @covers FR-01.66
 describe("GET mission-context — the wide reach-back schedule", () => {
   const PLAIN = '{"text":"an ordinary conversation"}';
   const budgets = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map((c) => c[1]);

@@ -41,6 +41,7 @@ function adr(id: string, title: string, runId: string | null, spelling: "in" | "
   return `### ${id}: ${title}\n- **Date:** 2026-07-19\n${bullet}- **Decision:** Do the thing.\n\n---\n`;
 }
 
+// @covers FR-01.66
 describe("blockRunId", () => {
   it("matches BOTH real spellings in this repo's log", () => {
     expect(blockRunId("- **Run-ID:** iterate-a")).toBe("iterate-a");
@@ -59,6 +60,7 @@ describe("blockRunId", () => {
   });
 });
 
+// @covers FR-01.66
 describe("splitAdrBlocks", () => {
   it("splits on ADR headings at h2 and h3, keeping the id and title", () => {
     const blocks = splitAdrBlocks(
@@ -75,6 +77,7 @@ describe("splitAdrBlocks", () => {
   });
 });
 
+// @covers FR-01.66
 describe("readRunDecisions", () => {
   it("returns ONLY the ADRs tagged with this run", () => {
     const root = projectWithLog(
@@ -190,6 +193,7 @@ describe("readRunDecisions", () => {
   });
 });
 
+// @covers FR-01.66
 describe("readRunDecisions — REAL repo log (calibration probe)", () => {
   it("finds a REAL run's ADR in this repo's 639 KB decision log", () => {
     // Not a fixture: the real, git-tracked log with 170+ Run-ID-tagged ADRs

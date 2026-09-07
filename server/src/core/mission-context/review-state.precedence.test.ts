@@ -62,6 +62,7 @@ function withProject(opts: { record?: string; markers?: boolean }, fn: (root: st
   }
 }
 
+// @covers FR-01.66
 describe("the record wins when it is valid", () => {
   it("uses the record even when both markers are also present", () => {
     withProject({ record: realRecord(), markers: true }, (root) => {
@@ -88,6 +89,7 @@ describe("the record wins when it is valid", () => {
   });
 });
 
+// @covers FR-01.66
 describe("no record — the pre-record behaviour, unchanged", () => {
   it("falls back to the markers and keeps the internal passes unavailable", () => {
     withProject({ markers: true }, (root) => {
@@ -114,6 +116,7 @@ describe("no record — the pre-record behaviour, unchanged", () => {
   });
 });
 
+// @covers FR-01.66
 describe("a corrupt record is a fault, never a quiet downgrade", () => {
   it("does NOT fall back to the markers when the record is unreadable", () => {
     withProject({ record: "{not json", markers: true }, (root) => {

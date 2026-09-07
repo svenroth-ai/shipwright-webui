@@ -37,6 +37,7 @@ const COMPLETED_RUN = {
   gates: { derived: true, review: "pass" },
 } as unknown as RunDataJoin;
 
+// @covers FR-01.66
 describe("deriveMissionLive — mode selection", () => {
   it("state active → LIVE mode, narrates the JSONL, stage from the transcript", () => {
     const m = deriveMissionLive({
@@ -142,6 +143,7 @@ function campaign(over: Partial<Campaign> = {}): Campaign {
   };
 }
 
+// @covers FR-01.66
 describe("deriveCampaignInfo (FR-01.67 AC3)", () => {
   it("finds the campaign by slug and reads done/total + the in_progress sub-iterate", () => {
     const info = deriveCampaignInfo("wow-usability", [campaign()]);
@@ -161,6 +163,7 @@ describe("deriveCampaignInfo (FR-01.67 AC3)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("deriveMissionLive — campaign session (FR-01.67 AC3)", () => {
   it("threads the campaign into the model + uses the human-readable slug as the summary", () => {
     const m = deriveMissionLive({

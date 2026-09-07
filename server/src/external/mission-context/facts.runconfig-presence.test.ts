@@ -28,6 +28,7 @@ const OK: RunConfigReadResult = {
   diagnostics: { droppedPhaseTaskIds: [], warnings: [] },
 };
 
+// @covers FR-01.66
 describe("runConfigPresence — only ABSENCE is evidence of absence", () => {
   it("maps a valid v2 config to `ok`", () => {
     expect(runConfigPresence(OK)).toBe("ok");

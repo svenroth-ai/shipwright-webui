@@ -69,6 +69,7 @@ test.describe("A16 — Ship's Log home", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.59
   test("drawer + logbook + promptbox render; plan card confirms; open-board escapes", async ({ page }) => {
     await page.goto(`/projects/${project.projectId}/log`);
 
@@ -199,11 +200,13 @@ test.describe("A16 — Ship's Log independent scroll (AC-6)", () => {
     expect(await docs.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
   }
 
+  // @covers FR-01.59
   test("desktop (>900px, side-by-side grid): scrolling one column never moves the other", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 700 });
     await assertIndependentScroll(page);
   });
 
+  // @covers FR-01.59
   test("tablet (≤900px, stacked grid rows): scrolling one region never moves the other", async ({ page }) => {
     await page.setViewportSize({ width: 820, height: 700 });
     await assertIndependentScroll(page);

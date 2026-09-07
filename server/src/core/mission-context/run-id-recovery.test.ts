@@ -40,6 +40,7 @@ export function footerLine(runId: string): string {
   return `{"text":"fix(mission): something\\n\\nRun-ID: ${runId}\\nCo-Authored-By: Claude <noreply@anthropic.com>"}`;
 }
 
+// @covers FR-01.66
 describe("findRunIdFooter — what counts as the session's own run id", () => {
   it("finds the footer written as a JSON-escaped commit message", () => {
     expect(findRunIdFooter(footerLine(RUN))).toBe(RUN);
@@ -98,6 +99,7 @@ describe("findRunIdFooter — what counts as the session's own run id", () => {
  * mid-record, may carry CRLF, may end without a newline, and may begin with a
  * broken UTF-8 sequence. Each of those is probed rather than assumed.
  */
+// @covers FR-01.66
 describe("findRunIdFooter — tail-boundary probes", () => {
   it("accepts a CRLF footer", () => {
     expect(findRunIdFooter(`Run-ID: ${RUN}\r\nCo-Authored-By: Claude\r\n`)).toBe(RUN);
@@ -129,6 +131,7 @@ describe("findRunIdFooter — tail-boundary probes", () => {
   });
 });
 
+// @covers FR-01.66
 describe("hasRunRecord / recoverRunIdFromTranscript — corroboration", () => {
   let root = "";
   afterEach(() => {
@@ -281,6 +284,7 @@ describe("hasRunRecord / recoverRunIdFromTranscript — corroboration", () => {
  * (external code review, openai MEDIUM). A prose sentence can end in a
  * backslash too, and accepting it would re-open the quotation case.
  */
+// @covers FR-01.66
 describe("findRunIdFooter — the terminator set is exact", () => {
   const RUN2 = "iterate-2026-07-20-real-run";
 

@@ -29,6 +29,7 @@ import {
 } from "./contract";
 import type { NewAnswers } from "./types";
 
+// @covers FR-01.51
 describe("StackProfile / EnvVars mapping (AC1)", () => {
   it("remember=Yes → supabase-nextjs with the free-account note", () => {
     const r = resolveStackProfile({ remember: "Yes" });
@@ -55,6 +56,7 @@ describe("StackProfile / EnvVars mapping (AC1)", () => {
   });
 });
 
+// @covers FR-01.51
 describe("New door request → payloads (AC3)", () => {
   const answers: NewAnswers = {
     brief: "A booking tool for my yoga studio",
@@ -112,6 +114,7 @@ describe("New door request → payloads (AC3)", () => {
   });
 });
 
+// @covers FR-01.51
 describe("Adopt door request → payloads (AC2/AC3)", () => {
   it("builds a new-task + adopt-phase request → /shipwright-adopt, brief present", () => {
     const req = buildAdoptLaunchRequest("C:\\work\\api-server");
@@ -142,6 +145,7 @@ describe("Adopt door request → payloads (AC2/AC3)", () => {
   });
 });
 
+// @covers FR-01.51
 describe("name derivation", () => {
   it("slugs a free-text brief", () => {
     expect(deriveNewProjectName("A link shortener with stats")).toBe("a-link-shortener-with-stats");
@@ -149,6 +153,7 @@ describe("name derivation", () => {
   });
 });
 
+// @covers FR-01.51
 describe("launch state contract (A17 / A09b consumers)", () => {
   it("classifies terminal vs recoverable states", () => {
     expect(isTerminalLaunchState("launch-failed")).toBe(true);

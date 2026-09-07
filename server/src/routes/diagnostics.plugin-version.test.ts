@@ -43,6 +43,7 @@ async function probe(
   return res.json() as never;
 }
 
+// @covers FR-01.05
 describe("diagnostics.shipwrightPlugin.version", () => {
   it("surfaces the resolved plugin suite version", async () => {
     const json = await probe(async () => "0.33.1");

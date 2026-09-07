@@ -46,6 +46,7 @@ test.describe("S3 — scenario 6: the Mission tab-hide", () => {
   // AC2 — the tab-hide, and every ambiguous fallback
   // -------------------------------------------------------------------------
 
+  // @covers FR-01.66
   test("a VALIDATED custom-actions project has no Mission tab (AC2)", async ({ page, request }) => {
     // No run-config → not an SDLC project; a clean, purely-custom catalog.
     project = await seedProject(request, { name: "MissionS3Custom", dirName: "sw-s3-custom" });
@@ -63,6 +64,7 @@ test.describe("S3 — scenario 6: the Mission tab-hide", () => {
     await expect(page.getByTestId("mission-tab-mission")).toHaveCount(0);
   });
 
+  // @covers FR-01.66
   test("landing with Mission as the SAVED view falls back to Files, not a blank pane (AC2)", async ({
     page,
     request,
@@ -104,6 +106,7 @@ test.describe("S3 — scenario 6: the Mission tab-hide", () => {
   ];
 
   for (const [i, fb] of fallbacks.entries()) {
+    // @covers FR-01.66
     test(`${fb.name} keeps the Mission tab (AC2)`, async ({ page, request }) => {
       project = await seedProject(request, {
         name: `MissionS3Fb${i}`,

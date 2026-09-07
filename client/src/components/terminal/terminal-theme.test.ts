@@ -131,6 +131,7 @@ describe("EMBEDDED_TERMINAL_PALETTE — TUI escape-sequence fixtures (AC-2 fixtu
   });
 });
 
+// @covers FR-01.28
 describe("LIGHT_PALETTE — WCAG AA contrast (light-mode readability, FR-01.44)", () => {
   const p = LIGHT_PALETTE;
 

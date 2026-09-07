@@ -81,6 +81,7 @@ async function specTitleOf(root: string): Promise<string | undefined> {
   return spec?.state === "available" ? (spec.receipt ?? undefined) : undefined;
 }
 
+// @covers FR-01.66
 describe("the resolved Spec is titled by the candidate that matched", () => {
   beforeEach(() => {
     _clearResolverCache();

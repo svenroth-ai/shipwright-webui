@@ -42,6 +42,7 @@ function kickoff(args?: string): string {
 
 const first = (jsonl: string) => parseSessionJsonl(jsonl).events[0];
 
+// @covers FR-01.66
 describe("slash command with <command-args> (FR-01.68 AC2b)", () => {
   it("classifies a REAL iterate kickoff as slash-command, not a user message", () => {
     const ev = first(kickoff(REAL_ASK));

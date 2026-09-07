@@ -1,5 +1,5 @@
 /*
- * Spec — SmartViewer in-app Markdown editor (FR-01.34).
+ * Spec — SmartViewer in-app Markdown editor (FR-01.35).
  *
  * Drives the real /preview SmartViewer (popOut=true → Edit button) in Chromium.
  * Both the GET (load) and PUT (save) file endpoints are route-mocked so the
@@ -22,7 +22,8 @@ import {
   mockCtaBlockFile,
 } from "./markdown-editor.fixtures";
 
-test.describe("SmartViewer markdown editor (FR-01.34)", () => {
+test.describe("SmartViewer markdown editor (FR-01.35)", () => {
+  // @covers FR-01.35
   test("Edit → rich editor → Review → Save → preview refreshes", async ({ page }, testInfo) => {
     await mockApi(page);
     await page.goto("/preview?projectId=proj-x&path=README.md");
@@ -61,6 +62,7 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
   // visible formatting toolbar. Proves the button → StarterKit command →
   // serialized-markdown consumer chain in a real browser, not just that the
   // buttons render.
+  // @covers FR-01.35
   test("formatting toolbar renders and a toolbar Bold applies emphasis to the saved markdown", async ({ page }, testInfo) => {
     await mockApi(page);
     await page.goto("/preview?projectId=proj-x&path=README.md");
@@ -92,6 +94,7 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
     await page.screenshot({ path: testInfo.outputPath("md-editor-toolbar.png"), fullPage: true });
   });
 
+  // @covers FR-01.35
   test("409 conflict shows the banner and keeps the user's edits (AC6)", async ({ page }) => {
     await mockApi(page, { putStatus: 409 });
     await page.goto("/preview?projectId=proj-x&path=README.md");
@@ -118,6 +121,7 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
   // A YAML-frontmatter file opened and Reviewed WITHOUT any edit used to show
   // the WHOLE document as changed (frontmatter collapsed into a heading by the
   // lossy round-trip). It must now report "No changes".
+  // @covers FR-01.35
   test("frontmatter file: Review with no edit reports 'No changes' (frontmatter intact)", async ({ page }, testInfo) => {
     await mockFrontmatterFile(page);
     await page.goto("/preview?projectId=proj-x&path=post.md");
@@ -143,6 +147,7 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
     await page.screenshot({ path: testInfo.outputPath("md-editor-frontmatter-nochanges.png"), fullPage: true });
   });
 
+  // @covers FR-01.35
   test("frontmatter file: a body edit diffs only the body, and Save writes byte-correct bytes", async ({ page }) => {
     const captured = await mockFrontmatterFile(page);
     await page.goto("/preview?projectId=proj-x&path=post.md");
@@ -183,6 +188,7 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
   // Shipwright link used to CORRUPT it on save — html:false entity-escaped the
   // anchor to literal `&lt;a href=…&gt;…&lt;/a&gt;` text, silently breaking the
   // link. The editor now recovers it as an equivalent markdown link.
+  // @covers FR-01.35
   test("blog file: an inline <a href> Shipwright link saves as a markdown link, not corrupt &lt;a&gt; text", async ({ page }, testInfo) => {
     const captured = await mockBlogFile(page);
     await page.goto("/preview?projectId=proj-x&path=20260616/post.md");
@@ -224,6 +230,7 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
   // link authored as a raw HTML BLOCK (for a third-party renderer that honors
   // inline styling) used to be silently rewritten to a plain markdown link on
   // save, dropping the `style` attribute with no warning. AC-3/AC-1 (agent).
+  // @covers FR-01.35
   test("CTA block file: a raw HTML block renders as a preserved chip and saves byte-identical", async ({ page }, testInfo) => {
     const captured = await mockCtaBlockFile(page);
     await page.goto("/preview?projectId=proj-x&path=20260831/post.md");

@@ -106,6 +106,7 @@ function documentIds(list: ArtifactDescriptor[]): string[] {
   return out;
 }
 
+// @covers FR-01.66
 describe("campaign artifacts over a real tree", () => {
   it("resolves brief, runbook and the ACTIVE unit's own spec to real documents", () => {
     const root = project();
@@ -226,6 +227,7 @@ describe("campaign artifacts over a real tree", () => {
   });
 });
 
+// @covers FR-01.66
 describe("revision covers every source that changes DURING a run", () => {
   it("a status.json write changes the campaign revision", () => {
     const root = project();

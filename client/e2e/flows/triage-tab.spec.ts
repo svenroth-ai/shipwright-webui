@@ -11,6 +11,7 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('Triage tab', () => {
+  // @covers FR-01.30
   test('navigates to /triage and renders the page header', async ({ page }) => {
     await page.goto('/triage');
     await expect(page).toHaveURL('/triage');
@@ -18,6 +19,7 @@ test.describe('Triage tab', () => {
     await expect(page.getByRole('heading', { name: /Triage/i })).toBeVisible();
   });
 
+  // @covers FR-01.30
   test('sidebar exposes a Triage entry that links to /triage', async ({ page }) => {
     await page.goto('/');
     const sidebarLink = page.getByRole('link', { name: /Triage/i });
@@ -26,6 +28,7 @@ test.describe('Triage tab', () => {
     await expect(page).toHaveURL('/triage');
   });
 
+  // @covers FR-01.30
   test('renders an empty-state line when no triage items pending', async ({ page }) => {
     await page.goto('/triage');
     // Either the empty-state is visible, or items are present (depends on

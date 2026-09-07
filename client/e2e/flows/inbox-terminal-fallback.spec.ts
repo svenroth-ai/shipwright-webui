@@ -49,6 +49,7 @@ test.describe("Inbox → terminal fallback (A19, FR-01.63)", () => {
     }
   });
 
+  // @covers FR-01.04
   test("the CTA navigates to the focused terminal and writes NOTHING to the pty", async ({
     page,
     request,

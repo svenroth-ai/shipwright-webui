@@ -28,6 +28,7 @@ const SLUG = `2026-06-03-e2e-${RUN}`;
 const TRIAGE_ID = `trg-e2e${RUN}`;
 
 test.describe("Triage Start Campaign action (FR-01.33)", () => {
+  // @covers FR-01.33
   test("draft campaign-umbrella item → Start Campaign → board shows it active", async ({
     page,
     request,

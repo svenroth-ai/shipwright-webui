@@ -13,6 +13,7 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("First Contact hero — always reachable at /first-contact", () => {
+  // @covers FR-01.51
   test("renders the lighthouse hero, welcome copy, and the three doors", async ({ page }) => {
     await page.goto("/first-contact");
     await expect(page.getByTestId("first-contact")).toBeVisible();
@@ -28,6 +29,7 @@ test.describe("First Contact hero — always reachable at /first-contact", () =>
     );
   });
 
+  // @covers FR-01.51
   test("the Build-new door deep-links into the wizard flow", async ({ page }) => {
     await page.goto("/first-contact");
     // The door is inert until readiness proves ready; the fresh-install stack has
@@ -46,6 +48,7 @@ test.describe("First Contact hero — empty-registry root", () => {
     "root → First Contact only holds on an empty-registry stack (F0.5 wrapper sets the sentinel)",
   );
 
+  // @covers FR-01.51
   test('an empty registry makes "/" land on First Contact, not the board', async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("first-contact")).toBeVisible();

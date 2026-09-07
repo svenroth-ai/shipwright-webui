@@ -16,6 +16,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { _clearMergeCache, checkSquashMerged } from "./merge-check.js";
 
+// @covers FR-01.66
 describe("checkSquashMerged async terminal-regression guard", () => {
   beforeEach(() => _clearMergeCache());
 

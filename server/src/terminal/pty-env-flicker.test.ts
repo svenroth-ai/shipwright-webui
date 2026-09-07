@@ -83,6 +83,7 @@ describe("buildSpawnEnv — Iterate J (ADR-098) CLAUDE_CODE_NO_FLICKER injection
     expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
   });
 
+  // @covers FR-01.28
   it("DEFAULT color mode is truecolor (VS-Code parity, FR-01.44)", () => {
     // Supersedes the ADR-067 16-color brand clamp. The pane is now a
     // faithful terminal: TERM=xterm-256color + COLORTERM=truecolor and NO

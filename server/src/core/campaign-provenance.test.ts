@@ -56,7 +56,7 @@ function read(campaignsDir: string, root: string) {
   return readCampaigns(campaignsDir, root).find((c) => c.slug === SLUG);
 }
 
-describe("readStatusJsonRead — absent and torn are different answers", () => {
+describe("readStatusJsonRead — absent and torn are different answers", () => { // @covers FR-01.66
   it("distinguishes ok / absent / unreadable", () => {
     const a = makeCampaign('{"sub_iterates":[{"id":"S1","status":"complete"}]}');
     const b = makeCampaign(null);

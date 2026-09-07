@@ -60,6 +60,7 @@ test.describe("Mission — POST-reversal skipped run reads as genuinely green", 
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("the artifact link + detail headline both read genuinely green", async ({
     page,
     request,

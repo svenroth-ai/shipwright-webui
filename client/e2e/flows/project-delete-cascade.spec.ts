@@ -31,6 +31,7 @@ test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)",
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.03
   test("deleting a project with a task leaves no phantom Unassigned row", async ({
     page,
     request,

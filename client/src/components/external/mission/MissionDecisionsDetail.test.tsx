@@ -24,6 +24,7 @@ vi.mock("../SmartViewer/DocumentMarkdown", () => ({
 
 import { DecisionsDetail } from "./MissionSlice2Details";
 
+// @covers FR-01.66
 describe("DecisionsDetail", () => {
   const artifact: DecisionsArtifact = {
     kind: "decisions",

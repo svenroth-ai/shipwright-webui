@@ -46,6 +46,7 @@ beforeEach(() => {
   clearActionsCache();
 });
 
+// @covers FR-01.16
 describe("project-actions-loader — bundled default fallback", () => {
   // @covers FR-01.37
   it("loads bundled default when .shipwright-webui/actions.json is missing", () => {
@@ -85,6 +86,7 @@ describe("project-actions-loader — bundled default fallback", () => {
   });
 });
 
+// @covers FR-01.16
 describe("project-actions-loader — user file path", () => {
   // @covers FR-01.37
   it("returns parsed user-side actions when present", () => {
@@ -149,6 +151,7 @@ describe("project-actions-loader — user file path", () => {
   });
 });
 
+// @covers FR-01.16
 describe("project-actions-loader — malformed file handling", () => {
   // @covers FR-01.37
   it("falls through to bundled default + diagnostics side-channel when JSON is invalid", () => {
@@ -172,6 +175,7 @@ describe("project-actions-loader — malformed file handling", () => {
   });
 });
 
+// @covers FR-01.16
 describe("project-actions-loader — mtime cache", () => {
   // @covers FR-01.37
   it("reads once, then returns cached within same mtime", () => {
@@ -241,6 +245,7 @@ describe("project-actions-loader — mtime cache", () => {
   });
 });
 
+// @covers FR-01.16
 describe("project-actions-loader — loadBundledDefault (pure)", () => {
   // @covers FR-01.37
   it("parses the shipped default-actions.json without throwing", () => {

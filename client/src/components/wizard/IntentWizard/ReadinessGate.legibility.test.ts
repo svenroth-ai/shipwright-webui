@@ -27,6 +27,7 @@ import path from "node:path";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel: string) => readFileSync(path.resolve(HERE, rel), "utf8");
 
+// @covers FR-01.51
 describe("ReadinessGate legibility — .iw-card is an on-photo reading surface", () => {
   it("on-photo.css resets .iw-card to dark-on-white (in the rule-2 :is() list)", () => {
     const css = read("../../../styles/on-photo.css");

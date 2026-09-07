@@ -99,6 +99,7 @@ test.describe("FR-01.43 compliance grade", () => {
     }
   });
 
+  // @covers FR-01.43
   test("Projects table: graded project shows the badge + modal, no-dashboard project shows none", async ({
     page,
   }) => {
@@ -126,6 +127,7 @@ test.describe("FR-01.43 compliance grade", () => {
     await expect(modal).not.toContainText("Compliance Artifacts");
   });
 
+  // @covers FR-01.43
   test("Task Board header: the Grade pill renders for the selected project + opens the modal", async ({
     page,
   }) => {

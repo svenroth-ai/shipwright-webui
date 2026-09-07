@@ -45,6 +45,7 @@ function fakeChild(): unknown {
   };
 }
 
+// @covers FR-01.17
 describe("PreviewSessionManager.spawn — returned-URL host pinning (F10)", () => {
   let mgr: PreviewSessionManager;
 
@@ -99,6 +100,7 @@ describe("PreviewSessionManager.spawn — returned-URL host pinning (F10)", () =
   });
 });
 
+// @covers FR-01.17
 describe("PreviewSessionManager.spawn — port validation (F30)", () => {
   let mgr: PreviewSessionManager;
 

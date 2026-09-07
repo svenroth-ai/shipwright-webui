@@ -37,6 +37,7 @@ function ctx(over: Partial<MissionContext> = {}): MissionContext {
   };
 }
 
+// @covers FR-01.66
 describe("instrument chips (AC8 — honest or dash)", () => {
   it("renders passed/total when both are present", () => {
     const tests = { passed: 12, total: 12, skipped: null, gate: "pass" as const };
@@ -60,6 +61,7 @@ describe("instrument chips (AC8 — honest or dash)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("testsResultText (the counts-led detail headline)", () => {
   it("leads a green suite with Passed", () => {
     expect(testsResultText({ passed: 3037, total: 3037, skipped: null, gate: "pass" })).toBe(

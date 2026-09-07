@@ -141,7 +141,7 @@ describe("PATCH /api/external/tasks/:id — widened fields (AC-1/AC-4)", () => {
     expect(store.get(taskId)!.autonomy).toBeUndefined();
   });
 
-  it("title-only PATCH still works (regression — FR-01.09)", async () => {
+  it("title-only PATCH still works (regression — FR-01.09)", async () => { // @covers FR-01.01
     const taskId = await createTask();
     const res = await patch(taskId, { title: "renamed" });
     expect(res.status).toBe(200);

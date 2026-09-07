@@ -44,6 +44,7 @@ async function probe(appVersion?: string): Promise<{ app: { name: string; versio
   return res.json() as never;
 }
 
+// @covers FR-01.49
 describe("A06 — diagnostics.app.version (attach-vs-swap source of truth)", () => {
   it("defaults to the real server/package.json version", async () => {
     const pkgPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../package.json");

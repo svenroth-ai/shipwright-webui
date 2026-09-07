@@ -57,6 +57,7 @@ const drain = (): void => {
   });
 };
 
+// @covers FR-01.28
 describe("useTerminalResize — atlas heal on re-show", () => {
   let h: ResizeHarness;
   beforeEach(() => {

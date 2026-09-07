@@ -84,6 +84,7 @@ function setupCompletedCompact(transcriptContent = "") {
   );
 }
 
+// @covers FR-01.66
 describe("MissionBody — compact Activity re-pins on becoming visible", () => {
   // external code review, openai MEDIUM: the activity panel MOUNTS hidden
   // under `compactPanel === "overview"`, so its mount-time auto-scroll

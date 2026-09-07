@@ -145,6 +145,7 @@ function setup() {
   render(<MissionBody task={TASK} transcriptContent="" onOpenDocument={vi.fn()} />);
 }
 
+// @covers FR-01.66
 describe("context-driven artifact rail", () => {
   it("renders the resolver's artifacts for a live iterate (AC1)", () => {
     contextMock.mockReturnValue({ data: context() });
@@ -251,6 +252,7 @@ describe("context-driven artifact rail", () => {
   });
 });
 
+// @covers FR-01.66
 describe("no-regression fallbacks (AC4)", () => {
   it("keeps the LEGACY rail for a pipeline session", () => {
     contextMock.mockReturnValue({ data: context({ scenario: "pipeline", artifacts: [] }) });

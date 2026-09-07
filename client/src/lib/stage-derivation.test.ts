@@ -42,6 +42,7 @@ const prLink = (n: number) => ({
 
 const parse = (...e: Record<string, unknown>[]) => parseSessionJsonl(jsonl(...e)).events;
 
+// @covers FR-01.66
 describe("AC1 — Analyze holds through scope + calibration", () => {
   // THE REGRESSION. Pre-S4 this returned "Build": the scratchpad write set the
   // build flag and Build outranks Analyze. Measured incidence over 114 real
@@ -82,6 +83,7 @@ describe("AC1 — Analyze holds through scope + calibration", () => {
   });
 });
 
+// @covers FR-01.66
 describe("AC2 — the stepper advances on REAL transitions only", () => {
   const stageOf = (scenario: "iterate", ...e: Record<string, unknown>[]) =>
     deriveStage(parse(...e), { scenario }).stage;
