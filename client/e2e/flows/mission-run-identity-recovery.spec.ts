@@ -115,6 +115,7 @@ test.describe("Mission — the run identity survives the bridge", () => {
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("a PRUNED pointer still resolves, from the session's own Run-ID footer", async ({
     page,
     request,
@@ -147,6 +148,7 @@ test.describe("Mission — the run identity survives the bridge", () => {
     await expect(page.getByTestId("record-rail")).not.toContainText("No run data yet");
   });
 
+  // @covers FR-01.66
   test("a transcript with NO footer stays plain — no guessed identity", async ({
     page,
     request,
@@ -192,6 +194,7 @@ test.describe("Mission — the run identity survives the bridge", () => {
     await expect(page.getByTestId("artifact-link-commit")).toHaveCount(0);
   });
 
+  // @covers FR-01.66
   test("a pointer naming an UNREGISTERED worktree shows the real rail, not six errors", async ({
     page,
     request,
@@ -233,6 +236,7 @@ test.describe("Mission — the run identity survives the bridge", () => {
     );
   });
 
+  // @covers FR-01.66
   test("a run IN FLIGHT lists its not-yet-written artifacts as pending", async ({
     page,
     request,

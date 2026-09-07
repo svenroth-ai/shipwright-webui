@@ -36,6 +36,7 @@ function testsArtifact(over: Partial<NonNullable<TestsArtifact["detail"]>>): Tes
   };
 }
 
+// @covers FR-01.66
 describe("TestsDetail — counts-led", () => {
   it("LEADS with the recorded pass/total and shows no empty table", () => {
     render(

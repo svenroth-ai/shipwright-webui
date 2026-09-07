@@ -44,6 +44,7 @@ test.describe("Campaigns lane — events.jsonl projection (deployed clone)", () 
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.33
   test("surfaces a derived campaign with the events badge when no campaign dir exists", async ({
     page,
   }) => {

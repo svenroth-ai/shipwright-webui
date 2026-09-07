@@ -35,6 +35,7 @@ function code(name: string): string {
   return stripComments(readFileSync(path.join(DIR, name), "utf-8"));
 }
 
+// @covers FR-01.45
 describe("design-gate surface — read-only observer (AC2)", () => {
   it.each(["gate.ts", "serve.ts", "routes.ts"])(
     "%s performs NO filesystem writes (pure read-only handler)",

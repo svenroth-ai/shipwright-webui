@@ -46,6 +46,7 @@ function ids(v: unknown[]): readonly string[] {
   return v as readonly string[];
 }
 
+// @covers FR-01.66
 describe("scenario 6 — every ambiguous actions catalog falls back to SHOWING", () => {
   it("hides ONLY for a well-formed, purely-custom catalog with no run-config", () => {
     expect(isValidatedCustomActions(inputs())).toBe(true);
@@ -206,6 +207,7 @@ function tabHiddenFor(actionsJson: string): boolean {
   return !detectScenario(inputs({ actions: factsFor(projectWith(actionsJson)) })).missionTabVisible;
 }
 
+// @covers FR-01.66
 describe("scenario 6 — round-trip over REAL files through the REAL loader", () => {
   it("hides for a genuine custom-actions catalog", () => {
     expect(

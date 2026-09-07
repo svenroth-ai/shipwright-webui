@@ -49,6 +49,7 @@ function writeLog(root: string, text: string): void {
   writeFileSync(path.join(root, ...LOG), text, "utf-8");
 }
 
+// @covers FR-01.66
 describe("readRunDecisionRecord — drops ∪ decision_log, deduplicated by run_id", () => {
   it("surfaces a drop-only run, unnumbered, instead of rendering nothing", () => {
     const root = makeProject();

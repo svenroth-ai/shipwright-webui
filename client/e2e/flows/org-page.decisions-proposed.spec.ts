@@ -58,6 +58,7 @@ test.describe("Org page — decisions-proposed.md tile, empty", () => {
   test.beforeEach(() => writeChart());
   test.afterEach(() => removeChart());
 
+  // @covers FR-01.71
   test("an absent decisions-proposed.md shows 'No decisions waiting.', never a blank modal", async ({ page }) => {
     await page.goto("/org");
     await page.getByTestId("org-shared-doc-view-decisions-proposed.md").click();
@@ -82,6 +83,7 @@ test.describe("Org page — decisions-proposed.md tile, one waiting decision", (
   });
   test.afterEach(() => removeChart());
 
+  // @covers FR-01.71
   test("shows the parsed entry, and Countersign assigns an ADR number and moves it into decision_log.md for real", async ({ page }) => {
     await page.goto("/org");
     await page.getByTestId("org-shared-doc-view-decisions-proposed.md").click();

@@ -62,6 +62,7 @@ function setup(transcript = "", onOpenDocument = vi.fn()) {
   return { onOpenDocument };
 }
 
+// @covers FR-01.66
 describe("MissionBody — the redesigned left panel + live/verdict middle", () => {
   it("root is a bounded flex column so each card scrolls internally, not the page", () => {
     // Regression guard (iterate-2026-07-23-mission-viewer-scroll-popout):

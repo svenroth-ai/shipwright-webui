@@ -147,7 +147,7 @@ const SHARED_UNIONS = [
   "GateState",
 ];
 
-describe("mission-context types — server SoT vs client verbatim mirror", () => {
+describe("mission-context types — server SoT vs client verbatim mirror", () => { // @covers FR-01.66
   const server = stripComments(readAll(SERVER_FILES));
   const client = stripComments(readAll(CLIENT_FILES));
 

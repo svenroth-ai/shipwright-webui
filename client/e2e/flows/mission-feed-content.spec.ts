@@ -90,6 +90,7 @@ test.describe("Mission activity feed — real content through the real chain", (
     return feed;
   }
 
+  // @covers FR-01.66
   test("an unresolved question shows the real question, its options, and the terminal CTA", async ({
     page,
     request,
@@ -116,6 +117,7 @@ test.describe("Mission activity feed — real content through the real chain", (
     await expect(feed.getByTestId("askuser-answer-in-terminal")).toBeVisible();
   });
 
+  // @covers FR-01.66
   test("a resolved question marks the matched option picked and hides the CTA", async ({ page, request }) => {
     const task = await seedTask(request, { title: "Ask and answer", projectId: project.projectId });
     taskId = task.taskId;
@@ -139,6 +141,7 @@ test.describe("Mission activity feed — real content through the real chain", (
     await expect(picked).toHaveAttribute("data-picked", "true");
   });
 
+  // @covers FR-01.66
   test("a failing test command shows a status pill and a bounded real-output excerpt", async ({
     page,
     request,

@@ -25,6 +25,7 @@ test.describe("A17: campaign launch states", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.10
   test("AC1: a draft campaign shows its status badge + Start CTA, and Start flips it to active", async ({
     page,
     request,
@@ -57,6 +58,7 @@ test.describe("A17: campaign launch states", () => {
     await expect(page.getByTestId(`campaign-step-launch-${slug}`)).toBeVisible();
   });
 
+  // @covers FR-01.10
   test("AC2: opening the launch dialog shows the verbatim command; Cancel creates nothing", async ({
     page,
     request,
@@ -85,6 +87,7 @@ test.describe("A17: campaign launch states", () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
+  // @covers FR-01.10
   test("AC3: a refused launch surfaces a persistent failure notice with a Retry", async ({
     page,
     request,

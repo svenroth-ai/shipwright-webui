@@ -45,6 +45,7 @@ function validPointer(root: string, over: Record<string, unknown> = {}) {
   };
 }
 
+// @covers FR-01.66
 describe("run_id / slug grammar", () => {
   it("accepts the real producer shape", () => {
     expect(isSafeRunId("iterate-2026-07-18-mission-s1-resolver-core-artifacts")).toBe(true);
@@ -79,6 +80,7 @@ describe("run_id / slug grammar", () => {
   });
 });
 
+// @covers FR-01.66
 describe("readIteratePointer", () => {
   it("returns a validated pointer for the happy path", () => {
     const root = makeProject();

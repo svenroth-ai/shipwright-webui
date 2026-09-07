@@ -57,6 +57,7 @@ function makeRepoWithSquash(prNumber: number | null): string {
   return repo;
 }
 
+// @covers FR-01.66
 describe("validatePrNumber (the bounded-int gate)", () => {
   it("accepts a plain digit run", () => {
     expect(validatePrNumber("290")).toBe(290);
@@ -96,6 +97,7 @@ describe("validatePrNumber (the bounded-int gate)", () => {
 
 const WEBUI = { owner: "svenroth-ai", repo: "shipwright-webui" };
 
+// @covers FR-01.66
 describe("extractPrMarker", () => {
   it("finds the PR number from a github pull url in the transcript", () => {
     const m = extractPrMarker(
@@ -131,6 +133,7 @@ describe("extractPrMarker", () => {
   });
 });
 
+// @covers FR-01.66
 describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
   let repo: string | null = null;
 
@@ -213,6 +216,7 @@ describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("merge cache asymmetry", () => {
   beforeEach(() => _clearMergeCache());
 
@@ -256,6 +260,7 @@ describe("merge cache asymmetry", () => {
  * commit message, so an unrelated squash that merely MENTIONS a PR number
  * would report a false "merged". The subject-suffix check is the fix.
  */
+// @covers FR-01.66
 describe.runIf(gitAvailable)("merge false-positive guard", () => {
   let repo: string | null = null;
 

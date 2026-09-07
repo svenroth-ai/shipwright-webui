@@ -69,6 +69,7 @@ function ok(
 
 const UNAVAILABLE: CampaignFact = { status: "unavailable" };
 
+// @covers FR-01.66
 describe("selectActiveStep — the rule, and its stated basis", () => {
   it("picks the unit explicitly in progress", () => {
     const picked = selectActiveStep([
@@ -131,6 +132,7 @@ describe("selectActiveStep — the rule, and its stated basis", () => {
   });
 });
 
+// @covers FR-01.66
 describe("campaign-LEVEL artifacts", () => {
   const doc = { documentId: "opaque-id", title: "campaign.md" };
 
@@ -175,6 +177,7 @@ describe("campaign-LEVEL artifacts", () => {
   });
 });
 
+// @covers FR-01.66
 describe("sub-iterate-LEVEL artifact", () => {
   it("carries the ACTIVE unit's own commit, branch and spec — not the campaign's", () => {
     const fact = ok([
@@ -217,6 +220,7 @@ describe("sub-iterate-LEVEL artifact", () => {
   });
 });
 
+// @covers FR-01.66
 describe("an unreadable store is NEVER an empty campaign", () => {
   it.each([
     ["brief", () => buildCampaignBriefArtifact(UNAVAILABLE, null)],

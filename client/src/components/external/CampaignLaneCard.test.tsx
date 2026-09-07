@@ -47,6 +47,7 @@ const BASE: Campaign = {
   nextPending: { id: "B1", specPath: ".shipwright/planning/iterate/campaigns/2026-06-02-hook/sub-iterates/B1-beta.md" },
 };
 
+// @covers FR-01.33
 describe("CampaignLaneCard", () => {
   beforeEach(() => {
     localStorage.clear();

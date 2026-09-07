@@ -54,6 +54,7 @@ afterEach(() => {
   _clearEventIndexCache();
 });
 
+// @covers FR-01.66
 describe("findWorkCompletedFromMergedRef", () => {
   it("FINDS the row on the ref and projects its counts (commit:'' and all)", async () => {
     const r = await findWorkCompletedFromMergedRef("/p", RUN, {
@@ -97,6 +98,7 @@ describe("findWorkCompletedFromMergedRef", () => {
   });
 });
 
+// @covers FR-01.66
 describe("resolveWorkCompleted (working tree first, ref for finished runs)", () => {
   let root: string;
   afterEach(() => {

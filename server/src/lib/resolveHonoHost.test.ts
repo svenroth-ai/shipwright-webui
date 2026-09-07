@@ -3,6 +3,7 @@ import { resolveHonoHost } from "./resolveHonoHost.js";
 
 const fakeTailscaleExec = (ip = "100.64.0.1") => vi.fn(() => `${ip}\n`);
 
+// @covers FR-01.31
 describe("resolveHonoHost", () => {
   it("returns 127.0.0.1 when HONO_HOST is unset (loopback-only safe default)", () => {
     expect(resolveHonoHost({})).toBe("127.0.0.1");

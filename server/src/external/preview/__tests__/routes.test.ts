@@ -68,6 +68,7 @@ function makeApp(args: {
   return app;
 }
 
+// @covers FR-01.17
 describe("createPreviewRouter — POST /api/external/projects/:projectId/preview", () => {
   it("501 preview_unavailable when no previewManager injected", async () => {
     const app = makeApp({ previewManager: null });

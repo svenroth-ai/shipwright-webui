@@ -49,6 +49,7 @@ function assoc(runId: string, over: Partial<MissionContextAssociation> = {}): Mi
   return { kind: "iterate", runId, observedAt: "2026-07-01T10:00:00.000Z", source: "transcript_run_id", ...over };
 }
 
+// @covers FR-01.66
 describe("setMissionContextOnce", () => {
   it("sets the field on an unassociated task and returns true", () => {
     const t = task();
@@ -65,6 +66,7 @@ describe("setMissionContextOnce", () => {
   });
 });
 
+// @covers FR-01.66
 describe("revertMissionContext", () => {
   it("clears the field when it still holds the value we set", () => {
     const attempted = assoc("iterate-2026-07-01-r1");
@@ -84,6 +86,7 @@ describe("revertMissionContext", () => {
   });
 });
 
+// @covers FR-01.66
 describe("supersedeMissionContext", () => {
   it("writes when the store's current value still matches expectedPrevious", () => {
     const previous = assoc("iterate-2026-07-01-r1", { source: "iterate_active_pointer" });
@@ -131,6 +134,7 @@ describe("supersedeMissionContext", () => {
   });
 });
 
+// @covers FR-01.66
 describe("revertSupersession", () => {
   it("restores the PREVIOUS association when the field still holds what we just set", () => {
     const previous = assoc("iterate-2026-07-01-r1");

@@ -88,6 +88,7 @@ test.describe("@smoke Weather-Deck flip holds + NO text-shadow leak on real surf
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.48
   test("board: bare chrome flips LIGHT; the title bar + a real task card have NO text-shadow", async ({
     page,
   }) => {
@@ -120,6 +121,7 @@ test.describe("@smoke Weather-Deck flip holds + NO text-shadow leak on real surf
     expect(await textShadowOf(card), "real task-card text-shadow must be none").toBe("none");
   });
 
+  // @covers FR-01.48
   test("task detail: the same flip + no-leak hold on a second route", async ({ page }) => {
     await page.goto(`/tasks/${taskFx.taskId}`);
     await expect(page.getByTestId("scene-backdrop")).toBeVisible({ timeout: 15_000 });

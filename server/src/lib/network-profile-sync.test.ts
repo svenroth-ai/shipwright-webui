@@ -39,6 +39,7 @@ const FIXTURES = [
   { name: "open", env: { SHIPWRIGHT_NETWORK_PROFILE: "open" }, expectedHost: "0.0.0.0" },
 ] as const;
 
+// @covers FR-01.31
 describe("network-profile mirror parity (server vs client)", () => {
   it("client mirror file exists at expected path", () => {
     const clientPath = resolve(

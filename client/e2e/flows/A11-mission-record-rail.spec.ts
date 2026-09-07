@@ -38,6 +38,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("the terminal remains the mount-default view (auto-launch path preserved)", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     // Default top tab = Files & Terminal → the embedded terminal is present
@@ -45,6 +46,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     await expect(page.getByTestId("embedded-terminal")).toBeVisible({ timeout: 15_000 });
   });
 
+  // @covers FR-01.66
   test("Mission tab shows the Record; each node opens its artifact", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
@@ -76,6 +78,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     await expect(page.getByTestId("artifact-panel")).toHaveCount(0);
   });
 
+  // @covers FR-01.66
   test("Escape closes the artifact and returns focus to the node", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
@@ -87,6 +90,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     await expect(page.getByTestId("record-node-spec")).toBeFocused();
   });
 
+  // @covers FR-01.66
   test("below the compact breakpoint an artifact selects the full-width Detail panel", async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
     await page.goto(`/tasks/${taskId}`);

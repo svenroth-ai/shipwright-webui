@@ -47,6 +47,7 @@ const staleAssociation = {
   source: "iterate_active_pointer" as const,
 };
 
+// @covers FR-01.66
 describe("rule 2b — transcript recovery supersedes a stale association", () => {
   it("SUPERSEDES the association when the transcript corroborates a DIFFERENT, newer run", () => {
     const d = detectScenario(

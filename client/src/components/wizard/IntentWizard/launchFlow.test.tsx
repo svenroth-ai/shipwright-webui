@@ -70,6 +70,7 @@ async function walkToPlanCard() {
 
 afterEach(() => cleanup());
 
+// @covers FR-01.51
 describe("IntentWizard — New door Go really launches (AC3)", () => {
   beforeEach(() => window.sessionStorage.clear());
 

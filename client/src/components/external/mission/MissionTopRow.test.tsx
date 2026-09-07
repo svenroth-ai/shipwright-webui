@@ -65,6 +65,7 @@ beforeEach(() => {
   Object.defineProperty(navigator, "clipboard", { value: { writeText: vi.fn(async () => {}) }, configurable: true, writable: true });
 });
 
+// @covers FR-01.66
 describe("MissionTopRow — breadcrumb", () => {
   it("renders 'Board › Project' with BOTH segments clickable to real routes", () => {
     renderRow(makeTask({ state: "active" }));
@@ -77,6 +78,7 @@ describe("MissionTopRow — breadcrumb", () => {
   });
 });
 
+// @covers FR-01.66
 describe("MissionTopRow — badge + design gate", () => {
   it("shows the rich task-state badge (In progress) for an active task", () => {
     missionStateMock.mockReturnValue("live");
@@ -99,6 +101,7 @@ describe("MissionTopRow — badge + design gate", () => {
   });
 });
 
+// @covers FR-01.66
 describe("MissionTopRow — Resume CTA", () => {
   it("hides Resume when done", () => {
     renderRow(makeTask({ state: "done" }));
@@ -125,6 +128,7 @@ describe("MissionTopRow — Resume CTA", () => {
   });
 });
 
+// @covers FR-01.66
 describe("MissionTopRow — lossless HeaderMenu", () => {
   it("keeps every ⋯ menu item for an in-progress task", async () => {
     missionStateMock.mockReturnValue("live");

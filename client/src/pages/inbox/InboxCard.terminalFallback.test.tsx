@@ -65,6 +65,7 @@ const OPT_ASK = makeAskItem({
   },
 });
 
+// @covers FR-01.04
 describe("A19 terminal fallback — ask_tool card", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -112,6 +113,7 @@ describe("A19 terminal fallback — ask_tool card", () => {
   });
 });
 
+// @covers FR-01.04
 describe("A19 terminal fallback — text_question card", () => {
   it("renders the body + the honesty copy", () => {
     const item = makeTextItem({ questionId: "q-fb", questionText: "Approach A or B?" });
@@ -137,6 +139,7 @@ describe("A19 terminal fallback — text_question card", () => {
   });
 });
 
+// @covers FR-01.04
 describe("A19 terminal fallback — terminal_prompt card", () => {
   it("renders the recessed mono prompt + the honesty copy", () => {
     const item = makeTerminalPromptItem({

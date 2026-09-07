@@ -36,6 +36,7 @@ function reviewTypeDeclaration(rel: string): string {
   return m![1];
 }
 
+// @covers FR-01.66
 describe("ReviewType stays open on BOTH sides", () => {
   it.each(DECLARATIONS)(
     "%s admits a review type it has never heard of",

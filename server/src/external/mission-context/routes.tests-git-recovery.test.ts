@@ -98,6 +98,7 @@ function tests(ctx: ContextLike) {
     | undefined;
 }
 
+// @covers FR-01.66
 describe("Tests artifact — transient git failure is not cached", () => {
   beforeEach(() => {
     _clearResolverCache();

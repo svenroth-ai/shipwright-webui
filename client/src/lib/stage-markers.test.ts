@@ -31,6 +31,7 @@ const slashCommand = (name: string) => ({
 
 const parse = (...e: Record<string, unknown>[]) => parseSessionJsonl(jsonl(...e)).events;
 
+// @covers FR-01.66
 describe("classifyEditPath — one authority for what an edit touched", () => {
   it("separates product work from scope bookkeeping", () => {
     expect(classifyEditPath("/repo/src/thing.ts")).toBe("product");
@@ -97,6 +98,7 @@ describe("classifyEditPath — one authority for what an edit touched", () => {
   });
 });
 
+// @covers FR-01.66
 describe("evidence is STRUCTURAL — prose cannot spoof a stage", () => {
   // External plan review, GPT findings 5 + 11: markers are read from `tool_use`
   // blocks only. A message that merely MENTIONS a command must not move the
@@ -119,6 +121,7 @@ describe("evidence is STRUCTURAL — prose cannot spoof a stage", () => {
   });
 });
 
+// @covers FR-01.66
 describe("a shell command must DO the phase, not merely name it (FIX 4)", () => {
   const stageOf = (command: string) =>
     deriveStage(parse(slashCommand("shipwright-iterate"), toolUse("Bash", { command })), {

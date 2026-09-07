@@ -48,6 +48,7 @@ function recordRun(root: string, runId = RUN_ID): void {
   );
 }
 
+// @covers FR-01.66
 describe("GET mission-context — recovering a pruned run identity", () => {
   beforeEach(() => {
     _clearResolverCache();

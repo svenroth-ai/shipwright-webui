@@ -25,6 +25,7 @@ const RUN = `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toStrin
 const SLUG = `2026-06-12-e2e-ghost-${RUN}`;
 
 test.describe("Campaigns board dismiss / restore (FR-01.33)", () => {
+  // @covers FR-01.33
   test("dismiss a ghost campaign → it leaves the lane → restore → it returns", async ({
     page,
     request,

@@ -69,6 +69,7 @@ test.describe("FR-01.44 — terminal appearance", () => {
   // addInitScript reset would re-run on EVERY navigation and clobber a pref
   // set on a prior page (e.g. Settings → terminal).
 
+  // @covers FR-01.28
   test("defaults to dark; switching to Light live-re-themes the OPEN terminal (no remount)", async ({
     page,
     request,
@@ -119,6 +120,7 @@ test.describe("FR-01.44 — terminal appearance", () => {
     }
   });
 
+  // @covers FR-01.28
   test("the Settings selector persists the choice and a new terminal mounts with it", async ({
     page,
     request,

@@ -71,6 +71,7 @@ test.describe("FR-01.66 S4 — the stepper holds Analyze through scope", () => {
     return body.task;
   }
 
+  // @covers FR-01.66
   test("a scouting iterate reads Analyze despite a scratch write, then advances (AC1/AC2)", async ({
     page,
   }) => {
@@ -150,6 +151,7 @@ test.describe("FR-01.66 S4 — the stepper holds Analyze through scope", () => {
     await expect(stepper).toHaveAttribute("data-stage", "Build", { timeout: 15_000 });
   });
 
+  // @covers FR-01.66
   test("a plain session claims no lifecycle position, just what it is doing (AC5)", async ({
     page,
   }) => {

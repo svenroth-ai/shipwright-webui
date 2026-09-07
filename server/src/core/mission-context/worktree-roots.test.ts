@@ -27,6 +27,7 @@ function tmp(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
+// @covers FR-01.66
 describe("readAllowedRoots", () => {
   it("parses git worktree list --porcelain into the root set", async () => {
     const root = tmp("mc-roots-");
@@ -66,6 +67,7 @@ describe("readAllowedRoots", () => {
   });
 });
 
+// @covers FR-01.66
 describe("worktree membership (the relocated-worktree case)", () => {
   it("ACCEPTS a git-registered worktree that lives OUTSIDE the project root", async () => {
     const parent = tmp("mc-parent-");
@@ -119,6 +121,7 @@ describe("worktree membership (the relocated-worktree case)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("resolveDocIn", () => {
   it("resolves a known-layout document", () => {
     const root = tmp("mc-doc-");
@@ -180,6 +183,7 @@ describe("resolveDocIn", () => {
   });
 });
 
+// @covers FR-01.66
 describe("resolveFirstDoc", () => {
   it("returns the first candidate that exists (worktree layout preference)", () => {
     const root = tmp("mc-cand-");

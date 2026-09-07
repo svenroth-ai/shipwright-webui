@@ -103,6 +103,7 @@ function mergeOf(ctx: ContextLike): string | undefined {
   return commit?.detail?.merge;
 }
 
+// @covers FR-01.66
 describe("merge state across resolver cache hits", () => {
   beforeEach(() => {
     _clearResolverCache();

@@ -46,3 +46,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Decisions-proposed.md countersign — browser surface](iterate-2026-09-06-decisions-proposed-countersign.md)
 - [Surface server-computed staleness + beat-register findings on the org card](iterate-2026-09-06-org-lead-staleness-register.md)
 - [CI regenerates and diffs the traceability manifest against the commit](iterate-2026-09-06-w1-evidence-chain.md)
+- [Origin -> Basis rename + Layers column retrofit; 29-vs-35 discrepancy resolved](iterate-2026-09-07-w2-form-convergence.md)
+- [Tagging backfill: 15.75% -> 31.97% traceability coverage, 32/32 FRs bound](iterate-2026-09-07-w4-tagging-backfill-webui.md)

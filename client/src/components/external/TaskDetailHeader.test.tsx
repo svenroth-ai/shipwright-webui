@@ -621,7 +621,7 @@ describe("TaskDetailHeader — ⋯-menu copy actions", () => {
 // Shown for the five In-Progress states, absent for `draft` / `done`.
 // Selecting it POSTs /api/external/tasks/:id/backlog; the user stays on
 // the detail page (the state badge flips to "Draft" via the cache write).
-describe("TaskDetailHeader — Move to Backlog (FR-01.32)", () => {
+describe("TaskDetailHeader — Move to Backlog (FR-01.32)", () => { // @covers FR-01.01
   it.each([
     "awaiting_external_start",
     "active",

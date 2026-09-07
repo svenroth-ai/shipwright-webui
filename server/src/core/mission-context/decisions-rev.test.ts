@@ -54,6 +54,7 @@ function drop(over: Record<string, unknown> = {}): Record<string, unknown> {
   };
 }
 
+// @covers FR-01.66
 describe("cache invalidation — a drop written mid-run appears without a restart", () => {
   it("creating the drops directory CHANGES the rev, having been registered while absent", () => {
     const root = makeProject();
@@ -132,6 +133,7 @@ describe("cache invalidation — a drop written mid-run appears without a restar
   });
 });
 
+// @covers FR-01.66
 describe("REAL-DATA probes — this repository's own records", () => {
   it("reads this repo's real drops directory and renders real decisions", () => {
     const dropsDir = path.join(REPO_ROOT, ...DROPS);

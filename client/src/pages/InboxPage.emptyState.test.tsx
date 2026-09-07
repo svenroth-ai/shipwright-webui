@@ -38,6 +38,7 @@ function renderPage() {
   );
 }
 
+// @covers FR-01.50
 describe("InboxPage teaching empty state (A07 / FR-01.50)", () => {
   it("shows the verbatim heading + teaching sentence", () => {
     renderPage();

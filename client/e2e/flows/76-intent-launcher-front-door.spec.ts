@@ -24,6 +24,7 @@ test.describe("Intent launcher — guided wizard front door", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.51
   test("Board single-project New menu → Guided opens the wizard", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("create-menu-caret").click();
@@ -32,6 +33,7 @@ test.describe("Intent launcher — guided wizard front door", () => {
     await expect(page.getByTestId("intent-wizard")).toBeVisible();
   });
 
+  // @covers FR-01.51
   test("Board New menu → Register manually deep-links to the registration dialog", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("create-menu-caret").click();
@@ -40,6 +42,7 @@ test.describe("Intent launcher — guided wizard front door", () => {
     await expect(page.getByTestId("wizard-modal")).toBeVisible();
   });
 
+  // @covers FR-01.51
   test('Projects "Create Project" is the guided front door', async ({ page }) => {
     await page.goto("/projects");
     await page.getByTestId("projects-create-button").click();
@@ -47,6 +50,7 @@ test.describe("Intent launcher — guided wizard front door", () => {
     await expect(page.getByTestId("intent-wizard")).toBeVisible();
   });
 
+  // @covers FR-01.51
   test("the wizard DoorPicker carries the permanent register-manually escape hatch", async ({ page }) => {
     await page.goto("/wizard");
     const line = page.getByTestId("wizard-add-existing");
@@ -57,6 +61,7 @@ test.describe("Intent launcher — guided wizard front door", () => {
     await expect(page.getByTestId("wizard-modal")).toBeVisible();
   });
 
+  // @covers FR-01.51
   test("Ship's Log header launcher → Guided opens the wizard", async ({ page }) => {
     await page.goto(`/projects/${project.projectId}/log`);
     await page.getByTestId("shipslog-create-trigger").click();

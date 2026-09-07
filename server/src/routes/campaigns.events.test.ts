@@ -5,10 +5,15 @@ import { tmpdir } from "node:os";
 
 import { createCampaignsRoutes, type CampaignProjectMeta } from "./campaigns.js";
 
-// Tracked-events projection for GET /api/campaigns/:projectId (FR-01.31) — the
+// Tracked-events projection for GET /api/campaigns/:projectId (FR-01.33) — the
 // deployed-board path: campaign dirs are gitignored/local-only, so progress is
 // projected from the tracked <projectRoot>/shipwright_events.jsonl. Split out of
 // campaigns.test.ts for the 300-LOC ceiling (sibling of campaigns.attached-run).
+//
+// (iterate-2026-09-07-w4-tagging-backfill-webui) The docstring above cited
+// FR-01.31 (Network access profile) pre-existing this run — a one-digit typo,
+// unrelated to this file's actual subject (the Campaigns-lane read endpoint).
+// Corrected to FR-01.33, which is what the `@covers` tag below now binds to.
 
 const SEGMENTS = [".shipwright", "planning", "iterate", "campaigns"];
 
@@ -31,6 +36,7 @@ Collapse hooks
 | B1 | beta | Beta | pending |
 `;
 
+// @covers FR-01.33
 describe("routes/campaigns: GET events.jsonl projection", () => {
   let workDir: string;
   let projectRoot: string;

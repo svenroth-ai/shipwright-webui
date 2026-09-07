@@ -286,7 +286,7 @@ describe("TaskCard — project pill (ADR-105)", () => {
 // `draft` (already in Backlog) and `done` (terminal). Selecting it POSTs
 // to /api/external/tasks/:id/backlog.
 // ---------------------------------------------------------------------------
-describe("TaskCard — Move to Backlog (FR-01.32)", () => {
+describe("TaskCard — Move to Backlog (FR-01.32)", () => { // @covers FR-01.01
   const IN_PROGRESS = [
     "awaiting_external_start",
     "active",
@@ -357,7 +357,7 @@ describe("TaskCard — Move to Backlog (FR-01.32)", () => {
 // set) must show Resume, never a fresh Launch — a fresh `claude --session-id`
 // against an already-used session is rejected with "Session ID already in use".
 // ---------------------------------------------------------------------------
-describe("TaskCard — Resume vs Launch on a backlogged task (FR-01.01 AC-6)", () => {
+describe("TaskCard — Resume vs Launch on a backlogged task (FR-01.01 AC-6)", () => { // @covers FR-01.01
   it("a never-launched draft shows the green Launch button (regression fence)", () => {
     renderCard(baseTask({ state: "draft" }));
     expect(screen.getByTestId("task-card-launch-task-1")).toBeInTheDocument();

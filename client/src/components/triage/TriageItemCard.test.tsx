@@ -38,6 +38,7 @@ const item: TriageItem = {
   amendedAt: null,
 };
 
+// @covers FR-01.30
 describe("TriageItemCard styling", () => {
   it("renders on the white --color-surface with a resting shadow (not beige-on-beige)", () => {
     render(<TriageItemCard item={item} onClick={vi.fn()} />);
@@ -54,6 +55,7 @@ describe("TriageItemCard styling", () => {
   });
 });
 
+// @covers FR-01.30
 describe("TriageItemCard — Returned badge (AC8, iterate-2026-08-08-triage-filters-sort-parked)", () => {
   it("shows no Returned badge for an ordinary item", () => {
     render(<TriageItemCard item={item} onClick={vi.fn()} />);

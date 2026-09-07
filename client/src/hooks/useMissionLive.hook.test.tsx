@@ -39,6 +39,7 @@ beforeEach(() => {
   useCampaignsMock.mockReturnValue({ data: [CAMPAIGN] });
 });
 
+// @covers FR-01.66
 describe("useMissionLive — campaign poll enablement (FR-01.67 AC3)", () => {
   it("a `campaign: <slug>` title ENABLES useCampaigns and threads the payload in", () => {
     const { result } = renderHook(() =>

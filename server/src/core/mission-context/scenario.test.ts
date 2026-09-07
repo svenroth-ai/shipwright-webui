@@ -40,6 +40,7 @@ function inputs(over: Partial<ScenarioInputs> = {}): ScenarioInputs {
   };
 }
 
+// @covers FR-01.66
 describe("isValidatedCustomActions", () => {
   const custom = {
     fromUser: true,
@@ -76,6 +77,7 @@ describe("isValidatedCustomActions", () => {
   });
 });
 
+// @covers FR-01.66
 describe("detectScenario precedence", () => {
   const customActions = {
     fromUser: true,
@@ -157,6 +159,7 @@ describe("detectScenario precedence", () => {
  * answers `plain` for every finished iterate — reintroducing exactly the data
  * loss the association exists to close, and breaking AC2.
  */
+// @covers FR-01.66
 describe("association fallback after the pointer is pruned", () => {
   const association = {
     kind: "iterate" as const,
@@ -226,6 +229,7 @@ describe("association fallback after the pointer is pruned", () => {
  * from the association: strictly lower, because a footer is text a session
  * contains, not a run the server watched.
  */
+// @covers FR-01.66
 describe("transcript-recovered run id — precedence", () => {
   const transcriptRunId = "iterate-2026-07-20-recovered";
   const recoverTranscriptRunId = () => transcriptRunId;

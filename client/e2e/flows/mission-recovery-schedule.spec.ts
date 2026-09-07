@@ -97,6 +97,7 @@ test.describe("Mission — the reach-back schedule keeps the rail", () => {
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("a recovered rail is still there on the SECOND and THIRD read", async ({
     page,
     request,
@@ -138,6 +139,7 @@ test.describe("Mission — the reach-back schedule keeps the rail", () => {
     }
   });
 
+  // @covers FR-01.66
   test("a session with no footer stays plain across repeated reads", async ({ page, request }) => {
     project = await seedProject(request, {
       name: "MissionSchedulePlain",

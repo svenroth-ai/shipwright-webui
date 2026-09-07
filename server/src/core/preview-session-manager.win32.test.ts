@@ -128,6 +128,7 @@ async function capture(command: string, platform: NodeJS.Platform) {
   return { spawn, rejected };
 }
 
+// @covers FR-01.17
 describe("D03 Guard 2a — F03 win32 npm spawn (RED anchor)", () => {
   it("wraps 'npm run dev' in cmd.exe /d /s /c with discrete argv, shell:false", async () => {
     plantNpmOnPath();
@@ -149,6 +150,7 @@ describe("D03 Guard 2a — F03 win32 npm spawn (RED anchor)", () => {
   });
 });
 
+// @covers FR-01.17
 describe("D03 Guard 2b — F31 win32 backslash preservation (RED anchor)", () => {
   it("spawn keeps 'C:\\tools\\node.exe' backslashes (not 'C:toolsnode.exe')", async () => {
     const { spawn } = await capture("C:\\tools\\node.exe server.js", "win32");
@@ -172,6 +174,7 @@ describe("D03 Guard 2b — F31 win32 backslash preservation (RED anchor)", () =>
   });
 });
 
+// @covers FR-01.17
 describe("D03 Guard 2c — POSIX pin (GREEN now; fix must not touch POSIX)", () => {
   for (const platform of ["linux", "darwin"] as const) {
     it(`tokenizeCommand byte-identical on ${platform}`, () => {
@@ -215,6 +218,7 @@ const INJECTION = [
 ];
 const BARE_OPS = new Set(["&", "&&", "|", "||", ";", "`"]);
 
+// @covers FR-01.17
 describe("D03 Guard 1 — injection security fence (permanent; GREEN now)", () => {
   for (const platform of ["win32", "linux"] as const) {
     for (const cmd of INJECTION) {

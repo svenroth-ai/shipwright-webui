@@ -33,6 +33,7 @@ function inMemoryDeps(): SdkSessionsStoreDeps {
  * the input boundary so the emitted command is
  *   cd '/Users/.../Claude Command Center' && … .
  */
+// @covers FR-01.10
 describe("POST /launch — quote-wrapped cwd normalisation (FR-01.10)", () => {
   let app: Hono;
   let store: SdkSessionsStore;

@@ -61,6 +61,7 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
+// @covers FR-01.65
 describe("useKeyboardMap — positive (global keys fire from a neutral surface)", () => {
   it("opens the palette on Ctrl+K from document.body", () => {
     const { prevented } = dispatch(document.body, { key: "k", ctrlKey: true });
@@ -86,6 +87,7 @@ describe("useKeyboardMap — positive (global keys fire from a neutral surface)"
   });
 });
 
+// @covers FR-01.65
 describe("useKeyboardMap — THE FENCE (inert in every typing context)", () => {
   const typingTargets: Array<[string, string]> = [
     ["a text input", "text-input"],
@@ -121,6 +123,7 @@ describe("useKeyboardMap — THE FENCE (inert in every typing context)", () => {
   });
 });
 
+// @covers FR-01.65
 describe("isTypingContext predicate", () => {
   it("classifies inputs / terminal / dialogs as typing contexts", () => {
     for (const testid of [

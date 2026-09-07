@@ -29,6 +29,7 @@ const prLink = (n: number) => ({
   prRepository: "o/r",
 });
 
+// @covers FR-01.66
 describe("currentIterateEvents + windowed deriveStage — campaign case (FR-01.67 AC2)", () => {
   // TWO serial sub-iterates in ONE session log: the first fully merged
   // (edit→test→commit→push→PR→gh pr merge), the second mid-Build (an edit only).

@@ -76,6 +76,7 @@ function resolve(projectRoot: string, over: Record<string, unknown> = {}) {
   });
 }
 
+// @covers FR-01.66
 describe("resolveMissionContext — the scan is paid once per task, not per poll", () => {
   beforeEach(() => {
     _clearResolverCache();
