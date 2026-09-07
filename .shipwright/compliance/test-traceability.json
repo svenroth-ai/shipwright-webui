@@ -1,9 +1,9 @@
 {
   "schema_version": 3,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-09-07T18:38:16.553939+00:00",
-  "source_commit": "543b6da02c975a1bef34b554aead846fe8f36e19",
-  "spec_hash": "sha256:822a21047a5aa33d4500e1435eded7787f7f437e84984bd3dc60e16b4e2a4fef",
+  "generated_at": "2026-09-07T19:03:52.167652+00:00",
+  "source_commit": "e6a453c885ce4395df3bf4a20017e37c7c34ad41",
+  "spec_hash": "sha256:55502eb972419dc6d13164c29c70fffd1d2a632b9063bc206a732b2b1ea84265",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -11749,8 +11749,10 @@
       "title": "A fourth Inbox row kind for a follow-up question the separate leadwright tool asks the operator directly (not detected from a running session's terminal, but written by leadwright onto the task itself). Unlike the other three kinds, the operator answers it right there in the Inbox with a short text reply, which is handed back to leadwright; it can also be dismissed without answering.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -12203,8 +12205,10 @@
       "title": "Assembles the list of available actions for a project by layering the project's own custom actions over the built-in defaults. This list feeds the 'new task/iterate/pipeline' dialogs and the launch-button menus.<br>**Updates:** Gained five task-routing fields in the create dialogs (domain, priority, complexity hint, tags, and blocked-by), which projects can opt into via their own actions file.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -12307,8 +12311,10 @@
       "title": "On the Settings page, pick a registered project and see whether its action set is custom, built-in, or malformed. You can upload a replacement actions file (validated before it is saved) or reset back to the built-in defaults. Uploads are size-capped and must be valid JSON.<br>**Updates:** Gained the same upload directly inside the project edit dialog (plus an upload-route fix).",
       "priority": "Must",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -13187,8 +13193,10 @@
       "title": "For a single-session run, when Claude reaches the design gate it produces mockups plus a review viewer and pauses for a human decision. The Command Center hosts that viewer at full fidelity and captures your per-round feedback into the project - no manual export. Clicking Resume hands the feedback back so the run revises and continues. The app writes only the temporary feedback file, never the run's own control files.<br>**Updates:** Gained a record view with a mockup gallery and an Approve / Request-changes decision bar.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -15532,8 +15540,10 @@
       "title": "Turns the recorded project event log into a per-run summary (used by Mission Control, the Ship's-Log gallery, and the board) plus a grade-over-time trend. It is strictly honest: a run with no matching completion record shows nothing rather than guessing, durations are never estimated (they show 'n/a' when unknown), and derived pass/fail lamps are never presented as an authoritative verdict.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -18659,8 +18669,10 @@
       "title": "A read-only diagnostics page showing the detected Claude CLI version, the folder the app is reading technology profiles from, sample launch commands for each shell, and the sessions currently being observed. A warning banner appears when the installed Claude CLI is older than the supported minimum.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -18747,8 +18759,10 @@
       "title": "A minimal settings page. Most settings now live inside the user's own Claude client (model, autonomy, plugins); the Command Center keeps only its own display preferences, saved safely so two tabs can't corrupt them.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -19187,8 +19201,10 @@
       "title": "One installer command that both installs and updates the whole system (the Shipwright plugins and the Command Center), first run and every run after. It checks prerequisites up front and refuses loudly if a required tool (Claude, Python, Node, git) is missing, rather than leaving a broken install. It never starts a Claude session; if the app is already running it attaches to a same-or-newer one, safely swaps an older one, and leaves an unrelated program on the port untouched.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
@@ -19243,8 +19259,10 @@
       "title": "A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file.<br>**Updates:** Gained the runtime-store half of the leadwright coordination contract — a release action for a hung beat-register entry (mirrors leadwright's own recovery contract exactly, one audit line per release, idempotent on retry), a per-lead last-run timestamp with server-computed staleness (3× that lead's own cron cadence, never a hardcoded interval), and an open-register finding (clear / open / fault-on-duplicate-sessionId).",
       "priority": "Should",
       "status": "active",
-      "required_layers": [],
-      "required_layers_source": "inferred_legacy",
+      "required_layers": [
+        "unit"
+      ],
+      "required_layers_source": "explicit",
       "tests": {
         "unit": [
           {
