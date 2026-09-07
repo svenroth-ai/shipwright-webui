@@ -113,4 +113,60 @@ describe("LeadQuestionCard", () => {
   // actually happens: server/src/external/inbox/_lead.test.ts's
   // `extractLeadQuestionBody` cases. A client-side assertion on already-
   // stripped input would prove nothing about the stripping itself.
+
+  it("shows the 'not the lead' caveat next to Discuss in terminal", () => {
+    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    expect(screen.getByTestId("inbox-lead-discuss-terminal-lq-task-A")).toHaveTextContent(
+      "Discuss in terminal",
+    );
+    expect(screen.getByTestId("inbox-lead-terminal-caveat-lq-task-A")).toHaveTextContent(
+      /isn't the lead/i,
+    );
+  });
+
+  it("Discuss in terminal prewarms the pty and navigates to the task, without also submitting an answer", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    fireEvent.click(screen.getByTestId("inbox-lead-discuss-terminal-lq-task-A"));
+
+    expect(await screen.findByTestId("task-detail-stub")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/terminal/task-A/spawn",
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/external/tasks/task-A",
+      expect.anything(),
+    );
+  });
+
+  it("Take the outcome as the answer focuses the answer field", () => {
+    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    fireEvent.click(screen.getByTestId("inbox-lead-take-outcome-lq-task-A"));
+    expect(screen.getByTestId("inbox-lead-answer-input-lq-task-A")).toHaveFocus();
+  });
+
+  // Code-review finding (iterate-2026-09-08-lead-question-discuss-terminal):
+  // the card's own Enter/Space-to-navigate keydown handler must not swallow
+  // a bubbled keydown from a nested button — that would both cancel the
+  // button's native Enter-triggers-click activation (making it keyboard-
+  // unreachable) and navigate away instead.
+  it("pressing Enter on a nested button does not navigate away or swallow its own action", () => {
+    renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    fireEvent.keyDown(screen.getByTestId("inbox-lead-take-outcome-lq-task-A"), {
+      key: "Enter",
+    });
+    expect(screen.queryByTestId("task-detail-stub")).not.toBeInTheDocument();
+  });
+
+  it("presents no thread/round affordance -- one answer field, no round counter or reply history", () => {
+    const { container } = renderCard(<LeadQuestionCard item={LEAD} task={makeTask()} />);
+    expect(container.querySelectorAll("textarea")).toHaveLength(1);
+    expect(screen.queryByTestId(/round|thread/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/round \d|reply history|previous answer/i)).not.toBeInTheDocument();
+  });
 });
