@@ -1,6 +1,6 @@
 /*
  * file-write-route.test.ts — PUT /api/external/projects/:projectId/file
- * (iterate-2026-06-03-smartviewer-markdown-editor, FR-01.34).
+ * (iterate-2026-06-03-smartviewer-markdown-editor, FR-01.35).
  *
  * Covers the markdown write surface contract:
  *   - GET emits a quoted sha256 ETag (the If-Match token)
@@ -58,8 +58,8 @@ function inMemoryDeps(): SdkSessionsStoreDeps {
   };
 }
 
-// @covers FR-01.33
-describe("PUT /api/external/projects/:projectId/file (markdown write, FR-01.34)", () => {
+// @covers FR-01.35
+describe("PUT /api/external/projects/:projectId/file (markdown write, FR-01.35)", () => {
   let app: Hono;
   let projectDir: string;
   const projectId = "p-md-write";
