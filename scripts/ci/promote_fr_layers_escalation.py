@@ -50,7 +50,12 @@ def check_ack(ack_path: Path, fingerprint: str, run_id: str) -> bool:
     PR Review (blocking, round 6): a syntactically valid but non-object ack
     (``[]``, ``null``, a bare string) used to reach ``ack.get(...)`` unguarded
     and crash with an uncaught ``AttributeError`` -- any non-dict JSON shape
-    is treated the same as "no ack on file", never a crash."""
+    is treated the same as "no ack on file", never a crash.
+
+    PR Review (blocking, round 8): a non-UTF-8 ack file raised an uncaught
+    ``UnicodeDecodeError`` from ``read_text`` before ``json.loads`` was even
+    reached -- caught here too (it is a ``ValueError`` subclass, same as
+    ``json.JSONDecodeError``, so one broader except covers both)."""
     if not ack_path.is_file():
         return False
     try:
@@ -58,7 +63,7 @@ def check_ack(ack_path: Path, fingerprint: str, run_id: str) -> bool:
         if not isinstance(ack, dict):
             return False
         return ack.get("fingerprint") == fingerprint and ack.get("run_id") == run_id
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
         return False
 
 

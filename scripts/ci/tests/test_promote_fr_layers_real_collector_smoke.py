@@ -11,12 +11,18 @@ included), and asserts the handful of symbols/shapes this repo's code
 actually depends on are still there.
 
 This is a genuine NETWORK-TOUCHING test, unlike every other test in this
-directory. It SKIPS loudly (never fails) when the network or git are
-unavailable -- a GitHub outage or a sandboxed environment must never block a
-contributor, mirroring this repo's own `bootstrapper` marketplace-contract
-test philosophy (see CLAUDE.md's bootstrapper job docs). A CI runner (which
-already performs this exact clone for the sibling gate job) has no such
-excuse and will genuinely exercise it.
+directory -- PR Review (blocking, round 8, escalated from a comment in
+rounds 4 and 6): an ordinary `pytest` run must never silently reach out to
+GitHub, so this is OPT-IN via `SHIPWRIGHT_RUN_NETWORK_TESTS=1`, not merely
+"skip loudly on failure" as it was before. The default collection run stays
+fully offline and deterministic; a CI job that wants this coverage (there is
+currently none -- this script has zero callers in any workflow) sets the
+env var explicitly, the same way it would use a dedicated integration-test
+job rather than folding a network dependency into the unit-test suite.
+Under opt-in, it still skips loudly (never fails) when the network or git
+are genuinely unavailable, mirroring this repo's own `bootstrapper`
+marketplace-contract test philosophy (see CLAUDE.md's bootstrapper job
+docs).
 
 @covers FR-01.66
 """
@@ -24,6 +30,7 @@ excuse and will genuinely exercise it.
 from __future__ import annotations
 
 import inspect
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -63,6 +70,11 @@ _REAL_MODULE_NAMES = (
 
 @pytest.fixture(scope="module")
 def real_plugin_root(tmp_path_factory) -> Path:
+    if os.environ.get("SHIPWRIGHT_RUN_NETWORK_TESTS") != "1":
+        pytest.skip(
+            "network-touching test is opt-in -- set SHIPWRIGHT_RUN_NETWORK_TESTS=1 "
+            "to fetch the pinned shipwright-compliance checkout and run it"
+        )
     checkout = tmp_path_factory.mktemp("shipwright-monorepo-pinned")
     try:
         subprocess.run(["git", "init", "-q"], cwd=checkout, check=True, timeout=30)

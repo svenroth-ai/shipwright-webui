@@ -154,6 +154,23 @@ def test_a_non_object_ack_is_treated_as_unacked_instead_of_crashing(stub_plugin_
         assert exit_code == 3, f"expected the unacked-escalation exit code for ack content {malformed!r}"
 
 
+def test_a_non_utf8_ack_is_treated_as_unacked_instead_of_crashing(stub_plugin_root, tmp_path):
+    """PR Review (blocking, round 8): `check_ack()` caught `OSError` and
+    `json.JSONDecodeError` but not the `UnicodeDecodeError` a non-UTF-8 ack
+    file raises out of `read_text` before `json.loads` is even reached."""
+    spec_path, manifest_path, ledger_path = _write_inputs(tmp_path, {})
+    ack_path = tmp_path / "ack.json"
+    ack_path.write_bytes(b"\xff\xfe\x00\x01not-utf8")
+
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=str(manifest_path), spec_path=str(spec_path), ledger_path=str(ledger_path),
+        ack_path=str(ack_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[],
+    )
+    assert run(args) == 3
+
+
 def test_run_refuses_a_non_object_ledger_instead_of_crashing(stub_plugin_root, tmp_path):
     """PR Review (blocking, round 5): a syntactically valid but non-object
     ledger.json used to reach `evaluate_manifest`'s `ledger.get(...)`
