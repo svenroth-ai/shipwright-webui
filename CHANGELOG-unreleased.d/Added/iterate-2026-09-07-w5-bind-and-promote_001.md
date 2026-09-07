@@ -1,0 +1,1 @@
+compliance: autonomously promote FR `Layers` cells from `(inferred)` to explicit wherever every bound test is confirmed green in fresh CI evidence (w5); undecidable cases escalate by name via a checked-only ack file, never a batch sweep

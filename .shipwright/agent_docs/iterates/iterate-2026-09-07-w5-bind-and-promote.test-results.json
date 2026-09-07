@@ -1,0 +1,120 @@
+{
+  "last_updated": "2026-09-07",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-07-w5-bind-and-promote",
+    "date": "2026-09-07",
+    "unit": {
+      "status": "passed",
+      "passed": 7821,
+      "total": 7826
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "unit.passed/total (7821/7826) is the combined vitest client+server suite (client 3882/3882, server 3939/3944, 5 pre-existing skips) \u2014 the fresh F0 gate for this run's client/server code (none of which this iterate actually touched). This iterate's OWN new code (scripts/ci/layer_promotion.py, layer_promotion_report.py, promote_fr_layers.py, promote_fr_layers_io.py) is Python, tested by a separate pytest suite (scripts/ci/tests/test_layer_promotion.py + test_promote_fr_layers_run.py, 30/30 passed) that has no slot in this JSON's unit/integration/e2e vocabulary \u2014 recorded here and in test_completeness.behaviors' evidence strings instead.",
+      "No frontend changed (detect_frontend_changes.py confirmed has_frontend_changes:false against every changed file); Browser Verify and e2e were correctly skipped, not silently omitted."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      },
+      "behaviors": [
+        {
+          "behavior": "AC1: where the predicate holds, promotion happens without operator interaction, with its evidence named",
+          "disposition": "tested",
+          "evidence": "test_all_green_promotes_with_full_observed_layer_set + test_promotes_a_green_fr_and_rewrites_spec_manifest_and_ledger (pytest); REAL run against this repo promoted 9/32 FRs, each ledger entry naming evidence_test_ids + evidence_source_commit, re-verified green against the real traceability_manifest_gate.py CI gate"
+        },
+        {
+          "behavior": "AC2: no batch promotion path exists",
+          "disposition": "tested",
+          "evidence": "test_evaluate_manifest_partitions_decisions (each FR decided independently, no sweep/--all flag exists in promote_fr_layers.py's argparse surface); code review confirms no batch code path"
+        },
+        {
+          "behavior": "AC3: only undecidable cases escalate, each naming which one",
+          "disposition": "tested",
+          "evidence": "test_no_observable_layer_escalates, test_missing_evidence_is_absent_not_fail_escalates, test_ledger_demotion_contradiction_escalates, test_failing_evidence_skips_not_green_no_escalation (decidable, not an escalation); REAL run's committed layer_promotion_escalation.json names all 23 escalated FRs + reason codes"
+        },
+        {
+          "behavior": "AC4: the run cannot author its own promotion approval",
+          "disposition": "tested",
+          "evidence": "test_escalates_and_hands_back_when_evidence_is_absent (no ack file ever written by the run itself), test_a_stale_ack_from_a_different_escalation_set_does_not_clear_the_stop, test_a_matching_operator_ack_clears_the_stop_on_rerun"
+        },
+        {
+          "behavior": "A regen #2 failure rolls back spec.md instead of leaving a half-promoted working tree (external code review finding, GLM high)",
+          "disposition": "tested",
+          "evidence": "test_a_regen_2_failure_rolls_back_spec_md_instead_of_leaving_it_half_promoted (monkeypatched flaky regen, asserts byte-identical spec.md + no manifest/ledger written)"
+        },
+        {
+          "behavior": "A stale (over-age) vitest report is rejected rather than trusted as fresh (external code review finding, openai high)",
+          "disposition": "tested",
+          "evidence": "test_a_stale_vitest_report_is_rejected_as_not_fresh"
+        },
+        {
+          "behavior": "An unsafe run_id (path traversal) is rejected before touching any output path (external code review finding, openai medium)",
+          "disposition": "tested",
+          "evidence": "test_an_unsafe_run_id_is_rejected_before_touching_any_path"
+        },
+        {
+          "behavior": "A quarantined manifest-side test binding never counts as observed coverage (external plan review finding, GLM/openai)",
+          "disposition": "tested",
+          "evidence": "test_a_quarantined_manifest_binding_never_counts_as_observed_coverage, test_a_quarantined_test_is_excluded_even_when_evidence_would_have_passed"
+        },
+        {
+          "behavior": "A non-dict evidence entry fails closed as absent evidence, never crashes (external code review finding, GLM low)",
+          "disposition": "tested",
+          "evidence": "test_a_non_dict_evidence_entry_is_treated_as_missing_not_a_crash"
+        },
+        {
+          "behavior": "An unrecognized layer name is named in the escalation detail, not silently dropped (external code review finding, GLM low)",
+          "disposition": "tested",
+          "evidence": "test_unknown_layer_names_are_named_in_the_no_observable_layer_escalation"
+        },
+        {
+          "behavior": "A removed FR is named in the run's own removed_fr_ids output, not silently invisible (external code review finding, GLM low)",
+          "disposition": "tested",
+          "evidence": "test_evaluate_manifest_partitions_decisions (removed_fr_ids assertion)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "justification": "No frontend file changed (detect_frontend_changes.py --cwd . --since <merge-base>: has_frontend_changes:false, files:[]); this iterate is CI/compliance tooling (scripts/ci/*.py) plus spec.md metadata edits, no client/server route/component/schema change."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-07-w5-bind-and-promote",
+    "commit": "543b6da02c975a1bef34b554aead846fe8f36e19",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
