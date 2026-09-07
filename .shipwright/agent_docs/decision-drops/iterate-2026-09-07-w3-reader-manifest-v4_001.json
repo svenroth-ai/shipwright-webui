@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-07-w3-reader-manifest-v4",
+  "date": "2026-09-07",
+  "section": "Iterate — change: reader on manifest v4",
+  "title": "Reader on manifest v4: accept AC-scoped @covers tags without a false ahead-warning",
+  "context": "Monorepo P3.2 (merged, tip c0d1b38be2) bumps test-traceability.json to schema_version 4 (AC-scoped @covers). WebUI reader's known-max was still 3.",
+  "decision": "Bump TRACEABILITY_SCHEMA_VERSION 3->4; no reader-logic change (only reads fields unchanged across v3/v4). Frozen fixture pins both AC-scoped and bare-tag v4 shapes.",
+  "consequences": "No false contract_version_ahead warning on a v4 manifest; v1-v3 manifests and v4 manifests with no AC tags behave identically. ac_id/acs surfacing downstream deferred, disclosed not dropped.",
+  "rationale": "Reader never validates additionalProperties, only reads .id/.tests[layer][*].id/.layer/.resolved_from, unchanged in v4. Verified mechanically via git diff of the shipped schema, not by trusting its doc comment.",
+  "rejected": "Trimming the fixture to reader-consumed fields only: rejected, defeats its drift-catching purpose. Surfacing ac_id/acs downstream now for w5: rejected, out of this unit's AC scope.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-07-w3-reader-manifest-v4.md"
+}

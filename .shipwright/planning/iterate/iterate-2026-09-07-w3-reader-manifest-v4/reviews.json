@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-w3-reader-manifest-v4",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:24:08.284475+00:00",
+      "disposition": "Self-Review (7-item ADR-024 checklist) recorded in the iterate ADR's Self-Review section: all 7 items PASS (Spec Compliance, Error Handling, Security Basics, Test Quality, Performance Basics, Naming & Structure, Affected Boundaries).",
+      "recorded_by": "runner",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The claim that v4 is purely additive rests on the schema's own doc comment (\"v4 adds exactly two ADDITIVE, OPTIONAL fields, per the schema's own description\") rather than a mechanical diff of the v3 and v4 schema files. Doc comments can be stale or incomplete — the schema const bump could have silently changed something else (a tightened regex on `layer`, a renamed required field, an enum value removed).",
+          "suggestion": "Before merging, diff the shipped schema against its v3 predecessor (`git diff <v3-tag>..c0d1b38be2 -- .../traceability_schema.json`) and record in the PR/commit that the delta is exactly the two additive fields. Cheap, and it converts \"trust the comment\" into \"verified the diff\" — consistent with the plan's own stated standard.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The fixture asserts the happy path (no `contract_version_ahead` warning at v4) but nothing pins the fail-soft boundary itself. If the version check in `traceability.ts` is ever refactored (e.g., `>=` becomes `>`), the constant bump could silently widen or narrow the accepted range and the new tests wouldn't notice.",
+          "suggestion": "Add one negative case to the fixture: a manifest with `schema_version: 5` still trips `contract_version_ahead` with `status` remaining fail-soft. It's a few lines and pins the semantics of the constant this change is bumping.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "The precondition was verified against `origin/main` tip `c0d1b38be2` at plan time, but that's a moving target — the monorepo could change or revert the v4 contract before this lands. The frozen fixture protects the WebUI side, but nothing re-validates the precondition at merge time.",
+          "suggestion": "Record the verified commit hash in the fixture file's header comment (or the PR description as a checked box) so a reviewer can confirm the precondition against a pinned ref, not a floating branch. Given the spec makes the precondition this unit's own gate, pinning it makes the gate auditable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan bumps `TRACEABILITY_SCHEMA_VERSION` in `server/src/core/contract-version.ts` but doesn't confirm whether that constant (or an equivalent \"known max\") is mirrored anywhere else — a client-side copy, a shared package, or another reader (e.g., a CLI or linter that also consumes `test-traceability.json`).",
+          "suggestion": "A one-command grep for the constant name and the literal `schema_version` handling across the repo to confirm `contract-version.ts` is the single source of truth. If a mirror exists, it must be bumped in the same change or the halves will disagree.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The scoping decisions here are correct and worth affirming: not regenerating the repo's own v3 manifest (that's a compliance-tooling sync concern, not a reader concern), not surfacing `ac_id`/`acs` downstream (w5's problem if it needs it), and copying the fixture field-for-field from the schema rather than reducing it to the reader's consumed keys — the latter specifically catches a future reader change that starts depending on a v4 field without an explicit version-gate.",
+          "suggestion": "None — keep this framing in the commit message; it preempts the obvious \"why didn't you also X\" review questions.  No security concerns: the change is read-path only, no new inputs parsed beyond an already-fail-soft version check, no write surface touched.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The compatibility claim rests on the remote monorepo schema, but the application’s effective runtime contract may also include local parsing, validation, or fixture-loading code outside `traceability.ts`. The plan asserts that `traceability.ts` ignores unknown fields, but does not explicitly verify the complete read path has no strict validator or typed deserialization that rejects `acs` or `ac_id`.",
+          "suggestion": "Confirm the full manifest ingestion path—from file read through parsing to `byFile` construction—accepts unknown additive properties. Make the new test invoke that public reader path, rather than a lower-level helper.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed fixtures cover v4 manifests with and without AC metadata, but they do not explicitly establish behavior when only one of the two optional additions is present. A collector could produce `acs` for one requirement while other test links omit `ac_id`, or include `ac_id` only on some links.",
+          "suggestion": "Use a mixed fixture where at least one requirement/test is AC-scoped and another is bare, or add concise assertions that the reader’s existing inversion remains correct with both shapes in one manifest.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "“Copied field-for-field from the shipped schema” is more brittle than necessary for a reader-compatibility test, and a static copied fixture will not automatically reveal future schema drift as the plan suggests. It can instead obscure the reader behavior being tested with unrelated schema details.",
+          "suggestion": "Keep fixtures schema-valid and representative, but include only required fields plus the v4 additions relevant to compatibility. Pin the specific behaviors: v4 is accepted, no ahead-version warning is emitted, and existing `byFile` results are unchanged.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Raising the known maximum to 4 suppresses the fail-soft “ahead” warning for every v4 manifest, including malformed manually authored manifests if this reader intentionally does no full schema validation. This is likely acceptable given the existing reader design, but the test should not accidentally imply that v4 compatibility equals full v4 schema validation.",
+          "suggestion": "State explicitly that version gating is a compatibility check, not schema validation, and preserve existing malformed-input/error-path coverage if such tests already exist.  Overall, the implementation is sound and appropriately surgical: v4 is additive and the reader consumes only unchanged fields. The main refinement is to verify and test the complete ingestion path, not merely the immediate reader implementation. SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T13:48:48.363677+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**Category:** approach · **Severity:** medium\n**Finding:** The claim that v4 is purely additive rests on the schema's own doc comment (\"v4 adds exactly two ADDITIVE, OPTIONAL fields, per the schema's own description\") rather than a mechanical diff of the v3 and v4 schema files. Doc comments can be stale or incomplete — the schema const bump could have silently changed something else (a tightened regex on `layer`, a renamed required field, an enum value removed).\n**Suggestion:** Before merging, diff the shipped schema against its v3 predecessor (`git diff <v3-tag>..c0d1b38be2 -- .../traceability_schema.json`) and record in the PR/commit that the delta is exactly the two additive fields. Cheap, and it converts \"trust the comment\" into \"verified the diff\" — consistent with the plan's own stated standard.\n\n**Category:** edge-case · **Severity:** low\n**Finding:** The fixture asserts the happy path (no `contract_version_ahead` warning at v4) but nothing pins the *fail-soft boundary* itself. If the version check in `traceability.ts` is ever refactored (e.g., `>=` becomes `>`), the constant bump could silently widen or narrow the accepted range and the new tests wouldn't notice.\n**Suggestion:** Add one negative case to the fixture: a manifest with `schema_version: 5` still trips `contract_version_ahead` with `status` remaining fail-soft. It's a few lines and pins the semantics of the constant this change is bumping.\n\n**Category:** risk · **Severity:** low\n**Finding:** The precondition was verified against `origin/main` tip `c0d1b38be2` at plan time, but that's a moving target — the monorepo could change or revert the v4 contract before this lands. The frozen fixture protects the WebUI side, but nothing re-validates the precondition at merge time.\n**Suggestion:** Record the verified commit hash in the fixture file's header comment (or the PR description as a checked box) so a reviewer can confirm the precondition against a pinned ref, not a f […truncated]\n\n[openai] 1. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The compatibility claim rests on the remote monorepo schema, but the application’s effective runtime contract may also include local parsing, validation, or fixture-loading code outside `traceability.ts`. The plan asserts that `traceability.ts` ignores unknown fields, but does not explicitly verify the complete read path has no strict validator or typed deserialization that rejects `acs` or `ac_id`.  \n   **Suggestion:** Confirm the full manifest ingestion path—from file read through parsing to `byFile` construction—accepts unknown additive properties. Make the new test invoke that public reader path, rather than a lower-level helper.\n\n2. **Category:** edge-case  \n   **Severity:** low  \n   **Finding:** The proposed fixtures cover v4 manifests with and without AC metadata, but they do not explicitly establish behavior when only one of the two optional additions is present. A collector could produce `acs` for one requirement while other test links omit `ac_id`, or include `ac_id` only on some links.  \n   **Suggestion:** Use a mixed fixture where at least one requirement/test is AC-scoped and another is bare, or add concise assertions that the reader’s existing inversion remains correct with both shapes in one manifest.\n\n3. **Category:** approach  \n   **Severity:** low  \n   **Finding:** “Copied field-for-field from the shipped schema” is more brittle than necessary for a reader-compatibility test, and a static copied fixture will not automatically reveal future schema drift as the plan suggests. It can instead obscure the reader behavior being tested with unrelated schema details.  \n   **Suggestion:** Keep fixtures schema-valid and representative, but include only required fields plus the v4 additions relevant to compatibility. Pin the specific behaviors: v4 is accepted, no ahead-version warning is emitted, and existing `byFile` results are unchanged.\n\n4. **Category:** risk  \n   **Sever […truncated]",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:24:08.682660+00:00",
+      "disposition": "delegated_to_orchestrator: the internal reviewer cascade (spec-reviewer -> code-reviewer -> doubt-reviewer) is the orchestrator's job at campaign 3f-bis, before the merge; runner has no Agent tool and cannot spawn subagents.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:24:08.812878+00:00",
+      "disposition": "not_applicable: comment-only/constant-only change plus a new frozen test-fixture file, no migrations/async/concurrency/cross-plugin imports/irreversible ops touched (doubt-reviewer triggers per shipwright-build:doubt-reviewer scope).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": ".shipwright/agent_docs/iterates/iterate-2026-08-15-gitignore-decision-drops.json:1-51` (deleted)",
+          "line": null,
+          "finding": "The diff deletes the completed audit record of an unrelated prior iterate (the 2026-08-15 gitignore fix). Nothing in the w3 narrative, ADR, or mini-plan mentions it, and this run's own iterate record declares `\"declared_removals\": []` — directly contradicted by the diff. This is precisely the \"unrelated change silently rides along and reads as suspicious tampering\" failure mode the repo's own w2 learning (added to `conventions.md` in this very repo) warns about.",
+          "suggestion": "Restore the file unless there is a documented retention policy; if the deletion is intentional, declare it in `declared_removals` and record the reason in the ADR.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/core/mission-context/traceability.v4-fixture.test.ts:95-105` (and `:137-145`, `:112-122`); contradicts `server/src/core/contract-version.ts:59-60",
+          "line": null,
+          "finding": "No test link (or requirement) in any of the three fixtures sets `resolved_from`, yet the same diff's doc comment in `contract-version.ts` states the reader reads `.resolved_from` and that it is \"unchanged and required in both v3 and v4\", and the fixture header claims a \"field-for-field\" copy of the shipped schema shape \"not reduced to what the reader happens to read\". Either the fixtures are not schema-valid producer shapes (undermining AC3's \"frozen fixture pins the shape\" and the stated drift-catching purpose), or the doc comment is wrong. Concretely: the new suite never exercises `resolved_from` → `mappedFrom`; all three tests hard-code `mappedFrom: null`, so a future reader regression on that field is invisible to this fixture.",
+          "suggestion": "Add a realistic `resolved_from` value to at least one fixture test link and assert the resulting non-null `mappedFrom`; if `resolved_from` is genuinely optional in the shipped schema, correct the doc comment instead — but then the \"field-for-field\" claim still needs one fixture variant that carries it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": ".shipwright/agent_docs/iterates/iterate-2026-09-07-w3-reader-manifest-v4.test-results.json",
+          "line": null,
+          "finding": "Git reports this committed `.json` artifact as binary (\"Binary files differ\"), which for a JSON file means NUL or non-UTF-8 bytes near the start — the committed artifact is likely not parseable JSON and is invisible to diff-based review (as it is here), defeating its purpose as test-result evidence.",
+          "suggestion": "Regenerate/normalize it as UTF-8 JSON and investigate why the writer produced binary content at a `.json` path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": ".shipwright/planning/iterate/iterate-2026-09-07-w3-reader-manifest-v4/mini-plan.md` (Verification) vs `.shipwright/planning/adr/iterate-2026-09-07-w3-reader-manifest-v4.md` (Results table)",
+          "line": null,
+          "finding": "The mini-plan claims the three traceability test files pass \"19/19\" while the ADR claims \"20/20 (was 17/17)\"; 17 + 3 new tests = 20, so the mini-plan figure is stale (pre-`MIXED_MANIFEST`). Since these artifacts are the audit trail the campaign relies on, contradictory verification counts are worth correcting, not just a doc nit.",
+          "suggestion": "Update the mini-plan to 20/20.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": ".shipwright/planning/iterate/iterate-2026-09-07-w3-reader-manifest-v4/mini-plan.md",
+          "line": 12,
+          "finding": "The required precondition/halt contract is only documented as a one-time manual check. The diff adds no executable gate or test that verifies the shipped contract is v4 before proceeding, nor any path that exits 3 with a named unmet-precondition reason if it is not. A stale/reverted producer contract could therefore be accepted by the process while the reader is still bumped to v4.",
+          "suggestion": "Add the precondition check to the sub-iterate/validation script that runs before implementation or merge, and cover the v3/absent case asserting exit 3 and a named reason.  Overall: ship-with-fixes; the reader bump and v4 fixtures correctly exercise the intended compatibility behavior, but the explicit mandatory precondition escalation mechanism is not implemented. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T14:24:17.795919+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review: w3 — Reader on manifest v4\n\nThe functional core of this change is sound and matches the spec: `TRACEABILITY_SCHEMA_VERSION` 3→4 is the correct minimal implementation, the precondition (AC1) was verified against a pinned monorepo commit and documented with a mechanical schema diff, and the AC2/AC3 behaviors are covered by real assertions (`status: \"ok\"`, no `contract_version_ahead` warning, correct `byFile` inversion, plus `expect(TRACEABILITY_SCHEMA_VERSION).toBe(4)` pinning the exact value alongside the existing `+1`-ahead test). No new input surface, no security concern. However, there are real defects:\n\n---\n\n- **Category:** regression\n  **Severity:** medium\n  **File:** `.shipwright/agent_docs/iterates/iterate-2026-08-15-gitignore-decision-drops.json:1-51` (deleted)\n  **Finding:** The diff deletes the completed audit record of an unrelated prior iterate (the 2026-08-15 gitignore fix). Nothing in the w3 narrative, ADR, or mini-plan mentions it, and this run's own iterate record declares `\"declared_removals\": []` — directly contradicted by the diff. This is precisely the \"unrelated change silently rides along and reads as suspicious tampering\" failure mode the repo's own w2 learning (added to `conventions.md` in this very repo) warns about.\n  **Suggestion:** Restore the file unless there is a documented retention policy; if the deletion is intentional, declare it in `declared_removals` and record the reason in the ADR.\n\n- **Category:** test\n  **Severity:** medium\n  **File:** `server/src/core/mission-context/traceability.v4-fixture.test.ts:95-105` (and `:137-145`, `:112-122`); contradicts `server/src/core/contract-version.ts:59-60`\n  **Finding:** No test link (or requirement) in any of the three fixtures sets `resolved_from`, yet the same diff's doc comment in `contract-version.ts` states the reader reads `.resolved_from` and that it is \"unchanged and required in both v3 and v4\", and the fixture header claims a \"field-for-field\" copy of the sh […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: `.shipwright/planning/iterate/iterate-2026-09-07-w3-reader-manifest-v4/mini-plan.md:12`\n- Finding: The required precondition/halt contract is only documented as a one-time manual check. The diff adds no executable gate or test that verifies the shipped contract is v4 before proceeding, nor any path that exits 3 with a named unmet-precondition reason if it is not. A stale/reverted producer contract could therefore be accepted by the process while the reader is still bumped to v4.\n- Suggestion: Add the precondition check to the sub-iterate/validation script that runs before implementation or merge, and cover the v3/absent case asserting exit 3 and a named reason.\n\nOverall: ship-with-fixes; the reader bump and v4 fixtures correctly exercise the intended compatibility behavior, but the explicit mandatory precondition escalation mechanism is not implemented.  \nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:24:08.552269+00:00",
+      "disposition": "delegated_to_orchestrator: Stage-1 spec-reviewer is the orchestrator's responsibility at campaign 3f-bis, before merge; runner has no Agent tool and cannot spawn spec-reviewer.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:24:08.418276+00:00",
+      "disposition": "documented gap: runner has no Agent tool, cannot spawn an internal plan-reviewer subagent; external plan review (Step 3.5, recorded as review-type plan) is the only plan review this runner can perform. Never promoted per runner contract.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
