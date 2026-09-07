@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-w5-bind-and-promote",
+  "risk_recheck": {
+    "changed_file_count": 10,
+    "diff_loc": 6509,
+    "risk_flags": [
+      "touches_auth"
+    ],
+    "diff_risk_flags": [],
+    "complexity_floor": "trivial",
+    "stage1_complexity": "small",
+    "effective_complexity": "small",
+    "upgraded": false,
+    "plan_review_required": true,
+    "ci_ack_recorded": false,
+    "escalate": {
+      "required": false,
+      "reason_code": null,
+      "paths": []
+    }
+  }
+}

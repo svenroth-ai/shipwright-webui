@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-07T13:48:48.370714+00:00",
+  "timestamp": "2026-09-07T15:37:47.040362+00:00",
   "provider": "openrouter",
-  "findings_count": 9,
+  "findings_count": 11,
   "self_review_fallback_ran": false,
   "reason": null,
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "approve",
-    "glm": "approve"
+    "glm": "approve",
+    "openai": "reject"
   },
   "contradiction": {
-    "detected": false,
+    "detected": true,
     "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+    "requires_resolution": true,
+    "reason": "reviewers contradict each other: glm=approve, openai=reject"
   },
-  "contradiction_resolution": null
+  "contradiction_resolution": "glm=approve vs openai=reject resolved per-finding in mini-plan.md External-Plan-Review-Findings table: 7 findings dispositioned (2 rejected-with-reason with empirical backing, 4 accepted-and-fixed via code+doc, 1 split), triage item trg-f2c8df89 filed for the AC-scoped-binding scope deferral both reviewers flagged"
 }

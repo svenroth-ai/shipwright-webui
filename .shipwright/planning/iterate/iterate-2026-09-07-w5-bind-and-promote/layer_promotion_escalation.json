@@ -1,0 +1,481 @@
+{
+  "success": true,
+  "run_id": "iterate-2026-09-07-w5-bind-and-promote",
+  "total_evaluated": 32,
+  "promoted": [
+    "FR-01.72",
+    "FR-01.16",
+    "FR-01.27",
+    "FR-01.45",
+    "FR-01.47",
+    "FR-01.05",
+    "FR-01.06",
+    "FR-01.49",
+    "FR-01.70"
+  ],
+  "skipped": [],
+  "escalations": [
+    {
+      "fr_id": "FR-01.01",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "1 of 119 bound test(s) for FR-01.01 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/move-to-backlog.spec.ts::an In-Progress task relocates to the Backlog column via the card ⋯-menu"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.01"
+    },
+    {
+      "fr_id": "FR-01.10",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "5 of 60 bound test(s) for FR-01.10 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/82-campaign-launch-states.spec.ts::AC1: a draft campaign shows its status badge + Start CTA, and Start flips it to active",
+        "client/e2e/flows/82-campaign-launch-states.spec.ts::AC2: opening the launch dialog shows the verbatim command; Cancel creates nothing",
+        "client/e2e/flows/82-campaign-launch-states.spec.ts::AC3: a refused launch surfaces a persistent failure notice with a Retry",
+        "client/e2e/visual/08-launch-states.spec.ts::board-launch-failed",
+        "client/e2e/visual/08-launch-states.spec.ts::task-detail-launch-failed"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.10"
+    },
+    {
+      "fr_id": "FR-01.02",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "1 of 24 bound test(s) for FR-01.02 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/src/components/external/FolderTree.test.tsx::ignored entries render muted + italic with data-ignored=\\"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.02"
+    },
+    {
+      "fr_id": "FR-01.35",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "8 of 95 bound test(s) for FR-01.35 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a11y — table column headers carry scope=\\",
+        "client/e2e/flows/markdown-editor.spec.ts::Edit → rich editor → Review → Save → preview refreshes",
+        "client/e2e/flows/markdown-editor.spec.ts::formatting toolbar renders and a toolbar Bold applies emphasis to the saved markdown",
+        "client/e2e/flows/markdown-editor.spec.ts::409 conflict shows the banner and keeps the user's edits (AC6)",
+        "client/e2e/flows/markdown-editor.spec.ts::frontmatter file: Review with no edit reports 'No changes' (frontmatter intact)",
+        "client/e2e/flows/markdown-editor.spec.ts::frontmatter file: a body edit diffs only the body, and Save writes byte-correct bytes",
+        "client/e2e/flows/markdown-editor.spec.ts::blog file: an inline <a href> Shipwright link saves as a markdown link, not corrupt &lt;a&gt; text",
+        "client/e2e/flows/markdown-editor.spec.ts::CTA block file: a raw HTML block renders as a preserved chip and saves byte-identical"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.35"
+    },
+    {
+      "fr_id": "FR-01.66",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "54 of 867 bound test(s) for FR-01.66 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not false-exclude an assistant line whose own text merely contains the literal substring \\",
+        "server/src/core/mission-context/run-id-recovery-user-lines.test.ts::does not adopt a footer left dangling in a tool_result fragment whose own \\",
+        "server/src/core/mission-context/run-id-recovery.test.ts::finds it when the id ends the JSON string (`…run-id\\\\\\",
+        "client/e2e/flows/A11-mission-record-rail.spec.ts::the terminal remains the mount-default view (auto-launch path preserved)",
+        "client/e2e/flows/A11-mission-record-rail.spec.ts::Mission tab shows the Record; each node opens its artifact",
+        "client/e2e/flows/A11-mission-record-rail.spec.ts::Escape closes the artifact and returns focus to the node",
+        "client/e2e/flows/A11-mission-record-rail.spec.ts::below the compact breakpoint an artifact selects the full-width Detail panel",
+        "client/e2e/flows/A12-mission-operation.spec.ts::no run AND no transcript -> the HONEST waiting narration, never a false ALL CLEAR (AC3, FR-01.66)",
+        "client/e2e/flows/A12-mission-operation.spec.ts::the proof summary is NOT the terminal; the REAL terminal is in Files & Terminal (AC2)",
+        "client/e2e/flows/A12-mission-operation.spec.ts::the Operation card sits BESIDE the left panel in the Mission body",
+        "client/e2e/flows/A13-mission-shell.spec.ts::at 1440×900 the three cards fit with no horizontal clip and are equal height (AC1/AC2)",
+        "client/e2e/flows/A13-mission-shell.spec.ts::Files & Terminal still mounts the REAL terminal (byte-path untouched)",
+        "client/e2e/flows/A13-mission-shell.spec.ts::below the compact breakpoint the artifact auto-selects contextual Detail",
+        "client/e2e/flows/A13-mission-shell.spec.ts::the demo 'Preview state' toggle does NOT ship (AC5)",
+        "client/e2e/flows/A13-mission-shell.spec.ts::the top row is complete: both crumb segments + the glass Ship's Log button route real",
+        "client/e2e/flows/mission-artifacts-s3-tab-hide.spec.ts::a VALIDATED custom-actions project has no Mission tab (AC2)",
+        "client/e2e/flows/mission-artifacts-s3-tab-hide.spec.ts::landing with Mission as the SAVED view falls back to Files, not a blank pane (AC2)",
+        "client/e2e/flows/mission-artifacts-s3-tab-hide.spec.ts::${fb.name} keeps the Mission tab (AC2)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::a pipeline phase task resolves its OWN split, plus the spec (AC1)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::the phase detail reports plain-language state, not the raw enum (AC1)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::the COMPLETED sibling resolves to its own split — no conflation (AC1)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::a campaign shows brief · runbook · progress · current unit, kept distinct (AC1)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::the current unit carries ITS OWN record, not a completed sibling's (AC1)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::the campaign progress list marks exactly one unit as current (AC3)",
+        "client/e2e/flows/mission-artifacts-s3.spec.ts::a plain session shows narration and the stage, with no artifact rail (AC3)",
+        "client/e2e/flows/mission-artifacts-s4.spec.ts::a scouting iterate reads Analyze despite a scratch write, then advances (AC1/AC2)",
+        "client/e2e/flows/mission-artifacts-s4.spec.ts::a plain session claims no lifecycle position, just what it is doing (AC5)",
+        "client/e2e/flows/mission-decisions-drops.spec.ts::a run whose decision exists ONLY as a drop renders it, unnumbered",
+        "client/e2e/flows/mission-decisions-drops.spec.ts::the NUMBERED log entry wins when a run is in both sources",
+        "client/e2e/flows/mission-decisions-drops.spec.ts::a PARTIALLY folded run shows the published AND the still-pending decision",
+        "client/e2e/flows/mission-decisions-drops.spec.ts::another run's drop never leaks into this run's Decisions",
+        "client/e2e/flows/mission-decisions-drops.spec.ts::a malformed drop is disclosed, and never hides the valid one",
+        "client/e2e/flows/mission-decisions-drops.spec.ts::a run with NO drop and NO log entry hides — an absence may be one",
+        "client/e2e/flows/mission-feed-content.spec.ts::an unresolved question shows the real question, its options, and the terminal CTA",
+        "client/e2e/flows/mission-feed-content.spec.ts::a resolved question marks the matched option picked and hides the CTA",
+        "client/e2e/flows/mission-feed-content.spec.ts::a failing test command shows a status pill and a bounded real-output excerpt",
+        "client/e2e/flows/mission-feed-explanation.spec.ts::a solo-turn card with multi-line prose shows both its headline and the rest of the explanation",
+        "client/e2e/flows/mission-live-jsonl.spec.ts::a session with a live JSONL narrates plain-language activity + an inferred stage (AC1/AC2)",
+        "client/e2e/flows/mission-live-jsonl.spec.ts::a campaign orchestrator session: windowed stage + progress line (FR-01.67 AC2/AC3)",
+        "client/e2e/flows/mission-live-jsonl.spec.ts::no run AND no transcript → honest 'waiting', never fabricated activity (AC3)",
+        "client/e2e/flows/mission-narrative-prose.spec.ts::narrates the ask, the work and the OUTCOME as prose (AC1/AC2/AC3)",
+        "client/e2e/flows/mission-narrative-prose.spec.ts::a quoted tool name fakes no phase, and a pending run does not pass (AC3b/AC8)",
+        "client/e2e/flows/mission-narrative-prose.spec.ts::an artifact link sits INSIDE the sentence and opens the panel (AC5)",
+        "client/e2e/flows/mission-recovery-schedule.spec.ts::a recovered rail is still there on the SECOND and THIRD read",
+        "client/e2e/flows/mission-recovery-schedule.spec.ts::a session with no footer stays plain across repeated reads",
+        "client/e2e/flows/mission-run-identity-recovery.spec.ts::a PRUNED pointer still resolves, from the session's own Run-ID footer",
+        "client/e2e/flows/mission-run-identity-recovery.spec.ts::a transcript with NO footer stays plain — no guessed identity",
+        "client/e2e/flows/mission-run-identity-recovery.spec.ts::a pointer naming an UNREGISTERED worktree shows the real rail, not six errors",
+        "client/e2e/flows/mission-run-identity-recovery.spec.ts::a run IN FLIGHT lists its not-yet-written artifacts as pending",
+        "client/e2e/flows/mission-tests-skipped-gate.spec.ts::the artifact link + detail headline both read genuinely green",
+        "client/e2e/flows/mission-viewer-scroll-popout.spec.ts::the card scrolls internally, the page does not, and Pop out opens a centered modal",
+        "client/e2e/visual/02-task-detail.spec.ts::task-detail-mission",
+        "client/e2e/visual/02-task-detail.spec.ts::task-detail-mission-live",
+        "client/e2e/visual/02-task-detail.spec.ts::task-detail-terminal"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "client/e2e/flows/mission-artifacts-s3-tab-hide.spec.ts::${fb.name} keeps the Mission tab (AC2)"
+      ],
+      "manifest_key": "01::FR-01.66"
+    },
+    {
+      "fr_id": "FR-01.28",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "12 of 201 bound test(s) for FR-01.28 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/terminal/pty-manager.force-redraw.test.ts::swallows ${label} thrown by pty.resize",
+        "server/src/terminal/pty-manager.hadPriorWriter.test.ts::writeMouseReport() forwards to the pty like write() but does NOT latch hadDataWritten — a reader's scroll/copy gesture is not \\",
+        "server/src/terminal/pty-manager.test.ts::cmd — double-quotes; embedded \\",
+        "server/src/terminal/pty-manager.test.ts::posix — single-quotes with internal ' escaped via '\\\\''",
+        "client/src/components/terminal/terminal-theme.test.ts::${String(slot)} vs background ≥ AA-large (3.0:1)",
+        "client/src/components/terminal/terminal-theme.test.ts::reverse-video pattern (`\\\\e[7m`) stays ≥ AA on the light palette",
+        "client/e2e/flows/94-webgl-atlas-repaint.spec.ts::a live WebGL atlas regeneration fires our full-viewport repaint handler",
+        "client/e2e/flows/94-webgl-atlas-repaint.spec.ts::a window re-show heals the live atlas exactly once (and does not loop)",
+        "client/e2e/flows/95-terminal-appearance.spec.ts::defaults to dark; switching to Light live-re-themes the OPEN terminal (no remount)",
+        "client/e2e/flows/95-terminal-appearance.spec.ts::the Settings selector persists the choice and a new terminal mounts with it",
+        "client/e2e/flows/97-terminal-drop-resync.spec.ts::the server answers a resync frame with a fresh replay_snapshot",
+        "client/e2e/flows/97-terminal-drop-resync.spec.ts::a backpressure notice makes the client request exactly one resync"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "server/src/terminal/pty-manager.force-redraw.test.ts::swallows ${label} thrown by pty.resize",
+        "client/src/components/terminal/terminal-theme.test.ts::${String(slot)} vs background ≥ AA-large (3.0:1)"
+      ],
+      "manifest_key": "01::FR-01.28"
+    },
+    {
+      "fr_id": "FR-01.29",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "1 of 22 bound test(s) for FR-01.29 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/terminal/image-paste.test.ts::ensures a leading newline before the appended line when the file lacks a trailing \\\\n"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.29"
+    },
+    {
+      "fr_id": "FR-01.04",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "2 of 61 bound test(s) for FR-01.04 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/inbox-terminal-fallback.spec.ts::the CTA navigates to the focused terminal and writes NOTHING to the pty",
+        "client/e2e/visual/09-inbox-populated.spec.ts::inbox-populated"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.04"
+    },
+    {
+      "fr_id": "FR-01.03",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "3 of 12 bound test(s) for FR-01.03 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/iterate-2026-05-13-dynamic-stack-profiles.spec.ts::guided new-project flow derives the persistent Stack Profile from the selected answers",
+        "client/e2e/flows/iterate-2026-05-13-dynamic-stack-profiles.spec.ts::guided new-project flow selects the local Stack Profile when persistence is not needed",
+        "client/e2e/flows/project-delete-cascade.spec.ts::deleting a project with a task leaves no phantom Unassigned row"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.03"
+    },
+    {
+      "fr_id": "FR-01.59",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "3 of 37 bound test(s) for FR-01.59 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/A16-ships-log.spec.ts::drawer + logbook + promptbox render; plan card confirms; open-board escapes",
+        "client/e2e/flows/A16-ships-log.spec.ts::desktop (>900px, side-by-side grid): scrolling one column never moves the other",
+        "client/e2e/flows/A16-ships-log.spec.ts::tablet (≤900px, stacked grid rows): scrolling one region never moves the other"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.59"
+    },
+    {
+      "fr_id": "FR-01.37",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "2 of 89 bound test(s) for FR-01.37 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/core/actions-substitute.test.ts::POSIX: $, `, \\\\\\\\, !, ^, &, |, <, >, (, ) in description are inhibited by single-quote wrap",
+        "server/src/core/actions-substitute.test.ts::POSIX: single quote in description gets standard '\\\\'' escape"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.37"
+    },
+    {
+      "fr_id": "FR-01.33",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "6 of 82 bound test(s) for FR-01.33 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/external/launch/__tests__/campaign-step-branch.test.ts::AC1: builds /shipwright-iterate \\",
+        "client/e2e/flows/campaign-autonomous-launch.spec.ts::expand → Launch autonomous → confirm → navigates to a TaskDetail",
+        "client/e2e/flows/campaign-dismiss.spec.ts::dismiss a ghost campaign → it leaves the lane → restore → it returns",
+        "client/e2e/flows/campaign-events-projection.spec.ts::surfaces a derived campaign with the events badge when no campaign dir exists",
+        "client/e2e/flows/campaign-step-launch.spec.ts::expand → Launch (B1) → direct launch → navigates to a TaskDetail",
+        "client/e2e/flows/start-campaign-action.spec.ts::draft campaign-umbrella item → Start Campaign → board shows it active"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.33"
+    },
+    {
+      "fr_id": "FR-01.30",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "8 of 74 bound test(s) for FR-01.30 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/triage-fix-now.spec.ts::github source: Fix-now opens new-task modal pre-filled with phase=security",
+        "client/e2e/flows/triage-fix-now.spec.ts::iterate source: Fix-now opens new-iterate modal (no phase picker)",
+        "client/e2e/flows/triage-restyle.spec.ts::cards render on the white --color-surface with a real shadow",
+        "client/e2e/flows/triage-restyle.spec.ts::detail dialog matches the Project-wizard surface tokens",
+        "client/e2e/flows/triage-restyle.spec.ts::promote dialog matches the Project-wizard surface tokens",
+        "client/e2e/flows/triage-tab.spec.ts::navigates to /triage and renders the page header",
+        "client/e2e/flows/triage-tab.spec.ts::sidebar exposes a Triage entry that links to /triage",
+        "client/e2e/flows/triage-tab.spec.ts::renders an empty-state line when no triage items pending"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.30"
+    },
+    {
+      "fr_id": "FR-01.17",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "4 of 38 bound test(s) for FR-01.17 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/core/preview-session-manager.test.ts::honors quotes so `foo \\",
+        "server/src/core/preview-session-manager.win32.test.ts::spawn keeps 'C:\\\\tools\\\\node.exe' backslashes (not 'C:toolsnode.exe')",
+        "server/src/core/preview-session-manager.win32.test.ts::tokenizeCommand byte-identical on ${platform}",
+        "server/src/core/preview-session-manager.win32.test.ts::${platform}: never shell-executes ${JSON.stringify(cmd)}"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "server/src/core/preview-session-manager.win32.test.ts::tokenizeCommand byte-identical on ${platform}",
+        "server/src/core/preview-session-manager.win32.test.ts::${platform}: never shell-executes ${JSON.stringify(cmd)}"
+      ],
+      "manifest_key": "01::FR-01.17"
+    },
+    {
+      "fr_id": "FR-01.43",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "2 of 19 bound test(s) for FR-01.43 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/95-compliance-grade.spec.ts::Projects table: graded project shows the badge + modal, no-dashboard project shows none",
+        "client/e2e/flows/95-compliance-grade.spec.ts::Task Board header: the Grade pill renders for the selected project + opens the modal"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.43"
+    },
+    {
+      "fr_id": "FR-01.51",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "10 of 128 bound test(s) for FR-01.51 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/101-first-contact-hero.spec.ts::renders the lighthouse hero, welcome copy, and the three doors",
+        "client/e2e/flows/101-first-contact-hero.spec.ts::the Build-new door deep-links into the wizard flow",
+        "client/e2e/flows/101-first-contact-hero.spec.ts::an empty registry makes \"/\" land on First Contact, not the board",
+        "client/e2e/flows/76-intent-launcher-front-door.spec.ts::Board single-project New menu → Guided opens the wizard",
+        "client/e2e/flows/76-intent-launcher-front-door.spec.ts::Board New menu → Register manually deep-links to the registration dialog",
+        "client/e2e/flows/76-intent-launcher-front-door.spec.ts::Projects \"Create Project\" is the guided front door",
+        "client/e2e/flows/76-intent-launcher-front-door.spec.ts::the wizard DoorPicker carries the permanent register-manually escape hatch",
+        "client/e2e/flows/76-intent-launcher-front-door.spec.ts::Ship's Log header launcher → Guided opens the wizard",
+        "client/e2e/visual/05-wizard.spec.ts::wizard-grade",
+        "client/e2e/visual/11-first-contact.spec.ts::first-contact"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.51"
+    },
+    {
+      "fr_id": "FR-01.38",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "11 of 43 bound test(s) for FR-01.38 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/90-phone-responsive.spec.ts::harness IS a coarse-pointer phone viewport (gate proof — plan-review C1)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::no horizontal page overflow at ${path}",
+        "client/e2e/flows/90-phone-responsive.spec.ts::sidebar is an overlay drawer — hamburger opens; nav-tap + Escape close (AC-2)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::project dropdown moves into the top bar; status filter is an icon menu, no pills (AC-1/AC-2)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::top-bar project dropdown is content-width, NOT the full bar (phone-header-polish #3)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::phone '+ New' drills project → actions in ONE downward popup, no off-screen overflow (phone-header-polish #1)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::list view hides the Phase column at phone width; no page overflow (AC-5)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::projects table does not widen the page (scrolls in-card) (AC-5)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::embedded terminal shows the on-screen key bar on touch (AC-3)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::task-detail header is condensed on a phone — breadcrumb + meta sub-line hidden (iterate-2026-06-20 AC-1)",
+        "client/e2e/flows/90-phone-responsive.spec.ts::a modal fits the phone viewport, no page overflow (AC-4)"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "client/e2e/flows/90-phone-responsive.spec.ts::no horizontal page overflow at ${path}"
+      ],
+      "manifest_key": "01::FR-01.38"
+    },
+    {
+      "fr_id": "FR-01.48",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "2 of 23 bound test(s) for FR-01.48 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/weather-deck-flip-reset.spec.ts::board: bare chrome flips LIGHT; the title bar + a real task card have NO text-shadow",
+        "client/e2e/flows/weather-deck-flip-reset.spec.ts::task detail: the same flip + no-leak hold on a second route"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.48"
+    },
+    {
+      "fr_id": "FR-01.50",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "2 of 20 bound test(s) for FR-01.50 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/src/lib/glossary.test.ts::\"${term}\" matches the bank",
+        "client/src/lib/glossary.test.ts::phase \"${phase}\" resolves to a non-empty one-liner"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "client/src/lib/glossary.test.ts::\"${term}\" matches the bank",
+        "client/src/lib/glossary.test.ts::phase \"${phase}\" resolves to a non-empty one-liner"
+      ],
+      "manifest_key": "01::FR-01.50"
+    },
+    {
+      "fr_id": "FR-01.64",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "2 of 32 bound test(s) for FR-01.64 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/reduced-motion-final-state.spec.ts::${route.id} (${route.path}) — full content, nothing hidden by animation",
+        "client/e2e/flows/reduced-motion-final-state.spec.ts::${route.id} (${route.path}) — renders under motion"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "client/e2e/flows/reduced-motion-final-state.spec.ts::${route.id} (${route.path}) — full content, nothing hidden by animation",
+        "client/e2e/flows/reduced-motion-final-state.spec.ts::${route.id} (${route.path}) — renders under motion"
+      ],
+      "manifest_key": "01::FR-01.64"
+    },
+    {
+      "fr_id": "FR-01.65",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "5 of 61 bound test(s) for FR-01.65 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/src/hooks/useKeyboardMap.test.tsx::does NOT fire '?' or Ctrl+K from ${name}, and does not preventDefault",
+        "client/e2e/flows/command-palette-keyboard.spec.ts::Ctrl+K opens the palette, Esc closes it, ? opens the cheat-sheet",
+        "client/e2e/flows/command-palette-keyboard.spec.ts::j/k move a visible board selection and Enter opens the task",
+        "client/e2e/flows/command-palette-keyboard.spec.ts::THE FENCE — the terminal keeps every keystroke, byte for byte (AC1)",
+        "client/e2e/visual/10-command-palette.spec.ts::palette-open"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "client/src/hooks/useKeyboardMap.test.tsx::does NOT fire '?' or Ctrl+K from ${name}, and does not preventDefault"
+      ],
+      "manifest_key": "01::FR-01.65"
+    },
+    {
+      "fr_id": "FR-01.31",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "1 of 40 bound test(s) for FR-01.31 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "server/src/lib/network-profile-sync.test.ts::server resolver matches expected host for fixture: ${fixture.name}"
+      ],
+      "likely_parameterized_title_join_gap": [
+        "server/src/lib/network-profile-sync.test.ts::server resolver matches expected host for fixture: ${fixture.name}"
+      ],
+      "manifest_key": "01::FR-01.31"
+    },
+    {
+      "fr_id": "FR-01.71",
+      "action": "escalate",
+      "reason_code": "absent_ci_evidence",
+      "detail": "7 of 24 bound test(s) for FR-01.71 have no fresh execution evidence (absent != green)",
+      "missing_test_ids": [
+        "client/e2e/flows/org-page.decisions-proposed.spec.ts::an absent decisions-proposed.md shows 'No decisions waiting.', never a blank modal",
+        "client/e2e/flows/org-page.decisions-proposed.spec.ts::shows the parsed entry, and Countersign assigns an ADR number and moves it into decision_log.md for real",
+        "client/e2e/flows/org-page.spec.ts::hides the nav entries and shows the not-installed empty state on direct navigation",
+        "client/e2e/flows/org-page.spec.ts::keeps the nav entries and shows a page-level error naming the failure",
+        "client/e2e/flows/org-page.spec.ts::renders chart -> shared docs -> lead cards in that fixed order, five blocks per card, unmeasured fields read 'not measured'",
+        "client/e2e/flows/org-page.spec.ts::renders a real lead-question-threads.json thread — round order, marker stripped, open + answered rounds (FR-04.42 AC-a/c)",
+        "client/e2e/flows/org-page.spec.ts::Edit charter -> MarkdownEditorModal loads fresh content -> Save writes the file (AC-8)"
+      ],
+      "likely_parameterized_title_join_gap": [],
+      "manifest_key": "01::FR-01.71"
+    }
+  ],
+  "systemic_pattern": {
+    "escalated_count": 23,
+    "total_evaluated": 32,
+    "by_reason_code": {
+      "absent_ci_evidence": [
+        "FR-01.01",
+        "FR-01.02",
+        "FR-01.03",
+        "FR-01.04",
+        "FR-01.10",
+        "FR-01.17",
+        "FR-01.28",
+        "FR-01.29",
+        "FR-01.30",
+        "FR-01.31",
+        "FR-01.33",
+        "FR-01.35",
+        "FR-01.37",
+        "FR-01.38",
+        "FR-01.43",
+        "FR-01.48",
+        "FR-01.50",
+        "FR-01.51",
+        "FR-01.59",
+        "FR-01.64",
+        "FR-01.65",
+        "FR-01.66",
+        "FR-01.71"
+      ]
+    },
+    "likely_parameterized_title_join_gap_fr_ids": [
+      "FR-01.17",
+      "FR-01.28",
+      "FR-01.31",
+      "FR-01.38",
+      "FR-01.50",
+      "FR-01.64",
+      "FR-01.65",
+      "FR-01.66"
+    ],
+    "no_evidence_fed_for_layer_fr_ids": [
+      "FR-01.01",
+      "FR-01.02",
+      "FR-01.03",
+      "FR-01.04",
+      "FR-01.10",
+      "FR-01.29",
+      "FR-01.30",
+      "FR-01.33",
+      "FR-01.35",
+      "FR-01.37",
+      "FR-01.43",
+      "FR-01.48",
+      "FR-01.51",
+      "FR-01.59",
+      "FR-01.71"
+    ],
+    "message": "23/32 requirements escalated — that is most of the evaluated set, which the source rule reads as a signal the predicate itself is unmet at scale (e.g. a whole evidence layer was never fed into this run, or a class of test ids can never join fresh evidence), not as a handful of independent undecidable FRs. Stopping and naming the pattern rather than routing many near-identical decisions to the operator."
+  },
+  "fingerprint": "dcefa9a07fbb5fc3c44b2c425398e697dc0333754153019c2e4c28830b120d31"
+}

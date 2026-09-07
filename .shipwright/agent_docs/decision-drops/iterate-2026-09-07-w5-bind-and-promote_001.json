@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-07-w5-bind-and-promote",
+  "date": "2026-09-07",
+  "section": "req3-06-mechanics-webui/w5",
+  "title": "FR-level layer promotion: autonomous, one-way, per-requirement",
+  "context": "w5 (last unit, campaign req3-06-mechanics-webui) needed to promote spec.md FR Layers cells from (inferred) to explicit wherever bound tests are confirmed green in fresh CI evidence, per the p3.5 doc's decidable-predicate rule, without a batch/sweep path and without the run ever authoring its own escalation approval.",
+  "decision": "layer_promotion.py (pure predicate, ALL observed layers must be green) + promote_fr_layers.py (two full manifest regen passes around a spec.md row rewrite, never hand-patched) + a one-way ledger. Escalation reuses diff_risk_recheck.py's exit-code SHAPE (0/3), never a literal call. FR-level not AC-level (schema v3 has no acs field) -- scope deferral, follow-up triage trg-f2c8df89 filed.",
+  "consequences": "9 of 32 active FRs promoted to explicit (unit-layer only); 23 escalated (absent_ci_evidence), a systemic pattern correctly named rather than reported as 23 individual surprises. Verified against the real w1 traceability_manifest_gate.py CI gate (success:true). External code-review cascade found and fixed 8 real issues before commit (evidence freshness, atomic rollback, run_id guard, non-dict guard, visibility gaps).",
+  "rationale": "Two-regen-pass keeps spec_hash/untagged_tests authoritative against the real collector -- verified empirically. Requiring every observed layer green (not just the highest) prevents a promoted cell from misrepresenting a red lower layer as covered.",
+  "rejected": "AC-scoped @covers tagging this pass (too large, no acs field yet); running @smoke Playwright e2e (empirically checked: would have promoted zero additional FRs this round).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/iterate/iterate-2026-09-07-w5-bind-and-promote/mini-plan.md"
+}
