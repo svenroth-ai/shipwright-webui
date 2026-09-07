@@ -1,9 +1,9 @@
 {
   "schema_version": 3,
   "collector_version": "test_links/1.0.0",
-  "generated_at": "2026-09-05T06:09:38.988252+00:00",
-  "source_commit": "dd7857d77c9fc411a8ea9fd000b37b8d241a0e29",
-  "spec_hash": "sha256:8013aa9f72851b28e3c0c5aa6a3a516d5360dfab9160cf2752dd34419d015a04",
+  "generated_at": "2026-09-07T07:08:18.626355+00:00",
+  "source_commit": "e3bbc1edcd38099392a27e701534f5c47221e1a3",
+  "spec_hash": "sha256:822a21047a5aa33d4500e1435eded7787f7f437e84984bd3dc60e16b4e2a4fef",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -11,9 +11,7 @@
       "title": "The landing kanban board: every task across all projects as cards grouped by state (active / idle / done / failed), newest first, with a sortable List view. A sidebar button creates a new Pipeline, Iterate, or Task. Each card has a state icon, actions menu, and launch button; clicking opens its detail. A multi-phase Run shows its child steps inline with a progress bar.<br>**Updates:** Gained: priority/domain/blocked-by badges, a project colour pill, Move-to-Backlog and Re-open, the single-session Run card and its design-gate panel, every launch state made visible/recoverable, and a lead-agent-work surface (toolbar Bot/BellDot filters over the closed lead-tag vocabulary, an in-place card expander, and a bot glyph beside the project pill, FR-04.11); and a claim indicator (who holds a card and since when, keyed on claimedBy/claimedAt not state, plus an independent toolbar filter for claimed tasks, FR-04.22).",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -772,19 +770,16 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.10": {
       "id": "FR-01.10",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "Launch, resume, or relaunch a task. Clicking Launch / Resume / Relaunch runs the pre-built command straight inside the task's embedded terminal once it is ready, so the user no longer has to copy and paste it (they still can). A launch is either a freeform action or a specific pipeline phase; the app refuses to mix the two, and rejects a phase launch whose session identity does not match. While a task is claimed by another agent, launch/resume/relaunch is refused for anyone but the claim holder (matching claim token, claimed within the last 24h), re-checked fresh from disk on every attempt so a long-running webui process still sees a claim written by another process.<br>**Updates:** Gained one-click auto-execution into the embedded terminal (copying is no longer required), plus Start-Campaign and every launch state made visible and recoverable; and the claim-holder launch exception described above (FR-04.22).",
+      "title": "Launch, resume, or relaunch a task. Clicking Launch / Resume / Relaunch runs the pre-built command straight inside the task's embedded terminal once it is ready, so the user no longer has to copy and paste it (they still can). A launch is either a freeform action or a specific pipeline phase; the app refuses to mix the two, and rejects a phase launch whose session identity does not match. While a task is claimed by another agent, launch/resume/relaunch is refused for anyone but the claim holder (matching claim token, claimed within the last 24h), re-checked fresh from disk on every attempt so a long-running webui process still sees a claim written by another process. A claim-holder's own launch command carries an explicit tool allow-list and non-interactive permission mode (never OS-level containment); a manual/human launch is always unaffected.<br>**Updates:** Gained one-click auto-execution into the embedded terminal (copying is no longer required), plus Start-Campaign and every launch state made visible and recoverable; the claim-holder launch exception (FR-04.22); and the claim-holder permission perimeter described above (FR-04.22, iterate-2026-09-06-claim-launch-permission-perimeter).",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -1167,19 +1162,16 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.02": {
       "id": "FR-01.02",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode.",
+      "title": "The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode; the file preview pane's wide-table horizontal scroll now actually engages for a table with a long free-text column (previously crushed into wrapped lines instead), and the pane gained accessibility fixes (screen-reader-friendly table headers, a focusable labelled region, a keyboard-reachable tab close button).",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -1378,8 +1370,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.35": {
@@ -1388,15 +1379,21 @@
       "title": "In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. Block-level raw HTML (e.g. a styled call-to-action) is preserved byte-for-byte; it still warns before saving files with other tricky content (tables, inline HTML it can't represent losslessly, footnotes).<br>**Updates:** Gained a formatting toolbar. Raw HTML BLOCKS now round-trip byte-for-byte instead of being silently rewritten.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
           {
             "id": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::traceability RTM — a requirement deep link SCROLLS to its explicit `rtm-fr-` anchor (CP-2)",
             "path": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::traceability RTM — a requirement deep link SCROLLS to its explicit `rtm-fr-` anchor (CP-2)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a11y — table column headers carry scope=\\",
+            "path": "client/src/components/external/SmartViewer/DocumentMarkdown.test.tsx::a11y — table column headers carry scope=\\",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -2005,8 +2002,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.66": {
@@ -2015,9 +2011,7 @@
       "title": "The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES (\"the tests were run, and six of them failed - work continued until the whole suite came back green\") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding — though in real sessions the discarding was only partly fixed: a card's headline AND `explanation` then gained the ability to source from the immediately PRECEDING pure-narration turn, since real autonomous sessions almost never combine narration and a tool call in one JSONL event.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -2820,9 +2814,7 @@
       "title": "A real terminal embedded in the task detail screen (a Transcript/Terminal toggle) that connects to a live shell for that task. On small screens it is a direct workspace destination with minimal surrounding chrome, while switching away never tears it down. Only safe shell programs may run - it will never start Claude itself. The first viewer can type; extra viewers watch read-only. The shell is closed when the last viewer leaves and forced closed after 30 idle minutes. Scrollback is saved and replayed when you reconnect.<br>**Updates:** Gained keyboard copy/paste over remote access, Claude's own clipboard relay, mobile touch-scrolling, scrollback replay across reconnects, a light/dark theme matching Claude Code, and a terminal-first mobile work mode. The terminal now draws without GPU acceleration by default, because the GPU glyph cache could corrupt and show wrong or smeared letters; a Settings checkbox turns GPU drawing back on and takes effect the next time a terminal is opened. Extra (\"read-only\") viewers can now scroll and copy inside a live session — only real keystrokes stay blocked, not scroll/selection gestures.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -3941,8 +3933,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.29": {
@@ -3951,9 +3942,7 @@
       "title": "Paste an image straight into the embedded terminal: if the clipboard holds a picture it is uploaded, validated, size-capped (keeping only the most recent few), and its file path is typed into the shell; otherwise pasted text is sent as text. If the project's ignore file is missing the pastes folder, a toast offers a one-click way to add it.<br>**Updates:** Gained multi-line paste handling so a pasted multi-line prompt no longer submits on its first line.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -4136,8 +4125,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.04": {
@@ -4146,9 +4134,7 @@
       "title": "One cross-project Inbox that gathers every open question a running session is waiting on (for example a multiple-choice prompt) across all your tracked tasks. Each row links back to the task it came from, and a menu-style question can be dismissed to silence the reminder.<br>**Updates:** Gained detection of plain-text 'how should I proceed?' questions (which clear once you reply), and an honest note that they are answered in the task's terminal, not the Inbox.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -4515,8 +4501,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.72": {
@@ -4525,10 +4510,8 @@
       "title": "A fourth Inbox row kind for a follow-up question the separate leadwright tool asks the operator directly (not detected from a running session's terminal, but written by leadwright onto the task itself). Unlike the other three kinds, the operator answers it right there in the Inbox with a short text reply, which is handed back to leadwright; it can also be dismissed without answering.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
           {
@@ -4551,9 +4534,7 @@
       "title": "Add, edit, and remove projects in the Command Center. A 4-step setup wizard collects the project's name, folder path, technology profile (auto-suggested), and a colour tag. The chosen technology profile decides which capabilities (like the Preview button) become available for that project.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -4632,8 +4613,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.59": {
@@ -4642,9 +4622,7 @@
       "title": "The Projects page rebuilt from a plain table into a gallery of project cards - colour dot, name, grade pill, path, summary body, and a footer (settings, delete, task count, Open board). The body is always honest: a graded project shows a runs sparkline with run/requirement/score counts and a quote from its latest run; an ungraded one says 'no runs yet - grade or adopt it'; a non-Shipwright project shows its session count. Graded projects sort first, and every link goes to a page that exists.<br>**Updates:** Gained an honest 'N sessions' state for non-Shipwright projects; the richer project-home concept (drawer, logbook entries, scoped prompt box) was folded in.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -4899,8 +4877,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.16": {
@@ -4909,14 +4886,10 @@
       "title": "Assembles the list of available actions for a project by layering the project's own custom actions over the built-in defaults. This list feeds the 'new task/iterate/pipeline' dialogs and the launch-button menus.<br>**Updates:** Gained five task-routing fields in the create dialogs (domain, priority, complexity hint, tags, and blocked-by), which projects can opt into via their own actions file.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "e2e": "MISSING"
-      }
+      "coverage": {}
     },
     "01::FR-01.27": {
       "id": "FR-01.27",
@@ -4924,9 +4897,7 @@
       "title": "On the Settings page, pick a registered project and see whether its action set is custom, built-in, or malformed. You can upload a replacement actions file (validated before it is saved) or reset back to the built-in defaults. Uploads are size-capped and must be valid JSON.<br>**Updates:** Gained the same upload directly inside the project edit dialog (plus an upload-route fix).",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -5005,8 +4976,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.37": {
@@ -5015,10 +4985,8 @@
       "title": "A custom action can name a slash command (for example '/content-orchestrator') so that the task's description is combined with that command into a single prompt sent to Claude. If a custom action needs this but names no valid slash command, the app reports a clear error up front rather than failing silently or breaking at launch.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
           {
@@ -5745,9 +5713,7 @@
       "title": "For a single-session run, when Claude reaches the design gate it produces mockups plus a review viewer and pauses for a human decision. The Command Center hosts that viewer at full fidelity and captures your per-round feedback into the project - no manual export. Clicking Resume hands the feedback back so the run revises and continues. The app writes only the temporary feedback file, never the run's own control files.<br>**Updates:** Gained a record view with a mockup gallery and an Approve / Request-changes decision bar.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -6282,8 +6248,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.33": {
@@ -6292,9 +6257,7 @@
       "title": "A read-only Campaigns lane above the board that lists your Shipwright iterate campaigns. Each card shows the campaign name, a one-line intent, a done/total progress bar, and its ordered steps (complete / next / pending), plus a one-click Copy-launch button for the next step. The lane refreshes every few seconds and hides itself when every campaign is finished or none exist.<br>**Updates:** Gained one-click copy-launch of the next campaign step (and the concept of autonomous campaign launching).",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -6525,8 +6488,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.30": {
@@ -6535,10 +6497,8 @@
       "title": "A Triage tab (and sidebar entry) that gathers triage items from every project into one list, refreshing about every 30 seconds, with per-project counts and an orange badge. From here you can Promote an item into a real task (done reliably, without creating duplicates on retry), or Dismiss or Snooze it.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
           {
@@ -7068,14 +7028,10 @@
       "title": "An optional Preview button that starts a project's own development web server so the user can see the app running. It only appears when the project's technology profile is a frontend with a defined dev-server command and the user hasn't switched it off; the server is shut down cleanly when the Command Center stops.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "e2e": "MISSING"
-      }
+      "coverage": {}
     },
     "01::FR-01.43": {
       "id": "FR-01.43",
@@ -7083,10 +7039,8 @@
       "title": "A per-project compliance Control-Grade shown read-only from the project's own generated report: a colour-coded grade pill (A green, B amber, C or lower red) with the score, one-line verdict, and date, appearing on the Projects list and the board header. Clicking it opens a panel with the verdict and security details. If a project has no report, no badge is shown - nothing is invented.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
           {
@@ -7189,9 +7143,7 @@
       "title": "Turns the recorded project event log into a per-run summary (used by Mission Control, the Ship's-Log gallery, and the board) plus a grade-over-time trend. It is strictly honest: a run with no matching completion record shows nothing rather than guessing, durations are never estimated (they show 'n/a' when unknown), and derived pass/fail lamps are never presented as an authoritative verdict.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -7742,8 +7694,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.51": {
@@ -7752,9 +7703,7 @@
       "title": "A friendly three-door front entrance before the expert setup wizard. New walks you through plain questions and shows a plan of the pipeline phases with a live 'because you said X, we'll do Y' rail. Adopt points at a folder and shows exactly what onboarding would write. Grade points at a folder or GitHub URL and shows a Control-Grade card, honestly marking anything it cannot score as 'n/a' rather than inventing a number. A readiness check gates all three doors - if a prerequisite is missing the doors are disabled and the fix named.<br>**Updates:** Gained the real create-then-launch wiring for the New and Adopt doors and the real read-only Grade result. Became the reachable front door of every create surface - the Board \"New\" menus (single-project and All-Projects), the Projects \"Create Project\" button and the Ship's Log header all lead with a \"Guided - Intent Wizard\" entry - and gained a permanent \"Register a project manually\" escape hatch inside the wizard, so it is the single, always-complete way to start or onboard a project. Gained a dedicated First Contact hero at the root route: the first screen a brand-new user sees after install (empty Command Center - zero projects and zero tasks) is the lighthouse-framed version of the three-door picker with the \"Welcome to the Command Center / Say what you want\" promise; once any project or task exists the root is the board as normal, and a permanent /first-contact route keeps it revisitable.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -8525,9 +8474,7 @@
       "title": "The Command Center becomes usable on tablets and phones without changing the desktop layout: the sidebar collapses to icons, the board columns adapt to the available width, less-important columns are hidden, and Task Detail shows one full-width work area at a time behind direct branded tabs while never tearing down the live terminal. Long task information opens over the work area instead of pushing it down.<br>**Updates:** Gained full phone support and broad mobile/tablet polish across the header, list, projects, sidebar, board, Task Detail, and Mission. Desktop (≥1024px) now also has a user-toggleable icons-only collapse for the sidebar, independent of the viewport-driven tablet/phone rail, remembered across reloads (default expanded).",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -8790,8 +8737,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.48": {
@@ -8800,9 +8746,7 @@
       "title": "The 'Weather Deck' visual foundation the whole app is styled on: warm neutral colours, a deep-teal accent, frosted-glass panels, a beige reading surface, and one signature photo backdrop on every screen. Its main promise is legibility - text stays readable on the photo, on glass, or on a white card - proven by an automatic contrast check that fails the build if any text/background pair drops below accessibility limits. Appearance-only; stores no data.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -8953,8 +8897,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.50": {
@@ -8963,9 +8906,7 @@
       "title": "A single plain-language dictionary of the jargon the app shows, each term explained in one line where it appears, kept word-for-word in sync with the official Shipwright glossary. Empty screens (Inbox, Board, Projects) teach with one sentence and exactly one action instead of blank space, and the create dialog's phase chips show a plain-language tooltip. All this copy is static - it never fakes live data.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -9108,8 +9049,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.64": {
@@ -9118,9 +9058,7 @@
       "title": "A coherent motion system with one firm promise: for users who have animations turned off (the primary everyday case), every screen shows its complete final state instantly - all content present, counters at their final number, lists fully shown. Content is never hidden then revealed by an animation. Only meaningful moments animate (proof lines, a slide-in panel, a grade ring counting up, log entries); decorative motion is excluded, the terminal is never animated, and motion never fakes activity over data that isn't really there.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -9291,9 +9229,7 @@
       "title": "The power-user layer: a command palette (Ctrl/Cmd+K) with fuzzy search over one shared list of commands, a consistent keyboard model, a comfortable/compact density toggle, a terminal focus mode, and instant cache-first screens. Crucially, all global shortcuts go inert while you type in the terminal or a text field - even the palette's own shortcut - so every keystroke still reaches the terminal unchanged. A '?' cheat-sheet lists every shortcut in both Windows and Mac form, and everything keyboard-driven also has a clickable equivalent.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -9684,8 +9620,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.05": {
@@ -9694,14 +9629,10 @@
       "title": "A read-only diagnostics page showing the detected Claude CLI version, the folder the app is reading technology profiles from, sample launch commands for each shell, and the sessions currently being observed. A warning banner appears when the installed Claude CLI is older than the supported minimum.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "e2e": "MISSING"
-      }
+      "coverage": {}
     },
     "01::FR-01.06": {
       "id": "FR-01.06",
@@ -9709,9 +9640,7 @@
       "title": "A minimal settings page. Most settings now live inside the user's own Claude client (model, autonomy, plugins); the Command Center keeps only its own display preferences, saved safely so two tabs can't corrupt them.",
       "priority": "Must",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {
         "unit": [
@@ -9806,8 +9735,7 @@
         ]
       },
       "coverage": {
-        "unit": "MISSING",
-        "e2e": "MISSING"
+        "unit": "MISSING"
       }
     },
     "01::FR-01.31": {
@@ -9816,14 +9744,10 @@
       "title": "By default the app's servers are reachable only from the same machine, for safety. Reaching them from other devices on your LAN or over Tailscale is opt-in: one network-profile setting flips both halves of the app to a matching, coherent access mode at once.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "unit": "MISSING"
-      }
+      "coverage": {}
     },
     "01::FR-01.49": {
       "id": "FR-01.49",
@@ -9831,14 +9755,10 @@
       "title": "One installer command that both installs and updates the whole system (the Shipwright plugins and the Command Center), first run and every run after. It checks prerequisites up front and refuses loudly if a required tool (Claude, Python, Node, git) is missing, rather than leaving a broken install. It never starts a Claude session; if the app is already running it attaches to a same-or-newer one, safely swaps an older one, and leaves an unrelated program on the port untouched.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "unit": "MISSING"
-      }
+      "coverage": {}
     },
     "01::FR-01.70": {
       "id": "FR-01.70",
@@ -9846,29 +9766,21 @@
       "title": "A small, tightly-scoped network API that lets the separate leadwright tool read and update a handful of organization files (a lead's conventions doc and charter, the shared org chart, the decision log, and per-lead usage) on this machine or the operator's own Tailscale network — never the open internet. Every request needs a shared secret, matching the same reachable-from posture as the existing network-access-profile setting. One action (recording a lead's decision) safely coordinates with leadwright's own background process so the two never corrupt the same file.<br>**Updates:** Gained the runtime-store half of the leadwright coordination contract — a release action for a hung beat-register entry (mirrors leadwright's own recovery contract exactly, one audit line per release, idempotent on retry), a per-lead last-run timestamp with server-computed staleness (3× that lead's own cron cadence, never a hardcoded interval), and an open-register finding (clear / open / fault-on-duplicate-sessionId).",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "unit"
-      ],
-      "required_layers_source": "defaulted_legacy",
+      "required_layers": [],
+      "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "unit": "MISSING"
-      }
+      "coverage": {}
     },
     "01::FR-01.71": {
       "id": "FR-01.71",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it — the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface. The card's spend stat is labelled as consumed spend (never \"budget\"), names the un-counted subagent-spend share, surfaces unpriced-call counts, and distinguishes a no-data/partial/complete measurement window (iterate-2026-09-03-budget-display-usage-widen).",
+      "title": "The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it — the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface. The card's spend stat is labelled as consumed spend (never \"budget\"), names the un-counted subagent-spend share, surfaces unpriced-call counts, and distinguishes a no-data/partial/complete measurement window. The shared-documents block gained a fifth tile for the team's proposed-decisions log (parsed into entries, never dumped raw) with a Countersign button per entry — the plain surface's third browser-reachable write, sharing the existing gated route's own core action. An \"Activity\" view now merges every lead's audit log into one time-sorted, filterable list (by lead, event type, and a time window incl. a \"last night\" preset or a manual range) opened from the org page header, so the operator no longer has to open a raw-log viewer per lead and merge the timelines by eye — reads only, over the existing per-lead audit route, no new write surface.",
       "priority": "Should",
       "status": "active",
-      "required_layers": [
-        "e2e"
-      ],
+      "required_layers": [],
       "required_layers_source": "inferred_legacy",
       "tests": {},
-      "coverage": {
-        "e2e": "MISSING"
-      }
+      "coverage": {}
     }
   },
   "orphans": [
@@ -9963,6 +9875,9 @@
     "client/e2e/flows/103-transcript-cursor-single-walk.spec.ts::a truncated JSONL makes the next poll rewind to fromByte=0 (AC-2)",
     "client/e2e/flows/103-transcript-cursor-single-walk.spec.ts::stops re-requesting the whole file after the first poll (AC-1)",
     "client/e2e/flows/104-terminal-reader-scroll-copy.spec.ts::a reader's SGR mouse report bypasses the writer gate; a real keystroke on the SAME connection still does not",
+    "client/e2e/flows/105-org-audit-timeline.spec.ts::Last night preset narrows to exactly the entries inside yesterday 18:00 -> today 06:00 local",
+    "client/e2e/flows/105-org-audit-timeline.spec.ts::lead filter narrows the view to one lead",
+    "client/e2e/flows/105-org-audit-timeline.spec.ts::opens one view, shows both leads sorted by time, and expands a row to raw JSON",
     "client/e2e/flows/105-terminal-replay-teardown-and-reopen-reconnect.spec.ts::a closed task's replay tears mouse-tracking off; Reopen reconnects without a page reload",
     "client/e2e/flows/30-launch-copy.spec.ts::Launch CTA copies pre-bound command + transitions state",
     "client/e2e/flows/33-inbox-pending.spec.ts::surfaces pending AskUserQuestion + clears on matching tool_result",
@@ -10052,22 +9967,25 @@
     "client/e2e/flows/79-v0.8.2-polish-smoke.spec.ts::AC-7: task in `done` state surfaces the replay-only banner instead of an input cursor",
     "client/e2e/flows/79-v0.8.2-polish-smoke.spec.ts::AC-8: privacy disclosure footer is HIDDEN on a fresh task with no scrollback",
     "client/e2e/flows/79-v0.8.2-polish-smoke.spec.ts::AC-9: ready envelope carries retentionDays + scrollbackDir; envelope schema additive",
+    "client/e2e/flows/80-tablet-responsive.spec.ts::a long task title truncates to one line and tap reveals the full title (AC-2/AC-4)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::all three lanes are visible WITHOUT scrolling at tablet width (AC-7)",
-    "client/e2e/flows/80-tablet-responsive.spec.ts::at exactly 1024px the board uses the desktop layout (justify-between)",
-    "client/e2e/flows/80-tablet-responsive.spec.ts::board columns keep desktop justify-between (P3)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::board fits all three lanes at tablet width — no right cut-off (AC-7)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::list view fits at tablet width (no page overflow; Commit column hidden)",
-    "client/e2e/flows/80-tablet-responsive.spec.ts::list view shows the Commit column on desktop (lg:table-cell)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::list view: Title is the widest column at tablet width (AC-4)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::no horizontal page overflow at ${path}",
     "client/e2e/flows/80-tablet-responsive.spec.ts::projects gallery reflows to fit the tablet band → no horizontal scroll (AC-5, A15)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::sidebar collapse is bidirectional — expand then collapse back to the rail (AC-1)",
-    "client/e2e/flows/80-tablet-responsive.spec.ts::sidebar is expanded (brand logo visible)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::sidebar rails across the tablet band (expand affordance shown)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::switching compact pane tabs does NOT corrupt the saved desktop pane widths (code-review HIGH)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::task detail collapses to the compact pane tab bar; terminal pane survives a tab switch",
-    "client/e2e/flows/80-tablet-responsive.spec.ts::task detail keeps the resizable 3-pane (visible splitters, no tab bar)",
     "client/e2e/flows/80-tablet-responsive.spec.ts::the embedded terminal element is NOT remounted when the viewport crosses 1024px both ways",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::a long task title single-line-truncates with a native tooltip instead of wrapping (AC-4b)",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::a long title single-line-truncates at exactly 1024px — the classic iPad/mini landscape width (AC-4b)",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::at exactly 1024px the board uses the desktop layout (justify-between)",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::board columns keep desktop justify-between (P3)",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::list view shows the Commit column on desktop (lg:table-cell)",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::sidebar is expanded (brand logo visible)",
+    "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts::task detail keeps the resizable 3-pane (visible splitters, no tab bar)",
     "client/e2e/flows/81-project-actions-config.spec.ts::edit modal hosts the actions upload surface",
     "client/e2e/flows/81-v0.8.5-terminal-fixes-smoke.spec.ts::AC-1: EmbeddedTerminal wrapper has single-layer dark bg + 8px inner padding",
     "client/e2e/flows/81-v0.8.5-terminal-fixes-smoke.spec.ts::AC-4: new-plain task transitions awaiting_external_start → active on WS upgrade onOpen",
@@ -10124,6 +10042,7 @@
     "client/e2e/flows/97-single-session-master-launch.spec.ts::single_session run_config → 200 + server-built /shipwright-run (no campaign/resume leak)",
     "client/e2e/flows/97-terminal-drop-resync.spec.ts::a backpressure notice makes the client request exactly one resync",
     "client/e2e/flows/97-terminal-drop-resync.spec.ts::the server answers a resync frame with a fresh replay_snapshot",
+    "client/e2e/flows/97-terminal-interaction-revive.spec.ts::the reconnecting banner arms while the probe is in flight and self-dismisses on a late pong — no close, no new attach (AC-1)",
     "client/e2e/flows/97-terminal-interaction-revive.spec.ts::typing on an inbound-silent socket fires an eager probe (no wake event)",
     "client/e2e/flows/97-terminal-preview-banner-height-cap.spec.ts::canvas keeps a real height and the launch command actually reaches the pty",
     "client/e2e/flows/98-diagnostics-versions.spec.ts::degrades to the fallback (no crash) when a stale server omits shipwrightPlugin entirely",
@@ -10148,7 +10067,9 @@
     "client/e2e/flows/A13-mission-shell.spec.ts::below the compact breakpoint the artifact auto-selects contextual Detail",
     "client/e2e/flows/A13-mission-shell.spec.ts::the demo 'Preview state' toggle does NOT ship (AC5)",
     "client/e2e/flows/A13-mission-shell.spec.ts::the top row is complete: both crumb segments + the glass Ship's Log button route real",
+    "client/e2e/flows/A16-ships-log.spec.ts::desktop (>900px, side-by-side grid): scrolling one column never moves the other",
     "client/e2e/flows/A16-ships-log.spec.ts::drawer + logbook + promptbox render; plan card confirms; open-board escapes",
+    "client/e2e/flows/A16-ships-log.spec.ts::tablet (≤900px, stacked grid rows): scrolling one region never moves the other",
     "client/e2e/flows/A16b-shipslog-documents-panel.spec.ts::Specs tabs, Agent Docs and Compliance rows each open the real overlay; Edit reaches the TipTap editor with the uncommitted-changes notice",
     "client/e2e/flows/A16b-shipslog-documents-panel.spec.ts::a fully-populated panel next to an empty logbook stays capped to the viewport and scrolls internally, instead of stretching the grid row",
     "client/e2e/flows/A20-mobile-visual-fixes.spec.ts::Resume is icon-only with an accessible name and a 44px touch target",
@@ -10262,6 +10183,10 @@
     "client/e2e/flows/mobile-work-mode.spec.ts::the terminal owns the viewport with one light four-way control row",
     "client/e2e/flows/model-tier-defaults.spec.ts::shows project defaults only at Iterate start and sends an explicitly selected supported override",
     "client/e2e/flows/move-to-backlog.spec.ts::an In-Progress task relocates to the Backlog column via the card ⋯-menu",
+    "client/e2e/flows/org-page.decisions-proposed.spec.ts::an absent decisions-proposed.md shows 'No decisions waiting.', never a blank modal",
+    "client/e2e/flows/org-page.decisions-proposed.spec.ts::shows the parsed entry, and Countersign assigns an ADR number and moves it into decision_log.md for real",
+    "client/e2e/flows/org-page.register.spec.ts::a lead well past its cadence reads Overdue on the real page, never Resting",
+    "client/e2e/flows/org-page.register.spec.ts::an open register entry shows a finding with a Release button; releasing it closes the entry for real",
     "client/e2e/flows/org-page.spec.ts::Edit charter -> MarkdownEditorModal loads fresh content -> Save writes the file (AC-8)",
     "client/e2e/flows/org-page.spec.ts::hides the nav entries and shows the not-installed empty state on direct navigation",
     "client/e2e/flows/org-page.spec.ts::keeps the nav entries and shows a page-level error naming the failure",
@@ -10590,8 +10515,10 @@
     "client/src/components/external/EditTaskModal.test.tsx::shows the toggle when the selected phase supports autonomy, defaulting to Guided",
     "client/src/components/external/EditTaskModal.test.tsx::switching to Autonomous and saving includes autonomy in the patch diff",
     "client/src/components/external/EditableTaskTitle.mobile.test.tsx::Rename closes the overlay and focuses the existing editor",
+    "client/src/components/external/EditableTaskTitle.mobile.test.tsx::desktop also single-line truncates a long title instead of wrapping unbounded",
     "client/src/components/external/EditableTaskTitle.mobile.test.tsx::desktop click keeps the existing direct edit path",
-    "client/src/components/external/EditableTaskTitle.mobile.test.tsx::truncates the trigger and opens the full title as inert text",
+    "client/src/components/external/EditableTaskTitle.mobile.test.tsx::phone: truncates the trigger and opens the full title as inert text",
+    "client/src/components/external/EditableTaskTitle.mobile.test.tsx::tablet (compact but not phone-width): also truncates and opens the tap-to-expand popover",
     "client/src/components/external/MarkdownText.test.tsx::caps a >200-line code fence with a Show more affordance",
     "client/src/components/external/MarkdownText.test.tsx::does not pass through raw HTML (XSS guard)",
     "client/src/components/external/MarkdownText.test.tsx::inline `mermaid` text in a paragraph is NOT treated as a diagram",
@@ -10816,6 +10743,7 @@
     "client/src/components/external/SmartViewer/MarkdownEditorBanners.test.tsx::hidden while loading",
     "client/src/components/external/SmartViewer/MarkdownEditorBanners.test.tsx::renders a real <code> element and a decoded ampersand, not literal markup text",
     "client/src/components/external/SmartViewer/MarkdownEditorBanners.test.tsx::shown alongside the other banners, not in place of them",
+    "client/src/components/external/SmartViewer/MarkdownRenderer.test.tsx::exposes the preview pane as a focusable, named region",
     "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::cleanup only flips disposed flag — does NOT wipe the container DOM",
     "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::different text → re-renders and replaces the previous subtree",
     "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::renders an <svg> on first mount",
@@ -10824,7 +10752,13 @@
     "client/src/components/external/SmartViewer/MermaidRenderer.test.tsx::unmount disposes the host subtree",
     "client/src/components/external/SmartViewer/VideoRenderer.test.tsx::onError → fallback chip with the path",
     "client/src/components/external/SmartViewer/VideoRenderer.test.tsx::renders <video controls> pointing at the /media route",
+    "client/src/components/external/SmartViewer/ViewerTabBar.test.tsx::closing a tab does not also activate it",
     "client/src/components/external/SmartViewer/ViewerTabBar.test.tsx::renders a tab per path across every icon branch (md/code/json/image/mermaid/other)",
+    "client/src/components/external/SmartViewer/ViewerTabBar.test.tsx::renders the close control as its own <button>, not nested inside the tab button",
+    "client/src/components/external/SmartViewer/useAutoFitTableColumns.test.tsx::adds a <colgroup> with explicit widths when one column is free text",
+    "client/src/components/external/SmartViewer/useAutoFitTableColumns.test.tsx::is a no-op outside a .smart-viewer-markdown ancestor (shared DocumentMarkdown consumers)",
+    "client/src/components/external/SmartViewer/useAutoFitTableColumns.test.tsx::leaves the table untouched when every column is already short",
+    "client/src/components/external/SmartViewer/useAutoFitTableColumns.test.tsx::re-measures on ResizeObserver callback and picks up the NEW container width",
     "client/src/components/external/SmartViewer/useDocNavigation.test.ts::clamps `../` at the project root (cannot escape above it)",
     "client/src/components/external/SmartViewer/useDocNavigation.test.ts::resolves a parent-dir link + fragment",
     "client/src/components/external/SmartViewer/useDocNavigation.test.ts::resolves a sibling link relative to the current file's directory",
@@ -10874,8 +10808,9 @@
     "client/src/components/external/TaskDescriptionDisclosure.test.tsx::renders collapsed by default — toggle present, body hidden",
     "client/src/components/external/TaskDescriptionDisclosure.test.tsx::renders nothing for a whitespace-only description",
     "client/src/components/external/TaskDescriptionDisclosure.test.tsx::renders nothing when the task has no description",
+    "client/src/components/external/TaskDetailHeader.phone.test.tsx::also drops the breadcrumb + meta sub-line on a tablet-width (compact, non-phone) viewport",
     "client/src/components/external/TaskDetailHeader.phone.test.tsx::drops the breadcrumb + meta sub-line on a phone",
-    "client/src/components/external/TaskDetailHeader.phone.test.tsx::keeps the breadcrumb + meta sub-line on desktop (≥768px)",
+    "client/src/components/external/TaskDetailHeader.phone.test.tsx::keeps the breadcrumb + meta sub-line on desktop (≥1024px)",
     "client/src/components/external/TaskDetailHeader.test.tsx::3-dots menu surfaces Close + Delete (+ debug toggle), no Fork",
     "client/src/components/external/TaskDetailHeader.test.tsx::AC-3: 'Copy Resume command' is present for a launched task, absent on draft",
     "client/src/components/external/TaskDetailHeader.test.tsx::AC-3: Copy Resume command POSTs /launch dryRun + copies the resume command",
@@ -11198,18 +11133,48 @@
     "client/src/components/org/AuditLogModal.test.tsx::renders the generic error state on a non-404 failure",
     "client/src/components/org/AuditLogModal.test.tsx::renders the not-found state on a 404, not the generic error state",
     "client/src/components/org/AuditLogModal.test.tsx::shows entries again on close then reopen within the cache window",
+    "client/src/components/org/AuditTimelineModal.test.tsx::a manual date/time range sets since/until and narrows the merge, independent of Last night",
+    "client/src/components/org/AuditTimelineModal.test.tsx::a per-lead fetch failure surfaces without hiding the other lead's rows",
+    "client/src/components/org/AuditTimelineModal.test.tsx::a time-window filter (Last night) jumps windowSize straight to 200, not a gradual grow",
+    "client/src/components/org/AuditTimelineModal.test.tsx::changing a filter resets the window back to the default when no time filter is active",
+    "client/src/components/org/AuditTimelineModal.test.tsx::lead multi-select narrows the merged view to only the selected lead",
+    "client/src/components/org/AuditTimelineModal.test.tsx::merges rows from 2+ leads, sorted newest first",
+    "client/src/components/org/AuditTimelineModal.test.tsx::renders an unparseable line as raw text on expand, never dropped",
+    "client/src/components/org/AuditTimelineModal.test.tsx::renders an unrecognized kind by its raw string, never hidden",
+    "client/src/components/org/LeadCard.test.tsx::AC-1: a stale last run reads 'Overdue', never 'Resting', and the header badge also reads 'overdue'",
+    "client/src/components/org/LeadCard.test.tsx::AC-2: an unresolved cadence names the reason in words and never reads as fresh",
     "client/src/components/org/LeadCard.test.tsx::`parallel` and `projects` stay 'not measured' even with usage data (permanent gap, not a bug)",
+    "client/src/components/org/LeadCard.test.tsx::a fresh last run still reads 'Resting — Last active …' (no behavior change)",
+    "client/src/components/org/LeadCard.test.tsx::a lead with no cron trigger configured reads 'cadence not configured for this lead' (finding #10 — org_chart_invalid is overloaded server-side, but this code path only ever reaches it via a missing per-lead cron)",
     "client/src/components/org/LeadCard.test.tsx::a resting lead with a measured last run reads 'Last active {relative time}', per the spec's Now contract (external-review fix)",
     "client/src/components/org/LeadCard.test.tsx::derives the label from windowDays and never hardcodes 7",
     "client/src/components/org/LeadCard.test.tsx::every unmeasured figure renders the literal text 'not measured', never blank/zero/dash",
     "client/src/components/org/LeadCard.test.tsx::renders disabled with a stated reason and issues no network request on click",
     "client/src/components/org/LeadCard.test.tsx::renders the five blocks in the fixed order: header, role, now, stats, docs",
+    "client/src/components/org/LeadCard.test.tsx::staleness 'unknown' with NO cadenceUnresolvedReason still reads as unresolved, never as fresh (external-review fix — this arm is reachable and was previously undocumented)",
     "client/src/components/org/LeadCard.usage-consumed.test.tsx::distinguishes no-data, partial, and complete measurement states",
     "client/src/components/org/LeadCard.usage-consumed.test.tsx::names the un-counted subagent-spend gap without putting a number on it",
     "client/src/components/org/LeadCard.usage-consumed.test.tsx::never renders the word 'budget' anywhere on the card, measured or not",
     "client/src/components/org/LeadCard.usage-consumed.test.tsx::renders costUsd: 0 on a measured window as a real zero, never as 'not measured'",
     "client/src/components/org/LeadCard.usage-consumed.test.tsx::shows unpricedCallsTotal when > 0, and shows nothing extra when it's 0",
     "client/src/components/org/LeadCard.usage-consumed.test.tsx::still renders correctly when the payload lacks the two new optional fields (older producer)",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::a fault (duplicate session) names the session and offers no release button (server refuses it anyway)",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::a refused release (not-found) surfaces the error visibly, button re-enabled, AND still invalidates the roster (external-review fix — the finding may be stale either way)",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::a thrown ApiError (e.g. symlink_forbidden, beat_register_locked) surfaces its code visibly, button re-enabled, and still invalidates the roster (code-review fix)",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::a whitespace-only reason makes no network call and surfaces a visible error (external-review fix, GLM — the trim/empty guard was implemented but untested)",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::an error clears when the register entry's identity changes (code-review fix — a stale error must not misattribute to a new entry)",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::an open entry shows a finding naming the beat and a working Release button",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::an unknown register status reads as not-measured, with no release button",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::cancelling the reason prompt makes no network call",
+    "client/src/components/org/LeadRegisterFinding.test.tsx::renders nothing for a clear register",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::409 duplicate reads as 'resolve by hand', distinct wording from a generic error",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::Countersign success shows the assigned ADR number",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::a 404 not-found on countersign (resolved by someone else meanwhile) reads distinctly, and refetches the list",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::a missing file (404) shows the not-found state, distinct from the empty-list state",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::an idempotent retry (alreadyCountersigned: true) reads as a quiet already-done state, not an error",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::doubt-review fix: two entries sharing (timestamp, leadId) — the server's own duplicate_identity case — get independently addressable rows and Countersign buttons",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::renders one entry per proposal, with its lead, timestamp, and evidence pointer",
+    "client/src/components/org/OrgDecisionsProposedModal.test.tsx::shows an explicit 'no decisions waiting' state for an empty list — never a blank modal",
     "client/src/components/org/OrgDocViewerModal.test.tsx::falls back to the raw string when renderAs='json' but the content isn't valid JSON",
     "client/src/components/org/OrgDocViewerModal.test.tsx::pretty-prints valid JSON when renderAs='json'",
     "client/src/components/org/OrgDocViewerModal.test.tsx::renders a non-ApiError failure's message via the generic error state",
@@ -11219,9 +11184,10 @@
     "client/src/components/org/OrgDocViewerModal.test.tsx::shows a loading state before the fetch resolves",
     "client/src/components/org/OrgSharedDocs.test.tsx::closing the modal via onOpenChange unmounts it",
     "client/src/components/org/OrgSharedDocs.test.tsx::opens the JSON viewer for org-chart.json, stringifying the chart via fetchOrgChart",
+    "client/src/components/org/OrgSharedDocs.test.tsx::opens the dedicated write-capable modal for decisions-proposed.md, not the generic read-only viewer",
     "client/src/components/org/OrgSharedDocs.test.tsx::opens the markdown viewer for a markdown tile and fetches its text",
     "client/src/components/org/OrgSharedDocs.test.tsx::opens the markdown viewer for decision_log.md and fetches its text",
-    "client/src/components/org/OrgSharedDocs.test.tsx::renders all four document tiles",
+    "client/src/components/org/OrgSharedDocs.test.tsx::renders all five document tiles",
     "client/src/components/org/OrgThread.test.tsx::a null answer (an untyped fetch boundary's most likely shape for 'unanswered') counts as unanswered, not a crash",
     "client/src/components/org/OrgThread.test.tsx::a round with no answer yet renders as open, never blank or missing",
     "client/src/components/org/OrgThread.test.tsx::a whitespace-only answer counts as unanswered too, not a visually blank answered round",
@@ -11679,6 +11645,8 @@
     "client/src/components/terminal/useTerminalResize.test.ts::trailing-edge fire after disposed=true is a no-op (Plan-review openai #6)",
     "client/src/components/terminal/useTerminalResize.test.ts::two RO fires inside the 250 ms throttle window produce ONE trailing-edge fit",
     "client/src/components/terminal/useTerminalShellEffects.reconnecting.test.ts::a blip that recovers inside the grace never arms the banner at all",
+    "client/src/components/terminal/useTerminalShellEffects.reconnecting.test.ts::a probe answered at 2500ms after it started (past the grace, inside the 4s probe deadline) arms then self-disarms — bounded, not stuck",
+    "client/src/components/terminal/useTerminalShellEffects.reconnecting.test.ts::a probe answered in 800ms (well under grace) never arms the banner",
     "client/src/components/terminal/useTerminalShellEffects.reconnecting.test.ts::arms once the outage outlives the grace",
     "client/src/components/terminal/useTerminalShellEffects.reconnecting.test.ts::disarms immediately when the socket comes back — self-dismissing banner",
     "client/src/components/terminal/useTerminalShellEffects.reconnecting.test.ts::does NOT arm before the grace elapses — a brief blip must not flash",
@@ -12262,6 +12230,8 @@
     "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-5b: an eager refocus probe does NOT close a socket that answers in time",
     "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-5c: a stale probe timer does NOT close a healthy reconnected socket",
     "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-6: a focus regain NEVER reconnects a replay-only (done) attach",
+    "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-7: reconnecting flips true the instant a refocus probe starts, before the probe deadline",
+    "client/src/hooks/useTerminalSocket.refocus.test.ts::AC-7b: a probe answered in time flips reconnecting back off",
     "client/src/hooks/useTriage.test.ts::useAllTriageItems reads the SAME cache entry useTriageItems already populated — no second fetch",
     "client/src/hooks/useTriage.test.ts::useTriageItems still resolves correctly when useAllTriageItems populates the cache FIRST (the reverse race)",
     "client/src/hooks/useTriageViewState.test.ts::AC3: toggles a complexity value, including 'unset', into the excluded set",
@@ -12288,6 +12258,7 @@
     "client/src/hooks/wsLiveness.interaction.test.ts::a keystroke on an inbound-SILENT OPEN socket probes it (the dead-socket case)",
     "client/src/hooks/wsLiveness.interaction.test.ts::dispose() unbinds the interaction listeners",
     "client/src/hooks/wsLiveness.interaction.test.ts::does NOTHING on a healthy socket (recent inbound) — normal typing must not churn",
+    "client/src/hooks/wsLiveness.interaction.test.ts::iterate-2026-09-06-tablet-ipad-ux-pass: onProbing(true) fires the instant the probe is sent, onProbing(false) once a pong answers it",
     "client/src/hooks/wsLiveness.interaction.test.ts::throttles: rapid keystrokes on a dead socket do not re-arm the probe every keystroke",
     "client/src/hooks/wsLiveness.interaction.test.ts::with NO socket, a keystroke on a stale attach reconnects immediately",
     "client/src/hooks/wsLiveness.wake.test.ts::a detected wake PROBES an OPEN-but-stale socket (no browser event needed)",
@@ -12336,6 +12307,26 @@
     "client/src/lib/askUserPayload.test.ts::returns empty parts list for unparseable shape",
     "client/src/lib/askUserPayload.test.ts::strips description from object-form options (label-only)",
     "client/src/lib/askUserPayload.test.ts::uses \"Question N\" fallback when header is missing",
+    "client/src/lib/auditKindLabels.test.ts::has all 19 known AuditKind values mapped to a non-empty label",
+    "client/src/lib/auditKindLabels.test.ts::renders a known kind's plain-language label",
+    "client/src/lib/auditKindLabels.test.ts::renders an unseen kind by its own raw string, never hidden or guessed",
+    "client/src/lib/auditTimelineMerge.test.ts::a lead with fewer entries than windowSize doesn't stall or corrupt the merge",
+    "client/src/lib/auditTimelineMerge.test.ts::actually truncates at MAX_WINDOW when there is more than MAX_WINDOW to show (external-review finding — a 5-entry fixture can't detect a removed clamp)",
+    "client/src/lib/auditTimelineMerge.test.ts::an entry with no valid timestamp sorts after every valid-timestamp entry, and still renders",
+    "client/src/lib/auditTimelineMerge.test.ts::caps the COMBINED total across leads at windowSize, not just each lead individually (external-review finding — 2 leads x 30 sub-saturated entries can silently drop 10 rows at windowSize=50)",
+    "client/src/lib/auditTimelineMerge.test.ts::does not reach into the future when now is BEFORE today's 06:00 — uses the prior completed interval",
+    "client/src/lib/auditTimelineMerge.test.ts::event-type filter narrows output; non-matching entries never appear (no cursor to adjust — stateless)",
+    "client/src/lib/auditTimelineMerge.test.ts::merges two leads' newest-first streams into one correctly time-sorted list",
+    "client/src/lib/auditTimelineMerge.test.ts::reports more available when a lead's fetched page exactly fills the window, below the ceiling",
+    "client/src/lib/auditTimelineMerge.test.ts::reports no more when every lead's page is smaller than the window",
+    "client/src/lib/auditTimelineMerge.test.ts::reports the ceiling from the COMBINED total when no single lead's page individually reaches MAX_WINDOW",
+    "client/src/lib/auditTimelineMerge.test.ts::reports the ceiling once windowSize reaches MAX_WINDOW and a lead is still saturated",
+    "client/src/lib/auditTimelineMerge.test.ts::returns yesterday 18:00 -> today 06:00 local when now is after today's 06:00",
+    "client/src/lib/auditTimelineMerge.test.ts::since/until time-window filter uses numeric epoch compare (both bounds inclusive)",
+    "client/src/lib/auditTimelineMerge.test.ts::sorts by NUMERIC epoch ms, not lexicographic string compare (mixed millisecond precision)",
+    "client/src/lib/auditTimelineMerge.test.ts::stays correct when a lead's file GREW between rounds (concurrent daemon append)",
+    "client/src/lib/auditTimelineMerge.test.ts::stays in sync with the server's DEFAULT_LIMIT / MAX_LIMIT (doubt-review finding)",
+    "client/src/lib/auditTimelineMerge.test.ts::windowSize is clamped to MAX_WINDOW even if a caller passes more",
     "client/src/lib/auqStallInstrumentation.test.ts::captures a full submit → answered → stream flow",
     "client/src/lib/auqStallInstrumentation.test.ts::exposes the buffer via window for debug inspection",
     "client/src/lib/auqStallInstrumentation.test.ts::is a no-op in tests with no DEV flag + no localStorage hint",
@@ -12764,6 +12755,22 @@
     "client/src/lib/orgApi.test.ts::returns the raw text on a 200 and encodes the path in the query string",
     "client/src/lib/orgApi.test.ts::throws a decoded ApiError on a 404",
     "client/src/lib/orgApi.test.ts::throws a decoded ApiError on a non-2xx",
+    "client/src/lib/orgDecisionsApi.test.ts::404 (proposal_not_found) reads as a typed not-found result, not a thrown error",
+    "client/src/lib/orgDecisionsApi.test.ts::409 duplicate_proposal_identity reads as a typed duplicate result with its count, distinguishable from not-found",
+    "client/src/lib/orgDecisionsApi.test.ts::a body with no Evidence line yields evidence: null, not a crash or a placeholder string",
+    "client/src/lib/orgDecisionsApi.test.ts::a non-matching line ('## Not a real header') is not mistaken for an entry boundary",
+    "client/src/lib/orgDecisionsApi.test.ts::a validation failure (400) throws ApiError, never a silent typed result",
+    "client/src/lib/orgDecisionsApi.test.ts::an empty (but present) file resolves to an empty array — the 'no decisions waiting' state",
+    "client/src/lib/orgDecisionsApi.test.ts::an empty file parses to an empty array",
+    "client/src/lib/orgDecisionsApi.test.ts::an idempotent retry reads alreadyCountersigned: true, not as an error",
+    "client/src/lib/orgDecisionsApi.test.ts::body excludes the header line — the identity is shown once, not duplicated in the rendered body",
+    "client/src/lib/orgDecisionsApi.test.ts::extracts a labelled Evidence line when present",
+    "client/src/lib/orgDecisionsApi.test.ts::fetches decisions-proposed.md and parses it",
+    "client/src/lib/orgDecisionsApi.test.ts::parses one header-delimited entry, timestamp + leadId from the header",
+    "client/src/lib/orgDecisionsApi.test.ts::posts {timestamp, leadId} and returns the success shape",
+    "client/src/lib/orgDecisionsApi.test.ts::splits multiple entries at the next header, not by blank lines",
+    "client/src/lib/orgDecisionsApi.test.ts::throws a decoded ApiError on a non-2xx (e.g. a genuine 404, distinct from an empty file)",
+    "client/src/lib/orgDecisionsApi.test.ts::tolerates CRLF line endings on the header line",
     "client/src/lib/orgMarkdownFileApi.test.ts::PUTs to the charter proxy with the loaded fingerprint as If-Match",
     "client/src/lib/orgMarkdownFileApi.test.ts::fetches the lead's charter.md via the file proxy and strips quotes off the ETag",
     "client/src/lib/orgMarkdownFileApi.test.ts::throws ApiError on any other non-2xx",
@@ -12916,6 +12923,12 @@
     "client/src/lib/stage-markers.test.ts::still classifies the REAL changelog + decision log as finalize",
     "client/src/lib/stage-markers.test.ts::the fix does not buy honesty with blindness — real commands still count",
     "client/src/lib/stage-markers.test.ts::the iterate's own tooling is matched as an ARGUMENT, where it really appears",
+    "client/src/lib/tableAutoFit.test.ts::floors a free-text column at MIN_FLEX_PX when the pane is too narrow to satisfy it — this is expected to overflow the container and trigger horizontal scroll rather than crush the column further",
+    "client/src/lib/tableAutoFit.test.ts::keeps short columns at their natural width and gives the one free-text column the remaining space",
+    "client/src/lib/tableAutoFit.test.ts::returns null (no intervention) when every column already fits comfortably",
+    "client/src/lib/tableAutoFit.test.ts::returns null for an empty column set",
+    "client/src/lib/tableAutoFit.test.ts::splits remaining space evenly across multiple free-text columns",
+    "client/src/lib/tableAutoFit.test.ts::treats a column exactly at the comfortable threshold as short (not flex)",
     "client/src/lib/taskLifecycle.test.ts::excludes draft and done",
     "client/src/lib/taskLifecycle.test.ts::is exactly the five launched-but-not-done states",
     "client/src/lib/taskLifecycle.test.ts::is false when firstJsonlObservedAt is an empty string",
@@ -13126,6 +13139,8 @@
     "client/src/test/fonts-selfhosted.test.ts::index.html has NO Google-Fonts CDN link or preconnect",
     "client/src/test/fonts-selfhosted.test.ts::main.tsx imports both self-hosted variable faces",
     "client/src/test/fonts-selfhosted.test.ts::the packages are real dependencies (not a dangling import)",
+    "client/src/test/markdown-table-vertical-align.test.ts::does NOT set vertical-align on the shared (unscoped) .markdown-body table th/td rule",
+    "client/src/test/markdown-table-vertical-align.test.ts::index.css scopes vertical-align: top to .smart-viewer-markdown table th/td",
     "client/src/test/mermaid-security-level.test.ts::MermaidRenderer declares a securityLevel at all",
     "client/src/test/mermaid-security-level.test.ts::the e2e harness renders under the component's securityLevel",
     "client/src/test/mission-typography-invariant.test.ts::`.mc-left` children do not shrink",
@@ -13308,6 +13323,11 @@
     "server/src/core/campaign-write.test.ts::sets top-level status in status.json when present, leaving sub_iterates intact (scoped)",
     "server/src/core/campaign-write.test.ts::status.json wins over frontmatter (writes json when both exist)",
     "server/src/core/campaign-write.test.ts::throws no_writable_status_target when neither status.json nor a frontmatter block exists",
+    "server/src/core/claim-record-lock.test.ts::acquires the lock with the contract's stale/realpath, no lockfilePath override",
+    "server/src/core/claim-record-lock.test.ts::carries stale/realpath explicitly and merges caller-supplied extras",
+    "server/src/core/claim-record-lock.test.ts::drops a lockfilePath override rather than forwarding it — the marker must stay canonical-target-derived",
+    "server/src/core/claim-record-lock.test.ts::matches the vendored JSON file, read independently from disk",
+    "server/src/core/claim-record-lock.test.ts::pins the vendored contractVersion so a silent re-copy is caught",
     "server/src/core/claude-bin-resolver.fallback.test.ts::env override: SHIPWRIGHT_CLAUDE_BIN takes precedence over `where`/`which`",
     "server/src/core/claude-bin-resolver.fallback.test.ts::env override: missing target rejects (does NOT silently fall through to `where`)",
     "server/src/core/claude-bin-resolver.fallback.test.ts::fallback: walks curated POSIX install paths when `which` returns empty",
@@ -14739,6 +14759,10 @@
     "server/src/external/inbox/_lead.test.ts::strips the marker line and returns the body",
     "server/src/external/inbox/_lead.test.ts::strips the marker regardless of question type",
     "server/src/external/inbox/_lead.test.ts::surfaces a waiting task with kind lead_question and no bestEffort field",
+    "server/src/external/launch/__tests__/action-substitution-branch.claim-permission.test.ts::a claim-authorized launch against a custom template with no --session-id anchor returns 409",
+    "server/src/external/launch/__tests__/action-substitution-branch.claim-permission.test.ts::a claim-authorized launch on a task with a PERSISTED actionId (leadwright's real shape) is armed",
+    "server/src/external/launch/__tests__/action-substitution-branch.claim-permission.test.ts::a template with NO --session-id {task.uuid} placeholder is refused even when a caller-supplied description coincidentally contains the literal anchor text (Stage-3 doubt review)",
+    "server/src/external/launch/__tests__/action-substitution-branch.claim-permission.test.ts::the SAME task, launched WITHOUT a claim (a human clicking Launch), is unarmed",
     "server/src/external/launch/__tests__/campaign-branch.test.ts::AC-1: builds /shipwright-iterate --campaign <slug> --autonomous as one positional, no --resume",
     "server/src/external/launch/__tests__/campaign-branch.test.ts::AC-2: rejects shell-/path-hostile slugs with 400 invalid_campaign_slug",
     "server/src/external/launch/__tests__/campaign-branch.test.ts::AC-3: 400 campaign_not_found when the slug has no matching campaign dir",
@@ -14759,6 +14783,8 @@
     "server/src/external/launch/__tests__/campaign-step-branch.test.ts::AC3: 400 mixed_launch_intents when campaignStep + phaseTaskRef",
     "server/src/external/launch/__tests__/campaign-step-branch.test.ts::AC5: persists awaiting_external_start + launchedAt on a real (non-dryRun) launch",
     "server/src/external/launch/__tests__/campaign-step-branch.test.ts::double-launch guard: 409 campaign_run_already_attached when a live loop unit runs for the campaign",
+    "server/src/external/launch/__tests__/claim-permission-perimeter-centralized.test.ts::409 claim_launch_permission_perimeter_missing when a claimed launch carries a valid phaseTaskRef",
+    "server/src/external/launch/__tests__/claim-permission-perimeter-centralized.test.ts::the SAME phaseTaskRef launch, WITHOUT a claim, still succeeds unarmed (manual/phase-task launches are untouched)",
     "server/src/external/launch/__tests__/master-run-branch.stamp.test.ts::a dryRun masterRun launch does NOT stamp (no state mutation on a pure command build)",
     "server/src/external/launch/__tests__/master-run-branch.stamp.test.ts::a real masterRun launch on a PLAIN task stamps parentRunMaster+runId (from the re-read run_config)",
     "server/src/external/launch/__tests__/master-run-branch.stamp.test.ts::after a plain masterRun launch, a second masterRun on the same run is now 409 (guard sees the stamped master)",
@@ -14791,11 +14817,20 @@
     "server/src/external/launch/__tests__/routes.test.ts::404 Task not found",
     "server/src/external/launch/__tests__/routes.test.ts::409 launch_invalid_state when state=done (non-dryRun)",
     "server/src/external/launch/__tests__/routes.test.ts::409 phase_task_session_uuid_mismatch when shadow uuid ≠ run-config uuid (rule 13)",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::fails closed (ok:false) when a custom template has no --session-id <this task's uuid> anchor",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::fails closed when the --session-id anchor appears more than once (e.g. a caller-supplied description contains this task's own uuid)",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::fails closed when the anchor uuid belongs to a DIFFERENT session than the one being armed",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::fails closed when the rendered command already contains a --tools or --permission-mode flag before arming",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::false for a template using a different placeholder spacing/shape",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::false for a template with no --session-id {task.uuid} placeholder at all (e.g. --resume instead)",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::inserts --tools and --permission-mode right after --session-id <uuid> on all three shell forms",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::the inserted flags land BEFORE --name (immediately after --session-id, not appended at the end)",
+    "server/src/external/launch/claim-executor-template-arming.test.ts::true for a raw template that literally declares the {task.uuid} placeholder after --session-id",
     "server/src/external/launch/claim-holder-gate.test.ts::[doubt-review finding] refuses a matching token when claimedAt is future-dated beyond the clock-skew tolerance",
     "server/src/external/launch/claim-holder-gate.test.ts::allows a matching token when claimedAt is future-dated but within the clock-skew tolerance",
     "server/src/external/launch/claim-holder-gate.test.ts::allows launch when claimedBy/claimedAt exist without claimToken (stale metadata, HIGH-2 semantics)",
     "server/src/external/launch/claim-holder-gate.test.ts::allows launch when there is no claim on record",
-    "server/src/external/launch/claim-holder-gate.test.ts::allows the holder — matching token, within the launch window",
+    "server/src/external/launch/claim-holder-gate.test.ts::allows the holder — matching token, within the launch window — and marks it claim-authorized",
     "server/src/external/launch/claim-holder-gate.test.ts::allows the right token just inside the launch window boundary",
     "server/src/external/launch/claim-holder-gate.test.ts::refuses a foreign token, no claimExpired flag",
     "server/src/external/launch/claim-holder-gate.test.ts::refuses a matching token when claimedAt is missing or unparseable (fail-closed, treated as expired)",
@@ -14807,6 +14842,11 @@
     "server/src/external/launch/claim-holder-launch.test.ts::[AC c] a restart by the holder succeeds",
     "server/src/external/launch/claim-holder-launch.test.ts::[AC d] a claim older than the launch window is refused even with the right token, distinguishably from a foreign claim",
     "server/src/external/launch/claim-holder-launch.test.ts::[AC e] baseline is refreshed with the row — a subsequent appStore persist() does not resurrect a released claim",
+    "server/src/external/launch/claim-holder-launch.test.ts::[FR-04.22] a claim-authorized launch's command carries the permission perimeter; an ordinary launch on the same task before any claim does not",
+    "server/src/external/launch/legacy-fallback-branch.test.ts::a claim-authorized launch carries an explicit --tools allow-list and --permission-mode on every shell form",
+    "server/src/external/launch/legacy-fallback-branch.test.ts::a manual launch (claimAuthorized omitted) carries no --tools / --permission-mode flag",
+    "server/src/external/launch/legacy-fallback-branch.test.ts::a manual launch with claimAuthorized: false is byte-identical to claimAuthorized omitted",
+    "server/src/external/launch/legacy-fallback-branch.test.ts::the claim-authorized allow-list does not include Bash-adjacent escalation tools (Task, WebFetch)",
     "server/src/external/launch/resume-on-jsonl.test.ts::F14 regression pin: masterRun + resume:false + NO JSONL → fresh --session-id /shipwright-run",
     "server/src/external/launch/resume-on-jsonl.test.ts::F14: a repeated masterRun launch on an already-established master stays --resume (no duplicate --session-id)",
     "server/src/external/launch/resume-on-jsonl.test.ts::F14: masterRun + resume:false + JSONL on disk → --resume, NOT --session-id /shipwright-run",
@@ -15438,6 +15478,7 @@
     "server/src/middleware/error-handler.test.ts::supports optional detail field",
     "server/src/routes/__tests__/org-charter-write.test.ts::403s a non-allowlisted path",
     "server/src/routes/__tests__/org-charter-write.test.ts::409s on a stale If-Match fingerprint",
+    "server/src/routes/__tests__/org-charter-write.test.ts::AC-10 invariant: decision_log.md and decisions-proposed.md resolve to their OWN kind, never charter — the guard the PUT route's kind-check depends on",
     "server/src/routes/__tests__/org-charter-write.test.ts::GET /api/external/org/org-chart without the secret header still 401s, and /api/org/org-chart works, on ONE app with both mounted",
     "server/src/routes/__tests__/org-charter-write.test.ts::a not-yet-bootstrapped allowlisted target 404s not_found (open-before-realpath ordering — the shared-doc viewer's not-found state)",
     "server/src/routes/__tests__/org-charter-write.test.ts::forwards the org-chart's own error when the chart is missing/invalid, rather than writing blind",
@@ -15447,6 +15488,10 @@
     "server/src/routes/__tests__/org-charter-write.test.ts::serves a lead's own charter.md (fresh-load-before-edit round trip)",
     "server/src/routes/__tests__/org-charter-write.test.ts::serves an allowlisted shared doc (conventions.md)",
     "server/src/routes/__tests__/org-charter-write.test.ts::writes charter.md successfully with a matching If-Match",
+    "server/src/routes/__tests__/org-decisions-countersign.test.ts::404s when no matching proposal exists — deliberately no lstatSync/withDecisionsLock deps supplied (production-call defaulting)",
+    "server/src/routes/__tests__/org-decisions-countersign.test.ts::countersigning via the plain route is visible as already-countersigned via the gated route (one shared core, one shared state)",
+    "server/src/routes/__tests__/org-decisions-countersign.test.ts::moves exactly one entry to decision_log.md, same success shape as the gated route",
+    "server/src/routes/__tests__/org-decisions-countersign.test.ts::rejects a malformed timestamp/leadId 400 before touching the filesystem",
     "server/src/routes/__tests__/org-docs.test.ts::400s an invalid leadId",
     "server/src/routes/__tests__/org-docs.test.ts::403s unknown_lead for a valid-shaped but unregistered leadId, on both routes",
     "server/src/routes/__tests__/org-docs.test.ts::404s not_found when the lead has no audit.jsonl yet",
@@ -15454,6 +15499,21 @@
     "server/src/routes/__tests__/org-docs.test.ts::keeps a malformed line as raw with parsed:null rather than failing the whole page",
     "server/src/routes/__tests__/org-docs.test.ts::returns the newest entries first, capped at `limit`, with a nextCursor for older ones",
     "server/src/routes/__tests__/org-docs.test.ts::serves the lead's learnings.md",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a duplicate-session-id fault is refused 409, never silently picks one entry",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a not-found sessionId reads 404 with the same shape as the secret-gated route",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a sessionId that belongs to a DIFFERENT lead's register is not-found, never releases the other lead's entry (external-review fix)",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a whitespace-only reason is rejected 400 before any register access (external-review fix, OpenAI — .length alone accepted it)",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::an invalid sessionId shape is rejected 400 before any register access",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::refuses an unregistered leadId (403) BEFORE touching the register — no lstatSync/now deps supplied",
+    "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::releases an open entry for a real lead, closing it and appending one audit line",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::a clear register reads register.status === 'clear' (steady state, unchanged from before this field existed)",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::a corrupt beat-register.json also degrades 'register' to unknown, not 'clear'",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::a duplicate-session-id fault surfaces on 'register' too (both fields see the SAME read, not two)",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::a last run well past 3x cadence reads staleness: 'stale', threaded through 'now'",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::a symlinked beat-register.json degrades 'now' to not-measured AND 'register' to unknown — NEVER 'clear' (internal-plan-review fix, HIGH)",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::an open beat-register entry surfaces on 'register' AND keeps 'now.state' === 'running' (unchanged)",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::an unparseable `triggers.cron` string reads staleness: 'unknown' with reason 'invalid_cron'",
+    "server/src/routes/__tests__/org-leads-staleness-register.test.ts::no `triggers.cron` on the lead reads staleness: 'unknown' with a named reason, never fabricated as fresh",
     "server/src/routes/__tests__/org-threads.test.ts::degrades an unknown version to an empty array instead of erroring (trap 7)",
     "server/src/routes/__tests__/org-threads.test.ts::degrades invalid JSON to an empty array instead of erroring (trap 6)",
     "server/src/routes/__tests__/org-threads.test.ts::falls back to the raw taskId when no store dependency is wired (or no matching task)",
@@ -15903,7 +15963,9 @@
     "server/src/test/build-assets.test.ts::copy-assets.mjs runs cleanly (exit 0)",
     "server/src/test/build-assets.test.ts::default-actions.json lands at the loader's runtime path dist/config/",
     "server/src/test/build-assets.test.ts::package.json build script runs the copy-assets step after tsc",
+    "server/src/test/build-assets.test.ts::the copied claim-record-lock-contract.json is faithful to src/vendor/leadwright/",
     "server/src/test/build-assets.test.ts::the copied default-actions.json is faithful to src/config/",
+    "server/src/test/build-assets.test.ts::the vendored FR-04.28 lock contract lands at claim-record-lock.ts's runtime path dist/vendor/leadwright/",
     "server/src/test/ci-action-pinning-posture.test.ts::classifies a QUOTED SHA-pinned github-owned ref as a violation",
     "server/src/test/ci-action-pinning-posture.test.ts::finds the workflows at all (guards a silent empty-set pass)",
     "server/src/test/ci-action-pinning-posture.test.ts::has codeql-action steps to guard (empty-set pass guard)",
@@ -15914,6 +15976,8 @@
     "server/src/test/ci-action-pinning-posture.test.ts::pins no actions/* or github/* reference to a commit SHA",
     "server/src/test/ci-action-pinning-posture.test.ts::returns refs without surrounding quotes, and skips commented lines",
     "server/src/test/ci-action-pinning-posture.test.ts::still has third-party actions to guard",
+    "server/src/test/claim-record-lock-callsites-sync.test.ts::decisions-lock.ts imports claimRecordLockOptions and does not hardcode the stale/realpath literals it used to",
+    "server/src/test/claim-record-lock-callsites-sync.test.ts::index.ts's sdk-sessions.json lockPath factory itself delegates to lockClaimRecordFile",
     "server/src/test/deploy-detach.test.ts::${name}: EVERY install/build step aborts on failure (order alone does not protect AC3)",
     "server/src/test/deploy-detach.test.ts::${name}: does not start the server itself anymore",
     "server/src/test/deploy-detach.test.ts::${name}: invokes deploy-swap.mjs",
