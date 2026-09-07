@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-09-07-ac-scoped-layer-promotion",
+  "date": "2026-09-07T21:40:12.551732Z",
+  "event_at": "2026-09-07T21:38:49.699193+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/ac-scoped-layer-promotion",
+  "spec": ".shipwright/planning/iterate/2026-09-07-ac-scoped-layer-promotion.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-07-ac-scoped-layer-promotion"
+}

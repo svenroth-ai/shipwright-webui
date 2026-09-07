@@ -1,0 +1,1 @@
+Bump pinned CI checkout of shipwright-compliance plugin to a commit supporting test-traceability manifest schema v4 (AC-scoped @covers); regenerate the manifest (schema_version 3->4, no behavior change yet)

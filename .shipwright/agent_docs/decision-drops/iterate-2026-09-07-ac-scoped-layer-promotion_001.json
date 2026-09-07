@@ -1,0 +1,13 @@
+{
+  "run_id": "iterate-2026-09-07-ac-scoped-layer-promotion",
+  "date": "2026-09-07",
+  "section": "Iterate — change: ac-scoped-layer-promotion",
+  "title": "CI pin bump for schema v4 manifest support, AC work deferred",
+  "context": "w5 shipped FR-level promotion; both external reviewers flagged the title implied AC-level, which needs schema v4 (landed upstream today, PR #686).",
+  "decision": "Bump the pinned CI checkout to the exact PR #686 merge SHA in its own PR; the forced manifest regen (v3->v4) ships in a separate main-repair PR right after, since a regenerated manifest is a derived snapshot an iterate PR may not carry.",
+  "consequences": "Main's push-triggered gate goes red for one cycle right after this merges (expected, self-caused); a same-day main-repair PR regenerates the manifest to close it, mirroring PR #443/#444 earlier this session. Gate can then write acs data once AC tags exist; no behavior change today.",
+  "rationale": "Full AC follow-up mirrors the monorepo's own 8-sub-iterate campaign scope; bundling it here would mix an infra pin with first-ever AC-authoring work. check_no_derived_snapshots_committed forbids the regenerated manifest in an iterate commit regardless.",
+  "rejected": "Deferring the pin bump entirely (openai's architecture-review suggestion) - declined by operator decision; bundling the manifest regen into this same PR - blocked by the derived-snapshot gate, not a preference.",
+  "commit": "",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-07-ac-scoped-layer-promotion.md"
+}

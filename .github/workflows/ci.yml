@@ -350,7 +350,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: svenroth-ai/shipwright
-          ref: 7e106939fbf82331f5e54a4ea27d90b4f279f1ce  # main, 2026-09-06
+          ref: c0d1b38be27730dca4c9f00afc4538dd10f76e56  # main, 2026-09-07 (PR #686: AC-scoped @covers tag grammar + manifest schema v4, additive)
           sparse-checkout: |
             plugins/shipwright-compliance
             shared/scripts
