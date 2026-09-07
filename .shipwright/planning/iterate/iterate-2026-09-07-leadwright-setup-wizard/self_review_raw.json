@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "spec_compliance",
+      "verdict": "pass",
+      "note": "All 7 done-criteria from the card verified: (a) e2e test 106 creates a lead answering only selects/clicks, never typing a project id/path/action id; (b) domain is a select in both the wizard (NameIdDomainStep -> DomainSelect) and the card modal (LeadwrightFields.tsx) sourced from one shared vocabulary (fetchDomains/useDomainVocabulary), converted from free text with LEAD_ID_RE kebab-case enforcement; (c) the verdict is the real check-setup.ts subprocess output via leadwright-preflight-transport.ts, never re-implemented; (d) commit-writes.test.ts + commit.test.ts prove other leads' entries/order are untouched by a second lead's commit; (e) leadwrightCheckoutRoot unset blocks Finish (e2e test 106's third case) and surfaces 'leadwright isn't reachable'. charter_path/learnings_path stay relative (CHARTER_LEARNINGS_PATH_RE); every other path-shaped field is absolute-checked (absolutePaths.ts). Out-of-scope items (edit/delete of existing leads, audit/decision surfaces) were not touched."
+    },
+    {
+      "name": "error_handling",
+      "verdict": "pass",
+      "note": "ELOCKED on daemon-config.json/org-chart.json writes maps to its own named 409 (daemon_config_locked/org_chart_locked), never the app-wide generic handler (CLAUDE.md rule 6). OrgFileSymlinkEscapeError on any of the three writes maps to 403 symlink_forbidden. A leadId collision (doubt-review fix, this session) is now caught upfront before any write, returning 409 org_chart_lead_exists with zero side effects. The subprocess transport (leadwright-preflight-transport.ts) fails closed on unparsable/empty stdout, has a timeout, and caps output bytes."
+    },
+    {
+      "name": "security_basics",
+      "verdict": "pass",
+      "note": "The wizard's browser-facing routes (server/src/routes/org-lead-setup-wizard.ts) are the plain, host-allowlisted /api/org/* surface, never the secret-gated /api/external/org/* family a browser client could not authenticate against. Every filesystem write (charter.md, daemon-config.json, org-chart.json) is symlink-checked immediately before its mutating syscall via the shared assertNotSymlink (org-file-lock.ts, deduplicated this session). Server-side validation of the commit body is independent of the client's prior verdict call and is bound to a proposalDigest computed server-side from a fresh re-read, so a caller cannot commit a proposal the verdict never covered."
+    },
+    {
+      "name": "test_quality",
+      "verdict": "pass",
+      "note": "Full server suite 4021/4021 passed (363 files), full client suite 3940/3940 passed (427 files), E2E 3/3 passed (client/e2e/flows/106-leadwright-setup-wizard.spec.ts). New/changed tests assert on rendered outcome, response shape, and on-disk file state (never internals): VerdictStep.test.tsx (10 tests, added this session for code-review finding #1) covers every conditional render branch and the auto-retry-exactly-once effect; commit.test.ts covers ELOCKED->409, symlink->403 at both the charter-write and lock-write call sites, and the leadId-collision fix with an assertion that daemon-config.json is untouched and writeCharterFn was never invoked; commit-writes.test.ts covers the symlink checks in isolation; absolutePaths.test.ts / buildLeadProposal.test.ts / leadWizardState.test.ts cover the pure logic modules directly."
+    },
+    {
+      "name": "performance_basics",
+      "verdict": "pass",
+      "note": "GET /domains aggregates across all projects (react-query staleTime: Infinity on the wizard's verdict query, cached client-side) -- an accepted, external-review-reviewed cost, not a new regression. No unbounded loops or N+1 filesystem reads were introduced; the three commit writes are each a single read-modify-write under a bounded proper-lockfile retry budget (8 retries, 50-500ms backoff)."
+    },
+    {
+      "name": "naming_structure",
+      "verdict": "pass",
+      "note": "Client: LeadSetupWizard/ mirrors IntentWizard/'s file-per-step idiom exactly, reusing FlightPlanRail/StepDots/WzPrimary/WzOutline verbatim rather than forking them. Server: commit.ts / commit-writes.ts / org-file-lock.ts / leadwright-proposal-merge.ts each under 300 lines, one responsibility apiece. All new PreflightXxx types are verbatim mirrors of server/src/types/leadwright-preflight.ts per CLAUDE.md rule 7 (ADR-080), never cross-package imports."
+    },
+    {
+      "name": "affected_boundaries",
+      "verdict": "pass",
+      "note": "New write surfaces: charter.md (new file per lead, no lock -- documented rationale, brand-new path so no concurrent-writer risk), daemon-config.json (locked, add-only merge -- every existing key/lead untouched, verified by commit-writes.test.ts), org-chart.json (locked, add-only with an idempotent-retry / differing-conflict distinction, verified by writeOrgChartLead's own tests plus this session's upfront-collision-check test). No existing write surface (audit, decisions, other leads' entries) was modified."
+    },
+    {
+      "name": "test_hygiene_probe",
+      "verdict": "n/a",
+      "note": "scan_test_hygiene.py --diff was not run in this pass; test quality was instead verified by full-suite execution (server 4021/4021, client 3940/3940) plus direct reading of every new/changed test file's assertions during the spec/code/doubt review cascade, which is the stronger check for this run."
+    }
+  ]
+}

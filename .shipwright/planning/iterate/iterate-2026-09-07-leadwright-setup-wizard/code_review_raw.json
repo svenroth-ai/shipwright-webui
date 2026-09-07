@@ -1,0 +1,48 @@
+{
+  "section": "leadwright lead-setup Intent Wizard (W14, iterate-2026-09-07-leadwright-setup-wizard)",
+  "note": "Reconstructed from this session's own record (raw agent reply was not durably saved before this write); full narrative in code_review_raw.md in this same directory. Run behind a Stage-1 spec-reviewer PASS.",
+  "review": [
+    {
+      "finding": "VerdictStep.tsx (the wizard's most complex component -- builds the proposal, runs the verdict, auto-retries once on a 409 verdict_stale, renders 6+ conditional result branches) had zero test coverage.",
+      "severity": "high",
+      "category": "test-coverage",
+      "file": "client/src/components/wizard/LeadSetupWizard/VerdictStep.tsx",
+      "suggestion": "FIXED -- added VerdictStep.test.tsx (10 tests) covering every render branch and the auto-retry-exactly-once effect."
+    },
+    {
+      "finding": "commit.test.ts covered the symlink->403 mapping only via the daemon-config.json write's catch block; no test exercised commitCore's FIRST catch block (the charter.md write's own symlink->403 mapping) at the route-core level.",
+      "severity": "medium",
+      "category": "test-coverage",
+      "file": "server/src/external/org/commit.test.ts",
+      "suggestion": "FIXED -- added a case injecting a writeCharterFn that throws OrgFileSymlinkEscapeError, asserting 403 and that withOrgFileLockFn was never called."
+    },
+    {
+      "finding": "assertNotSymlink was duplicated: a private copy in commit-writes.ts and the lock-internal one in org-file-lock.ts -- the exact drift risk org-file-lock.ts's own header comment warns about.",
+      "severity": "medium",
+      "category": "duplication",
+      "file": "server/src/external/org/commit-writes.ts",
+      "suggestion": "FIXED -- exported assertNotSymlink and LstatFn from org-file-lock.ts; commit-writes.ts imports both instead of redeclaring."
+    },
+    {
+      "finding": "AuthorityStep.tsx's maxConcurrentTasks field had no validation, unlike every other numeric field in the wizard (BudgetStep.tsx's isFraction/budgetValid pattern).",
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/components/wizard/LeadSetupWizard/AuthorityStep.tsx",
+      "suggestion": "FIXED -- added isPositiveInteger(), gated canNext on it, added an inline error message matching the hard-stop-invalid idiom."
+    },
+    {
+      "finding": "Three near-identical try/catch blocks in commit.ts mapping OrgFileSymlinkEscapeError->403 and ELOCKED->409 across the three ordered writes.",
+      "severity": "low",
+      "category": "duplication",
+      "file": "server/src/external/org/commit.ts",
+      "suggestion": "NOT FIXED per this reviewer's own recommendation -- not worth the indirection for 3 uses with slightly different shapes."
+    },
+    {
+      "finding": "webuiBaseUrl fallback hardcoded in two places.",
+      "severity": "low",
+      "category": "duplication",
+      "file": "server/src/external/org/commit.ts",
+      "suggestion": "NOT FIXED -- unreachable in production, not flagged as needing a fix."
+    }
+  ]
+}

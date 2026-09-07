@@ -45,6 +45,8 @@ import { auditLogCore, type AuditLogDeps } from "../external/org/audit-log.js";
 import type { BeatRegisterLockOptions } from "../external/org/beat-register-release-core.js";
 import { requireChartLead } from "./org-chart-lead-guard.js";
 import { registerOrgWriteActions } from "./org-writes.js";
+import { registerLeadSetupWizardRoutes } from "./org-lead-setup-wizard.js";
+import type { TaskDomainLookup } from "../external/org/domains.js";
 import type { LeadsRosterResponse } from "../types/org.js";
 
 const NO_TASKS: TaskTitleLookup = { get: () => undefined };
@@ -63,8 +65,12 @@ export interface OrgApiRouterDeps {
   releaseLockOptions?: BeatRegisterLockOptions;
   /** FR-04.42 — task-title lookup for `GET /api/org/threads`. Omitted
    *  (e.g. in tests that don't exercise that route) falls back to raw
-   *  taskIds instead of a real title. */
-  store?: TaskTitleLookup;
+   *  taskIds instead of a real title. Also backs (W14)
+   *  `GET /api/org/domains`' task-domain aggregation. */
+  store?: TaskTitleLookup & TaskDomainLookup;
+  /** iterate-2026-09-07-leadwright-setup-wizard (W14) — see OrgRouterDeps. */
+  leadwrightCheckoutRoot?: string;
+  webuiBaseUrl?: string;
 }
 
 export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
@@ -229,6 +235,12 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
     withDecisionsLock: deps.withDecisionsLock,
     now: deps.now,
     releaseLockOptions: deps.releaseLockOptions,
+  });
+  registerLeadSetupWizardRoutes(app, {
+    leadsRoot,
+    leadwrightCheckoutRoot: deps.leadwrightCheckoutRoot,
+    webuiBaseUrl: deps.webuiBaseUrl ?? "http://localhost:5173",
+    store: deps.store,
   });
 
   return app;

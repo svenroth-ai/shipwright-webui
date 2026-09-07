@@ -166,6 +166,9 @@ export interface DiagnosticsSnapshot {
     vscode: { available: false; reason: string };
     desktop: { available: false; reason: string };
   };
+  /** iterate-2026-09-07-leadwright-setup-wizard (W14) — config-pointer
+   *  presence only, surfaced outside the setup wizard. */
+  org: { leadwrightCheckout: "unconfigured" | "configured" };
 }
 
 export async function httpJson<T>(input: string, init?: RequestInit): Promise<T> {
@@ -479,6 +482,11 @@ export interface ActionDefinition {
   kind: "external_launch";
   description?: string;
   command_template?: string;
+  /** FR-01.37 (#123) — the canonical Claude Code skill this action invokes
+   *  (e.g. `/shipwright-iterate`). Read directly rather than guessed from
+   *  `id` — an id-derived guess can name a skill that doesn't exist or
+   *  isn't authorized. */
+  slash_command?: string;
   modal_fields?: string[];
   /** Phase-independent CLI parameters (new-iterate / new-pipeline). */
   parameters?: RenderableParamSchema[];

@@ -12,6 +12,7 @@ import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
 import { NewIssueModal } from "./NewIssueModal";
+import { DOMAIN_VOCABULARY_QUERY_KEY } from "../../../hooks/useDomainVocabulary";
 import type {
   ActionDefinition,
   ResolvedProjectActions,
@@ -158,6 +159,9 @@ export function renderModal(overrides: RenderModalOverrides = {}) {
       },
     ],
   );
+  // Seeded so DomainSelect's fixture-driven tests can pick "billing" as an
+  // existing option without mocking `GET /api/org/domains` per test.
+  qc.setQueryData(DOMAIN_VOCABULARY_QUERY_KEY, { domains: ["billing"], unclaimedCounts: {} });
   const props = {
     open: true,
     onOpenChange: vi.fn(),

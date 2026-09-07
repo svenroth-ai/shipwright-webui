@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-07T15:37:47.040362+00:00",
-  "provider": "openrouter",
-  "findings_count": 11,
+  "timestamp": "2026-09-07T14:06:34.023407+00:00",
+  "provider": "codex",
+  "findings_count": 0,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "findings could not be itemized from the reviewer's prose \u2014 the count (0) is NOT a clean-review result",
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "approve",
-    "openai": "reject"
+    "openai": "unavailable",
+    "glm": "unavailable"
   },
   "contradiction": {
-    "detected": true,
-    "comparable": true,
-    "requires_resolution": true,
-    "reason": "reviewers contradict each other: glm=approve, openai=reject"
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": false,
+    "reason": "neither reviewer answered: glm=unavailable, openai=unavailable"
   },
-  "contradiction_resolution": "glm=approve vs openai=reject resolved per-finding in mini-plan.md External-Plan-Review-Findings table: 7 findings dispositioned (2 rejected-with-reason with empirical backing, 4 accepted-and-fixed via code+doc, 1 split), triage item trg-f2c8df89 filed for the AC-scoped-binding scope deferral both reviewers flagged"
+  "contradiction_resolution": null
 }

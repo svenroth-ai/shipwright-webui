@@ -31,18 +31,9 @@
 
 import { Hono } from "hono";
 
-import {
-  PreviewSessionManager,
-  type PreviewProfile,
-} from "../core/preview-session-manager.js";
+import type { PreviewProfile } from "../core/preview-session-manager.js";
 import { loadProfile, getProfilesDir } from "../core/profile-loader.js";
-import {
-  readRunConfig as defaultReadRunConfig,
-  type RunConfigReadResult,
-} from "../core/run-config-reader.js";
-import type { ComplianceReadResult } from "../core/compliance-reader.js";
-import { SessionWatcher } from "../core/session-watcher.js";
-import { SdkSessionsStore } from "../core/sdk-sessions-store.js";
+import { readRunConfig as defaultReadRunConfig } from "../core/run-config-reader.js";
 
 import { createRunConfigRouter } from "./run-config/routes.js";
 import { createModelConfigRouter } from "./model-config/routes.js";
@@ -63,8 +54,8 @@ import { createTasksRouter } from "./tasks/routes.js";
 import { createLaunchRouter } from "./launch/routes.js";
 import { createPrStatusRouter } from "./pr-status/routes.js";
 import { createDesignReviewRouter } from "./design-review/routes.js";
-import type { OrgRouterDeps } from "./org/routes.js";
 import { mountOrgRouters } from "./org/mount.js";
+import type { CreateExternalRoutesArgs } from "./create-external-routes-args.js";
 
 // Back-compat re-exports — 14+ sibling test files + downstream consumers
 // import these from `./routes.js` directly. Sources of truth post-C2:
@@ -79,103 +70,12 @@ export {
 } from "./file/_helpers.js";
 export { clearInboxDeriveCache } from "./inbox/_cache.js";
 export type { ExternalRouteProjectView } from "./_shared/helpers.js";
+export type { CreateExternalRoutesArgs } from "./create-external-routes-args.js";
 
-import type { ExternalRouteProjectView } from "./_shared/helpers.js";
-
-export function createExternalRoutes(args: {
-  store: SdkSessionsStore;
-  watcher: SessionWatcher;
-  /**
-   * Section 02 (iterate 3) — validates projectId on PATCH / POST. Returns
-   * the set of non-synthesized project ids currently known to the server.
-   * The reserved UNASSIGNED_PROJECT_ID sentinel is accepted independently
-   * of this set. Omitted in legacy callers — PATCH projectId support is
-   * gated on presence (iterate-2 callers still work without it, and the
-   * route returns 400 "projectId not supported" if a client sends one
-   * without wiring).
-   */
-  getKnownProjectIds?: () => Set<string>;
-  /**
-   * Section 03 (iterate 3) — look up a registered project by id. Used by
-   * GET /projects/:id/actions + POST /projects/:id/preview +
-   * POST /projects/:id/actions-stub. The synthesized "unassigned" row is
-   * NOT returned from here (it has no filesystem path).
-   */
-  getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
-  /**
-   * Section 03 — preview-session manager instance, shared across requests
-   * so the dedup cache holds between POSTs. Injected by index.ts;
-   * test harnesses can pass a fresh instance per test.
-   */
-  previewManager?: PreviewSessionManager;
-  /**
-   * Section 03 — loads a profile by name. Defaults to the real
-   * `core/profile-loader.ts` entry; tests inject a synthetic profile.
-   */
-  loadProfile?: (profileName: string) => PreviewProfile | null;
-  /**
-   * iterate/multi-session-run-orchestrator-v2 — reads a project's
-   * shipwright_run_config.json. Tests inject a stub so they don't
-   * touch the filesystem; production wires the real reader.
-   */
-  readRunConfig?: (projectPath: string) => Promise<RunConfigReadResult>;
-  /**
-   * iterate-2026-06-30-compliance-grade-webui (FR-01.43) — reads a project's
-   * `.shipwright/compliance/dashboard.md`. Tests inject a stub; production
-   * wires the real reader. Read-only observer (CLAUDE.md rule 12 spirit).
-   */
-  readCompliance?: (projectPath: string) => Promise<ComplianceReadResult>;
-  /**
-   * Iterate-2026-05-04 (ADR-068-A1) — best-effort scrollback cleanup
-   * cascade on DELETE /api/external/tasks/:id. Optional for tests;
-   * production wires the singleton ScrollbackStore.
-   */
-  scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
-  /**
-   * Iterate-2026-05-12 (ADR-087, MEDIUM-B1 fix) — best-effort snapshot
-   * cleanup cascade on DELETE /api/external/tasks/:id. Optional for
-   * tests; production wires the singleton SnapshotStore. Snapshots
-   * capture rendered cell-state and may contain secrets; the 24-h TTL
-   * is a backstop, the task delete is the authoritative privacy boundary.
-   */
-  snapshotClearBestEffort?: (taskId: string) => Promise<void>;
-  /**
-   * iterate-2026-05-08 v0.8.7 AC-1 — required injection of the pty
-   * lookup so the transcript poll can flip `new-plain` tasks from
-   * `active` → `idle` when the pty is gone (idle-ceiling, /close,
-   * server-restart, DELETE cascade).
-   *
-   * Required (NOT optional) per external plan review 2026-05-08
-   * (gemini + openai): optional production dependencies hide
-   * misconfiguration. Tests pass `{ get: () => undefined }`; the
-   * production caller in `index.ts` passes the singleton.
-   */
-  ptyManager: {
-    get(taskId: string): unknown;
-    /**
-     * D01/F01 — tear down the live embedded pty on DELETE /tasks/:id BEFORE
-     * the scrollback + snapshot privacy clears. Optional: legacy/test
-     * harnesses pass `{ get }` only; production (index.ts) wires it.
-     */
-    kill?(taskId: string): void | Promise<void>;
-    /**
-     * iterate-2026-05-18-inbox-terminal-prompts — decoded visible-viewport
-     * text of the task's live headless mirror, or null when there is no
-     * live mirror. Optional: legacy test harnesses pass `{ get }` only;
-     * production (index.ts) wires it. When absent the inbox emits no
-     * `terminal_prompt` rows (graceful — never a crash).
-     */
-    peekTerminalText?(taskId: string): string | null;
-  };
-  /** FR-04.38 — `/api/external/org/*` (leadwright's org dir, not a project).
-   *  Mounted only when `honoHost` + `leadsRoot` are both provided (mirrors
-   *  the `getProjectById`-gated mission-context mount above). */
-  honoHost?: string;
-  leadsRoot?: string;
-  leadsRouteSecret?: string;
-  orgLstatSync?: OrgRouterDeps["lstatSync"];
-  orgWithDecisionsLock?: OrgRouterDeps["withDecisionsLock"];
-}) {
+// The full injection contract lives in ./create-external-routes-args.ts
+// (extracted iterate-2026-09-07-leadwright-setup-wizard to stay under the
+// bloat ceiling — this file owns wiring, not the type declaration).
+export function createExternalRoutes(args: CreateExternalRoutesArgs) {
   const {
     store,
     watcher,
@@ -191,6 +91,8 @@ export function createExternalRoutes(args: {
     leadsRouteSecret,
     orgLstatSync,
     orgWithDecisionsLock,
+    leadwrightCheckoutRoot,
+    webuiBaseUrl,
   } = args;
   // iterate-2026-05-08 v0.8.7 AC-1 — runtime guard (external code review
   // openai medium): TypeScript-only requirement is bypassable in plain
@@ -317,7 +219,16 @@ export function createExternalRoutes(args: {
 
   // FR-04.38 — secret-gated `/api/external/org/*` + plain `/api/org/*` proxy
   // (see org/mount.ts for why both are composed from one call site).
-  mountOrgRouters(app, { honoHost, leadsRoot, leadsRouteSecret, orgLstatSync, orgWithDecisionsLock, store });
+  mountOrgRouters(app, {
+    honoHost,
+    leadsRoot,
+    leadsRouteSecret,
+    orgLstatSync,
+    orgWithDecisionsLock,
+    store,
+    leadwrightCheckoutRoot,
+    webuiBaseUrl,
+  });
 
   return app;
 }

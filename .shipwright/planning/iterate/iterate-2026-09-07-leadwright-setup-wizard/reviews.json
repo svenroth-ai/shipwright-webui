@@ -1,0 +1,345 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-leadwright-setup-wizard",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:16:40.699675+00:00",
+      "disposition": null,
+      "recorded_by": "self-review (this session)",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "codex",
+      "completed_at": "2026-09-07T14:06:34.020924+00:00",
+      "disposition": null,
+      "recorded_by": "external-architecture-review",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] 1. **Category:** approach  **Severity:** high  **Finding:** charter.md is missing from the write sequence.  **Suggestion:** same as openai -- write it server-side as part of the ordered commit.\n2. **Category:** approach  **Severity:** high  **Finding:** the three writes have no atomicity/recovery story.  **Suggestion:** collapse into one ordered, partially-idempotent server commit endpoint.\n3. **Category:** security  **Severity:** high  **Finding:** the write routes have no server-side validation independent of a prior client verdict call -- a caller could commit a proposal the verdict never covered.  **Suggestion:** validate server-side and bind the commit to the verdict's proposalDigest.\n4. **Category:** robustness  **Severity:** medium  **Finding:** no overall subprocess deadline beyond the stdin-write timeout.  **Suggestion:** add one.\n5. **Category:** concurrency  **Severity:** medium  **Finding:** the daemon-config existence check races its own lock's ensureFile.  **Suggestion:** move the existence check inside a non-ensureFile lock acquisition.\n\n[openai] 1. **Category:** approach  **Severity:** high  **Finding:** charter.md is never written in the first draft.  **Suggestion:** write it as part of a single server-side commit endpoint, ordered before daemon-config.json/org-chart.json.\n2. **Category:** correctness  **Severity:** high  **Finding:** the verdict's daemonConfig is client-assembled from scratch instead of a fresh read of the real file.  **Suggestion:** expose a server-side fresh-read-and-merge via a new GET .../daemon-config route.\n3. **Category:** approach  **Severity:** high  **Finding:** the three writes are client-sequenced with no atomicity or recovery story.  **Suggestion:** collapse into one ordered, partially-idempotent server commit endpoint.\n4. **Category:** correctness  **Severity:** medium  **Finding:** the action->allowed_skills mapping guesses from an action id instead of using the action catalog's own slash_command field.  **Suggestion:** read slash_command directly.\n5. **Category:** edge-case  **Severity:** low  **Finding:** legacy non-kebab-case domains and Windows-path-form edge cases are not handled in the absolute-path guard.  **Suggestion:** add explicit, tested cases for both.",
+      "verdicts": {
+        "openai": "unavailable",
+        "glm": "unavailable"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "test-coverage",
+          "file": "client/src/components/wizard/LeadSetupWizard/VerdictStep.tsx",
+          "line": null,
+          "finding": "VerdictStep.tsx (the wizard's most complex component -- builds the proposal, runs the verdict, auto-retries once on a 409 verdict_stale, renders 6+ conditional result branches) had zero test coverage.",
+          "suggestion": "FIXED -- added VerdictStep.test.tsx (10 tests) covering every render branch and the auto-retry-exactly-once effect.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test-coverage",
+          "file": "server/src/external/org/commit.test.ts",
+          "line": null,
+          "finding": "commit.test.ts covered the symlink->403 mapping only via the daemon-config.json write's catch block; no test exercised commitCore's FIRST catch block (the charter.md write's own symlink->403 mapping) at the route-core level.",
+          "suggestion": "FIXED -- added a case injecting a writeCharterFn that throws OrgFileSymlinkEscapeError, asserting 403 and that withOrgFileLockFn was never called.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "duplication",
+          "file": "server/src/external/org/commit-writes.ts",
+          "line": null,
+          "finding": "assertNotSymlink was duplicated: a private copy in commit-writes.ts and the lock-internal one in org-file-lock.ts -- the exact drift risk org-file-lock.ts's own header comment warns about.",
+          "suggestion": "FIXED -- exported assertNotSymlink and LstatFn from org-file-lock.ts; commit-writes.ts imports both instead of redeclaring.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/wizard/LeadSetupWizard/AuthorityStep.tsx",
+          "line": null,
+          "finding": "AuthorityStep.tsx's maxConcurrentTasks field had no validation, unlike every other numeric field in the wizard (BudgetStep.tsx's isFraction/budgetValid pattern).",
+          "suggestion": "FIXED -- added isPositiveInteger(), gated canNext on it, added an inline error message matching the hard-stop-invalid idiom.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "duplication",
+          "file": "server/src/external/org/commit.ts",
+          "line": null,
+          "finding": "Three near-identical try/catch blocks in commit.ts mapping OrgFileSymlinkEscapeError->403 and ELOCKED->409 across the three ordered writes.",
+          "suggestion": "NOT FIXED per this reviewer's own recommendation -- not worth the indirection for 3 uses with slightly different shapes.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "duplication",
+          "file": "server/src/external/org/commit.ts",
+          "line": null,
+          "finding": "webuiBaseUrl fallback hardcoded in two places.",
+          "suggestion": "NOT FIXED -- unreachable in production, not flagged as needing a fix.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-07T14:02:39.243170+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "concurrency & ordering / reversibility / hidden coupling",
+          "file": "server/src/external/org/commit.ts (write ordering, lines 141-192), server/src/external/org/commit-writes.ts (writeDaemonConfigAddition has no conflict check vs. writeOrgChartLead's, lines 69-124), server/src/external/org/leadwright-proposal-merge.ts (mergeLeadProposal always overwrites the target leadId, lines 75-76)",
+          "line": null,
+          "finding": "Claim under doubt: when commit hits org_chart_lead_exists (409), nothing was written — 'A different lead already exists at this id. Pick a different lead id.' — commitCore performs the three writes in strict order charter.md -> daemon-config.json -> org-chart.json, and ONLY the org-chart.json write (writeOrgChartLead) has a conflict check comparing the existing entry to the submitted one. writeDaemonConfigAddition has NO such check — it unconditionally overwrites leadProjectRoots[leadId]/leadActionIds[leadId]/leadPluginDirs[leadId] with whatever the current request submitted, every time it is called, regardless of what happens afterward. So a commit for a leadId that already exists on disk with DIFFERENT content: (1) writes charter.md (no lock, no conflict check at all — silently clobbers any existing charter.md at that leadId path); (2) writes daemon-config.json's entries for that leadId (locked, but unconditional overwrite, no conflict check); (3) only THEN discovers the collision in writeOrgChartLead and returns 409 org_chart_lead_exists, leaving org-chart.json itself untouched. Net result: org-chart.json still shows the pre-existing (real) lead's config, but daemon-config.json's leadProjectRoots/leadActionIds/leadPluginDirs for that leadId now point at the REJECTED proposal's project path / action id / plugin dirs, and charter.md may now contain the rejected proposal's prose. This is a silent, on-disk mismatch between org-chart.json (source of truth for 'which leads exist and their settings') and daemon-config.json (source of truth for 'where each lead's process runs') for an ALREADY-ACTIVE, real lead — surfacing only after the next leadwright daemon restart, misdirecting that lead to the wrong project root / action / plugin dirs, with the user told nothing was written. Crucially this needs NO race at all: any ordinary operator who submits a leadId that already exists (typo, forgotten prior setup, no client-side uniqueness check exists anywhere in the wizard — grepped NameIdDomainStep.tsx and the rest of client/src/components/wizard/LeadSetupWizard, no leadId-uniqueness check before commit) triggers it deterministically, every time. It's also invisible to the digest-staleness guard: mergeLeadProposal (leadwright-proposal-merge.ts) unconditionally overwrites orgChart.leads[leadId] with the submitted lead before hashing, so the 'fresh re-check' digest computed in commitCore is identical whether or not that leadId already exists on disk — verdict_stale can never catch a same-id collision, so the org-chart write's late conflict check is the ONLY defense, and it is not applied to the two writes that already ran ahead of it.",
+          "suggestion": "Either (a) add an upfront existence/conflict check against the freshly-read org-chart.json's leads[leadId] BEFORE any write runs (charter/daemon-config/org-chart), returning 409 org_chart_lead_exists immediately with zero side effects — the check materials (fresh org-chart read) are already in hand at that point in commitCore; and/or (b) give writeDaemonConfigAddition the same idempotency/conflict semantics writeOrgChartLead already has (refuse to overwrite an existing differing entry for leadId rather than silently clobbering it), as defense in depth. Note commit.test.ts's own 'leaving the org chart untouched' test (server/src/external/org/commit.test.ts, ~line 168) only asserts org-chart.json's post-conflict state and never asserts daemon-config.json's — adding that assertion would fail today and demonstrate the bug directly.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-07T14:02:44.771057+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/wizard/LeadSetupWizard/VerdictStep.tsx` (~line 55, `canFinish`) and `client/src/components/wizard/LeadSetupWizard/useLeadwrightVerdict.ts` (~line 40)",
+          "line": null,
+          "finding": "The finish action is gated on transport `ranOk === true`, never on `result.ok === true`. The hook doesn't even surface `PreflightResult.ok`, and `commitCore` never re-runs or checks the verdict — it only checks the digest. The mini-plan (part of the spec) is explicit: \"writes … only after the verdict route reports `ok: true` — never before.\" As shipped, a proposal with unsatisfied MUSS findings (red verdict) has an enabled Finish button and commits. Concrete exploit path: `AuthorityStep`'s `isPositiveInteger` enforces no upper bound, so `max_concurrent_tasks: 20` (leadwright schema caps at 8) yields a red verdict, Finish stays enabled, and an org-chart entry violating leadwright's own schema is persisted — the exact silent-failure class this card exists to close.",
+          "suggestion": "Expose `result.ok` from `useLeadwrightVerdict` and add `verdict.ok === true` to `canFinish`; optionally also reject `max_concurrent_tasks > 8` in `AuthorityStep` so the wizard never builds a proposal the verdict will always red-flag.  2. Category: spec | Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/external/org/commit-writes.ts` (~line 69, `writeDaemonConfigAddition`) and `server/src/external/org/commit.ts` (~line 168)",
+          "line": null,
+          "finding": "The daemon-config existence decision is still made OUTSIDE the lock. `daemonConfigFileExists` comes from the pre-commit `daemonConfigReadFn` read; if false, the fragment branch returns without ever locking; if the file is deleted between the read and the lock, `lockfile.lock` (mustExist) throws ENOENT, which `commitCore` rethrows (it only maps `ELOCKED` and symlink errors) → 500. The spec (round-2 GLM finding, marked fixed) required the ENOENT on the read inside the lock to be the \"hand back a fragment\" branch, eliminating the TOCTOU race. Only the `ensureFile`-creates-the-file half of that finding was actually fixed.",
+          "suggestion": "Always attempt the `mustExist` lock and catch `ENOENT` from the acquisition itself, returning `{status:\"missing\"}` from that path instead of keying off the pre-commit snapshot.  3. Category: bug | Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/wizard/LeadSetupWizard/useLeadwrightVerdict.ts` (~line 24, `proposalFingerprint`)",
+          "line": null,
+          "finding": "The verdict query key fingerprints only the `LeadProposal` object — `charterContent` is not part of the key, yet it is part of the merged proposal and its digest. Editing an authority band (charter text only) leaves the query key unchanged, so with `staleTime: Infinity` the displayed verdict (and the `proposalDigest` handed to commit) covers the old charter. The spec requires \"a change to any answer after a verdict was fetched invalidates the stored digest client-side\" and that Finish be disabled when answers changed; here Finish stays enabled with a stale digest, and the failure is only caught by a server 409 `verdict_stale` round trip (then one auto-refetch, then the user must press Finish again).",
+          "suggestion": "Include a hash of `charterContent` in the query key (or track a dirty flag against the verdict's inputs) so charter edits disable Finish until a fresh verdict runs.  4. Category: spec | Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/external/org/domains.ts` (~line 30) and `server/src/external/org/mount.ts` (~line 25)",
+          "line": null,
+          "finding": "The spec requires the domains route to union `org-chart.json` domains with every project's task store (`ProjectManager.getAll()`, open each project's `SdkSessionsStore` — explicitly called out as new, narrow, read-only iteration because \"no existing cross-project aggregator was found\"). The implementation consumes a single injected `store` (the same one already wired for `GET /api/org/threads`, i.e. one `SdkSessionsStore`), so domains used only on other projects' cards never appear in the vocabulary the wizard and `NewIssueModal` draw from.",
+          "suggestion": "Wire a cross-project lookup (loop all projects' stores) into `domainsCore`, or document the single-project scope as an accepted deviation in the spec.  5. Category: edge-case | Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/wizard/LeadSetupWizard/absolutePaths.ts` (~line 12, `isAbsolutePath`)",
+          "line": null,
+          "finding": "p.includes(\"..\")` rejects any path whose name contains a literal `..` (e.g. `/home/sven/notes..old/proj`) — a false positive the spec's \".. traversal\" rule doesn't cover. Conversely, the client classifies Windows drive-letter/UNC paths as absolute, but the server's `commitCore` uses `path.isAbsolute`, which on a POSIX host rejects `C:\\...` — a value that passes the client gate 400s at the commit boundary with a different error name.",
+          "suggestion": "Check for `..` as a path segment (split on `/` and `\\`), and align server-side absoluteness with the client's browser-safe form (or normalize before comparing).  6. Category: edge-case | Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/external/org/commit.ts` (~line 195, `writeCharter` call)",
+          "line": null,
+          "finding": "commitCore` writes the charter to `<leadsRoot>/<leadId>/charter.md` regardless of the submitted `lead.charter_path`. The server-side regex only requires \"relative, no `..`\", so a direct API caller (the client-side fixed-convention check is explicitly advisory) can submit `charter_path: \"other/dir/charter.md\"`: the org-chart entry then points at a path that was never written, while the content lands under `<leadId>/` — a webui-introduced org-chart/charter mismatch of the kind the card is meant to eliminate.",
+          "suggestion": "Reject (or rewrite to the fixed convention) any `charter_path`/`learnings_path` that isn't exactly `<leadId>/charter.md` / `<leadId>/learnings.md` in `validateBody`.  7. Category: test | Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/e2e/flows/106-leadwright-setup-wizard.spec.ts` (~line 30, `writeChart`)",
+          "line": null,
+          "finding": "The E2E seeds `org-chart.json` with `version: 1`, but the vendored contract (and `PreflightOrgChart`) pins `version` to the const `2`. The test passes only because no checkout is configured; with one, every verdict in this suite would red-flag on `version` before reaching the assertions' intent.",
+          "suggestion": "Seed `version: 2` to match the published contract.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "client/src/components/wizard/LeadSetupWizard/VerdictStep.tsx:62-69",
+          "line": null,
+          "finding": "Finish is enabled whenever the transport ran, regardless of `PreflightResult.ok`. A valid red verdict (`ranOk: true`, `result.ok: false`) therefore permits committing a proposal with unsatisfied MUSS findings.",
+          "suggestion": "Expose `result.ok` from `useLeadwrightVerdict` and require it in `canFinish`; render red findings while keeping Finish disabled.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/external/org/commit.ts:154-158",
+          "line": null,
+          "finding": "expectedProposalDigest` is an unsigned deterministic SHA-256 hash, not evidence that preflight ran or passed. A caller can construct the merged payload, calculate the hash, and call the unauthenticated plain commit endpoint directly, bypassing leadwright validation entirely.",
+          "suggestion": "Issue a server-verifiable, short-lived token only for a successful (`result.ok === true`) verdict and verify it at commit, or rerun preflight during commit and require a green result.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "server/src/external/org/commit.ts:61-67, 178",
+          "line": null,
+          "finding": "The route accepts any relative `charter_path`/`learnings_path`, but always writes `<leadsRoot>/<leadId>/charter.md`. A direct caller can persist `charter_path: \"other.md\"` and receive success even though the charter written by the endpoint is not the charter the daemon will read.",
+          "suggestion": "Require `charter_path === \\`${leadId}/charter.md\\`` and `learnings_path === \\`${leadId}/learnings.md\\`` at the write boundary.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "regression",
+          "file": "server/src/external/org/commit-writes.ts:31-43",
+          "line": null,
+          "finding": "charter.md` is explicitly written without the required file lock and can overwrite an existing charter. Concurrent commits for the same new ID can race: both pass the pre-write org-chart check, then one rejected commit can still overwrite the other lead’s charter and daemon-config entries before the final org-chart collision is detected.",
+          "suggestion": "Acquire the specified independent charter-file lock and make collision/idempotency checks occur under a lock that prevents concurrent same-ID commits from reaching earlier writes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/external/org/domains.ts:49-56",
+          "line": null,
+          "finding": "Domain aggregation reads only the injected single `store`; it does not iterate all projects and open each project’s task store as required. Domains and unclaimed counts from non-current projects will be absent from both shared pickers.",
+          "suggestion": "Inject/use `ProjectManager.getAll()` and aggregate each project’s `SdkSessionsStore`, with tests covering domains found only in another project.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "server/src/external/org/leadwright-proposal-merge.ts",
+          "line": 86,
+          "finding": "The inline preflight proposal includes charter content only for the new lead despite the vendored input contract describing one charter entry per org-chart lead. Once an org chart already contains leads, their charters are omitted from the inline check, so preflight can report missing charter-band findings unrelated to the proposed lead.",
+          "suggestion": "Read and include inline charter content for all existing leads when constructing the full proposal, or verify and document an upstream contract that explicitly permits omitted existing charters.  Overall assessment: block until the verdict gate is made green-only and non-bypassable; the charter path and locking issues can otherwise persist or corrupt a lead setup. SHIPWRIGHT_VERDICT: reject",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-07T14:57:12.752596+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: spec | Severity: high**\n- File: `client/src/components/wizard/LeadSetupWizard/VerdictStep.tsx` (~line 55, `canFinish`) and `client/src/components/wizard/LeadSetupWizard/useLeadwrightVerdict.ts` (~line 40)\n- Finding: The finish action is gated on transport `ranOk === true`, never on `result.ok === true`. The hook doesn't even surface `PreflightResult.ok`, and `commitCore` never re-runs or checks the verdict — it only checks the digest. The mini-plan (part of the spec) is explicit: \"writes … only after the verdict route reports `ok: true` — never before.\" As shipped, a proposal with unsatisfied MUSS findings (red verdict) has an enabled Finish button and commits. Concrete exploit path: `AuthorityStep`'s `isPositiveInteger` enforces no upper bound, so `max_concurrent_tasks: 20` (leadwright schema caps at 8) yields a red verdict, Finish stays enabled, and an org-chart entry violating leadwright's own schema is persisted — the exact silent-failure class this card exists to close.\n- Suggestion: Expose `result.ok` from `useLeadwrightVerdict` and add `verdict.ok === true` to `canFinish`; optionally also reject `max_concurrent_tasks > 8` in `AuthorityStep` so the wizard never builds a proposal the verdict will always red-flag.\n\n**2. Category: spec | Severity: medium**\n- File: `server/src/external/org/commit-writes.ts` (~line 69, `writeDaemonConfigAddition`) and `server/src/external/org/commit.ts` (~line 168)\n- Finding: The daemon-config existence decision is still made OUTSIDE the lock. `daemonConfigFileExists` comes from the pre-commit `daemonConfigReadFn` read; if false, the fragment branch returns without ever locking; if the file is deleted between the read and the lock, `lockfile.lock` (mustExist) throws ENOENT, which `commitCore` rethrows (it only maps `ELOCKED` and symlink errors) → 500. The spec (round-2 GLM finding, marked fixed) required the ENOENT on the read *inside* the lock to be the \"hand back a fragment\" branch, elimin […truncated]\n\n[openai] - Category: bug  \n  Severity: high  \n  File: `client/src/components/wizard/LeadSetupWizard/VerdictStep.tsx:62-69`  \n  Finding: Finish is enabled whenever the transport ran, regardless of `PreflightResult.ok`. A valid red verdict (`ranOk: true`, `result.ok: false`) therefore permits committing a proposal with unsatisfied MUSS findings.  \n  Suggestion: Expose `result.ok` from `useLeadwrightVerdict` and require it in `canFinish`; render red findings while keeping Finish disabled.\n\n- Category: security  \n  Severity: high  \n  File: `server/src/external/org/commit.ts:154-158`  \n  Finding: `expectedProposalDigest` is an unsigned deterministic SHA-256 hash, not evidence that preflight ran or passed. A caller can construct the merged payload, calculate the hash, and call the unauthenticated plain commit endpoint directly, bypassing leadwright validation entirely.  \n  Suggestion: Issue a server-verifiable, short-lived token only for a successful (`result.ok === true`) verdict and verify it at commit, or rerun preflight during commit and require a green result.\n\n- Category: spec  \n  Severity: high  \n  File: `server/src/external/org/commit.ts:61-67, 178`  \n  Finding: The route accepts any relative `charter_path`/`learnings_path`, but always writes `<leadsRoot>/<leadId>/charter.md`. A direct caller can persist `charter_path: \"other.md\"` and receive success even though the charter written by the endpoint is not the charter the daemon will read.  \n  Suggestion: Require `charter_path === \\`${leadId}/charter.md\\`` and `learnings_path === \\`${leadId}/learnings.md\\`` at the write boundary.\n\n- Category: regression  \n  Severity: high  \n  File: `server/src/external/org/commit-writes.ts:31-43`  \n  Finding: `charter.md` is explicitly written without the required file lock and can overwrite an existing charter. Concurrent commits for the same new ID can race: both pass the pre-write org-chart check, then one rejected commit can still overwrite the other lead’s charter and daemo […truncated]",
+      "verdicts": {
+        "openai": "reject",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T14:02:33.683428+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "The mini-plan specified four new routes under the secret-gated /api/external/org/* mount for a browser-facing wizard, without noticing that mount requires a header a browser client cannot supply without embedding a credential client-side.",
+          "suggestion": "ALREADY FIXED before this review ran -- caught during spec-reviewer round 1, resolved by adding the plain-surface /api/org/* proxy (server/src/routes/org-lead-setup-wizard.ts) sharing pure cores with the secret-gated family; documented in the iterate spec's Correction section.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The mini-plan's approach paragraph omitted charter.md from the write list even though the card's own premise names three files.",
+          "suggestion": "ALREADY FIXED before this review ran -- caught by external-architecture-review round 2 (both legs, high); charter.md is now written first in the single server-side commit endpoint.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "The mini-plan described client-sequenced writes to org-chart.json and daemon-config.json with no atomicity or recovery story.",
+          "suggestion": "ALREADY FIXED before this review ran -- caught by external-architecture-review round 2 (both legs, high); collapsed into one ordered, partially-idempotent server-side commit endpoint.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The chosen write ordering put the only leadId collision check on the LAST write (org-chart.json), so a duplicate leadId would corrupt daemon-config.json's entries for an already-active lead before being rejected.",
+          "suggestion": "ALREADY FIXED before this review ran -- caught by doubt-reviewer (Stage 3, high severity, same run) and fixed same-session: commitCore now checks for an existing, differing leadId upfront, before any write runs.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "The mini-plan's 'structural copy of decisions-lock.ts's shape' didn't call out that assertNotSymlink specifically should be shared, not re-duplicated.",
+          "suggestion": "ALREADY FIXED before this review ran -- caught by code-reviewer (medium finding #3, same run); org-file-lock.ts now exports assertNotSymlink/LstatFn, commit-writes.ts imports rather than redeclares.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": null,
+          "line": null,
+          "finding": "The Confidence Calibration section never called out VerdictStep.tsx (the wizard's most complex component) as needing dedicated test coverage.",
+          "suggestion": "ALREADY FIXED before this review ran -- caught by code-reviewer (high finding #1, same run); VerdictStep.test.tsx added (10 tests).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": null,
+          "line": null,
+          "finding": "GET /domains' per-project fan-out cost was not discussed in the mini-plan.",
+          "suggestion": "Mitigated via a react-query staleTime during external review; no further action needed -- noted as a plan-writing lesson (name the fan-out cost of any route iterating all projects), not an outstanding defect.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-07T14:07:17.216328+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

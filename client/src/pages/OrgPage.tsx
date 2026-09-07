@@ -11,6 +11,7 @@
  */
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { PageHead } from "../components/common/PageHead";
 import { OrgChart } from "../components/org/OrgChart";
@@ -34,16 +35,25 @@ export default function OrgPage() {
         title="Org"
         testId="org-header"
         actions={
-          presence === "present" && roster && roster.leads.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setActivityOpen(true)}
-              data-testid="org-activity-button"
+          <div className="flex items-center gap-2">
+            {presence === "present" && roster && roster.leads.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setActivityOpen(true)}
+                data-testid="org-activity-button"
+                className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
+              >
+                Activity
+              </button>
+            ) : null}
+            <Link
+              to="/org/new-lead"
+              data-testid="org-new-lead-button"
               className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
             >
-              Activity
-            </button>
-          ) : undefined
+              New lead
+            </Link>
+          </div>
         }
       />
       {roster && (

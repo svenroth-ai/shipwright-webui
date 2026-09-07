@@ -1,0 +1,180 @@
+{
+  "run_id": "iterate-2026-09-07-leadwright-setup-wizard",
+  "date": "2026-09-07T18:15:19.218356Z",
+  "event_at": "2026-09-07T18:14:55.312463+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/leadwright-setup-wizard",
+  "spec": ".shipwright/planning/iterate/iterate-2026-09-07-leadwright-setup-wizard.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-07-leadwright-setup-wizard",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 27,
+      "tested": 27,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 27,
+      "covered_acs": 27
+    },
+    "behaviors": [
+      {
+        "behavior": "preflight transport parses a genuine green verdict",
+        "disposition": "tested",
+        "evidence": "server/src/core/leadwright-preflight-transport.test.ts"
+      },
+      {
+        "behavior": "preflight transport parses a genuine red verdict with findings",
+        "disposition": "tested",
+        "evidence": "server/src/core/leadwright-preflight-transport.test.ts"
+      },
+      {
+        "behavior": "preflight transport fails closed (ranOk:false) on unparsable/empty stdout",
+        "disposition": "tested",
+        "evidence": "server/src/core/leadwright-preflight-transport.test.ts"
+      },
+      {
+        "behavior": "preflight transport handles stdin write/close and a hung/unresolvable subprocess",
+        "disposition": "tested",
+        "evidence": "server/src/core/leadwright-preflight-transport.test.ts (24 cases total)"
+      },
+      {
+        "behavior": "org-file-lock: fresh acquire + write round-trips",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/org-file-lock.test.ts"
+      },
+      {
+        "behavior": "org-file-lock: concurrent writer ELOCKED maps to a named 409",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/org-file-lock.test.ts"
+      },
+      {
+        "behavior": "org-file-lock: symlink-escaped target is refused",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/org-file-lock.test.ts (8 cases)"
+      },
+      {
+        "behavior": "commitCore rejects a malformed body (leadId/paths/allowed_skills/absolute fields)",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit-validate.test.ts (12 cases)"
+      },
+      {
+        "behavior": "commitCore 409s verdict_stale on a resubmitted-digest mismatch",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts"
+      },
+      {
+        "behavior": "commitCore 409s verdict_not_ok (never writes) when its own re-verification comes back red, even if the digest matches, closing the unsigned-digest bypass",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts"
+      },
+      {
+        "behavior": "commitCore 502s leadwright_transport_failed (never writes) when re-verification cannot get a parsable result",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts"
+      },
+      {
+        "behavior": "commitCore includes every other lead's real charter.md (existingCharters) in the proposal sent to preflight",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/leadwright-proposal-merge.test.ts, existing-charters-read via readExistingLeadCharters describe block"
+      },
+      {
+        "behavior": "commitCore 409s org_chart_lead_exists upfront (pre-lock) on an obvious id collision",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts"
+      },
+      {
+        "behavior": "commitCore 409s org_chart_lead_exists on a true-concurrency collision visible only inside the lock",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts (doubt-review fix case)"
+      },
+      {
+        "behavior": "commitCore performs all three ordered writes and returns the restart notice",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts"
+      },
+      {
+        "behavior": "commitCore returns committed:false with a fragment when daemon-config.json is absent",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit.test.ts"
+      },
+      {
+        "behavior": "commitCore maps lock/symlink errors to their named responses",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/commit-lock.test.ts (4 cases)"
+      },
+      {
+        "behavior": "verdictCore mirrors the same existingCharters inclusion at preview time",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/verdict.test.ts"
+      },
+      {
+        "behavior": "daemon-config-read found/missing branches",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/daemon-config-read.test.ts"
+      },
+      {
+        "behavior": "org-chart-full-read 200/404 branches",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/org-chart-full-read.test.ts"
+      },
+      {
+        "behavior": "domain vocabulary union (org-chart-only/cards-only/both/empty)",
+        "disposition": "tested",
+        "evidence": "server/src/external/org/domains.test.ts (4 cases)"
+      },
+      {
+        "behavior": "absolutePaths guard rejects relative, accepts absolute, does not flag a non-traversal .. segment",
+        "disposition": "tested",
+        "evidence": "client/src/components/wizard/LeadSetupWizard/absolutePaths.test.ts (11 cases)"
+      },
+      {
+        "behavior": "7-question wizard state machine transitions",
+        "disposition": "tested",
+        "evidence": "client/src/components/wizard/LeadSetupWizard/leadWizardState.test.ts (12 cases)"
+      },
+      {
+        "behavior": "wizard answers assemble into a valid PreflightLead + daemon-config additions proposal",
+        "disposition": "tested",
+        "evidence": "client/src/components/wizard/LeadSetupWizard/buildLeadProposal.test.ts (9 cases)"
+      },
+      {
+        "behavior": "VerdictStep renders verdict_not_ok / org_chart_lead_exists / stale messaging distinctly",
+        "disposition": "tested",
+        "evidence": "client/src/components/wizard/LeadSetupWizard/VerdictStep.test.tsx (12 cases)"
+      },
+      {
+        "behavior": "leadSetupWizardApi maps 409 verdict_not_ok to kind:verdict_not_ok with findings",
+        "disposition": "tested",
+        "evidence": "client/src/lib/leadSetupWizardApi.test.ts (20 cases)"
+      },
+      {
+        "behavior": "full 7-question wizard flow reaches the verdict step in a real browser; New-lead CTA opens it; missing leadwright checkout blocks Finish",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/106-leadwright-setup-wizard.spec.ts (3 specs, real Chromium, F0.5 tests_run:3 exit 0)"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/106-leadwright-setup-wizard.spec.ts",
+    "exit_code": 0,
+    "tests_run": 3,
+    "evidence_path": ".shipwright/runs/iterate-2026-09-07-leadwright-setup-wizard/surface_verification.log",
+    "timestamp": "2026-09-07T18:07:43.599Z"
+  },
+  "declared_removals": [
+    {
+      "path": ".shipwright/planning/iterate/external_code_review_state.json",
+      "reason": "single-slot last-review-pass marker, not an append log — origin/main's content there belongs entirely to iterate w5 (commit 86263cd0), already merged and delivered under its own PR. This branch's own code-review-pass marker (Step 3.7, findings_count=13) is what correctly occupies this slot when THIS iterate merges; no union is meaningful for a single JSON object that only ever records the most recent review pass."
+    },
+    {
+      "path": ".shipwright/planning/iterate/external_review_state.json",
+      "reason": "same single-slot last-review-pass marker as external_code_review_state.json, for the iterate-mode (Step 4) review pass — origin/main's content belongs to already-merged iterate w5 (commit 86263cd0); this branch's own marker is what correctly lands here on merge."
+    }
+  ]
+}

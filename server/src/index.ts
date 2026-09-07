@@ -46,6 +46,7 @@ import { cascadeDeleteProjectTasks } from "./core/cascade-delete-project-tasks.j
 import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
+import { buildExternalRoutesArgs } from "./external-routes-wiring.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createReadinessRoutes } from "./routes/readiness.js";
 import { createGradeRoutes } from "./routes/grade.js";
@@ -521,55 +522,28 @@ if (isMainModule) {
 
       app.route(
         "/",
-        createExternalRoutes({
+        createExternalRoutes(
+          buildExternalRoutesArgs({
+            sdkSessionsStore,
+            sessionWatcher,
+            projectManager,
+            previewManager,
+            scrollbackStore,
+            snapshotStore,
+            ptyManager,
+            honoHost,
+            config,
+          }),
+        ),
+      );
+      app.route(
+        "/",
+        createDiagnosticsRoutes({
           store: sdkSessionsStore,
-          watcher: sessionWatcher,
-          // Section 02 — PATCH/POST projectId validation. Excludes the
-          // synthesized Unassigned row (that sentinel is hard-coded valid
-          // inside validateProjectIdOrError).
-          getKnownProjectIds: () =>
-            new Set(projectManager.getAll().filter((p) => !p.synthesized).map((p) => p.id)),
-          // Section 03 — actions / preview / stub routes. Synthesized row
-          // has no filesystem path so it's skipped by getProjectById.
-          getProjectById: (id) => {
-            const p = projectManager.getById(id);
-            if (!p || p.synthesized) return undefined;
-            return {
-              id: p.id,
-              name: p.name,
-              path: p.path,
-              profile: p.profile,
-              synthesized: p.synthesized,
-              settings: p.settings ? { color: p.settings.color } : undefined,
-            };
-          },
-          previewManager,
-          loadProfile: (name: string) => loadProfileReal(name, getProfilesDir()),
-          // ADR-068-A1: cascade-clean scrollback on DELETE /tasks/:id.
-          scrollbackClearBestEffort: (taskId: string) =>
-            scrollbackStore.clearBestEffort(taskId),
-          // Iterate C (ADR-087, MEDIUM-B1): cascade-clean the cell-state
-          // snapshot on DELETE (secrets; privacy boundary). D19/F26: clear()
-          // also sweeps the task's orphaned `.snapshot.tmp-*` strays.
-          snapshotClearBestEffort: (taskId: string) =>
-            snapshotStore.clearBestEffort(taskId),
-          // iterate-2026-05-08 v0.8.7 AC-1: live-pty lookup so transcript
-          // poll can flip new-plain `active → idle` after pty-kill.
-          // iterate-2026-05-18-inbox-terminal-prompts: peekTerminalText so
-          // the inbox can detect a waiting AskUserQuestion picker from the
-          // live @xterm/headless mirror.
-          ptyManager: {
-            get: (taskId: string) => ptyManager.get(taskId),
-            kill: (taskId: string) => ptyManager.kill(taskId), // D01/F01 — teardown before clears
-            peekTerminalText: (taskId: string) =>
-              ptyManager.peekTerminalText(taskId),
-          },
-          honoHost, // FR-04.38 org-directory route family
-          leadsRoot: config.leadsRoot,
-          leadsRouteSecret: config.leadsRouteSecret,
+          versionInfo,
+          leadwrightCheckoutRoot: config.leadwrightCheckoutRoot,
         }),
       );
-      app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
       // FR-01.51 — First-Contact readiness gate ("one truth"): the Intent
       // Wizard (A08) + First Contact (A14) both read this; it re-expresses the
       // bootstrapper preflight set server-side (the browser can't spawn probes).
