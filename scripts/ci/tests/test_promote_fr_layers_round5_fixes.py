@@ -88,6 +88,52 @@ def test_run_refuses_a_dirty_worktree_even_at_the_expected_commit(stub_plugin_ro
     assert not manifest_path.is_file()
 
 
+def test_a_relative_manifest_path_override_resolves_against_project_root_not_cwd(
+    stub_plugin_root, tmp_path, monkeypatch
+):
+    """PR Review (blocking, round 7): resolve_confined_path() used to resolve
+    a RELATIVE override against the process's cwd instead of project_root --
+    invoking from a different cwd (as CI commonly does) either failed the
+    confinement check below or silently targeted the wrong directory."""
+    spec_path, _manifest_path, ledger_path = _write_inputs(
+        tmp_path, {"FR-01.01": {"unit": [{"id": "a.test.ts::x", "status": "enabled"}]}}
+    )
+    vitest = tmp_path / "vitest.json"
+    vitest.write_text(json.dumps({"results": {"a.test.ts::x": {"status": "enabled", "executed": "pass"}}}), encoding="utf-8")
+
+    relative_manifest = "custom/manifest.json"
+    expected_manifest_path = tmp_path / relative_manifest
+
+    elsewhere = tmp_path.parent / "elsewhere-cwd"
+    elsewhere.mkdir(exist_ok=True)
+    monkeypatch.chdir(elsewhere)
+
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=relative_manifest, spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[f"server={vitest}"],
+    )
+    assert run(args) == 0
+    assert expected_manifest_path.is_file()
+    assert not (elsewhere / relative_manifest).exists()
+
+
+def test_a_relative_path_escaping_project_root_is_still_refused(stub_plugin_root, tmp_path):
+    """The relative-path fix above must not weaken the confinement check --
+    `../outside.json` still escapes `project_root` once joined and must
+    still be refused."""
+    spec_path, _manifest_path, ledger_path = _write_inputs(
+        tmp_path, {"FR-01.01": {"unit": [{"id": "a.test.ts::x", "status": "enabled"}]}}
+    )
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path="../outside-manifest.json", spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[],
+    )
+    assert run(args) == 2
+    assert not (tmp_path.parent / "outside-manifest.json").is_file()
+
+
 def test_a_non_object_ack_is_treated_as_unacked_instead_of_crashing(stub_plugin_root, tmp_path):
     """PR Review (blocking, round 6): a syntactically valid but non-object
     ack.json ([], null, a bare string) used to reach `check_ack`'s

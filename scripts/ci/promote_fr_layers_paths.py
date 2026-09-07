@@ -21,7 +21,16 @@ def resolve_confined_path(project_root: Path, raw: str | None, default: Path) ->
     path-guard convention (webui `CLAUDE.md` rule 10) -- never a bare
     ``startswith`` string check, which a sibling directory sharing a path
     prefix (e.g. ``/project-evil`` vs ``/project``) would defeat."""
-    path = default if raw is None else Path(raw)
+    if raw is None:
+        path = default
+    else:
+        # PR Review (blocking, round 7): `Path(raw).resolve()` resolved a
+        # RELATIVE override against the process's cwd, not `project_root` --
+        # in CI (or any invocation from a different cwd) a valid relative
+        # `--manifest-path`/`--spec-path`/`--ledger-path` either failed the
+        # confinement check below or silently targeted the wrong directory.
+        raw_path = Path(raw)
+        path = raw_path if raw_path.is_absolute() else project_root / raw_path
     resolved = path.resolve()
     if not resolved.is_relative_to(project_root):
         raise ValueError(
