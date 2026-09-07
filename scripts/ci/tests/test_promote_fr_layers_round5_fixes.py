@@ -88,6 +88,26 @@ def test_run_refuses_a_dirty_worktree_even_at_the_expected_commit(stub_plugin_ro
     assert not manifest_path.is_file()
 
 
+def test_a_non_object_ack_is_treated_as_unacked_instead_of_crashing(stub_plugin_root, tmp_path):
+    """PR Review (blocking, round 6): a syntactically valid but non-object
+    ack.json ([], null, a bare string) used to reach `check_ack`'s
+    `ack.get(...)` unguarded and crash with an uncaught AttributeError,
+    instead of being treated the same as "no ack on file"."""
+    for malformed in ("[]", "null", '"not-an-object"'):
+        spec_path, manifest_path, ledger_path = _write_inputs(tmp_path, {})
+        ack_path = tmp_path / "ack.json"
+        ack_path.write_text(malformed, encoding="utf-8")
+
+        args = _args(
+            project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+            manifest_path=str(manifest_path), spec_path=str(spec_path), ledger_path=str(ledger_path),
+            ack_path=str(ack_path),
+            run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[],
+        )
+        exit_code = run(args)
+        assert exit_code == 3, f"expected the unacked-escalation exit code for ack content {malformed!r}"
+
+
 def test_run_refuses_a_non_object_ledger_instead_of_crashing(stub_plugin_root, tmp_path):
     """PR Review (blocking, round 5): a syntactically valid but non-object
     ledger.json used to reach `evaluate_manifest`'s `ledger.get(...)`

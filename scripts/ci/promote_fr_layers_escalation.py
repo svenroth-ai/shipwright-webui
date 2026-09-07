@@ -45,11 +45,18 @@ def write_escalation_only(escalation_out: Path, content: str, atomic_write_text)
 
 def check_ack(ack_path: Path, fingerprint: str, run_id: str) -> bool:
     """A stale ack from a DIFFERENT escalation set must not silently clear
-    this one -- both the fingerprint AND the run_id must match."""
+    this one -- both the fingerprint AND the run_id must match.
+
+    PR Review (blocking, round 6): a syntactically valid but non-object ack
+    (``[]``, ``null``, a bare string) used to reach ``ack.get(...)`` unguarded
+    and crash with an uncaught ``AttributeError`` -- any non-dict JSON shape
+    is treated the same as "no ack on file", never a crash."""
     if not ack_path.is_file():
         return False
     try:
         ack = json.loads(ack_path.read_text(encoding="utf-8"))
+        if not isinstance(ack, dict):
+            return False
         return ack.get("fingerprint") == fingerprint and ack.get("run_id") == run_id
     except (OSError, json.JSONDecodeError):
         return False
