@@ -62,8 +62,11 @@ def systemic_pattern(escalations: list[dict], total_evaluated: int) -> dict[str,
             "the evaluated set, which the source rule reads as a signal the predicate itself "
             "is unmet at scale (e.g. a whole evidence layer was never fed into this run, or a "
             "class of test ids can never join fresh evidence), not as a handful of independent "
-            "undecidable FRs. Stopping and naming the pattern rather than routing many "
-            "near-identical decisions to the operator."
+            "undecidable FRs. Naming the pattern for the operator to review, rather than "
+            "routing many near-identical decisions one at a time -- this describes the "
+            "ESCALATED set only. Any FR that met the (already independently verified) "
+            "promotion predicate in THIS run was promoted before this check ran, per-FR, "
+            "and is unaffected by this signal."
         ),
     }
 

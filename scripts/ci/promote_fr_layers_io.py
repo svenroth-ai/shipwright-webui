@@ -130,6 +130,17 @@ def atomic_write_text(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
+def _read_prior(path: Path) -> str | None:
+    return path.read_text(encoding="utf-8") if path.is_file() else None
+
+
+def _restore_or_remove(path: Path, prior: str | None) -> None:
+    if prior is None:
+        path.unlink(missing_ok=True)
+    else:
+        atomic_write_text(path, prior)
+
+
 def write_promotions(
     *, spec_path: Path, manifest_path: Path, ledger_path: Path,
     spec_text: str, original_spec_text: str, promotions: list[dict],
@@ -138,20 +149,26 @@ def write_promotions(
     """Write spec.md, regen #2, the manifest and the ledger as ONE
     all-or-nothing unit; on any failure (a plain exception OR a
     KeyboardInterrupt/SystemExit interrupting the multi-second regen), restore
-    spec.md to ``original_spec_text`` before returning/re-raising. Code review
-    (orchestrator, high + medium): the previous version only rolled back on
-    the regen call, caught ``Exception`` (missing Ctrl-C/SystemExit), and left
-    the manifest/ledger writes outside the guarded window entirely -- any of
-    those failures left a promoted spec.md with no matching manifest/ledger,
-    a permanent hole since ``required_layers_source == "explicit"`` never
-    re-evaluates. Also verifies (code review, medium) that regen #2 actually
-    reflects every promotion rather than trusting ``render_layers`` blindly.
+    all three files to their pre-run content before returning/re-raising.
+
+    Doubt review (orchestrator, medium x2): the previous version (a) rolled
+    back ONLY spec.md, so a manifest write that succeeded followed by a
+    failing ledger write left a promoted manifest with no ledger entry, and
+    (b) the rollback write itself was unguarded -- an `os.replace` failure
+    inside the `except` (e.g. the destination held open) replaced the
+    original exception and propagated uncaught, leaving spec.md PROMOTED with
+    no manifest/ledger. Both are now covered: every file's prior content (or
+    absence) is captured before the try, the rollback restores/removes all
+    three, and the rollback itself is guarded so a secondary failure is
+    reported explicitly rather than silently losing the original error.
 
     Returns a ``{"success": False, "reason": ...}`` dict for an ordinary
     failure (caller should print it and exit non-zero); returns ``None`` on
     success; re-raises a ``BaseException`` that is not a plain ``Exception``
     (``KeyboardInterrupt``/``SystemExit``) after rolling back.
     """
+    original_manifest = _read_prior(manifest_path)
+    original_ledger = _read_prior(ledger_path)
     try:
         atomic_write_text(spec_path, spec_text)
         post_manifest = regen_manifest(project_root, evidence, mods)
@@ -169,13 +186,35 @@ def write_promotions(
         atomic_write_text(ledger_path, json.dumps(ledger, indent=2, ensure_ascii=False, sort_keys=True) + "\n")
     except BaseException as exc:  # noqa: BLE001 -- deliberately broad: ANY
         # failure past this point, interrupt included, must roll back.
-        atomic_write_text(spec_path, original_spec_text)
+        rollback_error: BaseException | None = None
+        try:
+            atomic_write_text(spec_path, original_spec_text)
+            _restore_or_remove(manifest_path, original_manifest)
+            _restore_or_remove(ledger_path, original_ledger)
+        except BaseException as rollback_exc:  # noqa: BLE001 -- a rollback
+            # failure must never silently swallow the original exception.
+            rollback_error = rollback_exc
         if isinstance(exc, Exception):
-            return {
+            reason = (
+                f"promotion failed, spec.md/manifest/ledger rolled back to their pre-run "
+                f"content: {type(exc).__name__}: {exc}"
+            )
+            if rollback_error is not None:
+                reason = (
+                    f"promotion failed ({type(exc).__name__}: {exc}) AND the rollback itself "
+                    f"failed ({type(rollback_error).__name__}: {rollback_error}) -- spec.md/"
+                    "manifest/ledger may be left INCONSISTENT with each other; revert them by "
+                    "hand against their pre-run content before re-running"
+                )
+            return {"success": False, "reason": reason}
+        if rollback_error is not None:
+            print(json.dumps({
                 "success": False,
-                "reason": f"promotion failed, spec.md rolled back to its pre-run content "
-                          f"(no manifest/ledger written): {type(exc).__name__}: {exc}",
-            }
+                "reason": f"interrupted ({type(exc).__name__}) AND the rollback itself failed "
+                          f"({type(rollback_error).__name__}: {rollback_error}) -- spec.md/"
+                          "manifest/ledger may be left INCONSISTENT with each other; revert them "
+                          "by hand against their pre-run content",
+            }, indent=2))
         raise
     return None
 

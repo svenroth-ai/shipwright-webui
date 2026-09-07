@@ -178,6 +178,43 @@ def test_a_keyboard_interrupt_during_regen_2_still_rolls_back_spec_md(
     assert not ledger_path.is_file()
 
 
+def test_a_ledger_write_failure_also_rolls_back_the_already_written_manifest(
+    stub_plugin_root, tmp_path, monkeypatch
+):
+    """Doubt review (orchestrator, medium): write_promotions used to restore
+    ONLY spec.md on failure -- a manifest write that succeeded followed by a
+    failing ledger write left a promoted manifest on disk with no matching
+    ledger entry, the same permanent-hole class the rollback exists to
+    close. All three files must roll back together."""
+    spec_path, manifest_path, ledger_path = _write_inputs(
+        tmp_path, {"FR-01.01": {"unit": [{"id": "a.test.ts::x", "status": "enabled"}]}}
+    )
+    vitest = tmp_path / "vitest.json"
+    vitest.write_text(json.dumps({"results": {"a.test.ts::x": {"status": "enabled", "executed": "pass"}}}), encoding="utf-8")
+
+    real_atomic_write = promote_fr_layers.io_mod.atomic_write_text
+
+    def _flaky_atomic_write(path, text):
+        if Path(path) == ledger_path:
+            raise OSError("simulated ledger write failure")
+        return real_atomic_write(path, text)
+
+    monkeypatch.setattr(promote_fr_layers.io_mod, "atomic_write_text", _flaky_atomic_write)
+
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=str(manifest_path), spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote",
+        vitest_report=[f"server={vitest}"],
+    )
+    exit_code = run(args)
+    assert exit_code == 2
+
+    assert spec_path.read_text(encoding="utf-8") == _SPEC_TEXT
+    assert not manifest_path.is_file()
+    assert not ledger_path.is_file()
+
+
 def test_rewrite_spec_row_refuses_when_layers_is_not_the_last_cell(tmp_path):
     """Code review (orchestrator, high): the writer used to assume the Layers
     cell is always the row's LAST cell, while the real reader resolves it by
