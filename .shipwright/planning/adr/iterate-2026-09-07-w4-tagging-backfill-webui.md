@@ -171,8 +171,17 @@ a future pass.
    reported before/after (Results table), derived-vs-hand-mapped counts
    stated separately (1093/103/1196, plus the manifest's own `tag_source`
    axis at 100% `covers_comment` both before and after), no test deleted
-   or weakened (diff is +371/-1, the -1 being the one-digit docstring
-   typo fix, not a test body).
+   or weakened. **Correction (Stage-1 spec review, 2026-09-07):** the
+   diff is NOT "+371/-1" — git counts each of the 13 same-line
+   trailing-comment appends on an `it()`/`test()`/`describe()` line as a
+   line replacement (-1/+1), plus the one-digit docstring typo, plus
+   campaign metadata files, for roughly +1122/-35 total. The AC-3 claim
+   itself holds (independently re-verified by the reviewer): all 13
+   trailing-comment declaration lines are byte-identical to base apart
+   from the appended comment, and zero test bodies, titles, or
+   assertions were removed anywhere in the diff — the prior stat just
+   understated the deletion count in a way a `git diff --stat` reader
+   would reasonably read as contradicting that claim.
 2. **Error Handling** — N/A/PASS. Comment-only diff; zero runtime paths
    touched.
 3. **Security Basics** — PASS. No secrets, no auth surface changed.
