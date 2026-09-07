@@ -1,0 +1,53 @@
+{
+  "run_id": "iterate-2026-09-07-w3-reader-manifest-v4",
+  "date": "2026-09-07T13:56:29.708646Z",
+  "event_at": "2026-09-07T13:55:48.042516+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-w3-reader-manifest-v4",
+  "spec": ".shipwright/planning/iterate/campaigns/req3-06-mechanics-webui/sub-iterates/w3-reader-manifest-v4.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-07-w3-reader-manifest-v4",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    },
+    "behaviors": [
+      {
+        "behavior": "This unit verifies the monorepo's shipped manifest contract is at schema_version 4 BEFORE implementing (AC1)",
+        "disposition": "tested",
+        "evidence": "Verified via git fetch of the monorepo origin/main (tip c0d1b38be27730dca4c9f00afc4538dd10f76e56, PR #686) + reading the shipped traceability_schema.json -> schema_version.const=4; independently confirmed via a mechanical git diff against the prior v3 commit (227a525e4) showing the delta is exactly the two additive fields. Documented in mini-plan.md 'Precondition' section and this run's ADR."
+      },
+      {
+        "behavior": "The reader accepts a v4 manifest carrying an AC-scoped tag (ac_id + acs) without a false contract_version_ahead warning (AC2a)",
+        "disposition": "tested",
+        "evidence": "traceability.v4-fixture.test.ts - accepts a v4 manifest carrying an AC-scoped tag..."
+      },
+      {
+        "behavior": "The reader still accepts a v4 manifest with only bare FR tags - the v3-shaped body case (AC2b)",
+        "disposition": "tested",
+        "evidence": "traceability.v4-fixture.test.ts - accepts a v4 manifest with NO AC tag anywhere..."
+      },
+      {
+        "behavior": "The reader handles an AC-scoped requirement and a bare-tag requirement in the SAME manifest without cross-contamination (AC3, frozen fixture pins the shape)",
+        "disposition": "tested",
+        "evidence": "traceability.v4-fixture.test.ts - handles an AC-scoped requirement and a bare-tag requirement in the SAME manifest... (external plan review, edge-case finding)"
+      },
+      {
+        "behavior": "The fail-soft boundary itself still holds: a manifest declaring a version AHEAD of the new known max (now 5) still triggers contract_version_ahead and is still read best-effort",
+        "disposition": "tested",
+        "evidence": "traceability.schema-version.test.ts - WARNS (once) when schema_version is ahead of what this build knows-and still reads it (uses TRACEABILITY_SCHEMA_VERSION + 1, now 5 with this change; external plan review, glm low finding)"
+      }
+    ]
+  },
+  "declared_removals": []
+}
