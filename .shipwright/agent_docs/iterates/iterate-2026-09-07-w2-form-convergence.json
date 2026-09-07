@@ -1,0 +1,42 @@
+{
+  "run_id": "iterate-2026-09-07-w2-form-convergence",
+  "date": "2026-09-07T05:22:19.586423Z",
+  "event_at": "2026-09-07T05:21:48.206622+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-w2-form-convergence",
+  "spec": ".shipwright/planning/iterate/campaigns/req3-06-mechanics-webui/sub-iterates/w2-form-convergence.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-07-w2-form-convergence",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 3,
+      "tested": 3,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    },
+    "behaviors": [
+      {
+        "behavior": "Origin is renamed Basis in all 14 per-area FR-table headers, with no stray remaining Origin FR-table header",
+        "disposition": "tested",
+        "evidence": "grep-count of the old/new header strings in the adopted spec.md (0 old, 14 new); zero remaining FR-table Origin header occurrences there. Correction (Stage-1 spec review, 2026-09-07): a repo-wide grep is NOT zero-hit — three synthetic fixture/test documents still construct the pre-retrofit shape (server/src/core/mission-context/fold-map.test.ts:20, client/e2e/helpers/mission-s3-fixtures.ts:93, client/e2e/flows/mission-artifacts-s1.spec.ts:184), out of scope and harmless since fold-map.ts's parser is positional, not header-aware"
+      },
+      {
+        "behavior": "Layers column exists on all 14 headers and all 32 data rows, every data-row cell the literal (inferred)",
+        "disposition": "tested",
+        "evidence": "awk -F pipe structural check: 14 headers + 14 separators + 32 data rows, all exactly 9 fields (7 columns), zero malformed rows; grep -c for the (inferred) suffix returns 32"
+      },
+      {
+        "behavior": "The 29-vs-35 discrepancy is resolved with the reason recorded",
+        "disposition": "tested",
+        "evidence": "sourced to the monorepo design spec, re-measured today (32 live rows / 38 AC-heading blocks / 17 orphaned / 11 AC-less / 21 intersection), recorded in the iterate ADR"
+      }
+    ]
+  }
+}

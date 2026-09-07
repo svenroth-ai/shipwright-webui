@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-07-w2-form-convergence",
+  "date": "2026-09-07",
+  "section": "Iterate - docs: FR-table form convergence (S8)",
+  "title": "Origin->Basis rename + Layers column retrofit; 29-vs-35 discrepancy resolved",
+  "context": "S8 form convergence: retrofit spec.md's 14 FR sub-tables onto the monorepo's converged shape. Origin held provenance strings, not the closed Basis vocabulary; the campaign brief cited an unexplained 29-vs-35 discrepancy.",
+  "decision": "Renamed Origin->Basis (values carried over unchanged) and added a trailing Layers column (every cell literal (inferred)) across all 14 area tables. 29-vs-35 traced to the monorepo's own design spec: 29 living FR rows vs 35 AC-heading blocks (17 orphaned from the 2026-07-17 fold); re-measured today as 32-vs-38, same 17-orphan set.",
+  "consequences": "Table is header-converged, matching the monorepo's shared FR-table reader by column name. Basis column is NOT value-converged (provenance strings, not the 6-value vocabulary) - deliberate, recorded, currently unowned. The 17 orphaned AC-blocks and 11 AC-less live rows remain - diagnosed, not cleaned up; out of this unit's mechanical-transformation scope.",
+  "rationale": "Design doc Spec/design/2026-07-22-req3-campaign-SPEC.md Section 8 lines 411-439 classifies S8 as pure Mechanische Transformation (mechanical transformation); revaluing 32 provenance strings or auditing 17 folded AC-blocks is judgement-heavy content work, not mechanical, and is explicitly flagged there as separate open cleanup.",
+  "rejected": "Coercing Basis values into the closed vocabulary now (judgement call, not mechanically derivable, out of this small-complexity unit's scope); cleaning up the 17 orphaned AC-blocks in this unit (a content audit, not a table-shape retrofit).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-07-w2-form-convergence.md"
+}

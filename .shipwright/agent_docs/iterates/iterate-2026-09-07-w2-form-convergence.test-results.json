@@ -1,0 +1,77 @@
+{
+  "last_updated": "2026-09-07",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-07-w2-form-convergence",
+    "date": "2026-09-07",
+    "unit": {
+      "status": "passed",
+      "passed": 7818,
+      "total": 7823
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "Docs-only change (.shipwright/planning/01-adopted/spec.md, plus this run's own decision-drop/ADR/changelog artifacts): no client/server route/component touched, so E2E/Browser Verify/F0.5 do not apply (surface=none, justified in the iterate ADR).",
+      "unit total combines client vitest (3882 passed) and server vitest (3936 passed / 5 skipped), both run fresh at F0; no scripts/ci pytest root is relevant to this change.",
+      "Verification of the spec.md edit itself is a deterministic structural check (awk -F'|', every header/separator/data row in the FR-table section == 9 pipe-delimited fields == 7 columns), not a vitest/pytest suite \u2014 recorded verbatim in the iterate ADR's External-Code-Review-Findings section; result: 14 headers + 14 separators + 32 data rows, zero malformed rows."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      },
+      "behaviors": [
+        {
+          "behavior": "Origin is renamed Basis in all 14 per-area FR-table headers, with no stray remaining Origin FR-table header",
+          "disposition": "tested",
+          "evidence": "grep -c for the exact old header string across spec.md returns 0; grep for the new header string returns 14; repo-wide grep for the literal FR-table Origin header confirms zero remaining occurrences (the two residual Origin hits are unrelated WS-CORS prose, verified by content)"
+        },
+        {
+          "behavior": "Layers column exists on all 14 headers and all 32 data rows, every data-row cell the literal (inferred)",
+          "disposition": "tested",
+          "evidence": "awk -F'|' structural check over the FR-table section: 14 headers + 14 separators + 32 data rows, all exactly 9 pipe-delimited fields (7 columns), zero BAD ROW lines; separate grep -c for the literal ' (inferred) |' data-row suffix returns 32"
+        },
+        {
+          "behavior": "The 29-vs-35 discrepancy is resolved with the reason recorded",
+          "disposition": "tested",
+          "evidence": "sourced to Spec/design/2026-07-22-req3-campaign-SPEC.md \u00a72/\u00a72.1 (sibling monorepo, read-only), re-measured today via grep-derived set comparison (32 live rows / 38 AC-heading blocks / 17 orphaned / 11 AC-less / 21 intersection), and recorded in the iterate ADR (.shipwright/planning/adr/iterate-2026-09-07-w2-form-convergence.md) with the full citation and current numbers"
+        }
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-07-w2-form-convergence",
+    "commit": "90e8f5a24e49142d23614f73ff4653cea46cc47b",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

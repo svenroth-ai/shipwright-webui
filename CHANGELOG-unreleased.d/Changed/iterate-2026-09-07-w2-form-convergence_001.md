@@ -1,0 +1,1 @@
+spec(fr-table): retrofit the requirements table onto the monorepo's converged shape - Origin renamed Basis, a Layers column added (every cell inferred); the campaign's 29-vs-35 discrepancy traced, re-measured, and recorded (docs-only, no code change)

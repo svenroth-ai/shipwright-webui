@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-w2-form-convergence",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T05:06:59.956330+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The header rename creates a \"header-converged but not value-converged\" state that no unit in the campaign owns. The plan handles this honestly — it's recorded in the decision drop rather than left silent — but \"deliberately unowned\" gaps documented only in an ADR tend to rot. The plan itself notes that any future Basis-vocabulary validator will read these 32 rows as non-conforming.",
+          "suggestion": "Beyond recording it in the decision drop, create a concrete follow-on (a stub iterate entry or backlog item with a name) for the Basis-value revaluation pass, so it has a discoverable owner rather than relying on a future reader re-deriving the state from ADR prose. The ADR record is necessary but not sufficient for follow-through.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Same pattern for the 29-vs-35 resolution: the \"resolution\" is a diagnosis plus a still-open cleanup (17 orphaned AC-heading blocks from the 2026-07-17 fold, now 32-vs-38). This satisfies the AC as written (\"the reason recorded\"), and the archaeology is well done — the re-measurement with three-way cross-confirmation (spec.md rows, rtm-fr- anchors, test-traceability.json) is exactly right. But the orphaned-block cleanup and the open \"did folded content actually migrate into survivors' ACs\" question are also explicitly unowned after this unit.",
+          "suggestion": "Same as above: name a follow-on unit (or explicitly state in the decision drop which future iterate slot will absorb it). Otherwise the next campaign re-derives this from scratch.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The plan's claim that nothing reads `spec.md`'s FR table programmatically rests on grep for specific tool names (`_fr_table_columns`, `fr_table_reader`, `check_fr_hygiene`). The doc-sync meta-test is confirmed unaffected, which is the main real hazard, and the risk detectors listed are diff-driven — all reasonable. Residual risk is minimal for a one-file Markdown edit, but the verification plan is manual grep-counting (\"asserted equal before finalization\") with no reproducible artifact.",
+          "suggestion": "Run the grep counts as a short scripted check (even a shell one-liner captured in the run notes) so the 32-rows / 14-headers / 14-separators / 32-`(inferred)` assertions are reproducible rather than a one-time manual observation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Separator-row widening is mentioned in the test strategy but not in the edit instructions themselves. A Markdown table with 7 header cells and a 6-dash-group separator is the single most likely mechanical slip in this kind of edit, and some renderers silently mangle the table when column counts mismatch.",
+          "suggestion": "Make separator-row widening an explicit step in Change detail #1/#2, not just an assertion afterward. Minor, but it's the one place the edit itself (as opposed to verification) is underspecified.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The structural-rename-only decision (carrying provenance strings like `crawl+enrichment` under the `Basis` header unchanged) is well argued — recoercing 32 historical values into the closed vocabulary is genuinely a judgement-heavy pass, and the monorepo's own docstring distinction between \"where we looked\" and \"how we know\" supports keeping them separate. The header-value mismatch this creates is the cost, acknowledged above. The Name-left-of-Description load-bearing constraint is respected (right-edge appends only). No over-production: this is close to the minimal edit the ACs allow.",
+          "suggestion": "None — the reasoning here is sound; just ensure the decision drop quotes the vocabulary-mismatch consequence verbatim so the future revaluation pass inherits the exact state description.  No security, dependency, or existing-functionality risks identified — no code, tests, CI, or runtime-parsed data are touched, and the column-order constraint is explicitly honored.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not satisfy the stated acceptance criterion that the “29-vs-35 discrepancy is resolved.” It documents why the mismatch exists and records that it still exists (now 32-vs-38), but leaves the orphaned AC sections and missing AC blocks unchanged.",
+          "suggestion": "Either perform and validate the required reconciliation in this iterate, or explicitly change the acceptance criterion/scope to “diagnosed and recorded.” A decision record alone is not a resolution when the underlying inconsistency remains.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Renaming `Origin` to `Basis` while retaining provenance strings changes the column’s meaning without migrating its values. The plan itself acknowledges these values do not conform to the claimed `Basis` vocabulary. This creates a structurally valid but semantically misleading table and can break future shared tooling once it validates Basis values.",
+          "suggestion": "Include the value migration in this change, preserve the existing provenance in a distinct `Origin`/`Source` column, or obtain an explicit schema exception from the canonical FR-table owner. Do not label provenance as Basis merely to converge the header.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan relies on external monorepo conventions (`fr-authoring.md`, shared reader behavior, and F3’s `write_decision_drop.py`) while asserting this repository neither vendors nor runs the relevant tooling. It does not verify the required decision-drop schema, location, or whether the cited canonical table’s current schema permits a provenance-less `Basis` column.",
+          "suggestion": "Validate the decision-drop writer and schema before editing, and confirm the canonical table contract—including whether `Basis` is required to use the closed vocabulary—from its owning repository/documentation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The proposed grep-based checks establish counts but not table correctness. They can pass when a row has a missing or extra pipe, an `(inferred)` value is in the wrong column, a malformed separator row exists, or the 14 tables no longer share the same header schema.",
+          "suggestion": "Add a small structure-aware validation command/script (or use the canonical parser) that checks each FR table’s exact headers, column counts, and final `Layers` value for every data row.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The plan says “No other file changes,” yet proposes creating a decision-drop JSON file. That contradiction weakens reviewability and may cause the required reasoning record to be omitted.",
+          "suggestion": "State the two intended file changes consistently and include the decision record in the final diff/verification scope.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No practical security impact is apparent for a documentation-only change. The only relevant concern is accidental inclusion of internal paths or sensitive operational details in the new decision record.",
+          "suggestion": "Review the generated JSON before commit and keep citations to repository-relative references where possible.  Overall, the mechanical Layers addition is straightforward, but the plan currently substitutes documentation of two unresolved semantic/data-consistency problems for actually resolving them. It needs scoped clarification or corrective work before approval.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T05:06:40.839395+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**Category:** edge-case\n**Severity:** low\n**Finding:** The header rename creates a \"header-converged but not value-converged\" state that no unit in the campaign owns. The plan handles this honestly — it's recorded in the decision drop rather than left silent — but \"deliberately unowned\" gaps documented only in an ADR tend to rot. The plan itself notes that any future Basis-vocabulary validator will read these 32 rows as non-conforming.\n**Suggestion:** Beyond recording it in the decision drop, create a concrete follow-on (a stub iterate entry or backlog item with a name) for the Basis-value revaluation pass, so it has a discoverable owner rather than relying on a future reader re-deriving the state from ADR prose. The ADR record is necessary but not sufficient for follow-through.\n\n**Category:** approach\n**Severity:** low\n**Finding:** Same pattern for the 29-vs-35 resolution: the \"resolution\" is a diagnosis plus a still-open cleanup (17 orphaned AC-heading blocks from the 2026-07-17 fold, now 32-vs-38). This satisfies the AC as written (\"the reason recorded\"), and the archaeology is well done — the re-measurement with three-way cross-confirmation (spec.md rows, rtm-fr- anchors, test-traceability.json) is exactly right. But the orphaned-block cleanup and the open \"did folded content actually migrate into survivors' ACs\" question are also explicitly unowned after this unit.\n**Suggestion:** Same as above: name a follow-on unit (or explicitly state in the decision drop which future iterate slot will absorb it). Otherwise the next campaign re-derives this from scratch.\n\n**Category:** risk\n**Severity:** low\n**Finding:** The plan's claim that nothing reads `spec.md`'s FR table programmatically rests on grep for specific tool names (`_fr_table_columns`, `fr_table_reader`, `check_fr_hygiene`). The doc-sync meta-test is confirmed unaffected, which is the main real hazard, and the risk detectors listed are diff-driven — all reasonable. Residual r […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The plan does not satisfy the stated acceptance criterion that the “29-vs-35 discrepancy is resolved.” It documents why the mismatch exists and records that it still exists (now 32-vs-38), but leaves the orphaned AC sections and missing AC blocks unchanged.  \n   **Suggestion:** Either perform and validate the required reconciliation in this iterate, or explicitly change the acceptance criterion/scope to “diagnosed and recorded.” A decision record alone is not a resolution when the underlying inconsistency remains.\n\n2. **Category:** approach  \n   **Severity:** high  \n   **Finding:** Renaming `Origin` to `Basis` while retaining provenance strings changes the column’s meaning without migrating its values. The plan itself acknowledges these values do not conform to the claimed `Basis` vocabulary. This creates a structurally valid but semantically misleading table and can break future shared tooling once it validates Basis values.  \n   **Suggestion:** Include the value migration in this change, preserve the existing provenance in a distinct `Origin`/`Source` column, or obtain an explicit schema exception from the canonical FR-table owner. Do not label provenance as Basis merely to converge the header.\n\n3. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The plan relies on external monorepo conventions (`fr-authoring.md`, shared reader behavior, and F3’s `write_decision_drop.py`) while asserting this repository neither vendors nor runs the relevant tooling. It does not verify the required decision-drop schema, location, or whether the cited canonical table’s current schema permits a provenance-less `Basis` column.  \n   **Suggestion:** Validate the decision-drop writer and schema before editing, and confirm the canonical table contract—including whether `Basis` is required to use the closed vocabulary—from its owning repository/documentation.\n\n4. **Category:** edge-case  \n  […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "claude-agent",
+      "completed_at": "2026-09-07T05:52:30.526627+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T05:52:36.685696+00:00",
+      "disposition": "docs-only Markdown retrofit -- no migrations, async/concurrency, cross-plugin imports, or irreversible ops touched; doubt-reviewer (Stage 3) not warranted per campaign-mode.md 3f-bis",
+      "recorded_by": "orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T05:15:22.663845+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] This is a docs-only Markdown retrofit, and the mechanical work is done correctly.\n\nVerification against acceptance criteria:\n\n1. **Origin → Basis everywhere it is read:** All 14 per-area header rows in `.shipwright/planning/01-adopted/spec.md` are renamed from `... | Origin |` to `... | Basis | Layers |`, with the separator rows widened to match (confirmed in every hunk: `|----|------|------|----------|-------------|--------|--------|`). The two residual \"Origin\" occurrences are unrelated WS-CORS prose. Column order preserved — Name remains left of Description; only right-edge appends. Met.\n2. **Layers with every cell (inferred):** Every data row in the shown diff ends with `| (inferred) |` (32 rows across all 14 areas). Met, and the ADR records a reproducible structural check (`awk -F'|'`, NF==9 for all 32 rows).\n3. **29-vs-35 resolved with the reason recorded:** The ADR and decision-drop trace it to its source (`2026-07-22-req3-campaign-SPEC.md` §2/§2.1: 29 live rows vs 35 AC-heading blocks, 17 orphaned by the 2026-07-17 fold), re-measure today (32-vs-38, same 17-orphan set, delta = FR-01.70/71/72), and record the reason. One reviewer disagreement (diagnose-and-record vs. fix-the-mismatch) was explicitly litigated and the position is defensible: the AC's own wording asks for \"the reason recorded\", and the underlying cleanup (17 orphaned AC blocks, 11 AC-less rows, 32 non-vocabulary Basis values) is disclosed as deliberately unowned, not silently dropped. I find no hidden defect in that reading.\n\nMinor observations, none blocking:\n\n- Category: edge-case | Severity: low | File: `.shipwright/planning/adr/iterate-2026-09-07-w2-form-convergence.md` — The two follow-on gaps (Basis-value revaluation, 17-orphan AC cleanup) are explicitly unowned; recorded in ADR/decision-drop only. If the ADR prose is ever refactored away, the state must be re-derived. A named backlog item would make ownership discoverable. Suggestion: file a stub triage/backlog entry referen […truncated]\n\n[openai] No real defects found. The diff renames all 14 FR-table headers to `Basis`, appends `Layers` with `(inferred)` to all shown rows, preserves the required column order, and records a sourced explanation for the historical count discrepancy. This is documentation-only and introduces no runtime, security, or caller-regression risk.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "claude-agent",
+      "completed_at": "2026-09-07T05:42:23.375241+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T05:06:47.341622+00:00",
+      "disposition": "small complexity - Internal Plan Review runs medium+ only per iteration-planning.md; closes not_applicable at trivial/small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
