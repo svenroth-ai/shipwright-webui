@@ -133,27 +133,238 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 14,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 174,
+          "finding": "Rollback caught only Exception (missing KeyboardInterrupt/SystemExit during the multi-second regen #2), and both the forward write and the restore were plain truncate-then-write, so a crash mid-write could leave spec.md empty rather than merely stale.",
+          "suggestion": "Wrap in try/except BaseException with a temp-file + os.replace write.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "scripts/ci/layer_promotion.py",
+          "line": 242,
+          "finding": "apply_promotion_to_row_cells blindly replaces cells[-1], but the real reader locates the Layers cell by header name and admits rows shorter than their header -- a mismatch would silently overwrite a different cell (most likely Basis). Latent today (all 32 rows well-formed) but irreversible if triggered.",
+          "suggestion": "Add a precondition in the writer comparing the reader's named-column resolution against 'last cell'; refuse rather than guess.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/layer_promotion.py",
+          "line": 99,
+          "finding": "observed_layers() admits a layer on status=='enabled' alone while _bound_enabled_tests additionally requires a truthy id -- an enabled-but-id-less binding could fall through to ACTION_PROMOTE with evidence_test_ids=[], a zero-evidence promotion in a one-way mechanism.",
+          "suggestion": "Add an explicit 'if not bound: escalate' guard before the missing-evidence computation.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 186,
+          "finding": "The ledger/manifest writes sat outside the rollback's try block -- an OSError there left spec.md promoted with no matching ledger entry, the same permanent hole the rollback exists to close.",
+          "suggestion": "Extend the rollback scope to cover all three writes.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 173,
+          "finding": "Nothing verified regen #2 actually reflects the promotions -- an unpinned cross-repo boundary divergence between render_layers's output and the collector's own parser could silently commit a spec.md whose regenerated manifest still says inferred_legacy.",
+          "suggestion": "After regen #2, assert every promoted FR reads back required_layers_source == 'explicit' with the expected layers; roll back on mismatch.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": ".shipwright/compliance/test-traceability.json",
+          "line": null,
+          "finding": "The reviewed diff carried no change to test-traceability.json even though the on-disk file showed the promotion, raising a question of whether the manifest is actually in the commit or was reverted.",
+          "suggestion": "Confirm before merge whether the manifest is a committed deliverable or a reverted derived snapshot.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": ".shipwright/planning/iterate/iterate-2026-09-07-w5-bind-and-promote/reviews.json.lock",
+          "line": 1,
+          "finding": "An empty lock file is committed as a new tracked artifact.",
+          "suggestion": "git rm --cached it and add a .gitignore rule for iterate planning-dir lock files.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 215,
+          "finding": "A non-dict ack JSON ([], \"x\", 3) raises AttributeError instead of failing closed as not-acked; same shape of gap for a list-valued ledger file.",
+          "suggestion": "Guard both with isinstance(..., dict).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 61,
+          "finding": "The ack fingerprint hashes only {fr_id}:{reason_code} pairs, so a same-reason escalation with materially different evidence within the same run_id is still cleared by an old ack.",
+          "suggestion": "Fold sorted missing-test-ids/unknown-layer-names into the digest, or document the granularity explicitly.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 209,
+          "finding": "The escalation artifact is written before ack_recorded/ack_path are known, so the on-disk audit record never says whether the stop was cleared; success:true is also present alongside a handback exit code.",
+          "suggestion": "Move the write after the ack check; consider renaming success to evaluation_ok or adding an explicit handback field.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/layer_promotion.py",
+          "line": 277,
+          "finding": "The systemic_pattern import sits at the bottom with a noqa justified as circular-import avoidance, but there is no cycle; run() in promote_fr_layers.py is also a ~160-line function covering several concerns.",
+          "suggestion": "Hoist the import to the top; consider extracting smaller helpers from run().",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/promote_fr_layers_io.py",
+          "line": 92,
+          "finding": "rewrite_spec_row's docstring claims byte-level CRLF preservation that no test exercises, and the promoted row is re-rendered rather than byte-preserved.",
+          "suggestion": "Add a CRLF fixture test; soften the docstring wording for the promoted row itself.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "scripts/ci/layer_promotion.py",
+          "line": 187,
+          "finding": "Promotion narrows the declared obligation to whatever layers are presently observed and green, terminally -- worth stating explicitly next to the 'stricter than the referenced doc' paragraph so a future promoted cell isn't misread as demonstrably correct forever.",
+          "suggestion": "Document the ratchet-down semantics explicitly, or restrict promotion to an empty required_layers set.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "scripts/ci/promote_fr_layers_io.py",
+          "line": 110,
+          "finding": "__all__ publicly exports underscore-private _MANIFEST_REL/_SPEC_REL/_LEDGER_REL, which the caller then re-binds -- private-by-name, public-by-contract.",
+          "suggestion": "Rename to public constants or import directly at the two use sites.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-09-07T15:39:01.561462+00:00",
-      "disposition": "blocker 1 (no Agent tool): the sub-iterate-runner cannot spawn the cascade; delegated to the campaign orchestrator (ADR-029, campaign mode only) — runs at 3f-bis before merge, never fabricated here",
-      "recorded_by": "none",
+      "completed_at": "2026-09-07T16:29:22.045816+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_run",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "hidden coupling and blast radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: promotion only records what the evidence already proved — Promotion moves an FR's required_layers_source from inferred_legacy to explicit; the Group D compliance audit (_group_d_traceability.py) routes explicit-source FRs into a stricter hard-fail coverage regime than legacy sources. This run's local (uncommitted) manifest regen showed the 9 promoted FRs as coverage MISSING, since no fresh evidence directory was staged into that particular invocation.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: verified non-blocking for this merge, filed as tracked follow-up trg-9f8372d8. This repo's own CI (.github/workflows/ci.yml, job 'traceability-manifest') deliberately excludes execution evidence from its diff check by explicit documented decision, and no CI workflow in this repo invokes the Group D audit at all. So this concern does not gate any automated check today. Whether a future full /shipwright-compliance run against main reads these 9 FRs as coverage=ok once real fresh evidence is collected is filed as trg-9f8372d8 for that audit to confirm.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary and contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: spec.md, the manifest and the ledger are consistent with each other after write_promotions returns success — The local working-tree copy of .shipwright/compliance/test-traceability.json was inconsistent with the ledger (manifest regenerated ~7 minutes after promotion, with empty evidence, showing MISSING coverage where the ledger claims green).",
+          "suggestion": "ORCHESTRATOR DISPOSITION: verified as a non-issue in the actual shipped artifact. git diff against the merge-base confirmed this file was never committed on this branch, matching this repo's documented convention that iterate PRs carry zero regenerated compliance snapshots (ci.yml's own comment: 'this repo's iterate PRs never carry a regenerated manifest'). The local modification was uncommitted scratch state from the mid-iterate script invocation; it has been reverted and does not appear in the PR diff. The committed spec.md + ledger are consistent (write_promotions asserts this before either is written).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: exit 3 / the systemic-pattern check is a stop that hands back before anything irreversible happens — The one-way write happens before systemic_pattern is computed, so the module's own message ('stopping and naming the pattern') is misleading -- nothing is actually stopped for FRs already promoted in the same run.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: FIXED at 3f-bis (wording only). Reworded the message in layer_promotion_report.py to state plainly that it flags the ESCALATED set only and does not affect FRs already promoted, independently, before this check ran. Declined to reorder the write to gate on systemic_pattern: that would make an individually-verified, evidence-backed promotion depend on unrelated escalated FRs, contradicting this module's own validated design invariant (each FR decided independently, no batch/sweep flag). A wording fix resolves the misleading claim without breaking that invariant.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: on any failure, spec.md is restored (the permanent-hole fix from the prior code-review pass) — The rollback's own atomic_write_text call was unguarded -- an os.replace failure while restoring spec.md (e.g. destination held open) would replace the original exception and propagate uncaught, leaving spec.md promoted with no manifest/ledger.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: FIXED at 3f-bis. The rollback is now wrapped in its own try/except; a secondary failure during rollback is reported explicitly (naming both the original and rollback errors) rather than silently losing the original exception or crashing uncaught.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary and contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: write_promotions is one all-or-nothing unit — Not all-or-nothing for the manifest: if the ledger write failed after the manifest write succeeded, only spec.md was rolled back, leaving a promoted manifest on disk with no ledger entry.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: FIXED at 3f-bis. write_promotions now captures the manifest's and ledger's prior content (or absence) before the try block and restores/removes both alongside spec.md on any failure. New regression test test_a_ledger_write_failure_also_rolls_back_the_already_written_manifest added and passing.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling and blast radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the one-way ledger preserves the record of every promotion decision — The ledger is a last-write-wins map (ledger[fr_id] = ...), not append-only. A hand-reverted spec.md cell (operator judges a promotion unsound, reverts the row, but does not also write a 'demoted' ledger entry) followed by a later re-promotion silently overwrites the original ledger entry with no trace the FR was ever reverted.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: accepted-non-blocking, follow-up. Requires an operator to hand-revert spec.md without following the sanctioned demotion procedure -- a documented two-step manual process, not a code path this script exposes. Making the ledger append-only is a real structural improvement but a larger change (schema, all call sites, tests) than is proportionate inside this review cascade; noted for a future iterate.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary and contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the stub's cross-repo contract is a faithful proxy for the real modules — The stub's build_manifest copies test-link status verbatim from a static fixture rather than deriving it from evidence (as the real _make_link does), and its _validate_manifest is a no-op vs. the real one's jsonschema import -- both mean a class of real-path bug (a vitest-skipped binding silently shrinking the promoted layer set; a missing jsonschema dependency) cannot be reached by any stub-based test.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: accepted-non-blocking, follow-up",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency and ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the predicate's observed-layer set and its bound-evidence set are the same set — observed_layers (status==enabled alone) and the bound-evidence set (also requires a truthy id) can still diverge for a MIXED layer with one id-bearing and one id-less binding, promoting a layer asserted on zero evidence for that specific layer; unknown_layer_names is surfaced only on the no_observable_layer path, never on promote. Confirmed reachable only through a hand-built or relaxed manifest -- the real schema/collector chain closes both paths today.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: accepted-non-blocking, follow-up",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary and contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: evidence_source_commit proves the promotion's green run was against THIS tree — It is git rev-parse HEAD, which says nothing about a dirty working tree -- the recorded commit is the branch base, not necessarily the exact tree the tests ran against.",
+          "suggestion": "ORCHESTRATOR DISPOSITION: accepted-non-blocking, follow-up",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-09-07T15:39:01.671366+00:00",
-      "disposition": "blocker 1 (no Agent tool): Stage 3 runs only behind a Stage 2 pass, and the internal cascade did not run in this campaign sub-iterate; delegated with the rest at 3f-bis",
-      "recorded_by": "none",
+      "completed_at": "2026-09-07T16:45:35.366168+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -291,15 +502,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-09-07T15:39:01.450814+00:00",
-      "disposition": "blocker 1 (no Agent tool): the sub-iterate-runner cannot spawn the Stage-1 spec-reviewer; delegated with the rest of the cascade (ADR-029, campaign mode only) — orchestrator runs it at 3f-bis before merge",
-      "recorded_by": "none",
+      "completed_at": "2026-09-07T16:15:41.441673+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
