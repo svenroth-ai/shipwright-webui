@@ -7,7 +7,7 @@
  * `SidebarNav.test.tsx`/`CommandCenter.test.tsx`. This is the missing piece:
  * `OrgPage.tsx` actually renders the right thing for each state.
  */
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -146,5 +146,18 @@ describe("OrgPage — presence-state branches", () => {
     // eslint-disable-next-line no-bitwise
     expect(sharedDocs.compareDocumentPosition(leadList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getAllByTestId("lead-card")).toHaveLength(1);
+  });
+
+  it("opens the Activity modal on click when the roster has at least one lead", async () => {
+    mockedPresence.mockReturnValue("present");
+    mockedChart.mockReturnValue(chartQuery({ data: CHART, isSuccess: true }));
+    mockedRoster.mockReturnValue(rosterQuery({ data: { leads: [LEAD] } }));
+    mockedThreads.mockReturnValue(threadsQuery());
+    renderPage();
+
+    await waitFor(() => expect(screen.getByTestId("org-activity-button")).toBeInTheDocument());
+    expect(screen.queryByTestId("org-audit-timeline-modal")).toBeNull();
+    fireEvent.click(screen.getByTestId("org-activity-button"));
+    expect(await screen.findByTestId("org-audit-timeline-modal")).toBeInTheDocument();
   });
 });

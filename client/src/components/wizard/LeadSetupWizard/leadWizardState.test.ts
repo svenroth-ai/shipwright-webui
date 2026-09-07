@@ -53,6 +53,31 @@ describe("leadSetupReducer", () => {
     expect(s.answers.authorityBands["Never do without the PO"]).toBe("");
   });
 
+  it("setCadence / setWakeOnAnswer write independent fields", () => {
+    let s = leadSetupReducer(INITIAL_LEAD_SETUP_STATE, { t: "setCadence", cadenceKey: "hourly" });
+    s = leadSetupReducer(s, { t: "setWakeOnAnswer", wakeOnAnswer: true });
+    expect(s.answers.cadenceKey).toBe("hourly");
+    expect(s.answers.wakeOnAnswer).toBe(true);
+  });
+
+  it("setBudgetUsd / setPauseAt / setHardStopAt write independent fields", () => {
+    let s = leadSetupReducer(INITIAL_LEAD_SETUP_STATE, { t: "setBudgetUsd", budgetUsd: "50" });
+    s = leadSetupReducer(s, { t: "setPauseAt", pauseAt: "0.8" });
+    s = leadSetupReducer(s, { t: "setHardStopAt", hardStopAt: "0.9" });
+    expect(s.answers.budgetUsd).toBe("50");
+    expect(s.answers.pauseAt).toBe("0.8");
+    expect(s.answers.hardStopAt).toBe("0.9");
+  });
+
+  it("setMaxConcurrentTasks / setModel / setEscalationTarget write independent fields", () => {
+    let s = leadSetupReducer(INITIAL_LEAD_SETUP_STATE, { t: "setMaxConcurrentTasks", maxConcurrentTasks: "3" });
+    s = leadSetupReducer(s, { t: "setModel", model: "deep" });
+    s = leadSetupReducer(s, { t: "setEscalationTarget", escalationTarget: "po-sven" });
+    expect(s.answers.maxConcurrentTasks).toBe("3");
+    expect(s.answers.model).toBe("deep");
+    expect(s.answers.escalationTarget).toBe("po-sven");
+  });
+
   it("next advances step, clamped at 8 (the verdict step)", () => {
     let s = INITIAL_LEAD_SETUP_STATE;
     for (let i = 0; i < 20; i++) s = leadSetupReducer(s, { t: "next" });
@@ -105,6 +130,27 @@ describe("deriveLeadRows", () => {
   it("budget row is unanswered until a usd amount is set", () => {
     const rows = deriveLeadRows(INITIAL_LEAD_SETUP_STATE);
     expect(rows.find((r) => r.key === "Budget")?.answered).toBe(false);
+  });
+
+  it("cadence row shows the label (plus wake-on-answer suffix) once set", () => {
+    let s = leadSetupReducer(INITIAL_LEAD_SETUP_STATE, { t: "setCadence", cadenceKey: "hourly" });
+    let row = deriveLeadRows(s).find((r) => r.key === "Cadence");
+    expect(row?.answered).toBe(true);
+    expect(row?.value).toBe("Hourly");
+
+    s = leadSetupReducer(s, { t: "setWakeOnAnswer", wakeOnAnswer: true });
+    row = deriveLeadRows(s).find((r) => r.key === "Cadence");
+    expect(row?.value).toBe("Hourly + wake on answer");
+  });
+
+  it("escalation row answers once a target is set", () => {
+    const s = leadSetupReducer(INITIAL_LEAD_SETUP_STATE, {
+      t: "setEscalationTarget",
+      escalationTarget: "po-sven",
+    });
+    const row = deriveLeadRows(s).find((r) => r.key === "Escalation");
+    expect(row?.answered).toBe(true);
+    expect(row?.value).toBe("po-sven");
   });
 
   it("authority row answers once at least one band has text", () => {

@@ -6,7 +6,7 @@
  * mocked directly (OrgPage.test.tsx's idiom for hook-driven components),
  * not through react-query — the point is VerdictStep's own branching.
  */
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, afterEach } from "vitest";
 
 import { VerdictStep } from "./VerdictStep";
@@ -180,6 +180,27 @@ describe("VerdictStep", () => {
     );
     renderStep();
     expect(screen.getByTestId("lead-wizard-commit-error")).toBeInTheDocument();
+  });
+
+  it("clicking Finish calls commit.mutate with the proposal, charter content and proposal digest", () => {
+    mockedVerdict.mockReturnValue(verdictState());
+    const mutate = vi.fn();
+    mockedCommit.mockReturnValue(commitState({ mutate }));
+    renderStep();
+    fireEvent.click(screen.getByTestId("lead-wizard-finish"));
+    expect(mutate).toHaveBeenCalledTimes(1);
+    const arg = mutate.mock.calls[0][0];
+    expect(arg.expectedProposalDigest).toBe("digest-1");
+    expect(arg.proposal.leadId).toBe("acme-lead");
+  });
+
+  it("dispatches back", () => {
+    mockedVerdict.mockReturnValue(verdictState());
+    mockedCommit.mockReturnValue(commitState());
+    const dispatch = vi.fn();
+    render(<VerdictStep answers={COMPLETE_ANSWERS} dispatch={dispatch} />);
+    fireEvent.click(screen.getByTestId("lead-wizard-back"));
+    expect(dispatch).toHaveBeenCalledWith({ t: "back" });
   });
 
   it("auto-retries the verdict exactly once on verdict_stale, not again on a second stale result", async () => {
