@@ -34,11 +34,9 @@ not silently clear this one.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,15 +49,14 @@ if str(_HERE) not in sys.path:
 
 import layer_promotion as lp  # noqa: E402
 import promote_fr_layers_io as io_mod  # noqa: E402
+from promote_fr_layers_escalation import (  # noqa: E402
+    ack_fingerprint, check_ack, resolve_escalation_paths, write_escalation_only,
+)
+from promote_fr_layers_paths import resolve_confined_path, verify_commit_pin  # noqa: E402
 
 _MANIFEST_REL = io_mod._MANIFEST_REL
 _SPEC_REL = io_mod._SPEC_REL
 _LEDGER_REL = io_mod._LEDGER_REL
-
-
-def _ack_fingerprint(escalations: list[dict]) -> str:
-    ids = sorted(f"{e['fr_id']}:{e['reason_code']}" for e in escalations)
-    return hashlib.sha256("\n".join(ids).encode("utf-8")).hexdigest()
 
 
 def run(args: argparse.Namespace) -> int:
@@ -87,9 +84,13 @@ def run(args: argparse.Namespace) -> int:
         return 2
 
     project_root = Path(args.project_root).resolve()
-    manifest_path = Path(args.manifest_path) if args.manifest_path else project_root / _MANIFEST_REL
-    spec_path = Path(args.spec_path) if args.spec_path else project_root / _SPEC_REL
-    ledger_path = Path(args.ledger_path) if args.ledger_path else project_root / _LEDGER_REL
+    try:
+        manifest_path = resolve_confined_path(project_root, args.manifest_path, project_root / _MANIFEST_REL)
+        spec_path = resolve_confined_path(project_root, args.spec_path, project_root / _SPEC_REL)
+        ledger_path = resolve_confined_path(project_root, args.ledger_path, project_root / _LEDGER_REL)
+    except ValueError as exc:
+        print(json.dumps({"success": False, "reason": str(exc)}, indent=2))
+        return 2
 
     # PR Review (blocking, round 2): `--expect-project-commit` binds the
     # evidence freshness check below to a commit the CALLER names explicitly,
@@ -98,7 +99,7 @@ def run(args: argparse.Namespace) -> int:
     # which verifies the PLUGIN checkout, a different tree entirely).
     if args.expect_project_commit:
         try:
-            io_mod.verify_commit_pin(project_root, args.expect_project_commit)
+            verify_commit_pin(project_root, args.expect_project_commit)
         except RuntimeError as exc:
             print(json.dumps({"success": False, "reason": str(exc)}, indent=2))
             return 2
@@ -121,38 +122,15 @@ def run(args: argparse.Namespace) -> int:
             return 2
         vitest_reports.append((name, Path(raw_path)))
 
-    # External plan review (openai, high) + PR Review (blocking, round 2):
-    # "fresh CI evidence" was previously asserted only in prose, then only
-    # checked by mtime -- a copied-and-touched old report would pass. This
-    # still does not prove the report's CONTENT came from the current tree
-    # (vitest's JSON carries no commit field), but combined with the
-    # mandatory `--expect-project-commit` check above, an accepted report
-    # must now be BOTH freshly written (mtime within the ceiling) AND
-    # produced while `project_root` was pinned to the exact commit the
-    # caller names -- not merely "some file that happens to be new". A
-    # NEGATIVE age (a future-dated mtime -- clock skew or a deliberately
-    # advanced timestamp) is rejected too, not just an old one. A small
-    # tolerance (not a hard 0 floor) absorbs ordinary write-then-stat skew: a
-    # file this process just wrote can observe `st_mtime` a few ms AHEAD of
-    # `time.time()` from filesystem timestamp rounding, which would otherwise
-    # reject a report that is, in fact, brand new.
-    _CLOCK_SKEW_TOLERANCE_SECONDS = 5
-    now = time.time()
-    for name, path in vitest_reports:
-        try:
-            age = now - path.stat().st_mtime
-        except OSError as exc:
-            print(json.dumps({"success": False, "reason": f"--vitest-report {name}={path} unreadable: {exc}"}))
-            return 2
-        if age > args.evidence_max_age_seconds or age < -_CLOCK_SKEW_TOLERANCE_SECONDS:
-            print(json.dumps({
-                "success": False,
-                "reason": f"--vitest-report {name}={path} is {age:.0f}s old (ceiling "
-                          f"{args.evidence_max_age_seconds}s, floor -{_CLOCK_SKEW_TOLERANCE_SECONDS}s) — "
-                          "supply a report collected just now, not a stale or future-dated claim "
-                          "(raise --evidence-max-age-seconds only with a documented reason)",
-            }, indent=2))
-            return 2
+    # Combined with the mandatory `--expect-project-commit` check above, an
+    # accepted report must be BOTH freshly written AND produced while
+    # `project_root` was pinned to the exact commit the caller names (PR
+    # Review, blocking, round 2) -- see `check_evidence_freshness`'s
+    # docstring for the full rationale, including the future-dated case.
+    freshness_error = io_mod.check_evidence_freshness(vitest_reports, args.evidence_max_age_seconds)
+    if freshness_error is not None:
+        print(json.dumps({"success": False, "reason": freshness_error}, indent=2))
+        return 2
 
     try:
         with open(spec_path, encoding="utf-8", newline="") as fh:
@@ -195,15 +173,24 @@ def run(args: argparse.Namespace) -> int:
         "promoted": [d["fr_id"] for d in promotions],
         "skipped": [{"fr_id": d["fr_id"], "action": d["action"]} for d in result["skipped"]],
         "escalations": escalations,
+        # PR Review (blocking, round 3): `evaluate_manifest` already NAMES
+        # every removed FR (external plan review GLM #9b) but this output
+        # dropped it, making removals invisible despite the predicate's own
+        # claim otherwise.
+        "removed_fr_ids": result["removed_fr_ids"],
         "systemic_pattern": systemic,
     }
 
     escalation_out = ack_path = escalation_content = fingerprint = None
     if escalations:
-        ack_dir = project_root / ".shipwright" / "planning" / "iterate" / args.run_id
-        escalation_out = Path(args.escalation_out) if args.escalation_out else ack_dir / "layer_promotion_escalation.json"
-        ack_path = Path(args.ack_path) if args.ack_path else ack_dir / "layer_promotion_ack.json"
-        fingerprint = _ack_fingerprint(escalations)
+        try:
+            escalation_out, ack_path = resolve_escalation_paths(
+                project_root, args.run_id, args.escalation_out, args.ack_path,
+            )
+        except ValueError as exc:
+            print(json.dumps({"success": False, "reason": str(exc)}, indent=2))
+            return 2
+        fingerprint = ack_fingerprint(escalations)
         escalation_content = json.dumps({**output, "fingerprint": fingerprint}, indent=2, ensure_ascii=False) + "\n"
 
     if promotions:
@@ -227,30 +214,16 @@ def run(args: argparse.Namespace) -> int:
             print(json.dumps(failure, indent=2))
             return 2
     elif escalations:
-        # Nothing else was written this run (no promotions at all) -- there
-        # is no wider transaction to roll back, just this one file; guard it
-        # for a structured failure instead of an uncaught traceback.
-        try:
-            escalation_out.parent.mkdir(parents=True, exist_ok=True)
-            io_mod.atomic_write_text(escalation_out, escalation_content)
-        except OSError as exc:
-            print(json.dumps({
-                "success": False,
-                "reason": f"failed writing the escalation report to {escalation_out}: {type(exc).__name__}: {exc}",
-            }, indent=2))
+        write_error = write_escalation_only(escalation_out, escalation_content, io_mod.atomic_write_text)
+        if write_error is not None:
+            print(json.dumps({"success": False, "reason": write_error}, indent=2))
             return 2
 
     if not escalations:
         print(json.dumps(output, indent=2, ensure_ascii=False))
         return 0
 
-    acked = False
-    if ack_path.is_file():
-        try:
-            ack = json.loads(ack_path.read_text(encoding="utf-8"))
-            acked = ack.get("fingerprint") == fingerprint and ack.get("run_id") == args.run_id
-        except (OSError, json.JSONDecodeError):
-            acked = False
+    acked = check_ack(ack_path, fingerprint, args.run_id)
 
     output["escalation_out"] = str(escalation_out)
     output["ack_path"] = str(ack_path)

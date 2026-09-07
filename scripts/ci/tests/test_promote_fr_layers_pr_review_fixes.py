@@ -53,6 +53,52 @@ def _args(**kwargs) -> argparse.Namespace:
     return argparse.Namespace(**base)
 
 
+def test_a_removed_fr_is_named_in_the_run_output(stub_plugin_root, tmp_path, monkeypatch, capsys):
+    """PR Review (blocking, round 3): `evaluate_manifest` already NAMES every
+    removed FR (external plan review GLM #9b) but the CLI's own `output`
+    dict dropped it -- surfacing this in a real integration run, not just a
+    `layer_promotion.py` unit test."""
+    spec_path, manifest_path, ledger_path = _write_inputs(tmp_path, {})
+    fixed_manifest = {
+        "schema_version": 3, "collector_version": "stub/1.0.0",
+        "generated_at": "1970-01-01T00:00:00+00:00", "source_commit": "stubbed-sha",
+        "spec_hash": "sha256:stub",
+        "requirements": {
+            "01::FR-01.01": {
+                "id": "FR-01.01", "status": "removed",
+                "required_layers": [], "required_layers_source": "inferred_legacy", "tests": {},
+            },
+        },
+        "orphans": [], "invalid_tags": [], "untagged_tests": [],
+    }
+    monkeypatch.setattr(promote_fr_layers.io_mod, "regen_manifest", lambda *a, **k: fixed_manifest)
+
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=str(manifest_path), spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[],
+    )
+    assert run(args) == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["removed_fr_ids"] == ["FR-01.01"]
+
+
+def test_run_refuses_a_manifest_path_override_outside_project_root(stub_plugin_root, tmp_path):
+    """PR Review (blocking, round 3): `--manifest-path` (and its siblings)
+    accepted ANY path with no confinement to project_root."""
+    spec_path, _manifest_path, ledger_path = _write_inputs(
+        tmp_path, {"FR-01.01": {"unit": [{"id": "a.test.ts::x", "status": "enabled"}]}}
+    )
+    outside_manifest = tmp_path.parent / "outside-manifest.json"
+    args = _args(
+        project_root=str(tmp_path), plugin_root=str(stub_plugin_root),
+        manifest_path=str(outside_manifest), spec_path=str(spec_path), ledger_path=str(ledger_path),
+        run_id="iterate-2026-09-07-w5-bind-and-promote", vitest_report=[],
+    )
+    assert run(args) == 2
+    assert not outside_manifest.is_file()
+
+
 def test_a_negative_evidence_max_age_is_rejected_as_misconfiguration(stub_plugin_root, tmp_path):
     """A negative ceiling makes `age > ceiling` true for every report, i.e.
     "reject all evidence" -- refuse it explicitly instead of silently

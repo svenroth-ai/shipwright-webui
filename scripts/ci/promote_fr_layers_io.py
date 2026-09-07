@@ -19,48 +19,16 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import layer_promotion as lp
+from promote_fr_layers_paths import verify_commit_pin
 
 _MANIFEST_REL = Path(".shipwright/compliance/test-traceability.json")
 _SPEC_REL = Path(".shipwright/planning/01-adopted/spec.md")
 _LEDGER_REL = Path(".shipwright/compliance/layer-promotion-ledger.json")
-
-
-def verify_commit_pin(root: Path, expect_commit: str) -> None:
-    """Fail closed unless ``root``'s git HEAD is EXACTLY the commit the
-    caller expects (code review, blocking): a caller-controlled path with no
-    integrity check would let a modified/swapped checkout control manifest
-    generation and file-writing behavior. This is the runtime half of the
-    guarantee, not a substitute for the other half: a SHA-pinned
-    ``actions/checkout`` step (mirroring the ``Traceability manifest (gate)``
-    job in ``ci.yml``) is what makes a given ref trustworthy in the first
-    place; this only confirms the path a CI invocation actually names is
-    still that same checkout, not one that moved after the checkout step
-    ran. Used for BOTH the plugin checkout (``import_cross_repo``) and the
-    project checkout itself (``promote_fr_layers.run``'s evidence-freshness
-    binding) -- same check, two different trees."""
-    resolved = root.resolve()
-    try:
-        proc = subprocess.run(
-            ["git", "-C", str(resolved), "rev-parse", "HEAD"],
-            capture_output=True, text=True, check=True, timeout=30,
-        )
-    except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-        raise RuntimeError(
-            f"could not read the git HEAD of '{resolved}' to verify it matches the expected "
-            f"commit {expect_commit!r}: {type(exc).__name__}: {exc}"
-        ) from exc
-    actual = proc.stdout.strip()
-    if actual != expect_commit:
-        raise RuntimeError(
-            f"'{resolved}' is at commit {actual!r}, not the expected commit {expect_commit!r} "
-            "-- refusing to proceed against an unverified checkout"
-        )
 
 
 def import_cross_repo(plugin_root: Path, expect_commit: str | None = None):
@@ -102,6 +70,38 @@ def import_cross_repo(plugin_root: Path, expect_commit: str | None = None):
         "fr_table_reader": fr_table_reader, "fr_table_shape": fr_table_shape,
         "markdown_table": markdown_table,
     }
+
+
+def check_evidence_freshness(
+    vitest_reports: list[tuple[str, Path]], max_age_seconds: int, clock_skew_tolerance: int = 5,
+) -> str | None:
+    """External plan review (openai, high) + PR Review (blocking, round 2):
+    "fresh CI evidence" was previously asserted only in prose, then only
+    checked by mtime -- a copied-and-touched old report would pass. This
+    still does not prove the report's CONTENT came from the current tree
+    (vitest's JSON carries no commit field); pair this with a caller-side
+    ``verify_commit_pin`` on ``project_root`` for that binding. A NEGATIVE
+    age (a future-dated mtime -- clock skew or a deliberately advanced
+    timestamp) is rejected too, not just an old one. ``clock_skew_tolerance``
+    (not a hard 0 floor) absorbs ordinary write-then-stat skew: a file this
+    process just wrote can observe ``st_mtime`` a few ms AHEAD of
+    ``time.time()`` from filesystem timestamp rounding, which would
+    otherwise reject a report that is, in fact, brand new. Returns an error
+    reason, or ``None`` if every report is fresh."""
+    now = time.time()
+    for name, path in vitest_reports:
+        try:
+            age = now - path.stat().st_mtime
+        except OSError as exc:
+            return f"--vitest-report {name}={path} unreadable: {exc}"
+        if age > max_age_seconds or age < -clock_skew_tolerance:
+            return (
+                f"--vitest-report {name}={path} is {age:.0f}s old (ceiling {max_age_seconds}s, "
+                f"floor -{clock_skew_tolerance}s) — supply a report collected just now, not a "
+                "stale or future-dated claim (raise --evidence-max-age-seconds only with a "
+                "documented reason)"
+            )
+    return None
 
 
 def build_evidence(vitest_reports: list[tuple[str, Path]], project_root: Path, mods: dict) -> dict:
@@ -279,6 +279,6 @@ def write_promotions(
 
 __all__ = [
     "_MANIFEST_REL", "_SPEC_REL", "_LEDGER_REL",
-    "verify_commit_pin", "import_cross_repo", "build_evidence", "regen_manifest",
+    "import_cross_repo", "check_evidence_freshness", "build_evidence", "regen_manifest",
     "rewrite_spec_row", "atomic_write_text", "write_promotions",
 ]
