@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-w1-evidence-chain",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T21:47:35.477663+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "risk /",
+          "file": null,
+          "line": null,
+          "finding": "The gate is expected to go RED on merge to main and there's no described path back to green. \"A fresh compliance regen is committed\" implies a manual, out-of-band step — every push that touches requirements/evidence would need a follow-up manifest commit, or main stays red indefinitely. A red main devalues the gate: people learn to ignore it, and any genuine staleness signal drowns.",
+          "suggestion": "Either (a) land the fresh manifest regen in the same PR as this change so it merges green, or (b) add a documented one-command regen path (`python scripts/ci/traceability_manifest_gate.py --write`) so fixing a red run is mechanical. Also consider whether the gate should only fire on pushes that actually change files feeding the manifest, or it will be red on every unrelated commit that lands before the regen.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency /",
+          "file": null,
+          "line": null,
+          "finding": "Importing the `test_links` collector from a SHA-pinned checkout of a separate repo creates a cross-repo API coupling that isn't versioned or declared anywhere. If the monorepo changes the collector's import path, signature, or output shape, this gate breaks or (worse) silently normalizes away real differences. The ~850 lines aren't vendored, so there's no local contract.",
+          "suggestion": "Pin the SHA, but also add a minimal contract check in the gate (assert the imported collector exposes the expected entrypoint and emits the expected top-level manifest keys) with a clear error message naming the pinned SHA, so failures point at \"monorepo moved, re-pin\" rather than a confusing AttributeError mid-CI.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security /",
+          "file": null,
+          "line": null,
+          "finding": "The job executes third-party repo code (`svenroth-ai/shipwright` at a pinned SHA — but the pin is only as trustworthy as the repo owner's key discipline) inside a workflow on the repo's trust boundary. The plan mentions the ack record but not hard job isolation.",
+          "suggestion": "In the new job, set `permissions: contents: read`, no secrets, and keep it a separate job so the imported code never runs alongside steps that hold write tokens or pull cached credentials. If it must share a runner with privileged steps, don't.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "Confirm this narrower guarantee is what the acceptance criteria mean by \"must match the commit\" and say so explicitly in the workflow comment. If evidence-file existence should also be checked, do that locally in the gate (cheap file-exists check) without executing the collector's full evidence logic.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "The gate depends on network availability of a second repo plus `astral-sh/setup-uv` install. Flaky or rate-limited fetches would fail the build for reasons unrelated to the manifest, undermining \"a stale manifest fails the build\" as a trustworthy signal.",
+          "suggestion": "Distinguish infra failure from gate failure in the exit codes / messaging (e.g., catch fetch/import errors and emit \"GATE-UNAVAILABLE\" vs \"MANIFEST-STALE\"), so triage doesn't train people to reflexively re-run.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach /",
+          "file": null,
+          "line": null,
+          "finding": "test_traceability_manifest_ci_job.py` asserting trigger shape and SHA pin format via YAML parsing is fine, but the plan should state what failure it prevents: someone adding `pull_request` to the triggers (which would run untrusted PR code against the pinned-checkout import surface).",
+          "suggestion": "Make that reverse-guard test explicitly assert `pull_request` and `schedule` are absent from the job's effective triggers, and comment why. That's the actual security invariant.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not specify how the external collector is made runnable: its Python dependencies, import path, required Python version, and any Git metadata it needs are unspecified. A SHA-pinned checkout alone will still fail if the collector assumes an installed package, a particular working directory, or full Git history.",
+          "suggestion": "Define the exact checkout/install/invocation contract, including pinned Python/uv versions, dependency lockfile or install command, working directory, and `actions/checkout` depth. Add a CI test run of the gate itself, not only fixture-based unit tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Running the job only on `push` and `workflow_dispatch` means a stale manifest can be merged through a pull request and is discovered only after it reaches the target branch. This does not protect the commit that introduces staleness unless repository policy prevents subsequent use of a red main branch.",
+          "suggestion": "Confirm that post-merge detection is intentional and that downstream/release workflows are blocked by this job. If the goal is to prevent stale commits from landing, run the gate on `pull_request` or provide an equivalent required pre-merge check.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The normalization rule is underspecified. Removing every `status` or `executed` field by name can hide meaningful future schema changes, including fields outside execution evidence; conversely, a non-deterministic ordering from the collector could create false failures.",
+          "suggestion": "Normalize only documented schema paths, validate the manifest schema/version before comparing, and canonicalize JSON deterministically (object keys and any unordered collections). Test nested fields and ordering permutations.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The new workflow executes Python from another repository. Pinning its commit is necessary, but the plan does not mention job permissions, secret exposure, or pinning all actions used by the new job (including checkout).",
+          "suggestion": "Set explicit least-privilege `permissions: contents: read`, avoid passing secrets or elevated tokens to the job, pin every action to a full immutable SHA, and ensure the external checkout cannot alter the repository checkout or workflow environment beyond the temporary job workspace.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The expected initial red state is documented but no operational path is stated to regenerate and commit the corrected manifest. That can leave main permanently failing and make unrelated failures harder to distinguish.",
+          "suggestion": "Include the exact approved regeneration command and a follow-up commit/owner step to refresh the manifest immediately before enabling the required gate.  Overall, the approach is appropriately small and avoids unnecessary vendoring, but it needs a concrete execution contract and an explicit decision on whether detection after merge is sufficient before it is enabled.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-06T21:46:45.714072+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: risk / severity: high**\n  **Finding:** The gate is expected to go RED on merge to main and there's no described path back to green. \"A fresh compliance regen is committed\" implies a manual, out-of-band step — every push that touches requirements/evidence would need a follow-up manifest commit, or main stays red indefinitely. A red main devalues the gate: people learn to ignore it, and any genuine staleness signal drowns.\n  **Suggestion:** Either (a) land the fresh manifest regen in the same PR as this change so it merges green, or (b) add a documented one-command regen path (`python scripts/ci/traceability_manifest_gate.py --write`) so fixing a red run is mechanical. Also consider whether the gate should only fire on pushes that actually change files feeding the manifest, or it will be red on every unrelated commit that lands before the regen.\n\n- **Category: dependency / severity: medium**\n  **Finding:** Importing the `test_links` collector from a SHA-pinned checkout of a separate repo creates a cross-repo API coupling that isn't versioned or declared anywhere. If the monorepo changes the collector's import path, signature, or output shape, this gate breaks or (worse) silently normalizes away real differences. The ~850 lines aren't vendored, so there's no local contract.\n  **Suggestion:** Pin the SHA, but also add a minimal contract check in the gate (assert the imported collector exposes the expected entrypoint and emits the expected top-level manifest keys) with a clear error message naming the pinned SHA, so failures point at \"monorepo moved, re-pin\" rather than a confusing AttributeError mid-CI.\n\n- **Category: security / severity: medium**\n  **Finding:** The job executes third-party repo code (`svenroth-ai/shipwright` at a pinned SHA — but the pin is only as trustworthy as the repo owner's key discipline) inside a workflow on the repo's trust boundary. The plan mentions the ack record but not hard job isolation.\n  **Sugges […truncated]\n\n[openai] 1. **Category:** dependency  \n   **Severity:** high  \n   **Finding:** The plan does not specify how the external collector is made runnable: its Python dependencies, import path, required Python version, and any Git metadata it needs are unspecified. A SHA-pinned checkout alone will still fail if the collector assumes an installed package, a particular working directory, or full Git history.  \n   **Suggestion:** Define the exact checkout/install/invocation contract, including pinned Python/uv versions, dependency lockfile or install command, working directory, and `actions/checkout` depth. Add a CI test run of the gate itself, not only fixture-based unit tests.\n\n2. **Category:** risk  \n   **Severity:** high  \n   **Finding:** Running the job only on `push` and `workflow_dispatch` means a stale manifest can be merged through a pull request and is discovered only after it reaches the target branch. This does not protect the commit that introduces staleness unless repository policy prevents subsequent use of a red main branch.  \n   **Suggestion:** Confirm that post-merge detection is intentional and that downstream/release workflows are blocked by this job. If the goal is to prevent stale commits from landing, run the gate on `pull_request` or provide an equivalent required pre-merge check.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The normalization rule is underspecified. Removing every `status` or `executed` field by name can hide meaningful future schema changes, including fields outside execution evidence; conversely, a non-deterministic ordering from the collector could create false failures.  \n   **Suggestion:** Normalize only documented schema paths, validate the manifest schema/version before comparing, and canonicalize JSON deterministically (object keys and any unordered collections). Test nested fields and ordering permutations.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Finding:** The new workflow e […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T23:04:27.880726+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T23:04:34.118312+00:00",
+      "disposition": "doubt-reviewer triggers only for migrations, async/concurrency, cross-plugin imports, or irreversible ops (shipwright-build:doubt-reviewer description); this change is a CI gate script + workflow job with no such touch",
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": ".github/workflows/ci.yml:318 (`if: github.event_name != 'schedule' && github.event_name != 'pull_request'`)",
+          "line": null,
+          "finding": "The gate never runs on `pull_request`. A stale manifest in an iterate PR is only detected after merge-to-main, at which point main is already red. The spec (\"a stale manifest fails the build\") is met only for pushes, and the exclusion is documented as deliberate (iterate PRs structurally cannot carry the regen), but the practical consequence is that breakage lands on main rather than being blocked pre-merge.",
+          "suggestion": "If pre-merge detection matters, consider a `pull_request` variant that posts a warning (non-blocking) so drift is visible before merge, while keeping the hard gate push-only. Otherwise document this as the accepted trade-off in the campaign notes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "scripts/ci/traceability_manifest_gate.py:180-187 (`sys.path.insert(0, plugin_root_str)` and the deferred imports)",
+          "line": null,
+          "finding": "Only the plugin root (`plugins/shipwright-compliance`) is placed on `sys.path`, but the sparse checkout also pulls `shared/scripts` at the monorepo root (`.ci-shipwright-compliance/shared/scripts`), and the workflow comment itself says the collector has \"`shared/scripts` dependencies\". If the collector imports anything via the monorepo root (e.g. `shared.scripts...`), it will fail at runtime with the misleading \"re-pin the commit\" error rather than an actual pin problem — the error message conflates \"path not on sys.path\" with \"the pin moved.\"",
+          "suggestion": "Also insert `.ci-shipwright-compliance` (the monorepo checkout root) on `sys.path`, or verify the pinned collector's imports resolve solely under the plugin root; distinguish \"import failed because of missing path\" from \"import failed because pin moved\" in the error message.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "scripts/ci/traceability_manifest_gate.py:183-184",
+          "line": null,
+          "finding": "sys.path.insert(0, plugin_root_str)` puts a directory containing a `scripts/...` package ahead of everything else in a process whose own repo also has a top-level `scripts/` tree (`scripts/ci/...`). Any later `import scripts.` in the same process resolves into the plugin. Harmless in the current single-purpose invocation, but fragile if the gate is ever imported/reused.",
+          "suggestion": "Remove the inserted path (or restore `sys.path`) in a `finally` once the manifest is built.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "scripts/ci/tests/test_traceability_manifest_gate_run.py:83-101",
+          "line": null,
+          "finding": "The stub collector is written to match the gate's exact import surface, so the run tests verify the gate's control flow but cannot detect a signature change in the real collector beyond what the CI job itself catches. This is honestly documented in the module docstring, so it's a known limitation, not a hidden one — but the `evidence={}` / `enumerate_untagged=True` / `generated_at=`/`source_commit=` keyword contract is entirely unverified against the real pinned commit until the first push runs.",
+          "suggestion": "Acceptable as-is given the push gate is the integration test; consider a smoke check on the first push of this change (manually dispatch the workflow) before relying on it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": ".github/workflows/ci.yml",
+          "line": 338,
+          "finding": "The only manifest gate explicitly skips `pull_request`, so a stale manifest does not fail the build that evaluates the change introducing the drift. It can be merged and only fail after a push to the protected branch, which leaves the acceptance criterion unmet as a pre-merge CI gate.",
+          "suggestion": "Run the gate on pull requests as well, or add an equivalent required pre-merge workflow that regenerates and compares the manifest.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": ".github/workflows/ci.yml:343,346",
+          "line": null,
+          "finding": "Both newly added `actions/checkout@v4` references use a mutable tag rather than an immutable commit SHA. This is especially relevant for the second checkout because it supplies Python code executed by the workflow.",
+          "suggestion": "Pin `actions/checkout` to a reviewed full commit SHA, as is already done for `setup-uv` and the checked-out Shipwright revision.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "scripts/ci/tests/test_traceability_manifest_ci_job.py",
+          "line": 116,
+          "finding": "The workflow test only searches concatenated `run` strings for fragments. It would pass if the gate command were replaced by `echo`, or if the script path and flags appeared in unrelated steps rather than an executable invocation.",
+          "suggestion": "Assert that one specific run step invokes `uv run`/`python` with the gate script and both required argument values.  Ship-with-fixes: the regeneration logic is substantive, but the PR exclusion leaves the required stale-manifest check ineffective before merge, and the new workflow actions should be immutably pinned.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-06T22:01:46.630432+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: spec\n  Severity: medium\n  File: .github/workflows/ci.yml:318 (`if: github.event_name != 'schedule' && github.event_name != 'pull_request'`)\n  Finding: The gate never runs on `pull_request`. A stale manifest in an iterate PR is only detected after merge-to-main, at which point main is already red. The spec (\"a stale manifest fails the build\") is met only for pushes, and the exclusion is documented as deliberate (iterate PRs structurally cannot carry the regen), but the practical consequence is that breakage lands on main rather than being blocked pre-merge.\n  Suggestion: If pre-merge detection matters, consider a `pull_request` variant that posts a warning (non-blocking) so drift is visible before merge, while keeping the hard gate push-only. Otherwise document this as the accepted trade-off in the campaign notes.\n\n- Category: edge-case\n  Severity: medium\n  File: scripts/ci/traceability_manifest_gate.py:180-187 (`sys.path.insert(0, plugin_root_str)` and the deferred imports)\n  Finding: Only the plugin root (`plugins/shipwright-compliance`) is placed on `sys.path`, but the sparse checkout also pulls `shared/scripts` at the monorepo root (`.ci-shipwright-compliance/shared/scripts`), and the workflow comment itself says the collector has \"`shared/scripts` dependencies\". If the collector imports anything via the monorepo root (e.g. `shared.scripts...`), it will fail at runtime with the misleading \"re-pin the commit\" error rather than an actual pin problem — the error message conflates \"path not on sys.path\" with \"the pin moved.\"\n  Suggestion: Also insert `.ci-shipwright-compliance` (the monorepo checkout root) on `sys.path`, or verify the pinned collector's imports resolve solely under the plugin root; distinguish \"import failed because of missing path\" from \"import failed because pin moved\" in the error message.\n\n- Category: edge-case\n  Severity: low\n  File: scripts/ci/traceability_manifest_gate.py:183-184\n  Finding: `sys.path.inser […truncated]\n\n[openai] - Category: spec  \n  Severity: high  \n  File: .github/workflows/ci.yml:338  \n  Finding: The only manifest gate explicitly skips `pull_request`, so a stale manifest does not fail the build that evaluates the change introducing the drift. It can be merged and only fail after a push to the protected branch, which leaves the acceptance criterion unmet as a pre-merge CI gate.  \n  Suggestion: Run the gate on pull requests as well, or add an equivalent required pre-merge workflow that regenerates and compares the manifest.\n\n- Category: security  \n  Severity: medium  \n  File: .github/workflows/ci.yml:343,346  \n  Finding: Both newly added `actions/checkout@v4` references use a mutable tag rather than an immutable commit SHA. This is especially relevant for the second checkout because it supplies Python code executed by the workflow.  \n  Suggestion: Pin `actions/checkout` to a reviewed full commit SHA, as is already done for `setup-uv` and the checked-out Shipwright revision.\n\n- Category: test  \n  Severity: low  \n  File: scripts/ci/tests/test_traceability_manifest_ci_job.py:116  \n  Finding: The workflow test only searches concatenated `run` strings for fragments. It would pass if the gate command were replaced by `echo`, or if the script path and flags appeared in unrelated steps rather than an executable invocation.  \n  Suggestion: Assert that one specific run step invokes `uv run`/`python` with the gate script and both required argument values.\n\nShip-with-fixes: the regeneration logic is substantive, but the PR exclusion leaves the required stale-manifest check ineffective before merge, and the new workflow actions should be immutably pinned.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T22:26:59.177906+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-06T21:46:53.927191+00:00",
+      "disposition": "small complexity — Internal Plan Review runs medium+ only per iteration-planning.md; closes not_applicable at trivial/small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

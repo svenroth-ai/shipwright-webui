@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-06-w1-evidence-chain",
+  "date": "2026-09-07",
+  "section": "Iterate - feature: evidence chain CI gate",
+  "title": "CI regenerates and diffs the traceability manifest against the commit",
+  "context": "P0b/D8 for the WebUI: the traceability manifest had no CI enforcement, so drift could sit uncaught indefinitely (WebUI half of monorepo PR 654).",
+  "decision": "Push/workflow_dispatch-only CI job regenerates the manifest via a SHA-pinned monorepo checkout and diffs FR-test topology against the commit; source_commit is informational only, never gating.",
+  "consequences": "CI now enforces manifest freshness on every push to main. External review (3 rounds) found and fixed a reject-severity self-referential source_commit design flaw before merge.",
+  "rationale": "source_commit cannot equal HEAD by construction (a commit hash depends on its own tree); confirmed empirically against this repo history. Staleness must be judged by FR-test content, not provenance.",
+  "rejected": "Vendoring the 850-line collector; gating on pull_request (iterate PRs cannot carry a regen); comparing source_commit literally to HEAD.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-06-w1-evidence-chain.md"
+}

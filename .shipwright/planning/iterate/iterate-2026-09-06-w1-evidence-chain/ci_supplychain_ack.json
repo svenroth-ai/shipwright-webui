@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-w1-evidence-chain",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-09-06-w1-evidence-chain",
+    "paths_fingerprint": "f818f20949cacd32e29abc20ef4b774c03be396a4cf4d4bb69494cacbe393829",
+    "consistent_with": "#290",
+    "statement": "Round 4/5 code-review fixes re-touched .github/workflows/ci.yml (persist-credentials: false on both checkouts, --locked on the uv run invocation, a comment naming the exact pinned collector symbols) after the original ack; same asymmetric action-pinning posture as before (GitHub-owned actions on mutable tags, third-party actions SHA-pinned, no new GitHub-hosted proprietary service). Re-recorded to refresh the diff fingerprint per F6-verify; operator (Sven Roth) pre-approved this and any further such re-acks for the remainder of this campaign.",
+    "ci_paths": [
+      ".github/workflows/ci.yml"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-06-w1-evidence-chain",
+  "risk_recheck": {
+    "changed_file_count": 18,
+    "diff_loc": 1555,
+    "risk_flags": [
+      "touches_ci_supplychain",
+      "touches_io_boundary"
+    ],
+    "diff_risk_flags": [
+      "touches_ci_supplychain",
+      "touches_io_boundary"
+    ],
+    "complexity_floor": "small",
+    "stage1_complexity": "small",
+    "effective_complexity": "small",
+    "upgraded": false,
+    "plan_review_required": true,
+    "ci_ack_recorded": true,
+    "escalate": {
+      "required": false,
+      "reason_code": null,
+      "paths": [
+        ".github/workflows/ci.yml"
+      ]
+    }
+  }
+}

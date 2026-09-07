@@ -1,15 +1,15 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-06T15:34:22.755084+00:00",
-  "provider": "openrouter+codex",
-  "findings_count": 12,
+  "timestamp": "2026-09-06T21:46:45.716618+00:00",
+  "provider": "openrouter",
+  "findings_count": 11,
   "self_review_fallback_ran": false,
   "reason": null,
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "revise",
-    "glm": "revise"
+    "glm": "revise",
+    "openai": "revise"
   },
   "contradiction": {
     "detected": false,

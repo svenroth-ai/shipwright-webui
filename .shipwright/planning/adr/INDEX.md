@@ -45,3 +45,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Claim-authorized launch gets an explicit permission perimeter](iterate-2026-09-06-claim-launch-permission-perimeter.md)
 - [Decisions-proposed.md countersign — browser surface](iterate-2026-09-06-decisions-proposed-countersign.md)
 - [Surface server-computed staleness + beat-register findings on the org card](iterate-2026-09-06-org-lead-staleness-register.md)
+- [CI regenerates and diffs the traceability manifest against the commit](iterate-2026-09-06-w1-evidence-chain.md)
