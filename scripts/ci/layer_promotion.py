@@ -61,6 +61,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from layer_promotion_ledger import apply_promotion_to_row_cells, ledger_record
+from layer_promotion_report import systemic_pattern
+
 LAYER_RANK: dict[str, int] = {"unit": 0, "integration": 1, "e2e": 2}
 
 ESCALATE_NO_OBSERVABLE_LAYER = "no_observable_layer"
@@ -250,43 +253,6 @@ def evaluate_manifest(
         "removed_fr_ids": sorted(removed_fr_ids),
     }
 
-
-def apply_promotion_to_row_cells(cells: tuple[str, ...], new_layers_cell: str) -> tuple[str, ...]:
-    """Replace the LAST cell (Layers, per this repo's fixed table shape) of an
-    already-parsed FR row. Pure — the caller re-escapes and re-joins the row."""
-    if not cells:
-        return cells
-    return cells[:-1] + (new_layers_cell,)
-
-
-def ledger_record(
-    fr_id: str,
-    layers: list[str],
-    run_id: str,
-    evidence_test_ids: list[str],
-    promoted_at: str,
-    evidence_source_commit: str = "",
-) -> dict[str, Any]:
-    """The one-way ledger entry recorded for a promoted FR.
-
-    ``evidence_source_commit`` (external plan review, openai #5/#6) is the git
-    HEAD the fresh evidence was collected against — provenance for "this
-    promotion's green run was against THIS tree", not a cryptographic
-    integrity proof of the cross-repo tooling itself (that trust model already
-    matches every other script in ``scripts/ci/`` that imports the same pinned
-    sibling checkout, e.g. ``traceability_manifest_gate.py``).
-    """
-    return {
-        "status": "promoted",
-        "layers": list(layers),
-        "run_id": run_id,
-        "promoted_at": promoted_at,
-        "evidence_test_ids": list(evidence_test_ids),
-        "evidence_source_commit": evidence_source_commit,
-    }
-
-
-from layer_promotion_report import systemic_pattern  # noqa: E402  (re-export, split for bloat cap)
 
 __all__ = [
     "LAYER_RANK",
