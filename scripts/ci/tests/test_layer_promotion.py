@@ -103,6 +103,18 @@ def test_ledger_demotion_contradiction_escalates():
     assert d["reason_code"] == lp.ESCALATE_CONTRADICTS_LEDGER
 
 
+def test_an_enabled_binding_with_no_usable_id_escalates_instead_of_zero_evidence_promotion():
+    """Code review (orchestrator, high): `observed_layers` admits a layer on
+    `status == "enabled"` alone, while the bound-tests helper additionally
+    requires a truthy id. Without the guard, a layer whose only enabled
+    binding has no id would fall through to ACTION_PROMOTE with
+    evidence_test_ids=[] — a zero-evidence promotion in a one-way mechanism."""
+    req = _req(tests={"unit": [{"status": "enabled"}]})
+    d = lp.evaluate_requirement("FR-01.99", req, {}, {})
+    assert d["action"] == lp.ACTION_ESCALATE
+    assert d["reason_code"] == lp.ESCALATE_NO_OBSERVABLE_LAYER
+
+
 def test_missing_evidence_is_absent_not_fail_escalates():
     req = _req(tests={"unit": [_enabled("a.test.ts::x")]})
     d = lp.evaluate_requirement("FR-01.99", req, {}, {})

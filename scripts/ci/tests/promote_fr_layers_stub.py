@@ -145,6 +145,12 @@ class FrTableRow:
     id: str
     cells: tuple
     lineno: int
+    # Mirrors the real _fr_table_row.FrTableRow contract: resolved by a
+    # (stubbed) named-column lookup, not just "last cell" -- this stub's
+    # read_fr_rows always resolves Layers as the last cell, matching this
+    # repo's current well-formed spec.md rows.
+    layers_cell: str = ""
+    layers_from_named_col: bool = True
 
 
 def read_fr_rows(content, *, rejects=None):
@@ -155,7 +161,7 @@ def read_fr_rows(content, *, rejects=None):
             continue
         inner = stripped.strip("|")
         cells = tuple(c.strip() for c in inner.split("|"))
-        rows.append(FrTableRow(id=cells[0], cells=cells, lineno=i))
+        rows.append(FrTableRow(id=cells[0], cells=cells, lineno=i, layers_cell=cells[-1]))
     return rows
 '''
 

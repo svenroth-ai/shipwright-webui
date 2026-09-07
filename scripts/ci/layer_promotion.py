@@ -143,6 +143,18 @@ def evaluate_requirement(
         }
 
     bound = _bound_enabled_tests(tests_by_layer, layers)
+    if not bound:
+        # Code review (orchestrator, high): without this guard an enabled
+        # binding with no usable id falls through to ACTION_PROMOTE with
+        # evidence_test_ids=[] -- a zero-evidence promotion in a one-way
+        # mechanism. Escalate instead.
+        return {
+            "fr_id": fr_id,
+            "action": ACTION_ESCALATE,
+            "reason_code": ESCALATE_NO_OBSERVABLE_LAYER,
+            "detail": f"{fr_id} has an enabled binding under {', '.join(layers)} but none carries a usable test id",
+            "unknown_layer_names": [],
+        }
     missing = [
         t["id"] for t in bound
         if t["id"] not in evidence

@@ -144,47 +144,34 @@ def run(args: argparse.Namespace) -> int:
 
     evidence_source_commit = pre_manifest.get("source_commit", "")
     spec_text = original_spec_text
-    for decision in promotions:
-        fr_id, layers = decision["fr_id"], decision["layers"]
-        new_cell = mods["fr_table_shape"].render_layers(tuple(layers), inferred=False)
-        spec_text = io_mod.rewrite_spec_row(spec_text, fr_id, new_cell, mods)
-        ledger[fr_id] = lp.ledger_record(
-            fr_id, layers, args.run_id, decision["evidence_test_ids"], now_iso,
-            evidence_source_commit=evidence_source_commit,
-        )
+    try:
+        for decision in promotions:
+            fr_id, layers = decision["fr_id"], decision["layers"]
+            new_cell = mods["fr_table_shape"].render_layers(tuple(layers), inferred=False)
+            spec_text = io_mod.rewrite_spec_row(spec_text, fr_id, new_cell, mods)
+            ledger[fr_id] = lp.ledger_record(
+                fr_id, layers, args.run_id, decision["evidence_test_ids"], now_iso,
+                evidence_source_commit=evidence_source_commit,
+            )
+    except ValueError as exc:
+        print(json.dumps({"success": False, "reason": f"failed rewriting spec.md row: {exc}"}, indent=2))
+        return 2
 
     if promotions:
-        # External plan review (openai medium / GLM high): this write is NOT
-        # git-atomic — nothing is committed until F6, well after this process
-        # exits — but it MUST be atomic with respect to the working tree this
-        # process leaves behind: a spec.md carrying promoted rows with no
-        # matching manifest/ledger is a permanent hole (`required_layers_source
-        # == "explicit"` never re-evaluates, so a later run would silently
-        # `skip_already_explicit` and never backfill the ledger). So: write
-        # spec.md, attempt regen #2 (which must read it from disk), and if
-        # regen #2 raises ANYTHING, restore the ORIGINAL spec.md content
-        # before returning failure — the working tree ends up unchanged
-        # rather than half-promoted.
-        with open(spec_path, "w", encoding="utf-8", newline="") as fh:
-            fh.write(spec_text)
-        try:
-            # Regen #2: the FULL, authoritative manifest derived from the
-            # NOW-edited spec.md — never a hand-patch of the pre-promotion one.
-            post_manifest = io_mod.regen_manifest(project_root, evidence, mods)
-        except Exception as exc:  # noqa: BLE001 — see the broad catch above;
-            # same rationale, plus this one MUST roll back the disk write.
-            with open(spec_path, "w", encoding="utf-8", newline="") as fh:
-                fh.write(original_spec_text)
-            print(json.dumps({
-                "success": False,
-                "reason": f"post-promotion regen failed, spec.md rolled back to its pre-run "
-                          f"content (no manifest/ledger written): {type(exc).__name__}: {exc}",
-            }, indent=2))
+        # This write is NOT git-atomic -- nothing is committed until F6, well
+        # after this process exits -- but it MUST be atomic with respect to
+        # the working tree this process leaves behind (see
+        # `promote_fr_layers_io.write_promotions`'s docstring for why the
+        # spec.md/manifest/ledger writes and regen #2 are one all-or-nothing
+        # unit, restored to `original_spec_text` on ANY failure).
+        failure = io_mod.write_promotions(
+            spec_path=spec_path, manifest_path=manifest_path, ledger_path=ledger_path,
+            spec_text=spec_text, original_spec_text=original_spec_text, promotions=promotions,
+            evidence=evidence, ledger=ledger, project_root=project_root, mods=mods,
+        )
+        if failure is not None:
+            print(json.dumps(failure, indent=2))
             return 2
-        manifest_path.parent.mkdir(parents=True, exist_ok=True)
-        manifest_path.write_text(json.dumps(post_manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        ledger_path.parent.mkdir(parents=True, exist_ok=True)
-        ledger_path.write_text(json.dumps(ledger, indent=2, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
 
     systemic = lp.systemic_pattern(escalations, result["total_evaluated"])
     output = {
