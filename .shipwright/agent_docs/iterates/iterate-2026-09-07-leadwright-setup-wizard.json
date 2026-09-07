@@ -167,5 +167,14 @@
     "evidence_path": ".shipwright/runs/iterate-2026-09-07-leadwright-setup-wizard/surface_verification.log",
     "timestamp": "2026-09-07T18:07:43.599Z"
   },
-  "declared_removals": []
+  "declared_removals": [
+    {
+      "path": ".shipwright/planning/iterate/external_code_review_state.json",
+      "reason": "single-slot last-review-pass marker, not an append log — origin/main's content there belongs entirely to iterate w5 (commit 86263cd0), already merged and delivered under its own PR. This branch's own code-review-pass marker (Step 3.7, findings_count=13) is what correctly occupies this slot when THIS iterate merges; no union is meaningful for a single JSON object that only ever records the most recent review pass."
+    },
+    {
+      "path": ".shipwright/planning/iterate/external_review_state.json",
+      "reason": "same single-slot last-review-pass marker as external_code_review_state.json, for the iterate-mode (Step 4) review pass — origin/main's content belongs to already-merged iterate w5 (commit 86263cd0); this branch's own marker is what correctly lands here on merge."
+    }
+  ]
 }
