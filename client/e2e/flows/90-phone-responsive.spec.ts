@@ -39,6 +39,7 @@ async function pageOverflowPx(page: Page): Promise<number> {
 }
 
 test.describe("Phone responsive (<768px, touch)", () => {
+  // @covers FR-01.38
   test("harness IS a coarse-pointer phone viewport (gate proof — plan-review C1)", async ({ page }) => {
     await page.goto("/");
     const gate = await page.evaluate(() => ({
@@ -50,6 +51,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
   });
 
   for (const path of ["/", "/projects", "/inbox", "/triage", "/settings", "/diagnostics"]) {
+    // @covers FR-01.38
     test(`no horizontal page overflow at ${path}`, async ({ page }) => {
       await page.goto(path);
       await expect(page.locator("main")).toBeVisible();
@@ -57,6 +59,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     });
   }
 
+  // @covers FR-01.38
   test("sidebar is an overlay drawer — hamburger opens; nav-tap + Escape close (AC-2)", async ({ page }) => {
     await page.goto("/");
     // Phone top bar + hamburger; the inline rail/expand sidebar is NOT in the flow.
@@ -86,6 +89,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     await expect(page.getByTestId("mobile-nav-drawer")).toHaveCount(0);
   });
 
+  // @covers FR-01.38
   test("project dropdown moves into the top bar; status filter is an icon menu, no pills (AC-1/AC-2)", async ({ page, request }) => {
     const project = await seedProject(request, { name: "phone-filter" });
     let task: SeededTask | undefined;
@@ -113,6 +117,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     }
   });
 
+  // @covers FR-01.38
   test("top-bar project dropdown is content-width, NOT the full bar (phone-header-polish #3)", async ({ page, request }) => {
     const project = await seedProject(request, { name: "phone-dropdown" });
     try {
@@ -130,6 +135,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     }
   });
 
+  // @covers FR-01.38
   test("phone '+ New' drills project → actions in ONE downward popup, no off-screen overflow (phone-header-polish #1)", async ({ page, request }) => {
     // Seed a real (non-synthesized) project so the All-Projects create menu shows.
     const suffix = Date.now();
@@ -167,6 +173,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     }
   });
 
+  // @covers FR-01.38
   test("list view hides the Phase column at phone width; no page overflow (AC-5)", async ({ page, request }) => {
     const project = await seedProject(request, { name: "phone-list" });
     let task: SeededTask | undefined;
@@ -183,12 +190,14 @@ test.describe("Phone responsive (<768px, touch)", () => {
     }
   });
 
+  // @covers FR-01.38
   test("projects table does not widen the page (scrolls in-card) (AC-5)", async ({ page }) => {
     await page.goto("/projects");
     await expect(page.locator("main")).toBeVisible();
     expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
   });
 
+  // @covers FR-01.38
   test("embedded terminal shows the on-screen key bar on touch (AC-3)", async ({ page, request }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd, "phone-terminal-keys");
@@ -230,6 +239,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     }
   });
 
+  // @covers FR-01.38
   test("task-detail header is condensed on a phone — breadcrumb + meta sub-line hidden (iterate-2026-06-20 AC-1)", async ({ page, request }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd, "phone-header-condense");
@@ -252,6 +262,7 @@ test.describe("Phone responsive (<768px, touch)", () => {
     }
   });
 
+  // @covers FR-01.38
   test("a modal fits the phone viewport, no page overflow (AC-4)", async ({ page }) => {
     // The Projects "Create Project" wizard is the deterministically-openable
     // modal on an empty isolated stack (the board create-menu needs a project).

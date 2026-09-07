@@ -23,6 +23,7 @@ const CHART = {
   },
 };
 
+// @covers FR-01.71
 describe("createOrgApiRouter — /api/org/* plain-surface proxy", () => {
   let leadsRoot: string;
 

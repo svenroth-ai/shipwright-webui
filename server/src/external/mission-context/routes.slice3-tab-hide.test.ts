@@ -117,6 +117,7 @@ afterEach(() => {
   for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
 });
 
+// @covers FR-01.66
 describe("GET mission-context — the tab-hide gate, end to end", () => {
   it("HIDES the tab for a validated custom-actions project", async () => {
     const root = makeProject();

@@ -71,6 +71,7 @@ function config(tasks: PhaseTask[]): RunConfigReadResult {
   };
 }
 
+// @covers FR-01.66
 describe("buildPipelineFact — exact-id resolution, never conflation", () => {
   it("resolves the ONE task whose id matches, among siblings sharing phase and session", () => {
     const fact = buildPipelineFact(config(AMBIGUOUS_TASKS), "ptk-bbbb");
@@ -157,6 +158,7 @@ describe("buildPipelineFact — exact-id resolution, never conflation", () => {
   });
 });
 
+// @covers FR-01.66
 describe("buildPhaseArtifact", () => {
   const okFact = buildPipelineFact(config(AMBIGUOUS_TASKS), "ptk-bbbb");
 
@@ -198,6 +200,7 @@ describe("buildPhaseArtifact", () => {
   });
 });
 
+// @covers FR-01.66
 describe("buildPipelineSpecArtifact", () => {
   it("links the adopted spec and says it holds the requirements", () => {
     const a = buildPipelineSpecArtifact({ documentId: "doc", title: "spec.md", denied: false });

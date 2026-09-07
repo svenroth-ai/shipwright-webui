@@ -181,7 +181,7 @@ test.describe("Iterate webgl-atlas-repaint — atlas-change full repaint (real b
     }
   });
 
-  test("a live WebGL atlas regeneration fires our full-viewport repaint handler", async ({
+  test("a live WebGL atlas regeneration fires our full-viewport repaint handler", async ({ // @covers FR-01.28
     page,
     request,
   }) => {
@@ -233,7 +233,7 @@ test.describe("Iterate webgl-atlas-repaint — atlas-change full repaint (real b
    * plus a settled/bounded check (a runaway would mean the clear re-triggered
    * itself — the feedback loop #206 fenced off). Wiring detail: unit suites.
    */
-  test("a window re-show heals the live atlas exactly once (and does not loop)", async ({
+  test("a window re-show heals the live atlas exactly once (and does not loop)", async ({ // @covers FR-01.28
     page,
     request,
   }) => {

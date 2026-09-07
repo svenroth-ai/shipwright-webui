@@ -39,6 +39,7 @@ const bash = (command: string, id = "b1") => tool("Bash", { command }, id);
 
 const facts = (...e: Record<string, unknown>[]) => gatherFacts(parse(...e));
 
+// @covers FR-01.66
 describe("the ask — chosen by provenance (AC2)", () => {
   it("takes the operator's request from the kickoff arguments", () => {
     expect(facts(kickoff("Make the middle card tell a story")).ask).toBe(
@@ -77,6 +78,7 @@ describe("the ask — chosen by provenance (AC2)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("test outcomes — graded by evidence, never overstated (AC3)", () => {
   it("reads a real failure COUNT from recognised output", () => {
     const f = facts(bash("npx vitest run"), result("b1", "Tests  6 failed | 300 passed", true));
@@ -107,6 +109,7 @@ describe("test outcomes — graded by evidence, never overstated (AC3)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("counts and artefacts", () => {
   it("counts product edits, reads and searches separately from spec writes", () => {
     const f = facts(
@@ -133,6 +136,7 @@ describe("counts and artefacts", () => {
   });
 });
 
+// @covers FR-01.66
 describe("the narrative window (AC9)", () => {
   const work = tool("Edit", { file_path: "/r/src/a.ts" }, "e9");
 
@@ -175,6 +179,7 @@ describe("the narrative window (AC9)", () => {
  * KICKOFF window for the ask alone — still windowed, so a campaign narrates the
  * current sub-iterate's request rather than the first one of the day.
  */
+// @covers FR-01.66
 describe("factsFromTranscript — the ask survives a worktree-anchored window", () => {
   const setup = bash("uv run setup_iterate_worktree.py --slug x", "s1");
   const work = tool("Edit", { file_path: "/r/src/a.ts" }, "e1");

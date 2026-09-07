@@ -44,6 +44,7 @@ test.describe("A12 — Mission 'Operation' card", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("no run AND no transcript -> the HONEST waiting narration, never a false ALL CLEAR (AC3, FR-01.66)", async ({
     page,
   }) => {
@@ -63,6 +64,7 @@ test.describe("A12 — Mission 'Operation' card", () => {
     await expect(card).not.toContainText("ALL CLEAR");
   });
 
+  // @covers FR-01.66
   test("the proof summary is NOT the terminal; the REAL terminal is in Files & Terminal (AC2)", async ({
     page,
   }) => {
@@ -90,6 +92,7 @@ test.describe("A12 — Mission 'Operation' card", () => {
     await expect(term).toHaveAttribute("data-ws-ready", "true", { timeout: 20_000 });
   });
 
+  // @covers FR-01.66
   test("the Operation card sits BESIDE the left panel in the Mission body", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();

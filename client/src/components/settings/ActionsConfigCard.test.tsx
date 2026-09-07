@@ -101,7 +101,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("ActionsConfigCard", () => {
+describe("ActionsConfigCard", () => { // @covers FR-01.27
   it("renders one row per non-synthesized project", async () => {
     setup();
     expect(await screen.findByTestId("actions-config-row-p1")).toBeInTheDocument();

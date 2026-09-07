@@ -10,6 +10,7 @@ import { resolveNetworkProfile } from "./resolveNetworkProfile.js";
 const fakeTailscaleExec = (ip = "100.64.0.1") =>
   vi.fn(() => `${ip}\n`);
 
+// @covers FR-01.31
 describe("resolveNetworkProfile", () => {
   it("unset env → undefined (caller falls back to default)", () => {
     expect(resolveNetworkProfile({}, fakeTailscaleExec())).toBeUndefined();

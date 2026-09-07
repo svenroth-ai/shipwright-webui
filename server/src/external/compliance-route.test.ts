@@ -79,6 +79,7 @@ async function makeApp(args: {
   return app;
 }
 
+// @covers FR-01.43
 describe("GET /api/external/projects/:projectId/compliance", () => {
   it("404 when project is unknown (AC-D)", async () => {
     const app = await makeApp({ project: null });

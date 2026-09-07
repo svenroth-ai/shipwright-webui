@@ -87,6 +87,7 @@ test.describe("FR-01.68 — the Mission middle card tells a story", () => {
     return narration;
   }
 
+  // @covers FR-01.66
   test("narrates the ask, the work and the OUTCOME as prose (AC1/AC2/AC3)", async ({ page }) => {
     const task = await createTask(page, `mission-prose-${Date.now()}`);
     taskId = task.taskId;
@@ -133,6 +134,7 @@ test.describe("FR-01.68 — the Mission middle card tells a story", () => {
     expect(await page.getByTestId("mission-narration-paragraph").count()).toBeGreaterThan(1);
   });
 
+  // @covers FR-01.66
   test("a quoted tool name fakes no phase, and a pending run does not pass (AC3b/AC8)", async ({
     page,
   }) => {
@@ -159,6 +161,7 @@ test.describe("FR-01.68 — the Mission middle card tells a story", () => {
     await expect(narration).not.toContainText("green");
   });
 
+  // @covers FR-01.66
   test("an artifact link sits INSIDE the sentence and opens the panel (AC5)", async ({ page }) => {
     const task = await createTask(page, `mission-prose-link-${Date.now()}`);
     taskId = task.taskId;

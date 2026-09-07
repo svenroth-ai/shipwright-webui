@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import { findRunIdFooter, MAX_SCAN_CHARS } from "./run-id-recovery.js";
 import { footerLine } from "./run-id-recovery.test.js";
 
+// @covers FR-01.66
 describe("findRunIdFooter — \"type\":\"user\" lines are excluded", () => {
   const OLD = "iterate-2026-07-01-some-older-run";
   const NEW = "iterate-2026-08-20-mission-feed-content";
@@ -100,6 +101,7 @@ describe("findRunIdFooter — the truncation boundary cannot smuggle a tool_resu
     expect(findRunIdFooter(transcript)).toBe(NEW);
   });
 
+  // @covers FR-01.66
   it("does not drop anything when the transcript is not actually truncated", () => {
     // Same shape, but short enough that no slicing happens — the leading
     // line is a real, complete line and must NOT be unconditionally dropped.

@@ -28,6 +28,7 @@ function mockMatchMedia(reduce: boolean) {
   window.matchMedia = vi.fn().mockReturnValue(mql) as unknown as typeof window.matchMedia;
 }
 
+// @covers FR-01.64
 describe("useCountUp — the reduced-motion contract (AC6)", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -67,6 +68,7 @@ describe("useCountUp — the reduced-motion contract (AC6)", () => {
   });
 });
 
+// @covers FR-01.64
 describe("useCountUp — the animated path (no-preference)", () => {
   const rafQueue: FrameRequestCallback[] = [];
   let now = 0;

@@ -17,6 +17,7 @@ import { resolveHonoHost } from "./resolveHonoHost.js";
 
 const fakeTailscaleExec = (ip = "100.64.0.1") => vi.fn(() => `${ip}\n`);
 
+// @covers FR-01.31
 describe("resolveHonoHost env-merge precedence (.env.local vs process.env)", () => {
   function merge(
     fromFile: Record<string, string | undefined>,

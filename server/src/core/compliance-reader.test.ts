@@ -53,6 +53,7 @@ describe("parseDashboard — structured fields (AC-A)", () => {
   });
 });
 
+// @covers FR-01.59
 describe("parseDashboard — dimensions (A16, FR-01.60)", () => {
   it("populates dimensions[] from the Control-Verdict table", () => {
     const r = parseDashboard(FIXTURE_RAW);

@@ -22,6 +22,7 @@ import { test, expect } from "@playwright/test";
 const API = API_BASE;
 
 test.describe("Move to Backlog (FR-01.32)", () => {
+  // @covers FR-01.01
   test("an In-Progress task relocates to the Backlog column via the card ⋯-menu", async ({
     page,
     request,

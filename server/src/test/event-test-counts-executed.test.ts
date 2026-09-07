@@ -176,6 +176,7 @@ function effectiveEvents(): EventRecord[] {
     .map((row) => (amendments.has(row.id) ? { ...row, ...amendments.get(row.id) } : row));
 }
 
+// @covers FR-01.01
 describe("recorded test counts obey their era's convention (D4 ratchet)", () => {
   const inScope = effectiveEvents().filter(
     (e) =>

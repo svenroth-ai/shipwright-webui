@@ -31,6 +31,7 @@ function StaggeredList({ items }: { items: string[] }) {
   );
 }
 
+// @covers FR-01.64
 describe("staggered list renders ALL items in their final visible state", () => {
   const items = Array.from({ length: 30 }, (_, i) => `item-${i}`);
 

@@ -59,6 +59,7 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     return body.task;
   }
 
+  // @covers FR-01.66
   test("a session with a live JSONL narrates plain-language activity + an inferred stage (AC1/AC2)", async ({
     page,
   }) => {
@@ -149,6 +150,7 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     });
   });
 
+  // @covers FR-01.66
   test("a campaign orchestrator session: windowed stage + progress line (FR-01.67 AC2/AC3)", async ({
     page,
   }) => {
@@ -232,6 +234,7 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     await expect(page.getByTestId("mission-summary")).toContainText(slug);
   });
 
+  // @covers FR-01.66
   test("no run AND no transcript → honest 'waiting', never fabricated activity (AC3)", async ({
     page,
   }) => {

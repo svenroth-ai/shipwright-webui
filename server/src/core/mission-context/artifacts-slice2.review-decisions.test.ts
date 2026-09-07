@@ -26,6 +26,7 @@ const FOUR_UNKNOWN: ReviewRow[] = [
   reviewRow({ reviewType: "external_code" }),
 ];
 
+// @covers FR-01.66
 describe("buildReviewArtifact", () => {
   it("hides only when there is NO record and nothing failed to read", () => {
     const lookup: ReviewLookup = { rows: FOUR_UNKNOWN, hasRecord: false, sawUnreadable: false, caveats: [] };
@@ -193,6 +194,7 @@ const EMPTY: DecisionRecord = {
   sawUnreadable: false,
 };
 
+// @covers FR-01.66
 describe("buildDecisionsArtifact", () => {
   it("SHOWS `unavailable` when the decision records could not be read", () => {
     const record: DecisionRecord = {

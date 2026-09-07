@@ -87,6 +87,7 @@ function inputs(over: Partial<ScenarioInputs> = {}): ScenarioInputs {
   };
 }
 
+// @covers FR-01.66
 describe("detectScenario — the footer is consulted lazily", () => {
   const customActions = {
     fromUser: true,

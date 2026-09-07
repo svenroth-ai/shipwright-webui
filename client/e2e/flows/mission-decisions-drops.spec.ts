@@ -81,6 +81,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await page.getByTestId("mission-tab-mission").click();
   }
 
+  // @covers FR-01.66
   test("a run whose decision exists ONLY as a drop renders it, unnumbered", async ({
     page,
     request,
@@ -115,6 +116,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     );
   });
 
+  // @covers FR-01.66
   test("the NUMBERED log entry wins when a run is in both sources", async ({ page, request }) => {
     const { sessionUuid, commit } = await seed(request, "MissionBothSources", "sw-drop-both");
 
@@ -143,6 +145,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await expect(page.getByTestId("artifact-decision-unnumbered")).toHaveCount(0);
   });
 
+  // @covers FR-01.66
   test("a PARTIALLY folded run shows the published AND the still-pending decision", async ({
     page,
     request,
@@ -172,6 +175,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await expect(panel).toContainText("Still pending decision");
   });
 
+  // @covers FR-01.66
   test("another run's drop never leaks into this run's Decisions", async ({ page, request }) => {
     const { sessionUuid, commit } = await seed(request, "MissionDropIsolation", "sw-drop-iso");
 
@@ -192,6 +196,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await expect(panel).not.toContainText("A concurrent run's");
   });
 
+  // @covers FR-01.66
   test("a malformed drop is disclosed, and never hides the valid one", async ({ page, request }) => {
     const { sessionUuid, commit } = await seed(request, "MissionDropMalformed", "sw-drop-bad");
 
@@ -214,6 +219,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     );
   });
 
+  // @covers FR-01.66
   test("a run with NO drop and NO log entry hides — an absence may be one", async ({
     page,
     request,

@@ -34,6 +34,7 @@ const links = (paras: Paragraph[]) =>
 
 const ALL = ["spec", "tests", "commit", "requirement", "review", "decisions"];
 
+// @covers FR-01.66
 describe("prose, not a list (AC1)", () => {
   it("tells the arc of a real run in sentences", () => {
     const out = text(
@@ -90,6 +91,7 @@ describe("prose, not a list (AC1)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("no durations, ever (AC6)", () => {
   it("never emits a time unit", () => {
     const out = text(
@@ -109,6 +111,7 @@ describe("no durations, ever (AC6)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("evidence tiers — the card never outruns its proof (AC3)", () => {
   it("an is_error without a count does not invent one", () => {
     const out = text(narrate(facts({ tests: [{ status: "failed", failed: null }] }), ALL));
@@ -189,6 +192,7 @@ describe("evidence tiers — the card never outruns its proof (AC3)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("inline links resolve or become plain text (AC5)", () => {
   it("links the nouns the rail actually offers", () => {
     const out = links(narrate(facts({ specWritten: true, tests: [], commits: 1 }), ALL));

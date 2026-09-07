@@ -17,6 +17,7 @@ const ALL_ENDPOINTS: Array<{ method: string; path: string }> = [
   { method: "POST", path: "/api/external/org/leads/acme-lead/beat-register/release" },
 ];
 
+// @covers FR-01.70
 describe("createOrgRouter — host + secret gates", () => {
   let leadsRoot: string;
 

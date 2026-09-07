@@ -30,6 +30,7 @@ function renderWithRouter(initialEntries = ['/']) {
   );
 }
 
+// @covers FR-01.71
 describe('Org nav entry (FR-01.71)', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'innerWidth', { value: 1024, writable: true });

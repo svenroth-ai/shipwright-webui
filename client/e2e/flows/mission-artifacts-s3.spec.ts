@@ -77,6 +77,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
   // AC1 — pipeline
   // -------------------------------------------------------------------------
 
+  // @covers FR-01.66
   test("a pipeline phase task resolves its OWN split, plus the spec (AC1)", async ({
     page,
     request,
@@ -105,6 +106,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
     await expect(page.getByTestId("artifact-doc-body")).toContainText("FR-01.66");
   });
 
+  // @covers FR-01.66
   test("the phase detail reports plain-language state, not the raw enum (AC1)", async ({
     page,
     request,
@@ -122,6 +124,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
     await expect(page.getByTestId("artifact-phase-meta")).toContainText(RUN_ID);
   });
 
+  // @covers FR-01.66
   test("the COMPLETED sibling resolves to its own split — no conflation (AC1)", async ({
     page,
     request,
@@ -143,6 +146,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
   // AC1 — campaign
   // -------------------------------------------------------------------------
 
+  // @covers FR-01.66
   test("a campaign shows brief · runbook · progress · current unit, kept distinct (AC1)", async ({
     page,
     request,
@@ -163,6 +167,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
     await expect(page.getByTestId("artifact-link-sub_iterate")).toContainText("S2");
   });
 
+  // @covers FR-01.66
   test("the current unit carries ITS OWN record, not a completed sibling's (AC1)", async ({
     page,
     request,
@@ -190,6 +195,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
     await expect(page.getByTestId("artifact-sub-doc")).toBeVisible();
   });
 
+  // @covers FR-01.66
   test("the campaign progress list marks exactly one unit as current (AC3)", async ({
     page,
     request,
@@ -215,6 +221,7 @@ test.describe("S3 — native pipeline + campaign artifacts", () => {
   // AC3 — a plain session keeps narration + stage, and gains no rail
   // -------------------------------------------------------------------------
 
+  // @covers FR-01.66
   test("a plain session shows narration and the stage, with no artifact rail (AC3)", async ({
     page,
     request,

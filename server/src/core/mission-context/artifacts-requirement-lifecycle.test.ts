@@ -6,6 +6,7 @@ import { parseFoldMap } from "./fold-map.js";
 const map = parseFoldMap(`| FR-01.66 | TSK | Mission view | Should | A readable Mission view. | adopted |`);
 const sourceDocument = { documentId: "signed", title: "Requirements specification" };
 
+// @covers FR-01.66
 describe("Requirement artifact lifecycle", () => {
   it("discovers until a usable spec impact exists", () => {
     const artifact = buildRequirementArtifact({ foldMap: map, doc: null, events: { status: "absent", mtimeMs: 0 }, specText: null, sourceDocument });

@@ -1,0 +1,1 @@
+test(compliance): backfill @covers traceability tags on 1196 existing tests, raising bound-test coverage from 15.75% to 31.97% and closing all 7 zero-coverage FRs (32/32 now bound) — comment-only, no tests added/removed/weakened

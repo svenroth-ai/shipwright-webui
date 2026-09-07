@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-w4-tagging-backfill-webui",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T08:50:24.137848+00:00",
+      "disposition": null,
+      "recorded_by": "runner",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Pass 1's audit (\"grouping every inserted tag by FR + eyeballing file names against the FR's own spec title\") validates at the file-name level, not the test level. Tagging a test as `@covers FR-X` asserts that test actually proves that FR's AC. A file-header mentioning FR-01.66 doesn't mean every test nested under the outermost describe proves FR-01.66 — unrelated helper tests in the same block will now be counted as covering that FR, which inflates coverage without changing real verification. This is materially different from deleting/weakening a test but violates the spirit of the AC (\"no test is deleted or weakened to raise the number\" — mis-tagging also raises the number dishonestly).",
+          "suggestion": "For every Pass 1 tag inserted above a block containing more than ~2–3 test cases, spot-check that the nested `it` titles actually exercise the FR. State in the ADR how many blocks were content-verified vs. name-verified, so the coverage delta is interpretable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "\"Deduped to the outermost qualifying block so propagation covers everything nested under it\" compounds the above: if a nested describe has no FR mention but sits under an outer block that does, it inherits the tag. Combined with the describe-scope stack, one broad header mention can bind a whole file of heterogeneous tests. The plan's own exclusion logic (near-miss catches in `triage-enrich` and `compliance-reader`) shows the heuristic is fragile — those two were caught by luck of phrasing.",
+          "suggestion": "Cap propagation: only tag blocks whose own text (describe title or local docstring) mentions the FR, falling back to header only when the entire file is single-concern (single top-level describe, or all describes plausibly under the FR). State the rule in the plan.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The `campaigns.events.test.ts` docstring \"typo\" correction (FR-01.31 → FR-01.33) is a judgment call embedded in an otherwise mechanical pass. If the original author meant FR-01.31 (e.g., the test did exercise network-profile behavior in a campaigns context), the \"correction\" rewrites intent based on file-name heuristics. The plan says the FR-01.31 test subject was \"unrelated to the file's actual subject\" but a GET endpoint test can legitimately cover network access profiling.",
+          "suggestion": "Record in the ADR the actual test titles under that header and why they can't plausibly relate to FR-01.31, so the correction is auditable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The manifest is deliberately not committed (correct per `derived_snapshots.py` collision policy), but that means the headline 15.75% → 31.97% number is unverified against the CI gate's own run. If the scratch collector and CI collector ever diverge (different pinned revision, path resolution, working-tree differences), the merge-time regen could yield a different number — and the \"no orphan/invalid tag regressions\" claim goes untested until merge.",
+          "suggestion": "Confirm the scratch regen used the exact same pinned collector commit hash CI uses, and note the pin hash in the ADR. If CI's post-merge diff gates on `orphans`, verify the 12 pre-existing `FR-04.22` orphans are actually tolerated by the gate and not just \"pre-existing.\"",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Pass 2's FR-01.05 evidence cites a describe matching spec AC (F) \"verbatim\" — verbatim title matching is good evidence for that one describe, but FR-01.05 may have multiple ACs; tagging both files wholesale to FR-01.05 implies full-AC coverage. Same pattern for FR-01.16's \"four describes are exactly that contract\" (AC (E) is one of presumably several ACs).",
+          "suggestion": "When stating results, distinguish \"FR has ≥1 bound test\" (which is the actual metric — 32/32) from \"FR is fully covered by its ACs.\" The plan reads correctly now, but ensure the ADR doesn't conflate them.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The automated rule can still over-tag mixed suites. Tagging the outermost qualifying `describe` deliberately propagates the FR to every nested test, even where a suite contains shared setup, regression cases, or a secondary concern that does not prove that FR. The stated filename/spec-title audit will not reliably detect this at test level.",
+          "suggestion": "Emit tags at the narrowest declaration that demonstrably exercises the FR. Require a per-inserted-target review list (file, suite/test title, resolved FR), especially for nested or multi-`describe` files; do not use outer-suite propagation where any descendant is unrelated.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not satisfy the explicit acceptance criterion to state derived and hand-mapped counts separately. It reports “21 FRs” from automation and five manual additions, but not the number of tagged tests/inserted bindings from each path. FR counts are not enough because each FR can cover many tests.",
+          "suggestion": "Include before/after totals plus separate counts for automated-derived bindings and manually verified bindings, ideally also the number of affected files and tests for each.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "“Exactly one FR anywhere in the file” is only a weak proxy for semantic ownership. It misses aliasing through folded IDs, dynamically generated tests, parameterized tests, shared helpers, and ordinary prose that happens to name the sole FR; the cross-reference phrase list cannot make this generally safe.",
+          "suggestion": "Treat the script as candidate generation rather than an authority. Validate each candidate against the specific FR acceptance criterion and ensure the inserted comment binds the intended declaration under the collector’s actual parsing rules.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Incorrect tags on `FR-01.31` or the externally exposed org routes can falsely represent security-sensitive controls as tested. This is not a runtime vulnerability, but it weakens the integrity of compliance evidence precisely where reviewers may rely on it.",
+          "suggestion": "For the network-profile and host/secret-gate mappings, record the exact matching AC and test title in the review artifact, and confirm both positive and rejection/unauthorized paths are represented before attaching the security-related FR tag.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The reported “coverage” is traceability-tag coverage, not behavioral or product-test coverage. The large increase could be misunderstood as a substantial expansion in tested functionality.",
+          "suggestion": "Label all reported numbers as “bound-test traceability coverage” in the ADR/PR summary and retain the unchanged test pass counts alongside them.  The approach is directionally sound and appropriately avoids product changes, but it needs test-level attribution safeguards and the missing derived-versus-manual binding counts before it is ready. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T08:49:36.710792+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category: risk — Severity: medium**\n**Finding:** Pass 1's audit (\"grouping every inserted tag by FR + eyeballing file names against the FR's own spec title\") validates at the *file-name* level, not the *test* level. Tagging a test as `@covers FR-X` asserts that test actually proves that FR's AC. A file-header mentioning FR-01.66 doesn't mean every test nested under the outermost describe proves FR-01.66 — unrelated helper tests in the same block will now be counted as covering that FR, which inflates coverage without changing real verification. This is materially different from deleting/weakening a test but violates the *spirit* of the AC (\"no test is deleted or weakened to raise the number\" — mis-tagging also raises the number dishonestly).\n**Suggestion:** For every Pass 1 tag inserted above a block containing more than ~2–3 test cases, spot-check that the nested `it` titles actually exercise the FR. State in the ADR how many blocks were content-verified vs. name-verified, so the coverage delta is interpretable.\n\n**Category: edge-case — Severity: medium**\n**Finding:** \"Deduped to the outermost qualifying block so propagation covers everything nested under it\" compounds the above: if a nested describe has *no* FR mention but sits under an outer block that does, it inherits the tag. Combined with the describe-scope stack, one broad header mention can bind a whole file of heterogeneous tests. The plan's own exclusion logic (near-miss catches in `triage-enrich` and `compliance-reader`) shows the heuristic is fragile — those two were caught by luck of phrasing.\n**Suggestion:** Cap propagation: only tag blocks whose own text (describe title or local docstring) mentions the FR, falling back to header only when the entire file is single-concern (single top-level describe, or all describes plausibly under the FR). State the rule in the plan.\n\n**Category: risk — Severity: low**\n**Finding:** The `campaigns.events.test.ts` docstring \"typo\" correctio […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** The automated rule can still over-tag mixed suites. Tagging the outermost qualifying `describe` deliberately propagates the FR to every nested test, even where a suite contains shared setup, regression cases, or a secondary concern that does not prove that FR. The stated filename/spec-title audit will not reliably detect this at test level.  \n   **Suggestion:** Emit tags at the narrowest declaration that demonstrably exercises the FR. Require a per-inserted-target review list (file, suite/test title, resolved FR), especially for nested or multi-`describe` files; do not use outer-suite propagation where any descendant is unrelated.\n\n2. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The plan does not satisfy the explicit acceptance criterion to state derived and hand-mapped counts separately. It reports “21 FRs” from automation and five manual additions, but not the number of tagged tests/inserted bindings from each path. FR counts are not enough because each FR can cover many tests.  \n   **Suggestion:** Include before/after totals plus separate counts for automated-derived bindings and manually verified bindings, ideally also the number of affected files and tests for each.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** “Exactly one FR anywhere in the file” is only a weak proxy for semantic ownership. It misses aliasing through folded IDs, dynamically generated tests, parameterized tests, shared helpers, and ordinary prose that happens to name the sole FR; the cross-reference phrase list cannot make this generally safe.  \n   **Suggestion:** Treat the script as candidate generation rather than an authority. Validate each candidate against the specific FR acceptance criterion and ensure the inserted comment binds the intended declaration under the collector’s actual parsing rules.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Fin […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T08:50:36.524639+00:00",
+      "disposition": "delegated_to_orchestrator: sub-iterate runner has no Agent tool, cannot spawn spec-reviewer/code-reviewer/doubt-reviewer cascade; orchestrator runs it at campaign-mode.md 3f-bis before merge (ADR-029)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T08:50:36.630704+00:00",
+      "disposition": "delegated_to_orchestrator: sub-iterate runner has no Agent tool, cannot spawn spec-reviewer/code-reviewer/doubt-reviewer cascade; orchestrator runs it at campaign-mode.md 3f-bis before merge (ADR-029)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 15,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "spec |",
+          "file": "(entire diff) — Finding: The acceptance criteria are not addressed by this diff. There is no \"coverage reported before and after\" (no baseline/current numbers anywhere), and no separate statement of \"derived vs hand-mapped counts\". The diff contains only the `// @covers` annotations; the AC deliverables (the report itself) must be present with the change, otherwise w4's outcome cannot be verified.",
+          "line": null,
+          "finding": "Attach (or include in the PR) the before/after coverage figures split into derived vs hand-mapped counts, per the AC.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug |",
+          "file": "client/e2e/flows/markdown-editor.spec.ts:26 (and :64, :96, :125, :151, :192, :233) — Finding: The suite is titled \"SmartViewer markdown editor (FR-01.34)\" and the covered feature is FR-01.34, but every tag binds `// @covers FR-01.33`. Tagging tests to the wrong FR level poisons any coverage attribution derived from the tags.",
+          "line": null,
+          "finding": "Tag these FR-01.34, not FR-01.33.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug |",
+          "file": "client/e2e/flows/95-terminal-appearance.spec.ts:72 (and :123), client/e2e/flows/97-terminal-drop-resync.spec.ts:71/:175, client/src/components/terminal/terminal-theme.test.ts:134, useTerminalAppearance.test.ts:28/:62, useTerminalResize.atlas-heal.test.ts:60, server/src/terminal/ — Finding: Terminal-appearance tests whose own names cite FR-01.44 are tagged FR-01.28. A tag that contradi […truncated]",
+          "line": null,
+          "finding": "Verify each FR against the requirements source; appearance tests should map to FR-01.44, resync/atlas mechanics to FR-01.28 as appropriate.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug |",
+          "file": "client/e2e/flows/move-to-backlog.spec.ts:25; client/src/components/external/TaskCard.test.tsx:289/:361; TaskDetailHeader.test.tsx:624; server/src/external/routes.backlog.test.ts:79/:197; server/src/test/backlog-states-mirror.test.ts:32; server/src/test/event-test-counts-executed.test.ts:179 — Finding: All \"Move to Backlog (FR-01.32)\" tests are tagged FR-01.01, which the tests themselv […truncated]",
+          "line": null,
+          "finding": "Tag each Backlog test to FR-01.32 (except the genuine FR-01.01 AC-6 case).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug |",
+          "file": "server/src/core/project-actions-loader.test.ts:49 etc. — Finding: New `// @covers FR-01.16` describe-level tags are added directly above inner `it` blocks that already carry `// @covers FR-01.37` — two different FR tags now claim the same tests, making the mapping ambiguous and likely double-counting coverage.",
+          "line": null,
+          "finding": "Pick one FR per test; if both apply, use explicit dual tags rather than contradictory nesting.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "server/src/external/org/__tests__/routes.test.ts:20 vs server/src/routes/__tests__/org.test.ts:26 and SidebarNav.org-presence.test.tsx:33 — Finding: Org host/secret gate tests are tagged FR-01.70 while every other Org-page test is tagged FR-01.71. If these are the same FR-level feature (the Org surface), one of them is mis-mapped.",
+          "line": null,
+          "finding": "Reconcile which FR owns the org router gates and use it consistently.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "client/src/pages/InboxPage.emptyState.test.tsx:41 vs client/e2e/flows/inbox-terminal-fallback.spec.ts:52, client/src/pages/inbox/InboxCard.terminalFallback.test.tsx:68 etc. — Finding: The Inbox teaching empty-state test cites \"A07 / FR-01.50\" in its own title but is tagged FR-01.04; terminal-fallback tests cite \"A19, FR-01.63\" and are tagged FR-01.04. At least one mapping is wrong.",
+          "line": null,
+          "finding": "Tag each Inbox test with the FR its own title cites (FR-01.50, FR-01.63/04 as actually documented).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "client/src/lib/stage-derivation.scenarios.test.ts / narrator-transcript.test.ts / useMissionLive.test.ts — Finding: Several Mission tests whose names cite FR-01.67 ACs are tagged FR-01.66, while the sibling mission-live-jsonl.spec.ts campaign test is also tagged FR-01.66 despite naming FR-01.67 AC2/AC3. Inconsistent sibling mappings suggest FR-01.67 coverage is being absorbed into FR-01.66.",
+          "line": null,
+          "finding": "Tag FR-01.67-named tests as FR-01.67.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "server/src/routes/campaigns.events.test.ts:8–14 — Finding: The comment claiming FR-01.31 was \"a one-digit typo\" corrected to FR-01.33 is a factual change to a docstring made silently alongside the tagging; if FR-01.31 was actually the recorded provenance tag, rewriting it rewrites history. This is the only non-annotation content change in the diff and deserves explicit justification ( […truncated]",
+          "line": null,
+          "finding": "Confirm FR-01.31 is genuinely Network-access-profile and that the original citation was a typo; otherwise restore.  Overall assessment: the change is comment-only and cannot break runtime behavior, but the backfill's whole value is the FR mapping, and the diff contains numerous tags that contradict the FR IDs cited in the tests' own titles — plus the AC-mandated coverage report (before/after, derived vs hand-mapped) is absent. Ship-with-fixes.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "diff-wide — no coverage-report artifact",
+          "line": null,
+          "finding": "The change adds tags but does not report coverage before and after, nor state derived versus hand-mapped counts separately. Both are explicit acceptance criteria, so the backfill cannot be evaluated or accepted from this diff.",
+          "suggestion": "Add the generated coverage report (or a committed summary artifact) with before/after percentages and separate derived/hand-mapped totals.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/e2e/flows/95-terminal-appearance.spec.ts",
+          "line": 72,
+          "finding": "Tests explicitly scoped to `FR-01.44 — terminal appearance` are tagged `FR-01.28`, so the coverage attribution is incorrect.",
+          "suggestion": "Change both added tags in this file to `@covers FR-01.44`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/e2e/flows/markdown-editor.spec.ts",
+          "line": 26,
+          "finding": "The SmartViewer markdown-editor suite declares `FR-01.34`, but every added tag maps it to `FR-01.33`. This inflates campaign coverage and leaves the actual requirement uncredited.",
+          "suggestion": "Tag these tests `@covers FR-01.34`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/e2e/flows/move-to-backlog.spec.ts",
+          "line": 25,
+          "finding": "The suite is for `FR-01.32`, but the new tag is `FR-01.01`; the same incorrect mapping is repeated for the Move to Backlog component suites.",
+          "suggestion": "Use `@covers FR-01.32` for the move-to-backlog tests; retain `FR-01.01` only for the separate resume/launch behavior that actually targets it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/external/file-write-route.test.ts",
+          "line": 61,
+          "finding": "This test declares markdown writing as `FR-01.34` yet is attributed to `FR-01.33`, creating another false coverage record.",
+          "suggestion": "Change the added tag to `@covers FR-01.34`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/compliance-reader.test.ts",
+          "line": 56,
+          "finding": "The test’s own description identifies `FR-01.60`, while the new tag attributes it to `FR-01.59`.",
+          "suggestion": "Change the tag to `@covers FR-01.60`.  Overall: ship-with-fixes. The approach is appropriate and does not weaken tests, but required reporting is absent and several tags demonstrably point at the wrong FR, making the claimed coverage backfill unreliable. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-07T08:49:43.682989+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] - Category: spec | Severity: high\n  File: (entire diff) — Finding: The acceptance criteria are not addressed by this diff. There is no \"coverage reported before and after\" (no baseline/current numbers anywhere), and no separate statement of \"derived vs hand-mapped counts\". The diff contains only the `// @covers` annotations; the AC deliverables (the report itself) must be present with the change, otherwise w4's outcome cannot be verified.\n  Suggestion: Attach (or include in the PR) the before/after coverage figures split into derived vs hand-mapped counts, per the AC.\n\n- Category: bug | Severity: high\n  File: client/e2e/flows/markdown-editor.spec.ts:26 (and :64, :96, :125, :151, :192, :233) — Finding: The suite is titled \"SmartViewer markdown editor (FR-01.34)\" and the covered feature is FR-01.34, but every tag binds `// @covers FR-01.33`. Tagging tests to the wrong FR level poisons any coverage attribution derived from the tags.\n  Suggestion: Tag these FR-01.34, not FR-01.33.\n\n- Category: bug | Severity: medium\n  File: client/e2e/flows/95-terminal-appearance.spec.ts:72 (and :123), client/e2e/flows/97-terminal-drop-resync.spec.ts:71/:175, client/src/components/terminal/terminal-theme.test.ts:134, useTerminalAppearance.test.ts:28/:62, useTerminalResize.atlas-heal.test.ts:60, server/src/terminal/* — Finding: Terminal-appearance tests whose own names cite FR-01.44 are tagged FR-01.28. A tag that contradicts the test's own documented requirement is a data-integrity defect in the backfill mapping, same class as above.\n  Suggestion: Verify each FR against the requirements source; appearance tests should map to FR-01.44, resync/atlas mechanics to FR-01.28 as appropriate.\n\n- Category: bug | Severity: medium\n  File: client/e2e/flows/move-to-backlog.spec.ts:25; client/src/components/external/TaskCard.test.tsx:289/:361; TaskDetailHeader.test.tsx:624; server/src/external/routes.backlog.test.ts:79/:197; server/src/test/backlog-states-mirror.test.ts:32; server/src/te […truncated]\n\n[openai] - Category: spec  \n  Severity: high  \n  File: diff-wide — no coverage-report artifact  \n  Finding: The change adds tags but does not report coverage before and after, nor state derived versus hand-mapped counts separately. Both are explicit acceptance criteria, so the backfill cannot be evaluated or accepted from this diff.  \n  Suggestion: Add the generated coverage report (or a committed summary artifact) with before/after percentages and separate derived/hand-mapped totals.\n\n- Category: spec  \n  Severity: medium  \n  File: client/e2e/flows/95-terminal-appearance.spec.ts:72  \n  Finding: Tests explicitly scoped to `FR-01.44 — terminal appearance` are tagged `FR-01.28`, so the coverage attribution is incorrect.  \n  Suggestion: Change both added tags in this file to `@covers FR-01.44`.\n\n- Category: spec  \n  Severity: medium  \n  File: client/e2e/flows/markdown-editor.spec.ts:26  \n  Finding: The SmartViewer markdown-editor suite declares `FR-01.34`, but every added tag maps it to `FR-01.33`. This inflates campaign coverage and leaves the actual requirement uncredited.  \n  Suggestion: Tag these tests `@covers FR-01.34`.\n\n- Category: spec  \n  Severity: medium  \n  File: client/e2e/flows/move-to-backlog.spec.ts:25  \n  Finding: The suite is for `FR-01.32`, but the new tag is `FR-01.01`; the same incorrect mapping is repeated for the Move to Backlog component suites.  \n  Suggestion: Use `@covers FR-01.32` for the move-to-backlog tests; retain `FR-01.01` only for the separate resume/launch behavior that actually targets it.\n\n- Category: spec  \n  Severity: medium  \n  File: server/src/external/file-write-route.test.ts:61  \n  Finding: This test declares markdown writing as `FR-01.34` yet is attributed to `FR-01.33`, creating another false coverage record.  \n  Suggestion: Change the added tag to `@covers FR-01.34`.\n\n- Category: spec  \n  Severity: medium  \n  File: server/src/core/compliance-reader.test.ts:56  \n  Finding: The test’s own description identifies `FR-01.60`, […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T08:50:36.744600+00:00",
+      "disposition": "delegated_to_orchestrator: runner performed no spec-reviewer pass (Stage-1 review is orchestrator-owned); orchestrator runs it at campaign-mode.md 3f-bis before merge (ADR-029)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T08:50:36.860619+00:00",
+      "disposition": "documented gap: runner has no Agent tool, cannot spawn an internal plan-reviewer subagent; external plan review (Step 3.5, recorded as review-type plan) is the only plan review this runner can perform. Never promoted per runner contract.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

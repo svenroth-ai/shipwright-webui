@@ -45,6 +45,7 @@ test.describe("Campaign autonomous launch from the board", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.33
   test("expand → Launch autonomous → confirm → navigates to a TaskDetail", async ({
     page,
   }) => {

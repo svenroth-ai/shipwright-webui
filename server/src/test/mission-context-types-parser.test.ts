@@ -216,6 +216,7 @@ export function unionMembers(src: string, name: string): Set<string> | null {
 // Direct tests of the scanner itself
 // ---------------------------------------------------------------------------
 
+// @covers FR-01.66
 describe("topLevelMembers / memberMap — the scanner the mirror guard rests on", () => {
   it("reads a MULTI-LINE shape and its INLINE twin identically", () => {
     const multi = `
@@ -262,6 +263,7 @@ describe("topLevelMembers / memberMap — the scanner the mirror guard rests on"
   });
 });
 
+// @covers FR-01.66
 describe("resolveType — a named union and its inlined literals are the same shape", () => {
   const src = `export type ArtifactState = "available" | "error";`;
 

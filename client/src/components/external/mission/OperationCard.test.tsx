@@ -53,6 +53,7 @@ afterEach(() => {
   runDetailMock.mockReset();
 });
 
+// @covers FR-01.66
 describe("OperationCard — the three states render from real signals (AC1)", () => {
   it("uses the resolved Mission iterate id, never the task pipeline id", () => {
     missionStateMock.mockReturnValue("done");
@@ -185,6 +186,7 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
   });
 });
 
+// @covers FR-01.66
 describe("OperationCard — the proof summary is NOT the terminal (AC2)", () => {
   const STATES: Array<{ state: "done" | "live" | "designgate"; run: RunDataJoin | null }> = [
     { state: "done", run: GREEN_RUN },

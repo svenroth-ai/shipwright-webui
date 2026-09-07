@@ -93,6 +93,7 @@ async function mockTriage(page: Page) {
 }
 
 test.describe('Triage restyle — white-surface cards + wizard-matched dialogs', () => {
+  // @covers FR-01.30
   test('cards render on the white --color-surface with a real shadow', async ({ page }, testInfo) => {
     await mockTriage(page);
     await page.goto('/triage');
@@ -112,6 +113,7 @@ test.describe('Triage restyle — white-surface cards + wizard-matched dialogs',
     });
   });
 
+  // @covers FR-01.30
   test('detail dialog matches the Project-wizard surface tokens', async ({ page }, testInfo) => {
     await mockTriage(page);
     await page.goto('/triage');
@@ -130,6 +132,7 @@ test.describe('Triage restyle — white-surface cards + wizard-matched dialogs',
     await page.screenshot({ path: testInfo.outputPath('triage-detail-modal.png') });
   });
 
+  // @covers FR-01.30
   test('promote dialog matches the Project-wizard surface tokens', async ({ page }, testInfo) => {
     await mockTriage(page);
     await page.goto('/triage');

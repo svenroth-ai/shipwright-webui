@@ -53,6 +53,7 @@ function validDrop(over: Record<string, unknown> = {}): Record<string, unknown> 
   };
 }
 
+// @covers FR-01.66
 describe("readRunDrops — the unnumbered half of the Decisions source", () => {
   it("reads a run's own drop and renders its recorded fields", () => {
     const root = makeProject();

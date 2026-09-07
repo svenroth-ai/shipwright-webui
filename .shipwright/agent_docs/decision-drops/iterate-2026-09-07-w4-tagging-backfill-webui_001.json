@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-07-w4-tagging-backfill-webui",
+  "date": "2026-09-07",
+  "section": "F3",
+  "title": "Tagging backfill: 32/32 FRs bound, coverage 15.75% -> 31.97%",
+  "context": "Base manifest: 1161/7372 tests bound (15.75%), 25/32 FRs with >=1 bound test, 100% covers_comment. Scope (w4): tag EXISTING tests proving an FR AC with no @covers binding; writing new tests is out of scope (REQ3.07/trg-58a3e32d).",
+  "decision": "Two comment-only passes. Pass1: automated sweep finds fully-untagged files naming exactly one FR-01.NN in their own text, fold-map-resolved to survivor IDs, describe-scoped (brace-depth), exclusion-phrase filtered -> 1093 tests/165 files. Pass2: manual, spec-verified backfill for the 7 zero-coverage FRs -> 103 tests/13 files. One pre-existing docstring typo fixed (FR-01.31->FR-01.33, campaigns.events.test.ts).",
+  "consequences": "Coverage 15.75%->31.97%, 32/32 FRs now have >=1 bound test (was 25/32). 1196 unique tests newly tagged (1093 automated + 103 manual). Zero tests deleted/weakened. Manifest itself NOT regenerated/committed (push-only CI regen per repo convention). Full findings + review dispositions in spec-ref.",
+  "rationale": "Header/describe-title self-declared FR mentions are a strong, auditable signal already used as the repo's own documentation; fold-map resolution matches documented survivor-only @covers convention. Full detail + external review disposition tables in spec-ref.",
+  "rejected": "Capping automated tagging to single-top-level-describe files only: discarded ~700 legitimate content-verified tests, rejected. Auditing pre-existing FR-01.37 tags on project-actions-loader.test.ts in this same run: out of mandate, deferred. Fixing collector's it.each multi-line-title blind spot: lives in a different repo, deferred.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-07-w4-tagging-backfill-webui.md"
+}

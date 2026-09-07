@@ -76,6 +76,7 @@ const IN_PROGRESS: ExternalTaskState[] = [
   "launch_failed",
 ];
 
+// @covers FR-01.01
 describe("POST /api/external/tasks/:id/backlog — FR-01.32", () => {
   let app: Hono;
   let store: SdkSessionsStore;
@@ -194,6 +195,7 @@ describe("POST /api/external/tasks/:id/backlog — FR-01.32", () => {
   });
 });
 
+// @covers FR-01.01
 describe("transcript poll keeps a backlogged (draft) task sticky", () => {
   let store: SdkSessionsStore;
   let projectsDir: string;

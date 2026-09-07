@@ -42,6 +42,7 @@ function write(root: string, name: string, raw: string | Buffer): void {
   writeFileSync(path.join(root, ...DROPS, name), raw);
 }
 
+// @covers FR-01.66
 describe("decision-drop boundary probes — the Python→Node crossing", () => {
   it("reads NON-ASCII content (em-dash, accents, CJK) intact", () => {
     const root = makeProject();
@@ -142,6 +143,7 @@ describe("decision-drop boundary probes — the Python→Node crossing", () => {
   });
 });
 
+// @covers FR-01.66
 describe("decision-drop bounds probes — round 2 (the caps, driven for real)", () => {
   it("a drop OVER the byte cap is malformed, not a crash and not silence", () => {
     const root = makeProject();
@@ -226,6 +228,7 @@ describe("decision-drop bounds probes — round 2 (the caps, driven for real)", 
   });
 });
 
+// @covers FR-01.66
 describe("REAL drops on disk — every one of them, through the shipped reader", () => {
   it("parses EVERY real drop in this repository with zero malformed", () => {
     const dir = path.join(REPO_ROOT, ...DROPS);

@@ -47,6 +47,7 @@ test.describe("Campaign single-step launch from the board", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.33
   test("expand → Launch (B1) → direct launch → navigates to a TaskDetail", async ({
     page,
   }) => {

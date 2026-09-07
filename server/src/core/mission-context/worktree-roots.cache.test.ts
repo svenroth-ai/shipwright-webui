@@ -21,6 +21,7 @@ function tmp(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
+// @covers FR-01.66
 describe("readAllowedRootsCached (short-TTL per-projectRoot cache)", () => {
   beforeEach(() => _clearRootsCache());
 

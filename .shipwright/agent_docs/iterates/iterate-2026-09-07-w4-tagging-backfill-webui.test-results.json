@@ -1,0 +1,47 @@
+{
+  "last_updated": "2026-09-07",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-07-w4-tagging-backfill-webui",
+    "date": "2026-09-07",
+    "unit": {
+      "status": "passed",
+      "passed": 7818,
+      "total": 7823
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "justification": "This run's scope (w4, per REQ3.07/trg-58a3e32d) is tag-backfill ONLY \u2014 adding `// @covers FR-XX.YY` comments to tests that already existed and already passed. No new test logic, no behavior change; there is no new testable behavior to enumerate. Verification is: full server+client suites unchanged pass counts (server 3936/5 skipped, client 3882), tsc clean on both packages, and a real round-trip probe of the pinned test_links collector against every changed file (0 invalid_tags, no new orphans) \u2014 see the iterate ADR's Self-Review item 7."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-07-w4-tagging-backfill-webui",
+    "commit": "15820d108c7b54e165db49b46dc1b6afde033526",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

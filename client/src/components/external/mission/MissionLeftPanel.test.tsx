@@ -57,6 +57,7 @@ function completedModel(): MissionLiveModel {
   });
 }
 
+// @covers FR-01.66
 describe("MissionLeftPanel — stage labels (FR-01.67 AC1)", () => {
   it("renders the SIX stage labels EXACTLY, in order (Analyze…Merge)", () => {
     render(<MissionLeftPanel model={liveModel("Build")} activeNodeKey={null} onNodeClick={vi.fn()} />);
@@ -131,6 +132,7 @@ describe("MissionLeftPanel — stage labels (FR-01.67 AC1)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("MissionLeftPanel — no lifecycle claim for a plain session (S4 AC5)", () => {
   function plainModel(stageActivity: string | null): MissionLiveModel {
     return deriveMissionLive({
@@ -166,6 +168,7 @@ describe("MissionLeftPanel — no lifecycle claim for a plain session (S4 AC5)",
   });
 });
 
+// @covers FR-01.66
 describe("MissionLeftPanel — campaign progress line (FR-01.67 AC3)", () => {
   function campaignModel(): MissionLiveModel {
     return deriveMissionLive({
@@ -194,6 +197,7 @@ describe("MissionLeftPanel — campaign progress line (FR-01.67 AC3)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("MissionLeftPanel — summary + artifact links", () => {
   it("renders the business summary", () => {
     render(<MissionLeftPanel model={liveModel("Build")} activeNodeKey={null} onNodeClick={vi.fn()} />);

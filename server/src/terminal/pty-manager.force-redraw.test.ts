@@ -78,6 +78,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+// @covers FR-01.28
 describe("PtyManager.resize — the no-op dedupe stays (v0.8.6 AC-2)", () => {
   it("does NOT reach the pty when cols/rows are unchanged", () => {
     installEntry(mgr, "t1", pty, { cols: 100, rows: 40 });
@@ -92,6 +93,7 @@ describe("PtyManager.resize — the no-op dedupe stays (v0.8.6 AC-2)", () => {
   });
 });
 
+// @covers FR-01.28
 describe("PtyManager.forceRedraw — bypasses the dedupe exactly once", () => {
   it("re-applies the CURRENT dimensions even though nothing changed", () => {
     installEntry(mgr, "t1", pty, { cols: 100, rows: 40 });

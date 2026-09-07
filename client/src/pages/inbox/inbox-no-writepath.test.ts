@@ -90,6 +90,7 @@ function scan(re: RegExp, files: string[] = FILES): string[] {
   return hits;
 }
 
+// @covers FR-01.04
 describe("Inbox fence — no control writes into a pty (AC1)", () => {
   it("has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field", () => {
     expect(scan(/<input[\s/>]/i), "Inbox rendered an <input>").toEqual([]);

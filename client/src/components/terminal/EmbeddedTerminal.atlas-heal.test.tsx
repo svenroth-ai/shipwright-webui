@@ -124,6 +124,7 @@ async function settleTrailingPasses(): Promise<void> {
   });
 }
 
+// @covers FR-01.28
 describe("EmbeddedTerminal — glyph-atlas heal is wired to the live terminal", () => {
   beforeEach(() => {
     // Opt IN to WebGL. Since iterate-2026-07-24 the DOM renderer is the

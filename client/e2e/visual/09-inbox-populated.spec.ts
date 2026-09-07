@@ -46,6 +46,7 @@ test.describe("visual: inbox populated", () => {
     }
   });
 
+  // @covers FR-01.04
   test("inbox-populated", async ({ page, request }) => {
     const stamp = Date.now();
     const toolUseId = `vis-a19-${stamp}`;

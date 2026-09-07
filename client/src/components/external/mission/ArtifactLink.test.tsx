@@ -26,6 +26,7 @@ function artifact(state: ArtifactState, over: Partial<ArtifactDescriptor> = {}):
   } as ArtifactDescriptor;
 }
 
+// @covers FR-01.66
 describe("available artifact", () => {
   it("renders as a button and fires onClick", () => {
     const onClick = vi.fn();
@@ -44,6 +45,7 @@ describe("available artifact", () => {
   });
 });
 
+// @covers FR-01.66
 describe("unavailable artifact", () => {
   it("is VISIBLE but NOT a button (inert, not a dead button)", () => {
     const onClick = vi.fn();
@@ -81,6 +83,7 @@ describe("unavailable artifact", () => {
  * whole early phase of every run. It must stay INERT, must say so in words a
  * non-expert reads, and must never be confused with a read failure.
  */
+// @covers FR-01.66
 describe("pending artifact (the run is still going)", () => {
   it("says 'Not written yet' in plain words and is inert", () => {
     const onClick = vi.fn();

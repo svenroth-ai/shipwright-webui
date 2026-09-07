@@ -21,6 +21,7 @@ function arcCircle(container: HTMLElement): SVGCircleElement | null {
   return container.querySelector<SVGCircleElement>("circle[stroke-dashoffset]");
 }
 
+// @covers FR-01.64
 describe("GradeRing — final drawn arc under reduced motion", () => {
   it("a real score renders the FINAL arc (offset strictly below the full circumference)", () => {
     const { container } = render(<GradeRing letter="A" score={98} />);

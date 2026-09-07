@@ -72,6 +72,7 @@ const cursor = (t: Terminal): [number, number] => [
   t.buffer.active.cursorY,
 ];
 
+// @covers FR-01.28
 describe("mechanism: Terminal.reset() does not reset the escape-sequence parser", () => {
   it("a fresh terminal writing one space advances the cursor to (1,0)", async () => {
     const t = mkTerm();
@@ -117,6 +118,7 @@ describe("mechanism: Terminal.reset() does not reset the escape-sequence parser"
   );
 });
 
+// @covers FR-01.28
 describe("buildReplaySnapshotEnvelope — parser-resync preamble", () => {
   const rec = {
     version: "v2" as const,
@@ -168,6 +170,7 @@ describe("buildReplaySnapshotEnvelope — parser-resync preamble", () => {
  * back to the server mirror EXACTLY once the envelope is applied — and does not
  * without the preamble. This is AC-3 + AC-4 in one assertion.
  */
+// @covers FR-01.28
 describe("resync converges a holed client back to the server mirror", () => {
   const COLS = 40;
   const ROWS = 8;

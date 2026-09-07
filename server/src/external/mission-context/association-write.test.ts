@@ -53,6 +53,7 @@ function assoc(runId: string, over: Partial<MissionContextAssociation> = {}): Mi
 
 const now = () => new Date("2026-08-31T09:00:00.000Z");
 
+// @covers FR-01.66
 describe("persistMissionAssociation — first association", () => {
   it("writes and persists when the task had none", async () => {
     const t = task();
@@ -72,6 +73,7 @@ describe("persistMissionAssociation — first association", () => {
   });
 });
 
+// @covers FR-01.66
 describe("persistMissionAssociation — supersession", () => {
   it("writes when the store's current value still matches the resolve-time snapshot", async () => {
     const snapshot = assoc("iterate-2026-07-01-r1", { source: "iterate_active_pointer" });

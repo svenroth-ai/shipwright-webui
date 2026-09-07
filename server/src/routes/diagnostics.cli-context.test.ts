@@ -51,6 +51,7 @@ async function probe(
   return res.json() as never;
 }
 
+// @covers FR-01.05
 describe("AC-4 — diagnostics.claudeCli.diagnostic surfaces lookup context when CLI not found", () => {
   it("supported=true → no `diagnostic` field (happy path stays terse)", async () => {
     const json = await probe(() => ({

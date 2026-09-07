@@ -99,6 +99,7 @@ function setupCompletedCompact(transcriptContent = "") {
   );
 }
 
+// @covers FR-01.66
 describe("MissionBody — compact Overview / Activity / Detail navigation", () => {
   it("starts on Overview with semantic tabs and disabled Detail", () => {
     setupCompletedCompact();

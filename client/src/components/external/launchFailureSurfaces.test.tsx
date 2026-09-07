@@ -51,6 +51,7 @@ function wrap(ui: React.ReactNode) {
 
 beforeEach(() => vi.restoreAllMocks());
 
+// @covers FR-01.10
 describe("AC4 — one source of words across surfaces", () => {
   it("task card and task-detail header render the SAME title + sentence for a jsonl_missing task", () => {
     const task = makeTask();
@@ -91,6 +92,7 @@ const NEW_FILES = [
   "./taskCardState.tsx",
 ];
 
+// @covers FR-01.10
 describe("AC5 — fences", () => {
   it("DO-NOT #11: no slash-command / phase literal in any A17-owned module", () => {
     for (const rel of NEW_FILES) {

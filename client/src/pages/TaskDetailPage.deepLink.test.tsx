@@ -95,6 +95,7 @@ function renderAt(entry: string) {
   );
 }
 
+// @covers FR-01.04
 describe("TaskDetailPage — A19 terminal-fallback deep link", () => {
   beforeEach(() => {
     (useExternalTask as unknown as ReturnType<typeof vi.fn>).mockReturnValue({

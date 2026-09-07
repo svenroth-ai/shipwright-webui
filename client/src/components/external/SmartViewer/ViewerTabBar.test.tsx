@@ -12,6 +12,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 import { ViewerTabBar } from "./ViewerTabBar";
 
+// @covers FR-01.48
 describe("ViewerTabBar — icon-by-extension colour map (A04 sweep)", () => {
   it("renders a tab per path across every icon branch (md/code/json/image/mermaid/other)", () => {
     const paths = [
@@ -40,6 +41,7 @@ describe("ViewerTabBar — icon-by-extension colour map (A04 sweep)", () => {
   });
 });
 
+// @covers FR-01.48
 describe("ViewerTabBar — close control is a real, keyboard-reachable button (a11y)", () => {
   it("renders the close control as its own <button>, not nested inside the tab button", () => {
     render(

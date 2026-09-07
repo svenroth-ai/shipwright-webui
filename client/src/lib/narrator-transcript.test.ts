@@ -31,6 +31,7 @@ const slashCommand = (name: string) => ({
   },
 });
 
+// @covers FR-01.66
 describe("narrator-transcript — STAGE_LABELS (FR-01.67 AC1)", () => {
   it("pins the SIX stage labels verbatim, in order (Analyze…Merge)", () => {
     expect(STAGE_LABELS).toEqual(["Analyze", "Spec", "Build", "Test", "Finalize", "Merge"]);
@@ -158,6 +159,7 @@ describe("summarizeTranscript — stage inference (AC2, honest)", () => {
     ).toBe("Finalize");
   });
 
+  // @covers FR-01.66
   it("a push / PR link / gh pr merge / gh run → Merge, NOT Finalize (FR-01.67 AC1)", () => {
     // Finalize NARROWED: it no longer swallows push/PR — those are the Merge stage.
     expect(
@@ -173,6 +175,7 @@ describe("summarizeTranscript — stage inference (AC2, honest)", () => {
     expect(stageOf(toolUse("Bash", { command: "gh run watch" }))).toBe("Merge");
   });
 
+  // @covers FR-01.66
   it("the leading scout cluster (reads/searches/todo, no edits) → Analyze (FR-01.67 AC1)", () => {
     expect(
       stageOf(toolUse("Read", { file_path: "/a.ts" }), toolUse("Grep", { pattern: "x" })),
@@ -181,6 +184,7 @@ describe("summarizeTranscript — stage inference (AC2, honest)", () => {
     expect(stageOf(toolUse("Glob", { pattern: "**/*.ts" }))).toBe("Analyze");
   });
 
+  // @covers FR-01.66
   it("the `/shipwright-iterate` kickoff (incl. --campaign --autonomous) → Analyze (FR-01.67 AC1)", () => {
     expect(stageOf(slashCommand("shipwright-iterate"))).toBe("Analyze");
     expect(

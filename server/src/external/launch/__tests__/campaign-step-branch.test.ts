@@ -65,6 +65,7 @@ x
 // Project-root-relative POSIX spec path the server must resolve for B0.
 const B0_SPEC = `.shipwright/planning/iterate/campaigns/${SLUG}/sub-iterates/B0-phase-resolver.md`;
 
+// @covers FR-01.33
 describe("launch campaign-step branch — POST /launch { campaignStep }", () => {
   let projectRoot: string;
   let store: SdkSessionsStore;

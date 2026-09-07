@@ -72,6 +72,7 @@ function subIterate(over: Partial<Of<"sub_iterate">["detail"]> = {}): Of<"sub_it
   } as Of<"sub_iterate">;
 }
 
+// @covers FR-01.66
 describe("PhaseDetail", () => {
   it("translates the status enum into words", () => {
     render(<PhaseDetail artifact={phase()} />);
@@ -113,6 +114,7 @@ describe("PhaseDetail", () => {
   });
 });
 
+// @covers FR-01.66
 describe("CampaignProgressDetail", () => {
   const artifact: Of<"campaign_progress"> = {
     kind: "campaign_progress",
@@ -157,6 +159,7 @@ describe("CampaignProgressDetail", () => {
   });
 });
 
+// @covers FR-01.66
 describe("SubIterateDetail", () => {
   const doc = (id: string) => <span data-testid="doc">{id}</span>;
 

@@ -25,6 +25,7 @@ function fakeTerm(): {
   return { term, refresh, getTheme: () => opts.theme };
 }
 
+// @covers FR-01.28
 describe("applyAppearance", () => {
   it("sets the LIGHT background + fires a refresh", () => {
     const f = fakeTerm();
@@ -59,6 +60,7 @@ describe("applyAppearance", () => {
   });
 });
 
+// @covers FR-01.28
 describe("resolveAppearanceNow", () => {
   it("defaults to dark (auto + no Claude cache + no matchMedia)", () => {
     expect(resolveAppearanceNow()).toBe("dark");

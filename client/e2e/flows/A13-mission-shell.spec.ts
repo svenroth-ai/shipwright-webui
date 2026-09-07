@@ -38,6 +38,7 @@ test.describe("A13 — Mission three-card shell", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("at 1440×900 the three cards fit with no horizontal clip and are equal height (AC1/AC2)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/tasks/${taskId}`);
@@ -85,6 +86,7 @@ test.describe("A13 — Mission three-card shell", () => {
   // redesigned left panel is a static summary + stage + artifact-links card. The
   // no-horizontal-clip contract is still covered by the equal-height test above.
 
+  // @covers FR-01.66
   test("Files & Terminal still mounts the REAL terminal (byte-path untouched)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/tasks/${taskId}`);
@@ -101,6 +103,7 @@ test.describe("A13 — Mission three-card shell", () => {
     await expect(term).toHaveAttribute("data-ws-ready", "true");
   });
 
+  // @covers FR-01.66
   test("below the compact breakpoint the artifact auto-selects contextual Detail", async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
     await page.goto(`/tasks/${taskId}`);
@@ -118,6 +121,7 @@ test.describe("A13 — Mission three-card shell", () => {
     expect(box!.width).toBeLessThanOrEqual(800);
   });
 
+  // @covers FR-01.66
   test("the demo 'Preview state' toggle does NOT ship (AC5)", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
@@ -127,6 +131,7 @@ test.describe("A13 — Mission three-card shell", () => {
     await expect(page.getByTestId("mission-state-toggle")).toHaveCount(0);
   });
 
+  // @covers FR-01.66
   test("the top row is complete: both crumb segments + the glass Ship's Log button route real", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(`/tasks/${taskId}`);

@@ -70,6 +70,7 @@ beforeEach(() => {
   navigateMock.mockReset();
 });
 
+// @covers FR-01.10
 describe("ContinuePipelineModal — recovery fences", () => {
   it("rule 13: a phase_task_session_uuid_mismatch renders a code-specific Refresh notice", async () => {
     continueMock.mockResolvedValue({

@@ -68,7 +68,7 @@ async function gotoTerminal(page: import("@playwright/test").Page, taskId: strin
 test.describe("@smoke terminal drop resync", () => {
   test.setTimeout(180_000);
 
-  test("the server answers a resync frame with a fresh replay_snapshot", async ({
+  test("the server answers a resync frame with a fresh replay_snapshot", async ({ // @covers FR-01.28
     page,
     request,
   }) => {
@@ -171,7 +171,7 @@ test.describe("@smoke terminal drop resync", () => {
     }
   });
 
-  test("a backpressure notice makes the client request exactly one resync", async ({
+  test("a backpressure notice makes the client request exactly one resync", async ({ // @covers FR-01.28
     page,
     request,
   }) => {

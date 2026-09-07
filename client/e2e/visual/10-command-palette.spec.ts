@@ -30,6 +30,7 @@ test.describe("visual: command palette", () => {
     if (project) await cleanupProject(request, project);
   });
 
+  // @covers FR-01.65
   test("palette-open", async ({ page, request }) => {
     project = await seedProject(request, {
       name: "Atlas",

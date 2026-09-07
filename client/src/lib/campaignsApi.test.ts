@@ -109,6 +109,7 @@ describe("campaignsApi: launchCampaignRun", () => {
   });
 });
 
+// @covers FR-01.33
 describe("campaignsApi: launchCampaignStepRun (FR-01.36)", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -145,6 +146,7 @@ describe("campaignsApi: launchCampaignStepRun (FR-01.36)", () => {
   });
 });
 
+// @covers FR-01.33
 describe("campaignsApi: startCampaign (FR-01.33)", () => {
   afterEach(() => {
     vi.restoreAllMocks();

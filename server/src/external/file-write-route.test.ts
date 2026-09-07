@@ -58,6 +58,7 @@ function inMemoryDeps(): SdkSessionsStoreDeps {
   };
 }
 
+// @covers FR-01.33
 describe("PUT /api/external/projects/:projectId/file (markdown write, FR-01.34)", () => {
   let app: Hono;
   let projectDir: string;

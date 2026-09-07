@@ -30,6 +30,7 @@ function foundWithTests(tests: {
   };
 }
 
+// @covers FR-01.66
 describe("buildTestsArtifact — counts-led (worktree commit:'' rows)", () => {
   it("is AVAILABLE from the recorded counts alone, even with NO commit to diff", () => {
     // The worktree flow's most common shape: real pass/total, empty commit.
