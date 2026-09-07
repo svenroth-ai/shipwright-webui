@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-07T14:06:34.023407+00:00",
-  "provider": "codex",
-  "findings_count": 0,
+  "timestamp": "2026-09-07T21:07:44.978718+00:00",
+  "provider": "glm+openai",
+  "findings_count": 9,
   "self_review_fallback_ran": false,
-  "reason": "findings could not be itemized from the reviewer's prose \u2014 the count (0) is NOT a clean-review result",
+  "reason": "4 review rounds; final round glm=approve, openai=revise (one-step, no escalation); all medium+ findings fixed or verified already-addressed",
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "unavailable",
-    "glm": "unavailable"
+    "glm": "approve",
+    "openai": "revise"
   },
   "contradiction": {
     "detected": false,
-    "comparable": false,
+    "comparable": true,
     "requires_resolution": false,
-    "reason": "neither reviewer answered: glm=unavailable, openai=unavailable"
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
   },
   "contradiction_resolution": null
 }

@@ -1,0 +1,106 @@
+{
+  "last_updated": "2026-09-07",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-07-ac-scoped-layer-promotion",
+    "date": "2026-09-07",
+    "unit": {
+      "status": "passed",
+      "passed": 4048,
+      "total": 4048
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "No new tests were added \u2014 this is a CI-pin bump + generated-manifest regen (no application code changed). Full server (4048 passed/7 skipped) and client (4000 passed) suites, both typechecks, and both lints were re-run in full per medium-complexity policy; none exercise the changed files directly, since the changed files (ci.yml, test-traceability.json) have no test-suite consumer of their own \u2014 verification is via direct local reproduction of the CI gate script itself (traceability_manifest_gate.py) and the app's real traceability.ts reader run against the regenerated manifest, both recorded in the Confidence Calibration section of the iterate spec.",
+      "No E2E surface exists for this change (F0.5 surface=none, justified in the iterate spec's Verification section \u2014 no server route, client page, or CLI entry point touched)."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 8,
+        "tested": 7,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      },
+      "behaviors": [
+        {
+          "behavior": "The pinned CI checkout ref is the exact SHA c0d1b38b..., and that SHA IS PR #686's own merge commit (not merely a later, unaudited commit)",
+          "disposition": "tested",
+          "evidence": "gh api commits/<sha> resolves; git merge-base --is-ancestor exits 0; gh api commits/<sha>/pulls returns exactly PR #686 with merge_commit_sha equal to the pinned SHA \u2014 recorded verbatim in ci_supplychain_ack.json"
+        },
+        {
+          "behavior": "Regenerating the manifest against the exact new pin changes only schema_version and source_commit \u2014 nothing else",
+          "disposition": "tested",
+          "evidence": "local exact-pin regen (test_links.generate_file against a dedicated worktree checked out at the literal pinned SHA); git diff on the committed manifest shows exactly those two lines"
+        },
+        {
+          "behavior": "The three pinned upstream symbols the gate calls resolve with compatible signatures at the new pin",
+          "disposition": "tested",
+          "evidence": "direct import + inspect.signature() at the pinned SHA, corroborated by traceability_manifest_gate.py reporting \"manifest is current\" when run for real against that checkout"
+        },
+        {
+          "behavior": "The pinned checkout is consumed by exactly one job/step in this repo's workflows (no other consumer desynced by the bump)",
+          "disposition": "tested",
+          "evidence": "grep across every .github/workflows/*.yml for svenroth-ai/shipwright / ci-shipwright-compliance finds no second consumer; independently re-confirmed by the doubt-reviewer's own grep"
+        },
+        {
+          "behavior": "This repo's own manifest reader (traceability.ts) does not break on schema_version: 4",
+          "disposition": "tested",
+          "evidence": "TRACEABILITY_SCHEMA_VERSION=4 already declared (built by w3); its 20 existing tests (traceability.test.ts, traceability.schema-version.test.ts, traceability.v4-fixture.test.ts) run against the real regenerated manifest, all pass unmodified"
+        },
+        {
+          "behavior": "The second in-repo manifest consumer (promote_fr_layers_io.py, w5's reader) does not break on schema_version: 4",
+          "disposition": "tested",
+          "evidence": "grep for schema_version in promote_fr_layers_io.py: zero references (structurally version-agnostic); its commit-pin check takes the expected commit from its caller, not hardcoded \u2014 found and verified by the doubt-reviewer (Stage 3)"
+        },
+        {
+          "behavior": "The \"Traceability manifest (gate)\" job structurally never runs on this PR's own pull_request event (so no real CI run on this PR can gate it)",
+          "disposition": "tested",
+          "evidence": "direct read of the job's if: github.event_name != 'schedule' && github.event_name != 'pull_request' guard; independently observed as \"skipping\" on the earlier main-repair PR #444"
+        },
+        {
+          "behavior": "The real push-triggered exercise of the new pin on main after this PR merges is green",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "this specific job is guarded to run only on push to main (never pull_request), so it cannot be exercised before merge by any local or PR-scoped means; proactively verified post-merge via main_health.py per the iterate spec's own stated commitment, and reported in the F12 closing summary"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "justification": "Single CI-configuration pin bump + a generated-data-file regen (schema_version + source_commit only) \u2014 no server route, client page, or CLI entry point exists for this change to drive. See the iterate spec's Verification (medium+) section for the full justification."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-07-ac-scoped-layer-promotion",
+    "commit": "8ebb2a62d2badc58d543bdfa5f14316691a31b17",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

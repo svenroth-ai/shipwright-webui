@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-07-ac-scoped-layer-promotion",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T21:08:34.112544+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "approach /",
+          "file": null,
+          "line": null,
+          "finding": "The openai reviewer's proportionality objection (shipping a dormant capability) was declined by operator decision with reasonable rationale, and the triage card guards against the deferred work rotting. The decision is documented and reversible (single ref + manifest revert). No further action needed, but the plan should note the triage card needs an owner/when-reviewed trigger — a card nobody looks at doesn't prevent rot.",
+          "suggestion": "Add a review-by date or next-campaign linkage to the triage card so it's re-triaged rather than merely filed.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "The plan handles \"branch rebased/force-pushed after regen\" but not the simpler race: another PR merging to `main` between this PR's regen and its merge changes manifest-affecting content (tagged/untagged test counts). The spec acknowledges this via `source_commit` exclusion, but content drift (new tests) would still stale the manifest. The two-failure-mode fallback covers it post-merge, yet a pre-merge check is cheaper.",
+          "suggestion": "Re-run the gate's local repro immediately before merge (or as a final \"manifest is current against new-pin HEAD\" check after any rebase/review delay) rather than relying on the post-merge red-gate fallback.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk /",
+          "file": null,
+          "line": null,
+          "finding": "Verification language is internally slightly inconsistent: probe 2 says the regen is \"byte-identical\" while the same paragraph reports `schema_version` and `source_commit` changed. Trivial wording, but in a spec whose whole value is audit precision, say \"diff is exactly the schema_version and source_commit lines.\"",
+          "suggestion": "Tighten the wording; the empirical evidence itself is fine.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "The pinned SHA is PR #686's merge commit. If upstream ever force-pushes or rewrites history (rare but this is a cross-repo supply-chain trust boundary the spec itself names), the exact pin fails to fetch and the gate job errors rather than silently degrading. That's arguably the safe failure mode, but it's unmentioned.",
+          "suggestion": "Acceptable as-is; a one-line note that a fetch failure of the pinned SHA is the intended fail-closed behavior would complete the picture.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency /",
+          "file": null,
+          "line": null,
+          "finding": "The manifest regen must be produced by the collector at the new pin, checked out at the exact SHA. The plan says this, but doesn't state that whoever reruns it must not have local modifications or a different Python environment that could alter output (e.g., dependency versions of the collector's own imports).",
+          "suggestion": "Note that the regen reproduces the CI job's environment as closely as the earlier local repro did (probe 1's setup), so the committed artifact is the one CI will expect.  Overall assessment: This is a well-scoped, carefully verified infra change — three review rounds surfaced and closed real gaps (PR-event guard, atomic revert, manifest-content consumer check), the empirical probes are the right ones, and the scope narrowing with a triage-card handoff is the correct call. Remaining findings are documentation-level refinements; the approach is sound.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "This advances executable third-party CI code on `push` to `main`, but the plan does not require checking the job’s token permissions, exposed secrets, or checkout credential persistence. An immutable SHA and provenance acknowledgment establish attribution, not containment if the newly pinned code is compromised or behaves unexpectedly.",
+          "suggestion": "Add a prerequisite to inspect the job’s effective `permissions`, secret environment, and checkout configuration. Keep permissions read-only/minimal and set `persist-credentials: false` unless the gate demonstrably needs credentials.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The full spec correctly distinguishes a pin-caused post-merge failure from ordinary manifest drift, but mini-plan step 5 only prescribes an atomic revert. Following that abbreviated procedure for ordinary drift would unnecessarily roll back a valid pin.",
+          "suggestion": "Put the two-branch diagnosis directly in the executable mini-plan: schema/pin-shape mismatch → atomically revert ref and manifest; ordinary requirements/untagged-test drift → regenerate against the new pin. Specify who checks the first `main` run and the exact `main_health.py`/workflow-run evidence to record.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "“Three pinned upstream symbols” is ambiguous: the plan names two direct functions plus three helpers within `_test_links_io`. A partial inspection could miss an incompatible helper call.",
+          "suggestion": "Name each imported callable and its expected invocation/signature explicitly, while retaining the local exact-pin gate run as the authoritative compatibility check.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The local reproduction is strong, but it may not match the CI runner’s Python version, dependency resolution, sparse-checkout behavior, or environment variables. This matters because the gate cannot execute on the PR.",
+          "suggestion": "Run the reproduction using the workflow’s declared runtime/setup commands as closely as possible and record those versions in the supply-chain acknowledgment.  Overall, the scope is sound and appropriately defers the large AC-authoring effort. The pin and manifest should remain atomic, but the supply-chain containment and post-merge recovery procedure need to be explicit before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "glm+openai",
+      "completed_at": "2026-09-07T21:07:44.971189+00:00",
+      "disposition": "4 review rounds; final round glm=approve, openai=revise (one-step, no escalation); all medium+ findings fixed or verified already-addressed",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] **Findings:**\n\n- **Category:** approach / **Severity:** low\n  **Finding:** The openai reviewer's proportionality objection (shipping a dormant capability) was declined by operator decision with reasonable rationale, and the triage card guards against the deferred work rotting. The decision is documented and reversible (single ref + manifest revert). No further action needed, but the plan should note the triage card needs an owner/when-reviewed trigger — a card nobody looks at doesn't prevent rot.\n  **Suggestion:** Add a review-by date or next-campaign linkage to the triage card so it's re-triaged rather than merely filed.\n\n- **Category:** edge-case / **Severity:** low\n  **Finding:** The plan handles \"branch rebased/force-pushed after regen\" but not the simpler race: another PR merging to `main` between this PR's regen and its merge changes manifest-affecting content (tagged/untagged test counts). The spec acknowledges this via `source_commit` exclusion, but content drift (new tests) would still stale the manifest. The two-failure-mode fallback covers it post-merge, yet a pre-merge check is cheaper.\n  **Suggestion:** Re-run the gate's local repro immediately before merge (or as a final \"manifest is current against new-pin HEAD\" check after any rebase/review delay) rather than relying on the post-merge red-gate fallback.\n\n- **Category:** risk / **Severity:** low\n  **Finding:** Verification language is internally slightly inconsistent: probe 2 says the regen is \"byte-identical\" while the same paragraph reports `schema_version` and `source_commit` changed. Trivial wording, but in a spec whose whole value is audit precision, say \"diff is exactly the schema_version and source_commit lines.\"\n  **Suggestion:** Tighten the wording; the empirical evidence itself is fine.\n\n- **Category:** edge-case / **Severity:** low\n  **Finding:** The pinned SHA is PR #686's *merge commit*. If upstream ever force-pushes or rewrites history (rare but this is a cross-repo supply-c […truncated]\n\n[openai] 1. **Category:** security  \n   **Severity:** medium  \n   **Finding:** This advances executable third-party CI code on `push` to `main`, but the plan does not require checking the job’s token permissions, exposed secrets, or checkout credential persistence. An immutable SHA and provenance acknowledgment establish attribution, not containment if the newly pinned code is compromised or behaves unexpectedly.  \n   **Suggestion:** Add a prerequisite to inspect the job’s effective `permissions`, secret environment, and checkout configuration. Keep permissions read-only/minimal and set `persist-credentials: false` unless the gate demonstrably needs credentials.\n\n2. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The full spec correctly distinguishes a pin-caused post-merge failure from ordinary manifest drift, but mini-plan step 5 only prescribes an atomic revert. Following that abbreviated procedure for ordinary drift would unnecessarily roll back a valid pin.  \n   **Suggestion:** Put the two-branch diagnosis directly in the executable mini-plan: schema/pin-shape mismatch → atomically revert ref and manifest; ordinary requirements/untagged-test drift → regenerate against the new pin. Specify who checks the first `main` run and the exact `main_health.py`/workflow-run evidence to record.\n\n3. **Category:** dependency  \n   **Severity:** low  \n   **Finding:** “Three pinned upstream symbols” is ambiguous: the plan names two direct functions plus three helpers within `_test_links_io`. A partial inspection could miss an incompatible helper call.  \n   **Suggestion:** Name each imported callable and its expected invocation/signature explicitly, while retaining the local exact-pin gate run as the authoritative compatibility check.\n\n4. **Category:** risk  \n   **Severity:** low  \n   **Finding:** The local reproduction is strong, but it may not match the CI runner’s Python version, dependency resolution, sparse-checkout behavior, or environment variables […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": ".shipwright/triage.jsonl",
+          "line": 71,
+          "finding": "trg-8de744d4 duplicated the still-open trg-f2c8df89 (identical deferred scope, no dedupKey linking them).",
+          "suggestion": "Dismiss the superseded older card as superseded.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-07T21:14:55.990333+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: sole-consumer claim — Grepped every workflow file for the pin/checkout path; confirmed by reviewer's own search — could not disprove, claim holds.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: exactly-2-line manifest diff claim — Read the diff hunk + grepped for acs/ac_id fields; confirmed by reviewer's own read — could not disprove, claim holds.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: gate structurally cannot run on pull_request events — Read the if: guard verbatim; confirmed by reviewer's own read — could not disprove, claim holds.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: pinned SHA is genuinely PR #686's merge commit — Reviewer's sandbox lacked gh/network access so could not independently confirm via gh api. Rebutted: this was verified earlier in this same session via `gh api repos/svenroth-ai/shipwright/commits/<sha>/pulls`, which returned exactly PR #686 with merge_commit_sha equal to the pinned SHA, recorded verbatim in ci_supplychain_ack.json. Not a gap in the work — a tool-access gap in the reviewer's own sandbox.",
+          "suggestion": "accept ci_supplychain_ack.json's recorded gh api evidence as authoritative",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: fallback two-branch diagnosis is exhaustive — Found a real gap: a checkout/fetch failure (pin unreachable) produces no manifest diff to classify and wasn't named as a third branch. Fixed: added Branch C (fail-closed, re-verify+re-pin) to the mini-plan's fallback step 5.",
+          "suggestion": "add the third branch (done)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: AC's in-repo consumer-check names every real consumer — Found scripts/ci/promote_fr_layers_io.py is a second, unnamed in-repo consumer. Verified it is schema_version-agnostic (zero references) and its commit-pin check is caller-supplied, not desynced by this bump. Fixed: AC widened to name and verify both consumers.",
+          "suggestion": "widen the AC text (done)",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-07T21:23:28.442200+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": ".shipwright/planning/iterate/iterate-2026-09-07-ac-scoped-layer-promotion/ci_supplychain_ack.json` (statement field)",
+          "line": null,
+          "finding": "The ack's fallback sentence states only the atomic-revert branch (and even calls it \"the fallback\"), while the spec's round-3 correction requires the two-branch (pin-mismatch vs. content-drift) diagnosis. The mini-plan carries it correctly; the ack is the audit artifact and is slightly behind the final spec text.",
+          "suggestion": "Amend the ack statement to name both branches (or Branch A/B/C as in the mini-plan), matching the final spec.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": ".shipwright/planning/iterate/iterate-2026-09-07-ac-scoped-layer-promotion/reviews.json` (external_code section)",
+          "line": null,
+          "finding": "external_code` review is `status: pending` while the run otherwise records all reviews completed. Not a code defect, but the review ledger shipped incomplete.",
+          "suggestion": "Run/record the external code review before merging, or record a disposition for why it's intentionally pending.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": ".shipwright/compliance/test-traceability.json",
+          "line": 7,
+          "finding": "The manifest's `source_commit` (`8ebb2a62…`) can only be validated as \"regenerated from this branch's HEAD\" if the branch tip hasn't moved since regen — the spec itself flags this (rebase/force-push requires re-regen). The diff can't prove it; it's an operational caveat, not a fixable code issue.",
+          "suggestion": "Re-run the local gate repro against final HEAD immediately pre-merge, as the spec's own round-4 note recommends.  No correctness bugs, no security issues (no permission/secret/credential changes accompany the ref bump), no callers broken — the two in-repo manifest consumers were checked per spec and the only workflow consumer is the one job whose ref changed.  Overall: ship-as-is from a code standpoint; the two low findings are documentation/process hygiene worth folding in if convenient.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "line — `.shipwright/planning/iterate/iterate-2026-09-07-ac-scoped-layer-promotion/ci_supplychain_ack.json",
+          "line": 9,
+          "finding": "The acknowledgment says any red post-merge run should trigger an atomic pin-and-manifest revert. This contradicts the specification’s required diagnosis: ordinary manifest/content drift must be repaired by regenerating against the new pin, not by reverting a valid pin.",
+          "suggestion": "Record the same branch-A/branch-B distinction used in the mini-plan, including re-regen for ordinary drift and atomic revert only for a pin/schema mismatch.  Ship-with-fixes: the implementation otherwise includes the exact pin, coupled schema-v4 manifest regeneration, acknowledgment, and deferred-scope triage handoff, but the required recovery guidance is inconsistent in a required audit artifact.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "glm+openai",
+      "completed_at": "2026-09-07T21:29:15.404994+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] This diff is a near-literal implementation of a heavily-reviewed spec. I checked each acceptance criterion against the artifacts:\n\n- **Pin bump**: `ci.yml` ref is exactly `c0d1b38be27730dca4c9f00afc4538dd10f76e56`, with a date+PR comment — matches AC1.\n- **Manifest regen**: `schema_version` 3→4 and `source_commit` updated, with no other content lines changed in the hunk — matches AC5's \"exactly two lines\" claim as far as the diff shows.\n- **Ack file**: exists at the spec-required `{run_id}` path, names full SHA, repo, PR #686, and the verification commands/results — matches the audit-grade convention.\n- **Triage card**: `trg-8de744d4` names the deferred scope and references campaign `req3-06-mechanics-webui`, kind `compliance` — matches final AC. The prior duplicate card `trg-f2c8df89` is dismissed as superseded with a reason, which also resolves the code-reviewer's duplication finding in the same diff.\n\nMinor observations, none blocking:\n\n- Category: spec — Severity: low\n  File: `.shipwright/planning/iterate/iterate-2026-09-07-ac-scoped-layer-promotion/ci_supplychain_ack.json` (statement field)\n  Finding: The ack's fallback sentence states only the atomic-revert branch (and even calls it \"the fallback\"), while the spec's round-3 correction requires the two-branch (pin-mismatch vs. content-drift) diagnosis. The mini-plan carries it correctly; the ack is the audit artifact and is slightly behind the final spec text.\n  Suggestion: Amend the ack statement to name both branches (or Branch A/B/C as in the mini-plan), matching the final spec.\n\n- Category: spec — Severity: low\n  File: `.shipwright/planning/iterate/iterate-2026-09-07-ac-scoped-layer-promotion/reviews.json` (external_code section)\n  Finding: `external_code` review is `status: pending` while the run otherwise records all reviews completed. Not a code defect, but the review ledger shipped incomplete.\n  Suggestion: Run/record the external code review before merging, or record a disposition for why  […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File:line — `.shipwright/planning/iterate/iterate-2026-09-07-ac-scoped-layer-promotion/ci_supplychain_ack.json:9`\n- Finding: The acknowledgment says any red post-merge run should trigger an atomic pin-and-manifest revert. This contradicts the specification’s required diagnosis: ordinary manifest/content drift must be repaired by regenerating against the new pin, not by reverting a valid pin.\n- Suggestion: Record the same branch-A/branch-B distinction used in the mini-plan, including re-regen for ordinary drift and atomic revert only for a pin/schema mismatch.\n\nShip-with-fixes: the implementation otherwise includes the exact pin, coupled schema-v4 manifest regeneration, acknowledgment, and deferred-scope triage handoff, but the required recovery guidance is inconsistent in a required audit artifact.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T21:10:41.320375+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-07T21:07:51.944866+00:00",
+      "disposition": "opus-plan-reviewer: severity medium, 8 findings, all disposed fix and applied — see spec's Internal Plan Review section",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
