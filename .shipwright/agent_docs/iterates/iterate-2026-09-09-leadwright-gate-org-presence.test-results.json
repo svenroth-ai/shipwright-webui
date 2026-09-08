@@ -1,0 +1,103 @@
+{
+  "last_updated": "2026-09-06",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-09-leadwright-gate-org-presence",
+    "date": "2026-09-09",
+    "unit": {
+      "status": "passed",
+      "passed": 4051,
+      "total": 4051
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 9,
+      "total": 9
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "Server suite (4112 passed / 7 skipped, 374 files) re-run in full for touches_shared_infra, but no server file was actually changed by this iterate \u2014 recorded for completeness only.",
+      "client/e2e/flows/triage-fix-now.spec.ts's two `new-issue-project-select` assertions fail \u2014 pre-existing since PR #360 (2026-08-10), confirmed via `git log -p -L` on `scopedProject` in useNewIssueFormDerived.ts, unrelated to this iterate's diff. Not counted in the e2e total above; recorded in conventions.md Learnings and project memory."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      },
+      "behaviors": [
+        {
+          "behavior": "AC(a): confirmed absent org chart hides Bot dropdown + BellDot in the board toolbar",
+          "disposition": "tested",
+          "evidence": "LeadTagFilter.test.tsx (LeadTagFilterToolbarGroup \u2014 absent case); leadwright-gate-org-presence.spec.ts (real browser, absent describe block)"
+        },
+        {
+          "behavior": "AC(a): confirmed absent org chart hides the New-issue dialog's leadwright fields",
+          "disposition": "tested",
+          "evidence": "LeadwrightFields.test.tsx (absent case); leadwright-gate-org-presence.spec.ts (New Task dialog case)"
+        },
+        {
+          "behavior": "AC(b): loading/broken presence keeps the Bot dropdown, BellDot, and New-dialog lead fields visible (fail visible, not fail hidden)",
+          "disposition": "tested",
+          "evidence": "LeadTagFilter.test.tsx + LeadwrightFields.test.tsx (loading + broken cases, one each); leadwright-gate-org-presence.spec.ts (broken describe block, real browser, invalid org-chart.json)"
+        },
+        {
+          "behavior": "AC(c): a task carrying lead tags still renders its glyph/chip in every presence state, including absent",
+          "disposition": "tested",
+          "evidence": "TaskCardLeadExpander.test.tsx (it.each over absent/loading/broken/present); leadwright-gate-org-presence.spec.ts (absent describe block asserts glyph + expander)"
+        },
+        {
+          "behavior": "AC(d): exactly one presence signal exists in the codebase \u2014 no second hand-typed org_chart_missing 404 condition",
+          "disposition": "tested",
+          "evidence": "grep for org_chart_missing across client/src confirms the sole check lives in useOrgChartPresence.ts / useOrgChart.ts; independently confirmed by the spec-reviewer subagent pass (spec-review.json)"
+        },
+        {
+          "behavior": "AC(e): existing tests stay green under the new gate",
+          "disposition": "tested",
+          "evidence": "Full client (4051) + server (4112) vitest suites pass; 3 pre-existing E2E specs (lead-board-surface, triage-fix-now, triage-fix-now-more-options-clip) updated with a seeded org-chart fixture and re-verified green"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 9,
+      "runner": "e2e/isolated-stack.mjs --project=chromium",
+      "files": [
+        "e2e/flows/leadwright-gate-org-presence.spec.ts (new, 3 tests)",
+        "e2e/flows/lead-board-surface.spec.ts (regression-fixed, 4 tests)",
+        "e2e/flows/triage-fix-now-more-options-clip.spec.ts (regression-fixed, 1 test)",
+        "e2e/flows/50-new-task-modal.spec.ts (1 test, sanity)"
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-09-leadwright-gate-org-presence",
+    "commit": "a23bac8e362effcd562f24a22f720dc47335bf19",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

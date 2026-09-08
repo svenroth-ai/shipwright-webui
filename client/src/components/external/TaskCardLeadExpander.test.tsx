@@ -9,6 +9,10 @@ import { describe, it, expect, vi } from "vitest";
 
 import { LeadOriginGlyph, TaskCardLeadExpander } from "./TaskCardLeadExpander";
 import type { ExternalTask } from "../../lib/externalApi";
+import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
+
+vi.mock("../../hooks/useOrgChartPresence");
+const mockedPresence = vi.mocked(useOrgChartPresence);
 
 function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
   return {
@@ -182,4 +186,33 @@ describe("TaskCardLeadExpander", () => {
     await user.keyboard("i");
     expect(onParentKeyDown).toHaveBeenCalledTimes(1);
   });
+});
+
+// @covers FR-04.11
+describe("Lead chips REPORT existing data — never gated on org-chart presence (iterate-2026-09-09-leadwright-gate-org-presence)", () => {
+  it.each(["absent", "loading", "broken", "present"] as const)(
+    "LeadOriginGlyph still renders when presence is %s — a task already carries this tag whether or not an org chart exists",
+    (presence) => {
+      mockedPresence.mockReturnValue(presence);
+      render(<LeadOriginGlyph taskId="task-1" tags={["lead:helper-01"]} />);
+      expect(screen.getByTestId("task-card-lead-glyph-task-1")).toBeInTheDocument();
+    },
+  );
+
+  it.each(["absent", "loading", "broken", "present"] as const)(
+    "TaskCardLeadExpander's lead-wait/dedup/origin chips still render when presence is %s",
+    async (presence) => {
+      mockedPresence.mockReturnValue(presence);
+      const user = userEvent.setup();
+      render(
+        <TaskCardLeadExpander
+          task={baseTask({ tags: ["lead:helper-07", "lead-wait:po", "lead-dedup:card-9f3"] })}
+        />,
+      );
+      await user.click(screen.getByTestId("task-card-lead-expander-toggle-task-1"));
+      expect(screen.getByTestId("task-card-lead-origin-task-1")).toBeInTheDocument();
+      expect(screen.getByTestId("task-card-lead-wait-task-1")).toBeInTheDocument();
+      expect(screen.getByTestId("task-card-lead-dedup-task-1")).toBeInTheDocument();
+    },
+  );
 });

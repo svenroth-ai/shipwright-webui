@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-08T20:23:25.167308+00:00",
-  "provider": "openai+glm",
-  "findings_count": 7,
+  "timestamp": "2026-09-08T22:19:55.787497+00:00",
+  "provider": "openrouter",
+  "findings_count": 3,
   "self_review_fallback_ran": false,
-  "reason": "6 findings across 2 providers, both revise. Fixed: withinLastNight() now derives from the real computeLastNightWindow() instead of a hand-rolled duplicate (removes the duplication both reviewers independently mis-traced -- verified by concrete date math that the original was NOT actually producing an out-of-window timestamp, a false positive both models shared); AC-4 2-of-4-declared case added at the route level (org-inventory.test.ts); the found-is-monotone comment corrected to state the read is atomic (no genuine mid-scan state exists post-rewrite); extractSectionProse no longer swallows trailing prose behind an unbalanced code fence. Disclosed, not changed: the unclaimed-effect-warning testid is pinned verbatim by AC-2a-agent (data-testid=\"unclaimed-effect-warning\", asserted by 2 existing tests) -- rescoping it would violate an explicit acceptance criterion; the multi-warned-beat-per-lead ambiguity GLM flagged is a real Playwright getByTestId limitation for a future multi-warning test, not a page-correctness bug, and is accepted as a known constraint of the pinned AC rather than fixed unilaterally.",
+  "reason": "only some provider legs could be itemized \u2014 the count (3) may understate what was found",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "revise",
-    "glm": "revise"
+    "openai": "approve",
+    "glm": "approve"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
   },
   "contradiction_resolution": null
 }

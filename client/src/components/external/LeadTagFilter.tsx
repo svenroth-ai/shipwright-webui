@@ -34,6 +34,7 @@ import {
   LEAD_WAIT_TAG_PREFIX,
   type LeadTagPrefix,
 } from "../../lib/leadTags";
+import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
 
 export interface LeadTagFilterOption {
   value: LeadTagPrefix;
@@ -155,6 +156,27 @@ export function LeadWaitToggleButton({ active, onToggle }: LeadWaitToggleProps) 
     >
       <BellDot size={15} />
     </button>
+  );
+}
+
+/**
+ * The Bot dropdown + BellDot pair, gated on org-chart presence
+ * (`useOrgChartPresence()`, FR-01.71's precedent). Hidden ONLY on a
+ * confirmed "absent" (no leads installed, so nothing routes on these tags)
+ * — "loading"/"broken" still render, fail visible rather than fail hidden.
+ * A separate wrapper (rather than gating `LeadTagFilterMenu` /
+ * `LeadWaitToggleButton` themselves) so those two stay pure/prop-driven and
+ * their existing hook-free tests are undisturbed; `TaskBoardPage` is this
+ * pair's only mount site.
+ */
+export function LeadTagFilterToolbarGroup(props: LeadTagFilterProps) {
+  const presence = useOrgChartPresence();
+  if (presence === "absent") return null;
+  return (
+    <>
+      <LeadTagFilterMenu {...props} />
+      <LeadWaitToggleButton active={props.active} onToggle={props.onToggle} />
+    </>
   );
 }
 

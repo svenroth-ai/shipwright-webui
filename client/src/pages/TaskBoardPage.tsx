@@ -74,7 +74,7 @@ import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
 import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
-import { LeadTagFilterMenu, LeadWaitToggleButton } from "../components/external/LeadTagFilter";
+import { LeadTagFilterToolbarGroup } from "../components/external/LeadTagFilter";
 import { ClaimFilterToggle } from "../components/external/ClaimFilterToggle";
 import { useBoardFilters } from "../hooks/useBoardFilters";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
@@ -336,15 +336,16 @@ export default function TaskBoardPage() {
             />
             {/* FR-04.11 (V3) — Bot dropdown (3 lead-tag prefixes) + BellDot
                 "waiting on PO" shortcut, same toolbar row, same h-8 w-8
-                icon-button shell as the funnel above. */}
-            <LeadTagFilterMenu
+                icon-button shell as the funnel above. Gated on org-chart
+                presence (LeadTagFilterToolbarGroup) — an install with no
+                leads has nothing for these controls to filter by. */}
+            <LeadTagFilterToolbarGroup
               counts={leadTagCounts}
               total={leadTagTotal}
               active={leadTagFilter}
               onToggle={toggleLeadTag}
               onReset={clearLeadTagFilter}
             />
-            <LeadWaitToggleButton active={leadTagFilter} onToggle={toggleLeadTag} />
             {/* FR-04.22 — independent claim axis (never a 5th ExternalTaskState). */}
             <ClaimFilterToggle active={claimFilter} onToggle={toggleClaim} />
             <DensityToggle />

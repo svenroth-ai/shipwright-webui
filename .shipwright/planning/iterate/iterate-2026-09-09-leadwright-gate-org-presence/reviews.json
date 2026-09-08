@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-leadwright-gate-org-presence",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T22:12:36.035508+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T22:12:44.196744+00:00",
+      "disposition": "small complexity CHANGE — mini-plan/external plan review only applies at medium+ per the phase matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T22:17:08.629270+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T22:17:08.751296+00:00",
+      "disposition": "doubt-reviewer is conditional on migrations/async-concurrency/cross-plugin-imports/irreversible-ops; this is pure UI conditional-rendering, none apply",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/LeadTagFilter.test.tsx` (new `afterEach` in the gate describe) and `client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx:66` (`vi.clearAllMocks()`)",
+          "line": null,
+          "finding": "vi.clearAllMocks()` clears call history but does not reset `mockReturnValue` implementations. Since every gate test sets its own value before rendering there is no current failure, but any future test in these files that renders a hook-consuming component without explicitly setting `mockedPresence` will silently inherit the previous test's state (e.g. a stray `\"absent\"`) and either pass or fail misleadingly.",
+          "suggestion": "Use `vi.resetAllMocks()` (or `mockedPresence.mockReset()` in the shared `afterEach`) so implementations don't leak between tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/NewIssueModal/LeadwrightFields.tsx:55` (`if (orgPresence === \"absent\") return null;`)",
+          "line": null,
+          "finding": "If the New-issue dialog is opened while presence is `\"loading\"`, the lead fields render; if presence then resolves to `\"absent\"` mid-edit, the fields vanish but any lead values the user already typed remain in the parent modal's state and will presumably still be forwarded by the submit hook. On an install with no org chart those values route nowhere, so impact is minor, but the user's input is silently swallowed rather than cleared.",
+          "suggestion": "Either accept this as inherent to the fail-visible posture, or clear the lead field state when presence transitions to `\"absent\"` in the owning modals. Documenting the chosen behavior is sufficient for a change this size.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/pages/TaskBoardPage.tsx:339` (import swap) / `LeadTagFilter.tsx` wrapper doc comment",
+          "line": null,
+          "finding": "AC (a) requires the Bot dropdown and BellDot to be hidden on `\"absent\"`; this is only guaranteed for mount sites switched to `LeadTagFilterToolbarGroup`. The doc comment asserts `TaskBoardPage` is the pair's only mount site, but that claim isn't proven within the diff — if `LeadTagFilterMenu`/`LeadWaitToggleButton` are mounted anywhere else (e.g. a mobile top-bar variant), that site would remain ungated and AC (a) would be only partially met. The old exports are retained (no compile break either way).",
+          "suggestion": "Run a codebase-wide grep for the two component names (or add a lint/export restriction) and confirm the only production mount is via the toolbar group; note the result in the PR description.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-08T22:19:55.781335+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Review\n\nThe diff matches the spec well: gating is implemented via the existing `useOrgChartPresence()` hook in exactly two places (the new `LeadTagFilterToolbarGroup` wrapper and inside `LeadwrightFieldsFragment`), hidden only on `\"absent\"`, fail-visible on `\"loading\"`/`\"broken\"`, and no new signal/404 handling is introduced (AC d is satisfied by construction). Chips/tags are untouched functionally and are pinned by tests across all four presence states (AC c). Acceptance criteria a–c each have corresponding tests.\n\n### Findings\n\n- Category: test\n  Severity: low\n  File: `client/src/components/external/LeadTagFilter.test.tsx` (new `afterEach` in the gate describe) and `client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx:66` (`vi.clearAllMocks()`)\n  Finding: `vi.clearAllMocks()` clears call history but does **not** reset `mockReturnValue` implementations. Since every gate test sets its own value before rendering there is no current failure, but any future test in these files that renders a hook-consuming component without explicitly setting `mockedPresence` will silently inherit the previous test's state (e.g. a stray `\"absent\"`) and either pass or fail misleadingly.\n  Suggestion: Use `vi.resetAllMocks()` (or `mockedPresence.mockReset()` in the shared `afterEach`) so implementations don't leak between tests.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/components/external/NewIssueModal/LeadwrightFields.tsx:55` (`if (orgPresence === \"absent\") return null;`)\n  Finding: If the New-issue dialog is opened while presence is `\"loading\"`, the lead fields render; if presence then resolves to `\"absent\"` mid-edit, the fields vanish but any lead values the user already typed remain in the parent modal's state and will presumably still be forwarded by the submit hook. On an install with no org chart those values route nowhere, so impact is minor, but the user's input is silently swallowed rather than cleared.\n  Suggestion: Either ac […truncated]\n\n[openai] No real defects found. The shared presence hook gates the specified affordances only when `\"absent\"`, preserves persisted lead-data displays, and the tests cover absent, loading, broken, and present states.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T22:14:33.735125+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T22:12:44.302385+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

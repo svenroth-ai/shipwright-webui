@@ -34,13 +34,35 @@
 import { test, expect } from "@playwright/test";
 import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
 import path from "node:path";
-import { tmpdir } from "node:os";
+import { tmpdir, homedir } from "node:os";
+
+// iterate-2026-09-09-leadwright-gate-org-presence — Priority/Domain now live
+// inside LeadwrightFieldsFragment, which renders only when an org chart is
+// present. Without this, the isolated stack's empty-registry default
+// (no `~/.claude/leads/org-chart.json`) reads as "absent" and the assertions
+// on new-issue-priority-select / new-issue-domain-input below fail — this
+// spec is about triage prefill wiring, not about the presence gate itself,
+// so a chart is seeded to keep it on the "present" path.
+const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
+function writeChart() {
+  mkdirSync(LEADS_ROOT, { recursive: true });
+  writeFileSync(
+    CHART_PATH,
+    JSON.stringify({ version: 1, po: "sven", leads: {} }),
+    "utf8",
+  );
+}
+function removeChart() {
+  rmSync(LEADS_ROOT, { recursive: true, force: true });
+}
 
 test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)", () => {
   let tmpDir = "";
   let projectId = "";
 
   test.beforeEach(async ({ request }) => {
+    writeChart();
     tmpDir = mkdtempSync(path.join(tmpdir(), "triage-fix-now-"));
     const triageDir = path.join(tmpDir, ".shipwright");
     mkdirSync(triageDir, { recursive: true });
@@ -103,6 +125,7 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
   });
 
   test.afterEach(async ({ request }) => {
+    removeChart();
     if (projectId) {
       try {
         await request.delete(`/api/projects/${projectId}`);

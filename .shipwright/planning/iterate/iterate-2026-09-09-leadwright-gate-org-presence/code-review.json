@@ -1,0 +1,5 @@
+{
+  "section": "iterate-2026-09-09-leadwright-gate-org-presence",
+  "review": [],
+  "summary": "Clean, correctly-scoped, well-tested addition following the useOrgChartPresence() precedent exactly. No blocking findings on any of the 5 axes (correctness, security, performance, structure, tests). useDomainVocabulary()'s shared-cache convention means calling it before the new absent early-return introduces no genuine new fetch."
+}
