@@ -1,0 +1,47 @@
+{
+  "run_id": "iterate-2026-09-08-compliance-b7-g2-h1",
+  "date": "2026-09-08T17:55:42.286208Z",
+  "event_at": "2026-09-08T17:55:03.732008+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/compliance-b7-g2-h1",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-08-compliance-b7-g2-h1",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 4,
+      "tested": 4,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    },
+    "behaviors": [
+      {
+        "behavior": "B7 \u2014 commit\u2192event coverage check passes with traceability-regen auto-commits excluded",
+        "disposition": "tested",
+        "evidence": "run_audit.py re-run against the worktree: B7 flips FAIL\u2192PASS (was 6 uncovered commits since v0.27.0, now 0)"
+      },
+      {
+        "behavior": "G2 \u2014 conventional-commit scope validation passes for the 5 previously-unrecognized scopes",
+        "disposition": "tested",
+        "evidence": "run_audit.py re-run: G2 flips FAIL\u2192PASS (was 14 flagged commits, now 0)"
+      },
+      {
+        "behavior": "H1 \u2014 every previously oversize file is now <=300 lines with all assertions preserved",
+        "disposition": "tested",
+        "evidence": "wc -l on all 5 split files (all <=300); full server (4054/4054) + client (4005/4005) suites green post-split"
+      },
+      {
+        "behavior": "H2 \u2014 bloat baseline current values match actual on-disk line counts",
+        "disposition": "tested",
+        "evidence": "run_audit.py re-run: H2 flips FAIL\u2192PASS; all 10 corrected entries spot-checked against wc -l"
+      }
+    ]
+  },
+  "declared_removals": []
+}

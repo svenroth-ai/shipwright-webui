@@ -25,12 +25,12 @@
     ]
   },
   "last_audit": {
-    "ran_at": "2026-08-31T05:32:55.449138+00:00",
+    "ran_at": "2026-09-08T17:32:25.876948+00:00",
     "verdict": "pass",
-    "scope": "B",
+    "scope": "B,G,H",
     "checks": {
-      "total": 7,
-      "pass": 3,
+      "total": 16,
+      "pass": 12,
       "fail": 0,
       "skip": 4
     }
