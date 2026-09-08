@@ -122,6 +122,81 @@ def test_run_returns_1_when_committed_manifest_is_missing(stub_plugin_root: Path
     assert "no committed manifest" in out["reason"]
 
 
+def test_write_fresh_writes_the_regen_even_when_it_matches_committed(
+    stub_plugin_root: Path, tmp_path: Path, capsys
+) -> None:
+    committed = tmp_path / "test-traceability.json"
+    committed.write_text(json.dumps({
+        "schema_version": 3,
+        "collector_version": "stub/1.0.0",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "source_commit": "stubbed-sha",
+        "spec_hash": "sha256:stub",
+        "requirements": {},
+        "orphans": [],
+        "invalid_tags": [],
+        "invalid_layers": [],
+        "untagged_tests": [],
+    }), encoding="utf-8")
+    fresh_out = tmp_path / "fresh.json"
+
+    exit_code = run(stub_plugin_root, tmp_path, committed, write_fresh=fresh_out)
+
+    assert exit_code == 0
+    written = json.loads(fresh_out.read_text(encoding="utf-8"))
+    assert written["source_commit"] == "stubbed-sha"
+
+
+def test_write_fresh_writes_the_regen_when_stale_too(
+    stub_plugin_root: Path, tmp_path: Path, capsys
+) -> None:
+    """The follow-up CI step needs a usable fresh manifest EXACTLY when the
+    gate found drift — this is the case that matters for the auto-PR step."""
+    committed = tmp_path / "test-traceability.json"
+    committed.write_text(json.dumps({
+        "schema_version": 3,
+        "collector_version": "stub/1.0.0",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "source_commit": "stubbed-sha",
+        "spec_hash": "sha256:stub",
+        "requirements": {
+            "01::FR-01.01": {"id": "FR-01.01", "status": "active", "tests": {}}
+        },
+        "orphans": [],
+        "invalid_tags": [],
+        "invalid_layers": [],
+        "untagged_tests": [],
+    }), encoding="utf-8")
+    fresh_out = tmp_path / "nested" / "fresh.json"
+
+    exit_code = run(stub_plugin_root, tmp_path, committed, write_fresh=fresh_out)
+
+    assert exit_code == 1
+    written = json.loads(fresh_out.read_text(encoding="utf-8"))
+    assert "01::FR-01.01" not in written["requirements"]
+
+
+def test_write_fresh_is_a_noop_when_omitted(stub_plugin_root: Path, tmp_path: Path, capsys) -> None:
+    committed = tmp_path / "test-traceability.json"
+    committed.write_text(json.dumps({
+        "schema_version": 3,
+        "collector_version": "stub/1.0.0",
+        "generated_at": "2026-01-01T00:00:00+00:00",
+        "source_commit": "stubbed-sha",
+        "spec_hash": "sha256:stub",
+        "requirements": {},
+        "orphans": [],
+        "invalid_tags": [],
+        "invalid_layers": [],
+        "untagged_tests": [],
+    }), encoding="utf-8")
+
+    exit_code = run(stub_plugin_root, tmp_path, committed)
+
+    assert exit_code == 0
+    assert list(tmp_path.glob("fresh*.json")) == []
+
+
 def test_run_returns_1_with_structured_reason_on_invalid_committed_json(
     stub_plugin_root: Path, tmp_path: Path, capsys
 ) -> None:

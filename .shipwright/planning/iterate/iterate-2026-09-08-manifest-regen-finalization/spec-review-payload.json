@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Implementation matches the iterate spec and ADR exactly: continue-on-error scoped to the single gate step with id:gate, job-scoped contents+pull-requests write permissions, a follow-up PR-opening step reading steps.gate.outcome (not conclusion) that never merges and authenticates only with the default GITHUB_TOKEN, and a purely-additive --write-fresh flag on traceability_manifest_gate.py with unchanged existing behavior. No spec.md change, and .shipwright/compliance/test-traceability.json still shows the pre-existing source_commit, confirming this branch did not commit a derived snapshot. Test files cover every row in the spec's Test Completeness Ledger plus one documented extra (stale-run standdown)."
+}

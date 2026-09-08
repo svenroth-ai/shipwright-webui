@@ -1,0 +1,12 @@
+{
+  "section": "traceability-manifest gate advisory + auto-heal PR",
+  "review": [
+    {
+      "finding": "A narrow check-then-act window remains between the git ls-remote stale-run guard and the final git push --force a few lines later; almost fully closed by the top-level concurrency group with cancel-in-progress. Not requesting a code change.",
+      "severity": "low",
+      "category": "correctness",
+      "file": ".github/workflows/ci.yml",
+      "suggestion": "None — informational; residual risk accepted given the top-level concurrency group."
+    }
+  ]
+}

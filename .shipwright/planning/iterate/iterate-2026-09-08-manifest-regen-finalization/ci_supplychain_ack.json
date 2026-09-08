@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-08-manifest-regen-finalization",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-09-08-manifest-regen-finalization",
+    "paths_fingerprint": "0464ba329373c58ca4e298538e6dbfc93a7f97596d71c3ff4c05184006dc0e62",
+    "consistent_with": "iterate-2026-09-08-manifest-regen-finalization",
+    "statement": "Adds a new write-scoped job (traceability-manifest-regen-pr: contents:write + pull-requests:write) that opens/refreshes a bot PR carrying nothing but a regenerated .shipwright/compliance/test-traceability.json. Split from the pre-existing read-only traceability-manifest job (doubt-review, 2026-09-08) so the write scopes never coexist with the pinned third-party checkout in one job. Uses only the default GITHUB_TOKEN (no new secret/PAT), never attempts to merge, force-pushes with --force-with-lease (not bare --force), carries its own concurrency group, and does not touch the main-protection ruleset or any other job's permissions.",
+    "ci_paths": [
+      ".github/workflows/ci.yml"
+    ]
+  }
+}
