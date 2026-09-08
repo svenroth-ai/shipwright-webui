@@ -1294,26 +1294,26 @@ write surface; gated, path-guarded, and concurrency-safe.
   / `decisions-proposed.md` (C) is unchanged — countersign is the only
   write this iterate adds for either file, and no lead-side write path
   exists.
-- (G) **(iterate-2026-09-08-lead-inventory-page)** A new `/org/inventory`
-  route, `LeadInventoryPage`, gives the PO one composite read of every AI
-  lead's overnight activity — viewer only, no org-chart editing, no new
-  leadwright API, no budget work. Per lead it renders: last night's beats
-  (bounded to a 48h server-side window, ordered by `startedAt`) each with
-  its authority-band step log rendered as `BandChip`s in file order; the
-  lead's declared authority ladder read from its own `charter.md`, per-band
-  prose plus an "N/4 declared" completeness line (never a "may act alone"
-  claim); open "needs you" questions surfaced from the same round-store as
-  (D), each with exactly one non-interactive answer field and no
-  thread/round affordance; and a visible, DOM-assertable warning on any
-  beat whose effect went unclaimed by its own step log, sourced from a
-  single-pass `audit.jsonl` scan (never a false "clear" on a degraded
-  read). A genuine read failure for a lead's beat register, its steps, or
-  its audit log degrades that figure alone (tri-state `ok`/`unreadable`/
-  `unknown`), never collapsing into a false-positive empty or clear state.
-  Served by a new roster-wide composite endpoint (`GET
-  /api/org/inventory`), one `org-chart.json` parse for every lead, no
-  N+1. No terminal-button affordance — that slot belongs to a separate
-  card and is deliberately omitted, not stubbed.
+- (G) **(iterate-2026-09-08-lead-inventory-page)** Given an AI lead has
+  beats recorded in the last 48 hours, when the PO opens the new
+  `/org/inventory` page (`LeadInventoryPage`, viewer only — no org-chart
+  editing, no new leadwright API, no budget work), then it renders that
+  lead's beats ordered by `startedAt`, each with its authority-band step
+  log as `BandChip`s in file order; the lead's declared authority ladder
+  as per-band prose read from its own `charter.md` plus an "N/4 declared"
+  completeness line (never a "may act alone" claim); any open "needs you"
+  questions from the same round-store as (D), each with exactly one
+  non-interactive answer field and no thread/round affordance; and a
+  visible, DOM-assertable warning on any beat whose effect a single-pass
+  `audit.jsonl` scan found unclaimed (never a false "clear" on a degraded
+  read). Given a read failure for one lead's beat register, its steps, or
+  its audit log, when the page renders, then only that figure degrades
+  (tri-state `ok`/`unreadable`/`unknown`), never collapsing into a
+  false-positive empty or clear state for the whole lead or roster. Served
+  by a new roster-wide composite endpoint (`GET /api/org/inventory`), one
+  `org-chart.json` parse for every lead, no N+1. No terminal-button
+  affordance — that slot belongs to a separate card and is deliberately
+  omitted, not stubbed.
 
 ## Quality Requirements
 
