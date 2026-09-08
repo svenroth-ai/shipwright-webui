@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-08-lead-inventory-page",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The `beat-effect-audit-read` cap at `auditLogCore`'s `MAX_LIMIT=200` can silently produce a false `status:\"clear\"`. The audit log carries all entry kinds (`{ts,kind,lead_id,beat_id,summary,data}`), not just `beat_effect_not_claimed` — an active lead can easily push 200+ entries in 48 hours. If the relevant `beat_effect_not_claimed` entry for a windowed beat falls outside the latest-200 slice, the beat renders with no warning even though one exists. This is precisely the fail-open class the spec spent enormous care eliminating in AC-2b — but it survives along the pagination axis rather than the read-failure axis. The composite test plan (\"matching entry in the 200-entry window → found\") only tests the happy slice.",
+          "suggestion": "Either (a) paginate `auditLogCore` until entries' `ts` fall before the 48h window start (bounded walk, terminating naturally), or (b) if the limit is hit before covering the window, degrade to `{status:\"unknown\"}` rather than `ok` — and add a test forcing the truncation path.  2. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC-2b covers file-level failures, but not line-level corruption collapse: a `steps.jsonl` whose lines are all malformed returns `{status:\"ok\", steps:[], unreadableLines:N}` and renders as \"no steps reported\" — a positive claim contradicting AC-2b's own principle. A partially corrupt file (some valid lines) is fine, but a fully unparseable file is not \"a genuinely empty optional contribution.\"",
+          "suggestion": "Define a UI rule for `unreadableLines > 0` — at minimum surface the count (\"2 steps reported, 1 unreadable line\"), and treat all-lines-malformed as `unreadable` (or a distinct state), not `ok`/empty.  3. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The plan's own premise is that live leads with history exist (`rmSync` finding #10 is justified by exactly this). Two consequences it doesn't reconcile: (a) what response state does a `BEAT_ID_RE`-refused beatId produce? \"Refused before any fs call\" is specified at the reader level, but not what the composite does with the refusal — it must degrade that beat alone (`unreadable`), never 500 or drop the lead; (b) if any pre-existing register entry carries a non-UUID beat id (any format drift in leadwright's history), those beats all silently render \"steps unavailable.\"",
+          "suggestion": "Specify refused-beatId → per-beat `unreadable` in the composite (and cover it in the \"one bad beat degrades only that beat\" test). Verify against the operator's actual live registers that all existing beat ids match the UUID regex.  4. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Open-beat handling is unspecified. AC-1 mentions \"a closed beat,\" but the `startedAt` window predicate will include in-flight beats (started 02:00, still running at 07:00). Two sub-issues: does the page render open beats at all (and if so, with what closure/status affordance)? And an in-flight beat's `steps.jsonl` may be mid-append when read — the tolerant parser absorbs the partial last line into `unreadableLines`, which is acceptable, but that interaction should be pinned by a test rather than relied on incidentally.",
+          "suggestion": "Decide explicitly: window filter is `startedAt`-only over all beats (open and closed), or closed-only. Add a test for a read racing an append (truncated final line).  5. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The \"unanswered latest round\" predicate in NeedsYou is under-specified: is an answer `undefined`, `null`, `\"\"`, and a whitespace-only string all \"no answer\"? Similarly, beat ordering within `BeatList` is nowhere specified (register order? `startedAt` asc/desc?) — unspecified ordering will make both tests and the rendered page nondeterministic in intent.",
+          "suggestion": "Pin the predicate (recommend: `answer` key absent, null, or empty-after-trim) and pin beat ordering (recommend `startedAt` ascending, matching \"the order they happened overnight\").  6. Category: approach — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "NeedsYou renders \"an empty reserved slot for W15's terminal button.\" An empty reserved slot is visible UI chrome for a feature that doesn't exist — it will read as a broken/missing element to the PO on day one, and W15's eventual layout may not fit the reservation anyway. The spec already handles this correctly elsewhere by not rendering a competing button.",
+          "suggestion": "Omit the slot entirely; W15 inserts its own affordance when it lands. \"Not rendering it\" is the same commitment as \"reserving an empty slot\" with zero UI cost.  7. Category: dependency — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The vendored schema gets the full drift-discipline treatment (fidelity test + header provenance + disclosed limitation), but the hand-ported `charter-bands-mirror.ts` — a code mirror of leadwright's `validateCharterBands`, including the §4.4 heading names and slash-spacing rules — gets neither. If leadwright renames a band heading or changes §4.4 structure, the server's declared-band extraction silently diverges with no test or comment flagging the pin.",
+          "suggestion": "Give the mirror the same header provenance (source path, pinned commit) and add a brief preflight-style comment/test note in `charter-bands-mirror.test.ts` documenting the pinned leadwright commit, matching the schema pair's discipline.  8. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "BeatRegisterEntry.startedAt` is assumed present for every entry in the 48h filter. The register shape is \"unchanged\" for current leadwright, but the plan's own premise includes live leads whose registers may have been written by earlier daemon versions. An entry with missing/invalid `startedAt` should degrade tolerantly (include it, or per-beat flag), not crash the composite's filter.",
+          "suggestion": "Handle missing `startedAt` explicitly in the filter (recommend: include unfiltered, flag in the view, or exclude with a logged reason — just pick one and test it).",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Reading only the latest 200 audit records can falsely mark a beat as `clear` when its `beat_effect_not_claimed` event is within the 48-hour beat window but has been pushed beyond the audit page by unrelated activity. That violates the warning’s integrity guarantee.",
+          "suggestion": "Page through audit entries until reaching the relevant time cutoff, or add a bounded reader/filter that can reliably cover all audit events for the returned beat IDs. Return `unknown` if completeness cannot be established.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The new authority panel deliberately ignores each lead’s `charter_path` and reads only the default location. Reusing an existing limitation still makes this new feature incorrect for leads configured with a non-default charter.",
+          "suggestion": "Pass the chart’s `charter_path` into the authority reader and resolve it through the existing guarded file-read path. If supporting alternate paths is genuinely deferred, exclude or explicitly mark those leads as unsupported rather than presenting default-path content as their charter.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The 48-hour API truncation prevents the client from knowing whether a lead has older beats. This conflicts with AC-7’s “lead has any beats at all” condition and can produce an indistinguishable empty state for a lead with historical activity but nothing in the fetched range.",
+          "suggestion": "Include lightweight register metadata such as `hasAnyBeats` (and optionally the latest `startedAt`) while hydrating steps only for the bounded set. Use it to render the required window-specific empty state consistently.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The plan calls out validation for `beatId`, but not for `leadId` before the new readers construct `<leadId>/...` paths. `org-chart.json` is still an external file boundary, so type-checking alone is not a path-safety guarantee.",
+          "suggestion": "Validate every path segment, including `leadId`, or route all paths through a single existing safe lead-directory resolver before joining further segments.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Tolerating malformed JSONL lines while rendering only the three described UI states can silently omit logged steps; if all lines are malformed, the UI could say “no steps reported” despite a present, unreadable contribution.",
+          "suggestion": "Surface `unreadableLines > 0` as an integrity note, and avoid the “no steps reported” wording when the file contained rejected lines.  The overall structure is sound and applies good existing patterns, but audit completeness and charter-path handling need resolution before this can reliably meet the stated user-facing guarantees.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-08T18:13:00.584656+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**1. Category: risk / edge-case — Severity: high**\n**Finding:** The `beat-effect-audit-read` cap at `auditLogCore`'s `MAX_LIMIT=200` can silently produce a false `status:\"clear\"`. The audit log carries all entry kinds (`{ts,kind,lead_id,beat_id,summary,data}`), not just `beat_effect_not_claimed` — an active lead can easily push 200+ entries in 48 hours. If the relevant `beat_effect_not_claimed` entry for a windowed beat falls outside the latest-200 slice, the beat renders with no warning even though one exists. This is precisely the fail-open class the spec spent enormous care eliminating in AC-2b — but it survives along the *pagination* axis rather than the read-failure axis. The composite test plan (\"matching entry in the 200-entry window → found\") only tests the happy slice.\n**Suggestion:** Either (a) paginate `auditLogCore` until entries' `ts` fall before the 48h window start (bounded walk, terminating naturally), or (b) if the limit is hit before covering the window, degrade to `{status:\"unknown\"}` rather than `ok` — and add a test forcing the truncation path.\n\n**2. Category: edge-case — Severity: medium**\n**Finding:** AC-2b covers file-level failures, but not *line-level corruption collapse*: a `steps.jsonl` whose lines are all malformed returns `{status:\"ok\", steps:[], unreadableLines:N}` and renders as \"no steps reported\" — a positive claim contradicting AC-2b's own principle. A partially corrupt file (some valid lines) is fine, but a fully unparseable file is not \"a genuinely empty optional contribution.\"\n**Suggestion:** Define a UI rule for `unreadableLines > 0` — at minimum surface the count (\"2 steps reported, 1 unreadable line\"), and treat all-lines-malformed as `unreadable` (or a distinct state), not `ok`/empty.\n\n**3. Category: edge-case — Severity: medium**\n**Finding:** The plan's own premise is that live leads with history exist (`rmSync` finding #10 is justified by exactly this). Two consequences it doesn't reconcile […truncated]\n\n[openai] 1. **Category:** risk  \n   **Severity:** high  \n   **Finding:** Reading only the latest 200 audit records can falsely mark a beat as `clear` when its `beat_effect_not_claimed` event is within the 48-hour beat window but has been pushed beyond the audit page by unrelated activity. That violates the warning’s integrity guarantee.  \n   **Suggestion:** Page through audit entries until reaching the relevant time cutoff, or add a bounded reader/filter that can reliably cover all audit events for the returned beat IDs. Return `unknown` if completeness cannot be established.\n\n2. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The new authority panel deliberately ignores each lead’s `charter_path` and reads only the default location. Reusing an existing limitation still makes this new feature incorrect for leads configured with a non-default charter.  \n   **Suggestion:** Pass the chart’s `charter_path` into the authority reader and resolve it through the existing guarded file-read path. If supporting alternate paths is genuinely deferred, exclude or explicitly mark those leads as unsupported rather than presenting default-path content as their charter.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The 48-hour API truncation prevents the client from knowing whether a lead has older beats. This conflicts with AC-7’s “lead has any beats at all” condition and can produce an indistinguishable empty state for a lead with historical activity but nothing in the fetched range.  \n   **Suggestion:** Include lightweight register metadata such as `hasAnyBeats` (and optionally the latest `startedAt`) while hydrating steps only for the bounded set. Use it to render the required window-specific empty state consistently.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Finding:** The plan calls out validation for `beatId`, but not for `leadId` before the new readers construct `<leadId>/...` paths. `org-chart.json` is stil […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T18:08:14.075372+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

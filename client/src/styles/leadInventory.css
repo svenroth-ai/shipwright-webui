@@ -1,0 +1,15 @@
+/*
+ * leadInventory.css — scoped styles for LeadInventoryPage
+ * (iterate-2026-09-08-lead-inventory-page). Most styling is inline
+ * Tailwind on the components themselves; this file only carries the
+ * page-level section rhythm that would otherwise repeat per section.
+ */
+
+.lead-inventory-page .lead-inventory-section {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lead-inventory-page .lead-inventory-section:last-child {
+  border-bottom: none;
+}

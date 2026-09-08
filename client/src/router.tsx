@@ -9,6 +9,7 @@ import TriagePage from './pages/TriagePage';
 import SettingsPage from './pages/SettingsPage';
 import DiagnosticsPage from './pages/DiagnosticsPage';
 import OrgPage from './pages/OrgPage';
+import LeadInventoryPage from './pages/LeadInventoryPage';
 import PreviewPage from './pages/PreviewPage';
 import IntentWizardPage from './components/wizard/IntentWizard/IntentWizardPage';
 import FirstContact from './components/wizard/IntentWizard/FirstContact';
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
       // W14 — the guided lead-setup wizard. Reached from a CTA on OrgPage, not
       // a top-level nav entry: it is a create-flow off Org, not a new section.
       { path: 'org/new-lead', element: <LeadSetupWizardPage /> },
+      // iterate-2026-09-08-lead-inventory-page — reached from a link on
+      // OrgPage, not a top-level nav entry (same reasoning as org/new-lead:
+      // a drill-down off Org, not a new section).
+      { path: 'org/inventory', element: <LeadInventoryPage /> },
       { path: 'settings', element: <SettingsPage />, handle: { nav: { label: 'Settings', order: 4 } } },
       { path: 'diagnostics', element: <DiagnosticsPage />, handle: { nav: { label: 'Diagnostics', order: 5 } } },
     ],

@@ -47,6 +47,13 @@ export default function OrgPage() {
               </button>
             ) : null}
             <Link
+              to="/org/inventory"
+              data-testid="org-inventory-link"
+              className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
+            >
+              Inventory
+            </Link>
+            <Link
               to="/org/new-lead"
               data-testid="org-new-lead-button"
               className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] hover:bg-[var(--color-muted-bg,#ede8e1)]"

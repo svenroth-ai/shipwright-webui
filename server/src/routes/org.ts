@@ -40,6 +40,7 @@ import { orgFileReadCore, type OrgFileReadDeps } from "../external/org/file-read
 import { orgFileWriteCore, type OrgFileWriteDeps } from "../external/org/file-write.js";
 import { buildLeadRosterEntry, type LeadRosterBuildDeps } from "./org-leads-composite.js";
 import { buildOrgThreads, type TaskTitleLookup } from "./org-threads-composite.js";
+import { buildOrgInventory, type OrgInventoryBuildDeps } from "./org-inventory-composite.js";
 import { leadLearningsReadCore, type LeadDocReadDeps } from "../external/org/lead-doc-read.js";
 import { auditLogCore, type AuditLogDeps } from "../external/org/audit-log.js";
 import type { BeatRegisterLockOptions } from "../external/org/beat-register-release-core.js";
@@ -131,6 +132,27 @@ export function createOrgApiRouter(deps: OrgApiRouterDeps): Hono {
     const body = buildOrgThreads(
       { leadsRoot, lstatSync: deps.lstatSync, store: deps.store ?? NO_TASKS },
       Object.keys(chart.body.leads),
+    );
+    return c.json(body, 200);
+  });
+
+  // iterate-2026-09-08-lead-inventory-page — every lead's last-night beats
+  // (steps, unclaimed-effect warning) + authority panel, keyed by leadId,
+  // one call. Mirrors /api/org/threads exactly; see org-inventory-composite.ts.
+  app.get("/api/org/inventory", async (c) => {
+    const chart = orgChartCore({ leadsRoot, lstatSync: deps.lstatSync });
+    if (chart.status !== 200) {
+      return c.json(chart.body, chart.status);
+    }
+    const buildDeps: OrgInventoryBuildDeps = {
+      leadsRoot,
+      lstatSync: deps.lstatSync,
+      openSync: deps.openSync,
+      now: deps.now,
+    };
+    const body = buildOrgInventory(
+      buildDeps,
+      Object.entries(chart.body.leads).map(([leadId, lead]) => ({ leadId, charterPath: lead.charter_path })),
     );
     return c.json(body, 200);
   });
