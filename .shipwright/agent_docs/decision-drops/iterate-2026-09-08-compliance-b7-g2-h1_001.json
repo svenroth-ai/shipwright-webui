@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-08-compliance-b7-g2-h1",
+  "date": "2026-09-08",
+  "section": "compliance-reconciliation",
+  "title": "Reconcile B7/G2/H1/H2 compliance findings",
+  "context": "Detective audit flagged B7 (6 commits since v0.27.0 with no matching event, all traceability-regen auto-commits), G2 (14 commits with unrecognized conventional-commit scopes: main/org/tablet/w2/w4), H1 (5 files over the 300-line ceiling), and H2 (bloat baseline current values stale vs. disk).",
+  "decision": "B7/G2: restated audit_detector.py's full b7_exclusions default plus one new exclude_path_prefixes entry for the traceability-regen path, and added the 5 missing scopes to g2_stoplist with dated rationale. H1: cohesive file-level splits (fetchers out of orgApi.ts; test files split by concern) per this repo's established bloat-retirement convention, not line-merging. H2: corrected 10 stale current values in shipwright_bloat_baseline.json to match on-disk counts.",
+  "consequences": "All 4 findings verified fixed via a fresh detective-audit re-run (12 pass / 0 fail, was 4 fail). Full server (4054) and client (4005) suites stay green. I5 (33 malformed FR Basis values) is deliberately out of scope as a separate, larger spec-content concern.",
+  "rationale": "Read the plugin's actual default config and retention-rule source rather than guessing at exclusions, so the fix is structurally correct and won't silently diverge from the plugin's own defaults on the next shallow-merge config load.",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
