@@ -1,0 +1,312 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-08-lead-inventory-page",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T18:48:34.436032+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The `beat-effect-audit-read` cap at `auditLogCore`'s `MAX_LIMIT=200` can silently produce a false `status:\"clear\"`. The audit log carries all entry kinds (`{ts,kind,lead_id,beat_id,summary,data}`), not just `beat_effect_not_claimed` — an active lead can easily push 200+ entries in 48 hours. If the relevant `beat_effect_not_claimed` entry for a windowed beat falls outside the latest-200 slice, the beat renders with no warning even though one exists. This is precisely the fail-open class the spec spent enormous care eliminating in AC-2b — but it survives along the pagination axis rather than the read-failure axis. The composite test plan (\"matching entry in the 200-entry window → found\") only tests the happy slice.",
+          "suggestion": "Either (a) paginate `auditLogCore` until entries' `ts` fall before the 48h window start (bounded walk, terminating naturally), or (b) if the limit is hit before covering the window, degrade to `{status:\"unknown\"}` rather than `ok` — and add a test forcing the truncation path.  2. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC-2b covers file-level failures, but not line-level corruption collapse: a `steps.jsonl` whose lines are all malformed returns `{status:\"ok\", steps:[], unreadableLines:N}` and renders as \"no steps reported\" — a positive claim contradicting AC-2b's own principle. A partially corrupt file (some valid lines) is fine, but a fully unparseable file is not \"a genuinely empty optional contribution.\"",
+          "suggestion": "Define a UI rule for `unreadableLines > 0` — at minimum surface the count (\"2 steps reported, 1 unreadable line\"), and treat all-lines-malformed as `unreadable` (or a distinct state), not `ok`/empty.  3. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The plan's own premise is that live leads with history exist (`rmSync` finding #10 is justified by exactly this). Two consequences it doesn't reconcile: (a) what response state does a `BEAT_ID_RE`-refused beatId produce? \"Refused before any fs call\" is specified at the reader level, but not what the composite does with the refusal — it must degrade that beat alone (`unreadable`), never 500 or drop the lead; (b) if any pre-existing register entry carries a non-UUID beat id (any format drift in leadwright's history), those beats all silently render \"steps unavailable.\"",
+          "suggestion": "Specify refused-beatId → per-beat `unreadable` in the composite (and cover it in the \"one bad beat degrades only that beat\" test). Verify against the operator's actual live registers that all existing beat ids match the UUID regex.  4. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Open-beat handling is unspecified. AC-1 mentions \"a closed beat,\" but the `startedAt` window predicate will include in-flight beats (started 02:00, still running at 07:00). Two sub-issues: does the page render open beats at all (and if so, with what closure/status affordance)? And an in-flight beat's `steps.jsonl` may be mid-append when read — the tolerant parser absorbs the partial last line into `unreadableLines`, which is acceptable, but that interaction should be pinned by a test rather than relied on incidentally.",
+          "suggestion": "Decide explicitly: window filter is `startedAt`-only over all beats (open and closed), or closed-only. Add a test for a read racing an append (truncated final line).  5. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The \"unanswered latest round\" predicate in NeedsYou is under-specified: is an answer `undefined`, `null`, `\"\"`, and a whitespace-only string all \"no answer\"? Similarly, beat ordering within `BeatList` is nowhere specified (register order? `startedAt` asc/desc?) — unspecified ordering will make both tests and the rendered page nondeterministic in intent.",
+          "suggestion": "Pin the predicate (recommend: `answer` key absent, null, or empty-after-trim) and pin beat ordering (recommend `startedAt` ascending, matching \"the order they happened overnight\").  6. Category: approach — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "NeedsYou renders \"an empty reserved slot for W15's terminal button.\" An empty reserved slot is visible UI chrome for a feature that doesn't exist — it will read as a broken/missing element to the PO on day one, and W15's eventual layout may not fit the reservation anyway. The spec already handles this correctly elsewhere by not rendering a competing button.",
+          "suggestion": "Omit the slot entirely; W15 inserts its own affordance when it lands. \"Not rendering it\" is the same commitment as \"reserving an empty slot\" with zero UI cost.  7. Category: dependency — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The vendored schema gets the full drift-discipline treatment (fidelity test + header provenance + disclosed limitation), but the hand-ported `charter-bands-mirror.ts` — a code mirror of leadwright's `validateCharterBands`, including the §4.4 heading names and slash-spacing rules — gets neither. If leadwright renames a band heading or changes §4.4 structure, the server's declared-band extraction silently diverges with no test or comment flagging the pin.",
+          "suggestion": "Give the mirror the same header provenance (source path, pinned commit) and add a brief preflight-style comment/test note in `charter-bands-mirror.test.ts` documenting the pinned leadwright commit, matching the schema pair's discipline.  8. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "BeatRegisterEntry.startedAt` is assumed present for every entry in the 48h filter. The register shape is \"unchanged\" for current leadwright, but the plan's own premise includes live leads whose registers may have been written by earlier daemon versions. An entry with missing/invalid `startedAt` should degrade tolerantly (include it, or per-beat flag), not crash the composite's filter.",
+          "suggestion": "Handle missing `startedAt` explicitly in the filter (recommend: include unfiltered, flag in the view, or exclude with a logged reason — just pick one and test it).",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Reading only the latest 200 audit records can falsely mark a beat as `clear` when its `beat_effect_not_claimed` event is within the 48-hour beat window but has been pushed beyond the audit page by unrelated activity. That violates the warning’s integrity guarantee.",
+          "suggestion": "Page through audit entries until reaching the relevant time cutoff, or add a bounded reader/filter that can reliably cover all audit events for the returned beat IDs. Return `unknown` if completeness cannot be established.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The new authority panel deliberately ignores each lead’s `charter_path` and reads only the default location. Reusing an existing limitation still makes this new feature incorrect for leads configured with a non-default charter.",
+          "suggestion": "Pass the chart’s `charter_path` into the authority reader and resolve it through the existing guarded file-read path. If supporting alternate paths is genuinely deferred, exclude or explicitly mark those leads as unsupported rather than presenting default-path content as their charter.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The 48-hour API truncation prevents the client from knowing whether a lead has older beats. This conflicts with AC-7’s “lead has any beats at all” condition and can produce an indistinguishable empty state for a lead with historical activity but nothing in the fetched range.",
+          "suggestion": "Include lightweight register metadata such as `hasAnyBeats` (and optionally the latest `startedAt`) while hydrating steps only for the bounded set. Use it to render the required window-specific empty state consistently.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The plan calls out validation for `beatId`, but not for `leadId` before the new readers construct `<leadId>/...` paths. `org-chart.json` is still an external file boundary, so type-checking alone is not a path-safety guarantee.",
+          "suggestion": "Validate every path segment, including `leadId`, or route all paths through a single existing safe lead-directory resolver before joining further segments.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Tolerating malformed JSONL lines while rendering only the three described UI states can silently omit logged steps; if all lines are malformed, the UI could say “no steps reported” despite a present, unreadable contribution.",
+          "suggestion": "Surface `unreadableLines > 0` as an integrity note, and avoid the “no steps reported” wording when the file contained rejected lines.  The overall structure is sound and applies good existing patterns, but audit completeness and charter-path handling need resolution before this can reliably meet the stated user-facing guarantees.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-08T18:13:00.584656+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**1. Category: risk / edge-case — Severity: high**\n**Finding:** The `beat-effect-audit-read` cap at `auditLogCore`'s `MAX_LIMIT=200` can silently produce a false `status:\"clear\"`. The audit log carries all entry kinds (`{ts,kind,lead_id,beat_id,summary,data}`), not just `beat_effect_not_claimed` — an active lead can easily push 200+ entries in 48 hours. If the relevant `beat_effect_not_claimed` entry for a windowed beat falls outside the latest-200 slice, the beat renders with no warning even though one exists. This is precisely the fail-open class the spec spent enormous care eliminating in AC-2b — but it survives along the *pagination* axis rather than the read-failure axis. The composite test plan (\"matching entry in the 200-entry window → found\") only tests the happy slice.\n**Suggestion:** Either (a) paginate `auditLogCore` until entries' `ts` fall before the 48h window start (bounded walk, terminating naturally), or (b) if the limit is hit before covering the window, degrade to `{status:\"unknown\"}` rather than `ok` — and add a test forcing the truncation path.\n\n**2. Category: edge-case — Severity: medium**\n**Finding:** AC-2b covers file-level failures, but not *line-level corruption collapse*: a `steps.jsonl` whose lines are all malformed returns `{status:\"ok\", steps:[], unreadableLines:N}` and renders as \"no steps reported\" — a positive claim contradicting AC-2b's own principle. A partially corrupt file (some valid lines) is fine, but a fully unparseable file is not \"a genuinely empty optional contribution.\"\n**Suggestion:** Define a UI rule for `unreadableLines > 0` — at minimum surface the count (\"2 steps reported, 1 unreadable line\"), and treat all-lines-malformed as `unreadable` (or a distinct state), not `ok`/empty.\n\n**3. Category: edge-case — Severity: medium**\n**Finding:** The plan's own premise is that live leads with history exist (`rmSync` finding #10 is justified by exactly this). Two consequences it doesn't reconcile […truncated]\n\n[openai] 1. **Category:** risk  \n   **Severity:** high  \n   **Finding:** Reading only the latest 200 audit records can falsely mark a beat as `clear` when its `beat_effect_not_claimed` event is within the 48-hour beat window but has been pushed beyond the audit page by unrelated activity. That violates the warning’s integrity guarantee.  \n   **Suggestion:** Page through audit entries until reaching the relevant time cutoff, or add a bounded reader/filter that can reliably cover all audit events for the returned beat IDs. Return `unknown` if completeness cannot be established.\n\n2. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The new authority panel deliberately ignores each lead’s `charter_path` and reads only the default location. Reusing an existing limitation still makes this new feature incorrect for leads configured with a non-default charter.  \n   **Suggestion:** Pass the chart’s `charter_path` into the authority reader and resolve it through the existing guarded file-read path. If supporting alternate paths is genuinely deferred, exclude or explicitly mark those leads as unsupported rather than presenting default-path content as their charter.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The 48-hour API truncation prevents the client from knowing whether a lead has older beats. This conflicts with AC-7’s “lead has any beats at all” condition and can produce an indistinguishable empty state for a lead with historical activity but nothing in the fetched range.  \n   **Suggestion:** Include lightweight register metadata such as `hasAnyBeats` (and optionally the latest `startedAt`) while hydrating steps only for the bounded set. Use it to render the required window-specific empty state consistently.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Finding:** The plan calls out validation for `beatId`, but not for `leadId` before the new readers construct `<leadId>/...` paths. `org-chart.json` is stil […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T19:47:41.767204+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: lead-inventory-page.spec.ts's assertIsolatedLeadsRoot() prevents this spec from ever wiping the operator's real ~/.claude/leads/ — SHIPWRIGHT_LEADS_ROOT is a real, documented server config override (server/src/config.ts), not a test-only invention. A developer with it set in their normal shell/dev environment who runs `npx playwright test lead-inventory-page.spec.ts` directly (not via isolated-stack.mjs) hits `if (LEADS_ROOT_OVERRIDE) return;` — zero isolation check — and rmSync(LEADS_ROOT, {recursive:true,force:true}) deletes whatever real directory that variable points at.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary_and_contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: 'both new file readers' getting the open-first/O_NOFOLLOW/fd-read pattern means the composite's read surface as a whole closed the TOCTOU class this iterate hardened against — registerEntriesGuarded (beat-register-health.ts) retained the older lstatSync(path) -> realPathGuard(path) -> readFileSync(path) pattern, reading by string path rather than a held fd — a TOCTOU window where a local writer could swap the checked regular file for a symlink between the containment check and the read.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency_and_ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the AC-9 single-scan rewrite (unbounded full-file readFileSync per lead's audit.jsonl) is a strict improvement with no downside worth naming — The read is synchronous Node fs on the single JS event loop, called once per lead in a plain for-loop; the removed page cap was the only cost bound, and no test measures or bounds the tradeoff.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-08T19:59:24.875331+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/e2e/flows/lead-inventory-page.spec.ts:105-111 (`withinLastNight`)",
+          "line": null,
+          "finding": "The E2E re-implements the \"last night\" window with its own anchor math instead of reusing `computeLastNightWindow` (which `LeadInventoryPage.test.tsx` correctly uses via midpoint). When the suite runs between 00:00 and 06:00, `anchor` becomes yesterday 06:00, so the fixture timestamp is yesterday 03:00. If `computeLastNightWindow` at pre-dawn \"now\" returns the in-progress night `[yesterday 18:00, today 06:00]` (the natural reading of the spec's \"18:00→06:00\" window, and what the BeatList test comment documents for a 10:00 `now`), yesterday 03:00 is outside the window — `BeatList` filters the beat out and both E2E cases fail. The helper's own comment (\"03:00 local on the calendar day whose 06:00 has not yet passed\") contradicts its code, which in that branch yields a timestamp on the day whose 06:00 has passed — a sign the two were never reconciled. This is a time-of-day-dependent flake the ledger's single daytime \"PASSED\" run cannot have exercised.",
+          "suggestion": "Compute the fixture timestamp as the midpoint of the actual `computeLastNightWindow(new Date())` (imported from `client/src/lib/auditTimelineMerge`), exactly as the page-level test does, and delete the hand-rolled anchor logic.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/external/org/charter-authority-read.test.ts:87-96 (`charterAuthorityCore` describe block)",
+          "line": null,
+          "finding": "AC-4-agent requires the 2-of-4-declared case to be verified against a fixture charter via `GET /api/org/inventory`. The 2-of-4 case is only tested at the `extractBandSections` level; `charterAuthorityCore` itself is only tested with 4/4, a 404, and a custom path, and the route-level test also only exercises a 4/4 charter. A wiring bug in `charterAuthorityCore` (e.g., miscounting `declaredCount`, or dropping `bands` for a partially-declared charter) would pass the current suite.",
+          "suggestion": "Add one `charterAuthorityCore` (or route-level) case with a 2-of-4 charter asserting `declaredCount === 2`, the two `declared:true` bands carrying prose, and the other two `declared:false`/`text:null`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/routes/org-inventory-composite.ts:96-101",
+          "line": null,
+          "finding": "The \"found is monotone even if the scan itself later degraded to unknown\" branch is dead code: `readBeatEffectAuditCore` always returns an empty `unclaimedBeatIds` whenever `status === \"unknown\"` (both non-200 return paths construct `new Set()`), so `auditResult.unclaimedBeatIds.has(entry.beatId)` can never be true on an unknown result. The runtime behavior is correct (unknown → unknown), but the comment (repeated in `beat-effect-audit-read.ts`'s header) documents a guarantee the code does not and cannot provide, and the type permits a state no producer creates.",
+          "suggestion": "Either remove the comment/branch, or actually preserve partial findings in `readBeatEffectAuditCore`'s unknown path (which its own header also claims) — pick one; as written the two headers and the composite disagree with the implementation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/leadInventory/BeatList.tsx:110 (`data-testid=\"unclaimed-effect-warning\"`)",
+          "line": null,
+          "finding": "The warning testid is not beat-scoped (unlike every other per-beat testid in the component: `beat-card-${beatId}`, `beat-steps-${beatId}`, `unclaimed-effect-unknown-${beatId}`). With two or more warned beats on one lead's list, `getByTestId` (Playwright strict mode, RTL `getBy`) fails on ambiguity — the E2E and component tests only pass because their fixtures have exactly one warned beat.",
+          "suggestion": "Scope it (`unclaimed-effect-warning-${beat.beatId}`) or assert via `getAllByTestId` where multiple warnings are possible; keep the spec's literal `data-testid=\"unclaimed-effect-warning\"` requirement satisfied by making the per-beat id a prefix or adding a stable wrapper.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/external/org/charter-authority-read.ts:106-124 (`extractSectionProse`)",
+          "line": null,
+          "finding": "An unbalanced code fence in a band section (a single ``` line with no closer before the next heading) leaves `inCodeFence` true for the remainder of the section, silently swallowing all of that band's prose — the band renders as declared with `(no prose in this section)` even though prose exists. A hand-edited charter (the stated premise for this file's boundary probes) can easily contain this.",
+          "suggestion": "Reset `inCodeFence` at section boundaries (it is per-call today but the toggle can straddle), or treat a fence-open at section start as prose-safe by bounding the scan to the already-sliced section lines and ignoring an unterminated fence state at the end.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/lead-inventory-page.spec.ts:124-126` — `withinLastNight()` chooses yesterday 06:00 as its anchor when run before 06:00, then emits a timestamp at yesterday 03:00. That is outside the current last-night window (yesterday 18:00 → today 06:00), so the E2E fixtures disappear and the tests fail during the early-morning period this feature targets.",
+          "line": null,
+          "finding": "Always anchor on today’s 06:00 and subtract three hours, or directly derive the fixture timestamp from `computeLastNightWindow`.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/org/charter-authority-read.test.ts:28` — AC-4 requires verification through `GET /api/org/inventory` for a charter declaring only two bands, including the slash-spacing case. The two-band/slash-spacing coverage only calls `extractBandSections`; the route test exercises only a four-band charter. A route/composite regression in charter-path forwarding or response ass […truncated]",
+          "line": null,
+          "finding": "Add a route-level fixture with a two-band charter (including tight slash spacing) and assert the returned `authority.bands` declaration/text values.  Overall: ship-with-fixes. The implementation is largely aligned with the spec, but the early-morning E2E fixture bug makes the required verification unreliable.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": "openai+glm",
+      "completed_at": "2026-09-08T20:23:25.164549+00:00",
+      "disposition": "6 findings across 2 providers, both revise. Fixed: withinLastNight() now derives from the real computeLastNightWindow() instead of a hand-rolled duplicate (removes the duplication both reviewers independently mis-traced -- verified by concrete date math that the original was NOT actually producing an out-of-window timestamp, a false positive both models shared); AC-4 2-of-4-declared case added at the route level (org-inventory.test.ts); the found-is-monotone comment corrected to state the read is atomic (no genuine mid-scan state exists post-rewrite); extractSectionProse no longer swallows trailing prose behind an unbalanced code fence. Disclosed, not changed: the unclaimed-effect-warning testid is pinned verbatim by AC-2a-agent (data-testid=\"unclaimed-effect-warning\", asserted by 2 existing tests) -- rescoping it would violate an explicit acceptance criterion; the multi-warned-beat-per-lead ambiguity GLM flagged is a real Playwright getByTestId limitation for a future multi-warning test, not a page-correctness bug, and is accepted as a known constraint of the pinned AC rather than fixed unilaterally.",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: edge-case\n  Severity: medium\n  File: client/e2e/flows/lead-inventory-page.spec.ts:105-111 (`withinLastNight`)\n  Finding: The E2E re-implements the \"last night\" window with its own anchor math instead of reusing `computeLastNightWindow` (which `LeadInventoryPage.test.tsx` correctly uses via midpoint). When the suite runs between 00:00 and 06:00, `anchor` becomes *yesterday* 06:00, so the fixture timestamp is *yesterday 03:00*. If `computeLastNightWindow` at pre-dawn \"now\" returns the in-progress night `[yesterday 18:00, today 06:00]` (the natural reading of the spec's \"18:00→06:00\" window, and what the BeatList test comment documents for a 10:00 `now`), yesterday 03:00 is **outside** the window — `BeatList` filters the beat out and both E2E cases fail. The helper's own comment (\"03:00 local on the calendar day whose 06:00 has not yet passed\") contradicts its code, which in that branch yields a timestamp on the day whose 06:00 *has* passed — a sign the two were never reconciled. This is a time-of-day-dependent flake the ledger's single daytime \"PASSED\" run cannot have exercised.\n  Suggestion: Compute the fixture timestamp as the midpoint of the actual `computeLastNightWindow(new Date())` (imported from `client/src/lib/auditTimelineMerge`), exactly as the page-level test does, and delete the hand-rolled anchor logic.\n\n- Category: test\n  Severity: medium\n  File: server/src/external/org/charter-authority-read.test.ts:87-96 (`charterAuthorityCore` describe block)\n  Finding: AC-4-agent requires the 2-of-4-declared case to be verified against a fixture charter via `GET /api/org/inventory`. The 2-of-4 case is only tested at the `extractBandSections` level; `charterAuthorityCore` itself is only tested with 4/4, a 404, and a custom path, and the route-level test also only exercises a 4/4 charter. A wiring bug in `charterAuthorityCore` (e.g., miscounting `declaredCount`, or dropping `bands` for a partially-declared charter) would pass the c […truncated]\n\n[openai] - Category: test  \n  Severity: medium  \n  File: `client/e2e/flows/lead-inventory-page.spec.ts:124-126` — `withinLastNight()` chooses *yesterday* 06:00 as its anchor when run before 06:00, then emits a timestamp at yesterday 03:00. That is outside the current last-night window (yesterday 18:00 → today 06:00), so the E2E fixtures disappear and the tests fail during the early-morning period this feature targets.  \n  Suggestion: Always anchor on today’s 06:00 and subtract three hours, or directly derive the fixture timestamp from `computeLastNightWindow`.\n\n- Category: test  \n  Severity: low  \n  File: `server/src/external/org/charter-authority-read.test.ts:28` — AC-4 requires verification through `GET /api/org/inventory` for a charter declaring only two bands, including the slash-spacing case. The two-band/slash-spacing coverage only calls `extractBandSections`; the route test exercises only a four-band charter. A route/composite regression in charter-path forwarding or response assembly would still pass these tests.  \n  Suggestion: Add a route-level fixture with a two-band charter (including tight slash spacing) and assert the returned `authority.bands` declaration/text values.\n\nOverall: ship-with-fixes. The implementation is largely aligned with the spec, but the early-morning E2E fixture bug makes the required verification unreliable.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T19:12:36.888283+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T18:08:14.075372+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

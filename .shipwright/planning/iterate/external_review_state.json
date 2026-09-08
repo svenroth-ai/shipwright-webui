@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-07T21:07:44.978718+00:00",
-  "provider": "glm+openai",
-  "findings_count": 9,
+  "timestamp": "2026-09-08T18:13:00.591340+00:00",
+  "provider": "openrouter",
+  "findings_count": 13,
   "self_review_fallback_ran": false,
-  "reason": "4 review rounds; final round glm=approve, openai=revise (one-step, no escalation); all medium+ findings fixed or verified already-addressed",
+  "reason": null,
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "approve",
-    "openai": "revise"
+    "openai": "revise",
+    "glm": "revise"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
   },
   "contradiction_resolution": null
 }

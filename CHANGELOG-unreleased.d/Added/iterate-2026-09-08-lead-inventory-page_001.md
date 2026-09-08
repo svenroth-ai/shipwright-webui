@@ -1,0 +1,1 @@
+Lead Inventory page (`/org/inventory`) showing each AI lead's last-night beats with authority-band step chips, its declared authority ladder from its charter, open needs-you questions, and a visible warning on any beat whose effect went unclaimed
