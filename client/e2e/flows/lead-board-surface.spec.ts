@@ -1,4 +1,7 @@
 import { test, expect } from "@playwright/test";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { homedir } from "node:os";
 import {
   cleanupProject,
   cleanupTask,
@@ -7,6 +10,27 @@ import {
   setActiveProject,
   type SeededProject,
 } from "../helpers/fixtures";
+
+// iterate-2026-09-09-leadwright-gate-org-presence — the Bot dropdown +
+// BellDot toggle this spec drives now render only when an org chart is
+// present (useOrgChartPresence !== "absent"). Without this, the isolated
+// stack's empty-registry default (no `~/.claude/leads/org-chart.json`)
+// reads as "absent" and the toolbar controls wouldn't exist at all — this
+// spec is about the filter behavior, not the presence gate itself, so a
+// chart is seeded to keep it on the "present" path.
+const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
+function writeChart() {
+  mkdirSync(LEADS_ROOT, { recursive: true });
+  writeFileSync(
+    CHART_PATH,
+    JSON.stringify({ version: 1, po: "sven", leads: {} }),
+    "utf8",
+  );
+}
+function removeChart() {
+  rmSync(LEADS_ROOT, { recursive: true, force: true });
+}
 
 /*
  * Lead board surface (FR-04.11, iterate-2026-09-01-lead-board-surface).
@@ -26,10 +50,12 @@ test.describe("Lead board surface", () => {
   const taskIds: string[] = [];
 
   test.beforeEach(async ({ request }) => {
+    writeChart();
     project = await seedProject(request, { name: "lead-board-surface" });
   });
 
   test.afterEach(async ({ request }) => {
+    removeChart();
     for (const id of taskIds) await cleanupTask(request, id);
     taskIds.length = 0;
     await cleanupProject(request, project);

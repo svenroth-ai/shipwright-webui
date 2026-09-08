@@ -5,6 +5,13 @@
  * — the `showLead*` flags). When all five are off this returns null so the
  * body component's JSX stays clean.
  *
+ * Also gated on org-chart presence — same posture as the Org nav entry
+ * (FR-01.71, `useOrgChartPresence()`): hidden ONLY on a confirmed "absent"
+ * (no org chart installed, so nothing would ever route on these fields);
+ * "loading"/"broken" still render, fail visible rather than fail hidden.
+ * Gated HERE rather than at each of the four modal mount sites (Generic /
+ * Iterate / Pipeline / Task) so there is exactly one place this check lives.
+ *
  * The submit hook splits Tags + BlockedBy on commas / trims / filters
  * empties before forwarding to the create POST body.
  */
@@ -14,6 +21,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { FieldLabel } from "./FieldLabel";
 import { DomainSelect } from "../../common/DomainSelect";
 import { useDomainVocabulary } from "../../../hooks/useDomainVocabulary";
+import { useOrgChartPresence } from "../../../hooks/useOrgChartPresence";
 
 export interface LeadwrightFieldsProps {
   showLeadDomain: boolean;
@@ -44,7 +52,9 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
     showLeadBlockedBy,
   } = props;
   const domainVocabulary = useDomainVocabulary();
+  const orgPresence = useOrgChartPresence();
 
+  if (orgPresence === "absent") return null;
   if (
     !showLeadDomain &&
     !showLeadPriority &&

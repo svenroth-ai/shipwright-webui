@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "No real defects found. The shared presence hook gates the specified affordances only when `\"absent\"`, preserves persisted lead-data displays, and the tests cover absent, loading, broken, and present states.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Review\n\nThe diff matches the spec well: gating is implemented via the existing `useOrgChartPresence()` hook in exactly two places (the new `LeadTagFilterToolbarGroup` wrapper and inside `LeadwrightFieldsFragment`), hidden only on `\"absent\"`, fail-visible on `\"loading\"`/`\"broken\"`, and no new signal/404 handling is introduced (AC d is satisfied by construction). Chips/tags are untouched functionally and are pinned by tests across all four presence states (AC c). Acceptance criteria a\u2013c each have corresponding tests.\n\n### Findings\n\n- Category: test\n  Severity: low\n  File: `client/src/components/external/LeadTagFilter.test.tsx` (new `afterEach` in the gate describe) and `client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx:66` (`vi.clearAllMocks()`)\n  Finding: `vi.clearAllMocks()` clears call history but does **not** reset `mockReturnValue` implementations. Since every gate test sets its own value before rendering there is no current failure, but any future test in these files that renders a hook-consuming component without explicitly setting `mockedPresence` will silently inherit the previous test's state (e.g. a stray `\"absent\"`) and either pass or fail misleadingly.\n  Suggestion: Use `vi.resetAllMocks()` (or `mockedPresence.mockReset()` in the shared `afterEach`) so implementations don't leak between tests.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/components/external/NewIssueModal/LeadwrightFields.tsx:55` (`if (orgPresence === \"absent\") return null;`)\n  Finding: If the New-issue dialog is opened while presence is `\"loading\"`, the lead fields render; if presence then resolves to `\"absent\"` mid-edit, the fields vanish but any lead values the user already typed remain in the parent modal's state and will presumably still be forwarded by the submit hook. On an install with no org chart those values route nowhere, so impact is minor, but the user's input is silently swallowed rather than cleared.\n  Suggestion: Either accept this as inherent to the fail-visible posture, or clear the lead field state when presence transitions to `\"absent\"` in the owning modals. Documenting the chosen behavior is sufficient for a change this size.\n\n- Category: spec\n  Severity: low\n  File: `client/src/pages/TaskBoardPage.tsx:339` (import swap) / `LeadTagFilter.tsx` wrapper doc comment\n  Finding: AC (a) requires the Bot dropdown and BellDot to be hidden on `\"absent\"`; this is only guaranteed for mount sites switched to `LeadTagFilterToolbarGroup`. The doc comment asserts `TaskBoardPage` is the pair's only mount site, but that claim isn't proven within the diff \u2014 if `LeadTagFilterMenu`/`LeadWaitToggleButton` are mounted anywhere else (e.g. a mobile top-bar variant), that site would remain ungated and AC (a) would be only partially met. The old exports are retained (no compile break either way).\n  Suggestion: Run a codebase-wide grep for the two component names (or add a lint/export restriction) and confirm the only production mount is via the toolbar group; note the result in the PR description.\n\n### Test-quality assessment\n\nThe gate tests are genuine behavioral tests: an always-null wrapper would fail the loading/broken/present cases, and an ungated one would fail the absent case. Both target test IDs (`board-lead-filter-menu-trigger`, `board-lead-wait-toggle`, `new-issue-lead-fields`) are asserted positively and negatively as appropriate. The `TaskCardLeadExpander` tests are a reasonable behavioral pin for AC (c) even though those components don't consume the hook \u2014 they prove chips survive every presence value, which is exactly the criterion. The one soft spot is that AC (a)'s \"confirmed 404 \u2192 absent\" mapping is delegated to the hook's own unit tests rather than exercised here; given the spec forbids a second signal and the hook is tested elsewhere, that's an acceptable layering.\n\n### Overall assessment\n\nA faithful, low-risk implementation of the spec with real (not vacuous) tests on both the gate and the explicitly-ungated chip paths; findings are minor hygiene and verification items, none of which block shipping.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "openai": "approve",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

@@ -1,0 +1,319 @@
+diff --git a/client/src/components/external/LeadTagFilter.test.tsx b/client/src/components/external/LeadTagFilter.test.tsx
+index 3a894c4c..63129c4a 100644
+--- a/client/src/components/external/LeadTagFilter.test.tsx
++++ b/client/src/components/external/LeadTagFilter.test.tsx
+@@ -7,10 +7,11 @@
+ 
+ import { render, screen, within } from "@testing-library/react";
+ import userEvent from "@testing-library/user-event";
+-import { describe, it, expect, vi, beforeAll } from "vitest";
++import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+ 
+-import { LeadTagFilterMenu, LeadWaitToggleButton } from "./LeadTagFilter";
++import { LeadTagFilterMenu, LeadWaitToggleButton, LeadTagFilterToolbarGroup } from "./LeadTagFilter";
+ import { useBoardFilters } from "../../hooks/useBoardFilters";
++import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
+ import {
+   LEAD_ORIGIN_TAG_PREFIX,
+   LEAD_WAIT_TAG_PREFIX,
+@@ -19,6 +20,9 @@ import {
+ } from "../../lib/leadTags";
+ import type { ExternalTask } from "../../lib/externalApi";
+ 
++vi.mock("../../hooks/useOrgChartPresence");
++const mockedPresence = vi.mocked(useOrgChartPresence);
++
+ function task(tags: string[]): ExternalTask {
+   return {
+     taskId: `t-${Math.random()}`,
+@@ -166,3 +170,46 @@ describe("LeadWaitToggleButton (BellDot)", () => {
+     expect(screen.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "true");
+   });
+ });
++
++// @covers FR-04.11
++describe("LeadTagFilterToolbarGroup — org-chart presence gate (iterate-2026-09-09-leadwright-gate-org-presence)", () => {
++  afterEach(() => {
++    vi.clearAllMocks();
++  });
++
++  it("hides the Bot dropdown and BellDot on a confirmed absent org chart", () => {
++    mockedPresence.mockReturnValue("absent");
++    render(
++      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
++    );
++    expect(screen.queryByTestId("board-lead-filter-menu-trigger")).toBeNull();
++    expect(screen.queryByTestId("board-lead-wait-toggle")).toBeNull();
++  });
++
++  it("still renders both controls while presence is loading", () => {
++    mockedPresence.mockReturnValue("loading");
++    render(
++      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
++    );
++    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
++    expect(screen.getByTestId("board-lead-wait-toggle")).toBeInTheDocument();
++  });
++
++  it("still renders both controls when presence is broken (e.g. a 502, not absent)", () => {
++    mockedPresence.mockReturnValue("broken");
++    render(
++      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
++    );
++    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
++    expect(screen.getByTestId("board-lead-wait-toggle")).toBeInTheDocument();
++  });
++
++  it("renders both controls once the org chart is present", () => {
++    mockedPresence.mockReturnValue("present");
++    render(
++      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
++    );
++    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
++    expect(screen.getByTestId("board-lead-wait-toggle")).toBeInTheDocument();
++  });
++});
+diff --git a/client/src/components/external/LeadTagFilter.tsx b/client/src/components/external/LeadTagFilter.tsx
+index 49c98dfc..59e5f7f5 100644
+--- a/client/src/components/external/LeadTagFilter.tsx
++++ b/client/src/components/external/LeadTagFilter.tsx
+@@ -34,6 +34,7 @@ import {
+   LEAD_WAIT_TAG_PREFIX,
+   type LeadTagPrefix,
+ } from "../../lib/leadTags";
++import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
+ 
+ export interface LeadTagFilterOption {
+   value: LeadTagPrefix;
+@@ -158,6 +159,27 @@ export function LeadWaitToggleButton({ active, onToggle }: LeadWaitToggleProps)
+   );
+ }
+ 
++/**
++ * The Bot dropdown + BellDot pair, gated on org-chart presence
++ * (`useOrgChartPresence()`, FR-01.71's precedent). Hidden ONLY on a
++ * confirmed "absent" (no leads installed, so nothing routes on these tags)
++ * — "loading"/"broken" still render, fail visible rather than fail hidden.
++ * A separate wrapper (rather than gating `LeadTagFilterMenu` /
++ * `LeadWaitToggleButton` themselves) so those two stay pure/prop-driven and
++ * their existing hook-free tests are undisturbed; `TaskBoardPage` is this
++ * pair's only mount site.
++ */
++export function LeadTagFilterToolbarGroup(props: LeadTagFilterProps) {
++  const presence = useOrgChartPresence();
++  if (presence === "absent") return null;
++  return (
++    <>
++      <LeadTagFilterMenu {...props} />
++      <LeadWaitToggleButton active={props.active} onToggle={props.onToggle} />
++    </>
++  );
++}
++
+ function tagTestId(prefix: LeadTagPrefix): string {
+   // "lead:" -> "lead", "lead-wait:" -> "lead-wait", "lead-dedup:" -> "lead-dedup"
+   return prefix.slice(0, -1);
+diff --git a/client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx b/client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx
+new file mode 100644
+index 00000000..bec258e7
+--- /dev/null
++++ b/client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx
+@@ -0,0 +1,81 @@
++/*
++ * LeadwrightFields.test.tsx — the org-chart-presence gate on
++ * `LeadwrightFieldsFragment` (iterate-2026-09-09-leadwright-gate-org-
++ * presence). Mirrors CommandCenter.test.tsx's approach: mock
++ * `useOrgChartPresence` directly so all 4 states are exercised
++ * synchronously without a real fetch (the hook itself is unit-tested in
++ * `hooks/useOrgChartPresence.test.ts`). `useDomainVocabulary` is mocked
++ * too, since this fragment doesn't need a real React Query round trip to
++ * prove the presence gate.
++ */
++import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
++import { cleanup, render, screen } from "@testing-library/react";
++
++import { LeadwrightFieldsFragment, type LeadwrightFieldsProps } from "./LeadwrightFields";
++import { useOrgChartPresence } from "../../../hooks/useOrgChartPresence";
++import { useDomainVocabulary } from "../../../hooks/useDomainVocabulary";
++
++vi.mock("../../../hooks/useOrgChartPresence");
++vi.mock("../../../hooks/useDomainVocabulary");
++
++const mockedPresence = vi.mocked(useOrgChartPresence);
++const mockedDomainVocabulary = vi.mocked(useDomainVocabulary);
++
++function baseProps(): LeadwrightFieldsProps {
++  return {
++    showLeadDomain: true,
++    showLeadPriority: false,
++    showLeadComplexityHint: false,
++    showLeadTags: false,
++    showLeadBlockedBy: false,
++    leadDomain: "",
++    setLeadDomain: vi.fn(),
++    leadPriority: "",
++    setLeadPriority: vi.fn(),
++    leadComplexityHint: "",
++    setLeadComplexityHint: vi.fn(),
++    leadTagsRaw: "",
++    setLeadTagsRaw: vi.fn(),
++    leadBlockedByRaw: "",
++    setLeadBlockedByRaw: vi.fn(),
++  };
++}
++
++beforeEach(() => {
++  mockedDomainVocabulary.mockReturnValue({
++    data: { domains: [], unclaimedCounts: {} },
++    isError: false,
++  } as unknown as ReturnType<typeof useDomainVocabulary>);
++});
++
++afterEach(() => {
++  cleanup();
++  vi.clearAllMocks();
++});
++
++// @covers FR-04.11
++describe("LeadwrightFieldsFragment — org-chart presence gate", () => {
++  it("hides the fields on a confirmed absent org chart (no leads installed)", () => {
++    mockedPresence.mockReturnValue("absent");
++    render(<LeadwrightFieldsFragment {...baseProps()} />);
++    expect(screen.queryByTestId("new-issue-lead-fields")).toBeNull();
++  });
++
++  it("still renders the fields while presence is loading", () => {
++    mockedPresence.mockReturnValue("loading");
++    render(<LeadwrightFieldsFragment {...baseProps()} />);
++    expect(screen.getByTestId("new-issue-lead-fields")).toBeInTheDocument();
++  });
++
++  it("still renders the fields when presence is broken (e.g. a 502, not absent)", () => {
++    mockedPresence.mockReturnValue("broken");
++    render(<LeadwrightFieldsFragment {...baseProps()} />);
++    expect(screen.getByTestId("new-issue-lead-fields")).toBeInTheDocument();
++  });
++
++  it("renders the fields once the org chart is present", () => {
++    mockedPresence.mockReturnValue("present");
++    render(<LeadwrightFieldsFragment {...baseProps()} />);
++    expect(screen.getByTestId("new-issue-lead-fields")).toBeInTheDocument();
++  });
++});
+diff --git a/client/src/components/external/NewIssueModal/LeadwrightFields.tsx b/client/src/components/external/NewIssueModal/LeadwrightFields.tsx
+index 27839ed8..c1c29eba 100644
+--- a/client/src/components/external/NewIssueModal/LeadwrightFields.tsx
++++ b/client/src/components/external/NewIssueModal/LeadwrightFields.tsx
+@@ -5,6 +5,13 @@
+  * — the `showLead*` flags). When all five are off this returns null so the
+  * body component's JSX stays clean.
+  *
++ * Also gated on org-chart presence — same posture as the Org nav entry
++ * (FR-01.71, `useOrgChartPresence()`): hidden ONLY on a confirmed "absent"
++ * (no org chart installed, so nothing would ever route on these fields);
++ * "loading"/"broken" still render, fail visible rather than fail hidden.
++ * Gated HERE rather than at each of the four modal mount sites (Generic /
++ * Iterate / Pipeline / Task) so there is exactly one place this check lives.
++ *
+  * The submit hook splits Tags + BlockedBy on commas / trims / filters
+  * empties before forwarding to the create POST body.
+  */
+@@ -14,6 +21,7 @@ import type { Dispatch, SetStateAction } from "react";
+ import { FieldLabel } from "./FieldLabel";
+ import { DomainSelect } from "../../common/DomainSelect";
+ import { useDomainVocabulary } from "../../../hooks/useDomainVocabulary";
++import { useOrgChartPresence } from "../../../hooks/useOrgChartPresence";
+ 
+ export interface LeadwrightFieldsProps {
+   showLeadDomain: boolean;
+@@ -44,7 +52,9 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
+     showLeadBlockedBy,
+   } = props;
+   const domainVocabulary = useDomainVocabulary();
++  const orgPresence = useOrgChartPresence();
+ 
++  if (orgPresence === "absent") return null;
+   if (
+     !showLeadDomain &&
+     !showLeadPriority &&
+diff --git a/client/src/components/external/TaskCardLeadExpander.test.tsx b/client/src/components/external/TaskCardLeadExpander.test.tsx
+index 7905bbf8..c1438755 100644
+--- a/client/src/components/external/TaskCardLeadExpander.test.tsx
++++ b/client/src/components/external/TaskCardLeadExpander.test.tsx
+@@ -9,6 +9,10 @@ import { describe, it, expect, vi } from "vitest";
+ 
+ import { LeadOriginGlyph, TaskCardLeadExpander } from "./TaskCardLeadExpander";
+ import type { ExternalTask } from "../../lib/externalApi";
++import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
++
++vi.mock("../../hooks/useOrgChartPresence");
++const mockedPresence = vi.mocked(useOrgChartPresence);
+ 
+ function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
+   return {
+@@ -183,3 +187,32 @@ describe("TaskCardLeadExpander", () => {
+     expect(onParentKeyDown).toHaveBeenCalledTimes(1);
+   });
+ });
++
++// @covers FR-04.11
++describe("Lead chips REPORT existing data — never gated on org-chart presence (iterate-2026-09-09-leadwright-gate-org-presence)", () => {
++  it.each(["absent", "loading", "broken", "present"] as const)(
++    "LeadOriginGlyph still renders when presence is %s — a task already carries this tag whether or not an org chart exists",
++    (presence) => {
++      mockedPresence.mockReturnValue(presence);
++      render(<LeadOriginGlyph taskId="task-1" tags={["lead:helper-01"]} />);
++      expect(screen.getByTestId("task-card-lead-glyph-task-1")).toBeInTheDocument();
++    },
++  );
++
++  it.each(["absent", "loading", "broken", "present"] as const)(
++    "TaskCardLeadExpander's lead-wait/dedup/origin chips still render when presence is %s",
++    async (presence) => {
++      mockedPresence.mockReturnValue(presence);
++      const user = userEvent.setup();
++      render(
++        <TaskCardLeadExpander
++          task={baseTask({ tags: ["lead:helper-07", "lead-wait:po", "lead-dedup:card-9f3"] })}
++        />,
++      );
++      await user.click(screen.getByTestId("task-card-lead-expander-toggle-task-1"));
++      expect(screen.getByTestId("task-card-lead-origin-task-1")).toBeInTheDocument();
++      expect(screen.getByTestId("task-card-lead-wait-task-1")).toBeInTheDocument();
++      expect(screen.getByTestId("task-card-lead-dedup-task-1")).toBeInTheDocument();
++    },
++  );
++});
+diff --git a/client/src/pages/TaskBoardPage.tsx b/client/src/pages/TaskBoardPage.tsx
+index 8a32ed31..a06761a9 100644
+--- a/client/src/pages/TaskBoardPage.tsx
++++ b/client/src/pages/TaskBoardPage.tsx
+@@ -74,7 +74,7 @@ import { CreateControls } from "../components/external/CreateControls";
+ import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
+ import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
+ import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
+-import { LeadTagFilterMenu, LeadWaitToggleButton } from "../components/external/LeadTagFilter";
++import { LeadTagFilterToolbarGroup } from "../components/external/LeadTagFilter";
+ import { ClaimFilterToggle } from "../components/external/ClaimFilterToggle";
+ import { useBoardFilters } from "../hooks/useBoardFilters";
+ import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
+@@ -336,15 +336,16 @@ export default function TaskBoardPage() {
+             />
+             {/* FR-04.11 (V3) — Bot dropdown (3 lead-tag prefixes) + BellDot
+                 "waiting on PO" shortcut, same toolbar row, same h-8 w-8
+-                icon-button shell as the funnel above. */}
+-            <LeadTagFilterMenu
++                icon-button shell as the funnel above. Gated on org-chart
++                presence (LeadTagFilterToolbarGroup) — an install with no
++                leads has nothing for these controls to filter by. */}
++            <LeadTagFilterToolbarGroup
+               counts={leadTagCounts}
+               total={leadTagTotal}
+               active={leadTagFilter}
+               onToggle={toggleLeadTag}
+               onReset={clearLeadTagFilter}
+             />
+-            <LeadWaitToggleButton active={leadTagFilter} onToggle={toggleLeadTag} />
+             {/* FR-04.22 — independent claim axis (never a 5th ExternalTaskState). */}
+             <ClaimFilterToggle active={claimFilter} onToggle={toggleClaim} />
+             <DensityToggle />

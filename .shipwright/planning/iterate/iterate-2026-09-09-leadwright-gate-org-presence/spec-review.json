@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All three affordances (Bot dropdown, BellDot, New-issue lead fields) gate on the single existing useOrgChartPresence() signal, hidden only on confirmed 'absent' and visible on 'loading'/'broken', matching the FR-01.71 precedent exactly. Report-only surfaces (lead chips, claim chip, inbox lead-question card) are untouched and proven to render in all four presence states. No second presence signal, no new endpoint/hook, and no touches to Org page/sidebar/navDestinations.ts. Code-reviewer may proceed."
+}

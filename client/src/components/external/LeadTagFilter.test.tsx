@@ -7,10 +7,11 @@
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 
-import { LeadTagFilterMenu, LeadWaitToggleButton } from "./LeadTagFilter";
+import { LeadTagFilterMenu, LeadWaitToggleButton, LeadTagFilterToolbarGroup } from "./LeadTagFilter";
 import { useBoardFilters } from "../../hooks/useBoardFilters";
+import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
 import {
   LEAD_ORIGIN_TAG_PREFIX,
   LEAD_WAIT_TAG_PREFIX,
@@ -18,6 +19,9 @@ import {
   type LeadTagPrefix,
 } from "../../lib/leadTags";
 import type { ExternalTask } from "../../lib/externalApi";
+
+vi.mock("../../hooks/useOrgChartPresence");
+const mockedPresence = vi.mocked(useOrgChartPresence);
 
 function task(tags: string[]): ExternalTask {
   return {
@@ -164,5 +168,51 @@ describe("LeadWaitToggleButton (BellDot)", () => {
     await user.click(within(menu).getByTestId("board-lead-filter-menu-item-lead-wait"));
 
     expect(screen.getByTestId("board-lead-wait-toggle")).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+// @covers FR-04.11
+describe("LeadTagFilterToolbarGroup — org-chart presence gate (iterate-2026-09-09-leadwright-gate-org-presence)", () => {
+  afterEach(() => {
+    // resetAllMocks (not clearAllMocks) so a stray mockReturnValue from one
+    // test can't leak into the next test's implementation (external review
+    // finding, iterate-2026-09-09-leadwright-gate-org-presence).
+    vi.resetAllMocks();
+  });
+
+  it("hides the Bot dropdown and BellDot on a confirmed absent org chart", () => {
+    mockedPresence.mockReturnValue("absent");
+    render(
+      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
+    );
+    expect(screen.queryByTestId("board-lead-filter-menu-trigger")).toBeNull();
+    expect(screen.queryByTestId("board-lead-wait-toggle")).toBeNull();
+  });
+
+  it("still renders both controls while presence is loading", () => {
+    mockedPresence.mockReturnValue("loading");
+    render(
+      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
+    );
+    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
+    expect(screen.getByTestId("board-lead-wait-toggle")).toBeInTheDocument();
+  });
+
+  it("still renders both controls when presence is broken (e.g. a 502, not absent)", () => {
+    mockedPresence.mockReturnValue("broken");
+    render(
+      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
+    );
+    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
+    expect(screen.getByTestId("board-lead-wait-toggle")).toBeInTheDocument();
+  });
+
+  it("renders both controls once the org chart is present", () => {
+    mockedPresence.mockReturnValue("present");
+    render(
+      <LeadTagFilterToolbarGroup counts={COUNTS} total={9} active={set()} onToggle={() => {}} onReset={() => {}} />,
+    );
+    expect(screen.getByTestId("board-lead-filter-menu-trigger")).toBeInTheDocument();
+    expect(screen.getByTestId("board-lead-wait-toggle")).toBeInTheDocument();
   });
 });

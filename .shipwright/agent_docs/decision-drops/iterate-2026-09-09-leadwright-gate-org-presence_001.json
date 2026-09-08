@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-09-leadwright-gate-org-presence",
+  "date": "2026-09-09",
+  "section": "Leadwright board affordances — org-chart presence gate",
+  "title": "Gate leadwright board/dialog affordances on useOrgChartPresence(), reuse FR-01.71's signal",
+  "context": "Task Board's lead-tag filter menu + BellDot toggle and the New-issue dialog's leadwright fields (domain/priority/complexity/tags/blockedBy) always rendered, even on an installation with no org chart/leads configured — dead controls for the majority of users who never adopt leadwright.",
+  "decision": "Gate LeadTagFilterMenu+LeadWaitToggleButton (new LeadTagFilterToolbarGroup wrapper) and LeadwrightFieldsFragment on the existing useOrgChartPresence() hook (FR-01.71/org-page.spec.ts precedent) — hide only on confirmed absent (org_chart_missing 404), stay visible on loading/broken (fail visible, never fail hidden). Never gate anything that reports already-persisted data (TaskCard lead chips, TaskCardClaimChip, lead tags, Inbox lead-question card).",
+  "consequences": "Zero new fetches or endpoints — a second consumer of the shared ORG_CHART_QUERY_KEY cache. Three pre-existing E2E specs (lead-board-surface, triage-fix-now, triage-fix-now-more-options-clip) needed a seeded org-chart.json fixture since the isolated E2E stack's empty-registry default now reads absent for them too.",
+  "rationale": "",
+  "rejected": "A second hand-typed org_chart_missing check per call site — rejected: violates the single-signal requirement and would drift from the FR-01.71 hook if the 404 contract ever changes.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

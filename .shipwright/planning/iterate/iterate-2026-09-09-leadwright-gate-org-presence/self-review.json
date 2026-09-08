@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Gates LeadTagFilterMenu/LeadWaitToggleButton (via a new LeadTagFilterToolbarGroup wrapper) and LeadwrightFieldsFragment on useOrgChartPresence()==='absent', reusing the existing hook rather than a hand-typed 404 check; data-display chips (LeadOriginGlyph, TaskCardLeadExpander, TaskCardClaimChip) and the Inbox lead-question card are untouched; Org page/sidebar/navDestinations.ts and SHIPWRIGHT_LEADWRIGHT_CHECKOUT are untouched."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "n/a",
+      "note": "No new API routes or external calls; the presence hook's own loading/absent/broken handling is unchanged and already covers this."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input, no new endpoints, no secrets touched."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New tests assert on rendered-outcome (testid presence/absence), one case per presence state (absent/loading/broken/present) for both gated surfaces, plus a cross-presence-state test proving lead chips (LeadOriginGlyph, TaskCardLeadExpander) render regardless of presence."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "useOrgChartPresence rides the single shared ORG_CHART_QUERY_KEY cache entry (staleTime 60s, retryOnMount false) already used by SidebarNav/CommandCenter/OrgPage/LeadInventoryPage — no new fetch introduced."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "LeadTagFilter.tsx now 186 lines, LeadwrightFields.tsx 150 lines (both under 300). TaskBoardPage.tsx (446 lines) is pre-existing bloat-baseline debt, reduced by 10 lines by this change, not ratcheted (anti_ratchet_check.py exits 0)."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized format (JSON/YAML/config) changed — this is UI-only conditional rendering."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff: no findings."
+    }
+  ]
+}
