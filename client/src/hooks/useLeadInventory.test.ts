@@ -30,6 +30,7 @@ describe("useLeadInventory", () => {
         leadId: "acme-lead",
         totalBeatsInRegister: 0,
         beats: [],
+        register: { status: "ok" },
         authority: { measured: false, reason: "not readable at the default charter path" },
       },
     });

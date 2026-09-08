@@ -52,6 +52,46 @@ describe("extractBandSections", () => {
   it("has exactly the 4 canonical band ids in CHARTER_BANDS", () => {
     expect(CHARTER_BANDS.map((b) => b.id)).toEqual(["bugfix", "maintenance", "feature", "architecture"]);
   });
+
+  it("a UTF-8 BOM on the first line does not corrupt a later band heading (boundary probe)", () => {
+    const withBom = `﻿# Lead charter\n\n## Bugfix / bekannter Defekt\nFix small defects.\n`;
+    const result = extractBandSections(withBom);
+    expect(result.find((b) => b.id === "bugfix")!.declared).toBe(true);
+  });
+
+  it("non-ASCII prose (umlauts, em-dash) round-trips intact (boundary probe)", () => {
+    const md = `## Bugfix / bekannter Defekt\nRoutine-Wartung — ändert nichts an der Architektur, München-Style.\n`;
+    const result = extractBandSections(md);
+    const text = result.find((b) => b.id === "bugfix")!.text;
+    expect(text).toContain("München-Style");
+    expect(text).toContain("ändert");
+  });
+
+  it("CRLF line endings are tolerated the same as LF (boundary probe)", () => {
+    const crlf = ["## Bugfix / bekannter Defekt", "Fix small defects.", "", "## Kleine Pflege", "Routine upkeep."].join(
+      "\r\n",
+    );
+    const result = extractBandSections(crlf);
+    const bugfix = result.find((b) => b.id === "bugfix")!;
+    expect(bugfix.declared).toBe(true);
+    expect(bugfix.text).toBe("Fix small defects.");
+  });
+
+  it("an unbalanced code fence (forgotten closer) does not swallow the rest of the section's prose (external code review, low/edge-case)", () => {
+    const unclosedFence = "## Bugfix / bekannter Defekt\n```\nsome example code\nFix small defects anyway.\n";
+    const result = extractBandSections(unclosedFence);
+    const bugfix = result.find((b) => b.id === "bugfix")!;
+    expect(bugfix.declared).toBe(true);
+    expect(bugfix.text).toContain("Fix small defects anyway.");
+  });
+
+  it("a BALANCED code fence still hides its contents (regression guard for the unbalanced-fence fix above)", () => {
+    const balancedFence = "## Bugfix / bekannter Defekt\nBefore.\n```\nhidden code\n```\nAfter.\n";
+    const result = extractBandSections(balancedFence);
+    const bugfix = result.find((b) => b.id === "bugfix")!;
+    expect(bugfix.text).toBe("Before. After.");
+    expect(bugfix.text).not.toContain("hidden code");
+  });
 });
 
 describe("charterAuthorityCore", () => {

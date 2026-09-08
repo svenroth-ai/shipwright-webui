@@ -56,6 +56,8 @@ export type StepsView =
 
 export type UnclaimedEffectView = { status: "clear" | "found" | "unknown" };
 
+export type RegisterView = { status: "ok" | "unreadable" };
+
 export interface BeatInventoryView {
   beatId: string;
   startedAt: string;
@@ -70,6 +72,7 @@ export interface LeadInventoryEntry {
   leadId: string;
   totalBeatsInRegister: number;
   beats: BeatInventoryView[];
+  register: RegisterView;
   authority: AuthorityPanelView;
 }
 

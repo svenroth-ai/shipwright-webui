@@ -15,7 +15,7 @@
  * window" — collapsing them would be a silent lie either way.
  */
 
-import type { BeatInventoryView } from "../../lib/leadInventoryApi";
+import type { BeatInventoryView, RegisterView } from "../../lib/leadInventoryApi";
 import { computeLastNightWindow } from "../../lib/auditTimelineMerge";
 import { BandChip } from "./BandChip";
 
@@ -49,14 +49,21 @@ function StepsBlock({ beat }: { beat: BeatInventoryView }) {
   }
   if (steps.status !== "ok") return null;
   return (
-    <ol data-testid={`beat-steps-${beat.beatId}`} className="flex flex-col gap-1">
-      {steps.steps.map((step, i) => (
-        <li key={i} className="flex items-center gap-2 text-[12px]">
-          <BandChip band={step.band} />
-          <span className="text-[var(--color-text)]">{step.summary}</span>
-        </li>
-      ))}
-    </ol>
+    <>
+      <ol data-testid={`beat-steps-${beat.beatId}`} className="flex flex-col gap-1">
+        {steps.steps.map((step, i) => (
+          <li key={i} className="flex items-center gap-2 text-[12px]">
+            <BandChip band={step.band} />
+            <span className="text-[var(--color-text)]">{step.summary}</span>
+          </li>
+        ))}
+      </ol>
+      {steps.unreadableLines > 0 && (
+        <p data-testid={`beat-steps-partial-${beat.beatId}`} className="text-[11px] italic text-[var(--color-muted)]">
+          +{steps.unreadableLines} unreadable line{steps.unreadableLines === 1 ? "" : "s"}
+        </p>
+      )}
+    </>
   );
 }
 
@@ -84,6 +91,14 @@ function BeatCard({ beat }: { beat: BeatInventoryView }) {
           This beat produced an effect no step accounts for — needs a look.
         </div>
       )}
+      {beat.unclaimedEffect.status === "unknown" && (
+        <p
+          data-testid={`unclaimed-effect-unknown-${beat.beatId}`}
+          className="text-[12px] italic text-[var(--color-muted)]"
+        >
+          Effect check unavailable — could not confirm this beat is clear.
+        </p>
+      )}
       <StepsBlock beat={beat} />
     </li>
   );
@@ -92,12 +107,25 @@ function BeatCard({ beat }: { beat: BeatInventoryView }) {
 export interface BeatListProps {
   beats: BeatInventoryView[];
   totalBeatsInRegister: number;
+  /** Defaults to `{status:"ok"}` — callers predating this field (existing
+   *  tests) keep working, but a real "unreadable" register must win over
+   *  either empty state below (a corrupt register must never read as "this
+   *  lead has simply never had a beat" — code review, Stage 2/high). */
+  register?: RegisterView;
   now?: Date;
 }
 
-export function BeatList({ beats, totalBeatsInRegister, now }: BeatListProps) {
+export function BeatList({ beats, totalBeatsInRegister, register = { status: "ok" }, now }: BeatListProps) {
   const { sinceMs, untilMs } = computeLastNightWindow(now ?? new Date());
   const windowed = beats.filter((b) => withinWindow(b.startedAt, sinceMs, untilMs));
+
+  if (register.status === "unreadable") {
+    return (
+      <p data-testid="beat-list-empty-unreadable" role="alert" className="text-[13px] text-[var(--color-error)]">
+        Could not read this lead's beat history — try again shortly.
+      </p>
+    );
+  }
 
   if (windowed.length === 0) {
     if (totalBeatsInRegister === 0) {

@@ -99,14 +99,18 @@ unclaimed by its own step log.
   "this lead has history, just nothing in the current window" — the two
   empty states must render different copy.
 - [ ] AC-9-agent (from External Plan Review, both reviewers independently —
-  audit-pagination truncation): `beat-effect-audit-read.ts` pages through
-  `auditLogCore` (not a single `limit:200` call) until either it has covered
-  every entry back to the 48h window start, or a bounded page cap (10 pages
-  = 2000 entries) is reached; hitting the cap before covering the window
-  degrades that lead's unclaimed-effect lookup to `{status:"unknown"}` for
-  every beat in the bounded set — NEVER a false `{status:"clear"}`. A test
-  forces the truncation path and asserts `unknown`, not a silently-missed
-  warning.
+  audit-pagination truncation): `beat-effect-audit-read.ts` must never
+  produce a false `{status:"clear"}` from a truncated audit read. **Build-time
+  amendment (Stage-2 code review MEDIUM-4/5):** the originally-specced
+  bounded `before`-cursor pagination (10-page/2000-entry cap →
+  `{status:"unknown"}` on cap-hit) was replaced with a single full-file scan
+  via the new `readAuditLinesGuarded` — complete coverage by construction,
+  no cap and no truncation path to hit at all, which is both simpler (net
+  code reduction) and strictly stronger than the specced mitigation. A test
+  ("reads the file exactly once regardless of how many lines it contains")
+  pins the no-pagination-loop invariant on a 5001-line fixture;
+  `{status:"unknown"}` is still produced, but now only on a genuine read
+  failure (non-404 error from `readAuditLinesGuarded`), never on line count.
 - [ ] AC-10-agent (from External Plan Review, both reviewers — line-level
   collapse): a `steps.jsonl` whose lines are ALL malformed (`steps.length
   === 0 && unreadableLines > 0`) renders as "steps unavailable", never as
@@ -245,13 +249,24 @@ register history). A per-figure read failure degrades that figure alone —
 positive claim ("clear"/"no steps") the way `org-leads-composite.ts`'s
 `registerFieldFor` was already fixed, once, to avoid doing.
 
-**Security posture for the two new file readers** (Internal Plan Review
-finding #5, sharpened by External Plan Review): both `beat-steps-read.ts`
-and `beat-effect-audit-read.ts` mirror `audit-log.ts`'s exact open-first
-pattern — `pathGuard` → `open(O_RDONLY | O_NOFOLLOW)` → `fstat().isFile()`
-→ `realPathGuard` → read from the held fd — closing the
-ENOENT-via-`realPathGuard`-first bug this repo already found and fixed once
-in `file-read.ts`. Both `leadId` AND `beatId` are re-validated inside each
+**Security posture for the new file readers** (Internal Plan Review
+finding #5, sharpened by External Plan Review): `beat-steps-read.ts` and
+`beat-effect-audit-read.ts` (via `audit-log.ts`'s `readAuditLinesGuarded`)
+mirror `audit-log.ts`'s exact open-first pattern — `pathGuard` →
+`open(O_RDONLY | O_NOFOLLOW)` → `fstat().isFile()` → `realPathGuard` → read
+from the held fd — closing the ENOENT-via-`realPathGuard`-first bug this
+repo already found and fixed once in `file-read.ts`. **Build-time amendment
+(doubt review, medium/boundary-and-contract):** this iterate's THIRD new
+reader, `registerEntriesGuarded` (`beat-register-health.ts`), originally
+retained the OLDER `lstat`-then-reopen-by-path pattern copied from the
+pre-existing `beatRegisterHealthCore` (a prior iterate's code, unchanged
+here) — a real TOCTOU window the doubt review caught (independently
+corroborated by the external code review's codex leg) and which is now
+closed: `registerEntriesGuarded` was rewritten to the same open-first shape
+as the other two, sharing a new `parseRegisterFileText()` helper with the
+pre-existing by-path reader. All three of this iterate's new readers now
+share one security posture. Both `leadId` AND `beatId` are re-validated
+inside each
 reader itself (`LEAD_ID_RE` from `_helpers.ts`; a new `BEAT_ID_RE` —
 leadwright generates beat ids via `randomUUID()`) BEFORE either is joined
 into a path — never trusting that an upstream caller (`requireChartLead`,
@@ -261,17 +276,25 @@ did it, the same re-validate-don't-trust-the-caller posture
 `BEAT_ID_RE` degrades ONLY that one beat to `steps: {status:"unreadable"}`
 in the composite — never the whole lead, never a 500 (AC-11).
 
-**Audit-log pagination bound** (External Plan Review, both reviewers
-independently): a single `auditLogCore(..., {limit:200})` call can still
-produce a false `{status:"clear"}` if the matching
+**Audit-log pagination bound — superseded by a single-scan rewrite**
+(External Plan Review, both reviewers independently, then revisited at
+Stage-2 code review): a single `auditLogCore(..., {limit:200})` call can
+still produce a false `{status:"clear"}` if the matching
 `beat_effect_not_claimed` entry has aged past the newest 200 audit
 entries — exactly the fail-open class AC-2b exists to close, surviving
-along the pagination axis instead of the read-failure axis.
-`beat-effect-audit-read.ts` instead pages (`before` cursor) until it has
+along the pagination axis instead of the read-failure axis. The originally
+specced fix — `beat-effect-audit-read.ts` paging (`before` cursor) until it
 covered every entry back to the 48h beat-window start, capped at 10 pages
-(2000 entries) as a bounded worst case; hitting that cap before covering
-the window degrades to `{status:"unknown"}` for the lead's whole bounded
-beat set rather than risking a silent miss (AC-9).
+(2000 entries) with a cap-hit degrading to `{status:"unknown"}` — shipped in
+Build. Stage-2 code review (MEDIUM-4/5) found the bounded-pagination design
+itself still risked a monotonicity violation (an entry found on an earlier
+page could be lost if a later page's read failed) and was more complex than
+the problem needed: `audit-log.ts` extracted a new `readAuditLinesGuarded`
+that returns the FULL reversed line set from one `readFileSync`, and
+`beat-effect-audit-read.ts` was rewritten to one linear scan over that
+result — no page cap, no truncation path, complete coverage by
+construction. `{status:"unknown"}` is now reserved for a genuine read
+failure (non-404 error), never for line count or window depth (AC-9).
 
 **Open beats and race safety** (External Plan Review — GLM): the window
 filter is `startedAt`-only over ALL beats, open or closed — an in-flight
@@ -300,6 +323,16 @@ different reading modes (roster-at-a-glance vs. overnight-detail). New route
 duplicate top-level nav destination) plus its own nav entry, since — unlike
 `/org/new-lead` — this is a daily-use destination, not a one-time creation
 flow.
+
+> **Build-time amendment (Step 8 spec-compliance re-review):** "its own nav
+> entry" ships as the permanent `/org` header link, not a `handle.nav`
+> command-palette/sidebar entry. `navDestinations.test.ts` pins that list to
+> single-segment paths only, and the sidebar rail is a separate hand-authored
+> item list — extending either to a nested `/org/inventory` route is a real
+> UI-surface decision (icon, order, collapsed-rail label) that needs its own
+> Design Check pass, which this iterate's Tier-2 pass did not cover. Disclosed
+> deviation rather than a silent one; revisit as its own small change if the
+> header link proves insufficiently discoverable in practice.
 
 **"Last night" window** reuses the existing pure helper
 (`client/src/lib/auditTimelineMerge.ts`'s `computeLastNightWindow`) — no new
@@ -399,7 +432,124 @@ Prop shapes for the two new/shared components:
 above) — Boundary Probe sub-step runs in Build.
 
 ## Confidence Calibration
-{populated after Build, before F0 — see Step 7.5}
+
+Three producer/consumer format pairs from Affected Boundaries: two are
+machine-only JSONL/JSON (`steps.jsonl`, `audit.jsonl`, `beat-register.json`,
+all written only by leadwright's daemon) and one is genuinely PO/lead-edited
+prose (`charter.md`). Per `references/boundary-probes.md`, machine-only
+formats may skip the 3 operator-input-specific categories (POSIX `export`
+prefix, inline `#` comment, quoted-value-containing-`#`) with a one-line
+justification; `charter.md` gets the fuller treatment since a human edits it
+by hand.
+
+- **Probe (existing, pre-Build):** malformed-line tolerance in
+  `beat-steps-read.ts` / `beat-effect-audit-read.ts` — a JSONL line that
+  fails `isValidBeatStep`/schema validation is skipped, not fatal to the
+  whole file. **Finding:** none; already covered by
+  `beat-steps-read.test.ts` ("skips a malformed line, counts it") and
+  `beat-effect-audit-read.test.ts` ("malformed-line-skip").
+- **Probe (existing, pre-Build):** `beat-effect-audit-read.ts` pagination —
+  a 48h window whose covering page lies beyond `nextCursor` must not
+  false-clear. **Finding:** HIGH, caught by the plan-review cascade before
+  Build (Internal Plan Review + both external plan reviewers) — fixed with
+  bounded `before`-cursor pagination + 10-page cap → `unknown`. **Superseded
+  at Stage-2 code review (MEDIUM-4/5):** the bounded-pagination design was
+  replaced with a single full-file scan via `readAuditLinesGuarded`,
+  removing the page/cap axis entirely rather than patching it further — see
+  the AC-9 amendment above. Verified by the "reads the file exactly once
+  regardless of how many lines it contains" test in
+  `beat-effect-audit-read.test.ts` (5001-line fixture, asserts one read
+  call).
+- **Probe:** empty values / empty band section in `charter.md` (a heading
+  present with no prose under it before the next heading). **Finding:**
+  none — already covered by `charter-authority-read.test.ts` ("returns null
+  text for a heading present with an empty section"), which predates this
+  calibration pass.
+- **Probe:** UTF-8 BOM on the first line of `charter.md` (a real editor,
+  e.g. Notepad, can prepend one). **Finding:** none — added
+  `charter-authority-read.test.ts` "a UTF-8 BOM on the first line does not
+  corrupt a later band heading" to make this explicit rather than assumed;
+  passed on the first run (`extractBandSections`'s heading match is
+  content-anchored, not position-anchored).
+- **Probe:** non-ASCII prose in a band section — the canonical band names
+  themselves are German (`Kleine Pflege`, `Architektur / Grundsatz`) and a
+  lead's charter prose plausibly contains umlauts/em-dashes. **Finding:**
+  none — added "non-ASCII prose (umlauts, em-dash) round-trips intact";
+  passed first run (UTF-8 buffer decode, no ASCII-only regex in the
+  extraction path).
+- **Probe:** CRLF line endings in `charter.md` (Windows editors default to
+  CRLF; this repo's own dev machine is Windows). **Finding:** none — added
+  "CRLF line endings are tolerated the same as LF"; passed first run
+  (`extractBandSections` already split on `\r?\n`).
+- **Skipped, machine-only-format categories (justified once, applies to
+  `steps.jsonl`/`audit.jsonl`/`beat-register.json`):** POSIX `export`
+  prefix, inline `#` comment, quoted-value-containing-`#` — none of these
+  three describe a shape a JSONL/JSON writer or reader ever produces or
+  expects; they are `.env`-style operator-input rules with no analogue in a
+  machine-serialized line format.
+- **Probe (composition, Build-time):** an in-progress beat (`closedAt:
+  null`) that ALSO carries an unclaimed-effect warning — do the two
+  independent per-beat UI states (`beat-in-progress-*` label,
+  `unclaimed-effect-warning`) compose correctly on the same `BeatCard`
+  rather than one clobbering the other. **Finding:** none — added
+  `BeatList.test.tsx` "renders the in-progress label AND the
+  unclaimed-effect warning together on the same open beat"; passed first
+  run.
+- **Asymptote:** the last three probes run (BOM, non-ASCII, CRLF against
+  `charter-authority-read.ts`) all found nothing, all 8 boundary-probes.md
+  categories have been applied or explicitly justified-skipped across the
+  three format pairs, `touches_io_boundary` drift protection is in place
+  (round-trip tests + the vendored-schema fidelity test), and there is no
+  open "yes-then-bug" cycle in this run — probing is exhausted per the
+  Decision Rule.
+
+## Test Completeness Ledger
+
+| # | Testable behavior | Disposition | Evidence / reason_code |
+|---|---|---|---|
+| 1 | Vendored `beat-step.schema.json` stays byte-identical + fixtures validate against it | tested | `leadwright-beat-step.test.ts::"beat-step.schema.json fidelity" + "isValidBeatStep — fixture accept/reject"` PASSED |
+| 2 | `beat-steps-read.ts` re-validates `LEAD_ID_RE`/`BEAT_ID_RE` before any fs call (rejects without touching disk) | tested | `beat-steps-read.test.ts` mocked-`openSync` refusal test PASSED |
+| 3 | `beat-steps-read.ts` tolerates a malformed JSONL line without failing the whole read | tested | `beat-steps-read.test.ts::"skips a malformed line, counts it"` PASSED |
+| 4 | `beat-steps-read.ts` ENOENT → `{status:"ok",steps:[]}`, other fs errors → `{status:"unreadable"}` (tri-state, never a false "empty") | tested | `beat-steps-read.test.ts` ENOENT/EACCES cases PASSED (11/11 file) |
+| 5 | `beat-effect-audit-read.ts` finds an unclaimed-effect entry in a single-pass scan | tested | `beat-effect-audit-read.test.ts::"finds a beat_effect_not_claimed entry in a single-pass scan and returns ok"` PASSED |
+| 6 | `beat-effect-audit-read.ts` 404 → legitimate `clear`; any other non-200 → `unknown` (never collapsed to `clear`) | tested | `beat-effect-audit-read.test.ts::"a 404..."` + `"a real read failure..."` PASSED |
+| 7 | `beat-effect-audit-read.ts` — superseded by Stage-2 code review (MEDIUM-4/5): bounded `before`-cursor pagination + 10-page cap replaced with a single full-file scan (`readAuditLinesGuarded`), removing the pagination axis (and with it the separate cap-hit scenario the original rows 7/8 each pinned — one scan-shaped test now covers what two pagination-shaped tests did); complete window coverage is now by construction, not a truncation-avoidance mechanism | tested | `beat-effect-audit-read.test.ts::"reads the file exactly once regardless of how many lines it contains (no pagination loop)"` PASSED (5001-line fixture, asserts one read call) |
+| 8 | `org-inventory-composite.ts` includes a beat with an unparseable `startedAt`, excludes one genuinely outside the 48h window | tested | `org-inventory-composite.test.ts::"window-bound+unparseable-startedAt-inclusion"` PASSED |
+| 9 | `org-inventory-composite.ts` orders beats ascending by `startedAt` | tested | `org-inventory-composite.test.ts::"startedAt-ascending ordering"` PASSED |
+| 10 | `org-inventory-composite.ts` degrades only the offending beat when a beat id fails `BEAT_ID_RE`, not the whole lead | tested | `org-inventory-composite.test.ts::"BEAT_ID_RE-refused-beat degrades only that beat"` PASSED |
+| 11 | `org-inventory-composite.ts` sets `unclaimedEffect:"found"`/`"unknown"` correctly (found case, and degrade-on-audit-read-failure case) | tested | `org-inventory-composite.test.ts` unclaimedEffect found + degrade cases PASSED |
+| 12 | `org-inventory-composite.ts` returns zero beats (not an error) when no register file exists; keys multiple leads independently | tested | `org-inventory-composite.test.ts` no-register-file + multi-lead-keying cases PASSED |
+| 13 | `org-inventory-composite.ts` degrades to `register:{status:"unreadable"}` (not a false zero-beats "clear") on a corrupt `beat-register.json` or an `LEAD_ID_RE`-refused `leadId`; `registerEntriesGuarded` reads via the same open-first pattern as this iterate's other two new readers (doubt review, medium/boundary-and-contract — closed a TOCTOU window the original lstat-then-reopen-by-path version had) | tested | `org-inventory-composite.test.ts` corrupt-register + refused-leadId degrade cases PASSED (Stage-2 code review HIGH-1); `beat-register.test.ts` + `beat-register-confidence-probes.test.ts` re-verified green against the open-first rewrite |
+| 14 | `GET /api/org/inventory` composes the roster-wide response end-to-end against real tmpdir fixtures | tested | `org-inventory.test.ts` (4 route-level cases) PASSED |
+| 15 | `charter-authority-read.ts` extracts prose for 4/4 declared bands; marks a missing band `declared:false`/`text:null`; tolerates heading slash-spacing variance; returns `text:null` for a heading with an empty section | tested | `charter-authority-read.test.ts` (`extractBandSections` describe block, 5 cases) PASSED |
+| 16 | `charter-authority-read.ts` tolerates a UTF-8 BOM, non-ASCII prose (umlauts/em-dash), and CRLF line endings in `charter.md` | tested | `charter-authority-read.test.ts` BOM/non-ASCII/CRLF boundary-probe cases PASSED |
+| 17 | `charter-authority-read.ts` reports `measured:false` with a distinct reason for a failed read vs. a non-default `charter_path` | tested | `charter-authority-read.test.ts` default-path/custom-path reason cases PASSED |
+| 18 | `BandChip` renders the correct label and `data-testid` per band | tested | `BandChip.test.tsx` (2 cases) PASSED |
+| 19 | `BeatList` renders one `BandChip` per step, in step order, per beat (AC-1) | tested | `BeatList.test.tsx::"renders a BeatCard per beat...AC-1"` PASSED |
+| 20 | `BeatList` renders a visible, DOM-assertable unclaimed-effect warning on a beat with `unclaimedEffect:"found"`, a distinct non-alert note for `"unknown"`, and neither for `"clear"` (AC-2a/AC-2b) | tested | `BeatList.test.tsx` warning-present, clear-renders-neither, and unknown-note cases PASSED |
+| 21 | `BeatList` narrows to "last night" client-side: excludes a beat outside the window, includes one with an unparseable `startedAt` (AC-7) | tested | `BeatList.test.tsx::"excludes a beat outside the last-night window...AC-7"` PASSED |
+| 22 | `BeatList` shows two distinct empty states — "never had a beat" vs. "nothing in this window" — driven by `totalBeatsInRegister`, plus a third distinct error state when `register:{status:"unreadable"}` (AC-8) | tested | `BeatList.test.tsx` all three empty-state cases PASSED |
+| 23 | `BeatList` distinguishes "steps unavailable" (unreadable read, or every line malformed) from "no steps reported" (genuinely empty, error-free), and notes a partial read (some valid steps, some malformed lines) rather than rendering a complete-looking list silently (AC-10) | tested | `BeatList.test.tsx` steps-rendering + partial-read cases PASSED (Stage-2 code review LOW-8) |
+| 24 | An in-progress beat (`closedAt:null`) and an unclaimed-effect warning compose correctly on the same `BeatCard` without one clobbering the other | tested | `BeatList.test.tsx::"renders the in-progress label AND the unclaimed-effect warning together"` (composition probe) PASSED |
+| 25 | `AuthorityPanel` renders per-band charter prose + an "N/4 declared" completeness line, and never renders a "may act alone" claim | tested | `AuthorityPanel.test.tsx` (3 cases) PASSED |
+| 26 | `NeedsYou` renders exactly one answer field per open question (a non-interactive `<p>`, not a focusable input), with no thread/round affordance, reusing `OrgThread.tsx`'s `isAnswered` predicate inverted, and shows distinct loading/error states rather than a false "nothing needs you" | tested | `NeedsYou.test.tsx` (7 cases) PASSED |
+| 27 | `LeadInventoryPage` composes `AuthorityPanel`+`BeatList`+`NeedsYou` per lead in chart order, shows a named error state (not a blank page) when the org chart fails to load, and surfaces the threads-query error distinctly rather than a false "nothing needs you" | tested | `LeadInventoryPage.test.tsx` (3 cases) PASSED |
+| 28 | `useLeadInventory` hook fetches via `fetchOrgInventory` with the same `staleTime`/`refetchInterval` convention as `useOrgThreads` | tested | `useLeadInventory.test.ts` (1 case) PASSED |
+| 29 | `/org/inventory` route resolves to `LeadInventoryPage` in a real browser (not just a component-level render), guarded against writing to the operator's real `~/.claude/leads/` outside isolation | tested | `lead-inventory-page.spec.ts` (both E2E cases navigate via `page.goto("/org/inventory")`; `assertIsolatedLeadsRoot()` via `realpathSync.native` — Stage-2 code review HIGH-1/LOW-9/LOW-10; SHIPWRIGHT_E2E_ISOLATED=1 required unconditionally + the override itself containment-checked — doubt review, high/reversibility, closed a real bypass via a legitimate `SHIPWRIGHT_LEADS_ROOT` dev-shell setting) PASSED |
+| 30 | `OrgPage` links to `/org/inventory` via a visible, addressable affordance | tested | `OrgPage.test.tsx::"renders chart -> shared docs -> lead list...AC-1"` (added `org-inventory-link` href assertion) PASSED |
+| 31 | A real round trip — JSON written to real `steps.jsonl`/`audit.jsonl`/`beat-register.json`/`charter.md` on disk, read through the full server+client stack, rendered in a real browser | tested | `lead-inventory-page.spec.ts` (real fixture writes under isolated `~/.claude/leads/`, both cases) PASSED via `node e2e/isolated-stack.mjs` |
+| 32 | `LeadInventoryPage.tsx` bounds its own vertical scroll below the title bar (shell-scroll invariant) | tested | `shell-scroll-invariant.test.ts` (registry entry added for `LeadInventoryPage.tsx`) PASSED |
+| 33 | Server/client type mirrors (`BeatStep`, `AuthorityBandView`, `BeatInventoryView`, `LeadInventoryEntry`, `UnclaimedEffectView`, `RegisterView`, `StepsView`, `CharterAuthorityResult`, `BeatStepEffect`) stay in sync — a dropped field is caught, not silently drifted | tested | `org-inventory-schema-sync.test.ts` (9 cases; falsified by temporarily dropping `unreadableLines`, confirmed red, restored) PASSED |
+| 34 | New test files contain no test-hygiene smells (skip/only, unstubbed timers, etc.) | tested | `scan_test_hygiene.py --diff` → "no findings" |
+| 35 | `isValidBeatStep` rejects a malformed `at` timestamp (not just an invalid `band`), matching the vendored schema's own `^\d{4}-\d{2}-\d{2}T` pattern | tested | `leadwright-beat-step.test.ts::"at pattern matches..."` + `"rejects a record whose at isn't a timestamp"` PASSED (external code review, low/bug) |
+| 36 | `beat-steps-read.ts` treats a `steps.jsonl` that is actually a directory as unreadable via the REAL `fstat().isFile()` path, not only a mocked `ELOOP` | tested | `beat-steps-read.test.ts::"a steps.jsonl that is actually a directory is unreadable..."` PASSED (external code review, low/test-coverage) |
+| 37 | AC-4's 2-of-4-declared case is verified through the real `GET /api/org/inventory` endpoint, not only at the `extractBandSections` unit level | tested | `org-inventory.test.ts::"renders a 2-of-4-declared charter through the real endpoint..."` PASSED (external code review, medium/test — both reviewers independently) |
+| 38 | The E2E fixture's "last night" timestamp is derived from the real `computeLastNightWindow`, not a hand-rolled duplicate of its branch logic (removes a false-positive-prone duplication both external reviewers independently mis-traced) | tested | `lead-inventory-page.spec.ts` re-verified green under `node e2e/isolated-stack.mjs`, both cases, after the change |
+| 39 | `charter-authority-read.ts`'s `extractSectionProse` does not swallow a section's trailing prose behind an unbalanced (unclosed) code fence; a balanced fence still hides its contents (regression guard) | tested | `charter-authority-read.test.ts` unbalanced-fence + balanced-fence-regression cases PASSED (external code review, low/edge-case) |
+
+**Counts:** testable=39, tested=39, untestable=0, untested_testable=0.
+**Enumeration basis:** 11 acceptance criteria (AC-1 through AC-11 per the
+mini-plan), all covered by at least one ledger row above.
 
 ## Internal Plan Review (opus-plan-reviewer)
 - **Ran:** yes

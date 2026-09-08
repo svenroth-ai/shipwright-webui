@@ -12,7 +12,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 
 import { registerBeatRegisterReleaseRoute } from "../beat-register-release.js";
-import { registerBeatRegisterHealthRoute } from "../beat-register.js";
+import { registerBeatRegisterHealthRoute } from "../beat-register-health.js";
 import { readLeadOrgInfo } from "../org-chart-lookup.js";
 
 const SESSION_ID = "11111111-1111-4111-8111-111111111111";

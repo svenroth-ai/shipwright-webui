@@ -27,9 +27,31 @@ function isAnswered(round: OrgThreadCardView["rounds"][number]): boolean {
 
 export interface NeedsYouProps {
   cards: OrgThreadCardView[] | undefined;
+  /** True while `/api/org/threads` is still in flight — distinct from an
+   *  empty-but-loaded result, so a slow/failed fetch never reads as "there
+   *  is nothing to answer" (code review, Stage 2/medium: the one section
+   *  whose whole purpose is not to miss a question must not render
+   *  `undefined` as that same affirmative claim). */
+  isLoading?: boolean;
+  error?: unknown;
 }
 
-export function NeedsYou({ cards }: NeedsYouProps) {
+export function NeedsYou({ cards, isLoading, error }: NeedsYouProps) {
+  if (isLoading) {
+    return (
+      <p data-testid="needs-you-loading" className="text-[13px] text-[var(--color-muted)]">
+        Checking for open questions…
+      </p>
+    );
+  }
+  if (error) {
+    return (
+      <p data-testid="needs-you-error" role="alert" className="text-[13px] text-[var(--color-error)]">
+        Couldn't check for open questions: {error instanceof Error ? error.message : "unknown error"}
+      </p>
+    );
+  }
+
   const open = (cards ?? []).filter((card) => {
     const latest = card.rounds[card.rounds.length - 1];
     return latest !== undefined && !isAnswered(latest);
@@ -55,14 +77,16 @@ export function NeedsYou({ cards }: NeedsYouProps) {
           >
             <div className="text-[12px] font-medium text-[var(--color-text)]">{card.cardTitle}</div>
             <div className="text-[13px] text-[var(--color-text)]">{latest.question}</div>
-            <input
-              type="text"
-              readOnly
-              value=""
-              placeholder="Answer pending"
+            {/* Non-interactive by design — an empty, focusable text input on
+                a read-only page reads as a write affordance that silently
+                does nothing (code review, Stage 2/low), the same papercut
+                that got W15's terminal slot omitted from this component. */}
+            <p
               data-testid="needs-you-answer-field"
               className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-muted-bg)] px-2 py-1 text-[12px] text-[var(--color-muted)]"
-            />
+            >
+              Answer pending
+            </p>
             <Link
               to="/org"
               data-testid={`needs-you-org-link-${card.cardId}`}

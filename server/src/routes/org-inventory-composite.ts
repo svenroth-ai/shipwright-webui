@@ -16,7 +16,8 @@
  * or the whole roster response.
  */
 
-import { registerPathFor, readRegisterFileTolerant, type LstatFn } from "../external/org/beat-register.js";
+import { registerEntriesGuarded } from "../external/org/beat-register-health.js";
+import type { LstatFn } from "../external/org/beat-register.js";
 import { readBeatEffectAuditCore, type BeatEffectAuditDeps } from "../external/org/beat-effect-audit-read.js";
 import { readBeatStepsCore, type BeatStepsReadDeps } from "../external/org/beat-steps-read.js";
 import { charterAuthorityCore, type CharterAuthorityDeps } from "../external/org/charter-authority-read.js";
@@ -48,8 +49,24 @@ export function buildLeadInventoryEntry(
   const now = deps.now ?? (() => new Date());
   const windowStartMs = now().getTime() - WINDOW_MS;
 
-  const registerRead = readRegisterFileTolerant(registerPathFor(deps.leadsRoot, leadId));
-  const allEntries = registerRead.ok ? registerRead.file.entries : [];
+  const registerRead = registerEntriesGuarded(deps, leadId);
+  if (!registerRead.ok) {
+    // A genuine read failure (corrupt JSON, invalid leadId, symlink,
+    // containment breach) is NOT the same as "this lead has never had a
+    // beat" — collapsing the two was Stage-2 code review's high/correctness
+    // finding: it rendered exactly the false-positive "clear" this iterate
+    // exists to eliminate elsewhere. `register:{status:"unreadable"}` lets
+    // the client render a distinct "beat history unavailable" state instead
+    // of the affirmative "No beats yet" empty state.
+    return {
+      leadId,
+      totalBeatsInRegister: 0,
+      beats: [],
+      register: { status: "unreadable" },
+      authority: charterAuthorityCore(deps, leadId, charterPath),
+    };
+  }
+  const allEntries = registerRead.entries;
   const totalBeatsInRegister = allEntries.length;
 
   // Bounded window: an unparseable `startedAt` VALUE is INCLUDED rather
@@ -65,14 +82,24 @@ export function buildLeadInventoryEntry(
     .slice()
     .sort((a, b) => parsedOrInfinity(a.startedAt) - parsedOrInfinity(b.startedAt));
 
-  const auditResult = readBeatEffectAuditCore(deps, leadId, windowStartMs);
+  const auditResult = readBeatEffectAuditCore(deps, leadId);
 
   const beats: BeatInventoryView[] = boundedEntries.map((entry) => {
     const steps = readBeatStepsCore(deps, leadId, entry.beatId);
-    const unclaimedEffect: BeatInventoryView["unclaimedEffect"] =
-      auditResult.status === "unknown"
-        ? { status: "unknown" }
-        : { status: auditResult.unclaimedBeatIds.has(entry.beatId) ? "found" : "clear" };
+    // Checks `unclaimedBeatIds.has(...)` BEFORE `auditResult.status`, not
+    // the other way round, so a beat already CONFIRMED to carry an
+    // unclaimed effect is never downgraded to a merely uncertain state
+    // (code review, Stage 2/medium: "found" is monotone). External code
+    // review correction: `readBeatEffectAuditCore`'s single-scan design is
+    // one atomic read — it either fully succeeds (`unclaimedBeatIds`
+    // complete) or fully fails (`unknown`, `unclaimedBeatIds` empty by
+    // construction), so there is no genuine mid-scan partial-failure state
+    // to protect against TODAY. This ordering is what would keep any
+    // future "found" entries monotone if the reader ever did support a
+    // partial/incremental result — not a live bug fix.
+    const unclaimedEffect: BeatInventoryView["unclaimedEffect"] = auditResult.unclaimedBeatIds.has(entry.beatId)
+      ? { status: "found" }
+      : { status: auditResult.status === "unknown" ? "unknown" : "clear" };
     return {
       beatId: entry.beatId,
       startedAt: entry.startedAt,
@@ -84,7 +111,7 @@ export function buildLeadInventoryEntry(
 
   const authority = charterAuthorityCore(deps, leadId, charterPath);
 
-  return { leadId, totalBeatsInRegister, beats, authority };
+  return { leadId, totalBeatsInRegister, beats, register: { status: "ok" }, authority };
 }
 
 /** Every chart lead's inventory, keyed by leadId — one entry per lead,

@@ -18,6 +18,12 @@ describe("beat-step.schema.json fidelity (read fresh off disk, not a byte-diff)"
     expect(schema.required).toEqual(["at", "band", "summary", "effect"]);
   });
 
+  it("at pattern matches the hand-typed guard's timestamp check", () => {
+    const schema = readSchema();
+    const properties = schema.properties as Record<string, { pattern?: string }>;
+    expect(properties.at.pattern).toBe("^\\d{4}-\\d{2}-\\d{2}T");
+  });
+
   it("band enum matches BEAT_STEP_BANDS exactly", () => {
     const schema = readSchema();
     const properties = schema.properties as Record<string, { enum?: string[] }>;
@@ -55,6 +61,10 @@ describe("isValidBeatStep — fixture accept/reject", () => {
 
   it("rejects a record with an invalid band", () => {
     expect(isValidBeatStep({ ...base, band: "not-a-band", effect: { kind: "none" } })).toBe(false);
+  });
+
+  it("rejects a record whose `at` isn't a timestamp (external code review, low/bug)", () => {
+    expect(isValidBeatStep({ ...base, at: "not-a-time", effect: { kind: "none" } })).toBe(false);
   });
 
   it("rejects a record missing summary", () => {

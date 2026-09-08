@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All 4 prior divergences resolved on re-review; no new divergence introduced. (1) AC-2b client half met — BeatList.tsx renders a distinct, non-alert muted note for unclaimedEffect.status==='unknown', structurally separate from the role='alert' warning for 'found'; tests assert clear renders neither, unknown renders only the note. (2) Nav entry — accepted disclosed deviation: header link only (labelled 'Last night' per spec), no handle.nav on the nested /org/inventory route (would breach navDestinations.test.ts's protected single-segment-path invariant and require an undesigned sidebar-rail icon); the iterate spec was amended in place with a 'Build-time amendment' note, and the misleading router.tsx comment was corrected. Flagged for human visibility at PR review, not blocking. (3) E2E data-safety hazard closed — assertIsolatedLeadsRoot() fail-closes before every write/rm unless SHIPWRIGHT_LEADS_ROOT is set or SHIPWRIGHT_E2E_ISOLATED=1 with a temporary HOME/USERPROFILE. (4) AC-1 integration test now uses a closed beat with 2 ordered steps.jsonl entries and asserts file order end-to-end through the real route. Code-reviewer (Stage 2) may proceed."
+}

@@ -51,15 +51,18 @@ describe("BeatList", () => {
     expect(warning.textContent).toMatch(/effect no step accounts for/i);
   });
 
-  it("does not render the warning for a clear or unknown beat", () => {
-    render(
-      <BeatList
-        beats={[beat({ beatId: "b1", unclaimedEffect: { status: "clear" } }), beat({ beatId: "b2", unclaimedEffect: { status: "unknown" } })]}
-        totalBeatsInRegister={2}
-        now={NOW}
-      />,
-    );
+  it("does not render the warning for a clear beat, and clear renders no unknown note either", () => {
+    render(<BeatList beats={[beat({ beatId: "b1", unclaimedEffect: { status: "clear" } })]} totalBeatsInRegister={1} now={NOW} />);
     expect(screen.queryByTestId("unclaimed-effect-warning")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("unclaimed-effect-unknown-b1")).not.toBeInTheDocument();
+  });
+
+  it("renders a distinct 'unknown' note for a beat whose effect check could not be verified — not the warning, and not silently identical to clear (AC-2b)", () => {
+    render(<BeatList beats={[beat({ beatId: "b1", unclaimedEffect: { status: "unknown" } })]} totalBeatsInRegister={1} now={NOW} />);
+    expect(screen.queryByTestId("unclaimed-effect-warning")).not.toBeInTheDocument();
+    const note = screen.getByTestId("unclaimed-effect-unknown-b1");
+    expect(note).toBeInTheDocument();
+    expect(note.textContent).toMatch(/could not confirm/i);
   });
 
   it("excludes a beat outside the last-night window; includes one with an unparseable startedAt (AC-7)", () => {
@@ -115,6 +118,45 @@ describe("BeatList", () => {
       />,
     );
     expect(screen.getByTestId("beat-steps-none-b1")).toHaveTextContent("No steps reported");
+  });
+
+  it("notes a partial read (some valid steps, some malformed lines) rather than rendering a complete-looking list silently", () => {
+    render(
+      <BeatList
+        beats={[
+          beat({
+            beatId: "b1",
+            steps: {
+              status: "ok",
+              steps: [{ at: INSIDE_WINDOW, band: "bugfix", summary: "fixed a typo", effect: { kind: "none" } }],
+              unreadableLines: 2,
+            },
+          }),
+        ]}
+        totalBeatsInRegister={1}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByTestId("beat-steps-b1")).toBeInTheDocument();
+    expect(screen.getByTestId("beat-steps-partial-b1")).toHaveTextContent("+2 unreadable lines");
+  });
+
+  it("renders a distinct, visible error state when the register itself could not be read — never as 'No beats yet' (AC-8-adjacent)", () => {
+    render(<BeatList beats={[]} totalBeatsInRegister={0} register={{ status: "unreadable" }} now={NOW} />);
+    expect(screen.getByTestId("beat-list-empty-unreadable")).toBeInTheDocument();
+    expect(screen.queryByTestId("beat-list-empty-never")).not.toBeInTheDocument();
+  });
+
+  it("renders the in-progress label AND the unclaimed-effect warning together on the same open beat (composition probe)", () => {
+    render(
+      <BeatList
+        beats={[beat({ beatId: "b1", closedAt: null, unclaimedEffect: { status: "found" } })]}
+        totalBeatsInRegister={1}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByTestId("beat-in-progress-b1")).toBeInTheDocument();
+    expect(screen.getByTestId("unclaimed-effect-warning")).toBeInTheDocument();
   });
 
   it("shows an 'in progress' label only when closedAt is null", () => {

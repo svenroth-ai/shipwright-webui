@@ -4,13 +4,13 @@
   "reviews": {
     "self": {
       "review_type": "self",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-09-08T18:48:34.436032+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "self-review",
       "parse_status": null,
       "raw_excerpt": null
     },
@@ -150,51 +150,150 @@
     },
     "code": {
       "review_type": "code",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-09-08T19:47:41.767204+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: lead-inventory-page.spec.ts's assertIsolatedLeadsRoot() prevents this spec from ever wiping the operator's real ~/.claude/leads/ — SHIPWRIGHT_LEADS_ROOT is a real, documented server config override (server/src/config.ts), not a test-only invention. A developer with it set in their normal shell/dev environment who runs `npx playwright test lead-inventory-page.spec.ts` directly (not via isolated-stack.mjs) hits `if (LEADS_ROOT_OVERRIDE) return;` — zero isolation check — and rmSync(LEADS_ROOT, {recursive:true,force:true}) deletes whatever real directory that variable points at.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary_and_contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: 'both new file readers' getting the open-first/O_NOFOLLOW/fd-read pattern means the composite's read surface as a whole closed the TOCTOU class this iterate hardened against — registerEntriesGuarded (beat-register-health.ts) retained the older lstatSync(path) -> realPathGuard(path) -> readFileSync(path) pattern, reading by string path rather than a held fd — a TOCTOU window where a local writer could swap the checked regular file for a symlink between the containment check and the read.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency_and_ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the AC-9 single-scan rewrite (unbounded full-file readFileSync per lead's audit.jsonl) is a strict improvement with no downside worth naming — The read is synchronous Node fs on the single JS event loop, called once per lead in a plain for-loop; the removed page cap was the only cost bound, and no test measures or bounds the tradeoff.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-09-08T19:59:24.875331+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
-      "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
-      "parse_status": null,
-      "raw_excerpt": null
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/e2e/flows/lead-inventory-page.spec.ts:105-111 (`withinLastNight`)",
+          "line": null,
+          "finding": "The E2E re-implements the \"last night\" window with its own anchor math instead of reusing `computeLastNightWindow` (which `LeadInventoryPage.test.tsx` correctly uses via midpoint). When the suite runs between 00:00 and 06:00, `anchor` becomes yesterday 06:00, so the fixture timestamp is yesterday 03:00. If `computeLastNightWindow` at pre-dawn \"now\" returns the in-progress night `[yesterday 18:00, today 06:00]` (the natural reading of the spec's \"18:00→06:00\" window, and what the BeatList test comment documents for a 10:00 `now`), yesterday 03:00 is outside the window — `BeatList` filters the beat out and both E2E cases fail. The helper's own comment (\"03:00 local on the calendar day whose 06:00 has not yet passed\") contradicts its code, which in that branch yields a timestamp on the day whose 06:00 has passed — a sign the two were never reconciled. This is a time-of-day-dependent flake the ledger's single daytime \"PASSED\" run cannot have exercised.",
+          "suggestion": "Compute the fixture timestamp as the midpoint of the actual `computeLastNightWindow(new Date())` (imported from `client/src/lib/auditTimelineMerge`), exactly as the page-level test does, and delete the hand-rolled anchor logic.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/external/org/charter-authority-read.test.ts:87-96 (`charterAuthorityCore` describe block)",
+          "line": null,
+          "finding": "AC-4-agent requires the 2-of-4-declared case to be verified against a fixture charter via `GET /api/org/inventory`. The 2-of-4 case is only tested at the `extractBandSections` level; `charterAuthorityCore` itself is only tested with 4/4, a 404, and a custom path, and the route-level test also only exercises a 4/4 charter. A wiring bug in `charterAuthorityCore` (e.g., miscounting `declaredCount`, or dropping `bands` for a partially-declared charter) would pass the current suite.",
+          "suggestion": "Add one `charterAuthorityCore` (or route-level) case with a 2-of-4 charter asserting `declaredCount === 2`, the two `declared:true` bands carrying prose, and the other two `declared:false`/`text:null`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/routes/org-inventory-composite.ts:96-101",
+          "line": null,
+          "finding": "The \"found is monotone even if the scan itself later degraded to unknown\" branch is dead code: `readBeatEffectAuditCore` always returns an empty `unclaimedBeatIds` whenever `status === \"unknown\"` (both non-200 return paths construct `new Set()`), so `auditResult.unclaimedBeatIds.has(entry.beatId)` can never be true on an unknown result. The runtime behavior is correct (unknown → unknown), but the comment (repeated in `beat-effect-audit-read.ts`'s header) documents a guarantee the code does not and cannot provide, and the type permits a state no producer creates.",
+          "suggestion": "Either remove the comment/branch, or actually preserve partial findings in `readBeatEffectAuditCore`'s unknown path (which its own header also claims) — pick one; as written the two headers and the composite disagree with the implementation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/leadInventory/BeatList.tsx:110 (`data-testid=\"unclaimed-effect-warning\"`)",
+          "line": null,
+          "finding": "The warning testid is not beat-scoped (unlike every other per-beat testid in the component: `beat-card-${beatId}`, `beat-steps-${beatId}`, `unclaimed-effect-unknown-${beatId}`). With two or more warned beats on one lead's list, `getByTestId` (Playwright strict mode, RTL `getBy`) fails on ambiguity — the E2E and component tests only pass because their fixtures have exactly one warned beat.",
+          "suggestion": "Scope it (`unclaimed-effect-warning-${beat.beatId}`) or assert via `getAllByTestId` where multiple warnings are possible; keep the spec's literal `data-testid=\"unclaimed-effect-warning\"` requirement satisfied by making the per-beat id a prefix or adding a stable wrapper.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/external/org/charter-authority-read.ts:106-124 (`extractSectionProse`)",
+          "line": null,
+          "finding": "An unbalanced code fence in a band section (a single ``` line with no closer before the next heading) leaves `inCodeFence` true for the remainder of the section, silently swallowing all of that band's prose — the band renders as declared with `(no prose in this section)` even though prose exists. A hand-edited charter (the stated premise for this file's boundary probes) can easily contain this.",
+          "suggestion": "Reset `inCodeFence` at section boundaries (it is per-call today but the toggle can straddle), or treat a fence-open at section start as prose-safe by bounding the scan to the already-sliced section lines and ignoring an unterminated fence state at the end.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/lead-inventory-page.spec.ts:124-126` — `withinLastNight()` chooses yesterday 06:00 as its anchor when run before 06:00, then emits a timestamp at yesterday 03:00. That is outside the current last-night window (yesterday 18:00 → today 06:00), so the E2E fixtures disappear and the tests fail during the early-morning period this feature targets.",
+          "line": null,
+          "finding": "Always anchor on today’s 06:00 and subtract three hours, or directly derive the fixture timestamp from `computeLastNightWindow`.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/org/charter-authority-read.test.ts:28` — AC-4 requires verification through `GET /api/org/inventory` for a charter declaring only two bands, including the slash-spacing case. The two-band/slash-spacing coverage only calls `extractBandSections`; the route test exercises only a four-band charter. A route/composite regression in charter-path forwarding or response ass […truncated]",
+          "line": null,
+          "finding": "Add a route-level fixture with a two-band charter (including tight slash spacing) and assert the returned `authority.bands` declaration/text values.  Overall: ship-with-fixes. The implementation is largely aligned with the spec, but the early-morning E2E fixture bug makes the required verification unreliable.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": "openai+glm",
+      "completed_at": "2026-09-08T20:23:25.164549+00:00",
+      "disposition": "6 findings across 2 providers, both revise. Fixed: withinLastNight() now derives from the real computeLastNightWindow() instead of a hand-rolled duplicate (removes the duplication both reviewers independently mis-traced -- verified by concrete date math that the original was NOT actually producing an out-of-window timestamp, a false positive both models shared); AC-4 2-of-4-declared case added at the route level (org-inventory.test.ts); the found-is-monotone comment corrected to state the read is atomic (no genuine mid-scan state exists post-rewrite); extractSectionProse no longer swallows trailing prose behind an unbalanced code fence. Disclosed, not changed: the unclaimed-effect-warning testid is pinned verbatim by AC-2a-agent (data-testid=\"unclaimed-effect-warning\", asserted by 2 existing tests) -- rescoping it would violate an explicit acceptance criterion; the multi-warned-beat-per-lead ambiguity GLM flagged is a real Playwright getByTestId limitation for a future multi-warning test, not a page-correctness bug, and is accepted as a known constraint of the pinned AC rather than fixed unilaterally.",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: edge-case\n  Severity: medium\n  File: client/e2e/flows/lead-inventory-page.spec.ts:105-111 (`withinLastNight`)\n  Finding: The E2E re-implements the \"last night\" window with its own anchor math instead of reusing `computeLastNightWindow` (which `LeadInventoryPage.test.tsx` correctly uses via midpoint). When the suite runs between 00:00 and 06:00, `anchor` becomes *yesterday* 06:00, so the fixture timestamp is *yesterday 03:00*. If `computeLastNightWindow` at pre-dawn \"now\" returns the in-progress night `[yesterday 18:00, today 06:00]` (the natural reading of the spec's \"18:00→06:00\" window, and what the BeatList test comment documents for a 10:00 `now`), yesterday 03:00 is **outside** the window — `BeatList` filters the beat out and both E2E cases fail. The helper's own comment (\"03:00 local on the calendar day whose 06:00 has not yet passed\") contradicts its code, which in that branch yields a timestamp on the day whose 06:00 *has* passed — a sign the two were never reconciled. This is a time-of-day-dependent flake the ledger's single daytime \"PASSED\" run cannot have exercised.\n  Suggestion: Compute the fixture timestamp as the midpoint of the actual `computeLastNightWindow(new Date())` (imported from `client/src/lib/auditTimelineMerge`), exactly as the page-level test does, and delete the hand-rolled anchor logic.\n\n- Category: test\n  Severity: medium\n  File: server/src/external/org/charter-authority-read.test.ts:87-96 (`charterAuthorityCore` describe block)\n  Finding: AC-4-agent requires the 2-of-4-declared case to be verified against a fixture charter via `GET /api/org/inventory`. The 2-of-4 case is only tested at the `extractBandSections` level; `charterAuthorityCore` itself is only tested with 4/4, a 404, and a custom path, and the route-level test also only exercises a 4/4 charter. A wiring bug in `charterAuthorityCore` (e.g., miscounting `declaredCount`, or dropping `bands` for a partially-declared charter) would pass the c […truncated]\n\n[openai] - Category: test  \n  Severity: medium  \n  File: `client/e2e/flows/lead-inventory-page.spec.ts:124-126` — `withinLastNight()` chooses *yesterday* 06:00 as its anchor when run before 06:00, then emits a timestamp at yesterday 03:00. That is outside the current last-night window (yesterday 18:00 → today 06:00), so the E2E fixtures disappear and the tests fail during the early-morning period this feature targets.  \n  Suggestion: Always anchor on today’s 06:00 and subtract three hours, or directly derive the fixture timestamp from `computeLastNightWindow`.\n\n- Category: test  \n  Severity: low  \n  File: `server/src/external/org/charter-authority-read.test.ts:28` — AC-4 requires verification through `GET /api/org/inventory` for a charter declaring only two bands, including the slash-spacing case. The two-band/slash-spacing coverage only calls `extractBandSections`; the route test exercises only a four-band charter. A route/composite regression in charter-path forwarding or response assembly would still pass these tests.  \n  Suggestion: Add a route-level fixture with a two-band charter (including tight slash spacing) and assert the returned `authority.bands` declaration/text values.\n\nOverall: ship-with-fixes. The implementation is largely aligned with the spec, but the early-morning E2E fixture bug makes the required verification unreliable.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
     },
     "spec": {
       "review_type": "spec",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-09-08T19:12:36.888283+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",

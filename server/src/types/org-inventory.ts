@@ -17,9 +17,17 @@ export type StepsView =
 
 /** `"clear"` = the audit lookup ran and found nothing for this beat;
  *  `"found"` = a `beat_effect_not_claimed` entry names this beat;
- *  `"unknown"` = the audit lookup itself degraded (read failure or
- *  pagination-cap truncation, AC-9) — NEVER collapsed into `"clear"`. */
+ *  `"unknown"` = the audit lookup itself degraded (a genuine read failure,
+ *  AC-9) — NEVER collapsed into `"clear"`. `"found"` always wins outright
+ *  over `"unknown"`, even from a scan that later failed. */
 export type UnclaimedEffectView = { status: "clear" | "found" | "unknown" };
+
+/** `"ok"` = the register file was read (present-and-valid, or legitimately
+ *  absent — a lead that has simply never run); `"unreadable"` = a genuine
+ *  read failure (corrupt JSON, invalid leadId, symlink, containment
+ *  breach) — NEVER collapsed into "zero beats" (code review, Stage 2:
+ *  that collapse read exactly like a lead that has never had a beat). */
+export type RegisterView = { status: "ok" | "unreadable" };
 
 export interface BeatInventoryView {
   beatId: string;
@@ -46,6 +54,7 @@ export interface LeadInventoryEntry {
    *  ascending (AC-11). The client narrows further to the exact "last
    *  night" window. */
   beats: BeatInventoryView[];
+  register: RegisterView;
   authority: AuthorityPanelView;
 }
 

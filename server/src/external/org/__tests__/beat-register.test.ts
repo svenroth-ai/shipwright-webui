@@ -4,7 +4,8 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync, lstatSync } from "node:f
 import path from "node:path";
 import { tmpdir } from "node:os";
 
-import { registerBeatRegisterHealthRoute, evaluateRegisterHealth } from "../beat-register.js";
+import { registerBeatRegisterHealthRoute } from "../beat-register-health.js";
+import { evaluateRegisterHealth } from "../beat-register.js";
 
 function entry(overrides: Partial<Record<string, unknown>> = {}) {
   return {

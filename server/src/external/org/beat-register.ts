@@ -1,6 +1,6 @@
 /*
- * external/org/beat-register.ts — shared shapes + GET
- * /api/external/org/leads/:leadId/beat-register (iterate-2026-08-18-org-route-beat-register,
+ * external/org/beat-register.ts — shared shapes + fs helpers for a lead's
+ * `beat-register.json` (iterate-2026-08-18-org-route-beat-register,
  * V4a-2B point 7 — the open-register finding).
  *
  * Reads leadwright's `~/.claude/leads/<lead-id>/beat-register.json`
@@ -11,18 +11,19 @@
  * cross-repo — matching its contract exactly, including one of its known
  * limitations (see the `MIRRORED LIMITATION` comment below).
  *
- * The release action (point 4.4) lives in `beat-register-release.ts`, which
- * imports the shared shapes/helpers from this file.
+ * The two guarded READ routes (health classification + raw entries) live in
+ * `beat-register-health.ts`, and the release action (point 4.4) lives in
+ * `beat-register-release.ts` — both import the shared shapes/helpers below.
+ * Split out of this file (bloat gate, iterate-2026-09-08-lead-inventory-page)
+ * once `registerEntriesGuarded` pushed it past the 300-line ceiling.
  */
 
-import type { Hono } from "hono";
-import { readFileSync, lstatSync, writeFileSync, renameSync, existsSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, renameSync, existsSync, unlinkSync } from "node:fs";
 import path, { dirname, basename } from "node:path";
 import { randomBytes } from "node:crypto";
 
-import { LEAD_ID_RE } from "./_helpers.js";
 import { realPathGuard } from "../../core/path-guard.js";
-import type { BeatRegisterEntryView, BeatRegisterHealthResponse } from "../../types/org.js";
+import type { BeatRegisterEntryView } from "../../types/org.js";
 
 export type {
   BeatRegisterEntryView,
@@ -175,21 +176,18 @@ export function atomicWriteJson(target: string, value: unknown): void {
   }
 }
 
-/** ENOENT/empty-file both read as a `{version:1, entries:[]}` clear
- *  register — mirrors leadwright's own `readRegisterUnlocked`. Any other
- *  parse/structural failure returns `ok:false` (never a guessed value). */
-export function readRegisterFileTolerant(
-  absolute: string,
-): { ok: true; file: BeatRegisterFile } | { ok: false } {
-  let raw: string;
-  try {
-    raw = readFileSync(absolute, "utf8");
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
-      return { ok: true, file: { version: 1, entries: [] } };
-    }
-    return { ok: false };
-  }
+/** Empty text and any parse/structural failure both resolve the same way
+ *  regardless of how the caller obtained the text (a plain `readFileSync`
+ *  by path, or a held-fd read after an open-first guard chain) — split out
+ *  of `readRegisterFileTolerant` so `registerEntriesGuarded` (beat-register-
+ *  health.ts) can reuse the parse without re-reading the file by path,
+ *  which is what the open-first pattern exists to avoid (external code
+ *  review, medium/security: `registerEntriesGuarded` originally checked
+ *  `lstat`+`realPathGuard` and then reopened the pathname via this
+ *  function's `readFileSync(absolute)` — a TOCTOU window where a local
+ *  writer could swap the checked regular file for a symlink between the
+ *  check and the reopen). */
+export function parseRegisterFileText(raw: string): { ok: true; file: BeatRegisterFile } | { ok: false } {
   if (raw.trim().length === 0) {
     return { ok: true, file: { version: 1, entries: [] } };
   }
@@ -205,66 +203,20 @@ export function readRegisterFileTolerant(
   return { ok: true, file: parsed };
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/external/org/leads/:leadId/beat-register
-// ---------------------------------------------------------------------------
-
-export interface BeatRegisterRouteDeps {
-  leadsRoot: string;
-  lstatSync?: LstatFn;
-}
-
-export type BeatRegisterHealthCoreResult =
-  | { status: 200; body: BeatRegisterHealthResponse }
-  | { status: 400 | 403 | 500 | 502; body: { error: string; leadId?: string; detail?: string } };
-
-/** Pure core — shared by the secret-gated route and the plain-surface proxy. */
-export function beatRegisterHealthCore(
-  deps: BeatRegisterRouteDeps,
-  leadId: string,
-): BeatRegisterHealthCoreResult {
-  const { leadsRoot } = deps;
-  const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
-
-  if (!LEAD_ID_RE.test(leadId)) {
-    return { status: 400, body: { error: "invalid_lead_id", leadId } };
-  }
-
-  const absolute = registerPathFor(leadsRoot, leadId);
-
-  let lst;
+/** ENOENT/empty-file both read as a `{version:1, entries:[]}` clear
+ *  register — mirrors leadwright's own `readRegisterUnlocked`. Any other
+ *  parse/structural failure returns `ok:false` (never a guessed value). */
+export function readRegisterFileTolerant(
+  absolute: string,
+): { ok: true; file: BeatRegisterFile } | { ok: false } {
+  let raw: string;
   try {
-    lst = lstat(absolute);
+    raw = readFileSync(absolute, "utf8");
   } catch (err) {
-    const code = (err as NodeJS.ErrnoException)?.code;
-    if (code === "ENOENT") {
-      return { status: 200, body: { leadId, status: "clear" } };
+    if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+      return { ok: true, file: { version: 1, entries: [] } };
     }
-    return {
-      status: 500,
-      body: { error: "beat_register_read_failed", detail: String(err).slice(0, 200) },
-    };
+    return { ok: false };
   }
-  if (lst.isSymbolicLink()) {
-    return { status: 403, body: { error: "symlink_forbidden", leadId } };
-  }
-  const containment = realPathGuard(leadsRoot, absolute);
-  if (!containment.ok) {
-    return { status: 400, body: { error: "path_traversal", detail: containment.reason } };
-  }
-
-  const read = readRegisterFileTolerant(absolute);
-  if (!read.ok) {
-    return { status: 502, body: { error: "beat_register_invalid", leadId } };
-  }
-
-  const health = evaluateRegisterHealth(read.file);
-  return { status: 200, body: { leadId, ...health } };
-}
-
-export function registerBeatRegisterHealthRoute(app: Hono, deps: BeatRegisterRouteDeps): void {
-  app.get("/api/external/org/leads/:leadId/beat-register", async (c) => {
-    const result = beatRegisterHealthCore(deps, c.req.param("leadId"));
-    return c.json(result.body, result.status);
-  });
+  return parseRegisterFileText(raw);
 }

@@ -5,9 +5,8 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import type { ReactNode } from "react";
 
 import LeadInventoryPage from "./LeadInventoryPage";
-import { fetchOrgChart } from "../lib/orgApi";
+import { fetchOrgChart, fetchOrgThreads } from "../lib/orgApi";
 import { fetchOrgInventory } from "../lib/leadInventoryApi";
-import { fetchOrgThreads } from "../lib/orgApi";
 import { computeLastNightWindow } from "../lib/auditTimelineMerge";
 
 // A timestamp guaranteed to fall inside BeatList's client-side "last night"
@@ -69,6 +68,7 @@ describe("LeadInventoryPage", () => {
             unclaimedEffect: { status: "clear" },
           },
         ],
+        register: { status: "ok" },
         authority: {
           measured: true,
           declaredCount: 4,
@@ -96,5 +96,29 @@ describe("LeadInventoryPage", () => {
     mockedInventory.mockResolvedValue({});
     renderPage();
     await waitFor(() => expect(screen.getByTestId("lead-inventory-broken")).toBeInTheDocument());
+  });
+
+  it("shows a distinct 'couldn't check for open questions' state per lead when the threads query fails, not a false 'nothing needs you' (Stage-2 code review)", async () => {
+    mockedChart.mockResolvedValue({
+      version: 1,
+      po: "sven",
+      leads: {
+        "acme-lead": { domain: "acme-lead", name: "Acme Lead", reports_to: null, manages: [], charter_path: "charter.md" },
+      },
+    });
+    mockedThreads.mockRejectedValue(new Error("threads down"));
+    mockedInventory.mockResolvedValue({
+      "acme-lead": {
+        leadId: "acme-lead",
+        totalBeatsInRegister: 0,
+        beats: [],
+        register: { status: "ok" },
+        authority: { measured: false, reason: "not readable at the default charter path" },
+      },
+    });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId("needs-you-error")).toBeInTheDocument());
+    expect(screen.queryByTestId("needs-you-empty")).not.toBeInTheDocument();
   });
 });

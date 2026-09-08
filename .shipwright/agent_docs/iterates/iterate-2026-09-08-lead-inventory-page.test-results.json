@@ -1,0 +1,259 @@
+{
+  "last_updated": "2026-09-08",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-08-lead-inventory-page",
+    "date": "2026-09-08",
+    "unit": {
+      "status": "passed",
+      "passed": 8147,
+      "total": 8154
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 39,
+        "tested": 39,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 11,
+        "covered_acs": 11
+      },
+      "behaviors": [
+        {
+          "behavior": "Vendored beat-step.schema.json stays byte-identical + fixtures validate against it",
+          "disposition": "tested",
+          "evidence": "leadwright-beat-step.test.ts::\"beat-step.schema.json fidelity\" + \"isValidBeatStep - fixture accept/reject\" PASSED"
+        },
+        {
+          "behavior": "beat-steps-read.ts re-validates LEAD_ID_RE/BEAT_ID_RE before any fs call (rejects without touching disk)",
+          "disposition": "tested",
+          "evidence": "beat-steps-read.test.ts mocked-openSync refusal test PASSED"
+        },
+        {
+          "behavior": "beat-steps-read.ts tolerates a malformed JSONL line without failing the whole read",
+          "disposition": "tested",
+          "evidence": "beat-steps-read.test.ts::\"skips a malformed line, counts it\" PASSED"
+        },
+        {
+          "behavior": "beat-steps-read.ts ENOENT -> ok/empty steps, other fs errors -> unreadable (tri-state, never a false empty)",
+          "disposition": "tested",
+          "evidence": "beat-steps-read.test.ts ENOENT/EACCES cases PASSED (11/11 file)"
+        },
+        {
+          "behavior": "beat-effect-audit-read.ts finds an unclaimed-effect entry in a single-pass scan",
+          "disposition": "tested",
+          "evidence": "beat-effect-audit-read.test.ts::\"finds a beat_effect_not_claimed entry in a single-pass scan and returns ok\" PASSED"
+        },
+        {
+          "behavior": "beat-effect-audit-read.ts 404 -> legitimate clear; any other non-200 -> unknown (never collapsed to clear)",
+          "disposition": "tested",
+          "evidence": "beat-effect-audit-read.test.ts 404 + real-read-failure cases PASSED"
+        },
+        {
+          "behavior": "beat-effect-audit-read.ts reads audit.jsonl in a single full-file scan (superseded bounded pagination) with complete window coverage by construction",
+          "disposition": "tested",
+          "evidence": "beat-effect-audit-read.test.ts::\"reads the file exactly once regardless of how many lines it contains\" PASSED (5001-line fixture, asserts one read call)"
+        },
+        {
+          "behavior": "org-inventory-composite.ts includes a beat with an unparseable startedAt, excludes one genuinely outside the 48h window",
+          "disposition": "tested",
+          "evidence": "org-inventory-composite.test.ts::\"window-bound+unparseable-startedAt-inclusion\" PASSED"
+        },
+        {
+          "behavior": "org-inventory-composite.ts orders beats ascending by startedAt",
+          "disposition": "tested",
+          "evidence": "org-inventory-composite.test.ts::\"startedAt-ascending ordering\" PASSED"
+        },
+        {
+          "behavior": "org-inventory-composite.ts degrades only the offending beat when a beat id fails BEAT_ID_RE, not the whole lead",
+          "disposition": "tested",
+          "evidence": "org-inventory-composite.test.ts::\"BEAT_ID_RE-refused-beat degrades only that beat\" PASSED"
+        },
+        {
+          "behavior": "org-inventory-composite.ts sets unclaimedEffect found/unknown correctly (found case, degrade-on-audit-read-failure case)",
+          "disposition": "tested",
+          "evidence": "org-inventory-composite.test.ts unclaimedEffect found + degrade cases PASSED"
+        },
+        {
+          "behavior": "org-inventory-composite.ts returns zero beats (not an error) when no register file exists; keys multiple leads independently",
+          "disposition": "tested",
+          "evidence": "org-inventory-composite.test.ts no-register-file + multi-lead-keying cases PASSED"
+        },
+        {
+          "behavior": "org-inventory-composite.ts degrades to register:unreadable (not a false zero-beats clear) on corrupt beat-register.json or LEAD_ID_RE-refused leadId; registerEntriesGuarded uses the open-first pattern (closes a TOCTOU window)",
+          "disposition": "tested",
+          "evidence": "org-inventory-composite.test.ts corrupt-register + refused-leadId degrade cases PASSED; beat-register.test.ts + beat-register-confidence-probes.test.ts re-verified green against the open-first rewrite"
+        },
+        {
+          "behavior": "GET /api/org/inventory composes the roster-wide response end-to-end against real tmpdir fixtures",
+          "disposition": "tested",
+          "evidence": "org-inventory.test.ts (4 route-level cases) PASSED"
+        },
+        {
+          "behavior": "charter-authority-read.ts extracts prose for 4/4 declared bands; marks a missing band declared:false/text:null; tolerates heading slash-spacing variance; returns text:null for a heading with an empty section",
+          "disposition": "tested",
+          "evidence": "charter-authority-read.test.ts (extractBandSections describe block, 5 cases) PASSED"
+        },
+        {
+          "behavior": "charter-authority-read.ts tolerates a UTF-8 BOM, non-ASCII prose (umlauts/em-dash), and CRLF line endings in charter.md",
+          "disposition": "tested",
+          "evidence": "charter-authority-read.test.ts BOM/non-ASCII/CRLF boundary-probe cases PASSED"
+        },
+        {
+          "behavior": "charter-authority-read.ts reports measured:false with a distinct reason for a failed read vs. a non-default charter_path",
+          "disposition": "tested",
+          "evidence": "charter-authority-read.test.ts default-path/custom-path reason cases PASSED"
+        },
+        {
+          "behavior": "BandChip renders the correct label and data-testid per band",
+          "disposition": "tested",
+          "evidence": "BandChip.test.tsx (2 cases) PASSED"
+        },
+        {
+          "behavior": "BeatList renders one BandChip per step, in step order, per beat (AC-1)",
+          "disposition": "tested",
+          "evidence": "BeatList.test.tsx::\"renders a BeatCard per beat...AC-1\" PASSED"
+        },
+        {
+          "behavior": "BeatList renders a visible, DOM-assertable unclaimed-effect warning on unclaimedEffect:found, a distinct non-alert note for unknown, and neither for clear (AC-2a/AC-2b)",
+          "disposition": "tested",
+          "evidence": "BeatList.test.tsx warning-present, clear-renders-neither, unknown-note cases PASSED"
+        },
+        {
+          "behavior": "BeatList narrows to last night client-side: excludes a beat outside the window, includes one with an unparseable startedAt (AC-7)",
+          "disposition": "tested",
+          "evidence": "BeatList.test.tsx::\"excludes a beat outside the last-night window...AC-7\" PASSED"
+        },
+        {
+          "behavior": "BeatList shows two distinct empty states (never had a beat vs nothing in this window) plus a third distinct error state when register:unreadable (AC-8)",
+          "disposition": "tested",
+          "evidence": "BeatList.test.tsx all three empty-state cases PASSED"
+        },
+        {
+          "behavior": "BeatList distinguishes steps unavailable from no steps reported and notes a partial read rather than rendering a complete-looking list silently (AC-10)",
+          "disposition": "tested",
+          "evidence": "BeatList.test.tsx steps-rendering + partial-read cases PASSED"
+        },
+        {
+          "behavior": "An in-progress beat (closedAt:null) and an unclaimed-effect warning compose correctly on the same BeatCard without one clobbering the other",
+          "disposition": "tested",
+          "evidence": "BeatList.test.tsx::\"renders the in-progress label AND the unclaimed-effect warning together\" (composition probe) PASSED"
+        },
+        {
+          "behavior": "AuthorityPanel renders per-band charter prose + an N/4 declared completeness line, and never renders a may-act-alone claim",
+          "disposition": "tested",
+          "evidence": "AuthorityPanel.test.tsx (3 cases) PASSED"
+        },
+        {
+          "behavior": "NeedsYou renders exactly one answer field per open question (non-interactive, not a focusable input), with no thread/round affordance",
+          "disposition": "tested",
+          "evidence": "NeedsYou.test.tsx (7 cases) PASSED"
+        },
+        {
+          "behavior": "LeadInventoryPage composes AuthorityPanel+BeatList+NeedsYou per lead in chart order, shows a named error state when the org chart fails to load, and surfaces the threads-query error distinctly",
+          "disposition": "tested",
+          "evidence": "LeadInventoryPage.test.tsx (3 cases) PASSED"
+        },
+        {
+          "behavior": "useLeadInventory hook fetches via fetchOrgInventory with the same staleTime/refetchInterval convention as useOrgThreads",
+          "disposition": "tested",
+          "evidence": "useLeadInventory.test.ts (1 case) PASSED"
+        },
+        {
+          "behavior": "/org/inventory route resolves to LeadInventoryPage in a real browser, guarded against writing to the operator's real ~/.claude/leads/ outside isolation",
+          "disposition": "tested",
+          "evidence": "lead-inventory-page.spec.ts (both cases navigate via page.goto(\"/org/inventory\")); assertIsolatedLeadsRoot() requires SHIPWRIGHT_E2E_ISOLATED=1 unconditionally + containment-checks any SHIPWRIGHT_LEADS_ROOT override PASSED"
+        },
+        {
+          "behavior": "OrgPage links to /org/inventory via a visible, addressable affordance",
+          "disposition": "tested",
+          "evidence": "OrgPage.test.tsx::\"renders chart -> shared docs -> lead list...AC-1\" (org-inventory-link href assertion) PASSED"
+        },
+        {
+          "behavior": "A real round trip - JSON written to real steps.jsonl/audit.jsonl/beat-register.json/charter.md on disk, read through the full server+client stack, rendered in a real browser",
+          "disposition": "tested",
+          "evidence": "lead-inventory-page.spec.ts (real fixture writes under isolated ~/.claude/leads/, both cases) PASSED via node e2e/isolated-stack.mjs"
+        },
+        {
+          "behavior": "LeadInventoryPage.tsx bounds its own vertical scroll below the title bar (shell-scroll invariant)",
+          "disposition": "tested",
+          "evidence": "shell-scroll-invariant.test.ts (registry entry added for LeadInventoryPage.tsx) PASSED"
+        },
+        {
+          "behavior": "Server/client type mirrors stay in sync - a dropped field is caught, not silently drifted",
+          "disposition": "tested",
+          "evidence": "org-inventory-schema-sync.test.ts (9 cases; falsified by temporarily dropping unreadableLines, confirmed red, restored) PASSED"
+        },
+        {
+          "behavior": "New test files contain no test-hygiene smells (skip/only, unstubbed timers, etc.)",
+          "disposition": "tested",
+          "evidence": "scan_test_hygiene.py --diff -> no findings"
+        },
+        {
+          "behavior": "isValidBeatStep rejects a malformed at timestamp, matching the vendored schema's own ^\\d{4}-\\d{2}-\\d{2}T pattern",
+          "disposition": "tested",
+          "evidence": "leadwright-beat-step.test.ts::\"at pattern matches...\" + \"rejects a record whose at isn't a timestamp\" PASSED (external code review, low/bug)"
+        },
+        {
+          "behavior": "beat-steps-read.ts treats a steps.jsonl that is actually a directory as unreadable via the real fstat().isFile() path, not only a mocked ELOOP",
+          "disposition": "tested",
+          "evidence": "beat-steps-read.test.ts::\"a steps.jsonl that is actually a directory is unreadable...\" PASSED (external code review, low/test-coverage)"
+        },
+        {
+          "behavior": "AC-4's 2-of-4-declared case is verified through the real GET /api/org/inventory endpoint, not only at the extractBandSections unit level",
+          "disposition": "tested",
+          "evidence": "org-inventory.test.ts::\"renders a 2-of-4-declared charter through the real endpoint...\" PASSED (external code review, medium/test - both reviewers independently)"
+        },
+        {
+          "behavior": "The E2E fixture's last-night timestamp is derived from the real computeLastNightWindow, not a hand-rolled duplicate of its branch logic",
+          "disposition": "tested",
+          "evidence": "lead-inventory-page.spec.ts re-verified green under node e2e/isolated-stack.mjs, both cases, after the change"
+        },
+        {
+          "behavior": "charter-authority-read.ts's extractSectionProse does not swallow a section's trailing prose behind an unbalanced (unclosed) code fence; a balanced fence still hides its contents (regression guard)",
+          "disposition": "tested",
+          "evidence": "charter-authority-read.test.ts unbalanced-fence + balanced-fence-regression cases PASSED (external code review, low/edge-case)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "Beats/steps/band-chip rendering, the unclaimed-effect warning, the authority panel and the isolated-leads-root guard are real-browser DOM behaviors invisible to jsdom-level component tests alone - verified via this repo's isolated-stack.mjs Playwright harness (client/e2e/flows/lead-inventory-page.spec.ts) against real on-disk fixtures under an ephemeral, isolated leads root. Both cases (AC-1/AC-4 rendering, AC-2a unclaimed-effect warning) passed."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-08-lead-inventory-page",
+    "commit": "68b64ea77477f5b400a019cb1f14689f783c6551",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

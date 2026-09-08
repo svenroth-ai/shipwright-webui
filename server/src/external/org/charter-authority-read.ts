@@ -88,13 +88,28 @@ function headingLines(lines: string[]): HeadingLine[] {
 /** Same line-shape-skip technique `role-extract.ts` uses for its single
  *  paragraph, applied to a bounded slice of lines (one heading's section)
  *  instead of the whole document — text-processing only, not a markdown
- *  AST parse. Returns `null` for an effectively empty section. */
+ *  AST parse. Returns `null` for an effectively empty section.
+ *
+ * An UNBALANCED fence (an opening ``` or ~~~ with no matching close before
+ * the section ends) is treated as no fence at all for this section — every
+ * line, including the stray fence marker itself, is kept as ordinary prose
+ * (external code review, low/edge-case): the naive toggle would otherwise
+ * leave `inCodeFence` stuck `true` for the rest of the section, silently
+ * swallowing everything after a hand-edited charter's forgotten closer.
+ * "Fail toward showing more, never toward hiding data" — the same rule
+ * this file applies to a missing/empty section already. */
 function extractSectionProse(sectionLines: string[]): string | null {
+  const fenceLineCount = sectionLines.filter((line) => {
+    const trimmed = line.trim();
+    return trimmed.startsWith("```") || trimmed.startsWith("~~~");
+  }).length;
+  const fencesBalanced = fenceLineCount % 2 === 0;
+
   const paragraphLines: string[] = [];
   let inCodeFence = false;
   for (const line of sectionLines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith("```") || trimmed.startsWith("~~~")) {
+    if (fencesBalanced && (trimmed.startsWith("```") || trimmed.startsWith("~~~"))) {
       inCodeFence = !inCodeFence;
       continue;
     }

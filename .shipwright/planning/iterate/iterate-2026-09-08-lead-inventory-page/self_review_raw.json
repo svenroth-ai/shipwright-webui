@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All 11 ACs implemented: vendored schema + fidelity test, tri-state degrade throughout, roster-wide composite (not N+1), 48h server window + client last-night narrowing, totalBeatsInRegister for the two-empty-states split, per-band charter prose + N/4 completeness (not a 'may act alone' claim), needs-you single answer field with no thread/round affordance, BEAT_ID_RE/LEAD_ID_RE re-validated in the readers themselves, unclaimed-effect warning rendered visibly on the beat and DOM-asserted."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "Every new reader (beat-steps-read, beat-effect-audit-read, charter-authority-read) returns a typed degrade result instead of throwing; the /api/org/inventory route mirrors the existing /api/org/leads and /api/org/threads handlers' no-top-level-try/catch convention because the composite builder itself never throws."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "beat-steps-read.ts validates both LEAD_ID_RE and the new BEAT_ID_RE before any path join or fs call (proven by a mocked-openSync test asserting openSync was never called); mirrors audit-log.ts's exact open-first / O_NOFOLLOW / fstat().isFile() / realPathGuard pattern. No secrets, no unescaped user input in output."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Every module has a happy-path and at least one error/degrade-path test asserting on return shape or rendered DOM, not internals (e.g. beat-effect-audit-read's pagination-cap test asserts the call count AND the resulting unknown status; BeatList's tests assert DOM testids/text, not filter internals)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "One org-chart.json parse per request (done by the caller), audit.jsonl read once per lead via a bounded, paginated beat-effect-audit-read (never once per beat), beats server-side bounded to a 48h window instead of a lead's whole register history."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New files land in the existing external/org, routes, types, client/lib, client/hooks, client/components/<area>, client/pages directories per CLAUDE.md conventions; largest new file is 269 lines (org.ts after the edit), all others well under the 300-line ceiling."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Four producer/consumer pairs listed in the iterate spec's Affected Boundaries table (leadwright steps.jsonl writer -> beat-steps-read.ts; leadwright audit.jsonl writer -> beat-effect-audit-read.ts; leadwright beat-register.json writer -> org-inventory-composite.ts; charter.md author -> charter-authority-read.ts). touches_io_boundary fired. A real round-trip (JSON written to a real steps.jsonl on disk, read back through readBeatStepsCore -> isValidBeatStep -> the route -> the rendered DOM) is exercised by both a route-level vitest (org-inventory.test.ts) and a real-browser E2E spec (lead-inventory-page.spec.ts), not mocked."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run shared/scripts/tools/scan_test_hygiene.py --diff reported 'no findings' against the changed test files."
+    }
+  ]
+}

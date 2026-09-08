@@ -4,7 +4,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 
 import { buildLeadInventoryEntry, buildOrgInventory } from "./org-inventory-composite.js";
-import type { AuditLogCoreResult } from "../external/org/audit-log.js";
+import type { AuditLinesGuardedResult } from "../external/org/audit-log.js";
 
 const VALID_BEAT_ID = "9f1c9e2a-2b1e-4a1e-9c1e-1a2b3c4d5e6f";
 const OTHER_BEAT_ID = "aaaaaaaa-bbbb-4ccc-9ddd-eeeeeeeeeeee";
@@ -30,7 +30,7 @@ describe("buildLeadInventoryEntry", () => {
     );
   }
 
-  const noAuditFn = (): AuditLogCoreResult => ({ status: 404, body: { error: "not_found" } });
+  const noAuditFn = (): AuditLinesGuardedResult => ({ status: 404, body: { error: "not_found" } });
 
   it("bounds beats to the 48h window but includes an unparseable startedAt value (fail toward showing)", () => {
     writeRegister([
@@ -39,7 +39,7 @@ describe("buildLeadInventoryEntry", () => {
       { sessionId: "s3", beatId: "cccccccc-cccc-4ccc-9ccc-cccccccccccc", leadId: "lead-a", pid: 3, startedAt: "not-a-date", closedAt: null },
     ]);
     const entry = buildLeadInventoryEntry(
-      { leadsRoot, now: () => NOW, auditLogFn: noAuditFn },
+      { leadsRoot, now: () => NOW, readAuditLinesFn: noAuditFn },
       "lead-a",
       undefined,
     );
@@ -53,7 +53,7 @@ describe("buildLeadInventoryEntry", () => {
       { sessionId: "s2", beatId: VALID_BEAT_ID, leadId: "lead-a", pid: 2, startedAt: "2026-09-08T01:00:00Z", closedAt: "2026-09-08T02:00:00Z" },
     ]);
     const entry = buildLeadInventoryEntry(
-      { leadsRoot, now: () => NOW, auditLogFn: noAuditFn },
+      { leadsRoot, now: () => NOW, readAuditLinesFn: noAuditFn },
       "lead-a",
       undefined,
     );
@@ -65,7 +65,7 @@ describe("buildLeadInventoryEntry", () => {
       { sessionId: "s1", beatId: "not-a-uuid", leadId: "lead-a", pid: 1, startedAt: "2026-09-08T02:00:00Z", closedAt: null },
     ]);
     const entry = buildLeadInventoryEntry(
-      { leadsRoot, now: () => NOW, auditLogFn: noAuditFn },
+      { leadsRoot, now: () => NOW, readAuditLinesFn: noAuditFn },
       "lead-a",
       undefined,
     );
@@ -73,34 +73,27 @@ describe("buildLeadInventoryEntry", () => {
     expect(entry.beats[0].steps).toEqual({ status: "unreadable" });
   });
 
-  it("marks unclaimedEffect found for a beat named in the audit lookup", () => {
+  it("marks unclaimedEffect found for a beat named in the audit scan", () => {
     writeRegister([
       { sessionId: "s1", beatId: VALID_BEAT_ID, leadId: "lead-a", pid: 1, startedAt: "2026-09-08T02:00:00Z", closedAt: null },
     ]);
-    const auditLogFn = (): AuditLogCoreResult => ({
+    const readAuditLinesFn = (): AuditLinesGuardedResult => ({
       status: 200,
-      body: {
-        entries: [
-          {
-            raw: "",
-            parsed: { ts: "2026-09-08T02:30:00Z", kind: "beat_effect_not_claimed", beat_id: VALID_BEAT_ID },
-          },
-        ],
-        total: 1,
-        nextCursor: null,
-      },
+      linesNewestFirst: [
+        JSON.stringify({ ts: "2026-09-08T02:30:00Z", kind: "beat_effect_not_claimed", beat_id: VALID_BEAT_ID }),
+      ],
     });
-    const entry = buildLeadInventoryEntry({ leadsRoot, now: () => NOW, auditLogFn }, "lead-a", undefined);
+    const entry = buildLeadInventoryEntry({ leadsRoot, now: () => NOW, readAuditLinesFn }, "lead-a", undefined);
     expect(entry.beats[0].unclaimedEffect).toEqual({ status: "found" });
   });
 
-  it("degrades every bounded beat's unclaimedEffect to unknown when the audit lookup itself degrades", () => {
+  it("degrades every bounded beat's unclaimedEffect to unknown when the audit scan itself degrades", () => {
     writeRegister([
       { sessionId: "s1", beatId: VALID_BEAT_ID, leadId: "lead-a", pid: 1, startedAt: "2026-09-08T02:00:00Z", closedAt: null },
     ]);
-    const failingAuditFn = (): AuditLogCoreResult => ({ status: 403, body: { error: "symlink_forbidden" } });
+    const failingAuditFn = (): AuditLinesGuardedResult => ({ status: 403, body: { error: "symlink_forbidden" } });
     const entry = buildLeadInventoryEntry(
-      { leadsRoot, now: () => NOW, auditLogFn: failingAuditFn },
+      { leadsRoot, now: () => NOW, readAuditLinesFn: failingAuditFn },
       "lead-a",
       undefined,
     );
@@ -109,7 +102,7 @@ describe("buildLeadInventoryEntry", () => {
 
   it("a lead with no register file at all reads as zero beats, not an error", () => {
     const entry = buildLeadInventoryEntry(
-      { leadsRoot, now: () => NOW, auditLogFn: noAuditFn },
+      { leadsRoot, now: () => NOW, readAuditLinesFn: noAuditFn },
       "lead-a",
       undefined,
     );
@@ -117,8 +110,30 @@ describe("buildLeadInventoryEntry", () => {
       leadId: "lead-a",
       totalBeatsInRegister: 0,
       beats: [],
+      register: { status: "ok" },
       authority: { measured: false, reason: "not readable at the default charter path" },
     });
+  });
+
+  it("a corrupt beat-register.json degrades to register:{status:'unreadable'}, never a false 'zero beats'", () => {
+    writeFileSync(path.join(leadsRoot, "lead-a", "beat-register.json"), "{not valid json", "utf8");
+    const entry = buildLeadInventoryEntry(
+      { leadsRoot, now: () => NOW, readAuditLinesFn: noAuditFn },
+      "lead-a",
+      undefined,
+    );
+    expect(entry.register).toEqual({ status: "unreadable" });
+    expect(entry.beats).toEqual([]);
+  });
+
+  it("an invalid leadId (LEAD_ID_RE-refused) degrades the register to unreadable rather than reading through it", () => {
+    const entry = buildLeadInventoryEntry(
+      { leadsRoot, now: () => NOW, readAuditLinesFn: noAuditFn },
+      "../escape",
+      undefined,
+    );
+    expect(entry.register).toEqual({ status: "unreadable" });
+    expect(entry.beats).toEqual([]);
   });
 });
 
@@ -128,9 +143,9 @@ describe("buildOrgInventory", () => {
     try {
       mkdirSync(path.join(leadsRoot, "lead-a"), { recursive: true });
       mkdirSync(path.join(leadsRoot, "lead-b"), { recursive: true });
-      const auditLogFn = (): AuditLogCoreResult => ({ status: 404, body: { error: "not_found" } });
+      const readAuditLinesFn = (): AuditLinesGuardedResult => ({ status: 404, body: { error: "not_found" } });
       const result = buildOrgInventory(
-        { leadsRoot, now: () => NOW, auditLogFn },
+        { leadsRoot, now: () => NOW, readAuditLinesFn },
         [
           { leadId: "lead-a", charterPath: undefined },
           { leadId: "lead-b", charterPath: undefined },

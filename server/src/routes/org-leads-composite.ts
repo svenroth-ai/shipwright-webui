@@ -21,7 +21,7 @@ import type {
 } from "../types/org.js";
 import { usageCore } from "../external/org/usage.js";
 import { lastRunCore } from "../external/org/last-run.js";
-import { beatRegisterHealthCore, type BeatRegisterHealthCoreResult } from "../external/org/beat-register.js";
+import { beatRegisterHealthCore, type BeatRegisterHealthCoreResult } from "../external/org/beat-register-health.js";
 import { orgFileReadCore, type OrgFileReadDeps } from "../external/org/file-read.js";
 import type { LeadOrgInfoResult } from "../external/org/org-chart-lookup.js";
 import { cronIntervalMs } from "../external/org/cron.js";

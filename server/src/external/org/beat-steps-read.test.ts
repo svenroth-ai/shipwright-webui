@@ -130,4 +130,11 @@ describe("readBeatStepsCore — real content (tmpdir)", () => {
     const result = readBeatStepsCore({ leadsRoot }, "lead-a", VALID_BEAT_ID);
     expect(result).toEqual({ status: "ok", steps: [], unreadableLines: 1 });
   });
+
+  it("a steps.jsonl that is actually a directory is unreadable (real fstat().isFile() === false path, not a mocked ELOOP) — external code review, low/test-coverage", () => {
+    rmSync(path.join(beatDir, "steps.jsonl"), { force: true });
+    mkdirSync(path.join(beatDir, "steps.jsonl"));
+    const result = readBeatStepsCore({ leadsRoot }, "lead-a", VALID_BEAT_ID);
+    expect(result).toEqual({ status: "unreadable" });
+  });
 });

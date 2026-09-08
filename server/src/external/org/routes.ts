@@ -45,7 +45,7 @@ import { registerOrgChartRoute } from "./org-chart.js";
 import { registerUsageRoute } from "./usage.js";
 import { registerCountersignRoute } from "./countersign.js";
 import { registerLastRunRoute } from "./last-run.js";
-import { registerBeatRegisterHealthRoute } from "./beat-register.js";
+import { registerBeatRegisterHealthRoute } from "./beat-register-health.js";
 import { registerBeatRegisterReleaseRoute } from "./beat-register-release.js";
 import { registerDaemonConfigReadRoute } from "./daemon-config-read.js";
 import { registerVerdictRoute } from "./verdict.js";

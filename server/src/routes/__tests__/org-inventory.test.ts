@@ -62,9 +62,10 @@ describe("GET /api/org/inventory", () => {
     expect(body["acme-lead"].authority).toEqual({ measured: false, reason: "not readable at the default charter path" });
   });
 
-  it("renders a beat's steps and band chips, and the authority panel from a real charter.md (AC-1)", async () => {
+  it("renders a CLOSED beat's steps in file order (2 entries), band chips, and the authority panel from a real charter.md (AC-1)", async () => {
     writeChart();
     mkdirSync(path.join(leadsRoot, "acme-lead", "beats", VALID_BEAT_ID), { recursive: true });
+    const startedAt = new Date().toISOString();
     writeFileSync(
       path.join(leadsRoot, "acme-lead", "beat-register.json"),
       JSON.stringify({
@@ -75,8 +76,8 @@ describe("GET /api/org/inventory", () => {
             beatId: VALID_BEAT_ID,
             leadId: "acme-lead",
             pid: 123,
-            startedAt: new Date().toISOString(),
-            closedAt: null,
+            startedAt,
+            closedAt: startedAt,
           },
         ],
       }),
@@ -84,7 +85,10 @@ describe("GET /api/org/inventory", () => {
     );
     writeFileSync(
       path.join(leadsRoot, "acme-lead", "beats", VALID_BEAT_ID, "steps.jsonl"),
-      `${JSON.stringify({ at: new Date().toISOString(), band: "bugfix", summary: "fixed a typo", effect: { kind: "none" } })}\n`,
+      [
+        JSON.stringify({ at: startedAt, band: "bugfix", summary: "fixed a typo", effect: { kind: "none" } }),
+        JSON.stringify({ at: startedAt, band: "feature", summary: "added a flag", effect: { kind: "none" } }),
+      ].join("\n") + "\n",
       "utf8",
     );
     writeFileSync(
@@ -98,11 +102,17 @@ describe("GET /api/org/inventory", () => {
     const body = await res.json();
     const lead = body["acme-lead"];
     expect(lead.beats).toHaveLength(1);
+    expect(lead.beats[0].closedAt).toBe(startedAt);
     expect(lead.beats[0].steps).toEqual({
       status: "ok",
-      steps: [{ at: expect.any(String), band: "bugfix", summary: "fixed a typo", effect: { kind: "none" } }],
+      steps: [
+        { at: startedAt, band: "bugfix", summary: "fixed a typo", effect: { kind: "none" } },
+        { at: startedAt, band: "feature", summary: "added a flag", effect: { kind: "none" } },
+      ],
       unreadableLines: 0,
     });
+    // File order, not sorted or reversed — the exact AC-1 guarantee.
+    expect(lead.beats[0].steps.steps.map((s: { band: string }) => s.band)).toEqual(["bugfix", "feature"]);
     expect(lead.beats[0].unclaimedEffect).toEqual({ status: "clear" });
     expect(lead.authority.measured).toBe(true);
     expect(lead.authority.declaredCount).toBe(4);
@@ -137,5 +147,26 @@ describe("GET /api/org/inventory", () => {
     const res = await app.request("/api/org/inventory");
     const body = await res.json();
     expect(body["acme-lead"].beats[0].unclaimedEffect).toEqual({ status: "found" });
+  });
+
+  it("renders a 2-of-4-declared charter through the real endpoint, not just extractBandSections (AC-4, external code review)", async () => {
+    writeChart();
+    mkdirSync(path.join(leadsRoot, "acme-lead"), { recursive: true });
+    writeFileSync(
+      path.join(leadsRoot, "acme-lead", "charter.md"),
+      "## Bugfix/bekannter Defekt\nFix small defects.\n\n## Neues Feature\nAsk first.\n",
+      "utf8",
+    );
+    const app = createOrgApiRouter({ leadsRoot, honoHost: "127.0.0.1" });
+    const res = await app.request("/api/org/inventory");
+    expect(res.status).toBe(200);
+    const authority = (await res.json())["acme-lead"].authority;
+    expect(authority.measured).toBe(true);
+    expect(authority.declaredCount).toBe(2);
+    const byId = Object.fromEntries(authority.bands.map((b: { id: string }) => [b.id, b]));
+    expect(byId.bugfix).toMatchObject({ declared: true, text: "Fix small defects." });
+    expect(byId.feature).toMatchObject({ declared: true, text: "Ask first." });
+    expect(byId.maintenance).toMatchObject({ declared: false, text: null });
+    expect(byId.architecture).toMatchObject({ declared: false, text: null });
   });
 });

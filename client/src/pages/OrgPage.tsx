@@ -51,7 +51,7 @@ export default function OrgPage() {
               data-testid="org-inventory-link"
               className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
             >
-              Inventory
+              Last night
             </Link>
             <Link
               to="/org/new-lead"

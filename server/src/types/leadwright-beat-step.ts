@@ -24,6 +24,12 @@
  * human re-vendors deliberately and bumps the pin.
  */
 
+/** Mirrors the vendored schema's own `at` pattern exactly (external code
+ *  review, low/bug): `isValidBeatStep` previously accepted any string for
+ *  `at`, so a malformed timestamp (`"not-a-time"`) rendered as a valid
+ *  logged step instead of being counted as an unreadable line. */
+const BEAT_STEP_AT_RE = /^\d{4}-\d{2}-\d{2}T/;
+
 export const BEAT_STEP_BANDS = ["bugfix", "maintenance", "feature", "architecture"] as const;
 
 export type BeatStepBand = (typeof BEAT_STEP_BANDS)[number];
@@ -54,6 +60,7 @@ export function isValidBeatStep(v: unknown): v is BeatStep {
   const s = v as Record<string, unknown>;
   return (
     typeof s.at === "string" &&
+    BEAT_STEP_AT_RE.test(s.at) &&
     typeof s.band === "string" &&
     (BEAT_STEP_BANDS as readonly string[]).includes(s.band) &&
     typeof s.summary === "string" &&

@@ -60,4 +60,31 @@ describe("NeedsYou", () => {
     renderWithRouter(<NeedsYou cards={undefined} />);
     expect(screen.getByTestId("needs-you-empty")).toBeInTheDocument();
   });
+
+  it("renders a distinct loading state while the threads query is in flight, not the empty state (AC-2b-adjacent)", () => {
+    renderWithRouter(<NeedsYou cards={undefined} isLoading />);
+    expect(screen.getByTestId("needs-you-loading")).toBeInTheDocument();
+    expect(screen.queryByTestId("needs-you-empty")).not.toBeInTheDocument();
+  });
+
+  it("renders a distinct error state when the threads query fails, not the empty state", () => {
+    renderWithRouter(<NeedsYou cards={undefined} error={new Error("boom")} />);
+    const err = screen.getByTestId("needs-you-error");
+    expect(err).toHaveTextContent("boom");
+    expect(screen.queryByTestId("needs-you-empty")).not.toBeInTheDocument();
+  });
+
+  it("the answer-pending field is non-interactive, not a focusable empty input (AC-5)", () => {
+    const cards: OrgThreadCardView[] = [
+      {
+        cardId: "task-4",
+        cardTitle: "Card",
+        rounds: [{ id: "task-4#1", question: "Q?", askedAt: "2026-09-08T01:00:00Z" }],
+      },
+    ];
+    renderWithRouter(<NeedsYou cards={cards} />);
+    const field = screen.getByTestId("needs-you-answer-field");
+    expect(field.tagName).not.toBe("INPUT");
+    expect(field).toHaveTextContent("Answer pending");
+  });
 });

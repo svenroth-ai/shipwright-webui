@@ -63,7 +63,7 @@ function LeadInventoryErrorState() {
 function LeadInventoryContent() {
   const { data: chart, isLoading: chartLoading } = useOrgChart();
   const { data: inventory, isLoading: inventoryLoading, error } = useLeadInventory();
-  const { data: threads } = useOrgThreads();
+  const { data: threads, isLoading: threadsLoading, error: threadsError } = useOrgThreads();
 
   if (chartLoading || inventoryLoading || !chart) {
     return (
@@ -109,12 +109,12 @@ function LeadInventoryContent() {
             {entry ? (
               <>
                 <AuthorityPanel authority={entry.authority} />
-                <BeatList beats={entry.beats} totalBeatsInRegister={entry.totalBeatsInRegister} />
+                <BeatList beats={entry.beats} totalBeatsInRegister={entry.totalBeatsInRegister} register={entry.register} />
               </>
             ) : (
               <p className="text-[13px] text-[var(--color-muted)]">No inventory data for this lead</p>
             )}
-            <NeedsYou cards={threads?.[leadId]} />
+            <NeedsYou cards={threads?.[leadId]} isLoading={threadsLoading} error={threadsError} />
           </section>
         );
       })}
