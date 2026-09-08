@@ -2,8 +2,8 @@
   "schema_version": 4,
   "collector_version": "test_links/1.0.0",
   "generated_at": "1970-01-01T00:00:00+00:00",
-  "source_commit": "c452b8f999e29e429699b54412cd0fede422b268",
-  "spec_hash": "sha256:c3775b2b9b31e77b83bf1243d70eeebe765b13ee9e4218f0f1e3b8b9a2aaf157",
+  "source_commit": "1b8a1fbb36eb5d59284b649eda652de74b7214b6",
+  "spec_hash": "sha256:b81e8e75c7b1e58fcddbf0440883d26fa80ce65d9a34030cc1f1b7e698499be9",
   "requirements": {
     "01::FR-01.01": {
       "id": "FR-01.01",
@@ -1035,6 +1035,46 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/CampaignStartButton.test.tsx::disabled when no project is resolved",
+            "path": "client/src/components/external/CampaignStartButton.test.tsx::disabled when no project is resolved",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC1: clicking Start calls the EXISTING startCampaign hook path with the slug",
+            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC1: clicking Start calls the EXISTING startCampaign hook path with the slug",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 409 already-complete start surfaces a persistent Refresh notice (no Retry)",
+            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 409 already-complete start surfaces a persistent Refresh notice (no Retry)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 503 lock start surfaces a Retry (genuinely transient)",
+            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 503 lock start surfaces a Retry (genuinely transient)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 422 no-writable-target start shows the fix, NO Retry",
+            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 422 no-writable-target start shows the fix, NO Retry",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/CampaignsLane.test.tsx::renders nothing when there are no visible and no dismissed campaigns",
             "path": "client/src/components/external/CampaignsLane.test.tsx::renders nothing when there are no visible and no dismissed campaigns",
             "layer": "unit",
@@ -1077,46 +1117,6 @@
           {
             "id": "client/src/components/external/CampaignsLane.test.tsx::AC1: a dismissed draft is NOT surfaced (dismiss quittance still wins)",
             "path": "client/src/components/external/CampaignsLane.test.tsx::AC1: a dismissed draft is NOT surfaced (dismiss quittance still wins)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/CampaignStartButton.test.tsx::disabled when no project is resolved",
-            "path": "client/src/components/external/CampaignStartButton.test.tsx::disabled when no project is resolved",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC1: clicking Start calls the EXISTING startCampaign hook path with the slug",
-            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC1: clicking Start calls the EXISTING startCampaign hook path with the slug",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 409 already-complete start surfaces a persistent Refresh notice (no Retry)",
-            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 409 already-complete start surfaces a persistent Refresh notice (no Retry)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 503 lock start surfaces a Retry (genuinely transient)",
-            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 503 lock start surfaces a Retry (genuinely transient)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 422 no-writable-target start shows the fix, NO Retry",
-            "path": "client/src/components/external/CampaignStartButton.test.tsx::AC3: a 422 no-writable-target start shows the fix, NO Retry",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -4481,6 +4481,102 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::accepts a run the event log knows",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::accepts a run the event log knows",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::accepts a run only the iterate record knows (the log may predate it)",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::accepts a run only the iterate record knows (the log may predate it)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::REJECTS a run this project has no record of (measured: a cross-repo id)",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::REJECTS a run this project has no record of (measured: a cross-repo id)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::an ABSENT event log is not evidence (no records at all \u2192 no recovery)",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::an ABSENT event log is not evidence (no records at all \u2192 no recovery)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::does not corroborate an id that fails the run_id grammar",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::does not corroborate an id that fails the run_id grammar",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::is NOT satisfied by the id merely appearing inside an event's prose",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::is NOT satisfied by the id merely appearing inside an event's prose",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::is NOT satisfied by an id that only PREFIXES a recorded run",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::is NOT satisfied by an id that only PREFIXES a recorded run",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::re-checks the records for an uncorroborated candidate (memo is textual only)",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::re-checks the records for an uncorroborated candidate (memo is textual only)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::memoizes a marker-FREE transcript so a plain session stops re-scanning",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::memoizes a marker-FREE transcript so a plain session stops re-scanning",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::re-scans once the transcript GROWS (the real-world change signal)",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::re-scans once the transcript GROWS (the real-world change signal)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::still recovers when a SAME-LENGTH saturated tail slides the footer in",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::still recovers when a SAME-LENGTH saturated tail slides the footer in",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::keeps the memo PER SESSION \u2014 one plain session cannot silence another",
+            "path": "server/src/core/mission-context/run-id-recovery.corroboration.test.ts::keeps the memo PER SESSION \u2014 one plain session cannot silence another",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "server/src/core/mission-context/run-id-recovery.test.ts::finds the footer written as a JSON-escaped commit message",
             "path": "server/src/core/mission-context/run-id-recovery.test.ts::finds the footer written as a JSON-escaped commit message",
             "layer": "unit",
@@ -4603,102 +4699,6 @@
           {
             "id": "server/src/core/mission-context/run-id-recovery.test.ts::does not match a marker glued to more text on the same line",
             "path": "server/src/core/mission-context/run-id-recovery.test.ts::does not match a marker glued to more text on the same line",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::accepts a run the event log knows",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::accepts a run the event log knows",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::accepts a run only the iterate record knows (the log may predate it)",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::accepts a run only the iterate record knows (the log may predate it)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::REJECTS a run this project has no record of (measured: a cross-repo id)",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::REJECTS a run this project has no record of (measured: a cross-repo id)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::an ABSENT event log is not evidence (no records at all \u2192 no recovery)",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::an ABSENT event log is not evidence (no records at all \u2192 no recovery)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::does not corroborate an id that fails the run_id grammar",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::does not corroborate an id that fails the run_id grammar",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::is NOT satisfied by the id merely appearing inside an event's prose",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::is NOT satisfied by the id merely appearing inside an event's prose",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::is NOT satisfied by an id that only PREFIXES a recorded run",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::is NOT satisfied by an id that only PREFIXES a recorded run",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::re-checks the records for an uncorroborated candidate (memo is textual only)",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::re-checks the records for an uncorroborated candidate (memo is textual only)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::memoizes a marker-FREE transcript so a plain session stops re-scanning",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::memoizes a marker-FREE transcript so a plain session stops re-scanning",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::re-scans once the transcript GROWS (the real-world change signal)",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::re-scans once the transcript GROWS (the real-world change signal)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::still recovers when a SAME-LENGTH saturated tail slides the footer in",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::still recovers when a SAME-LENGTH saturated tail slides the footer in",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "server/src/core/mission-context/run-id-recovery.test.ts::keeps the memo PER SESSION \u2014 one plain session cannot silence another",
-            "path": "server/src/core/mission-context/run-id-recovery.test.ts::keeps the memo PER SESSION \u2014 one plain session cannot silence another",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -11511,32 +11511,24 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field",
-            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field",
+            "id": "client/src/pages/TaskDetailPage.deepLink.test.tsx::focuses the terminal on ?focus=terminal",
+            "path": "client/src/pages/TaskDetailPage.deepLink.test.tsx::focuses the terminal on ?focus=terminal",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::imports NO terminal-write / pty API",
-            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::imports NO terminal-write / pty API",
+            "id": "client/src/pages/TaskDetailPage.deepLink.test.tsx::strips the query so a reload does not re-snap focus",
+            "path": "client/src/pages/TaskDetailPage.deepLink.test.tsx::strips the query so a reload does not re-snap focus",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::makes NO WebSocket send / pty.write call",
-            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::makes NO WebSocket send / pty.write call",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::does NOT copy a command to the clipboard (the CTA navigates, not copies)",
-            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::does NOT copy a command to the clipboard (the CTA navigates, not copies)",
+            "id": "client/src/pages/TaskDetailPage.deepLink.test.tsx::does NOT focus the terminal without the deep-link intent",
+            "path": "client/src/pages/TaskDetailPage.deepLink.test.tsx::does NOT focus the terminal without the deep-link intent",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -11695,24 +11687,32 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/pages/TaskDetailPage.deepLink.test.tsx::focuses the terminal on ?focus=terminal",
-            "path": "client/src/pages/TaskDetailPage.deepLink.test.tsx::focuses the terminal on ?focus=terminal",
+            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field",
+            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::has NO text input surface (input / textarea / contentEditable), except the FR-04.19 lead-answer field",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/pages/TaskDetailPage.deepLink.test.tsx::strips the query so a reload does not re-snap focus",
-            "path": "client/src/pages/TaskDetailPage.deepLink.test.tsx::strips the query so a reload does not re-snap focus",
+            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::imports NO terminal-write / pty API",
+            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::imports NO terminal-write / pty API",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/pages/TaskDetailPage.deepLink.test.tsx::does NOT focus the terminal without the deep-link intent",
-            "path": "client/src/pages/TaskDetailPage.deepLink.test.tsx::does NOT focus the terminal without the deep-link intent",
+            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::makes NO WebSocket send / pty.write call",
+            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::makes NO WebSocket send / pty.write call",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/pages/inbox/inbox-no-writepath.test.ts::does NOT copy a command to the clipboard (the CTA navigates, not copies)",
+            "path": "client/src/pages/inbox/inbox-no-writepath.test.ts::does NOT copy a command to the clipboard (the CTA navigates, not copies)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -13472,6 +13472,38 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/external/MockupReviewOverlay.test.tsx::writes + shows 'Saved \u2014 Round N' for a valid same-origin message from the iframe",
+            "path": "client/src/components/external/MockupReviewOverlay.test.tsx::writes + shows 'Saved \u2014 Round N' for a valid same-origin message from the iframe",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a message from a different origin",
+            "path": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a message from a different origin",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a same-origin message whose source is NOT the hosted iframe",
+            "path": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a same-origin message whose source is NOT the hosted iframe",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/external/SingleSessionRunCard.test.tsx::renders the DesignGatePanel ONLY when the design gate is active (FR-01.45)",
+            "path": "client/src/components/external/SingleSessionRunCard.test.tsx::renders the DesignGatePanel ONLY when the design gate is active (FR-01.45)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/external/mission/DesignGateCard.test.tsx::renders as the .mc-op glass card in designgate state (no new glass recipe)",
             "path": "client/src/components/external/mission/DesignGateCard.test.tsx::renders as the .mc-op glass card in designgate state (no new glass recipe)",
             "layer": "unit",
@@ -13618,38 +13650,6 @@
           {
             "id": "client/src/components/external/mission/DesignGateGallery.test.tsx::while the manifest is still loading, the count is DROPPED (never guessed)",
             "path": "client/src/components/external/mission/DesignGateGallery.test.tsx::while the manifest is still loading, the count is DROPPED (never guessed)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/MockupReviewOverlay.test.tsx::writes + shows 'Saved \u2014 Round N' for a valid same-origin message from the iframe",
-            "path": "client/src/components/external/MockupReviewOverlay.test.tsx::writes + shows 'Saved \u2014 Round N' for a valid same-origin message from the iframe",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a message from a different origin",
-            "path": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a message from a different origin",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a same-origin message whose source is NOT the hosted iframe",
-            "path": "client/src/components/external/MockupReviewOverlay.test.tsx::IGNORES a same-origin message whose source is NOT the hosted iframe",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/external/SingleSessionRunCard.test.tsx::renders the DesignGatePanel ONLY when the design gate is active (FR-01.45)",
-            "path": "client/src/components/external/SingleSessionRunCard.test.tsx::renders the DesignGatePanel ONLY when the design gate is active (FR-01.45)",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -16619,6 +16619,110 @@
             "tag_source": "covers_comment"
           },
           {
+            "id": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::renders the lighthouse-hero welcome copy + the three canonical doors",
+            "path": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::renders the lighthouse-hero welcome copy + the three canonical doors",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::the register-manually line deep-links to /projects?new=1",
+            "path": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::the register-manually line deep-links to /projects?new=1",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::renders the three canonical First-Contact doors + the add-existing line",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::renders the three canonical First-Contact doors + the add-existing line",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::a probe error is treated as NOT ready, with npx offered as generic recovery",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::a probe error is treated as NOT ready, with npx offered as generic recovery",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::4 questions \u2192 plan card, with live flight-plan translations",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::4 questions \u2192 plan card, with live flight-plan translations",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::pick \u2192 scan \u2192 two-column result + mission CTA",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::pick \u2192 scan \u2192 two-column result + mission CTA",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::/wizard (picker), /wizard/new, /wizard/adopt, /wizard/grade land on the right entry",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::/wizard (picker), /wizard/new, /wizard/adopt, /wizard/grade land on the right entry",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard renders the door picker",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard renders the door picker",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/adopt lands inside the adopt flow at step 1",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/adopt lands inside the adopt flow at step 1",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/grade lands inside the grade flow at step 1",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/grade lands inside the grade flow at step 1",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::an unknown /wizard/:door segment falls back to the picker",
+            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::an unknown /wizard/:door segment falls back to the picker",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::on-photo.css resets .iw-card to dark-on-white (in the rule-2 :is() list)",
+            "path": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::on-photo.css resets .iw-card to dark-on-white (in the rule-2 :is() list)",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
+            "id": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::the banner uses the FLIPPING ink tokens, not the non-flipping --color-* aliases",
+            "path": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::the banner uses the FLIPPING ink tokens, not the non-flipping --color-* aliases",
+            "layer": "unit",
+            "status": "enabled",
+            "executed": "not_run",
+            "tag_source": "covers_comment"
+          },
+          {
             "id": "client/src/components/wizard/IntentWizard/contract.test.ts::remember=Yes \u2192 supabase-nextjs with the free-account note",
             "path": "client/src/components/wizard/IntentWizard/contract.test.ts::remember=Yes \u2192 supabase-nextjs with the free-account note",
             "layer": "unit",
@@ -16715,94 +16819,6 @@
             "tag_source": "covers_comment"
           },
           {
-            "id": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::renders the lighthouse-hero welcome copy + the three canonical doors",
-            "path": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::renders the lighthouse-hero welcome copy + the three canonical doors",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::the register-manually line deep-links to /projects?new=1",
-            "path": "client/src/components/wizard/IntentWizard/FirstContact.test.tsx::the register-manually line deep-links to /projects?new=1",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::renders the three canonical First-Contact doors + the add-existing line",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::renders the three canonical First-Contact doors + the add-existing line",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::a probe error is treated as NOT ready, with npx offered as generic recovery",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::a probe error is treated as NOT ready, with npx offered as generic recovery",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::4 questions \u2192 plan card, with live flight-plan translations",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::4 questions \u2192 plan card, with live flight-plan translations",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::pick \u2192 scan \u2192 two-column result + mission CTA",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::pick \u2192 scan \u2192 two-column result + mission CTA",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::/wizard (picker), /wizard/new, /wizard/adopt, /wizard/grade land on the right entry",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizard.test.tsx::/wizard (picker), /wizard/new, /wizard/adopt, /wizard/grade land on the right entry",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard renders the door picker",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard renders the door picker",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/adopt lands inside the adopt flow at step 1",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/adopt lands inside the adopt flow at step 1",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/grade lands inside the grade flow at step 1",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::/wizard/grade lands inside the grade flow at step 1",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::an unknown /wizard/:door segment falls back to the picker",
-            "path": "client/src/components/wizard/IntentWizard/IntentWizardPage.test.tsx::an unknown /wizard/:door segment falls back to the picker",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
             "id": "client/src/components/wizard/IntentWizard/launchFlow.test.tsx::Go creates the project + task, launches, shows launching, hands off",
             "path": "client/src/components/wizard/IntentWizard/launchFlow.test.tsx::Go creates the project + task, launches, shows launching, hands off",
             "layer": "unit",
@@ -16821,22 +16837,6 @@
           {
             "id": "client/src/components/wizard/IntentWizard/launchFlow.test.tsx::from launch-failed: Try again re-runs; then Back returns to the plan card",
             "path": "client/src/components/wizard/IntentWizard/launchFlow.test.tsx::from launch-failed: Try again re-runs; then Back returns to the plan card",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::on-photo.css resets .iw-card to dark-on-white (in the rule-2 :is() list)",
-            "path": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::on-photo.css resets .iw-card to dark-on-white (in the rule-2 :is() list)",
-            "layer": "unit",
-            "status": "enabled",
-            "executed": "not_run",
-            "tag_source": "covers_comment"
-          },
-          {
-            "id": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::the banner uses the FLIPPING ink tokens, not the non-flipping --color-* aliases",
-            "path": "client/src/components/wizard/IntentWizard/ReadinessGate.legibility.test.ts::the banner uses the FLIPPING ink tokens, not the non-flipping --color-* aliases",
             "layer": "unit",
             "status": "enabled",
             "executed": "not_run",
@@ -19322,7 +19322,7 @@
     "01::FR-01.71": {
       "id": "FR-01.71",
       "spec_path": ".shipwright/planning/01-adopted/spec.md",
-      "title": "The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it \u2014 the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface. The card's spend stat is labelled as consumed spend (never \"budget\"), names the un-counted subagent-spend share, surfaces unpriced-call counts, and distinguishes a no-data/partial/complete measurement window. The shared-documents block gained a fifth tile for the team's proposed-decisions log (parsed into entries, never dumped raw) with a Countersign button per entry \u2014 the plain surface's third browser-reachable write, sharing the existing gated route's own core action. An \"Activity\" view now merges every lead's audit log into one time-sorted, filterable list (by lead, event type, and a time window incl. a \"last night\" preset or a manual range) opened from the org page header, so the operator no longer has to open a raw-log viewer per lead and merge the timelines by eye \u2014 reads only, over the existing per-lead audit route, no new write surface.",
+      "title": "The operator can see and manage their AI leads from inside the Command Center: an org chart, shared organization documents (view-only), and one card per lead showing identity, role, current activity, capacity stats, and quick access to that lead's charter (editable), learnings, and audit log. Reads go through a new plain, browser-facing `/api/org/*` proxy that shares the existing secret-gated route family's own logic in-process; the only browser write is a lead's own charter.<br>**Updates:** Each lead card can also render its per-card conversation thread (leadwright's question/answer follow-up rounds, in order, open rounds marked explicitly) beneath it \u2014 the only readable surface for that thread (FR-04.42), fed by leadwright's real round-store producer. No new write surface. The card's spend stat is labelled as consumed spend (never \"budget\"), names the un-counted subagent-spend share, surfaces unpriced-call counts, and distinguishes a no-data/partial/complete measurement window. The shared-documents block gained a fifth tile for the team's proposed-decisions log (parsed into entries, never dumped raw) with a Countersign button per entry \u2014 the plain surface's third browser-reachable write, sharing the existing gated route's own core action. An \"Activity\" view now merges every lead's audit log into one time-sorted, filterable list (by lead, event type, and a time window incl. a \"last night\" preset or a manual range) opened from the org page header, so the operator no longer has to open a raw-log viewer per lead and merge the timelines by eye \u2014 reads only, over the existing per-lead audit route, no new write surface. A new `/org/inventory` page composites, per lead, last night's beats with ordered authority-band step chips, the lead's declared authority ladder read from its charter, open \"needs you\" questions (one answer field, no thread), and a visible warning on any beat whose effect went unclaimed \u2014 viewer only, no org-chart editing, no new leadwright API, no budget work.",
       "priority": "Should",
       "status": "active",
       "required_layers": [],
@@ -19562,6 +19562,54 @@
       "category": "confirmed_orphan"
     },
     {
+      "test": "client/src/components/external/LeadTagFilter.test.tsx::hides the Bot dropdown and BellDot on a confirmed absent org chart",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/LeadTagFilter.test.tsx::still renders both controls while presence is loading",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/LeadTagFilter.test.tsx::still renders both controls when presence is broken (e.g. a 502, not absent)",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/LeadTagFilter.test.tsx::renders both controls once the org chart is present",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx::hides the fields on a confirmed absent org chart (no leads installed)",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx::still renders the fields while presence is loading",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx::still renders the fields when presence is broken (e.g. a 502, not absent)",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/src/components/external/NewIssueModal/LeadwrightFields.test.tsx::renders the fields once the org chart is present",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
       "test": "client/src/components/external/TaskCardClaimChip.test.tsx::renders nothing when the task is unclaimed",
       "tagged_fr": "FR-04.22",
       "reason": "fr_absent",
@@ -19612,6 +19660,24 @@
     {
       "test": "client/src/hooks/useBoardFilters.test.ts::clearAllFilters also resets the claim axis",
       "tagged_fr": "FR-04.22",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/e2e/flows/leadwright-gate-org-presence.spec.ts::Bot dropdown and BellDot are hidden from the board toolbar; a lead-tagged task's chip still renders",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/e2e/flows/leadwright-gate-org-presence.spec.ts::the New Task dialog's lead fields are hidden, but the dialog itself still works",
+      "tagged_fr": "FR-04.11",
+      "reason": "fr_absent",
+      "category": "confirmed_orphan"
+    },
+    {
+      "test": "client/e2e/flows/leadwright-gate-org-presence.spec.ts::Bot dropdown, BellDot, and the New dialog's lead fields still render",
+      "tagged_fr": "FR-04.11",
       "reason": "fr_absent",
       "category": "confirmed_orphan"
     }
@@ -19832,6 +19898,8 @@
     "client/e2e/flows/lead-fields-tag-filter.spec.ts::GET ?tag= exact-matches across projects, 200-empties on an unknown tag, intersects with ?projectId=",
     "client/e2e/flows/lead-fields-tag-filter.spec.ts::PATCH poFeedback: writes, echoes, clears via empty string, rejects over-length",
     "client/e2e/flows/lead-fields-tag-filter.spec.ts::POST leadParentTaskId: persists + round-trips, soft-drops empty string, poFeedback stays PATCH-only",
+    "client/e2e/flows/lead-inventory-page.spec.ts::a beat carrying an unclaimed-effect audit entry renders a visible warning ON the beat (AC-2a)",
+    "client/e2e/flows/lead-inventory-page.spec.ts::a lead with beats and steps renders both, band chips included, plus its authority panel (AC-1/AC-4)",
     "client/e2e/flows/mermaid-real-render.spec.ts::mermaid resolves exactly one DOMPurify, and esbuild reports no warnings",
     "client/e2e/flows/mermaid-real-render.spec.ts::renders a real ${diagram.name} diagram \u2014 ${diagram.why}",
     "client/e2e/flows/mermaid-real-render.spec.ts::the sanitizer strips a script payload from a node label, inside render()",
@@ -20626,6 +20694,32 @@
     "client/src/components/external/mission/ProofSummary.test.tsx::no lines -> an honest empty state, never an invented line (AC5)",
     "client/src/components/external/mission/ProofSummary.test.tsx::renders each proof line, mapping kinds to the prototype span classes",
     "client/src/components/external/sortParity.test.tsx::the In-Progress column order equals the List default order, id-for-id",
+    "client/src/components/leadInventory/AuthorityPanel.test.tsx::marks a missing band with the muted 'not declared' variant and copy",
+    "client/src/components/leadInventory/AuthorityPanel.test.tsx::renders an honest degrade reason when the charter could not be measured",
+    "client/src/components/leadInventory/AuthorityPanel.test.tsx::renders per-band prose and a completeness line for all 4 declared bands, never 'may act alone'",
+    "client/src/components/leadInventory/BandChip.test.tsx::renders all 4 canonical bands with distinct labels",
+    "client/src/components/leadInventory/BandChip.test.tsx::renders the same label for the same band regardless of variant (structural 'same words')",
+    "client/src/components/leadInventory/BeatList.test.tsx::does not render the warning for a clear beat, and clear renders no unknown note either",
+    "client/src/components/leadInventory/BeatList.test.tsx::excludes a beat outside the last-night window; includes one with an unparseable startedAt (AC-7)",
+    "client/src/components/leadInventory/BeatList.test.tsx::notes a partial read (some valid steps, some malformed lines) rather than rendering a complete-looking list silently",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders 'no steps reported' for a genuinely empty, error-free contribution (AC-10)",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders 'steps unavailable' for an unreadable steps read, not 'no steps reported'",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders 'steps unavailable' when every line was malformed (AC-10), distinct from a genuinely empty contribution",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders a BeatCard per beat, each step as a BandChip, in order (AC-1)",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders a distinct 'unknown' note for a beat whose effect check could not be verified \u2014 not the warning, and not silently identical to clear (AC-2b)",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders a distinct, visible error state when the register itself could not be read \u2014 never as 'No beats yet' (AC-8-adjacent)",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders a visible unclaimed-effect warning banner on the beat, with warning copy (AC-2a)",
+    "client/src/components/leadInventory/BeatList.test.tsx::renders the in-progress label AND the unclaimed-effect warning together on the same open beat (composition probe)",
+    "client/src/components/leadInventory/BeatList.test.tsx::shows 'no beats yet' when the lead has never had a beat (AC-8)",
+    "client/src/components/leadInventory/BeatList.test.tsx::shows a window-specific empty state when the lead has history but nothing in this window (AC-8)",
+    "client/src/components/leadInventory/BeatList.test.tsx::shows an 'in progress' label only when closedAt is null",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::omits a card whose latest round IS answered, even if an earlier round was open (AC-11)",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::renders a distinct error state when the threads query fails, not the empty state",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::renders a distinct loading state while the threads query is in flight, not the empty state (AC-2b-adjacent)",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::shows a card whose latest round is unanswered, with exactly one answer field and a link to Org, no thread/round affordance",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::shows an empty state when there is nothing to show, and undefined cards is treated as none",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::the answer-pending field is non-interactive, not a focusable empty input (AC-5)",
+    "client/src/components/leadInventory/NeedsYou.test.tsx::treats a whitespace-only answer as unanswered (mirrors OrgThread's isAnswered exactly)",
     "client/src/components/org/AuditLogModal.test.tsx::LeadCard.tsx",
     "client/src/components/org/AuditLogModal.test.tsx::a failed later page shows a per-page error and Retry re-fetches that SAME page, not page one",
     "client/src/components/org/AuditLogModal.test.tsx::a rapid double-click on 'Load older entries' does not duplicate the next page (idempotent cursor push)",
@@ -21594,6 +21688,7 @@
     "client/src/hooks/useLaunchMasterRun.test.ts::returns create_failed and never launches when createTask throws",
     "client/src/hooks/useLaunchMasterRun.test.ts::returns launch_failed when the master launch is rejected (e.g. wrong mode)",
     "client/src/hooks/useLaunchMasterRun.test.ts::reusing an ESTABLISHED master (JSONL on disk) issues a RESUME, not a fresh launch",
+    "client/src/hooks/useLeadInventory.test.ts::fetches the composite inventory map and resolves with it",
     "client/src/hooks/useListKeyboardNav.test.tsx::a data-nav-action key clicks the matching control inside the selected item",
     "client/src/hooks/useListKeyboardNav.test.tsx::does NOT preventDefault Enter (the item owns Enter)",
     "client/src/hooks/useListKeyboardNav.test.tsx::does nothing when enabled=false",
@@ -22375,6 +22470,9 @@
     "client/src/pages/InboxPage.test.tsx::text_question cards show the terminal CTA + NO option chips / freetext",
     "client/src/pages/InboxPage.test.tsx::text_question markdown does not execute raw HTML \u2014 XSS-safe",
     "client/src/pages/InboxPage.test.tsx::whole-card click navigates to /tasks/<taskId>",
+    "client/src/pages/LeadInventoryPage.test.tsx::renders a lead's beats, band chips, and authority panel (AC-1)",
+    "client/src/pages/LeadInventoryPage.test.tsx::shows a distinct 'couldn't check for open questions' state per lead when the threads query fails, not a false 'nothing needs you' (Stage-2 code review)",
+    "client/src/pages/LeadInventoryPage.test.tsx::shows the org-chart-broken error state without a blank page",
     "client/src/pages/OrgPage.test.tsx::opens the Activity modal on click when the roster has at least one lead",
     "client/src/pages/OrgPage.test.tsx::renders chart -> shared docs -> lead list, in that fixed order, once present (AC-1)",
     "client/src/pages/OrgPage.test.tsx::shows a loading state while presence is still resolving",
@@ -22856,14 +22954,14 @@
     "server/src/core/mission-context/fold-map.test.ts::returns an unloaded map for a project without a spec (degrades, never throws)",
     "server/src/core/mission-context/fold-map.test.ts::separates capability rows from alias rows by shape",
     "server/src/core/mission-context/fold-map.test.ts::terminates on a cyclic map instead of spinning",
-    "server/src/core/mission-context/merge-check.test.ts::detects the squash commit by its (#NNN) message on origin/main",
-    "server/src/core/mission-context/merge-check.test.ts::does NOT report merged when another PR's squash merely mentions the number",
-    "server/src/core/mission-context/merge-check.test.ts::is SQUASH-aware: the branch SHA is not an ancestor, yet the merge is found",
-    "server/src/core/mission-context/merge-check.test.ts::matches a multi-line body without being fooled by a body mention",
-    "server/src/core/mission-context/merge-check.test.ts::passes the PR number as a separate argv member, never a command string",
-    "server/src/core/mission-context/merge-check.test.ts::reports `pending` when no squash commit carries that PR number",
-    "server/src/core/mission-context/merge-check.test.ts::returns `unknown` (not pending) when origin/main does not exist",
-    "server/src/core/mission-context/merge-check.test.ts::returns `unknown` for an unvalidatable PR number without invoking git",
+    "server/src/core/mission-context/merge-check.squash.test.ts::detects the squash commit by its (#NNN) message on origin/main",
+    "server/src/core/mission-context/merge-check.squash.test.ts::does NOT report merged when another PR's squash merely mentions the number",
+    "server/src/core/mission-context/merge-check.squash.test.ts::is SQUASH-aware: the branch SHA is not an ancestor, yet the merge is found",
+    "server/src/core/mission-context/merge-check.squash.test.ts::matches a multi-line body without being fooled by a body mention",
+    "server/src/core/mission-context/merge-check.squash.test.ts::passes the PR number as a separate argv member, never a command string",
+    "server/src/core/mission-context/merge-check.squash.test.ts::reports `pending` when no squash commit carries that PR number",
+    "server/src/core/mission-context/merge-check.squash.test.ts::returns `unknown` (not pending) when origin/main does not exist",
+    "server/src/core/mission-context/merge-check.squash.test.ts::returns `unknown` for an unvalidatable PR number without invoking git",
     "server/src/core/mission-context/planned-impact.test.ts::accepts the alternate headings real specs use",
     "server/src/core/mission-context/planned-impact.test.ts::bounds a long section rather than emitting a wall of text",
     "server/src/core/mission-context/planned-impact.test.ts::carries the section prose so the artifact can render without ids",
@@ -23964,6 +24062,38 @@
     "server/src/external/org/__tests__/usage.test.ts::returns the measured shape for a well-formed usage.json",
     "server/src/external/org/__tests__/usage.test.ts::returns unpricedCallsTotal and anyNotMeasured when the producer supplies them (leadwright#38)",
     "server/src/external/org/__tests__/usage.test.ts::still validates a payload WITHOUT the two new fields \u2014 an older producer must not 502",
+    "server/src/external/org/beat-effect-audit-read.test.ts::a 404 (no audit.jsonl at all) is a legitimate clear, not unknown",
+    "server/src/external/org/beat-effect-audit-read.test.ts::a real read failure (not 404) degrades to unknown, never a false clear",
+    "server/src/external/org/beat-effect-audit-read.test.ts::finds a beat_effect_not_claimed entry in a single-pass scan and returns ok",
+    "server/src/external/org/beat-effect-audit-read.test.ts::reads the file exactly once regardless of how many lines it contains (no pagination loop)",
+    "server/src/external/org/beat-effect-audit-read.test.ts::skips a malformed (unparseable) line without failing the whole scan",
+    "server/src/external/org/beat-steps-read.test.ts::",
+    "server/src/external/org/beat-steps-read.test.ts::../../etc/passwd",
+    "server/src/external/org/beat-steps-read.test.ts::2 valid lines + 1 malformed line -> ok, 2 steps, unreadableLines:1",
+    "server/src/external/org/beat-steps-read.test.ts::ALL lines malformed -> ok, 0 steps, unreadableLines:N (never a file-level failure)",
+    "server/src/external/org/beat-steps-read.test.ts::ENOENT (no steps.jsonl at all) reads as ok/empty \u2014 the optional-steps protocol",
+    "server/src/external/org/beat-steps-read.test.ts::a step failing the semantic guard (bad band) counts as unreadable, not accepted",
+    "server/src/external/org/beat-steps-read.test.ts::a steps.jsonl that is actually a directory is unreadable (real fstat().isFile() === false path, not a mocked ELOOP) \u2014 external code review, low/test-coverage",
+    "server/src/external/org/beat-steps-read.test.ts::a symlinked steps.jsonl is unreadable, not empty",
+    "server/src/external/org/beat-steps-read.test.ts::a truncated final line (mid-append race) counts as one unreadable line, not a whole-file failure",
+    "server/src/external/org/beat-steps-read.test.ts::matches a randomUUID-shaped id",
+    "server/src/external/org/beat-steps-read.test.ts::refuses an invalid beatId",
+    "server/src/external/org/beat-steps-read.test.ts::refuses an invalid leadId",
+    "server/src/external/org/beat-steps-read.test.ts::rejects a traversal attempt",
+    "server/src/external/org/beat-steps-read.test.ts::rejects an empty string",
+    "server/src/external/org/charter-authority-read.test.ts::CRLF line endings are tolerated the same as LF (boundary probe)",
+    "server/src/external/org/charter-authority-read.test.ts::a BALANCED code fence still hides its contents (regression guard for the unbalanced-fence fix above)",
+    "server/src/external/org/charter-authority-read.test.ts::a UTF-8 BOM on the first line does not corrupt a later band heading (boundary probe)",
+    "server/src/external/org/charter-authority-read.test.ts::an unbalanced code fence (forgotten closer) does not swallow the rest of the section's prose (external code review, low/edge-case)",
+    "server/src/external/org/charter-authority-read.test.ts::extracts prose for all 4 declared bands",
+    "server/src/external/org/charter-authority-read.test.ts::has exactly the 4 canonical band ids in CHARTER_BANDS",
+    "server/src/external/org/charter-authority-read.test.ts::marks a missing band as not declared with null text",
+    "server/src/external/org/charter-authority-read.test.ts::matches heading text with different slash-spacing (boundary case mirrored from leadwright)",
+    "server/src/external/org/charter-authority-read.test.ts::measured:false with a custom-path reason when charter_path is non-default",
+    "server/src/external/org/charter-authority-read.test.ts::measured:false with a default-path reason when the read fails",
+    "server/src/external/org/charter-authority-read.test.ts::measured:true with 4/4 declared for a well-formed charter",
+    "server/src/external/org/charter-authority-read.test.ts::non-ASCII prose (umlauts, em-dash) round-trips intact (boundary probe)",
+    "server/src/external/org/charter-authority-read.test.ts::returns null text for a heading present with an empty section",
     "server/src/external/org/commit-lock.test.ts::403s symlink_forbidden when acquiring the org-chart.json lock hits a symlinked target",
     "server/src/external/org/commit-lock.test.ts::403s symlink_forbidden when the charter.md write itself hits a symlinked target, inside the org-chart.json lock",
     "server/src/external/org/commit-lock.test.ts::409s daemon_config_locked on ELOCKED from the daemon-config.json write, without touching org-chart.json",
@@ -24360,6 +24490,11 @@
     "server/src/routes/__tests__/org-docs.test.ts::keeps a malformed line as raw with parsed:null rather than failing the whole page",
     "server/src/routes/__tests__/org-docs.test.ts::returns the newest entries first, capped at `limit`, with a nextCursor for older ones",
     "server/src/routes/__tests__/org-docs.test.ts::serves the lead's learnings.md",
+    "server/src/routes/__tests__/org-inventory.test.ts::forwards the org-chart error when the chart itself is missing",
+    "server/src/routes/__tests__/org-inventory.test.ts::renders a 2-of-4-declared charter through the real endpoint, not just extractBandSections (AC-4, external code review)",
+    "server/src/routes/__tests__/org-inventory.test.ts::renders a CLOSED beat's steps in file order (2 entries), band chips, and the authority panel from a real charter.md (AC-1)",
+    "server/src/routes/__tests__/org-inventory.test.ts::renders a visible unclaimed-effect warning on the matching beat (AC-2a)",
+    "server/src/routes/__tests__/org-inventory.test.ts::returns a zero-beat entry for a lead with no register file \u2014 the steady state, not an error",
     "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a duplicate-session-id fault is refused 409, never silently picks one entry",
     "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a not-found sessionId reads 404 with the same shape as the secret-gated route",
     "server/src/routes/__tests__/org-leads-beat-register-release.test.ts::a sessionId that belongs to a DIFFERENT lead's register is not-found, never releases the other lead's entry (external-review fix)",
@@ -24399,6 +24534,15 @@
     "server/src/routes/campaigns.dismiss.test.ts::dismisses a derivedFromEvents ghost with NO planning dir (the headline case)",
     "server/src/routes/diagnostics.leadwright-checkout.test.ts::reports \"configured\" when leadwrightCheckoutRoot is set (no live spawn probe)",
     "server/src/routes/diagnostics.leadwright-checkout.test.ts::reports \"unconfigured\" when leadwrightCheckoutRoot is unset",
+    "server/src/routes/org-inventory-composite.test.ts::a beat with a BEAT_ID_RE-refused beatId degrades ONLY that beat's steps to unreadable, never the whole lead",
+    "server/src/routes/org-inventory-composite.test.ts::a corrupt beat-register.json degrades to register:{status:'unreadable'}, never a false 'zero beats'",
+    "server/src/routes/org-inventory-composite.test.ts::a lead with no register file at all reads as zero beats, not an error",
+    "server/src/routes/org-inventory-composite.test.ts::an invalid leadId (LEAD_ID_RE-refused) degrades the register to unreadable rather than reading through it",
+    "server/src/routes/org-inventory-composite.test.ts::bounds beats to the 48h window but includes an unparseable startedAt value (fail toward showing)",
+    "server/src/routes/org-inventory-composite.test.ts::degrades every bounded beat's unclaimedEffect to unknown when the audit scan itself degrades",
+    "server/src/routes/org-inventory-composite.test.ts::keys the response by leadId, one entry per lead",
+    "server/src/routes/org-inventory-composite.test.ts::marks unclaimedEffect found for a beat named in the audit scan",
+    "server/src/routes/org-inventory-composite.test.ts::orders bounded beats startedAt-ascending",
     "server/src/routes/org-lead-setup-wizard.test.ts::GET /api/org/domains reaches domainsCore (200, empty vocabulary with no org-chart.json)",
     "server/src/routes/org-lead-setup-wizard.test.ts::POST /api/org/leads/commit 503s leadwright_not_configured when unset (no secret required)",
     "server/src/routes/org-lead-setup-wizard.test.ts::POST /api/org/leads/verdict 503s leadwright_not_configured when unset (no secret required)",
@@ -24859,6 +25003,17 @@
     "server/src/test/win32-spawn-mirror-parity.test.ts::the mirror still documents its divergences rather than claiming to be identical",
     "server/src/test/win32-spawn-mirror-parity.test.ts::the mirror still points at the original, so this guard is discoverable",
     "server/src/types/action-schema-sync.test.ts::every RenderableParamSchema field also exists on the server ParamSchema",
+    "server/src/types/leadwright-beat-step.test.ts::accepts a valid card-effect step",
+    "server/src/types/leadwright-beat-step.test.ts::accepts a valid decision-effect step",
+    "server/src/types/leadwright-beat-step.test.ts::accepts a valid none-effect step",
+    "server/src/types/leadwright-beat-step.test.ts::at pattern matches the hand-typed guard's timestamp check",
+    "server/src/types/leadwright-beat-step.test.ts::band enum matches BEAT_STEP_BANDS exactly",
+    "server/src/types/leadwright-beat-step.test.ts::effect is a 3-variant oneOf with the expected required fields per kind",
+    "server/src/types/leadwright-beat-step.test.ts::rejects a record missing summary",
+    "server/src/types/leadwright-beat-step.test.ts::rejects a record whose `at` isn't a timestamp (external code review, low/bug)",
+    "server/src/types/leadwright-beat-step.test.ts::rejects a record with an invalid band",
+    "server/src/types/leadwright-beat-step.test.ts::required fields match the hand-typed guard's expectations",
+    "server/src/types/leadwright-beat-step.test.ts::tolerates an unknown top-level property (forward-compatible, unlike the strict vendored schema)",
     "server/src/types/leadwright-preflight.test.ts::Lead required fields match LEAD_REQUIRED_FIELDS \u2014 the fields the wizard must supply a value for (defaults or answers)",
     "server/src/types/leadwright-preflight.test.ts::allowed_skills item pattern matches ALLOWED_SKILL_RE",
     "server/src/types/leadwright-preflight.test.ts::charter_path/learnings_path pattern matches CHARTER_LEARNINGS_PATH_RE (no leading '/', no '..' substring)",
