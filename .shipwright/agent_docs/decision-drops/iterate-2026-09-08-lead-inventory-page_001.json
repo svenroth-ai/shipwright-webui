@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-08-lead-inventory-page",
+  "date": "2026-09-08",
+  "section": "Iterate — feature: Lead Inventory page",
+  "title": "Lead Inventory page: per-lead authority ladder + unclaimed-effect warning",
+  "context": "The Org page shows chart+cards but nothing shows what an AI lead did overnight, ordered by authority band, next to its own declared authority ladder, or whether any beat's effect went unclaimed.",
+  "decision": "New viewer-only /org/inventory page + roster-wide GET /api/org/inventory composite: per-lead last-night beats with band-chip step logs, charter-derived authority ladder, needs-you questions, unclaimed-effect warning. No editing, no new leadwright API, no budget work.",
+  "consequences": "A read failure for one lead's register/steps/audit degrades that figure alone (tri-state), never a false-positive clear/empty state. Audit scan is a synchronous unbounded full-file read, accepted at this iterate's scale.",
+  "rationale": "Mirrors this codebase's existing composite-endpoint and open-first-file-read patterns instead of inventing new ones.",
+  "rejected": "Declared/missing authority binary (always 4/4, vacuous); a second server-merged needs-you endpoint (duplicate of FR-01.71(D)); bounded audit-scan pagination (superseded by a single full-file scan); either/or E2E isolation guard (real bypass, closed to AND semantics).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-08-lead-inventory-page.md"
+}

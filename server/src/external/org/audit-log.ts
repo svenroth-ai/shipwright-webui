@@ -54,15 +54,21 @@ function clampLimit(raw: number | undefined): number {
   return Math.min(MAX_LIMIT, Math.max(1, Math.trunc(raw)));
 }
 
-/** Pure core — reads and paginates `<leadsRoot>/<leadId>/audit.jsonl`. */
-export function auditLogCore(deps: AuditLogDeps, params: AuditLogParams): AuditLogCoreResult {
+export type AuditLinesGuardedResult =
+  | { status: 200; linesNewestFirst: string[] }
+  | { status: 400 | 403 | 404 | 500; body: { error: string; detail?: string } };
+
+/**
+ * Guarded, single-read helper shared by `auditLogCore` (paginates the
+ * result for the Docs block's viewer) and `beat-effect-audit-read.ts`
+ * (wants every line in one pass, not a page at a time — see that file's
+ * header for why re-reading the file per page was a real cost, not just a
+ * style preference). Owns the open-first/`O_NOFOLLOW`/`fstat`/
+ * `realPathGuard`/`LEAD_ID_RE` chain exactly once.
+ */
+export function readAuditLinesGuarded(deps: AuditLogDeps, leadId: string | undefined): AuditLinesGuardedResult {
   const { leadsRoot } = deps;
   const open = deps.openSync ?? openSync;
-  const { leadId } = params;
-  const limit = clampLimit(params.limit);
-  const before = params.before !== undefined && Number.isFinite(params.before) && params.before > 0
-    ? Math.trunc(params.before)
-    : 0;
 
   if (!leadId || !LEAD_ID_RE.test(leadId)) {
     return { status: 400, body: { error: "invalid_lead_id" } };
@@ -98,20 +104,36 @@ export function auditLogCore(deps: AuditLogDeps, params: AuditLogParams): AuditL
 
     const text = readFileSync(fd, "utf8");
     const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    const newestFirst = lines.slice().reverse();
-    const page = newestFirst.slice(before, before + limit).map((raw): AuditLogEntry => {
-      try {
-        return { raw, parsed: JSON.parse(raw) as Record<string, unknown> };
-      } catch {
-        return { raw, parsed: null };
-      }
-    });
-    const nextCursor = before + limit < newestFirst.length ? before + limit : null;
-
-    return { status: 200, body: { entries: page, total: newestFirst.length, nextCursor } };
+    return { status: 200, linesNewestFirst: lines.slice().reverse() };
   } catch (err) {
     return { status: 500, body: { error: "file_read_failed", detail: String(err).slice(0, 200) } };
   } finally {
     closeSync(fd);
   }
+}
+
+/** Pure core — reads and paginates `<leadsRoot>/<leadId>/audit.jsonl`. */
+export function auditLogCore(deps: AuditLogDeps, params: AuditLogParams): AuditLogCoreResult {
+  const { leadId } = params;
+  const limit = clampLimit(params.limit);
+  const before = params.before !== undefined && Number.isFinite(params.before) && params.before > 0
+    ? Math.trunc(params.before)
+    : 0;
+
+  const read = readAuditLinesGuarded(deps, leadId);
+  if (read.status !== 200) {
+    return read;
+  }
+
+  const { linesNewestFirst } = read;
+  const page = linesNewestFirst.slice(before, before + limit).map((raw): AuditLogEntry => {
+    try {
+      return { raw, parsed: JSON.parse(raw) as Record<string, unknown> };
+    } catch {
+      return { raw, parsed: null };
+    }
+  });
+  const nextCursor = before + limit < linesNewestFirst.length ? before + limit : null;
+
+  return { status: 200, body: { entries: page, total: linesNewestFirst.length, nextCursor } };
 }

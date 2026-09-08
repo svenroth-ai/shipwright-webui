@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/svenroth-ai/leadwright/schemas/beat-step.schema.json",
+  "title": "BeatStep",
+  "description": "One authority-band decision recorded during a beat, appended to beats/<beat-id>/steps.jsonl. GENERATED from lib/beat-steps.ts by scripts/generate-beat-step-schema.ts — do not hand-edit.",
+  "type": "object",
+  "properties": {
+    "at": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T"
+    },
+    "band": {
+      "type": "string",
+      "enum": [
+        "bugfix",
+        "maintenance",
+        "feature",
+        "architecture"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "effect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "card"
+            },
+            "taskId": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "taskId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "decision"
+            },
+            "decisionKey": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "decisionKey"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "none"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "required": [
+    "at",
+    "band",
+    "summary",
+    "effect"
+  ],
+  "additionalProperties": false
+}

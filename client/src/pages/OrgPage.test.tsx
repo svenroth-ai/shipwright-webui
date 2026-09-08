@@ -146,6 +146,7 @@ describe("OrgPage — presence-state branches", () => {
     // eslint-disable-next-line no-bitwise
     expect(sharedDocs.compareDocumentPosition(leadList) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getAllByTestId("lead-card")).toHaveLength(1);
+    expect(screen.getByTestId("org-inventory-link")).toHaveAttribute("href", "/org/inventory");
   });
 
   it("opens the Activity modal on click when the roster has at least one lead", async () => {

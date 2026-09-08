@@ -1,0 +1,29 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "irreversible-e2e-fs-ops + cross-file-async-fs-guard-chains",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "reversibility",
+      "claim_under_doubt": "lead-inventory-page.spec.ts's assertIsolatedLeadsRoot() prevents this spec from ever wiping the operator's real ~/.claude/leads/",
+      "disproof_attempt": "SHIPWRIGHT_LEADS_ROOT is a real, documented server config override (server/src/config.ts), not a test-only invention. A developer with it set in their normal shell/dev environment who runs `npx playwright test lead-inventory-page.spec.ts` directly (not via isolated-stack.mjs) hits `if (LEADS_ROOT_OVERRIDE) return;` — zero isolation check — and rmSync(LEADS_ROOT, {recursive:true,force:true}) deletes whatever real directory that variable points at.",
+      "resolution": "Fixed. assertIsolatedLeadsRoot() now REQUIRES SHIPWRIGHT_E2E_ISOLATED=1 unconditionally (matching live-quarantine.mjs's AND, not the prior override-wins-outright OR) and, when SHIPWRIGHT_LEADS_ROOT is set, that override target ALSO still passes the same realpathSync.native-under-tmpdir containment check as the default root — the override now selects a different isolated directory, it can no longer skip isolation proof. Verified: both E2E cases still pass under isolated-stack.mjs, which sets SHIPWRIGHT_E2E_ISOLATED=1 but never SHIPWRIGHT_LEADS_ROOT, so the default-root path is unchanged."
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary_and_contract",
+      "claim_under_doubt": "'both new file readers' getting the open-first/O_NOFOLLOW/fd-read pattern means the composite's read surface as a whole closed the TOCTOU class this iterate hardened against",
+      "disproof_attempt": "registerEntriesGuarded (beat-register-health.ts) retained the older lstatSync(path) -> realPathGuard(path) -> readFileSync(path) pattern, reading by string path rather than a held fd — a TOCTOU window where a local writer could swap the checked regular file for a symlink between the containment check and the read.",
+      "resolution": "Fixed independently, in parallel with this doubt landing (same root cause the external code review's codex leg also found). registerEntriesGuarded rewritten to open(O_NOFOLLOW) -> fstat().isFile() -> realPathGuard -> read from the held fd, matching beat-steps-read.ts/audit-log.ts exactly. The shared parse logic was extracted into a new parseRegisterFileText() in beat-register.ts so both the open-first reader and the pre-existing by-path readRegisterFileTolerant (used by beatRegisterHealthCore, out of this iterate's scope) share one validator. All 66 targeted tests + full 4109-test server suite pass; both files stay under the 300-line bloat gate (162 / 222 lines)."
+    },
+    {
+      "severity": "medium",
+      "lens": "concurrency_and_ordering",
+      "claim_under_doubt": "the AC-9 single-scan rewrite (unbounded full-file readFileSync per lead's audit.jsonl) is a strict improvement with no downside worth naming",
+      "disproof_attempt": "The read is synchronous Node fs on the single JS event loop, called once per lead in a plain for-loop; the removed page cap was the only cost bound, and no test measures or bounds the tradeoff.",
+      "resolution": "Disclosed, not reintroduced. beat-effect-audit-read.ts's header now states the accepted limitation explicitly (matching audit-log.ts's own existing disclosed whole-file-read cost): synchronous, blocks the event loop for its duration, accepted for this iterate's scale (single local operator, 5-minute poll cadence via LEADS_USAGE_REFRESH_INTERVAL_MS), with a size/line-count ceiling degrading to unknown named as the natural follow-up if a lead's audit history grows large enough to matter. Also noted (already true pre-doubt, from the Stage-2 rewrite's own header): the single scan reads the file ONCE per request versus the removed pagination's up-to-10x re-reads of the same whole file (auditLogCore re-reads and re-reverses on every call), so the rewrite is actually I/O-cheaper than what it replaced along that dimension — not merely equal with a dropped safety cap."
+    }
+  ],
+  "summary": "3 doubts (1 high, 2 medium). All addressed: the E2E isolation bypass is closed (AND semantics + override still containment-checked), the register reader now matches the open-first pattern its two siblings use (fixed independently, also flagged by the external codex review), and the unbounded-scan concern is disclosed as an accepted, scale-appropriate limitation with a named follow-up rather than reintroducing pagination complexity Stage-2 review had just removed. Full server suite (4109 tests) and both E2E cases verified green after all fixes."
+}
