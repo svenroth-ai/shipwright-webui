@@ -14,6 +14,13 @@ Two things are worth ratcheting here, same split as the bootstrapper guard:
   which already asserts every job not in `SCHEDULE_ELIGIBLE` excludes
   `schedule`. No new module needed for that half; this job's `if:` was written
   specifically to satisfy that guard (see the inline comment in ci.yml).
+
+iterate-2026-09-08-manifest-regen-finalization split the original single job
+into TWO (doubt-reviewer, 2026-09-08, medium severity): this module covers
+only `traceability-manifest`, the read-only job that checks out the pinned
+third-party plugin and computes the regen. The sibling write-scoped job
+(`traceability-manifest-regen-pr`) is covered by
+`test_traceability_manifest_regen_pr_ci_job.py`.
 """
 
 from __future__ import annotations
@@ -69,17 +76,90 @@ def test_the_job_excludes_pull_request_and_schedule(job: dict) -> None:
     ), f"unexpected `if:` on `{JOB_ID}`: {condition!r}"
 
 
-def test_nothing_makes_the_job_green_regardless_of_its_steps(job: dict) -> None:
+#: The one step allowed to swallow its own failure (iterate-2026-09-08-manifest-
+#: regen-finalization, trg-1324dfc4) — see the job's own `ADVISORY, not a hard
+#: fail` comment in ci.yml for why. Named explicitly so a SECOND, unnoticed
+#: `continue-on-error` elsewhere in this job still fails this test.
+_ADVISORY_STEP = "Regenerate + diff the traceability manifest"
+
+#: This job's only conditional step — uploads the fresh regen for the sibling
+#: `traceability-manifest-regen-pr` job to pick up, gated on the advisory
+#: step's own (pre-swallow) outcome.
+_UPLOAD_STEP = "Upload fresh regen for the regen-PR job"
+
+
+def test_the_job_no_longer_hard_fails_main_but_nothing_else_is_silent(job: dict) -> None:
+    """Reversed from this job's original "nothing makes the job green
+    regardless of its steps" guard: five, then seven, "regenerate stale
+    traceability manifest" repair commits proved a hard `push` gate on this
+    exact class fires on nearly every PR that adds a test, manufacturing
+    traffic instead of catching defects (trg-1324dfc4). The `Regenerate +
+    diff` step is now DELIBERATELY allowed to swallow its own failure via
+    `continue-on-error` — but that must stay the ONLY escape hatch in this
+    job, named exactly, with the upload step's `if:` wired to its (pre-
+    swallow) `outcome`, not a free-floating condition."""
     assert job.get("continue-on-error") in (None, False), (
-        f"`{JOB_ID}` sets continue-on-error; a stale manifest would then never "
-        "fail the build, which is the entire point of this job."
+        f"`{JOB_ID}` sets continue-on-error at the JOB level; the advisory "
+        "behaviour is scoped to one named step, never the whole job."
     )
-    swallowing = [s.get("name", "<unnamed>") for s in _steps(job) if s.get("continue-on-error")]
-    assert not swallowing, f"steps swallow their own failure: {swallowing}"
-    conditional = [s.get("name", "<unnamed>") for s in _steps(job) if "if" in s]
-    assert not conditional, (
-        f"steps carry an `if:` and could skip while the job stays green: {conditional}"
+
+    by_name = {s.get("name", "<unnamed>"): s for s in _steps(job)}
+
+    swallowing = [name for name, s in by_name.items() if s.get("continue-on-error")]
+    assert swallowing == [_ADVISORY_STEP], (
+        f"expected exactly the advisory step {_ADVISORY_STEP!r} to swallow its own "
+        f"failure, found: {swallowing}"
     )
+    assert by_name[_ADVISORY_STEP].get("id") == "gate", (
+        f"{_ADVISORY_STEP!r} must carry `id: gate` — the upload step's `if:` (and "
+        "the sibling job's own `if:`) reads `steps.gate.outcome`"
+    )
+
+    conditional = [name for name, s in by_name.items() if "if" in s]
+    assert conditional == [_UPLOAD_STEP], (
+        f"expected exactly {_UPLOAD_STEP!r} to carry an `if:`, found: {conditional}"
+    )
+    condition = " ".join(str(by_name[_UPLOAD_STEP]["if"]).split())
+    assert condition == "steps.gate.outcome == 'failure'", (
+        f"unexpected `if:` on {_UPLOAD_STEP!r}: {condition!r} — must read the RAW "
+        "`outcome`, not `conclusion` (continue-on-error forces conclusion to "
+        "'success' regardless, which would make this condition never fire)"
+    )
+
+
+def test_the_job_exposes_the_gate_outcome_as_a_job_output(job: dict) -> None:
+    """The sibling `traceability-manifest-regen-pr` job gates its own `if:` on
+    this, since a downstream job cannot read another job's `steps.*`
+    directly."""
+    assert job.get("outputs") == {"gate_outcome": "${{ steps.gate.outcome }}"}, (
+        f"`{JOB_ID}` must expose `steps.gate.outcome` as a job output exactly "
+        f"named `gate_outcome` — got: {job.get('outputs')}"
+    )
+
+
+def test_the_job_has_no_write_permissions(job: dict) -> None:
+    """The job that checks out and imports the pinned third-party plugin must
+    never also hold write scopes (doubt-reviewer, 2026-09-08, medium
+    severity) — it should inherit the workflow's read-only top-level default,
+    not carry its own `permissions:` override. The write scopes live only on
+    the sibling job, which never touches the pinned plugin."""
+    assert job.get("permissions") is None, (
+        f"`{JOB_ID}` must not set its own `permissions:` — it should stay on "
+        f"the read-only top-level default. Got: {job.get('permissions')}"
+    )
+
+
+def test_the_advisory_step_writes_a_fresh_manifest_for_the_upload_step(job: dict) -> None:
+    run_text = str(next(
+        s["run"] for s in _steps(job) if s.get("name") == _ADVISORY_STEP
+    ))
+    assert "--write-fresh" in run_text
+
+
+def test_the_upload_step_uploads_the_gate_steps_own_written_artifact(job: dict) -> None:
+    step = next(s for s in _steps(job) if s.get("name") == _UPLOAD_STEP)
+    assert str(step.get("uses", "")).startswith("actions/upload-artifact@")
+    assert step.get("with", {}).get("name") == "fresh-traceability-manifest"
 
 
 def test_the_pinned_checkout_targets_a_full_commit_sha(job: dict) -> None:

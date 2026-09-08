@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "Implements exactly the ADR/mini-plan decision (advisory step + write-fresh + follow-up bot-PR step with stale-run guard); no extra scope."},
+    {"name": "Error Handling", "verdict": "pass", "note": "Shell step guards both real failure branches explicitly (missing fresh-regen file, stale main head) and exits 0 with a ::notice:: rather than erroring; set -euo pipefail catches anything unhandled."},
+    {"name": "Security Basics", "verdict": "pass", "note": "No user input in the shell body; only secrets.GITHUB_TOKEN via env; job-level permissions scoped to exactly contents:write + pull-requests:write, nothing wider; no new credential."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Tests assert on outcomes (git remote content, gh-call log, exit code) not implementation; each of the 4 branches (match/stale/omitted for --write-fresh; no-op/open/refresh/stand-down for the shell step) has a happy and a boundary case."},
+    {"name": "Performance Basics", "verdict": "n/a", "note": "CI job, not a runtime hot path; no loops over unbounded data; one git ls-remote + one push per drift event."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "New/changed Python files all under 300 lines. ci.yml is 552 lines but was already >300 before this change and carries no shipwright_bloat_baseline.json entry (grepped, none found) -- a pre-existing condition, not a new ratchet crossing; anti_ratchet_check.py exits 0 against this diff."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "Producer: build_manifest() via --write-fresh (upstream-owned, unchanged). Consumer: the follow-up shell step, which cp's it into the tracked path and commits/pushes it. Real round-trip probe: test_traceability_regen_pr_shell.py writes a fresh JSON, executes the real shell body, and verifies the exact content lands in the pushed branch via `git show origin/<branch>:<path>` -- not a mock."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff: no findings."}
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "run_id": "iterate-2026-09-08-manifest-regen-finalization",
+  "date": "2026-09-08T06:47:53.757616Z",
+  "event_at": "2026-09-08T06:47:25.052234+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/manifest-regen-finalization",
+  "spec": ".shipwright/planning/iterate/2026-09-08-manifest-regen-finalization.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-08-manifest-regen-finalization",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "--write-fresh writes the regen when it matches committed",
+        "disposition": "tested",
+        "evidence": "test_write_fresh_writes_the_regen_even_when_it_matches_committed"
+      },
+      {
+        "behavior": "--write-fresh writes the regen when it is stale",
+        "disposition": "tested",
+        "evidence": "test_write_fresh_writes_the_regen_when_stale_too"
+      },
+      {
+        "behavior": "--write-fresh omitted writes nothing",
+        "disposition": "tested",
+        "evidence": "test_write_fresh_is_a_noop_when_omitted"
+      },
+      {
+        "behavior": "Existing run() success/stale/missing/malformed-JSON behavior is unchanged",
+        "disposition": "tested",
+        "evidence": "full test_traceability_manifest_gate_run*.py suite still green (8 pre-existing tests)"
+      },
+      {
+        "behavior": "Gate step is the ONLY step with continue-on-error, carries id: gate",
+        "disposition": "tested",
+        "evidence": "test_the_job_no_longer_hard_fails_main_but_nothing_else_is_silent"
+      },
+      {
+        "behavior": "Upload step is the ONLY conditional step in the gate job, reads outcome not conclusion",
+        "disposition": "tested",
+        "evidence": "test_the_job_no_longer_hard_fails_main_but_nothing_else_is_silent"
+      },
+      {
+        "behavior": "Regen-PR job permissions are exactly contents:write + pull-requests:write",
+        "disposition": "tested",
+        "evidence": "test_the_job_grants_only_the_write_scopes_the_followup_step_needs"
+      },
+      {
+        "behavior": "Follow-up step never attempts to merge",
+        "disposition": "tested",
+        "evidence": "test_the_followup_step_never_attempts_to_merge"
+      },
+      {
+        "behavior": "Follow-up step authenticates with only the default token",
+        "disposition": "tested",
+        "evidence": "test_the_followup_step_uses_only_the_default_token"
+      },
+      {
+        "behavior": "Gate step passes --write-fresh to the script",
+        "disposition": "tested",
+        "evidence": "test_the_advisory_step_writes_a_fresh_manifest_for_the_upload_step"
+      },
+      {
+        "behavior": "Missing fresh-regen output (infra failure) -> graceful no-op, no branch/PR",
+        "disposition": "tested",
+        "evidence": "test_missing_fresh_file_is_a_graceful_noop (real shell execution)"
+      },
+      {
+        "behavior": "Real drift, no PR open -> commit+push+gh pr create",
+        "disposition": "tested",
+        "evidence": "test_real_drift_opens_a_pr_when_none_is_open (real shell execution)"
+      },
+      {
+        "behavior": "Real drift, PR already open -> refresh branch, do not re-create",
+        "disposition": "tested",
+        "evidence": "test_real_drift_refreshes_without_opening_a_second_pr (real shell execution)"
+      },
+      {
+        "behavior": "main advanced past $GITHUB_SHA since this run started -> stand down before any auth/push (stale-run guard)",
+        "disposition": "tested",
+        "evidence": "test_stale_run_stands_down_without_pushing (real shell execution)"
+      },
+      {
+        "behavior": "The gate scripts other CLI flags/behavior (unrelated to this change)",
+        "disposition": "tested",
+        "evidence": "pre-existing test_traceability_manifest_gate_run_infra_failures.py, test_traceability_manifest_diff*.py"
+      },
+      {
+        "behavior": "Gate job has no permissions override (read-only, alongside the pinned checkout)",
+        "disposition": "tested",
+        "evidence": "test_the_job_has_no_write_permissions"
+      },
+      {
+        "behavior": "Regen-PR job never checks out any third-party repository",
+        "disposition": "tested",
+        "evidence": "test_the_job_never_checks_out_the_pinned_third_party_plugin (both job-shape modules)"
+      },
+      {
+        "behavior": "Gate job exposes steps.gate.outcome as a job output for the sibling job",
+        "disposition": "tested",
+        "evidence": "test_the_job_exposes_the_gate_outcome_as_a_job_output"
+      },
+      {
+        "behavior": "Regen-PR job needs: the gate job and its if: reads that output + excludes schedule",
+        "disposition": "tested",
+        "evidence": "test_the_job_needs_the_gate_job_and_is_gated_on_its_outcome"
+      },
+      {
+        "behavior": "Regen-PR job carries a job-scoped concurrency: group (cancel-in-progress: false)",
+        "disposition": "tested",
+        "evidence": "test_the_job_has_a_concurrency_group_so_pushes_cannot_race"
+      },
+      {
+        "behavior": "Regen-PR job downloads the gate jobs uploaded artifact, tolerating a missing one",
+        "disposition": "tested",
+        "evidence": "test_the_job_downloads_the_artifact_the_gate_job_uploaded"
+      },
+      {
+        "behavior": "Push uses --force-with-lease, never a bare --force",
+        "disposition": "tested",
+        "evidence": "test_the_followup_step_never_force_pushes_blind (shape) + test_real_drift_refreshes_without_opening_a_second_pr (real shell execution against a real prior bot commit)"
+      }
+    ],
+    "counts": {
+      "testable": 22,
+      "tested": 22,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 22,
+      "covered_acs": 22
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "justification": "CI-workflow-only change; no client/server runtime code touched; no startable web/cli/api surface beyond the real-shell-execution tests already run"
+  }
+}

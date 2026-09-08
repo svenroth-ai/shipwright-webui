@@ -1,0 +1,36 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "glm": {
+      "status": "error",
+      "reason": "openai package not installed"
+    },
+    "openai": {
+      "feedback": "1. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** `steps.gate.outcome == 'failure'` conflates stale-manifest drift with malformed/missing committed manifests and post-regeneration errors. Since `--write-fresh` writes whenever regeneration succeeds, the follow-up can overwrite a malformed or missing manifest with generated output\u2014even though the plan says it should open a PR only for \u201creal drift.\u201d  \n   **Suggestion:** Have the gate emit an explicit, machine-readable result (for example `drift=true`) only after a successful comparison detects content drift. Run the PR step on that result, not on the generic failing step outcome.\n\n2. **Category:** risk  \n   **Severity:** high  \n   **Finding:** A reusable branch plus force-push is race-prone across closely spaced `main` pushes. A delayed run for commit A can force-push an older regenerated manifest after the run for newer commit B, leaving the bot PR stale or able to regress the manifest.  \n   **Suggestion:** Serialize remediation with a dedicated concurrency group (cancelling superseded runs), and verify the branch\u2019s base/current `main` SHA before pushing. If `main` advanced, regenerate from the current head or abandon the stale run.\n\n3. **Category:** dependency  \n   **Severity:** high  \n   **Finding:** Commits and PRs made with `GITHUB_TOKEN` do not normally trigger new GitHub Actions workflow runs. The generated repair PR may therefore have none of the repository\u2019s required checks and be unmergeable unless maintainers have a documented way to run them.  \n   **Suggestion:** Confirm the repair PR\u2019s required-check path before rollout. Either document and test an approved manual-dispatch/re-run procedure, or implement a safe, explicitly authorized workflow trigger for the bot branch; do not assume PR checks will appear automatically.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Finding:** The job receives repository write and PR-write permissions. If `traceability-manifest` runs on pushes to arbitrary branches rather than only protected `main`, any actor permitted to push a branch can cause a workflow run with write authority to force-push the shared bot branch and create PRs.  \n   **Suggestion:** Gate the write-capable remediation job/step explicitly to `refs/heads/main` (and trusted repository context), while retaining read-only behavior elsewhere. Verify workflow triggers and repository Actions token settings as a rollout prerequisite.\n\n5. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** The proposed missing-fresh-file path exits successfully after an advisory gate failure. A collector failure, unwritable temporary path, or changed script behavior would no longer affect main health and could go unnoticed, while no repair PR is created.  \n   **Suggestion:** Keep it non-blocking, but emit a prominent workflow annotation/job-summary warning with the gate logs and triggering SHA, and add an observable signal for remediation failures.\n\nOverall, the advisory repair-PR design is appropriate, but it needs an explicit drift signal, safe ordering across pushes, and a verified path for validating/merging token-created PRs before it is dependable.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "partially_degraded": true,
+  "partially_degraded_legs": [
+    "glm"
+  ],
+  "verdicts": {
+    "glm": "unavailable",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "error",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 glm did not (glm=unavailable, openai=revise)"
+  }
+}

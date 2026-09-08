@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-08-manifest-regen-finalization",
+  "date": "2026-09-08",
+  "section": "CI / Compliance Gates",
+  "title": "Traceability manifest gate: advisory severity + CI-opened regen PR",
+  "context": "Traceability manifest gate hard-failed push-to-main on nearly any PR that adds a test, producing 7 repair PRs across 8 failures in 3 weeks and blocking every other iterate each time (trg-1324dfc4).",
+  "decision": "Gate stays but becomes advisory (continue-on-error on the regen step); a follow-up step opens/refreshes a bot PR with the fresh regen whenever real drift is found, using only GITHUB_TOKEN — no auto-merge.",
+  "consequences": "Main no longer reads red for this class; repair still needs a human/next-iterate nudge+merge since a GITHUB_TOKEN-opened PR can't trigger the other required pull_request checks. Full unattended automation would need a new PAT (not provisioned). Portability: advisory half applies to the monorepo now; the auto-PR half should wait on its manifest's own reproducibility fix (separate, unfiled work).",
+  "rationale": "Option (a) is code-forbidden by check_no_derived_snapshots_committed; option (c) is disproportionate given this repo's own live readers of the file. Auto-merge needs a PAT this repo does not have and should not add unilaterally; the monorepo already treats this failure class as advisory (ci_manifest_drift_check.py).",
+  "rejected": "(a) finalization regenerates+stages in the iterate branch: forbidden by DERIVED_SNAPSHOTS/F11 (collision + wrong git history, iterate-2026-07-27). (c) stop committing, derive in CI only: breaks this repo's own webui mission-context readers of the committed file; vendoring the collector was already rejected elsewhere as disproportionate.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-08-manifest-regen-finalization-traceability-gate-advisory.md"
+}

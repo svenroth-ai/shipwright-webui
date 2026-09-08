@@ -50,3 +50,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Origin -> Basis rename + Layers column retrofit; 29-vs-35 discrepancy resolved](iterate-2026-09-07-w2-form-convergence.md)
 - [Reader on manifest v4: accept AC-scoped `@covers` tags without a false "ahead" warning](iterate-2026-09-07-w3-reader-manifest-v4.md)
 - [Tagging backfill: 15.75% -> 31.97% traceability coverage, 32/32 FRs bound](iterate-2026-09-07-w4-tagging-backfill-webui.md)
+- [ADR: Traceability manifest gate becomes advisory + CI-opened regen PR](iterate-2026-09-08-manifest-regen-finalization-traceability-gate-advisory.md)

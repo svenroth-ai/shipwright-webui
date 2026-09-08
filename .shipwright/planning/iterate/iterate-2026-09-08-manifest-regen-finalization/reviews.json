@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-08-manifest-regen-finalization",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T06:11:25.548021+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "steps.gate.outcome == 'failure'` conflates stale-manifest drift with malformed/missing committed manifests and post-regeneration errors. Since `--write-fresh` writes whenever regeneration succeeds, the follow-up can overwrite a malformed or missing manifest with generated output—even though the plan says it should open a PR only for “real drift.”",
+          "suggestion": "Have the gate emit an explicit, machine-readable result (for example `drift=true`) only after a successful comparison detects content drift. Run the PR step on that result, not on the generic failing step outcome.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "A reusable branch plus force-push is race-prone across closely spaced `main` pushes. A delayed run for commit A can force-push an older regenerated manifest after the run for newer commit B, leaving the bot PR stale or able to regress the manifest.",
+          "suggestion": "Serialize remediation with a dedicated concurrency group (cancelling superseded runs), and verify the branch’s base/current `main` SHA before pushing. If `main` advanced, regenerate from the current head or abandon the stale run.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Commits and PRs made with `GITHUB_TOKEN` do not normally trigger new GitHub Actions workflow runs. The generated repair PR may therefore have none of the repository’s required checks and be unmergeable unless maintainers have a documented way to run them.",
+          "suggestion": "Confirm the repair PR’s required-check path before rollout. Either document and test an approved manual-dispatch/re-run procedure, or implement a safe, explicitly authorized workflow trigger for the bot branch; do not assume PR checks will appear automatically.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The job receives repository write and PR-write permissions. If `traceability-manifest` runs on pushes to arbitrary branches rather than only protected `main`, any actor permitted to push a branch can cause a workflow run with write authority to force-push the shared bot branch and create PRs.",
+          "suggestion": "Gate the write-capable remediation job/step explicitly to `refs/heads/main` (and trusted repository context), while retaining read-only behavior elsewhere. Verify workflow triggers and repository Actions token settings as a rollout prerequisite.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The proposed missing-fresh-file path exits successfully after an advisory gate failure. A collector failure, unwritable temporary path, or changed script behavior would no longer affect main health and could go unnoticed, while no repair PR is created.",
+          "suggestion": "Keep it non-blocking, but emit a prominent workflow annotation/job-summary warning with the gate logs and triggering SHA, and add an observable signal for remediation failures.  Overall, the advisory repair-PR design is appropriate, but it needs an explicit drift signal, safe ordering across pushes, and a verified path for validating/merging token-created PRs before it is dependable.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-09-08T06:08:34.331957+00:00",
+      "disposition": "Verdict: revise. Addressed high-severity finding #2 (stale-run race) with a pre-push git ls-remote guard + executed test. Findings #1/#3/#5 accepted as documented residual risk; #4 kept by design (rationale in ADR). Follow-up architecture-mode call (should this exist at all): approve, no findings.",
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] <no review returned: openai package not installed>\n\n[openai] 1. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** `steps.gate.outcome == 'failure'` conflates stale-manifest drift with malformed/missing committed manifests and post-regeneration errors. Since `--write-fresh` writes whenever regeneration succeeds, the follow-up can overwrite a malformed or missing manifest with generated output—even though the plan says it should open a PR only for “real drift.”  \n   **Suggestion:** Have the gate emit an explicit, machine-readable result (for example `drift=true`) only after a successful comparison detects content drift. Run the PR step on that result, not on the generic failing step outcome.\n\n2. **Category:** risk  \n   **Severity:** high  \n   **Finding:** A reusable branch plus force-push is race-prone across closely spaced `main` pushes. A delayed run for commit A can force-push an older regenerated manifest after the run for newer commit B, leaving the bot PR stale or able to regress the manifest.  \n   **Suggestion:** Serialize remediation with a dedicated concurrency group (cancelling superseded runs), and verify the branch’s base/current `main` SHA before pushing. If `main` advanced, regenerate from the current head or abandon the stale run.\n\n3. **Category:** dependency  \n   **Severity:** high  \n   **Finding:** Commits and PRs made with `GITHUB_TOKEN` do not normally trigger new GitHub Actions workflow runs. The generated repair PR may therefore have none of the repository’s required checks and be unmergeable unless maintainers have a documented way to run them.  \n   **Suggestion:** Confirm the repair PR’s required-check path before rollout. Either document and test an approved manual-dispatch/re-run procedure, or implement a safe, explicitly authorized workflow trigger for the bot branch; do not assume PR checks will appear automatically.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Finding:** The job receives repository write and PR-write permissions. If `traceability-manifest`  […truncated]",
+      "verdicts": {
+        "glm": "unavailable",
+        "openai": "revise"
+      },
+      "model_tier": "inherit"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": ".github/workflows/ci.yml",
+          "line": null,
+          "finding": "A narrow check-then-act window remains between the git ls-remote stale-run guard and the final git push --force a few lines later; almost fully closed by the top-level concurrency group with cancel-in-progress. Not requesting a code change.",
+          "suggestion": "None — informational; residual risk accepted given the top-level concurrency group.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-08T06:17:50.387023+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": ".github/workflows/ci.yml",
+          "line": null,
+          "finding": "Claim under doubt: the added `git ls-remote` stale-run guard, combined with the workflow's `concurrency: cancel-in-progress` group, makes the older-run-overwrites-newer-run race 'almost fully closed' — The guard only re-validates that `main`'s tip still equals `$GITHUB_SHA` at check time — it does not exclusively lock the `bot/traceability-regen` branch across the gap between that check and the actual `git push --force` several shell lines later (auth, config, checkout, add, commit, push). Concrete interleaving that defeats it: run A (older push SHA1) reaches the ls-remote check while `main` is still at SHA1 -> check passes legitimately. Before A's `git push --force` lands, a second, unrelated merge advances `main` to SHA2, triggering run B, whose own ls-remote check (against the now-current SHA2) also passes legitimately. Both checks were individually correct at the instant they ran; the race is now purely which run's `git push --force` to `bot/traceability-regen` lands LAST on GitHub's server, which is a function of network/runner-scheduling latency, not of check order. If A's slower push lands after B's, A's SHA1-based (older) regen silently clobbers B's SHA2-based (fresher) one, with no further check to catch it — exactly the failure the guard exists to prevent, just moved one layer down. `cancel-in-progress` narrows but doesn't close this: it cancels the WORKFLOW, but the comment in ci.yml itself admits cancellation 'is not instantaneous' and a run already past the check can 'still finish'. This project's own documented workflow (parallel iterates merging to main) makes two main-pushes landing within the same multi-minute job window plausible, not a remote edge case.",
+          "suggestion": "Either (a) a written rebuttal accepting the residual risk explicitly — worst case is a briefly-stale regen on a PR that a human reviews before merge, and the NEXT push-to-main drift cycle self-heals it, so no unrecoverable state — or (b) close the gap for real with a second, job-scoped `concurrency: group: traceability-regen-pr / cancel-in-progress: false` so overlapping regen-PR pushes literally cannot execute concurrently, rather than relying on a narrowed-but-nonzero TOCTOU window.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": ".github/workflows/ci.yml",
+          "line": null,
+          "finding": "Claim under doubt: job-scoped `permissions: {contents: write, pull-requests: write}` is safe alongside checking out and dynamically importing code from a second, pinned repo into the same job — `build_manifest`, `_validate_manifest`, and `_test_links_io` from `.ci-shipwright-compliance` are executed as live Python inside the `Regenerate + diff` step, in the SAME job/process that later runs `gh auth setup-git` + `git push --force` with the write-scoped `GH_TOKEN` (`Open a regen PR` step). Nothing sandboxes the earlier step from the later one within a single job: any code reachable from that import graph can write to the files `$GITHUB_ENV`/`$GITHUB_PATH` point at (both are ordinary env vars visible to any subprocess in the step) to inject env vars or prepend a malicious directory to `PATH` for every SUBSEQUENT step — including the one that authenticates `git`/`gh` with write credentials. That is the standard 'poisoned pipeline execution' pattern GitHub Actions security guidance calls out, and this job's architecture doesn't defend against it: least-privilege here is scoped to WHICH repo the token can touch, not to WHEN in the job's lifetime untrusted-relative-to-this-repo code gets to run before the token is used. The ADR's credential-risk discussion only reasons about 'don't provision a NEW PAT' — it doesn't address this exposure window for the EXISTING default token.",
+          "suggestion": "Either a reasoned rebuttal — the pinned checkout is same-org code reviewed via this org's own PR process (comparable trust to first-party), and GitHub branch-protection on `main` independently blocks a direct malicious push regardless of token misuse (worth explicitly confirming the ruleset has no bypass actor for Actions/admin) — or split into two jobs: a read-only job computes the regen and uploads it as an artifact, a second job (`needs:`, holding the write permissions) downloads the artifact and does only `git`/`gh` operations, never importing the pinned code itself.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": ".github/workflows/ci.yml",
+          "line": null,
+          "finding": "Claim under doubt: the auto-opened PR is a safe, inspectable staging point before a human merges — The push to `bot/traceability-regen` uses `git push --force` (not `--force-with-lease`), and the job re-runs on EVERY subsequent push to `main` while this PR remains unmerged — and will keep finding drift (since `main` stays stale by definition until this exact PR merges), so it will force-push again on virtually every unrelated merge in the interim. This silently destroys ANY commit a human added to that branch out-of-band in the meantime — including the PR body's own suggested nudge ('e.g. an empty commit re-triggers the required checks'), and any hand-fix a reviewer might push instead of just merging. Not flagged in the ADR's 'Consequences' section, which discusses a maintainer CLOSING the PR but not a maintainer PUSHING to it.",
+          "suggestion": "Switch to `--force-with-lease` so a human's intervening commit at least causes a visible push failure instead of silent loss, and/or note in the PR body that the branch is bot-owned and any manual commit will be overwritten on the next drift cycle.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-08T06:36:58.990769+00:00",
+      "disposition": "3 doubts (2 medium TOCTOU-on-push + write-perms-alongside-pinned-checkout, 1 low bare-force-push) all FIXED, not rebutted: job split into read-only gate job + write-scoped regen-pr job (never checks out pinned plugin), job-scoped concurrency group serializes the push, force-with-lease replaces bare force. See ADR 'Doubt review' section.",
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T06:37:04.287542+00:00",
+      "disposition": "Internal review cascade (spec-reviewer -> code-reviewer -> doubt-reviewer, all via Agent tool) was available and used for the full Stage 1-3 cascade; not a blocker/escalation scenario requiring external LLM code review.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T06:13:50.507199+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-08T06:13:19.133698+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}
