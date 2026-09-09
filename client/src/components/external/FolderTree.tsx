@@ -260,7 +260,7 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
         <button
           type="button"
           onClick={refreshTree}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-[var(--color-muted,#6b7280)] transition hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)]"
+          className="inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-[var(--color-muted,#6b7280)] transition hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)] pointer-coarse:h-11 pointer-coarse:w-11"
           title="Refresh tree"
           aria-label="Refresh tree"
           data-testid="folder-tree-refresh"

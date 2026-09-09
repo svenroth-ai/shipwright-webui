@@ -106,7 +106,7 @@ export default function InboxPage() {
                 type="button"
                 onClick={() => navigate("/")}
                 data-testid="inbox-empty-cta"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold transition-colors"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 pointer-coarse:min-h-[44px] text-[13px] font-semibold transition-colors"
                 style={{
                   border: "1px solid var(--color-border)",
                   color: "var(--color-text)",

@@ -262,7 +262,7 @@ export function LeadQuestionCard({
           data-testid={`inbox-lead-dismiss-${itemKey}`}
           onClick={handleDismiss}
           disabled={dismissMutation.isPending}
-          className="inline-flex items-center rounded-[var(--radius-button)] font-medium"
+          className="inline-flex items-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-medium"
           style={{
             padding: "6px 14px",
             fontSize: "13px",
@@ -278,7 +278,7 @@ export function LeadQuestionCard({
           data-testid={`inbox-lead-answer-send-${itemKey}`}
           onClick={handleSend}
           disabled={!answerText.trim() || answerMutation.isPending}
-          className="inline-flex items-center rounded-[var(--radius-button)] font-medium"
+          className="inline-flex items-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-medium"
           style={{
             padding: "6px 14px",
             fontSize: "13px",

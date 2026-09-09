@@ -38,7 +38,7 @@ export function PlainClaudeButton({ actions, onSelect, isLoading = false }: Prop
       data-testid="plain-claude-button"
       title="Plain Claude — start a chat in this project's directory"
       aria-label="Plain Claude — start a chat in this project's directory"
-      className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-[var(--radius-button)] text-[var(--color-muted)] transition-colors hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
+      className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-[var(--radius-button)] pointer-coarse:h-11 pointer-coarse:w-11 text-[var(--color-muted)] transition-colors hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
     >
       <Terminal size={16} strokeWidth={1.7} />
     </button>

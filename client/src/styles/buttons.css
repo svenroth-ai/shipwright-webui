@@ -30,13 +30,30 @@
 /* Phone-only exception (iterate-2026-08-13-mission-mobile-visual, CLAUDE.md
    rule 26 amendment — a deliberate exception, not a drift): the Board
    toolbar row has no free width for a 132px-minimum button next to
-   Filter/Density/ViewToggle at 767px and below. 88px is the CONTENT-NATURAL
-   floor for "+ New" (icon + label + caret) — `min-width` still lets any
-   longer label grow the button past it, exactly as the desktop rule already
-   allows; this only lowers the FLOOR, height/radius/colour are untouched. */
+   Filter/Density/ViewToggle at 767px and below. 88px was the CONTENT-NATURAL
+   floor for "+ New" (icon + label + caret) at the time; `min-width` still
+   lets any longer label grow the button past it, exactly as the desktop rule
+   already allows.
+   AMENDED (iterate-2026-09-09-phone-touch-targets-plus-cta): the phone "New"
+   trigger is now icon-only (see `.btn-primary--icon-only` /
+   `.bps-main--icon-only` below) per a reversal Sven asked for after seeing the
+   labeled pill next to Filter/Density/ViewToggle — a bare `+` reads clearly at
+   this size and an icon-only AA/AAA touch target is a stronger floor than a
+   wide label ever bought it. 88px stays the WRAPPER floor (it still fits
+   everything else that keeps a label, e.g. the split button's two icon-only
+   halves land on 44px+44px=88px exactly — see `.bps-caret--touch` below), but
+   the icon-only variants override it to a true 44×44 square per the AAA/HIG
+   touch floor this repo has adopted. Height/radius/colour stay untouched. */
 @media (max-width: 767px) {
   :root {
     --btn-min-w: 88px;
+    /* AAA (WCAG 2.5.5) / Apple HIG / Material touch floor — was 36px
+       (desktop's --btn-h), which the phone audit (iterate-2026-09-09-
+       phone-touch-targets-plus-cta) found under the 44px floor for EVERY
+       `.btn-primary`/`.btn-primary-split` consumer, not just "+ New"
+       (Create Project, Ship's Log, …). One variable, whole family fixed —
+       the same "registry, not per-component" reasoning as --btn-min-w above. */
+    --btn-h: 44px;
   }
 }
 
@@ -124,4 +141,36 @@
 .btn-primary-split .bps-caret:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* ── Icon-only phone variants (iterate-2026-09-09-phone-touch-targets-plus-
+   cta) — placed AFTER `.btn-primary`/`.btn-primary-split` above so their
+   equal-specificity min-width/flex declarations win the cascade (source
+   order is the tiebreaker; these single-class selectors tie every base
+   rule's specificity, so ordering is load-bearing here, not cosmetic). */
+
+/* Square 44×44, no min-width pill. Used ONLY by `ProjectCreatePhoneMenu`
+   (already phone-exclusive, so this is safe unscoped by a media query; it
+   renders on no other viewport). */
+.btn-primary--icon-only {
+  min-width: 44px;
+  width: 44px;
+  padding: 0;
+}
+
+/* Icon-only phone variant of the split button's primary half
+   (`CreateMenuSplitButton`, gated by the caller's `useIsPhoneViewport()` —
+   see rule 26 amendment above). Fixed 44px so the two halves below sum to
+   exactly the wrapper's phone `--btn-min-w: 88px`. */
+.btn-primary-split .bps-main--icon-only {
+  flex: 0 0 44px;
+  padding: 0;
+}
+
+/* The caret half is a fixed 30px on desktop (unchanged, out of scope) — too
+   narrow for a touch target. Phone-gated by the same JS flag as
+   `.bps-main--icon-only` above, so this never fires on desktop/tablet. */
+.btn-primary-split .bps-caret--touch {
+  width: 44px;
+  flex: 0 0 44px;
 }

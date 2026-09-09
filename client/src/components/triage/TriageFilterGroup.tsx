@@ -85,7 +85,7 @@ export function TriageFilterGroup<T extends string>({
             onClick={() => onToggle(opt.value)}
             aria-pressed={isSelected}
             className={
-              "inline-flex items-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] " +
+              "inline-flex items-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] pointer-coarse:min-h-[44px] " +
               (isSelected
                 ? "text-[var(--color-text)]"
                 : "bg-[var(--color-inset)] text-[var(--ink-fixed)] line-through")

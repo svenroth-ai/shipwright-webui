@@ -15,7 +15,10 @@
  * touch/pointer-gated, so a fixed viewport is all they need. Routed through
  * `mobile-chromium` (playwright.config.ts testMatch) rather than the default
  * `chromium` project, matching the `mobile-work-mode`/`90-phone-responsive`
- * pattern already established there.
+ * pattern already established there. The "Board toolbar" describe block
+ * BELOW is the exception — its `pointer-coarse:` touch-target assertions
+ * (iterate-2026-09-09-phone-touch-targets-plus-cta) need `mobile-chromium`'s
+ * real `hasTouch`/coarse-pointer emulation, not just the narrow viewport.
  */
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -103,7 +106,18 @@ test.describe("Mobile visual fixes — shared right-edge gutter", () => {
 test.describe("Mobile visual fixes — Board toolbar", () => {
   test.use({ viewport: PHONE });
 
-  test("ViewToggle is icon-only and height-matched to Filter/Density; '+New' keeps an 88px floor", async ({ page, request }) => {
+  // Old rule / new rule, and who asked (iterate-2026-09-09-phone-touch-
+  // targets-plus-cta): this test used to assert `createBox.width >=88` — the
+  // "+ New" labeled-pill floor from iterate-2026-08-13-mission-mobile-visual.
+  // Sven asked for the phone trigger to become a bare "+" instead of a
+  // labeled pill, so an 88px-wide box is no longer the right shape to assert:
+  // a correct icon-only implementation is ~44px wide, and the OLD assertion
+  // would now fail a CORRECT implementation. The replacement intent is
+  // square, >=44x44 (AAA/HIG touch floor), icon-only (no visible text), with
+  // an accessible name that survives the label's removal — proven once per
+  // presentation (All-Projects cascade trigger here; the single-project split
+  // button's primary half below), matching the brief's acceptance criterion.
+  test("ViewToggle is icon-only and height-matched to Filter/Density; the All-Projects '+ New' trigger is a square icon-only 44px button", async ({ page, request }) => {
     const project = await seedProject(request, { name: "a20-board-toolbar" });
     try {
       await page.goto("/");
@@ -113,11 +127,82 @@ test.describe("Mobile visual fixes — Board toolbar", () => {
       await expect(boardBtn).toHaveText("");
       await expect(boardBtn).toHaveAccessibleName("Board");
       const toggleBox = (await boardBtn.boundingBox())!;
-      expect(toggleBox.height).toBeCloseTo(32, 0);
+      // Was `toBeCloseTo(32, 0)` — iterate-2026-09-09-phone-touch-targets-
+      // plus-cta's audit found this below the AAA/HIG 44px floor (WIDTH
+      // stays 32px, documented exemption: see ViewToggle.tsx). Height alone
+      // is now bumped to the floor via `pointer-coarse:min-h-[44px]`.
+      expect(toggleBox.height).toBeGreaterThanOrEqual(44);
 
       const create = page.getByTestId("create-menu-cascade-trigger");
+      await expect(create).toHaveText("");
+      await expect(create).toHaveAccessibleName("New — choose a project");
       const createBox = (await create.boundingBox())!;
-      expect(createBox.width).toBeGreaterThanOrEqual(88);
+      expect(createBox.width).toBeGreaterThanOrEqual(44);
+      expect(createBox.height).toBeGreaterThanOrEqual(44);
+      // Square, not just "big enough" — a wide pill with the label merely
+      // hidden would still pass the two assertions above.
+      expect(Math.abs(createBox.width - createBox.height)).toBeLessThanOrEqual(2);
+
+      // Row-width safety net for the whole family of pointer-coarse height
+      // bumps this iterate added to the toolbar (Filter/Density/ViewToggle/
+      // Claim/LeadTag all stay 32px WIDE by design — see ViewToggle.tsx —
+      // specifically so this stays true at 393px).
+      const overflowX = await page.evaluate(() => {
+        const bar = document.querySelector('[data-testid="task-board-header"]');
+        return bar ? bar.scrollWidth - bar.clientWidth : 0;
+      });
+      expect(overflowX).toBeLessThanOrEqual(0);
+    } finally {
+      await cleanupProject(request, project);
+    }
+  });
+
+  test("the single-project '+ New' split button's primary half is also a square icon-only 44px button, with an accessible name", async ({ page, request }) => {
+    const project = await seedProject(request, { name: "a20-split-icon-only", adopted: true });
+    try {
+      await page.goto(`/?projectId=${encodeURIComponent(project.projectId)}`);
+      await expect(page.getByTestId("task-board-page")).toBeVisible();
+      await expect(page.getByTestId("create-menu-split-button")).toBeVisible();
+
+      const primary = page.getByTestId("create-menu-primary");
+      await expect(primary).toHaveText("");
+      await expect(primary.getAttribute("aria-label")).resolves.toBeTruthy();
+      const primaryBox = (await primary.boundingBox())!;
+      expect(primaryBox.width).toBeGreaterThanOrEqual(44);
+      expect(primaryBox.height).toBeGreaterThanOrEqual(44);
+      expect(Math.abs(primaryBox.width - primaryBox.height)).toBeLessThanOrEqual(2);
+
+      // The caret half (opens task/pipeline/iterate) is a SEPARATE touch
+      // target and must clear the floor too — it doesn't lose its label (it
+      // never had one, only the ChevronDown glyph + aria-label), only its
+      // desktop-only 30px width.
+      const caret = page.getByTestId("create-menu-caret");
+      const caretBox = (await caret.boundingBox())!;
+      expect(caretBox.width).toBeGreaterThanOrEqual(44);
+      expect(caretBox.height).toBeGreaterThanOrEqual(44);
+    } finally {
+      await cleanupProject(request, project);
+    }
+  });
+
+  test("Plain Claude's project-scoped triggers clear the 44px floor on a coarse pointer", async ({ page, request }) => {
+    const project = await seedProject(request, { name: "a20-plain-claude-touch", adopted: true });
+    try {
+      // All-Projects: ProjectPlainPicker (38x38 base size).
+      await page.goto("/");
+      await expect(page.getByTestId("task-board-page")).toBeVisible();
+      const plainPicker = page.getByTestId("plain-cascade-trigger");
+      const plainPickerBox = (await plainPicker.boundingBox())!;
+      expect(plainPickerBox.width).toBeGreaterThanOrEqual(44);
+      expect(plainPickerBox.height).toBeGreaterThanOrEqual(44);
+
+      // Single-project scope: PlainClaudeButton (same base size).
+      await page.goto(`/?projectId=${encodeURIComponent(project.projectId)}`);
+      await expect(page.getByTestId("task-board-page")).toBeVisible();
+      const plainButton = page.getByTestId("plain-claude-button");
+      const plainButtonBox = (await plainButton.boundingBox())!;
+      expect(plainButtonBox.width).toBeGreaterThanOrEqual(44);
+      expect(plainButtonBox.height).toBeGreaterThanOrEqual(44);
     } finally {
       await cleanupProject(request, project);
     }

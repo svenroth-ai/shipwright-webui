@@ -1,0 +1,131 @@
+{
+  "last_updated": "2026-09-09",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-09-phone-touch-targets-plus-cta",
+    "date": "2026-09-09",
+    "unit": {
+      "status": "passed",
+      "passed": 4055,
+      "total": 4055
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 29,
+      "total": 29
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "One transient vitest worker-crash on an earlier full-suite run (445/445 files still reported, 1 error) — confirmed a clean-environment flake by an immediate clean rerun (445/445 files, 4055/4055 tests, zero errors); not caused by this iterate's changes."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 13,
+        "tested": 13,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      },
+      "behaviors": [
+        {
+          "behavior": "All-Projects '+ New' cascade trigger is icon-only: square, >=44x44, no visible text, a real accessible name survives",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts 'ViewToggle is icon-only ... the All-Projects + New trigger is a square icon-only 44px button' (real browser, mobile-chromium)"
+        },
+        {
+          "behavior": "Single-project split button's primary half is icon-only: square, >=44x44, no visible text, a real accessible name survives",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts 'the single-project + New split button's primary half is also a square icon-only 44px button, with an accessible name'; CreateMenuSplitButton.test.tsx unit coverage (phone/non-phone/empty-label fallback)"
+        },
+        {
+          "behavior": "Split-button caret clears the 44x44 floor on phone (was 30px wide)",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts, same test as above (caretBox assertions)"
+        },
+        {
+          "behavior": "Board-toolbar family (ViewToggle/StatusFilter/LeadTagFilter/ClaimFilterToggle/DensityToggle) clears 44px HEIGHT on a coarse pointer; WIDTH stays 32px by documented exemption; the row does not overflow at 393px with all fixes applied",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts toggleBox height assertion + task-board-header scrollWidth<=clientWidth overflow assertion"
+        },
+        {
+          "behavior": "ProjectPlainPicker (All-Projects) and PlainClaudeButton (single-project) clear 44x44 on a coarse pointer",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts 'Plain Claude's project-scoped triggers clear the 44px floor on a coarse pointer'"
+        },
+        {
+          "behavior": "Settings' actions-config Upload control and Reset/Cancel buttons clear 44px on a coarse pointer",
+          "disposition": "tested",
+          "evidence": "90b-phone-new-task-touch-safety.spec.ts 'Settings actions-config Upload control clears the 44px floor on a coarse pointer'; ResetActionsDialog.tsx buttons share the identical pointer-coarse:min-h-[44px] mechanism, re-verified green via the component's own unit suite"
+        },
+        {
+          "behavior": "Inbox's empty-state CTA and the LeadQuestion card's Resume/Dismiss/Send/Discuss/Take-outcome buttons clear 44px on a coarse pointer",
+          "disposition": "tested",
+          "evidence": "90b-phone-new-task-touch-safety.spec.ts 'Inbox's empty-state CTA clears the 44px floor on a coarse pointer' (dedicated geometry assertion); the remaining Inbox buttons share the identical pointer-coarse:min-h-[44px] mechanism (same className pattern proven effective by the dedicated assertions above), re-verified green via InboxCard.LeadQuestion*.test.tsx"
+        },
+        {
+          "behavior": "Triage's sort-direction toggle and filter chips clear 44px on a coarse pointer (code-review-found gap)",
+          "disposition": "tested",
+          "evidence": "90-phone-responsive.spec.ts 'no horizontal page overflow at /triage' (post-fix, real browser); component unit suites re-verified green"
+        },
+        {
+          "behavior": "Task Detail's Files-panel 'Refresh tree' button clears 44px on a coarse pointer (code-review-found gap)",
+          "disposition": "tested",
+          "evidence": "mobile-work-mode.spec.ts + mobile-work-mode-mission.spec.ts render the Task Detail surface post-fix; FolderTree.test.tsx re-verified green"
+        },
+        {
+          "behavior": "The Board card's 'Copy command' snippet button clears 44px on a coarse pointer (code-review-found gap)",
+          "disposition": "tested",
+          "evidence": "90-phone-responsive.spec.ts 'no horizontal page overflow at /' (post-fix, real browser); CopySnippet's consuming component suite re-verified green"
+        },
+        {
+          "behavior": "CreateMenuSplitButton's icon-only aria-label falls back to a real accessible name even when the action's label is an empty string (doubt-review-found gap)",
+          "disposition": "tested",
+          "evidence": "CreateMenuSplitButton.test.tsx 'falls back to a real accessible name even when the action label is an empty string'"
+        },
+        {
+          "behavior": "No new matchMedia call or breakpoint constant was introduced in app source (only the existing SidebarNavItem/ModalShell/EditTaskModal/ContinuePipelineModal pointer-coarse idiom is extended)",
+          "disposition": "tested",
+          "evidence": "grep over `git diff -- *.tsx *.ts` for matchMedia/breakpoint literals in non-test source, confirmed the only new matches are in CreateMenuSplitButton.test.tsx's test-mocking code"
+        },
+        {
+          "behavior": "The old A20 'createBox.width >= 88' assertion is replaced (not deleted) with the new square/44x44/icon-only/accessible-name intent, and the old-rule/new-rule/who-asked reversal is recorded",
+          "disposition": "tested",
+          "evidence": "A20-mobile-visual-fixes.spec.ts inline comment + test body; CLAUDE.md DO-NOT rule 26 amendment; .shipwright/planning/adr/iterate-2026-09-09-phone-touch-targets-plus-cta-touch-target-audit.md"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 29,
+      "exit_code": 0,
+      "justification": "Every finding in this iterate is real-DOM geometry/accessible-name behavior invisible to jsdom unit tests. Ran via this repo's isolated-stack Playwright harness (client/e2e/isolated-stack.mjs) against the real production build, mobile-chromium (Pixel 5, real hasTouch + coarse-pointer emulation): A20-mobile-visual-fixes.spec.ts, 90b-phone-new-task-touch-safety.spec.ts, 90-phone-responsive.spec.ts, 90c-phone-up-band-guard.spec.ts, mobile-work-mode.spec.ts, mobile-work-mode-mission.spec.ts — 29/29 passed, 0 failures."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-09-phone-touch-targets-plus-cta",
+    "commit": "e45f5613",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
