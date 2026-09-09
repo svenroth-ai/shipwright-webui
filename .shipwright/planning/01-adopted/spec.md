@@ -1155,6 +1155,14 @@ write surface; gated, path-guarded, and concurrency-safe.
   turns, or a card mutated to `blocker`, never carries `explanation`. No
   settings, launch-flag, or server-side change: this is a client-side
   re-derivation of text the transcript already contains.
+- (T) **(iterate-2026-09-09-mission-ac-coverage-view)** The **Tests** artifact's
+  file rows additionally group by acceptance criterion when the traceability
+  manifest tags a test link with an `ac_id` (v4 schema): `detail.acCoverage`
+  carries `{tagged, groups: [{frId, acId, files}]}`, a pure regrouping of the
+  SAME rows the file table renders — it computes or stores no AC binding of
+  its own. `tagged: false` (no link in the manifest carries an `ac_id` —
+  this repo's real shape today) renders an explicit "not yet tagged by
+  acceptance criterion" note, never an empty table or a fabricated zero.
 
 ### FR-01.70 Leads org route
 
