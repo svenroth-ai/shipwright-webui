@@ -4,8 +4,8 @@ self-authored STUB of the shipwright-compliance collector (see
 `promote_fr_layers_stub.py`'s docstring for why: offline, network-free, one
 process per test run). That stub is a contract ASSUMPTION, never verified
 against the real thing in this offline suite. This test verifies the
-assumption instead of replacing it: it fetches the SAME pinned commit `ci.yml`
-checks out for the sibling `Traceability manifest (gate)` job, imports the
+assumption instead of replacing it: it fetches this test's own pinned commit
+of the monorepo (below), imports the
 REAL collector through the REAL `import_cross_repo()` (commit-pin verification
 included), and asserts the handful of symbols/shapes this repo's code
 actually depends on are still there.
@@ -41,10 +41,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import promote_fr_layers_io as io_mod  # noqa: E402
 
-# Same repository + commit `ci.yml`'s "Checkout shipwright-compliance plugin
-# (pinned)" step names for the sibling `Traceability manifest (gate)` job --
-# kept as a literal here too (not imported from ci.yml) since re-pinning one
-# without the other is exactly the kind of drift a human re-checks by hand.
+# This test's own pin, independent of any CI workflow -- re-pin by bumping
+# the SHA below when the monorepo's plugin/collector surface moves.
 _PINNED_REPO_URL = "https://github.com/svenroth-ai/shipwright.git"
 _PINNED_COMMIT = "7e106939fbf82331f5e54a4ea27d90b4f279f1ce"
 

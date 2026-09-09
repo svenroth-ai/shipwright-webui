@@ -111,6 +111,31 @@ describe("buildTestsArtifact — rows and classification", () => {
     const removed = a.detail!.rows.find((r) => r.kind === "removed")!;
     expect(removed.layer).toBe("e2e");
     expect(removed.frs).toEqual([]);
+    // NO_INDEX makes manifestStatus "unavailable" for the whole artifact — that
+    // already explains the empty frs, so the per-row reason stays quiet.
+    expect(removed.unresolvedReason).toBeNull();
+  });
+
+  it("reads an ADDED file absent from an otherwise-OK manifest as UNKNOWN, not as 'covers nothing'", () => {
+    // The manifest reads fine (manifestStatus will be "ok") but has no entry
+    // for a.test.ts — exactly what a just-added test file looks like before
+    // the next manifest regen. `frs: []` alone would render as "proven to
+    // cover no requirement"; the row must instead say WHY it is empty.
+    const a = buildTestsArtifact({ events: FOUND, diff, index: indexWith({}) });
+    const added = a.detail!.rows.find((r) => r.kind === "added")!;
+    expect(added.frs).toEqual([]);
+    expect(added.unresolvedReason).toMatch(/predates this file/);
+    expect(a.detail?.manifestStatus).toBe("ok");
+
+    // A MODIFIED or REMOVED file absent from the same manifest is not claimed
+    // unknown by this mechanism — only `added` triggers it. A missing
+    // MODIFIED entry is a different, rarer signal (rename / schema drift /
+    // truncated write on a file that once had evidence) that this fix does
+    // not diagnose; it renders a bare "—", same as before this fix.
+    const modified = a.detail!.rows.find((r) => r.kind === "modified")!;
+    const removed = a.detail!.rows.find((r) => r.kind === "removed")!;
+    expect(modified.unresolvedReason).toBeNull();
+    expect(removed.unresolvedReason).toBeNull();
   });
 
   it("flags manifestStatus so missing FR links read as MISSING, not as 'covers nothing'", () => {
@@ -132,6 +157,12 @@ describe("buildTestsArtifact — rows and classification", () => {
     expect(a.detail?.manifestStatus).toBe("unavailable");
     // The rows themselves stay real.
     expect(a.detail?.rows).toHaveLength(3);
+    // Code review, MEDIUM: a truncated index must not tell the per-row
+    // "predates this file" story either — that claim is specifically wrong
+    // for a file that merely fell past the entry cap, and manifestStatus
+    // above already explains the missing links at the artifact level.
+    const added = a.detail!.rows.find((r) => r.kind === "added")!;
+    expect(added.unresolvedReason).toBeNull();
   });
 
   it("aggregates per layer and writes a summary a non-expert can read", () => {

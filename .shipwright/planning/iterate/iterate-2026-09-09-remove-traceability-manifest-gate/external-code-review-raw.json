@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n- Category: edge-case\n  Severity: low\n  File: scripts/ci/tests/ (diff deletes test_traceability_manifest_gate_run.py and test_traceability_manifest_gate_run_infra_failures.py)\n  Finding: `scripts/ci/tests/traceability_gate_stub_collector.py` \u2014 the shared stub-collector helper imported only by the deleted test modules (`from traceability_gate_stub_collector import stub_plugin_root, _IO_STUB, _cleanup, empty_plugin_root`) \u2014 is not itself deleted. After this change it is an orphaned non-`test_*` module in the tests directory whose sole consumers are gone. It's dead code rather than a dangling import of a deleted script, but it conflicts with the acceptance criterion's spirit (\"no remaining reference to the deleted scripts anywhere in the tracked tree\") and with the spec's deletion-only/net-negative-lines posture.\n  Suggestion: Delete `traceability_gate_stub_collector.py` in this change; it has no remaining callers.\n\n- Category: regression\n  Severity: medium\n  File: .github/workflows/ci.yml (deletion of the `traceability-manifest` job)\n  Finding: The deleted job's own comments state that `main_health.py` reads this job's status (`\"blocking every OTHER iterate in the meantime (main_health.py reads this job red)\"`). If `main_health.py` (or `test_bootstrapper_ci_schedule.py`'s `SCHEDULE_ELIGIBLE` set, or any ruleset/branch-protection required-checks list) enumerates the job name `traceability-manifest` or `Traceability manifest (gate)`, removing the job breaks those consumers. None of these files appear in the diff, so the claimed repo-wide grep cannot be verified from the diff alone.\n  Suggestion: Confirm by grep that `main_health.py`, `test_bootstrapper_ci_schedule.py`, and any required-checks configuration no longer reference the removed job names; if they do, update them in this change. Also confirm the branch-protection ruleset didn't list these checks as required (a missing required check keeps PRs pending forever).\n\n- Category: test\n  Severity: low\n  File: client/src/components/external/mission/MissionTestsDetail.counts.test.tsx:79-83\n  Finding: The client test only proves the reason string renders when the producer supplies it. It does not cover the negative case the fix is about (an added row with `unresolvedReason: null` and `frs: []` must still render \"\u2014\"), nor the `modified`/`removed` exclusion. The server test does cover the exclusion, so combined coverage is acceptable, but the client-side regression guard (the `?? \"\u2014\"` fallback) is untested.\n  Suggestion: Add one assertion rendering an added row with `unresolvedReason: null` and expecting the \"\u2014\" fallback, so the nullish-coalescing path is pinned.\n\n- Category: edge-case\n  Severity: low\n  File: server/src/core/mission-context/artifacts-tests.ts:167-177\n  Finding: `unresolvedReason` is set for any `added` file absent from a readable manifest, including files that genuinely have no `@covers` tags (an untagged test file added after a manifest regen would also get the \"predates this file\" reason even though the next regen will legitimately show `frs: []`). The spec scoped only the added case and this is the conservative direction (unknown, not a proven zero), so this is within spec, but worth noting the reason text can be mildly inaccurate for untagged new files.\n  Suggestion: Acceptable as-is; if precision matters later, cross-check the diff for absence of `@covers` tags and vary the message.\n\nEverything else checks out: both CI jobs, the pinned checkout, the write carve-out, and all five listed script/test files (including `test_traceability_regen_pr_shell.py`) are removed; the top-level permissions comment is updated consistently; the YAML remains structurally valid; the honesty fix is additive on both sides with the client field mirrored verbatim; `removed`/`modified` are excluded exactly as specified; the bloat baseline is updated rather than ratcheted; no schema-version bump, per spec.\n\nOverall assessment: ship-with-fixes \u2014 the change is faithful to the spec; the orphaned stub-collector helper should be deleted and the `main_health.py`/ruleset references verified before merge.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "No concrete defects found. The CI machinery and its direct tests are removed, write permissions are eliminated, and the added-file/absent-index case is produced and rendered with tests on both sides.\n\nOverall: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=approve"
+  }
+}

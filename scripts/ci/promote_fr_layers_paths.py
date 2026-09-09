@@ -45,12 +45,11 @@ def verify_commit_pin(root: Path, expect_commit: str) -> None:
     caller expects (code review, blocking): a caller-controlled path with no
     integrity check would let a modified/swapped checkout control manifest
     generation and file-writing behavior. This is the runtime half of the
-    guarantee, not a substitute for the other half: a SHA-pinned
-    ``actions/checkout`` step (mirroring the ``Traceability manifest (gate)``
-    job in ``ci.yml``) is what makes a given ref trustworthy in the first
-    place; this only confirms the path a CI invocation actually names is
-    still that same checkout, not one that moved after the checkout step
-    ran. Used for BOTH the plugin checkout (``import_cross_repo``) and the
+    guarantee, not a substitute for the other half: pinning the checkout to
+    a full commit SHA at fetch time is what makes a given ref trustworthy in
+    the first place; this only confirms the path a CI invocation actually
+    names is still that same checkout, not one that moved after the checkout
+    step ran. Used for BOTH the plugin checkout (``import_cross_repo``) and the
     project checkout itself (``promote_fr_layers.run``'s evidence-freshness
     binding) -- same check, two different trees."""
     resolved = root.resolve()

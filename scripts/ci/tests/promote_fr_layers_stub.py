@@ -1,6 +1,6 @@
 """Shared STUB cross-repo plumbing for `promote_fr_layers.run()` integration
-tests — mirrors `traceability_gate_stub_collector.py`'s pattern (offline,
-network-free; `pytest scripts/ci/tests -q` has no monorepo checkout).
+tests — offline, network-free (`pytest scripts/ci/tests -q` has no monorepo
+checkout).
 
 The stub `build_manifest` re-derives `required_layers`/`required_layers_source`
 from spec.md's Layers cell using the SAME marker rule

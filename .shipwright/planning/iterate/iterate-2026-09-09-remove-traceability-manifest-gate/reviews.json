@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-remove-traceability-manifest-gate",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:30:29.212781+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:35:22.819176+00:00",
+      "disposition": "plan review is medium+ only; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/artifacts-tests.ts",
+          "line": 176,
+          "finding": "The real committed test-traceability.json's generated_at is a deterministic epoch placeholder (1970-01-01T00:00:00+00:00), so production would render the nonsensical 'Not yet in the requirement manifest (generated 1970-01-01T00:00:00+00:00) — it predates this file.'",
+          "suggestion": "Drop the parenthetical entirely, collapsing the ternary to a single constant string and removing the untested branch.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/artifacts-tests.ts",
+          "line": 174,
+          "finding": "The unresolvedReason condition does not exclude index.truncated — a truncated-but-'ok' index can produce a false 'predates this file' claim for a file that simply fell past the manifest's entry cap, contradicting the TestRow doc comment's own stated invariant.",
+          "suggestion": "Add `&& !index.truncated` to the guard; extend the PARTIAL-manifest test with an assertion that the added row's unresolvedReason is null.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "process",
+          "file": "shipwright_bloat_baseline.json",
+          "line": 739,
+          "finding": "Bumping `current` on an already-grandfathered entry in the same commit that grows the file is arguably the exact anti-ratchet contract violation the baseline exists to prevent, since anti_ratchet_check.py compares measured LOC directly against entry.current. The entry also lacked a `note` field, unlike the cited sibling precedent (server/scripts/regen-triage-fixtures.py, baseline lines 722-727).",
+          "suggestion": "Either record a genuine bloat exception with an explanatory note matching the established grandfathered+adr+note convention, or split the mirror file to avoid growth.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "server/src/core/mission-context/artifacts-tests.test.ts",
+          "line": 119,
+          "finding": "The new 'reads an ADDED file absent from an otherwise-OK manifest' test uses indexWith({}) which hardcodes generatedAt: null, so the toMatch(/predates this file/) assertion passed on both ternary branches — the generatedAt-bearing branch that actually ships in production had zero coverage, which is exactly why the HIGH epoch-placeholder finding went undetected.",
+          "suggestion": "Closed by removing the generatedAt-bearing branch entirely per the HIGH finding above, rather than by adding a second fixture.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "stale-comment",
+          "file": "scripts/ci/promote_fr_layers.py",
+          "line": 15,
+          "finding": "Unlike the other spots already fixed in this module, this docstring line ('spec.md's Layers column is the ONE source of truth the w1 evidence-chain CI gate compares against') still names the deleted job in the present tense. .shipwright/planning/adr/iterate-2026-09-06-w1-evidence-chain.md:16-20 confirms 'w1 evidence-chain CI gate' = the deleted traceability-manifest job.",
+          "suggestion": "Reword to describe the collector relationship without naming the deleted job.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "changelog",
+          "file": "CHANGELOG-unreleased.d/",
+          "line": null,
+          "finding": "No CHANGELOG drop yet for this removal.",
+          "suggestion": "Confirm F4 (write_changelog_drop.py) covers this during finalization.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T10:58:32.411050+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary/contract",
+          "file": "server/src/core/mission-context/artifacts-tests.ts",
+          "line": null,
+          "finding": "Claim under doubt: the artifacts-tests.ts honesty fix makes every unresolved-coverage case honest, not just the added-file case — unresolvedReason is gated on f.kind === \"added\" only (artifacts-tests.ts:174-177); a `modified` test file with a missing manifest entry (index status ok, not truncated) renders frs:[] and unresolvedReason:null, which the UI shows as a bare em-dash — indistinguishable from a manifest-confirmed zero-coverage file, violating the file's own stated invariant ('we could not find out must never render as there is nothing', artifacts-tests.test.ts:1-8). Deliberately scoped this way and tested (artifacts-tests.test.ts:130-135) but with no rationale for treating `modified` like `removed` (expected absence) instead of like `added` (ambiguous absence). This PR makes the underlying manifest staleness this depends on worse, not better, by fully deleting (not just downgrading to advisory) the only mechanism that used to refresh the committed manifest.",
+          "suggestion": "Either widen the disclosure to modified files too (drop the kind === \"added\" restriction, or use kind !== \"removed\"), or add an explicit one-line rationale for why a modified file's missing manifest entry is safe to treat as expected-absence rather than unknown-coverage.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T11:02:41.481851+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "scripts/ci/tests/ (diff deletes test_traceability_manifest_gate_run.py and test_traceability_manifest_gate_run_infra_failures.py)",
+          "line": null,
+          "finding": "scripts/ci/tests/traceability_gate_stub_collector.py` — the shared stub-collector helper imported only by the deleted test modules (`from traceability_gate_stub_collector import stub_plugin_root, _IO_STUB, _cleanup, empty_plugin_root`) — is not itself deleted. After this change it is an orphaned non-`test_` module in the tests directory whose sole consumers are gone. It's dead code rather than a dangling import of a deleted script, but it conflicts with the acceptance criterion's spirit (\"no remaining reference to the deleted scripts anywhere in the tracked tree\") and with the spec's deletion-only/net-negative-lines posture.",
+          "suggestion": "Delete `traceability_gate_stub_collector.py` in this change; it has no remaining callers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": ".github/workflows/ci.yml (deletion of the `traceability-manifest` job)",
+          "line": null,
+          "finding": "The deleted job's own comments state that `main_health.py` reads this job's status (`\"blocking every OTHER iterate in the meantime (main_health.py reads this job red)\"`). If `main_health.py` (or `test_bootstrapper_ci_schedule.py`'s `SCHEDULE_ELIGIBLE` set, or any ruleset/branch-protection required-checks list) enumerates the job name `traceability-manifest` or `Traceability manifest (gate)`, removing the job breaks those consumers. None of these files appear in the diff, so the claimed repo-wide grep cannot be verified from the diff alone.",
+          "suggestion": "Confirm by grep that `main_health.py`, `test_bootstrapper_ci_schedule.py`, and any required-checks configuration no longer reference the removed job names; if they do, update them in this change. Also confirm the branch-protection ruleset didn't list these checks as required (a missing required check keeps PRs pending forever).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionTestsDetail.counts.test.tsx:79-83",
+          "line": null,
+          "finding": "The client test only proves the reason string renders when the producer supplies it. It does not cover the negative case the fix is about (an added row with `unresolvedReason: null` and `frs: []` must still render \"—\"), nor the `modified`/`removed` exclusion. The server test does cover the exclusion, so combined coverage is acceptable, but the client-side regression guard (the `?? \"—\"` fallback) is untested.",
+          "suggestion": "Add one assertion rendering an added row with `unresolvedReason: null` and expecting the \"—\" fallback, so the nullish-coalescing path is pinned.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/mission-context/artifacts-tests.ts:167-177",
+          "line": null,
+          "finding": "unresolvedReason` is set for any `added` file absent from a readable manifest, including files that genuinely have no `@covers` tags (an untagged test file added after a manifest regen would also get the \"predates this file\" reason even though the next regen will legitimately show `frs: []`). The spec scoped only the added case and this is the conservative direction (unknown, not a proven zero), so this is within spec, but worth noting the reason text can be mildly inaccurate for untagged new files.",
+          "suggestion": "Acceptable as-is; if precision matters later, cross-check the diff for absence of `@covers` tags and vary the message.  Everything else checks out: both CI jobs, the pinned checkout, the write carve-out, and all five listed script/test files (including `test_traceability_regen_pr_shell.py`) are removed; the top-level permissions comment is updated consistently; the YAML remains structurally valid; the honesty fix is additive on both sides with the client field mirrored verbatim; `removed`/`modified` are excluded exactly as specified; the bloat baseline is updated rather than ratcheted; no schema-version bump, per spec.  Overall assessment: ship-with-fixes — the change is faithful to the spec; the orphaned stub-collector helper should be deleted and the `main_health.py`/ruleset references verified before merge.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-09T10:35:14.251085+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: edge-case\n  Severity: low\n  File: scripts/ci/tests/ (diff deletes test_traceability_manifest_gate_run.py and test_traceability_manifest_gate_run_infra_failures.py)\n  Finding: `scripts/ci/tests/traceability_gate_stub_collector.py` — the shared stub-collector helper imported only by the deleted test modules (`from traceability_gate_stub_collector import stub_plugin_root, _IO_STUB, _cleanup, empty_plugin_root`) — is not itself deleted. After this change it is an orphaned non-`test_*` module in the tests directory whose sole consumers are gone. It's dead code rather than a dangling import of a deleted script, but it conflicts with the acceptance criterion's spirit (\"no remaining reference to the deleted scripts anywhere in the tracked tree\") and with the spec's deletion-only/net-negative-lines posture.\n  Suggestion: Delete `traceability_gate_stub_collector.py` in this change; it has no remaining callers.\n\n- Category: regression\n  Severity: medium\n  File: .github/workflows/ci.yml (deletion of the `traceability-manifest` job)\n  Finding: The deleted job's own comments state that `main_health.py` reads this job's status (`\"blocking every OTHER iterate in the meantime (main_health.py reads this job red)\"`). If `main_health.py` (or `test_bootstrapper_ci_schedule.py`'s `SCHEDULE_ELIGIBLE` set, or any ruleset/branch-protection required-checks list) enumerates the job name `traceability-manifest` or `Traceability manifest (gate)`, removing the job breaks those consumers. None of these files appear in the diff, so the claimed repo-wide grep cannot be verified from the diff alone.\n  Suggestion: Confirm by grep that `main_health.py`, `test_bootstrapper_ci_schedule.py`, and any required-checks configuration no longer reference the removed job names; if they do, update them in this change. Also confirm the branch-protection ruleset didn't list these checks as required (a missing required check keeps PRs pending forever).\n\n- Category: test\n  Sever […truncated]\n\n[openai] No concrete defects found. The CI machinery and its direct tests are removed, write permissions are eliminated, and the added-file/absent-index case is produced and rendered with tests on both sides.\n\nOverall: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:46:17.728561+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:35:23.215688+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

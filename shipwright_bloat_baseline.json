@@ -736,9 +736,10 @@
     {
       "path": "client/src/lib/missionContextApi.ts",
       "limit": 300,
-      "current": 301,
+      "current": 302,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-09-09-remove-traceability-manifest-gate",
+      "note": "One field (`unresolvedReason?: string | null;`) added to TestRow, mirroring server/src/core/mission-context/types-slice2.ts verbatim per ADR-080 rule 7 -- the file is a flat interface listing, already at its grandfathered ceiling with no unrelated bloat to trim, so the 1-line growth is the field itself."
     },
     {
       "path": "server/src/core/mission-context/resolver.ts",

@@ -1,0 +1,53 @@
+{
+  "section": "iterate-2026-09-09-remove-traceability-manifest-gate",
+  "review": [
+    {
+      "severity": "HIGH",
+      "category": "correctness",
+      "file": "server/src/core/mission-context/artifacts-tests.ts",
+      "line": 176,
+      "finding": "The real committed test-traceability.json's generated_at is a deterministic epoch placeholder (1970-01-01T00:00:00+00:00), so production would render the nonsensical 'Not yet in the requirement manifest (generated 1970-01-01T00:00:00+00:00) — it predates this file.'",
+      "suggestion": "Drop the parenthetical entirely, collapsing the ternary to a single constant string and removing the untested branch."
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "correctness",
+      "file": "server/src/core/mission-context/artifacts-tests.ts",
+      "line": 174,
+      "finding": "The unresolvedReason condition does not exclude index.truncated — a truncated-but-'ok' index can produce a false 'predates this file' claim for a file that simply fell past the manifest's entry cap, contradicting the TestRow doc comment's own stated invariant.",
+      "suggestion": "Add `&& !index.truncated` to the guard; extend the PARTIAL-manifest test with an assertion that the added row's unresolvedReason is null."
+    },
+    {
+      "severity": "HIGH",
+      "category": "process",
+      "file": "shipwright_bloat_baseline.json",
+      "line": 739,
+      "finding": "Bumping `current` on an already-grandfathered entry in the same commit that grows the file is arguably the exact anti-ratchet contract violation the baseline exists to prevent, since anti_ratchet_check.py compares measured LOC directly against entry.current. The entry also lacked a `note` field, unlike the cited sibling precedent (server/scripts/regen-triage-fixtures.py, baseline lines 722-727).",
+      "suggestion": "Either record a genuine bloat exception with an explanatory note matching the established grandfathered+adr+note convention, or split the mirror file to avoid growth."
+    },
+    {
+      "severity": "LOW",
+      "category": "test-coverage",
+      "file": "server/src/core/mission-context/artifacts-tests.test.ts",
+      "line": 119,
+      "finding": "The new 'reads an ADDED file absent from an otherwise-OK manifest' test uses indexWith({}) which hardcodes generatedAt: null, so the toMatch(/predates this file/) assertion passed on both ternary branches — the generatedAt-bearing branch that actually ships in production had zero coverage, which is exactly why the HIGH epoch-placeholder finding went undetected.",
+      "suggestion": "Closed by removing the generatedAt-bearing branch entirely per the HIGH finding above, rather than by adding a second fixture."
+    },
+    {
+      "severity": "LOW",
+      "category": "stale-comment",
+      "file": "scripts/ci/promote_fr_layers.py",
+      "line": 15,
+      "finding": "Unlike the other spots already fixed in this module, this docstring line ('spec.md's Layers column is the ONE source of truth the w1 evidence-chain CI gate compares against') still names the deleted job in the present tense. .shipwright/planning/adr/iterate-2026-09-06-w1-evidence-chain.md:16-20 confirms 'w1 evidence-chain CI gate' = the deleted traceability-manifest job.",
+      "suggestion": "Reword to describe the collector relationship without naming the deleted job."
+    },
+    {
+      "severity": "LOW",
+      "category": "changelog",
+      "file": "CHANGELOG-unreleased.d/",
+      "line": null,
+      "finding": "No CHANGELOG drop yet for this removal.",
+      "suggestion": "Confirm F4 (write_changelog_drop.py) covers this during finalization."
+    }
+  ]
+}

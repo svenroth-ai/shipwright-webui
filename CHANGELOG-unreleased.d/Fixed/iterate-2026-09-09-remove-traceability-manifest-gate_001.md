@@ -1,0 +1,1 @@
+Mission Tests panel now shows 'not yet in the requirement manifest' instead of a bare dash for a newly added test file the manifest hasn't indexed yet, so it reads as unknown coverage rather than zero coverage

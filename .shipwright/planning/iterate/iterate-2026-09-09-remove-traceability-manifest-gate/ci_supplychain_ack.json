@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-remove-traceability-manifest-gate",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-09-09-remove-traceability-manifest-gate",
+    "paths_fingerprint": "154e8fcc9a9ea679c620ef659c018e6779a7154224feec7e4402e39609b2ca8a",
+    "consistent_with": "iterate-2026-09-09-remove-traceability-manifest-gate",
+    "statement": "Deletes the traceability-manifest gate + regen-PR job, the pinned third-party shipwright-compliance checkout they used, and the contents:write/pull-requests:write carve-out scoped only to the regen-PR job. Every remaining job stays read-only under the top-level contents:read permission; no new credential, PAT, or write scope is introduced. GitHub-owned actions stay on mutable tags and third-party actions stay SHA-pinned per CLAUDE.md rule 25 — unaffected by this change.",
+    "ci_paths": [
+      ".github/workflows/ci.yml"
+    ]
+  }
+}

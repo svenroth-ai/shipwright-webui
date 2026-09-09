@@ -41,7 +41,7 @@ def ledger_record(
     promotion's green run was against THIS tree", not a cryptographic
     integrity proof of the cross-repo tooling itself (that trust model already
     matches every other script in ``scripts/ci/`` that imports the same pinned
-    sibling checkout, e.g. ``traceability_manifest_gate.py``).
+    sibling checkout, e.g. ``promote_fr_layers_io.py``).
     """
     return {
         "status": "promoted",

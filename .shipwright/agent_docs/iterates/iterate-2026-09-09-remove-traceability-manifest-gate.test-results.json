@@ -1,0 +1,86 @@
+{
+  "last_updated": "2026-09-09",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-09-remove-traceability-manifest-gate",
+    "date": "2026-09-09",
+    "unit": {
+      "status": "passed",
+      "passed": 4119,
+      "total": 4126
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "F0's first server vitest run reported one 'Worker exited unexpectedly' unhandled-error alongside 376/377 files still passing \u2014 re-ran the full server suite clean (376 passed, 1 skipped) to confirm this was contention flake, not a regression; no test content changed between runs.",
+      "No E2E run for this iterate: the diff is CI-workflow deletion, Python CI-script deletion, and a server/client artifact-rendering honesty fix fully covered by unit tests \u2014 no browser-observable behavior (DOM geometry, timing, real sockets) is touched, so the small-complexity E2E gate does not fire."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      },
+      "behaviors": [
+        {
+          "behavior": "traceability-manifest and traceability-manifest-regen-pr CI jobs, the pinned shipwright-compliance checkout, and the write-permission carve-out are gone; remaining jobs are read-only and unaffected",
+          "disposition": "tested",
+          "evidence": "manual YAML-load verification (uv run --with pyyaml) confirms only client-checks, diff-coverage, e2e-smoke, visual, server-checks, bootstrapper-checks remain, each under top-level contents:read; repo-wide grep for the deleted job names against .github/, scripts/, server/, client/ is clean"
+        },
+        {
+          "behavior": "an ADDED test file absent from an otherwise-OK, non-truncated manifest renders as unknown coverage (a plain-language reason), never as frs:[] read like proven zero coverage",
+          "disposition": "tested",
+          "evidence": "server/src/core/mission-context/artifacts-tests.test.ts: 'reads an ADDED file absent from an otherwise-OK manifest as UNKNOWN, not as covers nothing'; MissionTestsDetail.counts.test.tsx: 'reads an unindexed ADDED file as UNKNOWN, never as covers no requirement'"
+        },
+        {
+          "behavior": "a TRUNCATED manifest index must not claim 'predates this file' for an added row (that claim is specific to a genuinely-unindexed file, not one merely past the entry cap)",
+          "disposition": "tested",
+          "evidence": "artifacts-tests.test.ts: 'treats a PARTIAL manifest index as unavailable links, not as fine' (added.unresolvedReason toBeNull assertion, code-review MEDIUM response)"
+        },
+        {
+          "behavior": "MODIFIED and REMOVED rows are unaffected by the honesty fix and still render the pre-existing bare dash when the manifest has no entry",
+          "disposition": "tested",
+          "evidence": "artifacts-tests.test.ts same test asserts modified.unresolvedReason and removed.unresolvedReason are null; MissionTestsDetail.counts.test.tsx 'still shows the plain dash when a row genuinely has no reason'"
+        },
+        {
+          "behavior": "removing scripts/ci/promote_fr_layers.py's stale comment references to the deleted job leaves its own regen-pass behavior and tests unchanged",
+          "disposition": "tested",
+          "evidence": "uv run pytest scripts/ci -q: 796 passed, 2 skipped (full suite, comment-only edits verified not to affect any assertion)"
+        }
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-09-remove-traceability-manifest-gate",
+    "commit": "9bf1519cdd4f2df51f726cc4a1d29d5d6dcc1ffb",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

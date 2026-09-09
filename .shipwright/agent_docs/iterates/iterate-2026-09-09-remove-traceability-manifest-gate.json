@@ -1,0 +1,105 @@
+{
+  "run_id": "iterate-2026-09-09-remove-traceability-manifest-gate",
+  "date": "2026-09-09T11:12:55.626365Z",
+  "event_at": "2026-09-09T11:12:16.374761+00:00",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/remove-traceability-manifest-gate",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-09-remove-traceability-manifest-gate",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    },
+    "behaviors": [
+      {
+        "behavior": "traceability-manifest and traceability-manifest-regen-pr CI jobs, the pinned shipwright-compliance checkout, and the write-permission carve-out are gone; remaining jobs are read-only and unaffected",
+        "disposition": "tested",
+        "evidence": "manual YAML-load verification confirms only client-checks, diff-coverage, e2e-smoke, visual, server-checks, bootstrapper-checks remain under top-level contents:read; repo-wide grep for deleted job names is clean"
+      },
+      {
+        "behavior": "an ADDED test file absent from an otherwise-OK, non-truncated manifest renders as unknown coverage instead of frs:[] read as proven zero coverage",
+        "disposition": "tested",
+        "evidence": "artifacts-tests.test.ts and MissionTestsDetail.counts.test.tsx new cases"
+      },
+      {
+        "behavior": "a TRUNCATED manifest index must not claim predates-this-file for an added row",
+        "disposition": "tested",
+        "evidence": "artifacts-tests.test.ts PARTIAL-manifest test, added.unresolvedReason toBeNull"
+      },
+      {
+        "behavior": "MODIFIED and REMOVED rows are unaffected and still render the pre-existing bare dash",
+        "disposition": "tested",
+        "evidence": "artifacts-tests.test.ts same test; MissionTestsDetail.counts.test.tsx fallback-dash case"
+      },
+      {
+        "behavior": "promote_fr_layers.py comment-only edits leave its own regen-pass behavior unchanged",
+        "disposition": "tested",
+        "evidence": "uv run pytest scripts/ci -q: 796 passed, 2 skipped"
+      }
+    ]
+  },
+  "declared_removals": [
+    {
+      "path": ".github/workflows/ci.yml (traceability-manifest job)",
+      "reason": "hard-failed CI on a committed derived-snapshot file no enforcing gate reads; iterate PRs are structurally forbidden from updating it"
+    },
+    {
+      "path": ".github/workflows/ci.yml (traceability-manifest-regen-pr job)",
+      "reason": "only consumer of the contents:write/pull-requests:write carve-out; existed solely to patch over the gate above"
+    },
+    {
+      "path": "scripts/ci/traceability_manifest_gate.py",
+      "reason": "sole implementation of the deleted gate job"
+    },
+    {
+      "path": "scripts/ci/traceability_manifest_diff.py",
+      "reason": "diff-rendering helper used only by the deleted gate job"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_manifest_ci_job.py",
+      "reason": "tests the deleted CI job wiring"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_manifest_diff.py",
+      "reason": "tests the deleted diff helper"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_manifest_diff_drift.py",
+      "reason": "tests the deleted diff helper"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_manifest_gate_run.py",
+      "reason": "tests the deleted gate script"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_manifest_gate_run_infra_failures.py",
+      "reason": "tests the deleted gate script"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_manifest_regen_pr_ci_job.py",
+      "reason": "tests the deleted regen-PR job"
+    },
+    {
+      "path": "scripts/ci/tests/test_traceability_regen_pr_shell.py",
+      "reason": "executed the shell body of the deleted open-regen-pr step"
+    },
+    {
+      "path": "scripts/ci/tests/traceability_gate_stub_collector.py",
+      "reason": "orphaned stub-collector helper, sole consumers were the deleted test modules (external review LOW)"
+    },
+    {
+      "path": "scripts/ci/tests/traceability_manifest_fixtures.py",
+      "reason": "fixtures for the deleted gate/diff tests"
+    }
+  ]
+}

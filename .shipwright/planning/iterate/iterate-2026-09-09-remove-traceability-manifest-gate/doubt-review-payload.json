@@ -1,0 +1,16 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "irreversible/CI-config change + cross-cutting artifact-rendering logic",
+  "doubts": [
+    {
+      "severity": "medium",
+      "lens": "boundary/contract",
+      "claim_under_doubt": "the artifacts-tests.ts honesty fix makes every unresolved-coverage case honest, not just the added-file case",
+      "disproof_attempt": "unresolvedReason is gated on f.kind === \"added\" only (artifacts-tests.ts:174-177); a `modified` test file with a missing manifest entry (index status ok, not truncated) renders frs:[] and unresolvedReason:null, which the UI shows as a bare em-dash — indistinguishable from a manifest-confirmed zero-coverage file, violating the file's own stated invariant ('we could not find out must never render as there is nothing', artifacts-tests.test.ts:1-8). Deliberately scoped this way and tested (artifacts-tests.test.ts:130-135) but with no rationale for treating `modified` like `removed` (expected absence) instead of like `added` (ambiguous absence). This PR makes the underlying manifest staleness this depends on worse, not better, by fully deleting (not just downgrading to advisory) the only mechanism that used to refresh the committed manifest.",
+      "file": "server/src/core/mission-context/artifacts-tests.ts",
+      "what_would_resolve_it": "Either widen the disclosure to modified files too (drop the kind === \"added\" restriction, or use kind !== \"removed\"), or add an explicit one-line rationale for why a modified file's missing manifest entry is safe to treat as expected-absence rather than unknown-coverage."
+    }
+  ],
+  "summary": "Attacked reversibility, concurrency/ordering (n/a — no async surface in this diff), boundary/contract, and hidden coupling. CI permission drop to contents:read is fully sound (verified the write scope was already job-scoped to only the deleted regen-PR job, and neither deleted job was ever in required_status_checks, so no stuck-pending-check risk). No other workflow references the deleted jobs. Cross-checked the two highest-severity Stage-2 findings myself and confirmed both fixes hold. One medium doubt survived on the artifacts-tests.ts state-matrix walk: the added-only scoping of unresolvedReason leaves a modified-file gap that violates the file's own documented invariant, and is made more likely to bite by this PR's own change (permanent, not advisory, removal of manifest refresh)."
+}

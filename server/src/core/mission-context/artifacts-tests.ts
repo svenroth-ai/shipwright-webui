@@ -164,6 +164,27 @@ function summarizeFiles(diff: Extract<TestsDiff, { status: "ok" }>, index: Trace
   const byFile = index.status === "ok" ? index.byFile : null;
   const rows: TestRow[] = diff.files.map((f) => {
     const entry = byFile?.get(f.path);
+    // The manifest read fine but has no entry for this ADDED file — almost
+    // always because it predates a test file this run's own commit just
+    // created. That is UNKNOWN coverage, not "proven to cover nothing" (a
+    // `removed` file's absence is already explained below; a wholly-unreadable
+    // OR truncated manifest is already explained at the artifact level via
+    // `manifestStatus` — a truncated index's "no entry" means "past the entry
+    // cap", not "predates this file", so it must not claim the latter).
+    //
+    // Scoped to `added` only, deliberately (doubt-review, MEDIUM): a
+    // `modified` file with no manifest entry is a DIFFERENT, rarer signal —
+    // it once had `@covers` evidence and something (a rename, a schema
+    // drift, a truncated write) made it disappear — and diagnosing that is
+    // out of scope for this fix, whose brief is specifically the
+    // just-added/not-yet-regenerated case. Leaving it unflagged is a scope
+    // boundary, not a claim that a missing `modified` entry is safe; a
+    // `modified` row still renders a bare "—", identical to today's
+    // pre-existing behavior, so this fix makes nothing about that case worse.
+    const unresolvedReason =
+      index.status === "ok" && !index.truncated && !entry && f.kind === "added"
+        ? "Not yet in the requirement manifest — it predates this file."
+        : null;
     return {
       path: f.path,
       kind: f.kind,
@@ -173,6 +194,7 @@ function summarizeFiles(diff: Extract<TestsDiff, { status: "ok" }>, index: Trace
       layer: entry?.layers[0] ?? inferLayer(f.path),
       frs: entry?.frs ?? [],
       caseCount: entry?.caseCount ?? null,
+      unresolvedReason,
     };
   });
 

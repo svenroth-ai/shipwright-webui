@@ -128,6 +128,7 @@ export interface TestRow {
   layer: string | null;
   frs: TestFrRef[];
   caseCount: number | null;
+  unresolvedReason?: string | null;
 }
 
 export interface TestsArtifact extends ArtifactBase {
