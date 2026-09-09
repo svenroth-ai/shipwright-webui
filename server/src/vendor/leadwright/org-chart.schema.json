@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/svenroth-ai/leadwright/schemas/org-chart.schema.json",
+  "title": "OrgChart",
+  "description": "Single source of truth for the lead hierarchy. Lives at ~/.claude/leads/org-chart.json. GENERATED from lib/org-chart.ts by scripts/generate-org-chart-schema.ts — do not hand-edit.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 2
+    },
+    "po": {
+      "type": "string",
+      "minLength": 1
+    },
+    "leads": {
+      "type": "object",
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9-]*$": {
+          "$ref": "#/$defs/Lead"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "version",
+    "po",
+    "leads"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Lead": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "domain": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "reports_to": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            }
+          ]
+        },
+        "manages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "$comment": "Additional runtime invariant(s) enforced by the zod schema (lib/org-chart.ts) via superRefine/refine are NOT enforced by this generated mirror."
+        },
+        "charter_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!.*\\.\\.).+$"
+        },
+        "learnings_path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!\\/)(?!.*\\.\\.).+$"
+        },
+        "triggers": {
+          "type": "object",
+          "properties": {
+            "cron": {
+              "type": "string",
+              "minLength": 1
+            },
+            "on": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "minItems": 1
+            }
+          },
+          "required": [
+            "cron",
+            "on"
+          ],
+          "additionalProperties": false
+        },
+        "max_concurrent_tasks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "budget": {
+          "type": "object",
+          "properties": {
+            "window": {
+              "const": "rolling-7d"
+            },
+            "usd": {
+              "oneOf": [
+                {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "pause_at": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.85
+            },
+            "hard_stop_at": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.95
+            }
+          },
+          "required": [
+            "window"
+          ],
+          "additionalProperties": false,
+          "$comment": "Additional runtime invariant(s) enforced by the zod schema (lib/org-chart.ts) via superRefine/refine are NOT enforced by this generated mirror."
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "allowed_skills": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\/[a-z0-9][a-z0-9-]*$"
+          },
+          "minItems": 1
+        },
+        "allowed_tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
+        "escalation_target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "enum": [
+            "fast",
+            "balanced",
+            "deep"
+          ]
+        },
+        "paused": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "required": [
+        "name",
+        "domain",
+        "reports_to",
+        "manages",
+        "charter_path",
+        "learnings_path",
+        "triggers",
+        "max_concurrent_tasks",
+        "budget",
+        "projects",
+        "allowed_skills",
+        "escalation_target",
+        "model"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

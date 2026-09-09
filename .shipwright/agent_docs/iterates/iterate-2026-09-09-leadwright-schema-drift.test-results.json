@@ -1,0 +1,116 @@
+{
+  "last_updated": "2026-09-09",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-09-leadwright-schema-drift",
+    "date": "2026-09-09",
+    "unit": {
+      "status": "passed",
+      "passed": 4131,
+      "total": 4131
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "Full server suite ran green (4131 passed / 12 skipped, 377 files) on the run this block is drawn from. Two earlier full-suite runs during this iterate each showed one unrelated pre-existing flake (triage-cli-routes.test.ts CAS-race test, pty-mirror-integration.test.ts Windows temp-dir race) \u2014 both confirmed passing in isolation and untouched by this diff; not reflected in the clean counts above."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      },
+      "behaviors": [
+        {
+          "behavior": "AC(a): with SHIPWRIGHT_LEADWRIGHT_CHECKOUT set to a real leadwright checkout, all 5 vendored schemas compare equal (parsed JSON) to the checkout's schemas/",
+          "disposition": "tested",
+          "evidence": "leadwright-schema-drift.test.ts 'against a real checkout' block, run against C:\\01_Development\\leadwright \u2014 17/17 passed, verbose reporter output captured in this run's session"
+        },
+        {
+          "behavior": "AC(b): editing one vendored file makes the real per-file check FAIL, naming the file and the differing JSON path",
+          "disposition": "tested",
+          "evidence": "Empirically reproduced against the real vendor tree: temporarily corrupted beat-step.schema.json's title field, re-ran with the checkout var set \u2014 failure message read 'beat-step.schema.json differs from the checkout at JSON path /title', file restored after capture; also locked in by the fixture test 'reports matches=false, naming the file and the first differing JSON path'"
+        },
+        {
+          "behavior": "A CRLF-only difference (leadwright's real Windows-checkout trap, reproduced live on beat-step.schema.json) is never reported as drift \u2014 comparison is parsed JSON, not bytes",
+          "disposition": "tested",
+          "evidence": "leadwright-schema-drift.test.ts fixture 'a CRLF-only difference in the source file is NOT drift'; also empirically true of the real checkout's beat-step.schema.json (83 CRLF line endings observed, comparison still matched)"
+        },
+        {
+          "behavior": "AC(c): with the variable unset, the suite is green and each per-file check appears as a named skip in the reporter output",
+          "disposition": "tested",
+          "evidence": "npx vitest run --reporter=verbose with SHIPWRIGHT_LEADWRIGHT_CHECKOUT unset: 5 named '\u2193' skip lines captured, one per vendored file, suite green"
+        },
+        {
+          "behavior": "AC(d): the check enumerates the vendor directory (no hardcoded filename list); a file added to the directory is picked up with no test edit",
+          "disposition": "tested",
+          "evidence": "listVendorFiles fixture test 'returns exactly what's on disk, including a file added after this test was written' (3-file temp dir, incl. a simulated 'sixth file')"
+        },
+        {
+          "behavior": "The vendor directory non-empty guard cannot be satisfied by an empty glob",
+          "disposition": "tested",
+          "evidence": "leadwright-schema-drift.test.ts 'the vendor directory is non-empty' (runs unconditionally, not skipped)"
+        },
+        {
+          "behavior": "findFirstJsonDiff correctly locates the first divergence across key-order-independence, array-value divergence, missing-key (either direction), differing array length, null-vs-missing-key, and nested type mismatch",
+          "disposition": "tested",
+          "evidence": "leadwright-schema-drift.test.ts 'findFirstJsonDiff \u2014 pointer to the first divergence' block, 6 cases"
+        },
+        {
+          "behavior": "A missing counterpart file (vendor-only or checkout-only) surfaces a message naming which side is missing, not a bare ENOENT",
+          "disposition": "tested",
+          "evidence": "leadwright-schema-drift.test.ts 'throws naming which side (checkout) is missing the file'"
+        },
+        {
+          "behavior": "AC(e): org-chart.schema.json is vendored; no reader in server/src consults it (drift pin only, not yet a validator)",
+          "disposition": "tested",
+          "evidence": "File present at server/src/vendor/leadwright/org-chart.schema.json, covered by the same real-checkout comparison as the other 4 files; grep across server/src confirmed the only other hits are inside preflight-input.schema.json's own description text and the file's own $id \u2014 no reader consumes it"
+        },
+        {
+          "behavior": "AC(f): npm run lint / typecheck / test are green in server/, and dist/ ships only JSON under vendor/leadwright/ (no stray .ts source from the drift-test module)",
+          "disposition": "tested",
+          "evidence": "npm run typecheck (clean), npm run lint (exit 0, no findings on changed files), npm run test (4131 passed / 12 skipped, 0 failed), and a clean `rm -rf dist && npm run build` verified dist/vendor/leadwright/ contains only the 5 *.schema.json / *-contract.json files"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Server-only test-tooling change (a new Vitest test file + vendored JSON schemas); no client/UI surface touched, no API route behavior changed. Complexity=small with no touches_io_boundary flag (the vendor files are *.schema.json, not a .env*/hooks.json/settings.json/*_config.json/*_state.json boundary file), so E2E is advisory per the Phase Matrix, not required."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-09-leadwright-schema-drift",
+    "commit": "",
+    "dirty": true,
+    "base": "3f4439a274454719af8ebeb707111b09720e6eae",
+    "release": null
+  }
+}

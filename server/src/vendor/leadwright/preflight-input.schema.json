@@ -111,6 +111,17 @@
           },
           "default": {}
         },
+        "leadReadRoots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "default": {}
+        },
         "pollIntervalMs": {
           "type": "integer",
           "exclusiveMinimum": 0,
@@ -120,6 +131,10 @@
           "type": "integer",
           "exclusiveMinimum": 0,
           "default": 120000
+        },
+        "eventJournalPath": {
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [
@@ -188,10 +203,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": [
-                  "answer_received",
-                  "chat_session_ended"
-                ]
+                "pattern": "^[a-z][a-z0-9_]*$"
               },
               "minItems": 1
             }
