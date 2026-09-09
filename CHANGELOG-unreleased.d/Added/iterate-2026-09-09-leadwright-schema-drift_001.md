@@ -1,0 +1,1 @@
+a drift check comparing webui's vendored leadwright JSON schemas against a real leadwright checkout (opt-in `SHIPWRIGHT_LEADWRIGHT_CHECKOUT`, skipped in CI); also vendors `org-chart.schema.json` as a drift pin

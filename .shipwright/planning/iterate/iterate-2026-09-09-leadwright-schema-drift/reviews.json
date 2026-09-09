@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-leadwright-schema-drift",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:02:26.282368+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:02:41.179628+00:00",
+      "disposition": "external LLM plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "server/scripts/copy-assets.mjs",
+          "line": null,
+          "finding": "cpSync(\"src/vendor\", \"dist/vendor\", {recursive:true}) would have shipped raw schema-drift.ts/.test.ts into dist/, breaking the directory's runtime-JSON-only contract.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/types/leadwright-schema-drift.ts",
+          "line": null,
+          "finding": "readJson had no try/catch — a missing counterpart file surfaced as a bare Node ENOENT.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "server/src/types/leadwright-schema-drift.test.ts",
+          "line": null,
+          "finding": "findFirstJsonDiff's correct handling of differing array length, null-vs-missing-key, and nested type mismatch wasn't locked in by a test.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "docs",
+          "file": "server/src/types/leadwright-schema-drift.ts",
+          "line": null,
+          "finding": "Docstring called the diff path \"JSON-pointer-style\" without RFC-6901 escaping, which slightly overclaimed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T14:15:27.978953+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:15:36.313654+00:00",
+      "disposition": "Stage 3 is conditional on non-trivial touches (migrations, async/concurrency, cross-plugin imports, irreversible ops) per iteration-reviews.md; this diff is synchronous JSON-schema vendoring + a comparison test utility, none apply",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:02:41.532785+00:00",
+      "disposition": "external code-review cascade is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:06:37.066813+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:02:41.334519+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

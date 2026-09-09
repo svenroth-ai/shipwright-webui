@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-09-leadwright-schema-drift",
+  "date": "2026-09-09",
+  "section": "Iterate — feature: leadwright vendored-schema drift check",
+  "title": "Compare vendored leadwright schemas against a real checkout, gated on SHIPWRIGHT_LEADWRIGHT_CHECKOUT",
+  "context": "server/src/vendor/leadwright/*.json are snapshots of leadwright-generated schemas that nothing ever re-compares to the originals. leadwright can regenerate a schema, both repos stay green, and the break only shows up in production. org-chart.schema.json was not vendored at all despite webui parsing org charts in a dozen places.",
+  "decision": "Add leadwright-schema-drift.ts/.test.ts (server/src/types/) that, when SHIPWRIGHT_LEADWRIGHT_CHECKOUT points at a checkout, deep-compares parsed JSON (never bytes, to survive a CRLF-dirty checkout) per vendored file discovered in the directory, via a named it.skipIf per file so CI stays green with visible skips. Vendor org-chart.schema.json as a pin. Re-vendor the already-drifted preflight-input.schema.json.",
+  "consequences": "A leadwright schema regen is now catchable locally by any developer with a checkout, before it reaches production. org-chart.schema.json vendoring buys a pin, not validation, until a reader consults it. schema-drift.ts lives outside vendor/leadwright/ so copy-assets.mjs's blanket cpSync never ships it into dist/.",
+  "rationale": "",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ""
+}

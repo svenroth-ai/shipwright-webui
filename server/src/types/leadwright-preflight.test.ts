@@ -1,14 +1,18 @@
 /*
  * leadwright-preflight.test.ts — proves the two vendored preflight schemas
  * (server/src/vendor/leadwright/preflight-{input,result}.schema.json,
- * copied byte-for-byte from leadwright origin/main @ 43fcd492) match the
+ * re-vendored from leadwright main @ df2c5f6, 2026-09-09) match the
  * hand-typed TS shapes this card's transport/routes build against.
  *
  * Same fidelity-test posture as claim-record-lock.test.ts: the vendored
  * JSON is read fresh from disk (not imported as a TS module) and compared
  * against hardcoded expected values pinned to today's copy. A future
  * leadwright change to either schema fails this test until a human
- * re-vendors deliberately and bumps the pin — never a silent drift.
+ * re-vendors deliberately and bumps the pin — never a silent drift. The
+ * repo-wide drift check (server/src/vendor/leadwright/schema-drift.test.ts)
+ * catches an un-re-vendored change automatically when run against a real
+ * leadwright checkout; this test still pins the SPECIFIC fields webui's own
+ * hand-typed mirror depends on, so a re-vendor forces a deliberate look here.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -90,15 +94,17 @@ describe("vendored preflight-input.schema.json — fidelity", () => {
     expect(defs.Lead.properties.allowed_skills.items.pattern).toBe(ALLOWED_SKILL_RE.source);
   });
 
-  it("triggers.on requires at least one entry from the closed {answer_received, chat_session_ended} vocabulary", () => {
+  // iterate-2026-09-09-leadwright-schema-drift: leadwright #79 (event journal
+  // for arbitrary trigger events) opened this from a closed two-value enum to
+  // an open lowercase-snake-case pattern. webui's own PreflightTriggerEventType
+  // union (leadwright-preflight.ts) stays narrower on purpose — it only types
+  // what webui itself ever emits, not everything the wire schema now accepts.
+  it("triggers.on requires at least one entry matching the open lowercase-snake-case vocabulary", () => {
     const defs = schema.$defs as {
-      Lead: { properties: { triggers: { properties: { on: { items: { enum: string[] }; minItems: number } } } } };
+      Lead: { properties: { triggers: { properties: { on: { items: { pattern: string }; minItems: number } } } } };
     };
     expect(defs.Lead.properties.triggers.properties.on.minItems).toBe(1);
-    expect(defs.Lead.properties.triggers.properties.on.items.enum).toEqual([
-      "answer_received",
-      "chat_session_ended",
-    ]);
+    expect(defs.Lead.properties.triggers.properties.on.items.pattern).toBe("^[a-z][a-z0-9_]*$");
   });
 
   it("the 5 absolute-path-bound daemonConfig fields are exactly leadsRoot/sdkSessionsPath/pluginDirs/leadProjectRoots/leadPluginDirs — NOT orgChartPath", () => {
