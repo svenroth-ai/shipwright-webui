@@ -147,13 +147,13 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_applicable",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-09-09T10:45:53.818083+00:00",
-      "disposition": "small complexity — no iterate spec file produced (Override Classes: iterate spec is Complexity-gated, first bought at medium); the brief itself served as the spec, code-reviewer + doubt-reviewer verified against it directly",
-      "recorded_by": "none",
+      "completed_at": "2026-09-09T10:58:00.926597+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null
     },
