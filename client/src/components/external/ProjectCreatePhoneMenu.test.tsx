@@ -123,4 +123,16 @@ describe("ProjectCreatePhoneMenu (phone #1)", () => {
       "border-[1.5px]",
     );
   });
+
+  // iterate-2026-09-09-phone-touch-targets-plus-cta — this component only
+  // ever renders on phone (ProjectCreateCascade swaps it in under
+  // useIsPhoneViewport()), so its icon-only trigger is unconditional, unlike
+  // CreateMenuSplitButton's iconOnly prop-driven branch.
+  it("trigger is icon-only with the accessible name carried on aria-label alone", () => {
+    renderMenu(PROJECTS);
+    const trigger = screen.getByTestId("create-menu-cascade-trigger");
+    expect(trigger).toHaveClass("btn-primary--icon-only");
+    expect(trigger).toHaveTextContent("");
+    expect(trigger).toHaveAccessibleName("New — choose a project");
+  });
 });

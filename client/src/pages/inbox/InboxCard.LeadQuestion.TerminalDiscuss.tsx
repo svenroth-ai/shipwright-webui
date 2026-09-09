@@ -64,7 +64,7 @@ export function LeadQuestionTerminalDiscussRow({
           type="button"
           data-testid={`inbox-lead-discuss-terminal-${itemKey}`}
           onClick={handleDiscuss}
-          className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] font-medium"
+          className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-medium"
           style={{
             padding: "6px 14px",
             fontSize: "13px",
@@ -80,7 +80,7 @@ export function LeadQuestionTerminalDiscussRow({
           type="button"
           data-testid={`inbox-lead-take-outcome-${itemKey}`}
           onClick={handleTakeOutcome}
-          className="inline-flex items-center rounded-[var(--radius-button)] font-medium"
+          className="inline-flex items-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-medium"
           style={{
             padding: "6px 14px",
             fontSize: "13px",

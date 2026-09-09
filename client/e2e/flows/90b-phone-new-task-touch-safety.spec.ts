@@ -60,4 +60,40 @@ test.describe("Phone new-task modal touch safety (<768px, touch)", () => {
       await cleanupCwd(projectCwd);
     }
   });
+
+  // iterate-2026-09-09-phone-touch-targets-plus-cta — Settings + Inbox
+  // touch-target findings from the phone audit. Both surfaces build their
+  // small action buttons from inline `style` (padding/font-size), not
+  // Tailwind — `pointer-coarse:min-h-[44px]` in the className still wins
+  // (min-height isn't overridden by a fixed padding), which is what these
+  // assert against the real box, not the source.
+  test("Settings' actions-config Upload control clears the 44px floor on a coarse pointer", async ({ page, request }) => {
+    const projectCwd = await makeTaskCwd("phone-touch-settings-e2e-");
+    const created = await request.post("/api/projects", {
+      data: { name: `phone-touch-settings-${Date.now()}`, path: projectCwd, profile: "default", status: "active" },
+    });
+    const { data: p } = (await created.json()) as { data: { id: string } };
+    try {
+      await page.goto("/settings");
+      await expect(page.getByTestId("settings-page")).toBeVisible();
+      const uploadLabel = page.getByTestId(`actions-config-file-${p.id}`).locator("..");
+      const uploadBox = (await uploadLabel.boundingBox())!;
+      expect(uploadBox.height, "Upload .json control height").toBeGreaterThanOrEqual(44);
+    } finally {
+      await request.delete(`/api/projects/${p.id}`);
+      await cleanupCwd(projectCwd);
+    }
+  });
+
+  test("Inbox's empty-state CTA clears the 44px floor on a coarse pointer", async ({ page }) => {
+    await page.goto("/inbox");
+    const cta = page.getByTestId("inbox-empty-cta");
+    // A live install may have real inbox items; the audit's assertion holds
+    // regardless (same className on every render), but the box only exists
+    // to measure when the empty state is showing.
+    if (await cta.count()) {
+      const box = (await cta.boundingBox())!;
+      expect(box.height, "inbox-empty-cta height").toBeGreaterThanOrEqual(44);
+    }
+  });
 });

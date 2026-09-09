@@ -77,7 +77,7 @@ export function TriageSortLevel({
         onClick={toggleDirection}
         aria-label={`${name} sort direction: ${level.direction === "asc" ? "Ascending" : "Descending"}`}
         title={level.direction === "asc" ? "Ascending" : "Descending"}
-        className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)]"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] pointer-coarse:h-11 pointer-coarse:w-11"
         data-testid={`${testIdPrefix}-direction`}
       >
         {level.direction === "asc" ? (

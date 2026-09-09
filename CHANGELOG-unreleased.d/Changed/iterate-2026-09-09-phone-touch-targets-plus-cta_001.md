@@ -1,0 +1,1 @@
+The phone "+ New" create-menu trigger is now icon-only (a bare, square "+") in both the All-Projects and single-project presentations, reversing the previous labeled-pill floor, with the accessible name preserved on aria-label.

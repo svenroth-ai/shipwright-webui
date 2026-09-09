@@ -157,7 +157,10 @@ export function ActionsConfigRow({
 
         <div className="flex items-center" style={{ gap: "8px" }}>
           <label
-            className="inline-flex items-center"
+            // pointer-coarse:min-h-[44px] — touch-target floor (iterate-2026-
+            // 09-09-phone-touch-targets-plus-cta audit; the inline `style`
+            // padding stays, min-height just adds headroom on top of it).
+            className="inline-flex items-center pointer-coarse:min-h-[44px]"
             style={{
               fontSize: "12px",
               fontWeight: 600,
@@ -186,6 +189,7 @@ export function ActionsConfigRow({
             onClick={handleReset}
             data-testid={`actions-config-reset-${project.id}`}
             disabled={!canReset || reset.isPending}
+            className="inline-flex items-center pointer-coarse:min-h-[44px]"
             title={
               canReset
                 ? "Remove .shipwright-webui/actions.json"

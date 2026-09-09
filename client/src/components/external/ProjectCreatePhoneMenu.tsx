@@ -14,8 +14,13 @@
  * SAME `onSelect(action, projectId)` contract → existing NewIssueModal flow.
  *
  * The trigger carries the ONE canonical `.btn-primary` (styles/buttons.css),
- * identical to the desktop cascade — same button, smaller viewport
- * (iterate-2026-07-21-all-projects-new-button-parity).
+ * same height/radius/colour as the desktop cascade's trigger
+ * (iterate-2026-07-21-all-projects-new-button-parity) — but on phone it is
+ * ICON-ONLY (`.btn-primary--icon-only`): no "New" label, no caret, a square
+ * 44×44 "+" (iterate-2026-09-09-phone-touch-targets-plus-cta, product
+ * reversal — see buttons.css's rule-26 amendment for the "why"). The
+ * accessible name (`aria-label="New — choose a project"`) is unchanged, so
+ * this drops no a11y information, only the visible label.
  *
  * Real title bar (iterate-2026-08-13-mission-mobile-visual): the back row
  * used to be a full-width `DropdownMenu.Item` ("‹ {project name}") that
@@ -45,7 +50,7 @@
 
 import { useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 
 import {
   ProjectActionsLoader,
@@ -89,15 +94,18 @@ export function ProjectCreatePhoneMenu({
             disabled={disabled}
             data-testid="create-menu-cascade-trigger"
             aria-label="New — choose a project"
-            className="btn-primary shadow-sm"
+            // Icon-only on phone (iterate-2026-09-09-phone-touch-targets-plus-cta,
+            // reversing the labeled-pill precedent this component used to follow
+            // — Sven: a bare "+" reads clearly at 393px and a square 44×44 touch
+            // target is a stronger floor than the wide label ever bought it. The
+            // accessible name survives on the aria-label above, unchanged.
+            className="btn-primary btn-primary--icon-only shadow-sm"
           >
             {isLoading ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <Plus size={16} />
             )}
-            <span>New</span>
-            <ChevronDown size={12} />
           </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
@@ -170,7 +178,7 @@ export function ProjectCreatePhoneMenu({
                       setPicked(null);
                     }}
                     aria-label="Back to project list"
-                    className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] text-[var(--color-muted)] outline-none focus:bg-[var(--color-muted-bg)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)]"
+                    className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-[6px] pointer-coarse:h-11 pointer-coarse:w-11 text-[var(--color-muted)] outline-none focus:bg-[var(--color-muted-bg)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)]"
                   >
                     <ChevronLeft size={16} aria-hidden="true" />
                   </DropdownMenu.Item>

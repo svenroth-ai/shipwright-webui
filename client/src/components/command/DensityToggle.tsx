@@ -22,6 +22,9 @@ export function DensityToggle({ className }: Props) {
       onClick={toggleDensity}
       className={
         "inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button,8px)] " +
+        // pointer-coarse:min-h-[44px] — touch-target floor (height only; see
+        // ViewToggle.tsx for the width-exemption rationale this shares).
+        "pointer-coarse:min-h-[44px] " +
         "text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] " +
         (className ?? "")
       }
