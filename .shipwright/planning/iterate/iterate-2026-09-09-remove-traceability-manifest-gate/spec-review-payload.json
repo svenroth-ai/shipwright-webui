@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All six previously cited stale references to the deleted gate/diff/stub-collector modules and the deleted job name are gone from live source (scripts/, .github/, server/, client/ greps are clean; remaining hits are only historical .shipwright/planning + agent_docs records, explicitly out of scope). No new divergence introduced by the fix: ci.yml still drops both jobs, the pinned shipwright-compliance checkout and the contents/pull-requests write carve-out, with the other six jobs and the top-level read-only permissions intact; no scripts/ci/**/*traceability* file remains; the additive TestRow.unresolvedReason is added/unindexed-only, verbatim-mirrored client-side, schema version unbumped, and covered by producer + consumer tests including the bare-dash negative case; the bloat baseline change is the single permitted +1 line on an already-grandfathered file. One non-blocking note for Stage 2: promote_fr_layers.py:16-17 carries pre-existing, unmodified prose describing 'the w1 evidence-chain CI gate' in the present tense, which is now stale — it names neither a deleted script nor the deleted job name, so it does not breach the acceptance criterion. Code-reviewer may proceed."
+}

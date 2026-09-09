@@ -120,7 +120,7 @@ function TestsFileTable({ detail }: { detail: NonNullable<TestsArtifact["detail"
               <td>{layerWord(row.layer)}</td>
               <td>
                 {row.frs.length === 0 ? (
-                  <span className="a-muted">—</span>
+                  <span className="a-muted">{row.unresolvedReason ?? "—"}</span>
                 ) : (
                   <ul className="a-fr-links">
                     {row.frs.map((fr) => (

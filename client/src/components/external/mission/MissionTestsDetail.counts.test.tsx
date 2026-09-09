@@ -75,4 +75,17 @@ describe("TestsDetail — counts-led", () => {
     expect(screen.getByTestId("artifact-tests-result")).toHaveTextContent("Failed — 40 of 42 tests passing");
     expect(screen.getByTestId("artifact-tests-table")).toBeInTheDocument();
   });
+
+  it("reads an unindexed ADDED file as UNKNOWN, never as 'covers no requirement'", () => {
+    const rows = [{ path: "new.test.ts", kind: "added" as const, layer: "unit", frs: [], caseCount: null, unresolvedReason: "predates this file" }];
+    render(<TestsDetail artifact={testsArtifact({ rows })} />);
+    expect(screen.getByText("predates this file")).toBeInTheDocument();
+    expect(screen.queryByText("—")).not.toBeInTheDocument();
+  });
+
+  it("still shows the plain dash when a row genuinely has no reason (fallback path)", () => {
+    const rows = [{ path: "new.test.ts", kind: "added" as const, layer: "unit", frs: [], caseCount: null }];
+    render(<TestsDetail artifact={testsArtifact({ rows })} />);
+    expect(screen.getByText("—")).toBeInTheDocument();
+  });
 });

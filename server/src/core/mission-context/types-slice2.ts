@@ -46,6 +46,18 @@ export interface TestRow {
   frs: TestFrRef[];
   /** Test cases the manifest records for this file; null when unknown. */
   caseCount: number | null;
+  /**
+   * Set only when `frs` is empty because the manifest — read successfully —
+   * simply has no entry for this file yet (typically: the file is `added` in
+   * this run's own commit, newer than the last manifest regen). Distinct from
+   * a genuinely-zero-links file, which cannot occur: every manifest entry that
+   * exists carries at least one requirement link. `null` whenever `frs` is
+   * either resolved or the absence is already explained at the artifact level
+   * (`manifestStatus: "unavailable"`, or a `removed` file, never in the
+   * manifest by definition). The UI must render this instead of a bare dash —
+   * an unindexed file must never read as "proven to cover no requirement".
+   */
+  unresolvedReason?: string | null;
 }
 
 export interface TestsArtifact extends ArtifactBase {

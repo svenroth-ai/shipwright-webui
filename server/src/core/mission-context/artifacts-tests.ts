@@ -164,6 +164,24 @@ function summarizeFiles(diff: Extract<TestsDiff, { status: "ok" }>, index: Trace
   const byFile = index.status === "ok" ? index.byFile : null;
   const rows: TestRow[] = diff.files.map((f) => {
     const entry = byFile?.get(f.path);
+    // The manifest read fine but has no entry for this ADDED or MODIFIED
+    // file. For `added` that is almost always because it predates a test
+    // file this run's own commit just created. For `modified` it is a
+    // rarer signal — the file once had `@covers` evidence and something (a
+    // rename, a schema drift, a truncated regen) made it disappear — but
+    // the two are indistinguishable from ABSENCE alone, and rendering
+    // either as `frs: []` reads as "proven to cover nothing" when the truth
+    // is "unknown" (traceability.ts:14's own warning against exactly this
+    // conflation). `removed` is excluded: a removed file is never in the
+    // manifest by definition, so its bare "—" already means what it says.
+    // A wholly-unreadable OR truncated manifest is already explained at the
+    // artifact level via `manifestStatus` — a truncated index's "no entry"
+    // means "past the entry cap", not "predates this file", so it must not
+    // claim the latter.
+    const unresolvedReason =
+      index.status === "ok" && !index.truncated && !entry && f.kind !== "removed"
+        ? "Not yet in the requirement manifest — coverage for this file could not be confirmed."
+        : null;
     return {
       path: f.path,
       kind: f.kind,
@@ -173,6 +191,7 @@ function summarizeFiles(diff: Extract<TestsDiff, { status: "ok" }>, index: Trace
       layer: entry?.layers[0] ?? inferLayer(f.path),
       frs: entry?.frs ?? [],
       caseCount: entry?.caseCount ?? null,
+      unresolvedReason,
     };
   });
 

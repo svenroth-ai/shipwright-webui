@@ -7,9 +7,8 @@ the orchestration (``run()``/``main()``) and every DECISION stays in
 ``layer_promotion.py`` — this module makes no promotion/escalation decision
 of its own, only fetches and writes what the caller already decided.
 
-WHY a cross-repo import at all, mirroring ``traceability_manifest_gate.py``'s
-pattern (see that module's docstring for the rationale against vendoring):
-the ``test_links`` collector (``build_manifest``), the vitest-JSON parser
+WHY a cross-repo import at all rather than vendoring: the ``test_links``
+collector (``build_manifest``), the vitest-JSON parser
 (``_evidence_readers.read_vitest``), and the FR-table read/write helpers
 (``fr_table_reader``, ``fr_table_shape``, ``markdown_table``) are NOT owned by
 this repo and this repo does not want to fork them.
@@ -32,7 +31,7 @@ _LEDGER_REL = Path(".shipwright/compliance/layer-promotion-ledger.json")
 
 
 def import_cross_repo(plugin_root: Path, expect_commit: str | None = None):
-    """Same insertion pattern as ``traceability_manifest_gate.py``, plus the
+    """Inserts the pinned checkout's plugin root into ``sys.path``, plus the
     monorepo's ``shared/scripts`` for the FR-table read/write helpers (a
     SEPARATE sys.path entry, so the plugin's ``scripts.*`` namespace and the
     shared ``lib.*`` namespace never collide). When ``expect_commit`` is

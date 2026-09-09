@@ -2,8 +2,7 @@
 """Orchestration + CLI for FR layer promotion (w5, S10 — see layer_promotion.py).
 
 WHY a separate first-party script that cross-repo-imports the pinned monorepo
-checkout, mirroring ``traceability_manifest_gate.py``'s pattern (see that
-module's docstring for the rationale against vendoring): the ``test_links``
+checkout rather than vendoring: the ``test_links``
 collector (``build_manifest``), the vitest-JSON parser
 (``_evidence_readers.read_vitest``), and the FR-table read/write helpers
 (``fr_table_reader``, ``fr_table_shape``, ``markdown_table``) are NOT owned by
@@ -14,8 +13,8 @@ predicate, the escalation cases, the one-way ledger) lives in
 directly.
 
 **Two regen passes, not a hand-patch.** ``spec.md``'s Layers column is the ONE
-source of truth the w1 evidence-chain CI gate compares against (it regenerates
-FROM spec.md and never trusts a hand-edited manifest field). So: regen #1
+source of truth the collector regenerates FROM; it never trusts a hand-edited
+manifest field. So: regen #1
 (pre-promotion) supplies the requirement bindings ``layer_promotion.py``
 evaluates; the promoted rows are then written into ``spec.md``; regen #2
 (post-promotion) re-derives the FULL manifest — including ``spec_hash`` and
@@ -251,8 +250,7 @@ def main() -> int:
         "--expect-plugin-commit", required=True,
         help="full SHA the --plugin-root checkout's HEAD must match, verified before anything is "
              "imported from it (PR Review, blocking, round 2: mandatory, no bypass) -- bind this to "
-             "the SAME ref this invocation's actions/checkout step pins (mirroring the "
-             "`Traceability manifest (gate)` job)",
+             "the SAME ref this invocation's actions/checkout step pins",
     )
     parser.add_argument(
         "--expect-project-commit", required=True,

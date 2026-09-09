@@ -1,0 +1,1 @@
+Removed the traceability-manifest CI gate and its auto-regen-PR job, the pinned shipwright-compliance checkout, and the CI write-permission carve-out they required — the gate hard-failed on a committed derived-snapshot file iterate PRs cannot update
