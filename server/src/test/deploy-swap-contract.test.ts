@@ -105,4 +105,34 @@ describe("the swapper owns every step that must outlive the caller", () => {
     expect(swap).toMatch(/openServerLog/);
     expect(swap).toMatch(/'w',\s*'a'/);
   });
+
+  it("scopes the tsx-watch sweep to the deploying repo, not the whole machine (iterate-2026-09-09-deploy-tsx-kill-scope)", () => {
+    // findTsxServerPids() must be repo-scoped, not machine-wide — a bare `tsx`
+    // + `src/index.ts` match (the pre-fix shape) also kills an unrelated
+    // project's dev server and a sibling worktree's. repoRoot must reach it
+    // from the one real call site.
+    expect(procs).toMatch(/findTsxServerPids\(repoRoot(,\s*\w+)?\)/);
+    expect(swap).toMatch(/repoRoot:\s*serverDir/);
+    expect(
+      procs,
+      "an empty/missing repoRoot must fail CLOSED (return nothing), never fall back to the old machine-wide match",
+    ).toMatch(/if\s*\(!repoRoot\)\s*return\s*\[\]/);
+  });
+
+  it("POSIX discovery uses `ps -A`, never `pgrep -a` (its -a flag is not portable)", () => {
+    // pgrep's -a means "print the full command line" on Linux (procps) but
+    // "include process ancestors" on macOS/BSD — feeding that through
+    // unchanged leaves every parsed entry's command line empty on macOS, so
+    // the repo-scope filter silently drops everything and the load-bearing
+    // tsx-watch-PARENT sweep goes dark there. Caught by spec-reviewer before
+    // this shipped; pin it so a future edit can't reintroduce it unnoticed.
+    expect(procs).toMatch(/ps -Aww -o pid=,ppid=,args=/);
+    // Comments legitimately name "pgrep -a" while explaining why it's gone —
+    // only a live execSync/spawnSync call is the regression this guards.
+    const pgrepCalls = procs
+      .split(/\r?\n/)
+      .filter((l) => !/^\s*(\*|\/\/)/.test(l))
+      .filter((l) => /pgrep -a/.test(l));
+    expect(pgrepCalls, "pgrep -a is not portable — see kill-targets.js for the full story").toEqual([]);
+  });
 });

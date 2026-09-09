@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-09T10:35:14.259612+00:00",
-  "provider": "openrouter",
-  "findings_count": 4,
+  "timestamp": "2026-09-09T15:02:18.629391+00:00",
+  "provider": "codex",
+  "findings_count": 7,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (4) may understate what was found",
+  "reason": null,
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "revise",
-    "openai": "approve"
+    "openai": "revise",
+    "glm": "approve"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=revise, openai=approve"
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
   },
-  "contradiction_resolution": null
+  "contradiction_resolution": "GLM approves after 7 review rounds, independently concurring with the in-code rebuttal on the standing openai finding (flat command-line substring match cannot distinguish a foreign process's own tsx resolution from an incidental argument referencing this repo's tsx internals, without OS-level argv/cwd parsing this platform's discovery data doesn't carry). openai has raised the SAME finding, materially unchanged, across rounds 3-7 despite three rounds of concrete narrowing, an explicit standing rebuttal in the JSDoc, and a second independent reviewer (GLM) explicitly examining and concurring. Disposition: accepted, documented residual risk; recorded as GLM=approve / openai=revise (agree-within-one-step per the tool's own contradiction detector, requires_resolution=false)."
 }
