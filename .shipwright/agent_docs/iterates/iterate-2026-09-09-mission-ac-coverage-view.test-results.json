@@ -5,8 +5,8 @@
     "date": "2026-09-09",
     "unit": {
       "status": "passed",
-      "passed": 8189,
-      "total": 8196
+      "passed": 8190,
+      "total": 8197
     },
     "integration": {
       "status": "not_run",
@@ -35,8 +35,8 @@
     "test_completeness": {
       "status": "complete",
       "counts": {
-        "testable": 14,
-        "tested": 14,
+        "testable": 15,
+        "tested": 15,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -110,6 +110,11 @@
           "behavior": "no launch-payload surface (core/launcher.ts / buildCopyCommands) touched",
           "disposition": "tested",
           "evidence": "repo-wide grep for new symbols confined to mission-context + mirrors/tests; independently confirmed by spec-reviewer"
+        },
+        {
+          "behavior": "the AC panel renders nothing (not 'not yet tagged') when manifestStatus is unavailable, since acIds reading empty there means unresolved links, not genuinely-untagged tests",
+          "disposition": "tested",
+          "evidence": "MissionTestsAcCoverage.test.tsx (added after Tier-3 PR-review BLOCK finding on PR #458); tsc --noEmit; full client suite re-run green (4061)"
         }
       ]
     },
@@ -124,7 +129,7 @@
   },
   "source_state": {
     "run_id": "iterate-2026-09-09-mission-ac-coverage-view",
-    "commit": "98e9b4a6196de26e543ead9fd22e842b7da4d98a",
+    "commit": "e2cef648afb625795d300d42168fe320219b194e",
     "dirty": true,
     "base": null,
     "release": null

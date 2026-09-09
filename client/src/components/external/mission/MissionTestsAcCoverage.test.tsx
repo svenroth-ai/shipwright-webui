@@ -17,7 +17,7 @@ import { MissionTestsAcCoverage } from "./MissionTestsAcCoverage";
 
 describe("MissionTestsAcCoverage", () => {
   it("shows an explicit 'not yet tagged' note when nothing carries an ac_id — the real-repo default", () => {
-    render(<MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} />);
+    render(<MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="ok" />);
     expect(screen.getByTestId("artifact-tests-ac-absent")).toHaveTextContent(/not yet tagged/i);
     expect(screen.queryByTestId("artifact-tests-ac-groups")).not.toBeInTheDocument();
   });
@@ -38,6 +38,7 @@ describe("MissionTestsAcCoverage", () => {
             },
           ],
         }}
+        manifestStatus="ok"
       />,
     );
     expect(screen.queryByTestId("artifact-tests-ac-absent")).not.toBeInTheDocument();
@@ -60,6 +61,7 @@ describe("MissionTestsAcCoverage", () => {
             { frId: "FR-01.11", acId: "AC09", files: [{ path: "b.test.ts", kind: "removed" }] },
           ],
         }}
+        manifestStatus="ok"
       />,
     );
     const groups = screen.getAllByTestId("artifact-tests-ac-group");
@@ -68,5 +70,12 @@ describe("MissionTestsAcCoverage", () => {
     expect(groups[0]).not.toHaveTextContent("b.test.ts");
     expect(groups[1]).toHaveTextContent("AC09 — FR-01.11");
     expect(groups[1]).not.toHaveTextContent("a.test.ts");
+  });
+
+  it("renders nothing when the traceability manifest itself is unavailable — 'not yet tagged' would be a false certainty there", () => {
+    const { container } = render(
+      <MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="unavailable" />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

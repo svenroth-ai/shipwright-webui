@@ -8,6 +8,13 @@
  * common case in this repo today and MUST render as an explicit "not yet
  * tagged" note, never as an empty or silently-absent section — the exact
  * distinction the triage card that requested this view calls out.
+ *
+ * `manifestStatus === "unavailable"` is a DIFFERENT absence: `acIds` reads
+ * empty on every row because the traceability index itself could not be
+ * read, not because nobody tagged anything. Claiming "not yet tagged" there
+ * would be exactly the false certainty the triage card warns against, so
+ * this renders nothing — `TestsFileTable`'s own links-unavailable note,
+ * immediately above, already explains why.
  */
 
 import type { TestsArtifact } from "../../../lib/missionContextApi";
@@ -15,9 +22,13 @@ import { acGroupLabel, testChangeWord } from "../../../lib/missionArtifacts";
 
 export function MissionTestsAcCoverage({
   acCoverage,
+  manifestStatus,
 }: {
   acCoverage: NonNullable<TestsArtifact["detail"]>["acCoverage"];
+  manifestStatus: NonNullable<TestsArtifact["detail"]>["manifestStatus"];
 }) {
+  if (manifestStatus === "unavailable") return null;
+
   if (!acCoverage.tagged) {
     return (
       <p className="a-note" data-testid="artifact-tests-ac-absent">
