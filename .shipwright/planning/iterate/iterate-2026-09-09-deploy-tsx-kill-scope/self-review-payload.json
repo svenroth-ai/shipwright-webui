@@ -1,0 +1,12 @@
+{
+  "items": [
+    { "name": "Spec Compliance", "verdict": "pass", "note": "Fix narrows findTsxServerPids() to the deploying repo/worktree exactly as requested; no extra features." },
+    { "name": "Error Handling", "verdict": "pass", "note": "findTsxServerPids fails closed on missing repoRoot ([]); JSON.parse wrapped in try/catch; existing OS-call try/catch preserved." },
+    { "name": "Security Basics", "verdict": "pass", "note": "No user input reaches these code paths; spawnSync shell:false unchanged; no secrets touched." },
+    { "name": "Test Quality", "verdict": "pass", "note": "New tests assert on outcomes (which PIDs survive filtering) with realistic fixtures; each helper has positive + negative cases." },
+    { "name": "Performance Basics", "verdict": "n/a", "note": "No loops/DB/pagination concerns; process-list filtering only." },
+    { "name": "Naming & Structure", "verdict": "pass", "note": "kill-targets.js stays under 300 lines; new test file created to keep kill-targets.test.js under the 300-line guideline." },
+    { "name": "Affected Boundaries", "verdict": "n/a", "note": "No serialized/user-edited file format changed; this is OS process command-line matching, not a producer/consumer file format." },
+    { "name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff: no findings." }
+  ]
+}

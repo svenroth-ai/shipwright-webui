@@ -1,0 +1,71 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "irreversible-operations (process kill during production deploy) + concurrency",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "hidden-coupling / blast-radius",
+      "claim_under_doubt": "scoping the tsx sweep to this checkout makes the deploy strictly better-behaved toward other checkouts",
+      "disproof_attempt": "The two sweeps are now ASYMMETRIC. stopOldServer still runs findListenerPids(port) machine-wide and kills whatever holds the port, from ANY checkout — only the PARENT sweep became repo-scoped. When a sibling worktree's tsx watch holds the deploy's port (CLAUDE.md documents this as the usual EADDRINUSE cause), the deploy kills that foreign dev server's child and spares its parent.",
+      "disposition": "accepted as intended (killing a process on THIS deploy's own port is in-scope; the acceptance criteria only prohibit killing a foreign repo's process off-port), diagnostics improved instead — deploy-swap.mjs now logs raw/matched tsx-sweep counts and, when candidates existed elsewhere but none matched this repo, names that explicitly in the failure message instead of blaming 'the OLD server'."
+    },
+    {
+      "severity": "high",
+      "lens": "reversibility / diagnosability",
+      "claim_under_doubt": "the sweep still reliably catches the tsx watch PARENT on a real production deploy",
+      "disproof_attempt": "findTsxServerPids() returned [] identically for 4 different states: nothing running, discovery failed (PowerShell/CIM error), candidates existed but none matched this repo, or genuine zero — with zero signal anywhere to distinguish them.",
+      "disposition": "fixed — added an onDiag callback threaded through findTsxServerPids -> stopOldServer -> deploy-swap.mjs, which now logs raw-candidate count, matched-in-repo count, or a discovery error explicitly, every deploy."
+    },
+    {
+      "severity": "high",
+      "lens": "concurrency & ordering",
+      "claim_under_doubt": "the kill sequence ends the watch parent before it can matter",
+      "disproof_attempt": "killed was built listener-PIDs first, tsx-PIDs second, and killed in that order — so the watch CHILD (the listener) was killed BEFORE its parent, risking a respawn race.",
+      "disposition": "fixed — stopOldServer now kills tsx-sweep PIDs (parents) before listener PIDs. Additionally, findTsxServerPids' own discovery can return a supervisor AND its loader child together; PPID is now captured on both platforms (Get-CimInstance ParentProcessId / ps -o ppid=) and filterTsxEntriesByRepo partitions parents-before-children within that set too, with a behavioral test proving the reorder (not just preserving already-sorted input)."
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "repoRoot: serverDir identifies this checkout's processes reliably",
+      "disproof_attempt": "It is a text match, not a realpath — a symlinked/junctioned/subst checkout could present a different spelling on each side and silently under-match.",
+      "disposition": "documented, accepted — no filesystem access exists at the point of comparison (this matches against ANOTHER process's argv text). Documented explicitly in filterTsxEntriesByRepo's JSDoc; fails toward under-matching (repo's own parent survives, loud EADDRINUSE) never over-matching a foreign repo."
+    },
+    {
+      "severity": "medium",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "the fix is protected by tests against future regression",
+      "disproof_attempt": "deploy-tsx-scope.test.js (node --test) is not wired into CI — only server/client vitest runs there, so the behavioral guard never executes on a PR; only the source-regex contract test does.",
+      "disposition": "accepted, pre-existing pattern — kill-targets.test.js (the sibling pure-helpers suite this file was split from) has run this way since before this iterate; this follows established repo convention rather than introducing a new gap."
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "the synthetic fixtures prove the Windows arm works on a real host",
+      "disproof_attempt": "The PowerShell invocation changed shape in this diff and is only exercised via hand-built JSON fixtures, never against a real host; a non-ASCII byte or BOM in the redirected stdout could corrupt the JSON stream.",
+      "disposition": "documented; UTF-8 encoding + BOM handling fixed — added [Console]::OutputEncoding=UTF8 to the script and BOM-stripping in parseWindowsTsxEntries (PowerShell 5.1 redirected UTF-8 commonly emits one), plus r.error/r.status checks that fail closed and loud on a genuine PowerShell-side failure. A live-host smoke run is outside what this session can execute."
+    },
+    {
+      "severity": "medium",
+      "lens": "concurrency & ordering",
+      "claim_under_doubt": "once stopOldServer reports freed: true, the port is ours",
+      "disproof_attempt": "freed: true is a single-poll observation with no re-confirmation; a respawned foreign parent could still win the port after we observe it free.",
+      "disposition": "accepted, pre-existing, out of scope — this polling/race behavior predates this iterate and is unchanged by it; the fix narrows WHICH processes are killed, not the readiness-polling protocol around the kill."
+    },
+    {
+      "severity": "low",
+      "lens": "reversibility",
+      "claim_under_doubt": "this iterate improved kill precision end-to-end",
+      "disproof_attempt": "The kill itself (taskkill/SIGTERM by PID) has no re-validation against PID reuse in the enumeration window.",
+      "disposition": "accepted, pre-existing, out of scope — killPid()/killPidHard() are unchanged by this iterate; PID-reuse-in-window is a pre-existing residual risk of PID-based killing generally."
+    },
+    {
+      "severity": "low",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "'a tsx watch command line always embeds node_modules/tsx/...' is a stable contract",
+      "disproof_attempt": "That is an undocumented implementation detail of tsx's argv formatting; a minor tsx version bump moving loader flags out of argv would defeat the match silently.",
+      "disposition": "documented, accepted — verified empirically against two live worktree dev servers before this fix shipped; the fixtures capture the real argv shapes observed. A future tsx bump changing this is a real but low-probability risk noted in the doc block."
+    }
+  ],
+  "summary": "9 doubts (3 high, 5 medium, 1 low) across all four lenses. The 3 high-severity doubts (listener/parent asymmetry, undiagnosable [] ambiguity, kill ordering) were all fixed with concrete code changes (diagnostic logging via onDiag, parent-before-child kill ordering via PPID capture and partitioning, improved operator-facing failure messages). The remaining medium/low doubts are pre-existing behavior unchanged by this iterate, or documented residual limitations of text-based process-argv matching with no filesystem access at the comparison point."
+}

@@ -52,4 +52,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Tagging backfill: 15.75% -> 31.97% traceability coverage, 32/32 FRs bound](iterate-2026-09-07-w4-tagging-backfill-webui.md)
 - [Lead Inventory page: per-lead authority ladder + unclaimed-effect warning](iterate-2026-09-08-lead-inventory-page.md)
 - [ADR: Traceability manifest gate becomes advisory + CI-opened regen PR](iterate-2026-09-08-manifest-regen-finalization-traceability-gate-advisory.md)
+- [Repo-scoped tsx-watch kill sweep](iterate-2026-09-09-deploy-tsx-kill-scope-repo-scoped-tsx-sweep.md)
 - [Phone touch-target audit + icon-only "+ New" reversal](iterate-2026-09-09-phone-touch-targets-plus-cta-touch-target-audit.md)

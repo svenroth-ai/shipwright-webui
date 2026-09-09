@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-deploy-tsx-kill-scope",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:01:12.928883+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:01:21.324642+00:00",
+      "disposition": "small complexity — mini-plan / external plan review is medium+ only per the phase matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/deploy-procs.mjs",
+          "line": null,
+          "finding": "Windows arm's spawnSync had no maxBuffer (asymmetric with the POSIX fix applied 20 lines below), and dropping the Where-Object clause increased pipe volume.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/kill-targets.js",
+          "line": null,
+          "finding": "filterTsxEntriesByRepo's trailing-boundary anchor does not also anchor the leading edge, so a repoRoot that recurs verbatim as a subpath of a different absolute path (e.g. a POSIX bind mount) could still false-match.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T14:27:13.760307+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "hidden-coupling / blast-radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: scoping the tsx sweep to this checkout makes the deploy strictly better-behaved toward other checkouts — The two sweeps are now ASYMMETRIC. stopOldServer still runs findListenerPids(port) machine-wide and kills whatever holds the port, from ANY checkout — only the PARENT sweep became repo-scoped. When a sibling worktree's tsx watch holds the deploy's port (CLAUDE.md documents this as the usual EADDRINUSE cause), the deploy kills that foreign dev server's child and spares its parent.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "reversibility / diagnosability",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the sweep still reliably catches the tsx watch PARENT on a real production deploy — findTsxServerPids() returned [] identically for 4 different states: nothing running, discovery failed (PowerShell/CIM error), candidates existed but none matched this repo, or genuine zero — with zero signal anywhere to distinguish them.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the kill sequence ends the watch parent before it can matter — killed was built listener-PIDs first, tsx-PIDs second, and killed in that order — so the watch CHILD (the listener) was killed BEFORE its parent, risking a respawn race.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: repoRoot: serverDir identifies this checkout's processes reliably — It is a text match, not a realpath — a symlinked/junctioned/subst checkout could present a different spelling on each side and silently under-match.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden-coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the fix is protected by tests against future regression — deploy-tsx-scope.test.js (node --test) is not wired into CI — only server/client vitest runs there, so the behavioral guard never executes on a PR; only the source-regex contract test does.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the synthetic fixtures prove the Windows arm works on a real host — The PowerShell invocation changed shape in this diff and is only exercised via hand-built JSON fixtures, never against a real host; a non-ASCII byte or BOM in the redirected stdout could corrupt the JSON stream.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: once stopOldServer reports freed: true, the port is ours — freed: true is a single-poll observation with no re-confirmation; a respawned foreign parent could still win the port after we observe it free.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: this iterate improved kill precision end-to-end — The kill itself (taskkill/SIGTERM by PID) has no re-validation against PID reuse in the enumeration window.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: 'a tsx watch command line always embeds node_modules/tsx/...' is a stable contract — That is an undocumented implementation detail of tsx's argv formatting; a minor tsx version bump moving loader flags out of argv would defeat the match silently.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T15:02:01.831599+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": "scripts/deploy-tsx-scope.js — `filterTsxEntriesByRepo",
+          "line": null,
+          "finding": "repoRoot` is matched as-given text, not canonicalized. If the deploy is run from a path reached via symlink, `subst` drive, or a differently-cased spelling than what's embedded in the dev server's argv (the dev server may have been started from the other spelling), the pattern silently under-matches, the watch parent survives, and the port is blocked — with the diagnostic reporting `matched: 0` but no way to distinguish this from \"nothing running\". The code documents this, but the operator-facing `onDiag` output in deploy-swap.mjs doesn't hint at it.",
+          "suggestion": "Consider a `fs.realpathSync(serverDir)` (guarded by try/catch) at the deploy-swap call site, or mention path-spelling mismatch in the `foreignHint` text when `raw > 0 && matched === 0`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": "scripts/deploy-tsx-scope.js — `normalizeForPathMatch` / pattern",
+          "line": null,
+          "finding": "On Windows, a repoRoot containing a space is fine (the root itself is matched literally), but the `(?:[^\\s\"']+/)` gap between `node_modules/` and `tsx/` cannot cross a space, and a quoted tsx path whose intermediate segments contain spaces would fail to match. This is unreachable for the standard `.bin/../tsx/` npm shim hop, so it's theoretical only.",
+          "suggestion": "None needed; note it alongside the existing residual documentation if you want completeness.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "scripts/deploy-tsx-scope.js — `isTsxServerCommandLine",
+          "line": null,
+          "finding": "/src[\\\\/]index\\.ts/i` also matches `src/index.tsx` (no trailing boundary). This is inherited verbatim from the pre-fix match, not a regression, and over-matching here only widens the candidate set before repo-scoping — the repo filter still constrains the kill set.",
+          "suggestion": "Optional: add a `(?![a-z])` lookahead if you want the marker tightened.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "server/src/test/deploy-swap-contract.test.ts — pgrepCalls filter",
+          "line": null,
+          "finding": "The comment-stripping filter only handles `` and `//` line prefixes; a `pgrep -a` embedded mid-line in code or in a `/ /` span would slip past. Low stakes since it's a cheap pin with behavioral coverage elsewhere, and the current source passes it correctly.",
+          "suggestion": "Strip `/ ... /` spans before scanning, or accept as-is.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "scripts/deploy-tsx-scope.js",
+          "line": 221,
+          "finding": "Repo ownership is inferred from a match anywhere in the flattened command line. A foreign worktree’s `tsx watch src/index.ts` process that includes `--import <deploying-server>/node_modules/tsx/dist/loader.mjs` will be selected and killed, even though its own `tsx` executable resolves from the foreign worktree. This directly violates the required cross-worktree isolation.",
+          "suggestion": "Identify the executable/loader that owns the process rather than accepting an arbitrary matching argument; alternatively use reliable process cwd/parent ownership data. Add a fixture for a repo-B tsx invocation with a repo-A `--import .../node_modules/tsx/...` argument and assert it is excluded.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "scripts/deploy-tsx-scope.js",
+          "line": 221,
+          "finding": "The regex has no leading path boundary. On POSIX, deploying `/home/dev/app/server` will also match a different checkout invoked from `/mnt/archive/home/dev/app/server/node_modules/tsx/...`, because the target root appears as a suffix of that foreign absolute path. The code comments acknowledge this, but it remains an unwanted process kill contrary to the acceptance criteria.",
+          "suggestion": "Require a valid argv/path boundary before the normalized repo root, or use resolved process ownership/cwd rather than substring matching.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "scripts/deploy-tsx-scope-filter.test.js",
+          "line": 168,
+          "finding": "The “incidental argument” test only uses a `dotenv` path, while the implementation specifically accepts foreign arguments containing `<repoRoot>/node_modules/.../tsx/`. Thus the tests pass despite the concrete cross-worktree kill defect above.",
+          "suggestion": "Add negative cases for foreign `--import`/`--require` arguments referencing the deploying checkout’s `tsx` package and for a POSIX path containing the target repo root as a suffix.  Overall: ship-with-fixes. The normal scoped path works, but the matcher still permits concrete false positives that can kill an unrelated worktree’s dev server.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-09-09T15:02:18.611103+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review\n\nI traced the scoping logic, both platform parsers, the kill-ordering partition, and the test fixtures against the spec's three acceptance criteria.\n\n### Acceptance criteria check\n\n1. **Cross-worktree isolation** — implemented. The `<repoRoot>/node_modules/(?:[^\\s\"']+/)*tsx/` pattern (deploy-tsx-scope.js) anchors on the checkout-specific tsx resolution path, with tests proving sibling worktrees (`repo-a` vs `repo-b`) and unrelated projects are excluded. The documented residual (a foreign process whose argv explicitly names the deploying repo's `tsx/dist/loader.mjs`) is a genuine but contrived gap — Windows CIM/`ps args=` output genuinely can't delimit argv, and rejecting `--import .../tsx/...` would break tsx's own legitimate self-invocation (PID 39236 in the fixture proves this). I concur with the in-code rebuttal.\n2. **Watch-parent still killed** — implemented and behaviorally tested, including the child-first discovery-order fixture that proves the parent-first partition actually reorders rather than just preserving sorted input.\n3. **Fail-closed on missing repoRoot** — implemented at both layers (`findTsxServerPids` and `filterTsxEntriesByRepo`), pinned by test and contract regex.\n\n### Findings\n\n- Category: edge-case | Severity: low\n  File: scripts/deploy-tsx-scope.js — `filterTsxEntriesByRepo`\n  Finding: `repoRoot` is matched as-given text, not canonicalized. If the deploy is run from a path reached via symlink, `subst` drive, or a differently-cased spelling than what's embedded in the dev server's argv (the dev server may have been started from the other spelling), the pattern silently under-matches, the watch parent survives, and the port is blocked — with the diagnostic reporting `matched: 0` but no way to distinguish this from \"nothing running\". The code documents this, but the operator-facing `onDiag` output in deploy-swap.mjs doesn't hint at it.\n  Suggestion: Consider a `fs.realpathSync(serverDir)` (guarded by try/catch) at the depl […truncated]\n\n[openai] - Category: spec\n- Severity: high\n- File: scripts/deploy-tsx-scope.js:221\n- Finding: Repo ownership is inferred from a match anywhere in the flattened command line. A foreign worktree’s `tsx watch src/index.ts` process that includes `--import <deploying-server>/node_modules/tsx/dist/loader.mjs` will be selected and killed, even though its own `tsx` executable resolves from the foreign worktree. This directly violates the required cross-worktree isolation.\n- Suggestion: Identify the executable/loader that owns the process rather than accepting an arbitrary matching argument; alternatively use reliable process cwd/parent ownership data. Add a fixture for a repo-B tsx invocation with a repo-A `--import .../node_modules/tsx/...` argument and assert it is excluded.\n\n- Category: edge-case\n- Severity: medium\n- File: scripts/deploy-tsx-scope.js:221\n- Finding: The regex has no leading path boundary. On POSIX, deploying `/home/dev/app/server` will also match a different checkout invoked from `/mnt/archive/home/dev/app/server/node_modules/tsx/...`, because the target root appears as a suffix of that foreign absolute path. The code comments acknowledge this, but it remains an unwanted process kill contrary to the acceptance criteria.\n- Suggestion: Require a valid argv/path boundary before the normalized repo root, or use resolved process ownership/cwd rather than substring matching.\n\n- Category: test\n- Severity: medium\n- File: scripts/deploy-tsx-scope-filter.test.js:168\n- Finding: The “incidental argument” test only uses a `dotenv` path, while the implementation specifically accepts foreign arguments containing `<repoRoot>/node_modules/.../tsx/`. Thus the tests pass despite the concrete cross-worktree kill defect above.\n- Suggestion: Add negative cases for foreign `--import`/`--require` arguments referencing the deploying checkout’s `tsx` package and for a POSIX path containing the target repo root as a suffix.\n\nOverall: ship-with-fixes. The normal scoped path work […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      },
+      "contradiction_resolution": "GLM approves after 7 review rounds, independently concurring with the in-code rebuttal on the standing openai finding (flat command-line substring match cannot distinguish a foreign process's own tsx resolution from an incidental argument referencing this repo's tsx internals, without OS-level argv/cwd parsing this platform's discovery data doesn't carry). openai has raised the SAME finding, materially unchanged, across rounds 3-7 despite three rounds of concrete narrowing, an explicit standing rebuttal in the JSDoc, and a second independent reviewer (GLM) explicitly examining and concurring. Disposition: accepted, documented residual risk; recorded as GLM=approve / openai=revise (agree-within-one-step per the tool's own contradiction detector, requires_resolution=false)."
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:11:47.660421+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:01:21.472223+00:00",
+      "disposition": "small complexity — internal plan review arm is medium+ only per the phase matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
