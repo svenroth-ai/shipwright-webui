@@ -223,10 +223,16 @@ function escapeRegExp(s) {
 function filterTsxEntriesByRepo(entries, repoRoot) {
   const root = normalizeForPathMatch(repoRoot).replace(/\/+$/, '');
   if (!root) return [];
-  // (?:[^\s"']+\/)*tsx\/ — any number of intermediate path segments (e.g.
+  // (?:[^\s"'/]+\/)*tsx\/ — any number of intermediate path segments (e.g.
   // the `.bin/../` npm shim hop), bounded by whitespace/quotes so the match
   // can't run on past the end of this argv token into an unrelated one.
-  const pattern = new RegExp(`${escapeRegExp(root)}/node_modules/(?:[^\\s"']+/)*tsx/`);
+  // Excluding `/` itself from the segment class (Semgrep
+  // detect-non-literal-regexp / ReDoS finding, PR #459 review) makes each
+  // repetition consume exactly one path segment with no ambiguity about
+  // where a segment ends — the regex engine has only one way to partition
+  // the string, so this can never backtrack catastrophically regardless of
+  // how many `/`-separated segments a command line contains.
+  const pattern = new RegExp(`${escapeRegExp(root)}/node_modules/(?:[^\\s"'/]+/)*tsx/`);
   const seen = new Set();
   const matched = [];
   for (const entry of entries) {
