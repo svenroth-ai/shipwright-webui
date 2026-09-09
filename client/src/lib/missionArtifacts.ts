@@ -219,6 +219,11 @@ export function testChangeWord(kind: "added" | "modified" | "removed"): string {
   return kind === "added" ? "added" : kind === "removed" ? "removed" : "changed";
 }
 
+/** "AC07 — FR-01.11" for one per-AC test group heading. */
+export function acGroupLabel(group: { frId: string; acId: string }): string {
+  return `${group.acId} — ${group.frId}`;
+}
+
 /** `e2e` is jargon; the panel says what the layer MEANS. */
 export function layerWord(layer: string | null): string {
   if (!layer) return "unknown layer";

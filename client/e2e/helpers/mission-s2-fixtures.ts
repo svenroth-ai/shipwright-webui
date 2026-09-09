@@ -95,8 +95,13 @@ export function eventsJsonl(commit: string): string {
 /**
  * A manifest filing the MODIFIED test under a surviving parent while recording
  * the FOLDED id its source tag actually named — the "mapped from" case (AC2).
+ *
+ * `withAc: true` additionally tags the ADDED test's link with a v4 `ac_id` —
+ * every other existing call site keeps the default (no `ac_id` anywhere),
+ * which is also the real shape of THIS repo's own manifest today (AC-level
+ * coverage view, iterate-2026-09-09).
  */
-export function traceability(): string {
+export function traceability(opts: { withAc?: boolean } = {}): string {
   return JSON.stringify({
     schema_version: 2,
     generated_at: "2026-07-19T09:00:00Z",
@@ -106,7 +111,11 @@ export function traceability(): string {
         tests: {
           unit: [
             { id: `${KEPT}::keeps working`, layer: "unit", resolved_from: "FR-01.44" },
-            { id: `${ADDED}::is new`, layer: "unit" },
+            {
+              id: `${ADDED}::is new`,
+              layer: "unit",
+              ...(opts.withAc ? { ac_id: "AC07" } : {}),
+            },
           ],
         },
       },

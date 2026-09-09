@@ -73,6 +73,7 @@ const SHARED_INTERFACES = [
   "CommitArtifact",
   "TestFrRef",
   "TestRow",
+  "AcTestGroup",
   "TestsArtifact",
   "ReviewFinding",
   "ReviewRow",

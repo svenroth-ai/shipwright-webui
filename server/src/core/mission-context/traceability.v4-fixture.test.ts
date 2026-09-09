@@ -205,13 +205,14 @@ describe("readTraceabilityIndex — manifest v4 frozen fixture (w3, AC1/AC2)", (
       if (idx.status !== "ok") return;
       expect(warnSpy).not.toHaveBeenCalled();
 
-      // The v4-only fields (`ac_id`, `acs`) are present but unread — the
-      // index still inverts on the fields this reader has always consumed,
-      // INCLUDING fold provenance (`resolved_from` → `mappedFrom`) on the
-      // very same AC-scoped link (external code review, medium finding).
+      // The v4-only `acs` breakdown is present but unread. `ac_id` on the
+      // top-level test link IS read (iterate-2026-09-09-mission-ac-coverage-view)
+      // and asserted below, alongside fold provenance (`resolved_from` →
+      // `mappedFrom`) on the very same AC-scoped link (external code review,
+      // medium finding).
       const entry = idx.byFile.get("server/src/example.test.ts");
       expect(entry).toBeDefined();
-      expect(entry?.frs).toEqual([{ frId: "FR-01.11", mappedFrom: "FR-01.99" }]);
+      expect(entry?.frs).toEqual([{ frId: "FR-01.11", mappedFrom: "FR-01.99", acIds: ["AC07"] }]);
       expect(entry?.layers).toEqual(["unit"]);
       expect(entry?.caseCount).toBe(1);
     } finally {
@@ -231,7 +232,7 @@ describe("readTraceabilityIndex — manifest v4 frozen fixture (w3, AC1/AC2)", (
 
       const entry = idx.byFile.get("server/src/other.test.ts");
       expect(entry).toBeDefined();
-      expect(entry?.frs).toEqual([{ frId: "FR-01.11", mappedFrom: null }]);
+      expect(entry?.frs).toEqual([{ frId: "FR-01.11", mappedFrom: null, acIds: [] }]);
       expect(entry?.layers).toEqual(["unit"]);
     } finally {
       warnSpy.mockRestore();
@@ -249,10 +250,10 @@ describe("readTraceabilityIndex — manifest v4 frozen fixture (w3, AC1/AC2)", (
       expect(warnSpy).not.toHaveBeenCalled();
 
       const acScoped = idx.byFile.get("server/src/example.test.ts");
-      expect(acScoped?.frs).toEqual([{ frId: "FR-01.11", mappedFrom: "FR-01.99" }]);
+      expect(acScoped?.frs).toEqual([{ frId: "FR-01.11", mappedFrom: "FR-01.99", acIds: ["AC07"] }]);
 
       const bare = idx.byFile.get("server/src/other.test.ts");
-      expect(bare?.frs).toEqual([{ frId: "FR-01.12", mappedFrom: null }]);
+      expect(bare?.frs).toEqual([{ frId: "FR-01.12", mappedFrom: null, acIds: [] }]);
     } finally {
       warnSpy.mockRestore();
       rmSync(root, { recursive: true, force: true });

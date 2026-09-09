@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-09-mission-ac-coverage-view",
+  "date": "2026-09-09",
+  "section": "FR-01.66",
+  "title": "Mission Control Tests artifact: per-AC coverage view",
+  "context": "Triage REQ3.08 asked Mission Control to show, per acceptance criterion, which tests were added/changed/removed. The v4 traceability manifest (campaign req3-06-mechanics-webui) can carry an optional ac_id per test link, but in this repo 0/33 requirements carry one today.",
+  "decision": "traceability.ts now relays ac_id verbatim into TestFrRef.acIds (unioned per file+FR, no binding computed). A new artifacts-tests-ac.ts groupByAc() regroups the SAME TestRow[] the file table already renders, keyed by (frId, acId), with tagged=groups.length>0. The client (new MissionTestsAcCoverage.tsx) renders the groups when tagged, or an explicit not-yet-tagged note when tagged=false — never an empty/misleading table.",
+  "consequences": "Mission Control's Tests card now has an AC-scoped sub-view. Adds TestFrRef.acIds, AcTestGroup, and TestsArtifact.detail.acCoverage to the hand-mirrored wire types (server types-slice2.ts / client missionContextApi.ts, ADR-080). No new read/write surface — same manifest, same rows. Bloat baseline bumped for MissionSlice2Details.tsx and missionContextApi.ts (documented notes).",
+  "rationale": "The card explicitly requires a VIEW, not a second source of truth for AC bindings, and requires absent-vs-zero to stay distinct on this highly visible surface. Regrouping existing rows server-side (where the manifest is already bounded/parsed) keeps one inversion point; tagged:false is a first-class state, not an empty array.",
+  "rejected": "Client-side-only AC grouping by re-fetching the raw manifest: rejected because it would duplicate traceability.ts's own size/corruption bounding (8MB cap, entry cap, typed unavailable) in a second place — exactly the second-source-of-truth risk the triage card rules out.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-09-mission-ac-coverage-view-miniplan.md"
+}

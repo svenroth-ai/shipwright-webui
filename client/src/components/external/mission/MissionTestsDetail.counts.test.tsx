@@ -29,7 +29,7 @@ function testsArtifact(over: Partial<NonNullable<TestsArtifact["detail"]>>): Tes
       counts: { added: 1, modified: 0, removed: 0 },
       byLayer: [{ layer: "unit", count: 1 }],
       truncated: false,
-      manifestStatus: "ok",
+      manifestStatus: "ok", acCoverage: { tagged: false, groups: [] },
       rows: [{ path: "a.test.ts", kind: "added", layer: "unit", frs: [], caseCount: 1 }],
       ...over,
     },

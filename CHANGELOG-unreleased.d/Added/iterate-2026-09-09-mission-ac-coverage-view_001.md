@@ -1,0 +1,1 @@
+Mission Control's Tests artifact now shows per-acceptance-criterion test coverage — grouped by (requirement, AC) when the traceability manifest tags an ac_id, or an explicit 'not yet tagged' note otherwise, never a misleading empty table

@@ -1,0 +1,137 @@
+{
+  "last_updated": "2026-09-09",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-09-mission-ac-coverage-view",
+    "date": "2026-09-09",
+    "unit": {
+      "status": "passed",
+      "passed": 8190,
+      "total": 8197
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 15,
+        "tested": 15,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "behaviors": [
+        {
+          "behavior": "addLink unions ac_id across two cases on the same file+FR onto one frs entry",
+          "disposition": "tested",
+          "evidence": "server/src/core/mission-context/traceability.ac-ids.test.ts"
+        },
+        {
+          "behavior": "addLink leaves acIds: [] when no case for that file+FR carries an ac_id",
+          "disposition": "tested",
+          "evidence": "traceability.ac-ids.test.ts, traceability.test.ts"
+        },
+        {
+          "behavior": "whitespace-only ac_id is normalized to absent before reaching addLink",
+          "disposition": "tested",
+          "evidence": "traceability.ac-ids.test.ts"
+        },
+        {
+          "behavior": "no AC-id cross-contamination between two different files under the same FR",
+          "disposition": "tested",
+          "evidence": "traceability.ac-ids.test.ts"
+        },
+        {
+          "behavior": "groupByAc produces one group keyed by (frId, acId) for a single tagged row",
+          "disposition": "tested",
+          "evidence": "server/src/core/mission-context/artifacts-tests-ac.test.ts"
+        },
+        {
+          "behavior": "groupByAc splits one file into two groups when its cases tag two different ACs, without cross-contaminating file lists",
+          "disposition": "tested",
+          "evidence": "artifacts-tests-ac.test.ts"
+        },
+        {
+          "behavior": "groupByAc returns {tagged:false, groups:[]} for the untagged (real-repo) shape",
+          "disposition": "tested",
+          "evidence": "artifacts-tests-ac.test.ts"
+        },
+        {
+          "behavior": "buildTestsArtifact wires acCoverage from the same rows array the file table renders (no divergent source)",
+          "disposition": "tested",
+          "evidence": "artifacts-tests-ac.test.ts asserts on buildTestsArtifact output directly"
+        },
+        {
+          "behavior": "client renders an explicit 'not yet tagged' note (not an empty table) when tagged === false",
+          "disposition": "tested",
+          "evidence": "client/src/components/external/mission/MissionTestsAcCoverage.test.tsx; E2E mission-artifacts-s2-ac-coverage.spec.ts (untagged case)"
+        },
+        {
+          "behavior": "client groups files under an acGroupLabel heading (\"AC07 \u2014 FR-01.11\") when tagged",
+          "disposition": "tested",
+          "evidence": "MissionTestsAcCoverage.test.tsx; E2E mission-artifacts-s2-ac-coverage.spec.ts (tagged case)"
+        },
+        {
+          "behavior": "client renders TWO separate group entries for the same FR tagging different ACs, without cross-contamination",
+          "disposition": "tested",
+          "evidence": "MissionTestsAcCoverage.test.tsx"
+        },
+        {
+          "behavior": "the AC panel is wired into the real rendered page, not just the isolated component",
+          "disposition": "tested",
+          "evidence": "E2E mission-artifacts-s2-ac-coverage.spec.ts, both tests navigate the real app and assert on the live DOM"
+        },
+        {
+          "behavior": "server/client wire-type mirror (AcTestGroup, TestFrRef.acIds, TestsArtifact.detail.acCoverage) does not drift (ADR-080)",
+          "disposition": "tested",
+          "evidence": "mission-context-types-sync.test.ts (AcTestGroup added to SHARED_INTERFACES); tsc --noEmit clean on both workspaces"
+        },
+        {
+          "behavior": "no launch-payload surface (core/launcher.ts / buildCopyCommands) touched",
+          "disposition": "tested",
+          "evidence": "repo-wide grep for new symbols confined to mission-context + mirrors/tests; independently confirmed by spec-reviewer"
+        },
+        {
+          "behavior": "the AC panel renders nothing (not 'not yet tagged') when manifestStatus is unavailable, since acIds reading empty there means unresolved links, not genuinely-untagged tests",
+          "disposition": "tested",
+          "evidence": "MissionTestsAcCoverage.test.tsx (added after Tier-3 PR-review BLOCK finding on PR #458); tsc --noEmit; full client suite re-run green (4061)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/mission-artifacts-s2-ac-coverage.spec.ts",
+      "tests_run": 2,
+      "exit_code": 0,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-ac-coverage-view\\.shipwright\\runs\\iterate-2026-09-09-mission-ac-coverage-view\\surface_verification.log",
+      "timestamp": "2026-09-09T15:04:07.569Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-09-mission-ac-coverage-view",
+    "commit": "e2cef648afb625795d300d42168fe320219b194e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

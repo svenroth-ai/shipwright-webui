@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-mission-ac-coverage-view",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:54:01.809659+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:54:12.714395+00:00",
+      "disposition": "small complexity — external LLM plan/code review is medium+ only (Model Tier Resolution / Override Classes table)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/mission-context/traceability.v4-fixture.test.ts",
+          "line": 208,
+          "finding": "Comment said v4-only fields `ac_id`/`acs` are 'present but unread', but this iterate makes `ac_id` read (via addLink's acIds union) — the same test three lines later asserts `acIds: [\"AC07\"]` is populated, directly contradicting the comment.",
+          "suggestion": "Narrow the comment to the field that is actually still unread (`acs`) and note that `ac_id` on the top-level test link is now read and asserted below.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T15:01:19.540209+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T15:01:31.249502+00:00",
+      "disposition": "doubt-reviewer triggers on migrations/async-concurrency/cross-plugin-imports/irreversible-ops (shipwright-build:doubt-reviewer description) — this change is an additive, synchronous, same-repo view over an existing artifact; no trigger present",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:54:13.133478+00:00",
+      "disposition": "small complexity — external LLM plan/code review is medium+ only (Model Tier Resolution / Override Classes table)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:58:35.685521+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T14:54:12.908433+00:00",
+      "disposition": "small complexity — external LLM plan/code review is medium+ only (Model Tier Resolution / Override Classes table)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

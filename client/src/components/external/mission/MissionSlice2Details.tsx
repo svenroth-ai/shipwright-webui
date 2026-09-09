@@ -33,6 +33,7 @@ import {
   testFrLabel,
   testsResultText,
 } from "../../../lib/missionArtifacts";
+import { MissionTestsAcCoverage } from "./MissionTestsAcCoverage";
 import { DocumentMarkdown } from "../SmartViewer/DocumentMarkdown";
 
 /** The structured RTM table (§6 row 3 right-detail type). */
@@ -142,6 +143,12 @@ function TestsFileTable({ detail }: { detail: NonNullable<TestsArtifact["detail"
           This run changed more test files than are shown here.
         </p>
       ) : null}
+
+      <MissionTestsAcCoverage
+        acCoverage={detail.acCoverage}
+        manifestStatus={detail.manifestStatus}
+        hasRows={detail.rows.length > 0}
+      />
     </>
   );
 }
