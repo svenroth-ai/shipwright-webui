@@ -5,8 +5,9 @@
     "date": "2026-09-09",
     "unit": {
       "status": "passed",
-      "passed": 8234,
-      "total": 8235
+      "passed": 8233,
+      "total": 8245,
+      "skipped": 12
     },
     "integration": {
       "status": "not_run",
@@ -32,7 +33,7 @@
       "status": "not_run"
     },
     "degraded": [
-      "Full server vitest run reported 1 failure (pty-mirror-integration.test.ts: 'snapshot header captures the LATEST cols/rows after resize', ENOTEMPTY on a Windows temp-dir cleanup) alongside 4120 passes; re-run in isolation, that same file passed 7/7 cleanly. Unrelated to this iterate (terminal PTY snapshot mechanics, no file this iterate touches) \u2014 a known Windows temp-dir race under parallel test-file contention, consistent with this project's prior recorded pattern of this exact class of flake. Counted as passed above (isolation re-run is authoritative); raw full-run count was 4120 passed / 1 failed of 4121."
+      "An earlier full server vitest run reported a single failure in pty-mirror-integration.test.ts (ENOTEMPTY on a Windows temp-dir cleanup), unrelated to this iterate (terminal PTY snapshot mechanics, no file this iterate touches) and consistent with this project's known Windows temp-dir contention flake. Did not reproduce on the clean, uncontended full re-run this run's numbers above are drawn from (server 4133/4133 passed + 12 skipped, client 4057/4057, scripts 43/43)."
     ],
     "test_completeness": {
       "status": "complete",
