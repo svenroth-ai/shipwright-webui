@@ -2,8 +2,12 @@
  * leadwright-preflight.ts — hand-typed mirror of leadwright's published
  * setup-preflight transport contract (iterate-2026-09-07-leadwright-setup-
  * wizard, W14). Vendored source: server/src/vendor/leadwright/
- * preflight-{input,result}.schema.json, copied byte-for-byte from
- * leadwright origin/main @ 43fcd492 (PR #67 + #70).
+ * preflight-{input,result}.schema.json, re-vendored from leadwright main
+ * @ df2c5f6 (2026-09-09, iterate-2026-09-09-leadwright-schema-drift).
+ * PreflightTriggerEventType stays a closed 2-value union on purpose even
+ * though leadwright #79 opened the wire schema's triggers.on to an open
+ * lowercase-snake-case pattern — this mirror types only what webui itself
+ * ever emits, not the full breadth the wire contract now allows.
  *
  * CLAUDE.md rule 7 (ADR-080): no cross-package import — this is a verbatim
  * mirror kept in fidelity-test sync (leadwright-preflight.test.ts), same
