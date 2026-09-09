@@ -310,9 +310,10 @@
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 445,
+      "current": 446,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-30-compliance-grade-webui"
+      "adr": "iterate-2026-06-30-compliance-grade-webui",
+      "note": "iterate-2026-09-09-fix-main-1b8a1fbb: restored to main's actual size after PR #450's H2 ratchet-suggestion (447->445, a low-water mark observed at one instant, not a chosen ceiling) raced PR #453 (already in flight, adding the 446th line). Not a ratchet loosening -- recorded now tracks reality (446) again."
     },
     {
       "path": "client/src/pages/TaskDetailPage.test.tsx",
