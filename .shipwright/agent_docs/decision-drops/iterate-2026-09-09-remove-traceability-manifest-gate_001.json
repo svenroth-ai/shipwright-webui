@@ -4,10 +4,10 @@
   "section": "Iterate — change: remove traceability-manifest CI gate",
   "title": "Delete the traceability-manifest gate instead of tightening it",
   "context": "The gate hard-failed CI on a committed derived-snapshot file no enforcing gate reads. Iterate PRs cannot update that file, so the gate manufactured drift rather than catching it; PR #449 already downgraded it to advisory + auto-regen-PR as a stopgap.",
-  "decision": "Delete both CI jobs, the pinned shipwright-compliance checkout, the write-permission carve-out, and both gate scripts + tests. Close the standing bot regen PR (#452) unmerged. Add one additive TestRow.unresolvedReason field so an added-but-unindexed test file reads as unknown coverage, not zero coverage.",
+  "decision": "Delete both CI jobs, the pinned shipwright-compliance checkout, the write-permission carve-out, and both gate scripts + tests. Close the standing bot regen PR (#452) unmerged. Add one additive TestRow.unresolvedReason field so an added-or-modified, unindexed test file reads as unknown coverage, not zero coverage (amended post-review: widened from added-only to also cover modified -- task-owner call).",
   "consequences": "CI workflow permissions become contents: read for every job, no exceptions. Manifest staleness is unchanged in kind, just no longer CI-blocking. scripts/ci/promote_fr_layers*.py (a separate, self-regenerating FR-layer pipeline) is untouched.",
   "rationale": "refresh_compliance_docs.py already meets every constraint the deleted gate tried to enforce, without a hard CI block on a file iterate PRs are structurally forbidden from touching.",
-  "rejected": "Keeping the gate but excluding iterate-authored files: still blocks on staleness the gate itself cannot fix. Widening unresolvedReason to modified files: out of the requested scope, deferred to doubt-review comment instead.",
+  "rejected": "Keeping the gate but excluding iterate-authored files: still blocks on staleness the gate itself cannot fix.",
   "commit": "",
   "architecture_impact": "none",
   "spec_ref": ""
