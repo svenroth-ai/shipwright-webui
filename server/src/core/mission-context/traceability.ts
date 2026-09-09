@@ -101,6 +101,11 @@ function addLink(entry: TraceabilityFileEntry, link: TestFrRef): void {
   // would silently lose the "mapped from" badge for a file whose first-seen
   // case happened to be tagged with the survivor id directly.
   if (!existing.mappedFrom && link.mappedFrom) existing.mappedFrom = link.mappedFrom;
+  // Union the AC ids seen across every case on this file for this FR — a file
+  // can hold several cases tagging different ACs of the same requirement.
+  for (const acId of link.acIds) {
+    if (!existing.acIds.includes(acId)) existing.acIds.push(acId);
+  }
 }
 
 /**
@@ -198,7 +203,15 @@ export function readTraceabilityIndex(
 
         // The fold only "moved" the id when the source tag named something else.
         const from = typeof t.resolved_from === "string" ? t.resolved_from.trim() : "";
-        addLink(entry, { frId, mappedFrom: from && from !== frId ? from : null });
+        // v4-only field (WITH_AC_TAG / BARE_FR_TAG fixtures). A pure relay of
+        // whatever the manifest already says — this reader computes no AC
+        // binding of its own.
+        const acId = typeof t.ac_id === "string" && t.ac_id.trim().length > 0 ? t.ac_id.trim() : null;
+        addLink(entry, {
+          frId,
+          mappedFrom: from && from !== frId ? from : null,
+          acIds: acId ? [acId] : [],
+        });
       }
     }
   }

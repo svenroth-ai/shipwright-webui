@@ -97,12 +97,12 @@ describe("buildTestsArtifact — rows and classification", () => {
       index: indexWith({
         "client/src/b.test.ts": {
           layers: ["unit"],
-          frs: [{ frId: "FR-01.28", mappedFrom: "FR-01.44" }],
+          frs: [{ frId: "FR-01.28", mappedFrom: "FR-01.44", acIds: [] }],
         },
       }),
     });
     const row = a.detail!.rows.find((r) => r.path === "client/src/b.test.ts")!;
-    expect(row.frs).toEqual([{ frId: "FR-01.28", mappedFrom: "FR-01.44" }]);
+    expect(row.frs).toEqual([{ frId: "FR-01.28", mappedFrom: "FR-01.44", acIds: [] }]);
     expect(row.layer).toBe("unit");
   });
 

@@ -66,7 +66,7 @@ describe("readTraceabilityIndex — schema-version contract check (fail-soft)", 
       // Fail-soft: an ahead-of-us manifest is still inverted into a real index.
       expect(idx.status).toBe("ok");
       if (idx.status !== "ok") return;
-      expect(idx.byFile.get("x.test.ts")?.frs).toEqual([{ frId: "FR-01.01", mappedFrom: null }]);
+      expect(idx.byFile.get("x.test.ts")?.frs).toEqual([{ frId: "FR-01.01", mappedFrom: null, acIds: [] }]);
 
       // …but the drift is now on the record, tagged to the manifest + field.
       expect(warnSpy).toHaveBeenCalledTimes(1);
@@ -120,7 +120,7 @@ describe("readTraceabilityIndex — schema-version contract check (fail-soft)", 
       const idx = readTraceabilityIndex(root);
       expect(idx.status).toBe("ok");
       if (idx.status !== "ok") return;
-      expect(idx.byFile.get("t.test.ts")?.frs).toEqual([{ frId: "FR-01.28", mappedFrom: "FR-01.44" }]);
+      expect(idx.byFile.get("t.test.ts")?.frs).toEqual([{ frId: "FR-01.28", mappedFrom: "FR-01.44", acIds: [] }]);
       expect(warnSpy).toHaveBeenCalledTimes(1);
     } finally {
       rmSync(root, { recursive: true, force: true });

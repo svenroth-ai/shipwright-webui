@@ -27,10 +27,19 @@ export type TestChangeKind = "added" | "modified" | "removed";
  * `mappedFrom` is set only when the manifest resolved a folded source tag to a
  * surviving parent — a test tagged `covers(FR-01.44)` filed under `FR-01.28`
  * renders "mapped from FR-01.44" (Slice-2 AC2, covers monorepo `trg-5f6a4f74`).
+ *
+ * `acIds` is a PURE READ of the v4 manifest's optional `ac_id` on each test
+ * link — every distinct value seen across this file's cases for this FR,
+ * unioned and deduped the same way `mappedFrom` is carried. `[]` means no
+ * case for this file+FR carried an `ac_id` — the common case in this repo
+ * today (0/33 requirements tag `ac_id` as of iterate-2026-09-09), and MUST
+ * read as "not yet tagged", never as "covers no AC". This reader computes
+ * no AC binding of its own — it only relays what the manifest already says.
  */
 export interface TestFrRef {
   frId: string;
   mappedFrom: string | null;
+  acIds: string[];
 }
 
 export interface TestRow {
@@ -60,6 +69,17 @@ export interface TestRow {
   unresolvedReason?: string | null;
 }
 
+/**
+ * The rows for ONE acceptance criterion — the same file-level rows the RTM
+ * table already shows, regrouped by `(frId, acId)` rather than by file. A
+ * VIEW, not a second store: every file here already appears in `rows` above.
+ */
+export interface AcTestGroup {
+  frId: string;
+  acId: string;
+  files: { path: string; kind: TestChangeKind }[];
+}
+
 export interface TestsArtifact extends ArtifactBase {
   kind: "tests";
   detail: {
@@ -86,6 +106,13 @@ export interface TestsArtifact extends ArtifactBase {
      */
     manifestStatus: "ok" | "unavailable";
     evidence?: { status: "available" | "unavailable"; verifiedBehaviors: string[]; completeness: { tested: number; testable: number; untestedTestable: number } | null; note: string | null };
+    /**
+     * `tagged: false` means no row's manifest link carried an `ac_id` — the UI
+     * must render that as "not yet tagged by AC", never as an empty coverage
+     * table. `groups` is derived purely from `rows[].frs[].acIds`; it adds no
+     * binding this artifact did not already have.
+     */
+    acCoverage: { tagged: boolean; groups: AcTestGroup[] };
   } | null;
 }
 

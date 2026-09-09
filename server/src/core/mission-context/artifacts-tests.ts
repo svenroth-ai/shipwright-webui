@@ -34,6 +34,7 @@ import type { TraceabilityIndex } from "./traceability.js";
 import type { TestEvidence } from "./test-evidence.js";
 import type { MissionTests } from "./types.js";
 import type { TestRow, TestsArtifact } from "./types-slice2.js";
+import { groupByAc } from "./artifacts-tests-ac.js";
 
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
@@ -283,6 +284,7 @@ export function buildTestsArtifact(input: TestsInput): TestsArtifact {
       // rows there is nothing to link, so the manifest is not "at fault".
       manifestStatus: !hasFiles || (index.status === "ok" && !index.truncated) ? "ok" : "unavailable",
       evidence: input.evidence,
+      acCoverage: groupByAc(files?.rows ?? []),
     },
   };
 }

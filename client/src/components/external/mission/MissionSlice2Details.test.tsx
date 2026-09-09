@@ -45,13 +45,13 @@ function testsArtifact(over: Partial<NonNullable<TestsArtifact["detail"]>> = {})
       counts: { added: 1, modified: 0, removed: 1 },
       byLayer: [{ layer: "unit", count: 1 }],
       truncated: false,
-      manifestStatus: "ok",
+      manifestStatus: "ok", acCoverage: { tagged: false, groups: [] },
       rows: [
         {
           path: "client/src/lib/added.test.ts",
           kind: "added",
           layer: "unit",
-          frs: [{ frId: "FR-01.28", mappedFrom: "FR-01.44" }],
+          frs: [{ frId: "FR-01.28", mappedFrom: "FR-01.44", acIds: [] }],
           caseCount: 3,
         },
         {
@@ -100,7 +100,7 @@ describe("TestsDetail", () => {
               path: "a.test.ts",
               kind: "modified",
               layer: "unit",
-              frs: [{ frId: "FR-01.28", mappedFrom: null }],
+              frs: [{ frId: "FR-01.28", mappedFrom: null, acIds: [] }],
               caseCount: 1,
             },
           ],

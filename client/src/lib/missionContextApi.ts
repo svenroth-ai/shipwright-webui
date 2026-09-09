@@ -116,10 +116,16 @@ export interface CommitArtifact extends ArtifactBase {
 
 export type TestChangeKind = "added" | "modified" | "removed";
 
-/** `mappedFrom` set only when a fold moved the id — renders "mapped from …". */
+/**
+ * `mappedFrom` set only when a fold moved the id — renders "mapped from …".
+ * `acIds` — every distinct `ac_id` the manifest recorded for this file+FR;
+ * `[]` means not yet tagged by AC (the common case today — read as absent,
+ * never as "covers no AC").
+ */
 export interface TestFrRef {
   frId: string;
   mappedFrom: string | null;
+  acIds: string[];
 }
 
 export interface TestRow {
@@ -129,6 +135,13 @@ export interface TestRow {
   frs: TestFrRef[];
   caseCount: number | null;
   unresolvedReason?: string | null;
+}
+
+/** The same rows as `TestRow[]`, regrouped by `(frId, acId)` — a view, not a second store. */
+export interface AcTestGroup {
+  frId: string;
+  acId: string;
+  files: { path: string; kind: TestChangeKind }[];
 }
 
 export interface TestsArtifact extends ArtifactBase {
@@ -148,6 +161,8 @@ export interface TestsArtifact extends ArtifactBase {
     /** `unavailable` → the FR links are MISSING, not empty. */
     manifestStatus: "ok" | "unavailable";
     evidence?: { status: "available" | "unavailable"; verifiedBehaviors: string[]; completeness: { tested: number; testable: number; untestedTestable: number } | null; note: string | null };
+    /** `tagged: false` → render "not yet tagged by AC", never an empty table. */
+    acCoverage: { tagged: boolean; groups: AcTestGroup[] };
   } | null;
 }
 

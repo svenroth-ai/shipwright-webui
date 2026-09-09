@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-09-09-mission-ac-coverage-view",
+  "date": "2026-09-09T15:07:48.020087Z",
+  "event_at": "2026-09-09T15:07:38.876539+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/mission-ac-coverage-view",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-09-mission-ac-coverage-view"
+}

@@ -667,9 +667,10 @@
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",
       "limit": 300,
-      "current": 302,
+      "current": 303,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile",
+      "note": "iterate-2026-09-09-mission-ac-coverage-view: +1 line -- registers the new AcTestGroup shared interface (TestsArtifact.detail.acCoverage.groups) in SHARED_INTERFACES so the completeness check does not flag it as unregistered."
     },
     {
       "path": "scripts/ci/accepted_risks.py",
@@ -730,17 +731,18 @@
     {
       "path": "client/src/components/external/mission/MissionSlice2Details.tsx",
       "limit": 300,
-      "current": 306,
+      "current": 309,
       "state": "grandfathered",
-      "adr": null
+      "adr": null,
+      "note": "iterate-2026-09-09-mission-ac-coverage-view: +3 lines -- the new per-AC coverage sub-panel (MissionTestsAcCoverage.tsx, its own file to avoid growing this one further) needs one import line and one call site inside TestsFileTable."
     },
     {
       "path": "client/src/lib/missionContextApi.ts",
       "limit": 300,
-      "current": 302,
+      "current": 317,
       "state": "grandfathered",
       "adr": "iterate-2026-09-09-remove-traceability-manifest-gate",
-      "note": "One field (`unresolvedReason?: string | null;`) added to TestRow, mirroring server/src/core/mission-context/types-slice2.ts verbatim per ADR-080 rule 7 -- the file is a flat interface listing, already at its grandfathered ceiling with no unrelated bloat to trim, so the 1-line growth is the field itself."
+      "note": "iterate-2026-09-09-mission-ac-coverage-view: +15 lines -- mirrors server/src/core/mission-context/types-slice2.ts verbatim per ADR-080 rule 7: TestFrRef.acIds field, the new AcTestGroup interface, and TestsArtifact.detail.acCoverage. Flat interface listing already at its grandfathered ceiling with no unrelated bloat to trim."
     },
     {
       "path": "server/src/core/mission-context/resolver.ts",

@@ -72,7 +72,7 @@ describe("readTraceabilityIndex — fold provenance (AC2)", () => {
       expect(idx.status).toBe("ok");
       if (idx.status !== "ok") return;
       expect(idx.byFile.get("client/src/terminal/x.test.ts")?.frs).toEqual([
-        { frId: "FR-01.28", mappedFrom: "FR-01.44" },
+        { frId: "FR-01.28", mappedFrom: "FR-01.44", acIds: [] },
       ]);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -123,7 +123,7 @@ describe("readTraceabilityIndex — fold provenance (AC2)", () => {
       const idx = readTraceabilityIndex(root);
       if (idx.status !== "ok") throw new Error("expected ok");
       const entry = idx.byFile.get("a.test.ts")!;
-      expect(entry.frs).toEqual([{ frId: "FR-01.28", mappedFrom: "FR-01.44" }]);
+      expect(entry.frs).toEqual([{ frId: "FR-01.28", mappedFrom: "FR-01.44", acIds: [] }]);
       expect(entry.caseCount).toBe(2);
     } finally {
       rmSync(root, { recursive: true, force: true });
