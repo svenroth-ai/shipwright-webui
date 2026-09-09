@@ -17,7 +17,7 @@ import { MissionTestsAcCoverage } from "./MissionTestsAcCoverage";
 
 describe("MissionTestsAcCoverage", () => {
   it("shows an explicit 'not yet tagged' note when nothing carries an ac_id — the real-repo default", () => {
-    render(<MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="ok" />);
+    render(<MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="ok" hasRows />);
     expect(screen.getByTestId("artifact-tests-ac-absent")).toHaveTextContent(/not yet tagged/i);
     expect(screen.queryByTestId("artifact-tests-ac-groups")).not.toBeInTheDocument();
   });
@@ -39,6 +39,7 @@ describe("MissionTestsAcCoverage", () => {
           ],
         }}
         manifestStatus="ok"
+        hasRows
       />,
     );
     expect(screen.queryByTestId("artifact-tests-ac-absent")).not.toBeInTheDocument();
@@ -62,6 +63,7 @@ describe("MissionTestsAcCoverage", () => {
           ],
         }}
         manifestStatus="ok"
+        hasRows
       />,
     );
     const groups = screen.getAllByTestId("artifact-tests-ac-group");
@@ -74,7 +76,14 @@ describe("MissionTestsAcCoverage", () => {
 
   it("renders nothing when the traceability manifest itself is unavailable — 'not yet tagged' would be a false certainty there", () => {
     const { container } = render(
-      <MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="unavailable" />,
+      <MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="unavailable" hasRows />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders nothing when the run changed no test files — 'not yet tagged' would be a false claim with no rows behind it", () => {
+    const { container } = render(
+      <MissionTestsAcCoverage acCoverage={{ tagged: false, groups: [] }} manifestStatus="ok" hasRows={false} />,
     );
     expect(container).toBeEmptyDOMElement();
   });

@@ -15,6 +15,13 @@
  * would be exactly the false certainty the triage card warns against, so
  * this renders nothing — `TestsFileTable`'s own links-unavailable note,
  * immediately above, already explains why.
+ *
+ * `hasRows` is a THIRD absence, orthogonal to the other two: a healthy run
+ * that simply changed no test files. The caller (`TestsFileTable`) already
+ * never mounts this component in that case, but the guard is repeated here
+ * so this component is correct read on its own — a "not yet tagged" note
+ * with no rows behind it would be the same false claim the triage card
+ * warns against, just from a different absence.
  */
 
 import type { TestsArtifact } from "../../../lib/missionContextApi";
@@ -23,11 +30,13 @@ import { acGroupLabel, testChangeWord } from "../../../lib/missionArtifacts";
 export function MissionTestsAcCoverage({
   acCoverage,
   manifestStatus,
+  hasRows,
 }: {
   acCoverage: NonNullable<TestsArtifact["detail"]>["acCoverage"];
   manifestStatus: NonNullable<TestsArtifact["detail"]>["manifestStatus"];
+  hasRows: boolean;
 }) {
-  if (manifestStatus === "unavailable") return null;
+  if (manifestStatus === "unavailable" || !hasRows) return null;
 
   if (!acCoverage.tagged) {
     return (

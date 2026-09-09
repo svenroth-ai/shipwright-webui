@@ -144,7 +144,11 @@ function TestsFileTable({ detail }: { detail: NonNullable<TestsArtifact["detail"
         </p>
       ) : null}
 
-      <MissionTestsAcCoverage acCoverage={detail.acCoverage} manifestStatus={detail.manifestStatus} />
+      <MissionTestsAcCoverage
+        acCoverage={detail.acCoverage}
+        manifestStatus={detail.manifestStatus}
+        hasRows={detail.rows.length > 0}
+      />
     </>
   );
 }
