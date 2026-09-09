@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-09-09-phone-touch-targets-plus-cta",
+  "date": "2026-09-09T10:50:57.035215Z",
+  "event_at": "2026-09-09T10:50:48.796365+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/phone-touch-targets-plus-cta",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-09-phone-touch-targets-plus-cta"
+}

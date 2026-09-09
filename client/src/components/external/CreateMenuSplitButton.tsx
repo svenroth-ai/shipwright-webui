@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 
 import type { ActionDefinition } from "../../lib/externalApi";
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import {
   CreateMenuHeading,
   CreateMenuSeparator,
@@ -123,9 +124,19 @@ export function CreateMenuSplitButton({
   isLoading = false,
 }: CreateMenuSplitButtonProps) {
   const [open, setOpen] = useState(false);
+  // Icon-only on phone (iterate-2026-09-09-phone-touch-targets-plus-cta):
+  // the single-project-scope equivalent of ProjectCreatePhoneMenu's reversal —
+  // "New — choose a project" and this primary half both used to carry a full
+  // label; both now drop it on phone in favour of a square touch target, and
+  // both must move together (Sven flagged fixing one and not the other).
+  const iconOnly = useIsPhoneViewport();
 
   const primary = actions[0];
   const disabled = isLoading || !primary;
+  // `||`, not `??` — an empty-string label (malformed .shipwright-webui/
+  // actions.json) must not survive to become an empty, nameless aria-label
+  // on phone (iterate-2026-09-09-phone-touch-targets-plus-cta doubt-review).
+  const primaryLabel = primary?.label || "New";
 
   return (
     <div
@@ -137,10 +148,14 @@ export function CreateMenuSplitButton({
         onClick={() => primary && onSelect(primary)}
         disabled={disabled}
         data-testid="create-menu-primary"
-        className="bps-main"
+        // The visible label is the accessible name on desktop (native text
+        // content); icon-only on phone needs an explicit aria-label since
+        // that text disappears — same pattern as ResumeCTA's iconOnly branch.
+        aria-label={iconOnly ? primaryLabel : undefined}
+        className={`bps-main${iconOnly ? " bps-main--icon-only" : ""}`}
       >
         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-        <span>{primary?.label ?? "New"}</span>
+        {!iconOnly && <span>{primaryLabel}</span>}
       </button>
       <DropdownMenu.Root open={open} onOpenChange={setOpen}>
         <DropdownMenu.Trigger asChild>
@@ -149,7 +164,7 @@ export function CreateMenuSplitButton({
             disabled={disabled}
             data-testid="create-menu-caret"
             aria-label="More create options"
-            className="bps-caret"
+            className={`bps-caret${iconOnly ? " bps-caret--touch" : ""}`}
           >
             <ChevronDown size={12} />
           </button>

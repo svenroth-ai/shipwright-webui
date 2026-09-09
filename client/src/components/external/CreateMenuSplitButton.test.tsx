@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -107,5 +107,56 @@ describe("CreateMenuSplitButton", () => {
     fireEvent.keyDown(document, { key: "c" });
     fireEvent.keyDown(document, { key: "C", shiftKey: true });
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  // iterate-2026-09-09-phone-touch-targets-plus-cta — mirrors the
+  // `mockCompact`/`mockPhone` matchMedia-stub pattern used by
+  // TaskDetailHeader.phone.test.tsx; `useIsPhoneViewport()` reads
+  // `(max-width: 767px)` directly.
+  describe("icon-only on phone (useIsPhoneViewport)", () => {
+    function mockPhone(matches: boolean) {
+      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(max-width: 767px)" ? matches : false,
+        media: query,
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })) as unknown as typeof window.matchMedia;
+    }
+    afterEach(() => {
+      delete (window as { matchMedia?: unknown }).matchMedia;
+      vi.restoreAllMocks();
+    });
+
+    it("drops the visible label and carries an aria-label instead, on phone", () => {
+      mockPhone(true);
+      render(<CreateMenuSplitButton actions={SAMPLE_ACTIONS} onSelect={() => {}} />);
+      const primary = screen.getByTestId("create-menu-primary");
+      expect(primary).toHaveClass("bps-main--icon-only");
+      expect(primary).toHaveTextContent("");
+      expect(primary).toHaveAccessibleName("New task");
+      expect(screen.getByTestId("create-menu-caret")).toHaveClass("bps-caret--touch");
+    });
+
+    it("keeps the visible label as the accessible name off phone", () => {
+      mockPhone(false);
+      render(<CreateMenuSplitButton actions={SAMPLE_ACTIONS} onSelect={() => {}} />);
+      const primary = screen.getByTestId("create-menu-primary");
+      expect(primary.className).not.toContain("bps-main--icon-only");
+      expect(primary).toHaveAccessibleName("New task");
+      expect(primary).not.toHaveAttribute("aria-label");
+    });
+
+    it("falls back to a real accessible name even when the action label is an empty string", () => {
+      mockPhone(true);
+      const blankLabelActions: ActionDefinition[] = [
+        { ...SAMPLE_ACTIONS[0], label: "" },
+      ];
+      render(<CreateMenuSplitButton actions={blankLabelActions} onSelect={() => {}} />);
+      expect(screen.getByTestId("create-menu-primary")).toHaveAccessibleName("New");
+    });
   });
 });

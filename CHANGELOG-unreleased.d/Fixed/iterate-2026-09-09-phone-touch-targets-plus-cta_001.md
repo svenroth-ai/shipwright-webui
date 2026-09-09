@@ -1,0 +1,1 @@
+Bumped every phone (393px) touch target found below the 44px AAA/HIG floor across the Task Board toolbar, Inbox, Settings, and Triage to meet it, using the repo's existing pointer-coarse touch-target idiom.

@@ -30,7 +30,11 @@ export function ResetActionsDialog({
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/30" />
         <Dialog.Content
           data-testid={`actions-config-reset-confirm-${testIdSuffix}`}
-          className="fixed left-1/2 top-1/2 z-50 w-[440px] -translate-x-1/2 -translate-y-1/2 p-4 shadow-xl"
+          // w-[min(440px,calc(100vw-32px))] — a bare 440px overflowed a 393px
+          // phone viewport (found by the iterate-2026-09-09-phone-touch-
+          // targets-plus-cta audit); clamps to the viewport width minus a
+          // 16px gutter on each side instead of a fixed desktop width.
+          className="fixed left-1/2 top-1/2 z-50 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 p-4 shadow-xl"
           style={{
             background: "var(--color-surface)",
             border: "1px solid var(--color-border)",
@@ -51,7 +55,7 @@ export function ResetActionsDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="bg-white px-3 py-1 text-sm text-[var(--color-text)] hover:bg-inset"
+                className="inline-flex items-center bg-white px-3 py-1 text-sm text-[var(--color-text)] pointer-coarse:min-h-[44px] hover:bg-inset"
                 style={{
                   border: "1px solid var(--color-border)",
                   borderRadius: "var(--radius-button)",
@@ -64,7 +68,7 @@ export function ResetActionsDialog({
             <button
               type="button"
               onClick={onConfirm}
-              className="bg-err px-3 py-1 text-sm text-white hover:bg-[var(--err-solid)]"
+              className="inline-flex items-center bg-err px-3 py-1 text-sm text-white pointer-coarse:min-h-[44px] hover:bg-[var(--err-solid)]"
               style={{ borderRadius: "var(--radius-button)" }}
               data-testid={`actions-config-reset-confirm-button-${testIdSuffix}`}
             >

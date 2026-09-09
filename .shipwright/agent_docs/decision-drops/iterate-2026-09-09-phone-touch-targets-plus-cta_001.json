@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-09-phone-touch-targets-plus-cta",
+  "date": "2026-09-09",
+  "section": "Iterate — change: phone touch-target audit + icon-only + New",
+  "title": "Phone touch-target audit + icon-only \"+ New\" reversal",
+  "context": "Phone (393px) audit found controls below the 44px AAA/HIG floor across Board toolbar, Inbox, Settings, Task Detail. Sven separately asked the '+ New' trigger go icon-only, reversing the 88px labeled-pill precedent.",
+  "decision": "Bumped every failing control via the existing pointer-coarse:min-h-[44px] idiom (no new matchMedia/breakpoint). Shipped icon-only '+' in BOTH presentations (ProjectCreatePhoneMenu, CreateMenuSplitButton primary), aria-label preserved.",
+  "consequences": "Every named surface clears 44x44 except a documented Board-toolbar WIDTH exemption (row overflow budget, height-only bump, verified via a real overflow E2E assertion). Icon-only reversal is width-gated; height bumps are pointer-gated (any width), by design.",
+  "rationale": "pointer-coarse: is the single established touch-target idiom (SidebarNavItem/ModalShell/EditTaskModal/ContinuePipelineModal precedent) — extending it keeps one breakpoint source of truth. Full reversal record + review-cascade doubts in the spec file.",
+  "rejected": "Padding + New back to 88px to keep the old assertion green (the exact anti-pattern flagged); full 44x44 both axes on the toolbar row (overflows 393px); a new touch-detection hook (duplicates useCoarsePointer).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-09-phone-touch-targets-plus-cta-touch-target-audit.md"
+}

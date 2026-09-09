@@ -74,7 +74,9 @@ export function LeadTagFilterMenu({ counts, total, active, onToggle, onReset }: 
           aria-label="Filter by lead tag"
           data-testid="board-lead-filter-menu-trigger"
           data-active={hasActive || undefined}
-          className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
+          // pointer-coarse:min-h-[44px] — touch-target floor (height only; see
+          // ViewToggle.tsx for the width-exemption rationale this shares).
+          className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
         >
           <Bot size={15} />
           {hasActive && (
@@ -152,7 +154,9 @@ export function LeadWaitToggleButton({ active, onToggle }: LeadWaitToggleProps) 
       data-testid="board-lead-wait-toggle"
       data-active={pressed || undefined}
       onClick={() => onToggle(LEAD_WAIT_TAG_PREFIX)}
-      className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
+      // pointer-coarse:min-h-[44px] — touch-target floor (height only; see
+      // ViewToggle.tsx for the width-exemption rationale this shares).
+      className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
     >
       <BellDot size={15} />
     </button>

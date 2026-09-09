@@ -46,7 +46,9 @@ export function InboxResumeButton({
         e.stopPropagation();
       }}
       data-testid={`inbox-resume-${idKey}`}
-      className="inline-flex items-center gap-2 rounded-[var(--radius-button)] font-semibold text-white shadow-sm transition-colors"
+      // pointer-coarse:min-h-[44px] — touch-target floor (iterate-2026-09-09-
+      // phone-touch-targets-plus-cta audit).
+      className="inline-flex items-center gap-2 rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] font-semibold text-white shadow-sm transition-colors"
       style={{
         background: "var(--color-primary)",
         padding: "8px 16px",

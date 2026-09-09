@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-09-phone-touch-targets-plus-cta",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:45:43.722966+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:45:53.570322+00:00",
+      "disposition": "small complexity — no mini-plan produced (Override Classes: mini-plan is Advisory/freely-skippable below medium); nothing to review a plan against",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageSortLevel.tsx",
+          "line": 80,
+          "finding": "The sort-direction toggle button is h-6 w-6 (24x24px) with no pointer-coarse:min-h-[44px] (or any phone treatment). /triage is a phone-reachable route the audit's own sweep exercises, so this is an interactive element below the stated 44x44 touch-target floor that the audit missed.",
+          "suggestion": "Add pointer-coarse: touch-target treatment.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/triage/TriageFilterGroup.tsx",
+          "line": 88,
+          "finding": "Filter-chip buttons (px-2 py-0.5, ~20px tall) on the same /triage toolbar as TriageSortLevel were also left untouched.",
+          "suggestion": "Apply pointer-coarse:min-h-[44px] or document an exemption.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/FolderTree.tsx",
+          "line": 260,
+          "finding": "The 'Refresh tree' icon button in the Files panel is h-6 w-6 (24x24px), unchanged by this diff. Renders on TaskDetailPage, covered by mobile-work-mode*.spec.ts, another control below the 44x44 floor the sweep missed.",
+          "suggestion": "Add pointer-coarse: touch-target treatment.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/CopySnippet.tsx",
+          "line": 56,
+          "finding": "The 'Copy command' button is h-6 (24px tall), used by MasterTaskCard on the Board (route /), in-scope for this audit. Not touched by this diff.",
+          "suggestion": "Add pointer-coarse:min-h-[44px].",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/ViewToggle.tsx",
+          "line": 24,
+          "finding": "The toolbar-row height-only/width-exempt trade-off should be called out explicitly in the PR description, not just inline comments, so it isn't mistaken for a completed 44x44 pass on a future audit.",
+          "suggestion": "One-line callout in PR/changelog.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T10:44:31.031943+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary_contract",
+          "file": "client/src/components/external/ViewToggle.tsx",
+          "line": 24,
+          "finding": "Claim under doubt: This diff makes no desktop/tablet changes — it is phone-only (<=767px). — All pointer-coarse:min-h-[44px] bumps (ViewToggle, BoardStatusFilter, ClaimFilterToggle, LeadTagFilter, DensityToggle, Inbox/Settings buttons, etc.) gate purely on (pointer: coarse), which is width-independent by this codebase's own convention (useIsCompactViewport.ts's doc comment for the terminal key bar says the same). A touch tablet or touchscreen laptop at ANY width gets these bumps too, not just a 393px phone — the 'no desktop/tablet changes' framing is inaccurate for this half of the diff, though the behavior itself (touch deserves a touch target regardless of width) is plausibly intentional and consistent with prior art.",
+          "suggestion": "Corrected ViewToggle.tsx's shared doc comment (the family's rationale reference) to state the width-independence explicitly; PR body carries an explicit 'Scope note on pointer-coarse:' section distinguishing the width-independent height bumps from the width-gated (useIsPhoneViewport) icon-only label removal. No code behavior change — documentation correction only, since the wider reach is intentional and desirable.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency_ordering",
+          "file": "client/src/hooks/useIsCompactViewport.ts",
+          "line": null,
+          "finding": "Claim under doubt: useIsPhoneViewport() (JS) and the @media (max-width:767px) CSS block never disagree. — useIsPhoneViewport() updates via an async matchMedia change listener -> React state -> re-render, while --btn-h/--btn-min-w flip synchronously on CSS recalc. During a LIVE resize crossing 767px there is a window where the CSS variables have already flipped but the JS-selected component tree hasn't re-rendered yet (e.g. the desktop labeled cascade trigger could transiently render at phone dimensions). This is genuinely untested — A20-mobile-visual-fixes.spec.ts always sets a fixed viewport before navigation, never a live cross-threshold resize.",
+          "suggestion": "Acknowledged as advisory: cosmetic-only (accessible name is entirely JS-controlled, never CSS-controlled, so nothing is lost, it self-corrects on the next render) and no real-device use case resizes live across this threshold. No code change; would need a live-resize E2E harness this repo doesn't build elsewhere for the same idiom.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary_contract",
+          "file": "client/src/components/external/CreateMenuSplitButton.tsx",
+          "line": 136,
+          "finding": "Claim under doubt: CreateMenuSplitButton's icon-only aria-label always carries a real accessible name. — primaryLabel = primary?.label ?? \"New\" only falls back on null/undefined, not on an empty string. A malformed .shipwright-webui/actions.json entry with \"label\": \"\" would set aria-label=\"\" on phone, which per ARIA name computation actively suppresses the accessible name rather than falling through to \"New\" — producing a genuinely nameless interactive element (pre-existing latent issue on desktop too, but this diff is the first place it can produce a truly nameless control rather than merely an empty-looking one).",
+          "suggestion": "Fixed: changed `??` to `||` so an empty string also falls back to \"New\"; added a unit test (\"falls back to a real accessible name even when the action label is an empty string\") covering it.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden_coupling",
+          "file": "client/src/components/external/CreateMenuSplitButton.test.tsx",
+          "line": null,
+          "finding": "Claim under doubt: The 4051 passing unit tests are meaningful evidence for this diff's core new behavior (icon-only rendering, accessible name, geometry). — CreateMenuSplitButton.test.tsx and ProjectCreatePhoneMenu.test.tsx contained zero references to useIsPhoneViewport, iconOnly, or aria-label before this pass. All verification of the core behavior lived in exactly 2 E2E assertions in one spec, one browser/viewport (mobile-chromium, 393px) — the large unit-test count wasn't actually evidence for this specific change.",
+          "suggestion": "Fixed: added unit tests to both files (icon-only class + aria-label on phone, labeled + no aria-label off phone, empty-label fallback in CreateMenuSplitButton.test.tsx; icon-only class + accessible name in ProjectCreatePhoneMenu.test.tsx), reusing the window.matchMedia mocking pattern TaskDetailHeader.phone.test.tsx already established.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-09T10:45:43.828282+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:45:53.934802+00:00",
+      "disposition": "small complexity — external LLM review is Advisory/freely-skippable below medium; also no OPENROUTER_API_KEY/OPENAI_API_KEY available in this environment (confirmed by code-reviewer's own report)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:45:53.818083+00:00",
+      "disposition": "small complexity — no iterate spec file produced (Override Classes: iterate spec is Complexity-gated, first bought at medium); the brief itself served as the spec, code-reviewer + doubt-reviewer verified against it directly",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-09T10:45:53.711974+00:00",
+      "disposition": "small complexity — no mini-plan produced, same as 'plan' above",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

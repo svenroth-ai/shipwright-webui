@@ -25,7 +25,9 @@ export function ClaimFilterToggle({ active, onToggle }: ClaimFilterToggleProps) 
       data-testid="board-claim-filter-toggle"
       data-active={active || undefined}
       onClick={onToggle}
-      className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
+      // pointer-coarse:min-h-[44px] — touch-target floor (height only; see
+      // ViewToggle.tsx for the width-exemption rationale this shares).
+      className="relative inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-button)] pointer-coarse:min-h-[44px] border-[1.5px] border-[var(--color-border)] text-[var(--color-muted)] transition-colors hover:border-[var(--color-primary)] hover:text-[var(--color-text)] data-[active]:border-[var(--color-primary)] data-[active]:text-[var(--color-primary)]"
     >
       <UserCheck size={15} />
     </button>

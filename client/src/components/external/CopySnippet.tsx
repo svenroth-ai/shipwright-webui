@@ -58,7 +58,7 @@ export function CopySnippet({ command, label, ...rest }: Props) {
         onClick={() => void onCopy()}
         aria-label={label ?? "Copy command"}
         title={copied ? "Copied!" : (label ?? "Copy command")}
-        className="flex h-6 shrink-0 items-center gap-1 rounded-[6px] bg-[var(--color-muted-bg,#ede8e1)] px-2 text-[11px] font-medium text-[var(--color-text,#1a1a1a)] hover:bg-[var(--color-border,#e0dbd4)]"
+        className="flex h-6 shrink-0 items-center gap-1 rounded-[6px] bg-[var(--color-muted-bg,#ede8e1)] px-2 text-[11px] font-medium text-[var(--color-text,#1a1a1a)] hover:bg-[var(--color-border,#e0dbd4)] pointer-coarse:min-h-[44px]"
       >
         <Copy size={11} />
         {copied ? "Copied" : "Copy"}
