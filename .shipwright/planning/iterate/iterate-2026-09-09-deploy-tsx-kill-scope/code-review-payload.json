@@ -1,0 +1,21 @@
+{
+  "section": "iterate-2026-09-09-deploy-tsx-kill-scope",
+  "verdict": "PASS",
+  "review": [
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "scripts/deploy-procs.mjs",
+      "finding": "Windows arm's spawnSync had no maxBuffer (asymmetric with the POSIX fix applied 20 lines below), and dropping the Where-Object clause increased pipe volume.",
+      "disposition": "fixed — added maxBuffer: 16 * 1024 * 1024, symmetric with the POSIX arm."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "scripts/kill-targets.js",
+      "finding": "filterTsxEntriesByRepo's trailing-boundary anchor does not also anchor the leading edge, so a repoRoot that recurs verbatim as a subpath of a different absolute path (e.g. a POSIX bind mount) could still false-match.",
+      "disposition": "investigated a leading-boundary anchor; reverted — in real command lines the absolute path is preceded by a quote/space/file:/// scheme, never reliably a bare separator, so requiring one broke genuine matches (all 51 tests). Accepted as a documented trade-off (JSDoc updated); Windows is immune by construction (drive letter can't recur mid-path); this exact scenario (identical repo path recurring under a POSIX bind-mount prefix) is outside the bug report's scope."
+    }
+  ],
+  "summary": "Re-review confirmed all 3 substantive findings (unanchored substring match, execSync maxBuffer, duplicated tsx predicate) are structurally fixed, verified by hand-tracing every fixture plus independent end-to-end validation against real live tsx-watch processes across two worktrees (exact PID sets, zero cross-contamination). Both remaining low findings dispositioned above. PASS."
+}

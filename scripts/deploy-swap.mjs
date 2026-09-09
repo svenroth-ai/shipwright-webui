@@ -216,20 +216,41 @@ async function main() {
 
   // 1. Stop the old server. From here on the caller may die at any moment — this
   //    kill tears down the ConPTY that hosts it.
+  const tsxDiag = {};
   const { freed, killed, survivor } = await stopOldServer(port, {
     timeoutMs: PORT_FREE_TIMEOUT_MS,
+    // Scopes the tsx-watch parent sweep to THIS checkout's server dir only —
+    // without it the sweep matches any repo's/worktree's tsx watch process
+    // on the machine (iterate-2026-09-09-deploy-tsx-kill-scope).
+    repoRoot: serverDir,
+    onDiag: (d) => Object.assign(tsxDiag, d),
   });
   log(killed.length ? `stopped PID(s): ${killed.join(' ')}` : `nothing was listening on ${port}`);
+  log(
+    tsxDiag.error
+      ? `tsx-watch sweep: discovery failed (${tsxDiag.error}) — a stale watch parent may survive`
+      : `tsx-watch sweep: ${tsxDiag.raw ?? 0} candidate(s) seen, ${tsxDiag.matched ?? 0} matched this repo (${serverDir})`,
+  );
 
   if (!freed) {
     // The port never came free. Starting now would only hit EADDRINUSE and leave
-    // the machine with NOTHING. The old server is still up — worse than a fresh
-    // one, far better than none. Say so loudly and stop here.
+    // the machine with NOTHING. Say so loudly and stop here.
     heal('kill-failed');
+    // Candidates existed elsewhere but none matched THIS repo: the survivor is
+    // more likely a different checkout's tsx watch (repo-scoped by design,
+    // iterate-2026-09-09-deploy-tsx-kill-scope) than "the old server" — say so,
+    // rather than sending the operator hunting the wrong process.
+    const foreignHint =
+      tsxDiag.raw > 0 && tsxDiag.matched === 0
+        ? `this looks like a DIFFERENT checkout's tsx watch process holding the port ` +
+          `(sweep saw ${tsxDiag.raw} tsx-watch candidate(s) elsewhere, none in this repo) — ` +
+          `check for another worktree bound to port ${port}; `
+        : '';
     return finish(false, {
       readiness: 'listener',
       error:
         `port ${port} is still held by PID ${survivor} after ${PORT_FREE_TIMEOUT_MS} ms — ` +
+        foreignHint +
         `the OLD server is still running and was NOT replaced (nothing new was started)`,
     });
   }

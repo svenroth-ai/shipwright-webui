@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-09-deploy-tsx-kill-scope",
+  "date": "2026-09-09",
+  "section": "Iterate — bug: deploy-tsx-kill-scope",
+  "title": "Repo-scoped tsx-watch kill sweep",
+  "context": "findTsxServerPids() matched tsx+src/index.ts machine-wide with no repo input; a deploy from one worktree killed an unrelated project's, or a sibling worktree's, tsx watch dev server.",
+  "decision": "Scope the sweep to an anchored <repoRoot>/node_modules/.../tsx/ path match, split into a pure filterTsxEntriesByRepo() + impure discovery, with PPID-based parent-before-child kill ordering.",
+  "consequences": "A deploy now only kills its own repo's tsx-watch parent + its own port listener; foreign repos and sibling worktrees survive. Diagnostics now distinguish 0-candidates/discovery-failure/no-match-in-repo.",
+  "rationale": "Text-argv matching cannot close every gap without filesystem access; three rounds of external-review narrowing closed the practical cases, verified against two live worktree dev servers.",
+  "rejected": "Dropping the sweep (tsx watch respawns and re-takes the port); per-PID cwd resolution (unneeded once the 'relative entry path' premise was falsified); unconditional case-folding (would cross-match POSIX checkouts).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-09-deploy-tsx-kill-scope-repo-scoped-tsx-sweep.md"
+}

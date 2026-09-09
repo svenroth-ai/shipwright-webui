@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Re-review after fixing the POSIX pgrep -af portability defect (pgrep's -a flag means 'ancestors' on macOS/BSD, not 'full command line', which silently disabled the sweep there). Replaced with portable ps -A -o pid=,args=, with the tsx + src/index.ts match moved into parsePosixTsxEntries since ps -A is unfiltered. All four spec checks verified: scope narrowed to the deploying checkout, watch-PARENT kill preserved, no scope creep, fail-closed on both directions (never machine-wide, never silently dark)."
+}

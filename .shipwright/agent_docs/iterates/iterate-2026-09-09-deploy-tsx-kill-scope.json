@@ -1,0 +1,34 @@
+{
+  "run_id": "iterate-2026-09-09-deploy-tsx-kill-scope",
+  "date": "2026-09-09T15:14:05.142754Z",
+  "event_at": "2026-09-09T11:33:56.718000+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/deploy-tsx-kill-scope",
+  "spec": ".shipwright/planning/iterate/iterate-2026-09-09-deploy-tsx-kill-scope/bug-brief.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-09-deploy-tsx-kill-scope",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 13,
+      "tested": 13,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": null,
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": ".shipwright/runs/iterate-2026-09-09-deploy-tsx-kill-scope/surface_verification.json",
+    "justification": "Internal deploy-time process-management script, no web/API-consumed surface, no client/** changed. Fully covered by 57 node:test unit cases + a 12-case CI contract test. A true live E2E would mean autonomously killing real processes on the operator's machine."
+  },
+  "declared_removals": []
+}
