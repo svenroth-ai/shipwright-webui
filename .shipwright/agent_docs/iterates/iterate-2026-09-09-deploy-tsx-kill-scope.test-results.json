@@ -115,7 +115,7 @@
         {
           "behavior": "A live Windows host's actual PowerShell/CIM round trip (Get-CimInstance -> ConvertTo-Json -> JSON.parse) against real running node.exe processes",
           "disposition": "untestable",
-          "reason_code": "requires-live-e2e-infra",
+          "reason_code": "requires-external-nondeterministic-service",
           "reason": "F0.5 surface=none (advisory at this run's small complexity, no touches_io_boundary flag); actually invoking deploy-swap.mjs would kill/start real processes on the operator's machine, a destructive action inappropriate to run unsupervised in this session. The repo-scoping match logic itself (filterTsxEntriesByRepo) WAS independently verified earlier in this session against two real, live tsx-watch worktree dev servers (exact PID sets, zero cross-contamination) \u2014 see code-review-payload.json."
         }
       ]
