@@ -1,0 +1,87 @@
+{
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-11-compliance-b7-g2-i5",
+    "date": "2026-09-11",
+    "unit": {
+      "status": "passed",
+      "passed": 4143,
+      "total": 4143
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "surface_verification": {
+      "surface": "cli",
+      "runner": "uv run C:/Users/SvenRoth/.claude/plugins/cache/shipwright/shipwright-compliance/0.2.2/scripts/audit/run_audit.py --project-root . --only B,G,I --format json",
+      "exit_code": 0,
+      "tests_run": 17,
+      "evidence_path": ".shipwright/runs/iterate-2026-09-11-compliance-b7-g2-i5/surface_verification.log",
+      "timestamp": "2026-09-10T22:26:06.493Z"
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [
+      "server suite: 2 of 4155 tests (src/terminal/pty-replay-attach-detach.test.ts, src/external/org/__tests__/two-process-lock.test.ts) failed under a full parallel run on this shared dev machine (multiple concurrent node/vitest processes from other active worktrees), then passed 14/14 when re-run isolated. Confirmed race/contention flake, not a regression: this iterate's diff touches zero server/client application code."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "B7: commit 1a0cbc58 resolves against shipwright_events.jsonl",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,I before/after: B7 fail -> pass, detail 'no matching event' -> '35 commit(s) ... 25 matched events'"
+        },
+        {
+          "behavior": "G2: scopes leadwright (5ccd8165) and a11y (81cb38b5) resolve against g2_stoplist",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,I before/after: G2 fail (5ccd8165/81cb38b5 unresolved) -> pass, 'every conventional scope in 34 commit(s) resolves'"
+        },
+        {
+          "behavior": "I5: all 33 FR rows in spec.md carry a bare Basis vocabulary value",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,I before/after: I5 fail (33 malformed) -> pass ('no malformed Basis value(s) found'); diff confirms exactly 33 lines changed, only the Basis cell per row"
+        },
+        {
+          "behavior": "no regression introduced in the other 14 B/G/I detective checks",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only B,G,I exit code 0 both before (partial) and after this change, with the same pass/skip set outside B7/G2/I5"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-11-compliance-b7-g2-i5",
+    "commit": "2a6f0400b867089971f316447567af6de48cc12c",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-11-compliance-b7-g2-i5",
+  "date": "2026-09-11",
+  "section": "compliance-reconciliation",
+  "title": "Reconcile B7/G2/I5 compliance findings",
+  "context": "Detective audit flagged B7 (commit 1a0cbc58, PR #456, no matching event), G2 (5ccd8165 scope=leadwright PR #457; 81cb38b5 scope=a11y PR #454), and I5 (all 33 spec.md FR rows carried a legacy provenance-trail Basis cell instead of the closed vocabulary).",
+  "decision": "B7: backfilled a work_completed event for 1a0cbc58. G2: added leadwright + a11y to g2_stoplist. I5: normalized every malformed Basis cell to the bare value code. See spec-ref for full rationale per finding.",
+  "consequences": "All 3 findings verified fixed via a fresh detective audit re-run scoped to B,G,I (17 checks, 0 fail, was 3 fail). No application code touched; server + client suites and typechecks re-verified green.",
+  "rationale": "Followed the established per-run reconciliation pattern (record_event.py backfill, dated g2_stoplist entries). I5's code choice traces every row's real provenance -- adoption crawl/AST source-reading or later code-grounded iterate work -- to fr_basis.py's own vocabulary table.",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-11-compliance-b7-g2-i5.md"
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-11-compliance-b7-g2-i5",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:17:54.324471+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:18:07.251181+00:00",
+      "disposition": "plan/iterate external review is medium+ only, this run is small (iteration-reviews.md)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:18:07.794851+00:00",
+      "disposition": "internal cascade not triggered: diff is 80 lines (<100), no security-sensitive files, complexity small (iteration-reviews.md Full Code Review Trigger)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:18:07.966861+00:00",
+      "disposition": "docs/compliance-data-only diff, no migrations/async/cross-plugin/irreversible surface; doubt pass is conditional per iteration-reviews.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:18:08.137035+00:00",
+      "disposition": "external cascade not triggered: diff is 80 lines (<100), no security-sensitive files, complexity small (iteration-reviews.md External Code-Review Cascade Trigger Rule)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:18:07.625582+00:00",
+      "disposition": "internal cascade not triggered: diff is 80 lines (<100), no security-sensitive files, complexity small (iteration-reviews.md Full Code Review Trigger)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-10T22:18:07.424790+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

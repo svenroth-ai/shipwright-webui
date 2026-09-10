@@ -1,0 +1,10 @@
+{"items":[
+  {"name":"Spec Compliance","verdict":"pass","note":"All 3 requested findings (B7 commit 1a0cbc58, G2 scopes leadwright/a11y, I5 33 malformed Basis values) are addressed exactly; nothing beyond them was touched."},
+  {"name":"Error Handling","verdict":"n/a","note":"No API/service code touched — data/compliance-record changes only."},
+  {"name":"Security Basics","verdict":"n/a","note":"No user input, SQL, HTML output, or secrets touched."},
+  {"name":"Test Quality","verdict":"n/a","note":"No test files changed; correctness verified via a real round-trip through the actual consumer (run_audit.py), not a mock."},
+  {"name":"Performance Basics","verdict":"n/a","note":"No code paths touched."},
+  {"name":"Naming & Structure","verdict":"pass","note":"Edits stayed in their existing files at their existing conventions; no file grew past its size ceiling."},
+  {"name":"Affected Boundaries","verdict":"pass","note":"touches_io_boundary fired on audit_config.json (matches *_config.json). Producer/consumer pairs: (a) audit_config.json g2_stoplist -> shared/scripts/audit/group_g.py G2 check; (b) shipwright_events.jsonl work_completed row -> shared/scripts/audit/group_b.py B7 check; (c) spec.md Basis column -> shared/scripts/audit/group_i.py I5 check via fr_basis.classify. Round-trip probe: re-ran run_audit.py --only B,G,I before and after each edit against the real files on disk; B7/G2/I5 flipped fail->pass with the exact commits/scopes/rows resolving, and the other 14 B/G/I checks stayed unaffected (exit 0)."},
+  {"name":"Test Hygiene Probe","verdict":"n/a","note":"scan_test_hygiene.py --diff: no findings (no test files in this diff)."}
+]}
