@@ -162,6 +162,13 @@ copy.
 Open <http://localhost:3847/> if it didn't open automatically, and
 register your first project — see [Chapter 5](#5-your-first-project--step-by-step).
 
+**Options:** `--plugins-only` (install/update the plugins, skip the
+Command Center — use this if you only want the `/shipwright-*` slash
+commands, not the dashboard), `--webui-only` (boot/attach the Command
+Center, skip the plugin phase), `--no-open` (don't open the browser —
+CI / headless), `--port <n>` (Command Center port, default `3847`, or
+set `PORT`), `--version`/`-v`, `--help`/`-h`.
+
 On Windows you can have the server start automatically on every login,
 see [§8](#8-autostart-on-windows). That's the smoothest setup for daily use.
 

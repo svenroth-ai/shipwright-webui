@@ -105,6 +105,11 @@ cached copy; the tool also warns you when a newer version is published).
 Open **http://localhost:3847** and register your first project. The
 wizard walks you through stack-profile selection.
 
+Only want the `/shipwright-*` plugins, not the dashboard? Add
+`--plugins-only`. Only want to (re)boot the Command Center without
+touching the plugins? Add `--webui-only`. Full flag list:
+[`bootstrapper/README.md`](bootstrapper/README.md#options).
+
 <details>
 <summary><strong>From source</strong> (contributors, or to run an unpublished checkout)</summary>
 
