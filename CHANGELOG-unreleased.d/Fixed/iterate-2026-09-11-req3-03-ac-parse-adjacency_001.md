@@ -1,0 +1,1 @@
+Repaired three FR entries in the adopted spec (network access profile, campaigns lane, in-app Markdown editing) whose acceptance criteria existed but weren't recognized by the spec-compliance parser due to a provenance-note formatting quirk.

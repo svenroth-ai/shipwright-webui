@@ -540,10 +540,6 @@ _Source legend per bullet: **(E)** = enrichment.json acceptance_draft; **(T)** =
 
 ### FR-01.31 Network access profile
 
-Backfilled by `iterate-2026-05-16-backfill-historical-frs` from historical
-events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
-(SHIPWRIGHT_NETWORK_PROFILE).
-
 - (E) Given no network override, when the Hono backend and the Vite client
   start, then both bind loopback (`127.0.0.1`) only — non-loopback access
   is off by default.
@@ -553,13 +549,11 @@ events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
   when the dev servers start, then the profile selects a coherent bind
   preset across both the backend and the client.
 
-### FR-01.33 Campaigns lane on the Task Board (read + launch)
+Backfilled by `iterate-2026-05-16-backfill-historical-frs` from historical
+events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
+(SHIPWRIGHT_NETWORK_PROFILE).
 
-Added by `iterate-2026-06-02-campaigns-board-lane` (read path). As of
-`iterate-2026-06-03-start-campaign-action` (ADR-148) the WebUI performs exactly
-ONE campaign-state write — the Triage "Start Campaign" `draft → active` flip;
-`campaign_init.py` / `campaign_progress.py` still own every other campaign
-write (creation, sub-iterate/step status, `active → complete`).
+### FR-01.33 Campaigns lane on the Task Board (read + launch)
 
 - (E) Given a registered project with a campaigns dir, when `GET
   /api/campaigns/:projectId` is called, then it returns `200 {campaigns:
@@ -700,10 +694,13 @@ write (creation, sub-iterate/step status, `active → complete`).
   counterpart (a producer-emitted terminal `campaign_completed` event) is tracked
   as monorepo triage `trg-7580f4fe` and will feed the same gate.
 
-### FR-01.35 In-app Markdown editing in the SmartViewer (rich editor → Markdown save)
+Added by `iterate-2026-06-02-campaigns-board-lane` (read path). As of
+`iterate-2026-06-03-start-campaign-action` (ADR-148) the WebUI performs exactly
+ONE campaign-state write — the Triage "Start Campaign" `draft → active` flip;
+`campaign_init.py` / `campaign_progress.py` still own every other campaign
+write (creation, sub-iterate/step status, `active → complete`).
 
-Added by `iterate-2026-06-03-smartviewer-markdown-editor`. The first project-file
-write surface; gated, path-guarded, and concurrency-safe.
+### FR-01.35 In-app Markdown editing in the SmartViewer (rich editor → Markdown save)
 
 - (E) Given a `.md`/`.markdown` file selected in the SmartViewer, when the
   markdown pane renders, then an **Edit** button (`[data-testid="smart-viewer-edit"]`)
@@ -758,6 +755,9 @@ write surface; gated, path-guarded, and concurrency-safe.
   toolbar is hidden during loading/load_error/diff and introduces NO new
   serialized construct (the round-trip + warn surface are unchanged). Added by
   `iterate-2026-06-04-md-editor-toolbar`.
+
+Added by `iterate-2026-06-03-smartviewer-markdown-editor`. The first project-file
+write surface; gated, path-guarded, and concurrency-safe.
 
 ### FR-01.38 Responsive tablet / phone layout
 - (E) **(iterate-2026-08-02-mobile-work-mode)** Given Task Detail or Mission below 1024px, when its navigation renders, then it uses light Shipwright-branded equal-width tabs for one full-width work area at a time; Shiplog remains a compact link rather than a tab, phone title and Description details open as overlays instead of consuming work height, and 390px/430px phone plus 820px tablet viewports gain no horizontal page overflow while the desktop layout is unchanged.

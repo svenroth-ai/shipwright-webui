@@ -1,0 +1,71 @@
+{
+  "last_updated": "2026-09-11",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-11-req3-03-ac-parse-adjacency",
+    "date": "2026-09-11",
+    "unit": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "Zero application code (server/ or client/) is touched by this run \u2014 the diff is a pure reorder of existing prose inside .shipwright/planning/01-adopted/spec.md (three provenance sentences moved to after their own FR's bullet list, verbatim). Grepped server/src and client/src for any port of spec_parser's FR-heading/leading-bullet logic (spec_parser, parseFrHeadings, FRHeading, leadingCriteria) \u2014 none exists; the only in-repo consumer of spec.md's structure (server/src/core/mission-context/fold-map.ts) reads the top-level FR-table/Fold-Map section, not per-FR body text, and is unaffected. The full npm vitest/tsc/oxlint suites were therefore not re-run for this change \u2014 no code path exercises the edited lines, and the actual mechanism under test (the shared spec_parser/fr_criteria adjacency gate) was verified directly, before and after, against the real file (see test_completeness below)."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 1,
+        "tested": 1,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      },
+      "behaviors": [
+        {
+          "behavior": "spec_parser.parse_fr_headings recognizes FR-01.31/FR-01.33/FR-01.35 as having acceptance criteria (each FR's existing (E) bullets are now the contiguous leading run in its heading body, satisfying fr_criteria.leading_criteria's strict adjacency gate)",
+          "disposition": "tested",
+          "evidence": "Direct before/after invocation of shared/scripts/lib/spec_parser.parse_fr_headings against .shipwright/planning/01-adopted/spec.md: before this run \u2014 total 38 FRs, 35 with acceptance, missing=[FR-01.31, FR-01.33, FR-01.35]; after this run's edit \u2014 total 38, with_acceptance 38, missing=[]. git diff for the file is a pure move (each FR's 3-line provenance sentence relocated after its own bullet list; no bullet text added/removed/reordered)."
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Docs-only spec.md content reorder; no server/ or client/ code, no route, no component, no UI surface touched. Verified via grep that no in-repo code consumes the per-FR body-adjacency structure this edit changes (see degraded[])."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-11-req3-03-ac-parse-adjacency",
+    "commit": "c1a8fc615af0991f9dc8dd1626c4a693fa3c2fa3",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
