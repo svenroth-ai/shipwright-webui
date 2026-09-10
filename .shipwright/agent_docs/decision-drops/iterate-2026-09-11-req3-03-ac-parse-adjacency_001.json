@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-11-req3-03-ac-parse-adjacency",
+  "date": "2026-09-11",
+  "section": "Iterate — CHANGE: spec.md acceptance-criteria adjacency fix",
+  "title": "Move FR-01.31/33/35 provenance notes after their bullets so spec_parser recognizes their existing acceptance criteria",
+  "context": "REQ3.03 (trg-35c0daff) re-measured spec_parser.parse_fr_headings against this repo's real spec.md and found 3 of 38 FRs (FR-01.31, FR-01.33, FR-01.35) parsing with zero acceptance, despite each already carrying well-formed (E) bullets. trg-8de744d4's AC-minting work is explicitly ordered behind REQ3.03 finishing.",
+  "decision": "Root cause: fr_criteria.leading_criteria's S5 fallback only counts the CONTIGUOUS LEADING bullet run in a heading body; each of these three FRs has a short provenance sentence (\"Backfilled by\"/\"Added by\") before its bullets, breaking that adjacency. Relocated each provenance sentence to immediately after its own FR's bullet list — verbatim, no bullet added/reworded/reordered.",
+  "consequences": "spec_parser now reports 38/38 FRs with acceptance (was 35/38). Unblocks the rest of REQ3.03 (17 folded AC blocks, a human-quality pass over all 38 FRs' prose) and, once that lands, trg-8de744d4's AC-minting/re-tagging.",
+  "rationale": "Mechanical, low-risk, fully reversible, verified by direct before/after re-parse. No business-judgment content authoring performed, unlike the remainder of REQ3.03.",
+  "rejected": "Retrofitting a **Acceptance Criteria:** label instead — explicitly forbidden by trg-35c0daff (diverges from the producers' emitted form and would force the parser to support two shapes).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-11-req3-03-ac-parse-adjacency.md"
+}
