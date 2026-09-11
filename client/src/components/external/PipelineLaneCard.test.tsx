@@ -73,8 +73,11 @@ describe("PipelineLaneCard — mode selection", () => {
     expect(screen.queryByTestId("stub-single-session")).toBeNull();
   });
 
-  // @covers FR-01.01
-  it("renders the MasterTaskCard for a mode-less legacy run (defaults to multi_session)", () => {
+  // @covers FR-01.01 — trg-0f040744 finding 2: the absent-read fallback is
+  // now "standalone" (the framework's INERT_MODE sentinel), not the retired
+  // multi_session literal; the SELECTION behaviour is unchanged either way
+  // (anything other than single_session renders MasterTaskCard).
+  it("renders the MasterTaskCard for a mode-less legacy run (defaults to standalone, not single_session)", () => {
     render(<PipelineLaneCard runConfig={okResponse(undefined)} project={PROJECT} />);
     expect(screen.getByTestId("stub-master-task")).toBeInTheDocument();
     expect(screen.queryByTestId("stub-single-session")).toBeNull();

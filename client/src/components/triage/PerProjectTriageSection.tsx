@@ -22,6 +22,7 @@ import { useTriageDrift, useTriageItems } from "../../hooks/useTriage";
 import { TriageItemCard } from "./TriageItemCard";
 import { TriageDetailModal } from "./TriageDetailModal";
 import { DeferredTriageSection } from "./DeferredTriageSection";
+import { ListLoadErrorState } from "../common/ListLoadErrorState";
 import { sortDeferred } from "../../lib/sortDeferred";
 import {
   formatCount,
@@ -57,7 +58,7 @@ export function PerProjectTriageSection({
   onFixNow: (projectId: string, intent: FixNowIntent) => void;
   onNavigateToBoard: (projectId: string) => void;
 }) {
-  const { data: items = [], isLoading } = useTriageItems(project.id);
+  const { data: items = [], isLoading, isError, refetch } = useTriageItems(project.id);
   const { data: drift } = useTriageDrift(project.id);
   const [selected, setSelected] = useState<TriageItem | null>(null);
 
@@ -92,6 +93,25 @@ export function PerProjectTriageSection({
       <section className="mb-8" data-testid={`triage-project-${project.id}`}>
         <h2 className="text-base font-semibold mb-2 text-[var(--ink)]">{project.name}</h2>
         <p className="text-sm text-[var(--muted)]">Loading…</p>
+      </section>
+    );
+  }
+
+  // FR-01.01 triage trg-0f040744 finding 1 — a failed items fetch defaulted
+  // `items` to `[]`, which made this section return `null` exactly like a
+  // project with genuinely nothing open. That's worse than the page-level
+  // "No triage items pending" banner: it carries no indication ANYTHING
+  // went wrong, for THIS project, even while `counts` (a separate endpoint)
+  // reports items exist elsewhere. Checked before the real empty check below.
+  if (isError) {
+    return (
+      <section className="mb-8" data-testid={`triage-project-${project.id}`}>
+        <h2 className="text-base font-semibold mb-2 text-[var(--ink)]">{project.name}</h2>
+        <ListLoadErrorState
+          testId={`triage-load-error-${project.id}`}
+          label="triage items"
+          onRetry={() => void refetch()}
+        />
       </section>
     );
   }

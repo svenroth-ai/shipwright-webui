@@ -8,10 +8,16 @@
  *
  * Contract is the authoritative monorepo schema
  * shared/schemas/run_config.v2.schema.json:
- *   - `mode` enum ["multi_session","single_session"], OPTIONAL (not required)
- *   - absent-read fallback = "multi_session" (must match config_io.run_mode)
- *   - an unrecognised value is ALSO read as "multi_session" so a typo can't
- *     select an unbuilt path — and here it never blanks the board either.
+ *   - `mode` enum ["single_session"], OPTIONAL (not required). `multi_session`
+ *     is NOT a valid schema value for a fresh write — it is read-compat only,
+ *     for a pre-SS1 config still carrying that literal on disk.
+ *   - the schema carries NO `default`, on purpose: absence is meaningful
+ *     ("not a drivable run"). `resolveRunMode`'s absent/unrecognised-read
+ *     fallback is `DEFAULT_RUN_MODE = "standalone"` — the framework's own
+ *     `gate_policy.INERT_MODE` sentinel for this exact situation (FR-01.01
+ *     triage trg-0f040744 finding 2, fixed 2026-09-11 — it used to be the
+ *     retired `multi_session` literal, with a comment falsely claiming
+ *     schema-default parity the schema explicitly does not have).
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -72,13 +78,13 @@ describe("readRunConfig — mode field (W1)", () => {
     expect(r.config.mode).toBe("multi_session");
   });
 
-  it("omits mode when absent (legacy run) — resolveRunMode defaults to multi_session", async () => {
+  it("omits mode when absent (legacy run) — resolveRunMode defaults to standalone", async () => {
     // The bundled fixture intentionally carries NO mode field (legacy run).
     const r = await readRunConfig(PROJECT_ROOT, depsFor(FIXTURE_RAW));
     expect(r.status).toBe("ok");
     if (r.status !== "ok") return;
     expect(r.config.mode).toBeUndefined();
-    expect(resolveRunMode(r.config)).toBe("multi_session");
+    expect(resolveRunMode(r.config)).toBe("standalone");
   });
 
   it("drops an unrecognised mode + warns; config still ok (a typo can't select an unbuilt path)", async () => {
@@ -89,7 +95,7 @@ describe("readRunConfig — mode field (W1)", () => {
     if (r.status !== "ok") return;
     expect(r.config.mode).toBeUndefined();
     expect(r.diagnostics.warnings.some((w) => w.includes("mode"))).toBe(true);
-    expect(resolveRunMode(r.config)).toBe("multi_session");
+    expect(resolveRunMode(r.config)).toBe("standalone");
   });
 
   it("treats mode=null like absent (no warning)", async () => {
@@ -102,28 +108,29 @@ describe("readRunConfig — mode field (W1)", () => {
 });
 
 describe("run-config-v2 mode helpers (W1)", () => {
-  it("DEFAULT_RUN_MODE is multi_session (schema default + framework absent-read parity)", () => {
-    expect(DEFAULT_RUN_MODE).toBe("multi_session");
+  it("DEFAULT_RUN_MODE is standalone (the framework's INERT_MODE sentinel, not a schema default)", () => {
+    expect(DEFAULT_RUN_MODE).toBe("standalone");
   });
 
-  it("RUN_MODES lists exactly the two modes", () => {
+  it("RUN_MODES lists exactly the two ON-DISK-VALID modes (standalone is never written)", () => {
     expect([...RUN_MODES]).toEqual(["multi_session", "single_session"]);
   });
 
-  it("isRunMode accepts the two valid modes, rejects everything else", () => {
+  it("isRunMode accepts the two on-disk-valid modes, rejects standalone and everything else", () => {
     expect(isRunMode("multi_session")).toBe(true);
     expect(isRunMode("single_session")).toBe(true);
+    expect(isRunMode("standalone")).toBe(false);
     expect(isRunMode("turbo")).toBe(false);
     expect(isRunMode(undefined)).toBe(false);
     expect(isRunMode(null)).toBe(false);
     expect(isRunMode(1)).toBe(false);
   });
 
-  it("resolveRunMode: present valid → itself; absent → default", () => {
+  it("resolveRunMode: present valid → itself; absent/unrecognised → standalone", () => {
     expect(resolveRunMode({ mode: "single_session" })).toBe("single_session");
     expect(resolveRunMode({ mode: "multi_session" })).toBe("multi_session");
-    expect(resolveRunMode({})).toBe("multi_session");
-    expect(resolveRunMode({ mode: undefined })).toBe("multi_session");
+    expect(resolveRunMode({})).toBe("standalone");
+    expect(resolveRunMode({ mode: undefined })).toBe("standalone");
   });
 
   it("parseRunMode: valid → mode + no warning; absent/null → no mode + no warning; unknown → warning + no mode", () => {
@@ -134,5 +141,6 @@ describe("run-config-v2 mode helpers (W1)", () => {
     const bad = parseRunMode("turbo");
     expect(bad.mode).toBeUndefined();
     expect(bad.warnings[0]).toContain("mode");
+    expect(bad.warnings[0]).toContain("standalone");
   });
 });

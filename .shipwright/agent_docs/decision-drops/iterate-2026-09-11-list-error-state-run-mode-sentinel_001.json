@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-11-list-error-state-run-mode-sentinel",
+  "date": "2026-09-11",
+  "section": "Iterate — bug: list load-error state + run-mode default sentinel",
+  "title": "Distinct list load-error state; run-mode default fixed to standalone",
+  "context": "Re-verified triage card trg-0f040744 (FR-01.01) found two still-open issues: four list pages collapsed a failed fetch into the same onboarding empty state, and DEFAULT_RUN_MODE still fell back to the retired multi_session literal.",
+  "decision": "Added a shared ListLoadErrorState component wired into TaskBoard/ShipsLog/Triage/Projects ahead of any empty-state branch, and changed DEFAULT_RUN_MODE in both run-config-v2 mirrors to the framework's own standalone/INERT_MODE sentinel.",
+  "consequences": "A failed list fetch now shows Retry instead of a false onboarding claim; the run-mode fallback matches the framework's read-compat design. No === single_session gating logic changed.",
+  "rationale": "Mirrors the framework's own INERT_MODE precedent and this repo's existing per-page empty-state pattern; narrowly scoped per the approved plan.",
+  "rejected": "Hiding the Continue Pipeline affordance and adding a missing per-phase mode guard were explicitly deferred as separate, later decisions.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

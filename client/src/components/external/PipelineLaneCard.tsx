@@ -8,8 +8,11 @@
  * Picks the representation by run mode (`resolveRunMode`):
  *   - single_session → <SingleSessionRunCard> — the campaign-like card (progress
  *     bar + phase checklist + one Launch/Resume CTA).
- *   - multi_session / mode-less legacy → <MasterTaskCard> — the UNCHANGED
- *     per-phase-Continue card (deprecated; removal is triage trg-0e8e7f90).
+ *   - multi_session (retired, read-compat only) / standalone (mode-less
+ *     legacy, resolveRunMode's absent-read default) → <MasterTaskCard> — the
+ *     UNCHANGED per-phase-Continue card (deprecated; removal is triage
+ *     trg-0e8e7f90; the fact this affordance renders for a non-drivable
+ *     run at all is triage trg-0f040744 finding 2, not fixed here).
  *
  * WebUI is a READ-ONLY observer of run_config (CLAUDE.md rule 12).
  */

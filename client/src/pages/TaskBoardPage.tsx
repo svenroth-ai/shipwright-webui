@@ -66,9 +66,7 @@ import { useProjects } from "../hooks/useProjects";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useRunConfig } from "../hooks/useRunConfig";
-import { TaskBoardColumns } from "../components/external/TaskBoardColumns";
-import { TaskBoardEmptyState, TaskBoardNoFilterMatches } from "../components/external/TaskBoardEmptyState";
-import { TaskList } from "../components/external/TaskList";
+import { TaskBoardBody } from "../components/external/TaskBoardBody";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
@@ -120,7 +118,7 @@ export default function TaskBoardPage() {
   // approach tried in 3.7f caused a cache-drift visual glitch when toggling
   // "All projects" from a single project (columns briefly empty while the
   // new key fetched). Single cache entry = zero drift.
-  const { data: tasks = [], isLoading } = useExternalTasks();
+  const { data: tasks = [], isLoading, isError: tasksError, refetch: refetchTasks } = useExternalTasks();
   const { data: projects = [] } = useProjects();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -370,18 +368,15 @@ export default function TaskBoardPage() {
         topBarSlot?.slot &&
         createPortal(<ProjectFilterDropdown fluid />, topBarSlot.slot)}
 
-      {/* Body — board (kanban) or list.
-          R1 (iterate 3.7e-a Foundation): kanban body uses `.page-container`
-          too — same 1600 max-width + 24 px L/R padding as the header above,
-          so the header's first element and the first column share the same
-          pixel offset from the sidebar. List view keeps its own internal
-          layout (handled in TaskList).
-          Iterate 3.7e-b1: gap-8 → gap-10 (32 → 40 px gutter). */}
+      {/* Body — board (kanban) or list; render-state chain lives in
+          TaskBoardBody (extracted so this grandfathered, size-capped file
+          does not grow — see its own docstring for the layout rationale). */}
       {/* Pipelines lane (campaign webui-pipeline-convergence W3). The lane host
           picks the representation by run mode: single_session → the campaign-like
-          SingleSessionRunCard; multi_session / mode-less legacy → MasterTaskCard.
-          Returns null for missing / v1 / invalid run-config (legacy flat-task
-          path is unchanged) or when no project is resolved. */}
+          SingleSessionRunCard; anything else (multi_session, retired /
+          standalone, mode-less legacy) → MasterTaskCard. Returns null for
+          missing / v1 / invalid run-config (legacy flat-task path is
+          unchanged) or when no project is resolved. */}
       <PipelineLaneCard runConfig={runConfigQuery.data} project={activeProjectMeta} />
 
       {/* FR-01.31/33 — Campaigns lane (extracted to CampaignsLane so the
@@ -389,38 +384,17 @@ export default function TaskBoardPage() {
           entirely when nothing is visible AND nothing is dismissed. */}
       <CampaignsLane projectId={resolvedProjectId} project={activeProjectMeta} />
 
-      {isLoading ? (
-        <div className="p-6 text-sm text-[var(--color-muted)]">Loading…</div>
-      ) : noFilterMatches ? (
-        <TaskBoardNoFilterMatches onClear={clearAllFilters} />
-      ) : view === "list" ? (
-        // iterate 3.7h (Sven UAT): wrap TaskList in .page-container so the
-        // table respects the same L/R gutters as the header + filter row.
-        // `w-full` forces the container to stretch to parent width; without
-        // it the page-container shrunk to the inner content width (was
-        // 889px instead of the expected 1280) because TaskList's child
-        // wrapper didn't force horizontal stretch.
-        // iterate-2026-07-21-mac-titlebar-right-clip: the outer wrapper is the
-        // scroll BOUNDARY. Kanban bounds itself (TaskBoardColumns' rail is
-        // overflow-x-auto/overflow-y-hidden and each column scrolls), but list
-        // view used to hand its overflow up to the shell scroller — which then
-        // grew a real 15px scrollbar and clipped the title bar all over again
-        // (measured: /?view=list overflowed the shell by ~19000px, headGap 15).
-        // The scroller is OUTSIDE .page-container so the scrollbar rides the
-        // window edge, not the centred 1280 box — same shape as Diagnostics.
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="page-container w-full pt-6 pb-8">
-            <TaskList tasks={filteredTasks} />
-          </div>
-        </div>
-      ) : projectFiltered.length === 0 ? (
-        // A07 teaching empty state (zero tasks). A08 (FR-01.51): its CTA opens the guided Intent Wizard — direct/expert create stays in the header split button.
-        <TaskBoardEmptyState canCreate onCreate={() => navigate("/wizard")} />
-      ) : (
-        // iterate-2026-06-17 — grid + grouping + drag-and-drop extracted to
-        // TaskBoardColumns; grouping is by boardColumn (decoupled from state).
-        <TaskBoardColumns tasks={filteredTasks} />
-      )}
+      <TaskBoardBody
+        isLoading={isLoading}
+        tasksError={tasksError}
+        onRetryTasks={() => void refetchTasks()}
+        noFilterMatches={noFilterMatches}
+        onClearFilters={clearAllFilters}
+        view={view}
+        projectFiltered={projectFiltered}
+        filteredTasks={filteredTasks}
+        onCreate={() => navigate("/wizard")}
+      />
 
       <NewIssueModal
         open={modalOpen}
