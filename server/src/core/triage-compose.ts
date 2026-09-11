@@ -23,7 +23,19 @@
  *     freshest LOCAL intent (a just-clicked dismiss not yet delivered) still
  *     wins an equal-`ts` tie — preserving the pre-existing tracked<outbox
  *     contract. Origin sits between: it beats stale local-tracked on an
- *     equal-`ts` tie but loses to a pending local outbox flip.
+ *     equal-`ts` tie but loses to a pending local outbox flip — for events not
+ *     subject to the local-wins rule below (`amend`, or a `status` id with no
+ *     local decision at all). A `status` id this tree HAS decided never reaches
+ *     this tie-break at all: local-wins drops origin's event first, regardless
+ *     of timestamp.
+ *   - **Local status always outranks an origin status** (ported from Python
+ *     `read_all_items`, iterate-2026-09-10-triage-cross-tree-precedence /
+ *     iterate-2026-09-11-triage-compose-local-wins): an origin `status` event
+ *     applies only when this tree's OWN tracked+outbox union has no `status`
+ *     event for that id (`localStatusIds`) — a local decision can never be
+ *     reopened by origin regardless of timestamp; origin still fills the gap
+ *     for an id never locally decided. `amend` is unscoped by this rule — it
+ *     stays purely chronological, same as before.
  *   - Read-only: this module NEVER mutates the working tree. `originRawLines`
  *     is produced by a `git show`/`git fetch` layer that only touches the
  *     object DB and remote-tracking refs.
@@ -33,13 +45,31 @@
  *     worse than today.
  */
 
-import type { TriageItem } from "../types/triage.js";
+import type { TriageItem, TriageStatus } from "../types/triage.js";
 import type { CorruptFragment } from "./jsonl-records.js";
 import { applyDeferOverlay } from "./triage-defer.js";
 import {
+  STATUSES,
   readLocalRawLinesSplit,
   resolveUnion,
 } from "./triage-store.js";
+
+/** Ids with a valid `status` event — mirrors Python's `local_status_ids`
+ * (iterate-2026-09-10-triage-cross-tree-precedence); used below to drop an
+ * origin `status` already decided locally. */
+function localStatusIds(rawLines: Record<string, unknown>[]): Set<string> {
+  const ids = new Set<string>();
+  for (const raw of rawLines) {
+    if (
+      raw.event === "status" &&
+      typeof raw.id === "string" &&
+      STATUSES.has(raw.newStatus as TriageStatus)
+    ) {
+      ids.add(raw.id);
+    }
+  }
+  return ids;
+}
 
 export interface DeliveredOriginOptions {
   /**
@@ -76,7 +106,15 @@ export function readAllItemsWithDeliveredOrigin(
   opts: DeliveredOriginOptions,
 ): TriageItem[] {
   const { tracked, outbox } = readLocalRawLinesSplit(trackedPath, opts.onCorrupt);
-  const origin = opts.originRawLines ?? [];
+  const localStatused = localStatusIds([...tracked, ...outbox]);
+  // Local-wins precedence (see module header): drop an origin `status` event
+  // for an id this tree has already decided locally, before it ever reaches
+  // resolveUnion's pass 2 — an id never locally decided passes origin's
+  // status through unchanged (gap-fill). `amend` is untouched.
+  const origin = (opts.originRawLines ?? []).filter(
+    (raw) =>
+      !(raw.event === "status" && (typeof raw.id !== "string" || localStatused.has(raw.id))),
+  );
   // [tracked, origin, outbox] — outbox last (freshest local intent wins ties);
   // origin between (beats stale tracked, loses to pending outbox). When origin
   // is null/empty this is exactly `[...tracked, ...outbox]` = the local union.

@@ -8,9 +8,14 @@
  * separately with mocked child_process. This file exhaustively covers the
  * resolution matrix the external review (GPT-5.4 #2/#3/#10) flagged:
  *   - origin-delivered dismiss the local files lack
- *   - origin reopen AFTER a local dismiss (ts-primary → origin wins)
- *   - local re-dismiss AFTER an origin reopen (ts-primary → local wins)
+ *   - origin reopen AFTER a local dismiss the LOCAL side never decided
+ *     (gap-fill: ts-primary → origin wins)
+ *   - local re-dismiss AFTER an origin reopen (local decided → origin dropped)
  *   - equal-ts tie ordering [tracked, origin, outbox] (outbox last wins)
+ *   - local-wins precedence: a local status decision can never be reopened by
+ *     an origin status, even one with a strictly LATER timestamp
+ *     (iterate-2026-09-11-triage-compose-local-wins, ported from Python
+ *     `read_all_items` / iterate-2026-09-10-triage-cross-tree-precedence)
  *   - degrade (origin=null) is byte-for-byte identical to readAllItems
  */
 
@@ -105,7 +110,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
   });
 
   // @covers FR-01.30
-  it("origin reopen AFTER a local dismiss wins by newer ts (item stays open)", () => {
+  it("gap-fill: an id never locally decided resolves purely from origin's own chronology (reopen wins)", () => {
     const trackedPath = setupLocal([append("trg-d", "2026-07-01T10:00:00Z")]);
     const originRawLines = [
       append("trg-d", "2026-07-01T10:00:00Z"),
@@ -117,7 +122,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
   });
 
   // @covers FR-01.30
-  it("local re-dismiss AFTER an origin reopen wins by newer ts (dismissed)", () => {
+  it("local-wins: a local outbox dismiss stands even though origin also has status events for the id", () => {
     const trackedPath = setupLocal(
       [append("trg-e", "2026-07-01T10:00:00Z")],
       [status("trg-e", "2026-07-04T09:00:00Z", "dismissed")], // freshest local intent
@@ -132,7 +137,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
   });
 
   // @covers FR-01.30
-  it("equal-ts tie: local outbox wins over origin (outbox is ordered last)", () => {
+  it("local-wins: an equal-ts origin status never reaches a locally-decided id (outbox snooze stands)", () => {
     const T = "2026-07-02T09:00:00Z";
     const trackedPath = setupLocal(
       [append("trg-f", "2026-07-01T10:00:00Z")],
@@ -144,7 +149,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
   });
 
   // @covers FR-01.30
-  it("equal-ts tie: origin wins over local tracked (origin ordered after tracked)", () => {
+  it("local-wins: an equal-ts origin status never reaches a locally-decided id (tracked dismiss stands)", () => {
     const T = "2026-07-02T09:00:00Z";
     const trackedPath = setupLocal([
       append("trg-g", "2026-07-01T10:00:00Z"),
@@ -152,7 +157,65 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     ]);
     const originRawLines = [append("trg-g", "2026-07-01T10:00:00Z"), status("trg-g", T, "snoozed")];
     const items = readAllItemsWithDeliveredOrigin(trackedPath, { originRawLines });
-    expect(statusOf(items, "trg-g")).toBe("snoozed");
+    expect(statusOf(items, "trg-g")).toBe("dismissed");
+  });
+
+  // @covers FR-01.30
+  it("local-wins: a STRICTLY LATER origin status cannot reopen a local tracked dismiss", () => {
+    const trackedPath = setupLocal([
+      append("trg-k", "2026-07-01T10:00:00Z"),
+      status("trg-k", "2026-07-02T09:00:00Z", "dismissed"),
+    ]);
+    const originRawLines = [
+      append("trg-k", "2026-07-01T10:00:00Z"),
+      status("trg-k", "2026-07-05T09:00:00Z", "triage"), // strictly later, from an abandoned sibling
+    ];
+    const items = readAllItemsWithDeliveredOrigin(trackedPath, { originRawLines });
+    expect(statusOf(items, "trg-k")).toBe("dismissed");
+  });
+
+  // @covers FR-01.30
+  it("local-wins: a STRICTLY LATER origin status cannot reopen a local OUTBOX dismiss", () => {
+    const trackedPath = setupLocal(
+      [append("trg-l", "2026-07-01T10:00:00Z")],
+      [status("trg-l", "2026-07-02T09:00:00Z", "dismissed")],
+    );
+    const originRawLines = [
+      append("trg-l", "2026-07-01T10:00:00Z"),
+      status("trg-l", "2026-07-06T09:00:00Z", "triage"),
+    ];
+    const items = readAllItemsWithDeliveredOrigin(trackedPath, { originRawLines });
+    expect(statusOf(items, "trg-l")).toBe("dismissed");
+  });
+
+  // @covers FR-01.30
+  it("local-wins is scoped to `status` only: a later origin amend still applies to a locally-decided id", () => {
+    const trackedPath = setupLocal([
+      append("trg-m", "2026-07-01T10:00:00Z"),
+      status("trg-m", "2026-07-02T09:00:00Z", "dismissed"),
+    ]);
+    const originRawLines = [
+      append("trg-m", "2026-07-01T10:00:00Z"),
+      { event: "amend", id: "trg-m", ts: "2026-07-05T09:00:00Z", title: "retitled on origin" },
+    ];
+    const items = readAllItemsWithDeliveredOrigin(trackedPath, { originRawLines });
+    expect(statusOf(items, "trg-m")).toBe("dismissed");
+    expect(items.find((it) => it.id === "trg-m")?.title).toBe("retitled on origin");
+  });
+
+  // @covers FR-01.30
+  it("gap-fill: a local status event with an INVALID newStatus never enters local_status_ids (origin still wins)", () => {
+    const trackedPath = setupLocal([
+      append("trg-n", "2026-07-01T10:00:00Z"),
+      // Invalid newStatus (not in STATUSES) — must NOT count as a local decision.
+      status("trg-n", "2026-07-02T09:00:00Z", "not-a-real-status"),
+    ]);
+    const originRawLines = [
+      append("trg-n", "2026-07-01T10:00:00Z"),
+      status("trg-n", "2026-07-03T09:00:00Z", "dismissed"),
+    ];
+    const items = readAllItemsWithDeliveredOrigin(trackedPath, { originRawLines });
+    expect(statusOf(items, "trg-n")).toBe("dismissed");
   });
 
   // @covers FR-01.30

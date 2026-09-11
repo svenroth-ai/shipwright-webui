@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-11-triage-compose-local-wins",
+  "date": "2026-09-11",
+  "section": "server/src/core/triage-compose.ts",
+  "title": "Port local-wins status precedence into the WebUI triage composer",
+  "context": "Python's read_all_items fix (iterate-2026-09-10-triage-cross-tree-precedence) made a local status decision always outrank a foreign status, regardless of timestamp. Its review flagged this composer as a follow-up: it had no equivalent guard, so an origin status could still reopen an id this tree already decided -- the same bug class, left open here.",
+  "decision": "Added localStatusIds(rawLines) to triage-compose.ts (mirrors Python's local_status_ids), reusing the STATUSES set now exported from triage-store.ts. readAllItemsWithDeliveredOrigin filters opts.originRawLines to drop any status event whose id is in that set before concatenating [tracked, origin, outbox] into the existing, unmodified resolveUnion. amend events are NOT filtered -- purely chronological, matching Python's scope.",
+  "consequences": "An origin status event can never reopen a locally-decided id. An id never locally decided still resolves from origin's own chronology (gap-fill, unchanged). resolveUnion/readAllItems/triage-store.ts line count untouched (298, baseline unchanged) -- the new filter lives in triage-compose.ts, the only reader with a foreign tail.",
+  "rationale": "The precedence rule is a pure input filter applied before the existing two-pass resolution runs, exactly how the Python fix was structured -- porting it 1:1 keeps the two readers in provable agreement.",
+  "rejected": "Reimplementing precedence inside resolveUnion -- rejected because resolveUnion is parity-tested byte-for-byte against Python; a filter-before-union approach isolates the new behavior to the only reader with a foreign tail.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

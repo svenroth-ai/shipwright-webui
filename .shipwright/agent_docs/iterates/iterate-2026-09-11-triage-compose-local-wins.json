@@ -1,0 +1,67 @@
+{
+  "run_id": "iterate-2026-09-11-triage-compose-local-wins",
+  "date": "2026-09-11T16:24:55.196787Z",
+  "event_at": "2026-09-11T16:23:42.697272+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-compose-local-wins",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-11-triage-compose-local-wins",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "behaviors": [
+      {
+        "behavior": "localStatusIds identifies exactly the ids with a valid status event (newStatus in STATUSES) over the local tracked+outbox union",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-e/trg-f/trg-g"
+      },
+      {
+        "behavior": "local-wins: a local outbox dismiss stands even though origin also has status events for the same id",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-e"
+      },
+      {
+        "behavior": "local-wins: an equal-ts origin status never reaches a locally-decided id (outbox and tracked cases)",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-f, trg-g"
+      },
+      {
+        "behavior": "local-wins: a strictly LATER origin status cannot reopen a local tracked dismiss",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-k"
+      },
+      {
+        "behavior": "local-wins: a strictly LATER origin status cannot reopen a local outbox dismiss",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-l"
+      },
+      {
+        "behavior": "gap-fill unchanged: an id never locally decided still resolves purely from origin's own chronology",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-d"
+      },
+      {
+        "behavior": "local-wins is scoped to status only: a later origin amend still applies over a locally-decided status",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-m"
+      },
+      {
+        "behavior": "an INVALID local newStatus never enters local_status_ids, so a later origin status still wins via gap-fill",
+        "disposition": "tested",
+        "evidence": "triage-compose.test.ts trg-n"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "none",
+    "justification": "Pure server-side data-resolution change (a filter over already-parsed JSONL records feeding the existing resolveUnion); no new UI, route, or rendering path. Fully exercised at the unit level (38 targeted tests across the touched files) plus the full server suite (4147/4159)."
+  }
+}

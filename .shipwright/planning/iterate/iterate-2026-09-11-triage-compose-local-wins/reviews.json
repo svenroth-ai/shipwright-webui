@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-11-triage-compose-local-wins",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-11T16:11:52.172175+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-11T16:12:13.793631+00:00",
+      "disposition": "small complexity — Branch A/B/C external plan review only applies medium+",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/triage-store.ts",
+          "line": 124,
+          "finding": "localStatusIds's loop body was an unbraced single-line if, inconsistent with the rest of the file. FIXED: wrapped in braces, condition split onto its own lines.",
+          "suggestion": "Wrap the if body in braces for consistency (applied).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "server/src/core/triage-compose.test.ts",
+          "line": null,
+          "finding": "No test exercised a local status event with an INVALID newStatus alongside a later origin status for the same id. FIXED: added a test proving an invalid local status event never enters local_status_ids, so origin's valid status still applies via gap-fill.",
+          "suggestion": "Add a gap-fill test for an invalid local newStatus (applied).",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-11T16:11:44.348012+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "server/src/core/triage-compose.ts",
+          "line": 25,
+          "finding": "Claim under doubt: The composer's module header describes ordering as \"Origin sits between: it beats stale local-tracked on an equal-ts tie but loses to a pending local outbox flip\" without qualifying that this tie-break is unreachable for a status id the local tree has already decided. — Confirmed the local-wins filter drops a locally-decided id's origin status event before it ever reaches resolveUnion's tie-break sort, so the sentence as written could mislead a future maintainer into thinking origin can still beat a stale local status on an equal-ts tie. It cannot -- local-wins is timestamp-blind whenever a valid local status decision exists for that id. The sentence remains literally true only for amend events and for the pure gap-fill case (no local decision at all).",
+          "suggestion": "Add a one-line qualifier scoping the tie-break sentence to events not subject to the local-wins rule (amend, or a status id with no local decision).",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-11T16:17:05.331282+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-11T16:12:14.007921+00:00",
+      "disposition": "small complexity — external code review cascade only applies medium+",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-11T16:02:39.845807+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-11T16:12:13.898397+00:00",
+      "disposition": "small complexity — internal Opus plan review only applies medium+",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
