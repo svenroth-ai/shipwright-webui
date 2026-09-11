@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-09-06",
+  "last_updated": "2026-09-11",
   "iterate_latest": {
-    "run_id": "iterate-2026-09-06-tablet-ipad-ux-pass",
-    "date": "2026-09-06",
+    "run_id": "iterate-2026-09-11-list-error-state-run-mode-sentinel",
+    "date": "2026-09-11",
     "unit": {
       "status": "passed",
-      "passed": 3799,
-      "total": 3799
+      "passed": 8223,
+      "total": 8235
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "partial",
-      "passed": 22,
-      "total": 29
+      "status": "passed",
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,112 +32,108 @@
       "status": "not_run"
     },
     "degraded": [
-      "E2E run of the three touched flow files (97-terminal-interaction-revive.spec.ts, 80-tablet-responsive.spec.ts, A16-ships-log.spec.ts) reported 7 failures alongside 22 passes; all 7 are pre-existing task-board-columns/view-toggle-list timeouts in unmodified tests, independently confirmed via `git stash` to reproduce identically with none of this iterate's changes present (environmental/contention flake, not a regression). Every test added or modified by this iterate passed.",
-      "Server suite (3881 passed / 3 skipped, 342 files) was re-run in full per this run's touches_shared_infra affected-boundary but no server file was actually changed by this iterate \u2014 recorded for completeness, not because server code was touched.",
-      "Triage 'not all entries shown on tablet' (AC-5) was investigated exhaustively (static + 4-viewport live measurement) but not reproduced and not fixed \u2014 flagged in the iterate spec for the user to re-check against this build."
+      "The first F0 server-suite run (SHIPWRIGHT_NETWORK_PROFILE=local npx vitest run) reported 2 failed test files unrelated to this diff (server/src/external/org/__tests__/symlink-lock-unification.test.ts and one other); an immediate clean re-run of the full suite passed 379/380 files (1 skipped by design), 4143/4155 tests (12 skipped) \u2014 confirmed environmental/contention flake (matches prior project memory of F0 suite races under agent contention), not a regression from this iterate's changes."
     ],
     "test_completeness": {
       "status": "complete",
       "counts": {
-        "testable": 13,
-        "tested": 13,
-        "untestable": 2,
+        "testable": 15,
+        "tested": 15,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7
+        "acs": 2,
+        "covered_acs": 2
       },
       "behaviors": [
         {
-          "behavior": "onProbing(true) fires the instant an eager probe is sent",
+          "behavior": "TaskBoardPage: a failed task fetch shows the distinct load-error state, never the A07 onboarding empty state",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts (new case); E2E 97-terminal-interaction-revive.spec.ts (new, real browser)"
+          "evidence": "TaskBoardPage.test.tsx, TaskBoardBody.test.tsx; E2E list-load-error-state.spec.ts (real browser, real Chromium)"
         },
         {
-          "behavior": "onProbing(false) fires once a pong answers the probe in time",
+          "behavior": "TaskBoardPage: Retry re-fetches and recovers once the endpoint starts responding",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts (same case); same E2E case"
+          "evidence": "TaskBoardPage.test.tsx, TaskBoardBody.test.tsx; E2E list-load-error-state.spec.ts"
         },
         {
-          "behavior": "useTerminalSocket flips reconnecting=true the instant a refocus probe starts",
+          "behavior": "TaskBoardBody: the loading branch takes precedence over the error branch (never both painted)",
           "disposition": "tested",
-          "evidence": "useTerminalSocket.refocus.test.ts AC-7"
+          "evidence": "TaskBoardBody.test.tsx"
         },
         {
-          "behavior": "A probe answered in time flips reconnecting back off without a reconnect",
+          "behavior": "ShipsLogPage: a failed projects fetch shows the distinct load-error state, never the false 'project not registered' claim",
           "disposition": "tested",
-          "evidence": "useTerminalSocket.refocus.test.ts AC-7b (FakeWebSocket.instances stays length 1)"
+          "evidence": "ShipsLogPage.test.tsx"
         },
         {
-          "behavior": "A probe resolving in the 1.5-4s band visibly, boundedly flashes the banner (accepted trade-off) and self-dismisses, never stuck",
+          "behavior": "ShipsLogPage: Retry recovers",
           "disposition": "tested",
-          "evidence": "useTerminalShellEffects.reconnecting.test.ts new composed suite, driving the real attachWsLiveness probe timer through the real grace timer (doubt-review MEDIUM response)"
+          "evidence": "ShipsLogPage.test.tsx"
         },
         {
-          "behavior": "A fresh (inbound-recent) socket + user interaction never arms the reconnecting banner",
+          "behavior": "PerProjectTriageSection: a failed triage-items fetch shows the distinct load-error state, never a silent null (indistinguishable from 'nothing open')",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts (external-review glm LOW \u2014 extended existing case with an onProbing assertion)"
+          "evidence": "PerProjectTriageSection.test.tsx"
         },
         {
-          "behavior": "Title truncates + tap-to-expand popover at tablet width (compact, non-phone)",
+          "behavior": "PerProjectTriageSection: Retry recovers",
           "disposition": "tested",
-          "evidence": "EditableTaskTitle.mobile.test.tsx; E2E 80-tablet-responsive.spec.ts (new, 820x1180)"
+          "evidence": "PerProjectTriageSection.test.tsx"
         },
         {
-          "behavior": "Desktop title single-line-truncates with a native tooltip instead of wrapping unbounded, incl. the classic iPad-landscape (1024x768) boundary",
+          "behavior": "ProjectsPage: a failed projects fetch shows the distinct load-error state, never the 'No projects yet' onboarding claim",
           "disposition": "tested",
-          "evidence": "EditableTaskTitle.mobile.test.tsx (new case); E2E 80-tablet-responsive.spec.ts (new, 1280x800 and 1024x768)"
+          "evidence": "ProjectsPage.loadError.test.tsx; E2E list-load-error-state.spec.ts (real browser)"
         },
         {
-          "behavior": "Sidebar nav list scrolls internally; Settings stays pinned outside it",
+          "behavior": "ProjectsPage: Retry recovers",
           "disposition": "tested",
-          "evidence": "SidebarNav.test.tsx (existing suite, re-verified green) + live-browser probe P5"
+          "evidence": "ProjectsPage.loadError.test.tsx; E2E list-load-error-state.spec.ts"
         },
         {
-          "behavior": "MissionTopRow condensed header applies at tablet-width (compact, non-phone), not phone-only",
+          "behavior": "ListLoadErrorState shared component renders the label-specific copy, testid and a working Retry callback",
           "disposition": "tested",
-          "evidence": "TaskDetailHeader.phone.test.tsx (new case)"
+          "evidence": "ListLoadErrorState.test.tsx"
         },
         {
-          "behavior": "Instruments hides below 1024px (lg:) instead of below 768px (md:)",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "reason": "no matchMedia/width-mock dependency exists to unit-test in jsdom; verified via live-browser probes P3/P4"
-        },
-        {
-          "behavior": "Ship's Log .sl-main/.sl-docs are independently bounded scrollers at <=900px",
+          "behavior": "client run-config-v2: DEFAULT_RUN_MODE resolves to 'standalone' (the framework's INERT_MODE sentinel), not the retired 'multi_session' literal",
           "disposition": "tested",
-          "evidence": "ShipsLogPage.test.tsx + shell-scroll-invariant.test.ts (unit) + live-browser P2 + E2E A16-ships-log.spec.ts (new, 820x700)"
+          "evidence": "run-config-v2.test.ts"
         },
         {
-          "behavior": "Same height-bounding holds at desktop widths (>900px, side-by-side grid) - disputed by external review (openai MEDIUM)",
+          "behavior": "server run-config-v2: DEFAULT_RUN_MODE resolves to 'standalone'; mirrors the client exactly",
           "disposition": "tested",
-          "evidence": "live-browser probe at 1440x900 (computed grid-template-rows resolves to a definite 749.156px); E2E A16-ships-log.spec.ts (new, 1280x700)"
+          "evidence": "run-config-mode.test.ts"
         },
         {
-          "behavior": "'Project Documents' heading is visually hidden but stays in the a11y tree",
+          "behavior": "isRunMode rejects 'standalone' and every unrecognised value in both mirrors; only the two on-disk-valid literals pass",
           "disposition": "tested",
-          "evidence": "ShipsLogDocumentsPanel.test.tsx (existing getByRole assertion, unmodified, still passes with sr-only added)"
+          "evidence": "run-config-v2.test.ts, run-config-mode.test.ts"
         },
         {
-          "behavior": "Triage tablet display",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "investigated exhaustively (static review + 4-viewport live measurement) but not reproduced; no behavior exists to pin a test to; flagged for the user to re-check against this build"
+          "behavior": "resolveRunMode returns the present valid mode unchanged (incl. the retired 'multi_session' literal, read-compat only) and only falls back to 'standalone' when absent/unrecognised",
+          "disposition": "tested",
+          "evidence": "run-config-v2.test.ts, run-config-mode.test.ts"
+        },
+        {
+          "behavior": "master-run-branch's master_launch_wrong_mode detail reports 'standalone' (not stale 'multi_session') for a mode-less legacy config",
+          "disposition": "tested",
+          "evidence": "master-run-branch.test.ts (AC2 mode-less-legacy-config case, updated with an explicit json.detail assertion)"
         }
       ]
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 7,
+      "tests_run": 2,
       "exit_code": 0,
-      "justification": "All layout/scroll/banner-timing behaviors in this iterate are DOM-geometry and real-socket-timing effects invisible to jsdom unit tests - verified in real Chromium via this repo's isolated-stack Playwright harness (client/e2e/isolated-stack.mjs). Scoped run of the 6 tests added/modified for this iterate across 97-terminal-interaction-revive.spec.ts, 80-tablet-responsive.spec.ts, and A16-ships-log.spec.ts (a --grep pattern also picked up one adjacent pre-existing test): 7/7 passed. A separate full-file run of the same three files reported 7 additional failures, all pre-existing task-board-columns/view-toggle-list timeouts in unmodified tests, confirmed via git stash to reproduce identically with none of this iterate's changes present (environmental/contention flake, not a regression, recorded in degraded[] above) - this scoped, clean run is the evidence for this iterate's own behavior."
+      "justification": "Finding 1's error-vs-empty-state distinction is real DOM/query-state behavior already covered at the unit level (jsdom + mocked hooks/MSW) for all 4 call sites; this E2E spec proves the same distinction survives a real Chromium + a real running stack (client/e2e/isolated-stack.mjs) for the two representative surfaces most load-bearing to get right \u2014 the root route (RootRoute -> TaskBoardPage, which also gates the First-Contact redirect on a successful vs failed projects/tasks read) and ProjectsPage. Both pass: load-error renders distinctly from the onboarding empty state, and Retry recovers."
     }
   },
   "source_state": {
-    "run_id": "iterate-2026-09-06-tablet-ipad-ux-pass",
-    "commit": "0ec2b745c56ff50ecb9408c35f7fddf2fe46db23",
+    "run_id": "iterate-2026-09-11-list-error-state-run-mode-sentinel",
+    "commit": "a4425da6a33f64416b5d8d5b3edaf1c1e7d3353a",
     "dirty": true,
     "base": null,
     "release": null
