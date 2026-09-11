@@ -153,11 +153,12 @@ describe("launch master-run branch — POST /launch { masterRun }", () => {
     expect(json.detail).toBe("multi_session");
   });
 
-  it("AC2: 400 master_launch_wrong_mode for a mode-less legacy config (→ multi_session)", async () => {
+  it("AC2: 400 master_launch_wrong_mode for a mode-less legacy config (→ standalone)", async () => {
     readerResult = okConfig(undefined);
     const { res, json } = await launch({ masterRun: true, dryRun: true });
     expect(res.status).toBe(400);
     expect(json.error).toBe("master_launch_wrong_mode");
+    expect(json.detail).toBe("standalone");
   });
 
   it("AC3: 400 mixed_launch_intents when masterRun + campaignSlug", async () => {

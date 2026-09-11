@@ -34,6 +34,7 @@ import { SURFACE_CLS } from "../components/external/ProjectCreateCascade";
 import { GraduationCard } from "../components/shipslog/GraduationCard";
 import { LogEntryList } from "../components/shipslog/LogEntryList";
 import { ShipsLogDocumentsPanel } from "../components/shipslog/ShipsLogDocumentsPanel";
+import { ListLoadErrorState } from "../components/common/ListLoadErrorState";
 import "../styles/ships-log.css";
 import "../styles/ships-log-docs.css";
 
@@ -41,7 +42,7 @@ export default function ShipsLogPage() {
   const { projectId = "" } = useParams();
   const navigate = useNavigate();
   const { setActiveProjectId } = useProjectFilter();
-  const { data: projects = [], isLoading } = useProjects();
+  const { data: projects = [], isLoading, isError: projectsError, refetch: refetchProjects } = useProjects();
   const { data: runsData } = useProjectRuns(projectId);
 
   const project = projects.find((p) => p.id === projectId);
@@ -58,6 +59,25 @@ export default function ShipsLogPage() {
   function openBoard() {
     setActiveProjectId(projectId);
     navigate(`/?projectId=${encodeURIComponent(projectId)}`);
+  }
+
+  // FR-01.01 triage trg-0f040744 finding 1 — a failed projects fetch must
+  // never be reported as "this project is not registered" (a different,
+  // false claim). Checked BEFORE the not-found branch below: both share the
+  // same "no project resolved" precondition, but only one is actually true.
+  if (!isLoading && projectsError) {
+    return (
+      <div className="flex h-full flex-col" data-testid="ships-log-page">
+        <PageHead title="Ship's Log" testId="ships-log-header" />
+        <div className="flex-1 overflow-y-auto">
+          <ListLoadErrorState
+            testId="ships-log-load-error"
+            label="projects"
+            onRetry={() => void refetchProjects()}
+          />
+        </div>
+      </div>
+    );
   }
 
   if (!isLoading && !project) {

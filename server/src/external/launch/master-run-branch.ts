@@ -159,9 +159,9 @@ export async function applyMasterRunBranch(args: {
   }
   const mode = resolveRunMode(cfg.config);
   if (mode !== "single_session") {
-    // multi_session (or a mode-less legacy config → multi_session) uses the
+    // multi_session (or a mode-less legacy config → standalone) uses the
     // per-phase Continue path, not a single master. Refuse rather than inject
-    // `/shipwright-run` into a multi-session run.
+    // `/shipwright-run` into a multi-session/standalone run.
     return {
       error: { error: "master_launch_wrong_mode", detail: mode },
       status: 400,

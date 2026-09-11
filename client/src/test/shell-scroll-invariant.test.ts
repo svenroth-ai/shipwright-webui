@@ -63,7 +63,10 @@ const TITLE_BAR_ROUTES: Record<string, string[]> = {
   // owner is what let the list view ship unbounded: the registry pointed only at
   // the kanban rail, so `/?view=list` handed its scroll to the shell (measured:
   // overflowed by ~19000px, title bar clipped 15px) while this test stayed green.
-  'TaskBoardPage.tsx': ['pages/TaskBoardPage.tsx', 'components/external/TaskBoardColumns.tsx'],
+  // iterate-2026-09-11-list-error-state-run-mode-sentinel: TaskBoardPage's body
+  // render-state chain (including the list-view scroller) was extracted to
+  // TaskBoardBody.tsx (bloat-ceiling split) — the owner moved with it.
+  'TaskBoardPage.tsx': ['components/external/TaskBoardBody.tsx', 'components/external/TaskBoardColumns.tsx'],
 };
 
 /**

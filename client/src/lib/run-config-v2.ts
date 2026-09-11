@@ -42,12 +42,20 @@ export type RunStatus = "in_progress" | "complete" | "failed" | "needs_validatio
  *
  *  - `single_session` — the /shipwright-run master drives every phase via a
  *    phase-runner subagent in ONE conversation; the sole supported FRESH-write
- *    mode (SS8, 2026-07-08). Runs on every surface.
+ *    mode (SS8, 2026-07-08), and the ONLY value the schema enum accepts. Runs
+ *    on every surface.
  *  - `multi_session`  — each phase is its own external UUID-bound Claude
- *    session (pre-SS1 behaviour). DEPRECATED, retained for back-compat.
+ *    session (pre-SS1 behaviour). RETIRED — not a valid schema value for a
+ *    fresh write, kept here only so a pre-SS1 config still carrying this
+ *    literal on disk still parses (`isRunMode`/`parseRunMode` read-compat).
  *
- * OPTIONAL on disk (NOT in the schema's `required`): a mode-less legacy config
- * reads as `DEFAULT_RUN_MODE`. Mirrors shared/schemas/run_config.v2.schema.json.
+ * `mode` is OPTIONAL on disk (NOT in the schema's `required`), and the schema
+ * carries NO `default` ON PURPOSE — absence is MEANINGFUL there ("not a
+ * drivable run"), so nothing may silently reinterpret a mode-less legacy
+ * config as drivable. `resolveRunMode()` still needs a concrete return value
+ * for that case; `DEFAULT_RUN_MODE` is a plain fallback sentinel for that
+ * function only, never a disk-valid `RunMode` literal — see `RUN_MODES` /
+ * `isRunMode`, which deliberately do NOT include it.
  */
 export type RunMode = "multi_session" | "single_session";
 
@@ -57,11 +65,19 @@ export const RUN_MODES: readonly RunMode[] = [
 ] as const;
 
 /**
- * Absent-read fallback for `mode`. MUST equal the schema `default` and the
- * framework's `config_io.run_mode` absent-read so a consumer applying schema
- * defaults never silently reinterprets a mode-less legacy run.
+ * Sentinel for "absent or unrecognised `mode`" — i.e. NOT a drivable run.
+ * Mirrors the framework's own sentinel for this exact situation,
+ * `gate_policy.INERT_MODE` (shared/scripts/lib/gate_policy.py, introduced in
+ * the same 2026-07-14 commit that removed `multi_session`'s engine) —
+ * `multi_session` used to play this role and was replaced there precisely
+ * because it is a retired pipeline mode, not a "no pipeline" marker.
+ * Deliberately NOT a member of `RunMode`/`RUN_MODES`: it is never written to
+ * disk and `isRunMode("standalone")` is false, same as the framework's own
+ * `mode == "single_session"` explicit-literal-only activation rule.
  */
-export const DEFAULT_RUN_MODE: RunMode = "multi_session";
+export const DEFAULT_RUN_MODE = "standalone" as const;
+
+export type ResolvedRunMode = RunMode | typeof DEFAULT_RUN_MODE;
 
 export type PhaseTaskStatus =
   | "backlog"
@@ -175,11 +191,11 @@ export function isRunMode(v: unknown): v is RunMode {
 }
 
 /**
- * Resolve a run's execution mode. Absent OR unrecognised → DEFAULT_RUN_MODE
- * ("multi_session") — matching the schema note that "an unrecognised value is
- * also read as multi_session so a typo can't select an unbuilt path". Stays
- * defensive even though the reader already drops unrecognised values.
+ * Resolve a run's execution mode. Present + valid → itself (incl. the
+ * retired `multi_session` literal, read-compat only). Absent OR unrecognised
+ * → `DEFAULT_RUN_MODE` ("standalone" — not a drivable run). Stays defensive
+ * even though the reader already drops unrecognised values.
  */
-export function resolveRunMode(config: { mode?: RunMode }): RunMode {
+export function resolveRunMode(config: { mode?: RunMode }): ResolvedRunMode {
   return isRunMode(config.mode) ? config.mode : DEFAULT_RUN_MODE;
 }

@@ -6,6 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { PerProjectTriageSection } from "./PerProjectTriageSection";
@@ -63,8 +64,18 @@ function filters(overrides: Partial<TriageFilterState> = {}): TriageFilterState 
   return { ...DEFAULT_FILTER_STATE, ...overrides };
 }
 
-function renderSection(props: { items: TriageItem[]; filters?: TriageFilterState }) {
-  mockUseTriageItems.mockReturnValue({ data: props.items, isLoading: false });
+function renderSection(props: {
+  items: TriageItem[];
+  filters?: TriageFilterState;
+  isError?: boolean;
+  refetch?: () => void;
+}) {
+  mockUseTriageItems.mockReturnValue({
+    data: props.items,
+    isLoading: false,
+    isError: props.isError ?? false,
+    refetch: props.refetch ?? vi.fn(),
+  });
   mockUseTriageDrift.mockReturnValue({ data: { available: true, behind: 0 } });
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -129,6 +140,23 @@ describe("PerProjectTriageSection", () => {
   it("renders nothing when the project genuinely has zero items (not a filtering artifact)", () => {
     const { container } = renderSection({ items: [] });
     expect(container.firstChild).toBeNull();
+  });
+
+  // @covers FR-01.01 — trg-0f040744 finding 1: a failed items load must not
+  // render as `null`, which is indistinguishable from "this project has
+  // nothing open" and, unlike the page-level empty banner, carries no
+  // indication anything went wrong at all.
+  it("renders a load-error state (not `null`) when the project's items fetch fails", () => {
+    renderSection({ items: [], isError: true });
+    expect(screen.getByTestId("triage-project-proj-a")).toBeInTheDocument();
+    expect(screen.getByTestId("triage-load-error-proj-a")).toBeInTheDocument();
+  });
+
+  it("load-error retry calls refetch", async () => {
+    const refetch = vi.fn();
+    renderSection({ items: [], isError: true, refetch });
+    await userEvent.click(screen.getByTestId("triage-load-error-proj-a-retry"));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it("AC8: a due-parked item survives an excluding filter and shows the Returned badge", () => {

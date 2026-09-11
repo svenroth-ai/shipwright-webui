@@ -23,7 +23,8 @@ const PROJECT: Project = {
   createdAt: "2026-07-14T00:00:00Z",
 };
 
-const projectsMock = vi.fn<() => { data: Project[]; isLoading: boolean }>();
+const projectsMock =
+  vi.fn<() => { data: Project[]; isLoading: boolean; isError: boolean; refetch: () => void }>();
 const runsMock = vi.fn<() => { data: RunsResponse | undefined }>();
 const setActiveProjectId = vi.fn();
 
@@ -98,7 +99,12 @@ beforeEach(() => {
   projectsMock.mockReset();
   runsMock.mockReset();
   setActiveProjectId.mockReset();
-  projectsMock.mockReturnValue({ data: [PROJECT], isLoading: false });
+  projectsMock.mockReturnValue({
+    data: [PROJECT],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  });
   runsMock.mockReturnValue({ data: okRuns() });
 });
 
@@ -172,9 +178,35 @@ describe("ShipsLogPage", () => {
 
   // @covers FR-01.59
   it("unknown project → honest not-found, no fabricated logbook", () => {
-    projectsMock.mockReturnValue({ data: [], isLoading: false });
+    projectsMock.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
     renderPage("ghost");
     expect(screen.getByText(/not registered/i)).toBeInTheDocument();
     expect(screen.queryByTestId("stub-logbook")).toBeNull();
+  });
+
+  // @covers FR-01.01 — trg-0f040744 finding 1: a failed projects load must
+  // not be reported as "this project is not registered" (a different,
+  // false claim) — same project id, different reason the page has nothing.
+  it("failed projects load → load-error state, never the not-registered claim", () => {
+    const refetch = vi.fn();
+    projectsMock.mockReturnValue({ data: [], isLoading: false, isError: true, refetch });
+    renderPage("p1");
+    expect(screen.getByTestId("ships-log-load-error")).toBeInTheDocument();
+    expect(screen.queryByText(/not registered/i)).toBeNull();
+    expect(screen.queryByTestId("stub-logbook")).toBeNull();
+  });
+
+  // @covers FR-01.01
+  it("load-error retry calls refetch", async () => {
+    const refetch = vi.fn();
+    projectsMock.mockReturnValue({ data: [], isLoading: false, isError: true, refetch });
+    renderPage("p1");
+    await userEvent.click(screen.getByTestId("ships-log-load-error-retry"));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

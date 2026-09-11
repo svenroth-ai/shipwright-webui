@@ -33,13 +33,14 @@ import { ProjectSettingsDialog } from "../components/wizard/ProjectSettingsDialo
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
 import { ProjectLogCard } from "../components/external/ProjectLogCard";
+import { ListLoadErrorState } from "../components/common/ListLoadErrorState";
 import { getProjectColor } from "../lib/projectColor";
 import type { RunsResponse } from "../lib/runDataApi";
 import type { Project } from "../types";
 import "../styles/projects-gallery.css";
 
 export default function ProjectsPage() {
-  const { data: projects = [], isLoading } = useProjects();
+  const { data: projects = [], isLoading, isError: projectsError, refetch: refetchProjects } = useProjects();
   const { data: tasks = [] } = useExternalTasks({ projectId: null });
   const [showWizard, setShowWizard] = useState(false);
   const [settingsFor, setSettingsFor] = useState<Project | null>(null);
@@ -180,6 +181,14 @@ export default function ProjectsPage() {
                 />
               ))}
             </div>
+          ) : projectsError ? (
+            // FR-01.01 triage trg-0f040744 finding 1 — a failed load is not
+            // the same claim as "you have zero projects".
+            <ListLoadErrorState
+              testId="projects-load-error"
+              label="projects"
+              onRetry={() => void refetchProjects()}
+            />
           ) : projects.length === 0 ? (
             <div
               className="flex flex-col items-center text-center"
