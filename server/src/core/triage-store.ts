@@ -67,7 +67,7 @@ import { outboxPathFor } from "./triage-paths.js";
 
 export { parseRawLines, readLocalRawLinesSplit } from "./triage-raw.js";
 
-const STATUSES: ReadonlySet<TriageStatus> = new Set([
+export const STATUSES: ReadonlySet<TriageStatus> = new Set([
   "triage",
   "promoted",
   "dismissed",
