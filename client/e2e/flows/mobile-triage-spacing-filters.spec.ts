@@ -131,6 +131,11 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
           `${testId} right edge must be within the page viewport`,
         ).toBeLessThanOrEqual(PHONE_VIEWPORT.width);
         await expect(btn).toBeInViewport();
+        // AC2 says each button must be CLICKABLE, not merely visible —
+        // `{ trial: true }` runs Playwright's actionability pipeline
+        // (visible, stable, receives pointer events, not obscured) without
+        // dispatching the click (PR-review preflight finding).
+        await btn.click({ trial: true });
       }
     });
   });

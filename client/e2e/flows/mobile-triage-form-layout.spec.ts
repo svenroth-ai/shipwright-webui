@@ -122,6 +122,11 @@ test.describe("Mobile Triage / task-form layout", () => {
       await page.goto("/");
       await page.getByTestId("create-menu-primary").click();
       await expect(page.getByTestId("new-issue-modal-new-task")).toBeVisible();
+      // Launch is disabled until a title is entered (useNewIssueFormDerived's
+      // canSubmit requires title.trim().length > 0) — fill one in so the
+      // trial-click below exercises a genuinely enabled button, the same
+      // precondition a real user hits before Launch is clickable at all.
+      await page.getByTestId("new-issue-title-input").fill("Mobile layout repro task");
       await page.getByTestId("new-issue-more-options-toggle").click();
       await expect(page.getByTestId("new-issue-more-options-content")).toBeVisible();
 
@@ -133,12 +138,15 @@ test.describe("Mobile Triage / task-form layout", () => {
       expect(box).not.toBeNull();
       expect(box!.y + box!.height).toBeLessThanOrEqual(PHONE_VIEWPORT.height);
 
-      // Launch is actually clickable (not just geometrically present) —
-      // Playwright's actionability checks (visible, not obscured, stable,
-      // receives events) are exercised by a real click attempt via a
-      // scroll-into-view + hover, without submitting the form.
+      // Launch is actually clickable, not just geometrically present —
+      // `{ trial: true }` runs Playwright's full actionability pipeline
+      // (visible, stable, receives pointer events, not obscured by another
+      // element) without dispatching the click or submitting the form
+      // (PR-review preflight finding: the prior version only checked
+      // visibility/viewport containment, never attempted a click).
       await launchBtn.scrollIntoViewIfNeeded();
       await expect(launchBtn).toBeInViewport();
+      await launchBtn.click({ trial: true });
     });
 
     // Code-review finding (high, follow-up): at the literal 375×667 viewport
