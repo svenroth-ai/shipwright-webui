@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-08T18:13:00.591340+00:00",
+  "timestamp": "2026-09-12T11:55:51.062314+00:00",
   "provider": "openrouter",
-  "findings_count": 13,
+  "findings_count": 11,
   "self_review_fallback_ran": false,
   "reason": null,
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "revise",
-    "glm": "revise"
+    "glm": "approve",
+    "openai": "revise"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
   },
   "contradiction_resolution": null
 }

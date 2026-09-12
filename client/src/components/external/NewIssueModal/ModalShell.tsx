@@ -63,11 +63,21 @@ export function ModalShell({
           // Sven 2026-07-17: white fields on a white sheet with near-invisible
           // borders → a beige sheet. Round 2: that beige was too YELLOW, so the
           // sheet is now --surface-form (#EDEAE7, the grey-beige from svenroth.ai).
-          className={`fixed left-1/2 top-[10%] z-50 ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--surface-form,#edeae7)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
+          //
+          // iterate-2026-09-12-mobile-triage-form-layout: `flex flex-col
+          // max-h-[80dvh]` added (position UNCHANGED — top-[10%] stays as-is,
+          // mirrors CampaignLaunchDialog's own top-[10%]+max-h-[80vh]
+          // convention). Without a height cap the dialog had no bound at all:
+          // on phone the footer (Launch button) could be pushed past the
+          // bottom of the viewport with no way to scroll it into view. Header
+          // and footer below are `shrink-0`; the scroll-body wrapper is
+          // `min-h-0 flex-1` so it — not a hardcoded pixel budget — absorbs
+          // whatever height header+footer don't use.
+          className={`fixed left-1/2 top-[10%] z-50 flex max-h-[80dvh] flex-col ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--surface-form,#edeae7)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
           data-testid={`new-issue-modal-${mode}`}
         >
           {/* Header: icon tile + title/subtitle + close */}
-          <div className="flex items-center gap-3 border-b border-[var(--surface-form-divider,#c3b8ae)] px-5 py-4">
+          <div className="flex shrink-0 items-center gap-3 border-b border-[var(--surface-form-divider,#c3b8ae)] px-5 py-4">
             <div
               data-testid="new-issue-header-icon"
               className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[8px]"
@@ -102,6 +112,7 @@ export function ModalShell({
           <form
             onSubmit={(e) => void onSubmit(e, "launch")}
             data-testid="new-issue-modal-form"
+            className="flex min-h-0 flex-1 flex-col"
           >
             {/*
              * The bounded-scroll-container invariant (children keep their
@@ -115,54 +126,74 @@ export function ModalShell({
              * (ParamSections.tsx) also carries overflow-hidden but nests inside
              * MoreOptionsDisclosure, so it is safe only while its own flex
              * parent stays height-unbounded.
+             *
+             * iterate-2026-09-12-mobile-triage-form-layout: this wrapper div
+             * is the `min-h-0 flex-1` participant in the Dialog.Content flex
+             * column (the form above it is too, so the allocation chain is
+             * intact); ModalScrollBody's own className stays restricted to
+             * height-budget and gap tokens only by its invariant, so
+             * `max-h-full` (not a pixel budget) is what it receives here.
+             * It ALSO needs `flex flex-col` on itself (found via real-browser
+             * testing, not just class-fence review): a flex ITEM's flexed
+             * main size is definite for measuring the item's OWN box, but a
+             * plain `display:block` item does not extend that definiteness
+             * to a percentage-sized descendant (`max-h-full` here) — only a
+             * `display:flex`/`grid` container resolves a child's percentage
+             * height against its own now-definite content box. Without this,
+             * `max-h-full` computes against an effectively auto-height
+             * parent (resolves to `none`) and the body grows to its full
+             * content height instead of clamping — verified with a minimal
+             * static-HTML repro before and after adding this class.
              */}
-            <ModalScrollBody
-              data-testid="new-issue-modal-body"
-              className="max-h-[calc(100vh-280px)] gap-4"
-            >
-              {children}
-
-              {/* Helper-box — per-mode palette. */}
-              <div
-                className="flex items-start gap-2 rounded-[var(--radius-button,8px)] px-3 py-2.5 text-[12px] leading-[1.55]"
-                style={{
-                  background: palette.bg,
-                  color: palette.text,
-                  borderLeft: `3px solid ${palette.stripe}`,
-                }}
+            <div className="flex min-h-0 flex-1 flex-col" data-testid="new-issue-modal-body-slot">
+              <ModalScrollBody
+                data-testid="new-issue-modal-body"
+                className="max-h-full gap-4"
               >
-                <div>
-                  <strong
-                    className="font-semibold"
-                    style={{ color: palette.textStrong }}
-                  >
-                    Save to Backlog:
-                  </strong>{" "}
-                  task lands in the Backlog column as a draft — nothing
-                  spawns.
-                  <br />
-                  <strong
-                    className="font-semibold"
-                    style={{ color: palette.textStrong }}
-                  >
-                    Launch:
-                  </strong>{" "}
-                  task moves to In&nbsp;Progress, TaskDetail opens, and the
-                  command runs automatically in the embedded terminal there.
-                </div>
-              </div>
+                {children}
 
-              {error && (
+                {/* Helper-box — per-mode palette. */}
                 <div
-                  data-testid="new-issue-error"
-                  className="text-[12px] text-[var(--color-error,#DC2626)]"
+                  className="flex items-start gap-2 rounded-[var(--radius-button,8px)] px-3 py-2.5 text-[12px] leading-[1.55]"
+                  style={{
+                    background: palette.bg,
+                    color: palette.text,
+                    borderLeft: `3px solid ${palette.stripe}`,
+                  }}
                 >
-                  {error}
+                  <div>
+                    <strong
+                      className="font-semibold"
+                      style={{ color: palette.textStrong }}
+                    >
+                      Save to Backlog:
+                    </strong>{" "}
+                    task lands in the Backlog column as a draft — nothing
+                    spawns.
+                    <br />
+                    <strong
+                      className="font-semibold"
+                      style={{ color: palette.textStrong }}
+                    >
+                      Launch:
+                    </strong>{" "}
+                    task moves to In&nbsp;Progress, TaskDetail opens, and the
+                    command runs automatically in the embedded terminal there.
+                  </div>
                 </div>
-              )}
-            </ModalScrollBody>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--surface-form-divider,#c3b8ae)] bg-[var(--surface-form-sunken,#e4dfda)] px-5 py-3">
+                {error && (
+                  <div
+                    data-testid="new-issue-error"
+                    className="text-[12px] text-[var(--color-error,#DC2626)]"
+                  >
+                    {error}
+                  </div>
+                )}
+              </ModalScrollBody>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2 border-t border-[var(--surface-form-divider,#c3b8ae)] bg-[var(--surface-form-sunken,#e4dfda)] px-5 py-3">
               <div
                 className="flex-1 text-[11px] text-[var(--body,#44403c)]"
                 data-testid="new-issue-footer-hint"

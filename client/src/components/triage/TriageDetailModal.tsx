@@ -257,7 +257,7 @@ export function TriageDetailModal({
                       {fixNowFailure}
                     </div>
                   )}
-                  <div className="flex justify-end gap-2.5 mt-4 items-center">
+                  <div className="flex flex-wrap justify-end gap-2.5 mt-4 items-center">
                     <button
                       type="button"
                       onClick={onFixNowClick}

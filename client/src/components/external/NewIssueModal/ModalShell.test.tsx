@@ -226,7 +226,6 @@ describe("ModalShell", () => {
     const body = screen.getByTestId("new-issue-modal-body");
     // The scroll container is what creates the negative free space...
     expect(body.className).toContain("overflow-y-auto");
-    expect(body.className).toContain("max-h-[calc(100vh-280px)]");
     // ...and this is the rule that stops its children absorbing it.
     expect(body.className).toContain("[&>*]:shrink-0");
   });

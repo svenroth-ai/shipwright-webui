@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All 4 ACs implemented (ModalShell flex-column height cap, TriageDetailModal flex-wrap action row, PerProjectTriageSection/DeferredTriageSection max-md: margin tightening, TriageFilterSortBar phone collapse via useIsPhoneViewport); nothing beyond spec scope was added."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "n/a",
+      "note": "Pure client-side layout/CSS change; no new API calls, error boundaries, or data-boundary code introduced."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "n/a",
+      "note": "No user input, no SQL/HTML injection surface, no secrets, no auth/permission surface touched — CSS classes and one boolean UI-state toggle only."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "63 unit assertions across 5 test files assert on rendered className/attributes (outcomes, not internals), plus 7 real-browser Playwright E2E cases (mobile-triage-form-layout.spec.ts) proving actual geometry per AC; both happy-path and the historically-fragile More-Options path are covered."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "n/a",
+      "note": "No loops of network/DB calls, no unbounded list rendering, no new synchronous blocking — one extra useState + a media-query hook already used elsewhere in the codebase."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "All touched files stay under the 300-line convention; new classes/testids follow existing MoreOptionsDisclosure-style naming (triage-filter-sort-toggle, aria-expanded) and Tailwind max-md: idiom introduced consistently across all 4 touched components."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized format (JSON/JSONL/schema) changed or introduced by this diff — CSS/layout and one client-only UI toggle only."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reported no findings against the changed test files."
+    }
+  ]
+}

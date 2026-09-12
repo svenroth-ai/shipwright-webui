@@ -19,9 +19,13 @@
  * `onToggle` still just flips exclusion-set membership either way.
  */
 
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+
 import { TriageFilterGroup } from "./TriageFilterGroup";
 import { TriageSortLevel } from "./TriageSortLevel";
 import { COMPLEXITY_FILTER_VALUES, type ComplexityFilterValue } from "../../lib/triageFilterSort";
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import type { TriageViewState } from "../../hooks/useTriageViewState";
 import type { TriagePriority } from "../../lib/triageApi";
 
@@ -56,64 +60,95 @@ interface TriageFilterSortBarProps {
 
 export function TriageFilterSortBar({ view, availableDomains }: TriageFilterSortBarProps) {
   const domainOptions = availableDomains.map((d) => ({ value: d, label: d }));
+  // iterate-2026-09-12-mobile-triage-form-layout: on phone (<768px) the
+  // filter/sort content is collapsed by default behind a toggle to save
+  // vertical space above the triage list — mirrors MoreOptionsDisclosure's
+  // pattern. `useIsPhoneViewport()` initializes synchronously from
+  // `window.matchMedia` (see useIsCompactViewport.ts), so there is no
+  // expanded-then-collapse flash on first paint. At >=768px `isPhone` is
+  // always false, the toggle never renders, and content is always visible
+  // — behaviorally identical to before this change.
+  const isPhone = useIsPhoneViewport();
+  const [phoneOpen, setPhoneOpen] = useState(false);
+  const contentVisible = !isPhone || phoneOpen;
 
   return (
     <div
-      className="mb-4 flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+      className="mb-4 max-md:mb-2 flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
       data-testid="triage-filter-sort-bar"
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <TriageFilterGroup
-          label="Priority"
-          options={PRIORITY_OPTIONS}
-          selected={activeSet(
-            PRIORITY_OPTIONS.map((o) => o.value),
-            view.filters.excludedPriorities,
-          )}
-          onToggle={view.togglePriority}
-          testIdPrefix="triage-filter-priority"
-        />
-        <TriageFilterGroup
-          label="Domain"
-          options={domainOptions}
-          selected={activeSet(availableDomains, view.filters.excludedDomains)}
-          onToggle={view.toggleDomain}
-          testIdPrefix="triage-filter-domain"
-        />
-        <TriageFilterGroup
-          label="Complexity"
-          options={COMPLEXITY_OPTIONS}
-          selected={activeSet(
-            COMPLEXITY_FILTER_VALUES,
-            view.filters.excludedComplexities,
-          )}
-          onToggle={view.toggleComplexity}
-          testIdPrefix="triage-filter-complexity"
-        />
-        <TriageFilterGroup
-          label=""
-          options={PARKED_OPTION}
-          selected={view.filters.showParked ? new Set<"parked">(["parked"]) : new Set<"parked">()}
-          onToggle={() => view.setShowParked(!view.filters.showParked)}
-          testIdPrefix="triage-filter-parked"
-        />
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <TriageSortLevel
-          label="Sort open items"
-          ariaLabel="Primary"
-          level={view.sort.primary}
-          onChange={view.setPrimarySort}
-          testIdPrefix="triage-sort-primary"
-        />
-        <TriageSortLevel
-          label="then"
-          ariaLabel="Secondary"
-          level={view.sort.secondary}
-          onChange={view.setSecondarySort}
-          testIdPrefix="triage-sort-secondary"
-        />
-      </div>
+      {isPhone && (
+        <button
+          type="button"
+          data-testid="triage-filter-sort-toggle"
+          onClick={() => setPhoneOpen((open) => !open)}
+          aria-expanded={phoneOpen}
+          className="flex w-full items-center justify-between gap-2 pointer-coarse:min-h-[44px] text-left text-sm font-medium text-[var(--color-text)]"
+        >
+          <span>Filters &amp; sort</span>
+          <ChevronDown
+            size={16}
+            aria-hidden
+            className={`flex-shrink-0 transition-transform ${phoneOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+      )}
+      {contentVisible && (
+        <>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <TriageFilterGroup
+              label="Priority"
+              options={PRIORITY_OPTIONS}
+              selected={activeSet(
+                PRIORITY_OPTIONS.map((o) => o.value),
+                view.filters.excludedPriorities,
+              )}
+              onToggle={view.togglePriority}
+              testIdPrefix="triage-filter-priority"
+            />
+            <TriageFilterGroup
+              label="Domain"
+              options={domainOptions}
+              selected={activeSet(availableDomains, view.filters.excludedDomains)}
+              onToggle={view.toggleDomain}
+              testIdPrefix="triage-filter-domain"
+            />
+            <TriageFilterGroup
+              label="Complexity"
+              options={COMPLEXITY_OPTIONS}
+              selected={activeSet(
+                COMPLEXITY_FILTER_VALUES,
+                view.filters.excludedComplexities,
+              )}
+              onToggle={view.toggleComplexity}
+              testIdPrefix="triage-filter-complexity"
+            />
+            <TriageFilterGroup
+              label=""
+              options={PARKED_OPTION}
+              selected={view.filters.showParked ? new Set<"parked">(["parked"]) : new Set<"parked">()}
+              onToggle={() => view.setShowParked(!view.filters.showParked)}
+              testIdPrefix="triage-filter-parked"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <TriageSortLevel
+              label="Sort open items"
+              ariaLabel="Primary"
+              level={view.sort.primary}
+              onChange={view.setPrimarySort}
+              testIdPrefix="triage-sort-primary"
+            />
+            <TriageSortLevel
+              label="then"
+              ariaLabel="Secondary"
+              level={view.sort.secondary}
+              onChange={view.setSecondarySort}
+              testIdPrefix="triage-sort-secondary"
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 }

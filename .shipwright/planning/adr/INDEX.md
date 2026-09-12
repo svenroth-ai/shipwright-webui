@@ -55,3 +55,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Repo-scoped tsx-watch kill sweep](iterate-2026-09-09-deploy-tsx-kill-scope-repo-scoped-tsx-sweep.md)
 - [Phone touch-target audit + icon-only "+ New" reversal](iterate-2026-09-09-phone-touch-targets-plus-cta-touch-target-audit.md)
 - [ADR: Reconcile B7/G2/I5 compliance findings](iterate-2026-09-11-compliance-b7-g2-i5.md)
+- [Mobile Triage/task-form layout: flex height-chain fix + spacing/collapse](iterate-2026-09-12-mobile-triage-form-layout-flex-height-chain.md)
