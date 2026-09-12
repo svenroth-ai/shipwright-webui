@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-12-mobile-triage-form-layout",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-12T18:22:16.698939+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "The plan asserts ModalShell consumers are limited to the New Task / Fix-now form, but never enumerates them. The flex restructure (form wrapped in `flex min-h-0 flex-1 flex-col`, body capped by dialog `max-h-[80dvh]`) changes layout mechanics for every consumer of ModalShell, not just the reported one. If EditTaskModal or another modal routes through ModalShell (the out-of-scope note suggests they share only the \"anti-pattern\", but this isn't verified in the mini-plan), a form with different internal structure (no scrollable body, fixed-height content) could render differently or break under the new column layout.",
+          "suggestion": "Before implementing, grep for `ModalShell` usages and list them in the mini-plan; confirm each either benefits from or is unaffected by the restructure, and add a desktop-viewport Playwright/Vitest smoke assertion for at least one non-task-form consumer to prove no regression. Note that all ModalShell consumers get the fix for free — which may be a bonus, but should be a stated fact, not an assumption.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "max-h-[80dvh]` relies on `dvh` support (Safari <15.4, older Android WebView). On unsupported browsers `max-h` silently doesn't apply and the pre-fix overflow behavior returns. Plan mentions `dvh` as \"mobile-safe\" but has no fallback.",
+          "suggestion": "Add the standard fallback pair (`max-h-[80vh] max-h-[80dvh]` — Tailwind emits both, last-supported wins). Two utility classes, zero cost.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "top-[10%]` + `max-h-[80dvh]` means the dialog can occupy 90% of viewport height; combined with tall footers that wrap to two lines on phone (the plan itself notes `pointer-coarse` 44px button wrapping), the scroll body could get a very small share. That's correct-by-construction, but AC1's Playwright test should also cover the pointer-coarse / wrapped-footer state, not just a filled form at default pointer type — that's the exact configuration that produced the original bug.",
+          "suggestion": "Add one Playwright case (or emulate `pointer: coarse` via `hasTouch`/CSS emulation) exercising AC1 with the two-line footer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "AC4's phone gating uses JS (`useIsPhoneViewport`) while AC3's spacing uses CSS (`max-md:`). `useIsPhoneViewport` hooks typically render false on first frame (matchMedia not yet read in some setups) — on phone the filter content would flash visible before collapsing. Minor, but it's the kind of flicker reviewers notice.",
+          "suggestion": "Verify the hook initializes synchronously from `window.matchMedia` (most do; jsdom mock tests won't catch it). If it's fine, no change; if it's effect-based, initialize state from matchMedia directly in the hook or this component.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "AC3 is verified only by class-fence tests (\"the phone margin classes are present\"), which proves the classes exist but not that scrolling is \"materially less\" — the acceptance criterion as written is unfalsifiable by the stated test strategy.",
+          "suggestion": "Either tighten the AC to name the concrete spacing values (e.g. \"section margin ≤16px at <768px\") so the class fence is a real proof, or add a Playwright measurement (e.g. distance from section top to next section top at 375px). The latter is ~10 lines in the existing spec.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "flex-wrap` on the TriageDetailModal action row fixes left-edge clipping, but with 4 buttons at 375px the row will likely wrap to 2 lines, growing the footer/dialog height. If the detail panel body also scrolls, this interacts with the ModalShell restructure — fine — but if TriageDetailModal uses its own sizing (not ModalShell), the added height must be verified against its existing max-height.",
+          "suggestion": "Confirm in the Playwright AC2 case that the wrapped row doesn't push the dialog past the viewport bottom (AC2 only checks clipping, not overall fit).  Overall assessment: The approach is sound, well-scoped, and the rejected alternative is correctly rejected — the flex restructure is the right fix and the internal review already caught the desktop-positioning hazard. Remaining issues are verification-completeness gaps (enumerate ModalShell consumers, cover the wrapped-footer/pointer-coarse state, dvh fallback), all cheap to close during implementation.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "ModalShell` is shared, but browser coverage only exercises New Task (including More Options). The flex/min-height rewrite can affect other ModalShell consumers with different header, body, validation-error, or footer compositions.",
+          "suggestion": "Identify ModalShell consumers and add at least focused render/regression coverage for any materially different footer/body shape, especially wrapped or error-state footers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "AC2 requires all four actions to be visible and clickable, but the proposed Playwright assertion checks only `triage-fix-now` for a non-negative x-coordinate. `flex-wrap` could still leave another control clipped if its sizing, a dialog width constraint, or a localized label changes.",
+          "suggestion": "Assert each action’s bounding box is fully contained within the dialog and viewport, then click each action or otherwise verify it is interactable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The phone filter bar’s “collapsed by default” behavior depends on `useIsPhoneViewport()` resolving the media query immediately. If the hook initially reports desktop until hydration/effect setup, phone users can see the expanded controls briefly before they collapse.",
+          "suggestion": "Verify the hook’s initial-value behavior and add an E2E assertion for the initial mobile render; if needed, make the responsive state synchronous or use CSS to prevent the expanded flash.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "AC3’s E2E strategy is described broadly, while the unit tests only fence Tailwind classes. That does not demonstrate the requested material reduction in scrolling or guard against a class-order/build issue.",
+          "suggestion": "Add a browser assertion comparing the Deferred heading/next section position against the viewport for a seeded 2–3-item project, or retain a screenshot proving the compact phone layout.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No security-sensitive data flow, authorization boundary, or injection surface is introduced by this UI-only change.",
+          "suggestion": "No security-specific implementation change is needed.  The core flex-column modal fix and responsive wrapping/collapse approach are sound and appropriately scoped. Address the concrete viewport coverage gaps before implementation is considered complete. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-12T11:55:51.049492+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category:** risk | **Severity:** medium\n  **Finding:** The plan asserts ModalShell consumers are limited to the New Task / Fix-now form, but never enumerates them. The flex restructure (form wrapped in `flex min-h-0 flex-1 flex-col`, body capped by dialog `max-h-[80dvh]`) changes layout mechanics for *every* consumer of ModalShell, not just the reported one. If EditTaskModal or another modal routes through ModalShell (the out-of-scope note suggests they share only the \"anti-pattern\", but this isn't verified in the mini-plan), a form with different internal structure (no scrollable body, fixed-height content) could render differently or break under the new column layout.\n  **Suggestion:** Before implementing, grep for `ModalShell` usages and list them in the mini-plan; confirm each either benefits from or is unaffected by the restructure, and add a desktop-viewport Playwright/Vitest smoke assertion for at least one non-task-form consumer to prove no regression. Note that all ModalShell consumers get the fix for free — which may be a bonus, but should be a stated fact, not an assumption.\n\n- **Category:** edge-case | **Severity:** low\n  **Finding:** `max-h-[80dvh]` relies on `dvh` support (Safari <15.4, older Android WebView). On unsupported browsers `max-h` silently doesn't apply and the pre-fix overflow behavior returns. Plan mentions `dvh` as \"mobile-safe\" but has no fallback.\n  **Suggestion:** Add the standard fallback pair (`max-h-[80vh] max-h-[80dvh]` — Tailwind emits both, last-supported wins). Two utility classes, zero cost.\n\n- **Category:** risk | **Severity:** low\n  **Finding:** `top-[10%]` + `max-h-[80dvh]` means the dialog can occupy 90% of viewport height; combined with tall footers that wrap to two lines on phone (the plan itself notes `pointer-coarse` 44px button wrapping), the scroll body could get a very small share. That's correct-by-construction, but AC1's Playwright test should also cover the *pointer-coarse / wrapped-f […truncated]\n\n[openai] 1. Category: risk  \n   Severity: medium  \n   Finding: `ModalShell` is shared, but browser coverage only exercises New Task (including More Options). The flex/min-height rewrite can affect other ModalShell consumers with different header, body, validation-error, or footer compositions.  \n   Suggestion: Identify ModalShell consumers and add at least focused render/regression coverage for any materially different footer/body shape, especially wrapped or error-state footers.\n\n2. Category: edge-case  \n   Severity: medium  \n   Finding: AC2 requires all four actions to be visible and clickable, but the proposed Playwright assertion checks only `triage-fix-now` for a non-negative x-coordinate. `flex-wrap` could still leave another control clipped if its sizing, a dialog width constraint, or a localized label changes.  \n   Suggestion: Assert each action’s bounding box is fully contained within the dialog and viewport, then click each action or otherwise verify it is interactable.\n\n3. Category: edge-case  \n   Severity: medium  \n   Finding: The phone filter bar’s “collapsed by default” behavior depends on `useIsPhoneViewport()` resolving the media query immediately. If the hook initially reports desktop until hydration/effect setup, phone users can see the expanded controls briefly before they collapse.  \n   Suggestion: Verify the hook’s initial-value behavior and add an E2E assertion for the initial mobile render; if needed, make the responsive state synchronous or use CSS to prevent the expanded flash.\n\n4. Category: risk  \n   Severity: low  \n   Finding: AC3’s E2E strategy is described broadly, while the unit tests only fence Tailwind classes. That does not demonstrate the requested material reduction in scrolling or guard against a class-order/build issue.  \n   Suggestion: Add a browser assertion comparing the Deferred heading/next section position against the viewport for a seeded 2–3-item project, or retain a screenshot proving the compact phone layout.\n\n5. Ca […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/triage/PerProjectTriageSection.test.tsx",
+          "line": 203,
+          "finding": "The prior review's finding #6 ('convert vacuous className.toContain(...) assertions to toHaveClass(...)') was applied to the new ModalShell.layout.test.tsx fence but NOT to the two new AC3 margin-fence tests added by this same iterate (PerProjectTriageSection.test.tsx and DeferredTriageSection.test.tsx), which still used `.className).toContain(...)`.",
+          "suggestion": "Convert these two blocks to toHaveClass(...), matching ModalShell.layout.test.tsx's idiom. FIXED post-review.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/triage/TriageDetailModal.tsx",
+          "line": 180,
+          "finding": "TriageDetailModal.tsx sizes itself with raw max-h-[85vh]/h-[85vh] — the same anti-pattern the spec's Out-of-Scope section names in EditTaskModal/ContinuePipelineModal/CampaignLaunchDialog, but this file (directly touched by this iterate for AC2) was not in that disclosure list.",
+          "suggestion": "Add TriageDetailModal.tsx to the out-of-scope/follow-up disclosure list alongside the three already-named modals. FIXED post-review — spec updated.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "correctness",
+          "file": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts",
+          "line": 1,
+          "finding": "The sibling E2E file mobile-triage-spacing-filters.spec.ts (AC2-AC4, split from mobile-triage-form-layout.spec.ts to clear the 300-line bloat gate) was not listed in the diff scope handed to the reviewer, though it was read and verified directly and found well-structured and non-vacuous.",
+          "suggestion": "Scope-list omission only, not a defect — file is staged at commit time.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-12T19:01:39.025671+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-12T19:01:56.859153+00:00",
+      "disposition": "CSS/Tailwind-class + minimal React-state layout diff only (flex classes, media-query breakpoints, one wrapper div's flex-col class) — no migrations, no async/concurrency, no cross-plugin imports, no irreversible ops. Stage-3 doubt-reviewer's trigger table (shipwright-build Step 6) is not met.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/components/triage/TriageFilterSortBar.test.tsx:12 (`setPhone`)",
+          "line": null,
+          "finding": "The matchMedia mock matches on the exact query string `\"(max-width: 767px)\"`. If `useIsPhoneViewport()` uses any other formulation (e.g. `(max-width: 767.98px)` or a shared constant that drifts), every phone test silently passes with `matches: false` and the collapsed-by-default behavior is never exercised — the tests would pass against an implementation whose phone branch never fires.",
+          "suggestion": "Import the hook's actual media-query constant (or export it) and build the mock from it, so the fence can't silently decouple from the implementation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/triage/TriageFilterSortBar.tsx (`contentVisible = !isPhone || phoneOpen`)",
+          "line": null,
+          "finding": "On phone, when filters are actively excluding items, the bar collapses to just \"Filters & sort\" with no indication that filters are applied — users may see a shortened/empty list with no visible cause. Not an AC violation (AC4 says collapsed by default), but a real usability gap for the exact flow AC3/AC4 are optimizing.",
+          "suggestion": "Show an active-filter count on the toggle (e.g. \"Filters & sort (2)\") — cheap, and mirrors the MoreOptionsDisclosure convention already cited.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/NewIssueModal/ModalShell.tsx (`max-h-[80dvh]` + `top-[10%]`)",
+          "line": null,
+          "finding": "top-[10%]` is computed against the small (ICB) viewport while `dvh` tracks the dynamic viewport; on a browser with a tall hidden URL bar, 10% top + 80dvh height can exceed the visible viewport by ~10-70px, clipping the footer again. The spec discloses the vh/dvh mechanism as unverifiable in this harness, but this particular interaction (top-% offset vs dvh cap) is a distinct, unaddressed residual.",
+          "suggestion": "Use `top-[10dvh]` (or `max-h-[70dvh]` with the 10% top) so both use the same unit, or cap with `max-h-[min(80dvh,90dv-...)]`. Worth a manual-verification note at minimum.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/components/common/ModalScrollBody.tsx (doc change) + any callers not shown",
+          "line": null,
+          "finding": "max-h-full` only resolves if the immediate parent chain has definite height. The diff updates ModalShell to provide that, but the doc change (\"prefer max-h-full\") plus the invariant test permitting `max-h-` generally means a future caller copying the pattern into a non-flex parent will silently get an unbounded body — exactly the production bug this iterate found once already.",
+          "suggestion": "Extend the ModalScrollBody doc/invariant to state the hard requirement (parent must be `flex min-h-0` with definite flexed height, itself a flex/grid container for percentage resolution), which is currently only documented in a ModalShell comment.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts (AC2 test)",
+          "line": null,
+          "finding": "The AC2 test checks left-edge containment against both dialog and viewport but never asserts the right edge against the page viewport (only against the dialog). Since the dialog itself is `max-w-[95vw]`-style positioned, a dialog shifted past the right viewport edge would still pass the dialog-relative assertion. Practically low risk given the dialog's centering.",
+          "suggestion": "Add `box.x + box.width <= viewport width` for symmetry.  Non-findings I checked deliberately: the AC3 E2E's isLoading-race fix (waiting on `triage-open-items-`) is correct and documented; the `flex flex-col` on the body-slot wrapper is a genuine, well-root-caused fix; desktop behavior of the filter bar is provably unchanged (`!isPhone || phoneOpen` → always true at ≥768px); the deferred/per-project margin changes are pure `max-md:` additions with desktop values untouched; the removal of the `calc(100vh-280px)` assertion from ModalShell.test.tsx is consistent with the new class fence in ModalShell.layout.test.tsx, which covers the full chain including the middle links.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "[PerProjectTriageSection.tsx](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-b5sa8vq4\\client\\src\\components\\triage\\PerProjectTriageSection.tsx:172)",
+          "line": null,
+          "finding": "AC3 requires tightening both section margins and card-list spacing on phones, but the card list retains `space-y-2`; only its trailing `mb-4` changes. Projects with 2–3 cards therefore keep their existing inter-card vertical gaps, partially missing the requested scrolling reduction.",
+          "suggestion": "Add a phone-scoped `max-md:space-y-` reduction to the open-item list and update the geometry test to verify the resulting card-to-card spacing.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "[mobile-triage-form-layout.spec.ts](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-b5sa8vq4\\client\\e2e\\flows\\mobile-triage-form-layout.spec.ts:96)",
+          "line": null,
+          "finding": "The two 375×667 AC1 tests neither fill form fields nor assert that the body scrolls. The diff itself documents that these cases pass with the historical broken implementation; the only non-vacuous overflow test changes the viewport to 375×480. Thus the stated 375×667 “filled enough fields that the body scrolls” acceptance path is not tested.",
+          "suggestion": "At 375×667, populate a field that increases form content height (for example a long multiline description), assert `scrollHeight > clientHeight`, then verify the footer buttons remain within the viewport and can receive a real click/actionability check.  Ship with fixes: the core layout changes appear sound, but AC3 is only partially implemented and AC1’s specified overflow scenario lacks meaningful coverage.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-12T19:11:43.003961+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category:** test\n  **Severity:** medium\n  **File:** client/src/components/triage/TriageFilterSortBar.test.tsx:12 (`setPhone`)\n  **Finding:** The matchMedia mock matches on the exact query string `\"(max-width: 767px)\"`. If `useIsPhoneViewport()` uses any other formulation (e.g. `(max-width: 767.98px)` or a shared constant that drifts), every phone test silently passes with `matches: false` and the collapsed-by-default behavior is never exercised — the tests would pass against an implementation whose phone branch never fires.\n  **Suggestion:** Import the hook's actual media-query constant (or export it) and build the mock from it, so the fence can't silently decouple from the implementation.\n\n- **Category:** edge-case\n  **Severity:** low\n  **File:** client/src/components/triage/TriageFilterSortBar.tsx (`contentVisible = !isPhone || phoneOpen`)\n  **Finding:** On phone, when filters are actively excluding items, the bar collapses to just \"Filters & sort\" with no indication that filters are applied — users may see a shortened/empty list with no visible cause. Not an AC violation (AC4 says collapsed by default), but a real usability gap for the exact flow AC3/AC4 are optimizing.\n  **Suggestion:** Show an active-filter count on the toggle (e.g. \"Filters & sort (2)\") — cheap, and mirrors the MoreOptionsDisclosure convention already cited.\n\n- **Category:** edge-case\n  **Severity:** low\n  **File:** client/src/components/external/NewIssueModal/ModalShell.tsx (`max-h-[80dvh]` + `top-[10%]`)\n  **Finding:** `top-[10%]` is computed against the small (ICB) viewport while `dvh` tracks the dynamic viewport; on a browser with a tall hidden URL bar, 10% top + 80dvh height can exceed the visible viewport by ~10-70px, clipping the footer again. The spec discloses the vh/dvh mechanism as unverifiable in this harness, but this particular interaction (top-% offset vs dvh cap) is a distinct, unaddressed residual.\n  **Suggestion:** Use `top-[10dvh]` (or `max-h-[7 […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: [PerProjectTriageSection.tsx](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-b5sa8vq4\\client\\src\\components\\triage\\PerProjectTriageSection.tsx:172)\n- Finding: AC3 requires tightening both section margins and card-list spacing on phones, but the card list retains `space-y-2`; only its trailing `mb-4` changes. Projects with 2–3 cards therefore keep their existing inter-card vertical gaps, partially missing the requested scrolling reduction.\n- Suggestion: Add a phone-scoped `max-md:space-y-*` reduction to the open-item list and update the geometry test to verify the resulting card-to-card spacing.\n\n- Category: test\n- Severity: medium\n- File: [mobile-triage-form-layout.spec.ts](C:\\Users\\SvenRoth\\AppData\\Local\\Temp\\shipwright-codex-review-b5sa8vq4\\client\\e2e\\flows\\mobile-triage-form-layout.spec.ts:96)\n- Finding: The two 375×667 AC1 tests neither fill form fields nor assert that the body scrolls. The diff itself documents that these cases pass with the historical broken implementation; the only non-vacuous overflow test changes the viewport to 375×480. Thus the stated 375×667 “filled enough fields that the body scrolls” acceptance path is not tested.\n- Suggestion: At 375×667, populate a field that increases form content height (for example a long multiline description), assert `scrollHeight > clientHeight`, then verify the footer buttons remain within the viewport and can receive a real click/actionability check.\n\nShip with fixes: the core layout changes appear sound, but AC3 is only partially implemented and AC1’s specified overflow scenario lacks meaningful coverage.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-12T18:26:36.903586+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-12T11:53:23.075195+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

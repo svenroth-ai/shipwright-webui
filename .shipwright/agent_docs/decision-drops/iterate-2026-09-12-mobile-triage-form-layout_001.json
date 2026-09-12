@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-12-mobile-triage-form-layout",
+  "date": "2026-09-12",
+  "section": "Iterate — bug: mobile Triage/task-form layout",
+  "title": "ModalShell flex height-chain + Triage phone spacing/collapse",
+  "context": "Phone (<768px) users saw the New Task/Triage-detail form's Launch button pushed near off-screen, Triage detail actions clipped past the dialog's left edge, excessive Triage list scrolling, and no way to collapse the filter bar.",
+  "decision": "ModalShell.tsx: flex-column dialog capped at max-h-[80dvh] (position unchanged); TriageDetailModal action row gets flex-wrap; Triage section/card margins tighten under max-md:; filter bar collapses on phone by default.",
+  "consequences": "All 4 ACs pass real-browser E2E + unit fences; found and fixed a real pre-existing bug (body-slot wrapper needed flex flex-col for max-h-full to resolve). Full detail, rejected alternatives, and disclosed residuals in the spec-ref.",
+  "rationale": "The reported vh/dvh mechanism is structurally unreproducible in headless Chromium (verified via git-stash falsification); disclosed rather than falsely claimed as covered. See spec-ref.",
+  "rejected": "Raising the 44px touch-target further; top-1/2 centering; switching top-[10%] to top-[10dvh] without a real device. See spec-ref.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-12-mobile-triage-form-layout-flex-height-chain.md"
+}

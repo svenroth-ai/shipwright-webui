@@ -1,8 +1,35 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, afterEach } from "vitest";
 import { TriageFilterSortBar } from "./TriageFilterSortBar";
 import { DEFAULT_FILTER_STATE, DEFAULT_SORT_STATE } from "../../lib/triageFilterSort";
 import type { TriageViewState } from "../../hooks/useTriageViewState";
+import { PHONE_MEDIA_QUERY } from "../../hooks/useIsCompactViewport";
+
+// iterate-2026-09-12-mobile-triage-form-layout — same matchMedia-mock
+// convention as TaskDescriptionDisclosure.test.tsx.
+const originalMatchMedia = window.matchMedia;
+
+function setPhone(phone: boolean) {
+  // External code review (glm) finding: matching a hardcoded query string
+  // literal decouples silently from the hook if its query ever changes —
+  // the phone branch would then never fire while this mock still reports
+  // `matches: true`. Import the hook's own constant instead.
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: query === PHONE_MEDIA_QUERY ? phone : false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
+afterEach(() => {
+  window.matchMedia = originalMatchMedia;
+  vi.restoreAllMocks();
+});
 
 function makeView(overrides: Partial<TriageViewState> = {}): TriageViewState {
   return {
@@ -100,5 +127,36 @@ describe("TriageFilterSortBar", () => {
     render(<TriageFilterSortBar view={makeView({ togglePriority })} availableDomains={[]} />);
     fireEvent.click(screen.getByTestId("triage-filter-priority-P3"));
     expect(togglePriority).toHaveBeenCalledWith("P3");
+  });
+
+  describe("phone collapse (iterate-2026-09-12-mobile-triage-form-layout, AC4)", () => {
+    it("desktop/tablet (>=768px): no toggle renders, content always visible", () => {
+      setPhone(false);
+      render(<TriageFilterSortBar view={makeView()} availableDomains={[]} />);
+      expect(screen.queryByTestId("triage-filter-sort-toggle")).not.toBeInTheDocument();
+      expect(screen.getByTestId("triage-filter-priority-group")).toBeInTheDocument();
+      expect(screen.getByTestId("triage-sort-primary-group")).toBeInTheDocument();
+    });
+
+    it("phone (<768px): toggle renders, content collapsed on first render", () => {
+      setPhone(true);
+      render(<TriageFilterSortBar view={makeView()} availableDomains={[]} />);
+      const toggle = screen.getByTestId("triage-filter-sort-toggle");
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByTestId("triage-filter-priority-group")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("triage-sort-primary-group")).not.toBeInTheDocument();
+    });
+
+    it("phone: clicking the toggle expands the filter/sort content", () => {
+      setPhone(true);
+      render(<TriageFilterSortBar view={makeView()} availableDomains={[]} />);
+      fireEvent.click(screen.getByTestId("triage-filter-sort-toggle"));
+      expect(screen.getByTestId("triage-filter-sort-toggle")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(screen.getByTestId("triage-filter-priority-group")).toBeInTheDocument();
+      expect(screen.getByTestId("triage-sort-primary-group")).toBeInTheDocument();
+    });
   });
 });

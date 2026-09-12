@@ -1,0 +1,32 @@
+{
+  "section": "iterate-2026-09-12-mobile-triage-form-layout",
+  "stage": 2,
+  "verdict": "PASS",
+  "summary": "Fresh Stage 2 re-review of the fixed diff (all 7 findings from the prior REQUEST_CHANGES pass addressed, including a genuine production bug fix — ModalShell.tsx body-slot wrapper needed `flex flex-col`). Bloat-ratchet fix verified genuine against shipwright_bloat_baseline.json (all 3 files land exactly at their baselined `current` line count). No new HIGH or MEDIUM issues. Verdict PASS with 3 low/info notes, all addressed in a follow-up pass.",
+  "review": [
+    {
+      "finding": "The prior review's finding #6 ('convert vacuous className.toContain(...) assertions to toHaveClass(...)') was applied to the new ModalShell.layout.test.tsx fence but NOT to the two new AC3 margin-fence tests added by this same iterate (PerProjectTriageSection.test.tsx and DeferredTriageSection.test.tsx), which still used `.className).toContain(...)`.",
+      "severity": "low",
+      "category": "correctness",
+      "file": "client/src/components/triage/PerProjectTriageSection.test.tsx",
+      "line": 203,
+      "suggestion": "Convert these two blocks to toHaveClass(...), matching ModalShell.layout.test.tsx's idiom. FIXED post-review."
+    },
+    {
+      "finding": "TriageDetailModal.tsx sizes itself with raw max-h-[85vh]/h-[85vh] — the same anti-pattern the spec's Out-of-Scope section names in EditTaskModal/ContinuePipelineModal/CampaignLaunchDialog, but this file (directly touched by this iterate for AC2) was not in that disclosure list.",
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/components/triage/TriageDetailModal.tsx",
+      "line": 180,
+      "suggestion": "Add TriageDetailModal.tsx to the out-of-scope/follow-up disclosure list alongside the three already-named modals. FIXED post-review — spec updated."
+    },
+    {
+      "finding": "The sibling E2E file mobile-triage-spacing-filters.spec.ts (AC2-AC4, split from mobile-triage-form-layout.spec.ts to clear the 300-line bloat gate) was not listed in the diff scope handed to the reviewer, though it was read and verified directly and found well-structured and non-vacuous.",
+      "severity": "info",
+      "category": "correctness",
+      "file": "client/e2e/flows/mobile-triage-spacing-filters.spec.ts",
+      "line": 1,
+      "suggestion": "Scope-list omission only, not a defect — file is staged at commit time."
+    }
+  ]
+}

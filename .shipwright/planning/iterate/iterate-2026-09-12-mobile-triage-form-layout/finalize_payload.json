@@ -1,0 +1,139 @@
+{
+  "run_id": "iterate-2026-09-12-mobile-triage-form-layout",
+  "artifact_sync": {
+    "ref": "4b84fa5cb2de2fa4b8a27a3b6ec660ae9123b311"
+  },
+  "decision": {
+    "section": "Iterate — bug: mobile Triage/task-form layout",
+    "title": "ModalShell flex height-chain + Triage phone spacing/collapse",
+    "context": "Phone (<768px) users saw the New Task/Triage-detail form's Launch button pushed near off-screen, Triage detail actions clipped past the dialog's left edge, excessive Triage list scrolling, and no way to collapse the filter bar.",
+    "decision": "ModalShell.tsx: flex-column dialog capped at max-h-[80dvh] (position unchanged); TriageDetailModal action row gets flex-wrap; Triage section/card margins tighten under max-md:; filter bar collapses on phone by default.",
+    "consequences": "All 4 ACs pass real-browser E2E + unit fences; found and fixed a real pre-existing bug (body-slot wrapper needed flex flex-col for max-h-full to resolve). Full detail, rejected alternatives, and disclosed residuals in the spec-ref.",
+    "rationale": "The reported vh/dvh mechanism is structurally unreproducible in headless Chromium (verified via git-stash falsification); disclosed rather than falsely claimed as covered. See spec-ref.",
+    "rejected": "Raising the 44px touch-target further; top-1/2 centering; switching top-[10%] to top-[10dvh] without a real device. See spec-ref.",
+    "architecture_impact": "none",
+    "spec_ref": ".shipwright/planning/adr/iterate-2026-09-12-mobile-triage-form-layout-flex-height-chain.md"
+  },
+  "changelog": [
+    {
+      "category": "Fixed",
+      "bullet": "New Task / Fix-now form: the Launch button no longer gets pushed off-screen on phone — the modal now caps its height and lets the form body scroll internally."
+    },
+    {
+      "category": "Fixed",
+      "bullet": "Triage detail panel: action buttons (Fix now / Dismiss / Snooze / Promote) no longer clip past the dialog's left edge on phone — they wrap instead of overflowing."
+    },
+    {
+      "category": "Fixed",
+      "bullet": "Triage list: reduced per-project section and card spacing on phone, cutting down the scrolling needed to review open items."
+    },
+    {
+      "category": "Added",
+      "bullet": "Triage filter/sort bar collapses by default on phone and expands on tap, freeing up vertical space."
+    }
+  ],
+  "iterate_entry": {
+    "type": "bug",
+    "complexity": "medium",
+    "prior_source": "keyword",
+    "branch": "iterate/mobile-triage-form-layout",
+    "spec": ".shipwright/planning/iterate/2026-09-12-mobile-triage-form-layout.md",
+    "tests_passed": true,
+    "adr": "iterate-2026-09-12-mobile-triage-form-layout",
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 12,
+        "tested": 12,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      },
+      "behaviors": [
+        {
+          "behavior": "AC1: Launch button stays within phone viewport (plain New Task form)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-form-layout.spec.ts AC1 case 1"
+        },
+        {
+          "behavior": "AC1: Launch button stays reachable with More Options expanded (historically fragile path)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-form-layout.spec.ts AC1 case 2"
+        },
+        {
+          "behavior": "AC1: flex-allocation chain holds under genuine content overflow (forced-overflow stress case) — this test caught a real, previously-shipped production bug (ModalShell.tsx body-slot wrapper needed flex flex-col)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-form-layout.spec.ts AC1 case 3"
+        },
+        {
+          "behavior": "ModalShell dialog is a height-capped flex column; header/footer shrink-0; form + body-slot wrapper + body all carry the correct links of the height-allocation chain (not just the two ends)",
+          "disposition": "tested",
+          "evidence": "ModalShell.layout.test.tsx"
+        },
+        {
+          "behavior": "AC2: all 4 Triage action buttons contained within the dialog AND the page viewport at 375px (both edges)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-spacing-filters.spec.ts AC2"
+        },
+        {
+          "behavior": "TriageDetailModal action row carries flex-wrap",
+          "disposition": "tested",
+          "evidence": "TriageDetailModal.layout.test.tsx"
+        },
+        {
+          "behavior": "AC3: per-project section/heading/open-items margins AND card-to-card spacing tighten at <768px, unchanged ≥768px",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-spacing-filters.spec.ts AC3 (both viewports, real geometry) + PerProjectTriageSection.test.tsx + DeferredTriageSection.test.tsx"
+        },
+        {
+          "behavior": "AC4: filter/sort bar collapsed by default on phone, expands on tap, no toggle on desktop",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-spacing-filters.spec.ts AC4 (both viewports) + TriageFilterSortBar.test.tsx"
+        },
+        {
+          "behavior": "useIsPhoneViewport() initializes synchronously (no expanded-then-collapse flash on first paint)",
+          "disposition": "tested",
+          "evidence": "useIsCompactViewport.ts source read (useState(() => matchMedia(...).matches)) + AC4's collapsed-on-first-paint E2E assertion"
+        },
+        {
+          "behavior": "pointer: coarse CSS (footer touch-target sizing) resolves true on a real mobile-emulated context",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mobile-triage-form-layout.spec.ts AC1 describe block, test.use({ hasTouch: true, isMobile: true })"
+        },
+        {
+          "behavior": "TriageFilterSortBar's phone-branch unit tests stay coupled to the hook's actual media-query constant (not a hardcoded literal that could silently decouple)",
+          "disposition": "tested",
+          "evidence": "TriageFilterSortBar.test.tsx imports PHONE_MEDIA_QUERY from useIsCompactViewport.ts (external code-review finding, fixed)"
+        },
+        {
+          "behavior": "Full existing client + server test suite has no regressions",
+          "disposition": "tested",
+          "evidence": "client: npx vitest run — 452 files / 4087 tests, all passing; server: SHIPWRIGHT_NETWORK_PROFILE=local npx vitest run — 379 passed / 1 skipped files, 4147 passed / 12 skipped tests; npx tsc --noEmit clean (both workspaces); npx oxlint . zero new warnings; anti_ratchet_check.py clean"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 8,
+      "exit_code": 0,
+      "justification": "jsdom has no layout engine, so none of the 4 reported bugs (form/panel too tall, panel clipped left, excessive card spacing, uncollapsible filter bar) can be proven by unit tests alone — real bounding-box geometry, real flex-height allocation, and a real max-md: media-query breakpoint all require a real browser. This suite (client/e2e/flows/mobile-triage-form-layout.spec.ts + mobile-triage-spacing-filters.spec.ts, split to clear the 300-line bloat gate) runs all 4 ACs at 375×667 (and desktop, for AC3/AC4's unchanged-above-breakpoint half) via client/e2e/isolated-stack.mjs against a real Chromium. All 8 pass; case 3 of AC1 (a deliberately forced-overflow stress test) caught a genuine, previously-shipped production bug during development (ModalShell.tsx's body-slot wrapper needed flex flex-col, not just min-h-0 flex-1, for max-h-full to resolve) — disclosed in full in the iterate spec's Confidence Calibration, along with the one honestly-disclosed gap: the original bug report's vh-vs-dvh mechanism is structurally unreproducible in headless Chromium (no real, resizable browser chrome), verified via git-stash falsification."
+    }
+  },
+  "finalize": {
+    "reason": "iterate: mobile Triage/task-form layout fixes",
+    "event_extras": {
+      "intent": "bug",
+      "description": "Fix 4 mobile-viewport (<768px) layout bugs: New Task form Launch button off-screen, Triage detail action row clipped, excessive Triage list spacing, uncollapsible filter bar.",
+      "summary": "On phones, the task-creation form and Triage panel no longer push their buttons off-screen, the Triage list needs less scrolling, and the filter bar can now be collapsed.",
+      "spec_impact": "none",
+      "spec_impact_justification": "FR-01.38 (responsive phone layout) and FR-01.30 (Triage tab) already commit to a usable phone layout for these surfaces; this iterate restores that promise where it regressed/was never phone-tuned, without changing what either FR's spec text describes.",
+      "affected_frs": [
+        "FR-01.38",
+        "FR-01.30"
+      ]
+    }
+  }
+}

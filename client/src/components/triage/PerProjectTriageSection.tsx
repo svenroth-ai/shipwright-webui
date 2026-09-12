@@ -90,7 +90,7 @@ export function PerProjectTriageSection({
 
   if (isLoading) {
     return (
-      <section className="mb-8" data-testid={`triage-project-${project.id}`}>
+      <section className="mb-8 max-md:mb-4" data-testid={`triage-project-${project.id}`}>
         <h2 className="text-base font-semibold mb-2 text-[var(--ink)]">{project.name}</h2>
         <p className="text-sm text-[var(--muted)]">Loading…</p>
       </section>
@@ -105,7 +105,7 @@ export function PerProjectTriageSection({
   // reports items exist elsewhere. Checked before the real empty check below.
   if (isError) {
     return (
-      <section className="mb-8" data-testid={`triage-project-${project.id}`}>
+      <section className="mb-8 max-md:mb-4" data-testid={`triage-project-${project.id}`}>
         <h2 className="text-base font-semibold mb-2 text-[var(--ink)]">{project.name}</h2>
         <ListLoadErrorState
           testId={`triage-load-error-${project.id}`}
@@ -121,13 +121,21 @@ export function PerProjectTriageSection({
   }
 
   return (
-    <section className="mb-8" data-testid={`triage-project-${project.id}`}>
+    <section
+      className="mb-8 max-md:mb-4"
+      data-testid={`triage-project-${project.id}`}
+    >
       {/* on-photo-legibility fix: the project name + its (count) subtitle
           ride bare on the deck-golden photo, so they use the flipping
           Weather-Deck `--ink` / `--muted` tokens (white under
           `.on-photo`), NOT the legacy `--color-text` / `--color-muted`
           aliases (computed at :root → stay dark, invisible). */}
-      <h2 className="text-base font-semibold mb-3 flex items-center gap-2 text-[var(--ink)]">
+      {/* iterate-2026-09-12-mobile-triage-form-layout: `max-md:` (<768px,
+          matches PHONE_MEDIA_QUERY) tightens the accumulated per-project
+          section margins so a phone viewport needs less scrolling to see
+          the Deferred section / the next project — desktop/tablet
+          unchanged. */}
+      <h2 className="text-base font-semibold mb-3 max-md:mb-2 flex items-center gap-2 text-[var(--ink)]">
         <span
           className="inline-block w-2 h-2 rounded-full"
           style={{
@@ -161,7 +169,15 @@ export function PerProjectTriageSection({
         </p>
       )}
       {sortedVisibleOpen.length > 0 && (
-        <div className="space-y-2 mb-4" data-testid={`triage-open-items-${project.id}`}>
+        <div
+          // External code-review finding (medium): AC3 asks for less
+          // *scrolling*, not just tighter section boundaries — the
+          // inter-card gap itself (space-y-2, 8px) was untouched on phone.
+          // max-md:space-y-1 halves it to 4px, same tightening ratio as the
+          // section/heading margins above.
+          className="space-y-2 max-md:space-y-1 mb-4 max-md:mb-2"
+          data-testid={`triage-open-items-${project.id}`}
+        >
           {sortedVisibleOpen.map((item) => (
             <TriageItemCard
               key={item.id}

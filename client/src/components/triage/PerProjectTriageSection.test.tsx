@@ -189,4 +189,24 @@ describe("PerProjectTriageSection", () => {
       "1 parked item hidden by the current view.",
     );
   });
+
+  /*
+   * iterate-2026-09-12-mobile-triage-form-layout — CI fence. jsdom cannot
+   * measure real scroll distance; the behavioral proof (materially less
+   * scrolling at 375px) lives in e2e/flows/mobile-triage-form-layout.spec.ts.
+   * This pins the phone-scoped margin classes exist and desktop's own
+   * values are untouched. External code-review finding (medium) added
+   * `space-y-1` to the card-to-card gap fence — AC3 asks for less
+   * scrolling, not just tighter section boundaries.
+   */
+  it("section + heading + open-items-list margins are tightened on phone, unchanged above it", () => {
+    renderSection({ items: [item({ id: "trg-a" })] });
+    const section = screen.getByTestId("triage-project-proj-a");
+    expect(section).toHaveClass("mb-8", "max-md:mb-4");
+    const heading = section.querySelector("h2");
+    expect(heading).not.toBeNull();
+    expect(heading).toHaveClass("mb-3", "max-md:mb-2");
+    const openItems = screen.getByTestId("triage-open-items-proj-a");
+    expect(openItems).toHaveClass("space-y-2", "max-md:space-y-1", "mb-4", "max-md:mb-2");
+  });
 });

@@ -39,7 +39,14 @@ export function DeferredTriageSection({ items, hiddenCount, onClick }: DeferredT
   if (items.length === 0 && hiddenCount === 0) return null;
 
   return (
-    <div className="mb-4" data-testid="triage-deferred-section">
+    <div
+      className="mb-4 max-md:mb-2"
+      data-testid="triage-deferred-section"
+    >
+      {/* iterate-2026-09-12-mobile-triage-form-layout: `max-md:` (<768px)
+          tightening — see PerProjectTriageSection.tsx for the full
+          rationale (accumulated section margins forcing excessive
+          scrolling on phone). */}
       <h3 className="text-xs font-semibold text-[var(--ink)] uppercase mb-2">
         Deferred ({formatCount(items.length, items.length + hiddenCount)})
       </h3>
