@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Implements exactly the reported fix: isCodexCliAvailable() and probeReadiness()'s codex arm now resolve via win32-spawn's resolveSpawn (ADR-044) instead of defaultRun on Windows; verified both call sites (the only two `defaultRun(\"codex\", ...)` uses in server/src), no extra features added."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "resolveSpawn's null return (unresolvable bare name) is mapped to a RunResult {ok:false, code:null}, matching the pre-existing ENOENT contract; execFile errors flow through the same parseExecResult helper as defaultRun so the ok/code semantics stay identical."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input reaches the spawned command or args (both are hardcoded literals: \"codex\"/\"--version\"); resolveSpawn/win32CmdWrap are the existing, already-reviewed ADR-044 module, unmodified; no secrets touched."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New tests assert on outcomes (ok/stdout/code), including a real regression-reproduction test (a genuine .cmd shim on PATH) that proves defaultRun fails on it and defaultRunShim succeeds — run and passing on an actual Windows host, not mocked."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "Single subprocess spawn per probe, same as before; no loops, no DB, no change to the existing parallel Promise.all readiness-arm structure."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "All touched files stay well under the 300-LOC guideline (largest is readiness-probe.ts at 285, pre-existing); defaultRunShim lives beside defaultRun in readiness-probe-run.ts, the same module that already owns the probe-runner primitives; parseExecResult factored out to avoid duplicating the ok/code parsing between the two."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized format (JSON/YAML/config file) is produced or consumed by this change — it changes how a subprocess is spawned/resolved, not a producer/consumer file boundary. classify_complexity.py returned no risk_flags (touches_io_boundary did not fire)."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run scan_test_hygiene.py --diff reported \"no findings\" against the working-tree diff."
+    }
+  ]
+}

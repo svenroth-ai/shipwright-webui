@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "glm": {
+      "feedback": "This diff is a clean, well-scoped fix. Findings:\n\n- Category: edge-case\n  Severity: low\n  File: server/src/core/readiness-probe-run.ts (~line 148, `defaultRunShim` win32 branch)\n  Finding: On win32, `defaultRunShim` drops the `probeEnv`-augmented environment entirely \u2014 `execFile` is called with no `env` option, so the child inherits `process.env`. That's fine for `codex` per the spec's rationale, but the function is exported (re-exported from `readiness-probe.ts`) and documented as a general shim probe; a future caller with a tool whose shim lives in an augmented-PATH location (the exact uv scenario) would silently fail to find it.\n  Suggestion: Either note the \"real `process.env` only\" limitation explicitly in the doc comment, or accept an optional `env` and pass it through to `execFile`.\n\n- Category: test\n  Severity: low\n  File: server/src/external/launch/runtime-chokepoint.test.ts:247\u2013256\n  Finding: The unmocked `isCodexCliAvailable` test passes even if a real `codex` is already on the machine's PATH \u2014 the fake shim prepended to `PATH` makes the test non-deterministic in what it proves. Also, mutating `process.env.PATH` is process-global; if this file ever gains `describe.concurrent` or other tests running interleaved, they'd see the mutated PATH. Neither breaks correctness today.\n  Suggestion: Optional hardening: assert the resolved shim is the fake one (e.g. by having the shim echo a unique token and checking via `defaultRunShim` output), and keep PATH mutation serialized.\n\nOn the core questions: (1) spec is fully implemented \u2014 both call sites (`runtime-chokepoint.ts`, `readiness-probe.ts` codex arm) route through the new `defaultRunShim`, `defaultRun` is untouched, the `deps.run` seam still governs both arms. (2) The `resolveSpawn` null \u2192 not-found path, the timeout/ENOENT \u2192 `code:null` contract, and the POSIX pass-through all look correct; `parseExecResult` is a faithful extraction of the original callback logic. (3) No new security surface \u2014 `resolveSpawn` is the already-reviewed ADR-044 mechanism, and only hardcoded tool names are probed. (4) The Windows tests genuinely exercise real `.cmd` shims and the not-found/error paths; the POSIX pass-through test is weaker (only checks `ok` equality on `node`) but acceptable. (5) No regression risk to uv/python/git probing since `defaultRun` is unmodified.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "No concrete defects found. The diff routes both required Codex probes through the Windows shim-aware resolver while preserving `defaultRun` for the augmented-PATH tool probes; the added Windows integration tests exercise real `.cmd` shims and the unmocked launch probe.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "doubts": [
+    {
+      "severity": "medium",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "defaultRunShim is safe because both current callers pass hardcoded literals",
+      "resolution": "fixed",
+      "action": "Added a 'SECURITY INVARIANT' section to defaultRunShim's own JSDoc (readiness-probe-run.ts) stating explicitly that cmd/args must be literal constants, explaining WHY (it calls resolveSpawn with no fence in between, unlike preview-session-manager.tokenizeCommand's blocklist fence, per win32-spawn.ts's own 'this module never assumes it ran' disclaimer), and naming what a future externally-influenced caller must add before reuse."
+    },
+    {
+      "severity": "medium",
+      "lens": "concurrency & ordering",
+      "claim_under_doubt": "hand-rolled process.env.PATH mutation + try/finally is race-safe under Vitest's worker-thread scheduling",
+      "resolution": "fixed",
+      "action": "Replaced the raw process.env.PATH assignment in both PATH-mutating tests (readiness-probe-run.test.ts, runtime-chokepoint.test.ts) with vi.stubEnv(\"PATH\", ...) / vi.unstubAllEnvs() in finally — Vitest's own env-stubbing primitive, removing the dependency on an unstated non-interleaving assumption for the mutation mechanism itself."
+    },
+    {
+      "severity": "medium",
+      "lens": "hidden coupling & blast radius",
+      "claim_under_doubt": "resolveSpawn's non-augmented PATH search is sufficient for every real Codex CLI install shape",
+      "resolution": "rebutted",
+      "action": "Reasoned rebuttal, not a code change: uv's ~/.local/bin gap was a KNOWN, previously-reported failure of that specific installer script (drops the binary before ever touching PATH). No equivalent concrete failure mode is known for Codex CLI — it installs as an ordinary PATH shim like the already-working claude/npm/gh shims win32-spawn.ts already resolves elsewhere in this codebase. Speculatively adding PATH augmentation against no observed failure would be exactly the kind of scenario-that-can't-happen handling this project's own guidance says not to add. Documented this rationale directly in defaultRunShim's doc comment (the CAVEAT paragraph) so the next person hits the same reasoning, not a bare assertion — and the fix shape if a real gap is later reported (mirror probeEnv) is spelled out there too."
+    }
+  ],
+  "summary": "All three medium doubts addressed before commit: two by code/doc changes (security-invariant doc comment; vi.stubEnv in place of hand-rolled env mutation), one by a reasoned, documented rebuttal grounded in the actual precedent (uv's known installer gap vs. no known equivalent for codex). Full server test suite (4295+ tests), tsc --noEmit, and oxlint re-verified clean after all three changes."
+}
