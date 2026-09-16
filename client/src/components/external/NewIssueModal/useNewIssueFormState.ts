@@ -37,17 +37,12 @@ export interface UseNewIssueFormStateInput {
    * `autonomy`, seeded from `projectActions?.defaults.autonomy`) — Goal 1
    * is one switch for everything.
    *
-   * Disposition (external-code-review finding, OpenAI MEDIUM, accepted not
-   * fixed): the reset effect below is keyed on `[open]` only, so a modal
-   * already open when this value's query resolves does not re-seed —
-   * exactly the same race `autonomy`'s seed (`projectActions?.defaults.
-   * autonomy`, same effect) already has today, unrelated to Codex Light.
-   * Fixing it only for `runtime` while leaving `autonomy` with the
-   * identical gap would be an inconsistent, asymmetric fix to two toggles
-   * this spec deliberately mirrors visually and behaviorally (§3.5). Left
-   * unfixed here as out of this iterate's scope; a real fix (re-seed an
-   * untouched, still-default form when the query resolves) belongs to both
-   * toggles together, in a follow-up that isn't Codex-Light-specific.
+   * Local PR-review preflight finding (2026-09-16): a modal already open
+   * when this value's query resolves used to never re-seed — the same race
+   * `autonomy`'s seed had. Fixed for both together below (an untouched
+   * field re-seeds when its default resolves; a user's explicit choice
+   * never gets overwritten), since the two toggles deliberately mirror
+   * each other (§3.5).
    */
   codexRuntimeDefault?: RuntimeValue;
 }
@@ -152,6 +147,14 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     initialDomain,
   };
 
+  // Local PR-review preflight finding — an untouched autonomy/runtime field
+  // re-seeds if its default resolves AFTER the modal is already open; a
+  // user's explicit choice (via the wrapped setters below) is never
+  // overwritten. Reset to untouched on every open, alongside the rest of
+  // the form.
+  const autonomyTouchedRef = useRef(false);
+  const runtimeTouchedRef = useRef(false);
+
   useEffect(() => {
     if (!open) return;
     const ctx = resetCtxRef.current;
@@ -162,6 +165,8 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setDetectedTrigger(null);
     setAutonomy(ctx.autonomy);
     setRuntime(ctx.runtime);
+    autonomyTouchedRef.current = false;
+    runtimeTouchedRef.current = false;
     setPhaseId(ctx.initialPhaseId ?? ctx.firstPhaseId);
     setSelectedProjectId(ctx.seedProjectId);
     setAdvancedOpen(false);
@@ -176,6 +181,32 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setLeadBlockedByRaw("");
   }, [open]);
 
+  // Re-seed an untouched field once its default resolves after open (the
+  // race the preflight finding names). Deliberately separate from the
+  // reset effect above: this one reacts to the resolved defaults, not to
+  // `open`, and must never re-arm on an unrelated background refetch that
+  // happens to resolve to the SAME value (no-op setState, no visible flicker).
+  useEffect(() => {
+    if (!open) return;
+    if (!autonomyTouchedRef.current) setAutonomy(resetCtxRef.current.autonomy);
+  }, [open, projectActions?.defaults.autonomy]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (!runtimeTouchedRef.current) setRuntime(resetCtxRef.current.runtime);
+  }, [open, codexRuntimeDefault]);
+
+  // Exposed to consumers in place of the raw setState — marks the field
+  // touched so the re-seed effects above never clobber a user's own choice.
+  const setAutonomyTouched: typeof setAutonomy = (value) => {
+    autonomyTouchedRef.current = true;
+    setAutonomy(value);
+  };
+  const setRuntimeTouched: typeof setRuntime = (value) => {
+    runtimeTouchedRef.current = true;
+    setRuntime(value);
+  };
+
   return {
     title,
     setTitle,
@@ -184,9 +215,9 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     selectedProjectId,
     setSelectedProjectId,
     autonomy,
-    setAutonomy,
+    setAutonomy: setAutonomyTouched,
     runtime,
-    setRuntime,
+    setRuntime: setRuntimeTouched,
     phaseId,
     setPhaseId,
     phaseOverridden,
