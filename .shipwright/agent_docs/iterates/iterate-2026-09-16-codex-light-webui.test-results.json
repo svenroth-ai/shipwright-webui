@@ -5,8 +5,9 @@
     "date": "2026-09-16",
     "unit": {
       "status": "passed",
-      "passed": 8399,
-      "total": 8411
+      "passed": 8401,
+      "total": 8413,
+      "skipped": 12
     },
     "integration": {
       "status": "not_run",
@@ -141,9 +142,9 @@
           "evidence": "runtime-chokepoint.test.ts (isCodexCampaignBlocked \u2014 AC7)"
         },
         {
-          "behavior": "AC8: readiness reports both CLIs as informational with 'at least one available' as the real critical gate; a launch-time codex_cli_not_found check independently blocks a codex launch when the CLI isn't installed",
+          "behavior": "AC8: readiness reports both CLIs as informational with 'at least one available' as the real critical gate; a launch-time codex_cli_not_found check independently blocks a codex launch when the CLI isn't installed, including the fork launch path which does not share the main chokepoint",
           "disposition": "tested",
-          "evidence": "readiness-probe-codex.test.ts, readiness-probe.test.ts, runtime-chokepoint.test.ts (codex_cli_not_found + claude-task-never-probes cases)"
+          "evidence": "readiness-probe-codex.test.ts, readiness-probe.test.ts, runtime-chokepoint.test.ts (codex_cli_not_found + claude-task-never-probes cases), fork.codex-runtime.test.ts (CLI-unavailable fork refusal, no orphan child row; claude fork ungated)"
         },
         {
           "behavior": "AC9: a codex task's new-pipeline launch is blocked, keyed on actionId (not phase \u2014 a phase-only submission never blocks); a claude task's new-pipeline launch is unaffected",
@@ -161,8 +162,8 @@
   },
   "source_state": {
     "run_id": "iterate-2026-09-16-codex-light-webui",
-    "commit": "f7866383bfd06d0099d7cd61e30f2b2f02360551",
-    "dirty": true,
+    "commit": "9cd4a93d7fb81e178a963a16cfcd997298db4a0d",
+    "dirty": false,
     "base": null,
     "release": null
   }
