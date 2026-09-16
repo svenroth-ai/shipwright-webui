@@ -99,3 +99,30 @@ low-severity accepted-not-fixed dispositions (documented in-source:
 `codex-oracle-runner.ts`'s orphan-process risk on Windows, mirroring an
 already-accepted `triage-cli-runner.ts` pattern; `codex-thread-discovery.ts`'s
 4KB `session_meta` read cap).
+
+**Local PR-review preflight (2026-09-16, run 3+), 3 more findings:**
+1. `useNewIssueFormState.ts` re-flagged finding #6's settings-race — see #6's
+   updated disposition above (accepted-and-fixed).
+2. `codex-task-watcher.ts`: a `nudge_sent` Inbox notice survived past the
+   stall episode that triggered it (new pty output resumed, task never
+   reached `done`) — **accepted-and-fixed**, cleared on the same "fresh
+   episode" branch that already resets `episode.nudged`.
+3. `triage.ts:318`: `getCodexRuntimeDefault()`'s return value flowed into
+   `store.create()` unnormalized — **accepted-and-fixed**, coerced to
+   `"codex" | "claude"` at the call site.
+
+Two more raised, **rejected-with-reason**: (a) `codex-oracle-runner.ts`'s
+recurring `execFile` cadence — this is the SAME orphan-process risk the
+internal doubt-reviewer already dispositioned accepted-not-fixed above (same
+file, same mechanism, same reasoning: `CodexTaskWatcher.tick()` bounds this
+to one in-flight oracle call per task, so the recurring cadence is "more
+repeats of an existing accepted risk," not a new class); the local preflight
+re-surfaced it as a blocking "needs maintainer confirmation," but it names no
+gap the in-source disposition doesn't already cover. (b) untracked
+`.shipwright/.cache/*.claim` / `github_import_state.json` session-runtime
+artifacts flagged as "committed" — they are untracked working-tree files
+this session's own hooks wrote, never `git add`ed, and confirmed absent from
+`git status --porcelain` staged output; the local preflight builds its
+review context from the full working tree including untracked files (a
+known gap — [[project_pr_review_gate_gotchas]]-adjacent), so this finding
+cannot reproduce against the actual pushed diff.

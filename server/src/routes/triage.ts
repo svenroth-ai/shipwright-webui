@@ -315,7 +315,10 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         const description = normalized.value;
         // Codex Light §3.5 — global-default-only for this surface (no
         // per-task toggle here; see TriageRoutesDeps.getCodexRuntimeDefault).
-        const runtime = (await deps.getCodexRuntimeDefault?.()) ?? "claude";
+        // Local PR-review preflight finding — settings.json is unvalidated
+        // JSON (settings-reader.ts), so normalize here rather than trust
+        // the persisted shape.
+        const runtime = (await deps.getCodexRuntimeDefault?.()) === "codex" ? "codex" : "claude";
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,

@@ -1,6 +1,6 @@
 {
   "run_id": "iterate-2026-09-16-codex-light-webui",
-  "date": "2026-09-16T09:54:45.182439Z",
+  "date": "2026-09-16T10:10:25.708117Z",
   "event_at": "2026-09-16T09:42:43.120370+00:00",
   "type": "feature",
   "complexity": "medium",
@@ -47,7 +47,7 @@
         "evidence": "routes.patch-runtime.test.ts"
       },
       {
-        "behavior": "AC1: a triage-promoted task carries the runtime chosen at promotion time",
+        "behavior": "AC1: a triage-promoted task carries the runtime chosen at promotion time; a malformed persisted settings.codexRuntimeDefault normalizes to 'claude' instead of passing through raw (local PR-review preflight finding)",
         "disposition": "tested",
         "evidence": "triage.promote-runtime.test.ts"
       },
@@ -92,7 +92,7 @@
         "evidence": "launcher-codex.test.ts (guided/autonomous \u00d7 fresh/resume, 4 cases)"
       },
       {
-        "behavior": "AC5: CodexTaskWatcher classifies not_done/done/no_oracle/delivery_pending per \u00a75.1's table, nudges at most once per stall episode, skips attached/claude-runtime/no-pty tasks, and syncs boardColumn on auto-completion",
+        "behavior": "AC5: CodexTaskWatcher classifies not_done/done/no_oracle/delivery_pending per \u00a75.1's table, nudges at most once per stall episode, skips attached/claude-runtime/no-pty tasks, syncs boardColumn on auto-completion, and clears a nudge_sent notice once fresh output starts a new episode (local PR-review preflight finding)",
         "disposition": "tested",
         "evidence": "codex-task-watcher.test.ts, codex-task-watcher.delivery.test.ts, codex-task-watcher.thread-discovery.test.ts"
       },

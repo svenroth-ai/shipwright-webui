@@ -178,6 +178,30 @@ describe("CodexTaskWatcher — classification", () => {
     expect(write).toHaveBeenCalledTimes(2); // new episode → new nudge
   });
 
+  it("local PR-review preflight finding — a nudge_sent notice clears once fresh output starts a new episode, even before the next stall", async () => {
+    let lastDataAt = 0;
+    let now = 20 * 60 * 1000;
+    const deps = {
+      store: { list: () => [makeTask()], patch: vi.fn(), persist: vi.fn(async () => undefined) },
+      ptyManager: { getLastDataAt: () => lastDataAt, attachCount: () => 0, write: vi.fn() },
+      getProjectById: () => ({ path: "/proj" }),
+      runOracle: vi.fn(async (): Promise<OracleOutcome> => ({
+        kind: "ok",
+        result: { verdict: "not_done", phase: "build", session: "sess-1", evidence: {} },
+      })),
+      now: () => now,
+    };
+    const w = new CodexTaskWatcher(deps);
+    await w.tick();
+    expect(w.snapshot().some((n) => n.kind === "nudge_sent")).toBe(true);
+    // Fresh output arrives — the task resumes without ever reaching "done".
+    // The stale nudge must not keep sitting in the Inbox for a running task.
+    lastDataAt = 21 * 60 * 1000;
+    now = 21 * 60 * 1000;
+    await w.tick();
+    expect(w.snapshot().some((n) => n.kind === "nudge_sent")).toBe(false);
+  });
+
   it("silence below the stall threshold does nothing (oracle never called)", async () => {
     const { deps, runOracle } = makeDeps({
       lastDataAt: 19 * 60 * 1000, // 1 minute of silence, under the 15min default

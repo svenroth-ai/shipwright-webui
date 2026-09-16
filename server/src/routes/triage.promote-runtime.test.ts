@@ -70,4 +70,21 @@ describe("POST /api/triage/:projectId/promote — runtime default", () => {
     const body = await response.json();
     expect(h.store.get(body.task.taskId)!.runtime).toBe("claude");
   });
+
+  it("local PR-review preflight finding — a malformed persisted settings value (settings-reader.ts does no shape validation) normalizes to 'claude', not passed through raw", async () => {
+    h = await makeHarness({
+      // settings.json is unvalidated JSON — simulate a hand-edited/stale value.
+      getCodexRuntimeDefault: async () => "banana" as unknown as "codex",
+      runTriageCli: async (input) => ({ kind: "ok", operation: input.operation, item: { id: input.itemId, status: "promoted" } }),
+    });
+    seed(h, "trg-aaaa0004");
+    const response = await h.app.request("/api/triage/proj-a/promote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(promoteBody("trg-aaaa0004")),
+    });
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(h.store.get(body.task.taskId)!.runtime).toBe("claude");
+  });
 });

@@ -178,13 +178,11 @@ export class CodexTaskWatcher {
 
     // §5.2 — launch-confirmation timeout: distinct, shorter window, only
     // while still awaiting the handshake and nothing has ever streamed.
-    //
-    // Disposition (external-code-review, OpenAI MEDIUM, accepted not
-    // fixed): `lastDataAt` is PtyManager's generic "any bytes" idle timer
-    // (ADR-068-A1) — a shell-prompt echo counts the same as a real Codex
-    // frame. Accepted: AC8's CLI check closes the common case, and a
-    // Codex-specific signal needs the same fragile TUI matching
-    // `codex-terminal-signal-detect.ts` already accepts a gap for.
+    // Disposition (external-code-review, OpenAI MEDIUM, accepted not fixed):
+    // `lastDataAt` is PtyManager's generic "any bytes" idle timer (ADR-068-A1)
+    // — a shell-prompt echo counts the same as a real Codex frame. Accepted:
+    // AC8's CLI check closes the common case; `codex-terminal-signal-detect.ts`
+    // already accepts the same fragile-TUI-matching gap elsewhere.
     if (task.state === "awaiting_external_start") {
       if (silenceMs >= launchConfirmTimeoutMs) {
         this.setNotice(task.taskId, "launch_confirmation_failed",
@@ -202,6 +200,10 @@ export class CodexTaskWatcher {
     const prev = this.episodes.get(task.taskId);
     if (!prev || prev.lastSeenDataAt !== lastDataAt) {
       this.episodes.set(task.taskId, { lastSeenDataAt: lastDataAt, nudged: false });
+      // A fresh episode's nudge notice is stale — mirrors the two clears above.
+      if (this.notices.get(task.taskId)?.kind === "nudge_sent") {
+        this.notices.delete(task.taskId);
+      }
     }
     if (silenceMs < stallTimeoutMs) return;
 
@@ -268,11 +270,9 @@ export class CodexTaskWatcher {
       }
       return;
     }
-    // not_done (silent past the stall gate) or no_oracle — one nudge per
-    // episode. Disposition (doubt-review, low): a watched task
-    // (attachCount !== 0) gets neither nudge nor notice, by design —
-    // someone already has the terminal open, so a duplicate ping adds
-    // noise, not information.
+    // not_done or no_oracle — one nudge per episode. A watched task
+    // (attachCount !== 0) gets neither, by design (doubt-review, low):
+    // someone already has the terminal open.
     if (this.deps.ptyManager.attachCount(task.taskId) !== 0) return;
     this.deps.ptyManager.write(task.taskId, verdict === "no_oracle" ? SELF_CHECK_PROMPT : WAKER_PROMPT);
     episode.nudged = true;
