@@ -95,10 +95,13 @@ Doubt-reviewer (internal, full-diff pass) surfaced 2 additional medium
 findings, both fixed (boardColumn not synced on Codex auto-completion —
 AC-6 parity with `/close`; the `launch_confirmation_failed` clearing gap,
 independently also caught by external review's finding #4 above) plus 2
-low-severity accepted-not-fixed dispositions (documented in-source:
-`codex-oracle-runner.ts`'s orphan-process risk on Windows, mirroring an
-already-accepted `triage-cli-runner.ts` pattern; `codex-thread-discovery.ts`'s
-4KB `session_meta` read cap).
+low-severity accepted-not-fixed dispositions (documented in-source at the
+time: `codex-oracle-runner.ts`'s orphan-process risk on Windows, mirroring
+an already-accepted `triage-cli-runner.ts` pattern; `codex-thread-
+discovery.ts`'s 4KB `session_meta` read cap). **The first of those two was
+later fixed, not merely re-accepted — see "Required CI PR Review gate
+(post-push)" below**, once the actual required gate independently blocked
+on it.
 
 **Local PR-review preflight (2026-09-16, run 3+), 3 more findings:**
 1. `useNewIssueFormState.ts` re-flagged finding #6's settings-race — see #6's
@@ -153,3 +156,45 @@ subprocess-spawning runtime, not a discrete gap; the tool's own output
 states plainly it "cannot satisfy the required CI PR-review gate; that
 gate still reviews the pushed PR independently" — proceeding to push and
 letting that gate render its own (independent) verdict on the actual diff.
+
+**Required CI PR Review gate (post-push, PR #466): BLOCK.** The bet above
+did not pay off on this specific finding — the actual, independently-derived
+Tier-3 reviewer (a different model, reviewing the real pushed diff via the
+GitHub API, not this session's working tree) blocked on exactly the theme
+the local preflight kept re-surfacing: `codex-oracle-runner.ts`'s recurring
+`execFile` cadence (60s/stalled-task, indefinitely) versus
+`triage-cli-runner.ts`'s once-per-click cadence for the identical spawn
+pattern. Its blocking comment offered two paths: explicit maintainer
+sign-off accepting the existing risk, or "a bounded/reaped subprocess
+strategy with an integration test covering shutdown and repeated
+stalled-task ticks." **Sven chose hardening over sign-off** — the recurring
+cadence made the accepted-risk framing untenable long-term ("das ist ja bei
+jeder codex session" — every Codex session hits this, not a rare edge) —
+and asked for a second opinion from an Opus-model review pass before
+implementation, which surfaced that the fix infrastructure already existed:
+`preview-child-lifecycle.ts`'s `treeKill()` (win32 `taskkill /pid <pid> /t
+/f`, POSIX `kill(-pid)` via a `detached` spawn), already production (ADR-248/
+F13), already tested, and specifically NOT the `tree-kill` npm package
+(`decision_log.md` records that as a deliberately pruned dependency — do not
+re-add it).
+
+**Fix**: new `core/cli-child-spawn.ts` — one shared spawn wrapper for both
+`codex-oracle-runner.ts` and `triage-cli-runner.ts` (previously
+byte-identical, divergence-prone `execFile(..., { timeout })`
+implementations), replacing `execFile` with `spawn` (`execFile`'s TS surface
+has no `detached` option at all) and driving an owned timer that tree-kills
+the whole process group on timeout instead of relying on `error.killed`
+(which never fires for an externally-driven kill — `taskkill`/`process.kill`
+never call `child.kill()`, so the old per-file `if (e.killed)` timeout branch
+would have silently misclassified a tree-killed run). `index.ts`'s
+`shutdown()` and its `process.on("exit", ...)` handler now also tree-kill
+any in-flight CLI child and `clearInterval(codexWatcherTimer)`, mirroring
+the existing `previewManager.killAll()` / `ptyManager.killAll()` precedent
+— the Opus pass's finding that the bigger orphan risk was actually
+`shutdown()` never touching an in-flight oracle child at all, not just the
+30s-hang case. Tests: `cli-child-spawn.test.ts` — timeout drives a real
+tree-kill (never `child.kill()` directly), the shutdown registry
+tracks/untracks correctly, POSIX/win32 spawn-detached agreement, plus one
+REAL process-tree integration test (no `uv`/Python dependency — spawns node
+against itself, proving a genuine grandchild process dies on timeout on
+both platforms).

@@ -1,6 +1,6 @@
 {
   "run_id": "iterate-2026-09-16-codex-light-webui",
-  "date": "2026-09-16T10:10:25.708117Z",
+  "date": "2026-09-16T11:38:18.390871Z",
   "event_at": "2026-09-16T09:42:43.120370+00:00",
   "type": "feature",
   "complexity": "medium",
@@ -11,8 +11,8 @@
   "test_completeness": {
     "status": "complete",
     "counts": {
-      "testable": 20,
-      "tested": 20,
+      "testable": 22,
+      "tested": 22,
       "untestable": 0,
       "untested_testable": 0
     },
@@ -105,6 +105,11 @@
         "behavior": "AC5: the completion-oracle CLI is spawned injection-safely and its verdict/evidence shape is validated",
         "disposition": "tested",
         "evidence": "codex-oracle-runner.test.ts, codex-terminal-signal-detect.test.ts"
+      },
+      {
+        "behavior": "AC5 hardening (required-CI PR-review finding, PR #466): a timed-out oracle/triage-cli child is tree-killed (whole process group, not just the immediate child) instead of relying on execFile's single-process kill; index.ts shutdown() tree-kills any in-flight child and clears the watcher interval",
+        "disposition": "tested",
+        "evidence": "cli-child-spawn.test.ts (timeout drives a real tree-kill never child.kill(), shutdown registry tracks/untracks, POSIX/win32 spawn-detached agreement, real process-tree integration test)"
       },
       {
         "behavior": "AC6: the Inbox surfaces Codex watcher notices (nudge_sent, launch_confirmation_failed, delivery_error, no_oracle_unresolved) and terminal signals (pending approval, structured error), scoped to codex-runtime tasks only",

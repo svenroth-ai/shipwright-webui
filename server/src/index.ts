@@ -58,6 +58,7 @@ import { readCampaigns } from "./core/campaign-store.js";
 import { createTriageLock } from "./core/triage-lock.js";
 import { readGlobalSettings } from "./core/settings-reader.js";
 import { CodexTaskWatcher } from "./core/codex-task-watcher.js";
+import { killAllTrackedCliChildren } from "./core/cli-child-spawn.js";
 import { runCodexOracle } from "./core/codex-oracle-runner.js";
 import { discoverCodexThreadId, defaultCodexThreadDiscoveryDeps } from "./core/codex-thread-discovery.js";
 import { PtyManager } from "./terminal/pty-manager.js";
@@ -776,6 +777,17 @@ if (isMainModule) {
       // as a safety fallback only.
       const shutdown = async () => {
         console.log("Shutting down…");
+        // Stop new codex-oracle ticks from starting mid-drain, then
+        // tree-kill any oracle/triage-cli child already in flight — the
+        // per-call 30s timeout alone is not a shutdown guarantee, since
+        // hardCap below can fire well inside that window (required-CI
+        // PR-review finding, PR #466).
+        clearInterval(codexWatcherTimer);
+        try {
+          killAllTrackedCliChildren();
+        } catch {
+          // best-effort — ignore shutdown errors
+        }
         try {
           previewManager.killAll();
         } catch {
@@ -806,6 +818,11 @@ if (isMainModule) {
       process.on("SIGTERM", () => void shutdown());
       process.on("SIGINT", () => void shutdown());
       process.on("exit", () => {
+        try {
+          killAllTrackedCliChildren();
+        } catch {
+          // ignore
+        }
         try {
           previewManager.killAll();
         } catch {

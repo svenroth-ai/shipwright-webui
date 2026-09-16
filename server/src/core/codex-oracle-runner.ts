@@ -18,26 +18,22 @@
  * only falls back to an engine-unavailable/failed outcome when uv/the
  * script itself couldn't be resolved or spawned at all.
  *
- * Disposition (doubt-review, low-severity, accepted not fixed): the spawn
- * pattern is a verbatim mirror of `triage-cli-runner.ts` (already in
- * production), but the CADENCE is new — this runs every 60s tick for as
- * long as a task stays stalled, where the triage call site fires once per
- * user-initiated transition. `execFile`'s `timeout` only SIGTERMs the
- * immediate `uv` child; if `uv run` has already forked a Python
- * grandchild, Node does not reap that process tree on Windows by default.
- * `CodexTaskWatcher.tick()` still bounds this to at most one in-flight
- * oracle call at a time (its per-task loop `await`s each `checkTask()`
- * sequentially), so the exposure is "more repeats of an existing,
- * already-accepted risk," not a new class of leak. Accepted on that basis
- * rather than fixed; revisit if orphaned `uv`/python processes are ever
- * observed in practice.
+ * Required-CI PR-review finding (PR #466): the spawn pattern was a
+ * verbatim mirror of `triage-cli-runner.ts` (already in production), but
+ * the CADENCE is new — this runs every 60s tick for as long as a task
+ * stays stalled, where the triage call site fires once per user-initiated
+ * transition. `execFile`'s own `timeout` only SIGTERMs the immediate `uv`
+ * child; if `uv run` had already forked a Python grandchild, Node would
+ * not reap that process tree on Windows by default. Fixed (not merely
+ * accepted) via `cli-child-spawn.ts`'s shared tree-kill-on-timeout
+ * wrapper, shared with `triage-cli-runner.ts` so the two can't re-diverge.
  */
 
-import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { defaultCliChildSpawn } from "./cli-child-spawn.js";
 import { READINESS_REPAIR_COMMAND, shipwrightCacheRoot, type RunFn } from "./readiness-probe.js";
 import { resolveUv } from "./uv-runner.js";
 
@@ -83,31 +79,7 @@ export type OracleSpawnFn = (
   options: { timeoutMs: number; env: NodeJS.ProcessEnv },
 ) => Promise<OracleSpawnResult>;
 
-export const defaultSpawnOracle: OracleSpawnFn = (bin, args, options) =>
-  new Promise((resolve) => {
-    execFile(
-      bin,
-      args,
-      {
-        encoding: "utf-8",
-        timeout: options.timeoutMs,
-        windowsHide: true,
-        maxBuffer: 1024 * 1024,
-        env: options.env,
-      },
-      (error, stdout, stderr) => {
-        const out = String(stdout ?? "");
-        const err = String(stderr ?? "");
-        if (!error) return resolve({ code: 0, stdout: out, stderr: err });
-        const e = error as NodeJS.ErrnoException & { killed?: boolean };
-        if (typeof e.code === "string") {
-          return resolve({ code: -1, stdout: out, stderr: err, spawnError: e.code });
-        }
-        if (e.killed) return resolve({ code: 124, stdout: out, stderr: err, spawnError: "timeout" });
-        return resolve({ code: typeof e.code === "number" ? e.code : 1, stdout: out, stderr: err });
-      },
-    );
-  });
+export const defaultSpawnOracle: OracleSpawnFn = defaultCliChildSpawn;
 
 export interface RunCodexOracleInput {
   projectRoot: string;
