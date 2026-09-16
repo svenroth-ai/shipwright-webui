@@ -51,17 +51,20 @@ describe("FROZEN_WHEN_STARTED — server/client mirror parity", () => {
     expect(client).toEqual(server);
   });
 
-  it("the frozen set is exactly the five launch-shaping fields", () => {
+  it("the frozen set is exactly the six launch-shaping fields", () => {
     // Review finding #12 — pin the exact membership, not just parity.
     // autonomy joined the set in iterate-2026-08-16-task-lifecycle-ux-fixes:
     // it is embedded as `--autonomous` in the launch command itself, so it
     // shapes the launch exactly like description/phase/priority/complexityHint.
+    // runtime joined in Codex Light (Spec/codex-light-webui.md §3.5) — which
+    // CLI the launch command is built for.
     expect([...FROZEN_WHEN_STARTED]).toEqual([
       "description",
       "phase",
       "priority",
       "complexityHint",
       "autonomy",
+      "runtime",
     ]);
   });
 });
@@ -103,6 +106,7 @@ describe("isFieldEditable", () => {
       "priority",
       "complexityHint",
       "autonomy",
+      "runtime",
       "domain",
       "tags",
       "blockedBy",
@@ -118,6 +122,7 @@ describe("isFieldEditable", () => {
     expect(isFieldEditable("priority", task)).toBe(false);
     expect(isFieldEditable("complexityHint", task)).toBe(false);
     expect(isFieldEditable("autonomy", task)).toBe(false);
+    expect(isFieldEditable("runtime", task)).toBe(false);
     expect(isFieldEditable("title", task)).toBe(true);
     expect(isFieldEditable("projectId", task)).toBe(true);
     expect(isFieldEditable("domain", task)).toBe(true);

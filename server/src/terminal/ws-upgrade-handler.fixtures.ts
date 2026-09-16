@@ -33,6 +33,7 @@ export function makeTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
     state: "active" as ExternalTaskState,
     title: "test",
     projectId: "unassigned",
+    runtime: "claude",
     createdAt: "2026-05-27T00:00:00.000Z",
     inbox: {
       pendingToolUseIds: [],

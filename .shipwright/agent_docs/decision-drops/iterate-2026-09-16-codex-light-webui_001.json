@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-16-codex-light-webui",
+  "date": "2026-09-16",
+  "section": "Iterate — feature: Codex Light (Codex CLI as an alternate task runtime)",
+  "title": "Codex CLI as an alternate task runtime",
+  "context": "Webui only ever launched Claude. Operators want Codex as a second, per-task-selectable runtime to run both side by side, not just as a quota-exhaustion fallback.",
+  "decision": "Add immutable task.runtime (claude|codex), a per-task RuntimeToggle + global default, a Codex launch/resume command builder, and an oracle+watcher completion-detection loop replacing Claude's JSONL heartbeat for Codex tasks.",
+  "consequences": "Claude paths are byte-identical and unaffected (verified: full server+client suites green). Codex tasks get weaker, always-labeled-degraded completion evidence than Claude's. One more unref'd 60s watcher interval in index.ts.",
+  "rationale": "v1 launches Codex as a plain pty TUI (no new terminal-stack code, CLAUDE.md rule 1) rather than integrating the app-server protocol, which is deferred to a Campaign-capable Codex Light 2 follow-up.",
+  "rejected": "App-server-based heartbeat (needs new terminal-stack code, still defers Campaign); Codex critical:true in readiness-probe.ts (blocks an all-Claude machine, defeats the per-task toggle).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-16-codex-light-webui.md"
+}

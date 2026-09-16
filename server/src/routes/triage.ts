@@ -91,6 +91,14 @@ export interface TriageRoutesDeps {
    * when absent, items are returned without campaign annotations.
    */
   listCampaignRefs?: (projectId: string) => CampaignRef[];
+  /**
+   * Codex Light §3.5's correction — promote has no launch form / RuntimeToggle
+   * (PromoteModal.tsx never collected a per-task choice), so v1 scope is
+   * narrower: read the GLOBAL default directly, server-side, at promote time.
+   * Optional so existing tests that don't care about runtime keep passing —
+   * absent means "claude", same as the loader backfill.
+   */
+  getCodexRuntimeDefault?: () => Promise<"claude" | "codex" | undefined>;
 }
 
 export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
@@ -305,6 +313,12 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           return c.json({ error: "invalid_description", detail: normalized.error }, 400);
         }
         const description = normalized.value;
+        // Codex Light §3.5 — global-default-only for this surface (no
+        // per-task toggle here; see TriageRoutesDeps.getCodexRuntimeDefault).
+        // Local PR-review preflight finding — settings.json is unvalidated
+        // JSON (settings-reader.ts), so normalize here rather than trust
+        // the persisted shape.
+        const runtime = (await deps.getCodexRuntimeDefault?.()) === "codex" ? "codex" : "claude";
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,
@@ -315,6 +329,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           complexityHint: parsed.value.complexityHint,
           tags: allTags,
           promotedFromTriageId: parsed.value.triageId,
+          runtime,
           ...(description !== undefined ? { description } : {}),
         });
         await deps.store.persist();

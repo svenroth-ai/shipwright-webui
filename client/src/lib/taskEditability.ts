@@ -33,6 +33,7 @@ export const FROZEN_WHEN_STARTED = [
   "priority",
   "complexityHint",
   "autonomy",
+  "runtime",
 ] as const;
 
 export type FrozenField = (typeof FROZEN_WHEN_STARTED)[number];

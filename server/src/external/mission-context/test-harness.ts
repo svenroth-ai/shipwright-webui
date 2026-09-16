@@ -73,6 +73,7 @@ export function makeTask(over: Partial<ExternalTask> = {}): ExternalTask {
     state: "active",
     title: "Demo iterate",
     projectId: "proj-1",
+    runtime: "claude",
     createdAt: "2026-07-18T09:00:00Z",
     inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
     ...over,

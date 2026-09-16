@@ -24,6 +24,7 @@ import {
   AutonomyFieldFragment,
   DescriptionFieldFragment,
   ProjectFieldFragment,
+  RuntimeFieldFragment,
   TitleFieldFragment,
 } from "./SimpleFields";
 import type { UseNewIssueFormReturn } from "./useNewIssueForm";
@@ -38,17 +39,20 @@ export function NewPipelineModal({ form }: { form: UseNewIssueFormReturn }) {
         realProjects={form.realProjects}
       />
       <TitleFieldFragment title={form.title} setTitle={form.setTitle} />
+      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} />
 
       {form.showAutonomyToggle && (
         <AutonomyFieldFragment
           autonomy={form.autonomy}
           setAutonomy={form.setAutonomy}
+          runtime={form.runtime}
         />
       )}
 
       <DescriptionFieldFragment
         description={form.description}
         setDescription={form.setDescription}
+        runtime={form.runtime}
       />
 
       {/* Required params stay visible — a hidden required field would

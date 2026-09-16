@@ -18,13 +18,17 @@
  * project. `--no-project` makes "no ambient project" structural rather than
  * an accident of this repo currently having none. There is deliberately no
  * TypeScript append fallback: an unavailable writer disables the UI instead.
+ *
+ * Spawn/kill mechanics now live in `cli-child-spawn.ts` (Required-CI
+ * PR-review finding, PR #466) — shared with `codex-oracle-runner.ts` so a
+ * tree-kill fix lands once, not twice.
  */
 
-import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { defaultCliChildSpawn } from "./cli-child-spawn.js";
 import { READINESS_REPAIR_COMMAND, shipwrightCacheRoot, type RunFn } from "./readiness-probe.js";
 import { resolveUv } from "./uv-runner.js";
 
@@ -91,29 +95,7 @@ export function resolveTriageCliScript(deps: Pick<TriageCliDeps, "existsFn" | "h
   return exists(candidate) ? candidate : null;
 }
 
-export const defaultSpawnTriageCli: TriageCliSpawn = (bin, args, options) =>
-  new Promise((resolve) => {
-    execFile(
-      bin,
-      args,
-      {
-        encoding: "utf-8",
-        timeout: options.timeoutMs,
-        windowsHide: true,
-        maxBuffer: 1024 * 1024,
-        env: options.env,
-      },
-      (error, stdout, stderr) => {
-        const out = String(stdout ?? "");
-        const err = String(stderr ?? "");
-        if (!error) return resolve({ code: 0, stdout: out, stderr: err });
-        const e = error as NodeJS.ErrnoException & { killed?: boolean };
-        if (typeof e.code === "string") return resolve({ code: -1, stdout: out, stderr: err, spawnError: e.code });
-        if (e.killed) return resolve({ code: 124, stdout: out, stderr: err, spawnError: "timeout" });
-        return resolve({ code: typeof e.code === "number" ? e.code : 1, stdout: out, stderr: err });
-      },
-    );
-  });
+export const defaultSpawnTriageCli: TriageCliSpawn = defaultCliChildSpawn;
 
 function unavailable(reason: string): TriageWriteAvailability {
   return { available: false, reason, repairCommand: READINESS_REPAIR_COMMAND };

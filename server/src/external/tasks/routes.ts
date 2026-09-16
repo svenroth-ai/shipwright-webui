@@ -63,6 +63,7 @@ export function createTasksRouter(deps: TasksRouterDeps): Hono {
   registerTasksLifecycle(app, {
     store: deps.store,
     ptyManager: deps.ptyManager,
+    getProjectById: deps.getProjectById,
     scrollbackClearBestEffort: deps.scrollbackClearBestEffort,
     snapshotClearBestEffort: deps.snapshotClearBestEffort,
   });

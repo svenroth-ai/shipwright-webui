@@ -50,6 +50,7 @@ export function NewGenericModal({ form }: { form: UseNewIssueFormReturn }) {
       <DescriptionFieldFragment
         description={form.description}
         setDescription={form.setDescription}
+        runtime={form.runtime}
       />
       {/* Required params stay visible — a hidden required field would
           disable Launch with no visible cause. */}

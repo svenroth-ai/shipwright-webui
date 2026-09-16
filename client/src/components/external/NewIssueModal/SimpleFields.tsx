@@ -4,6 +4,7 @@
  *   - TitleFieldFragment   — title input with optional auto-detect hint
  *   - DescriptionFieldFragment — textarea
  *   - AutonomyFieldFragment    — AutonomyToggle wrapper
+ *   - RuntimeFieldFragment     — RuntimeToggle wrapper (Codex Light §3.5)
  *
  * Each fragment is a thin wrapper over an already-extracted primitive.
  */
@@ -11,6 +12,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import { AutonomyToggle, type AutonomyValue } from "../AutonomyToggle";
+import { RuntimeToggle, type RuntimeValue } from "../RuntimeToggle";
 import { ProjectContextStrip } from "../ProjectContextStrip";
 import type { Project } from "../../../types";
 
@@ -95,14 +97,20 @@ export const DESCRIPTION_MAX_LENGTH = 6_000;
 export function DescriptionFieldFragment({
   description,
   setDescription,
+  runtime,
 }: {
   description: string;
   setDescription: Dispatch<SetStateAction<string>>;
+  /** Codex Light §3.5 — the hint names whichever runtime this task will
+   *  actually run under. Defaults to Claude for callers that don't yet
+   *  carry a runtime value (e.g. pre-Codex-Light form fixtures). */
+  runtime?: RuntimeValue;
 }) {
+  const runtimeLabel = runtime === "codex" ? "Codex" : "Claude";
   return (
     <FieldLabel
       label="Description"
-      hint={`optional — becomes the first prompt Claude sees · ${description.length}/${DESCRIPTION_MAX_LENGTH}`}
+      hint={`optional — becomes the first prompt ${runtimeLabel} sees · ${description.length}/${DESCRIPTION_MAX_LENGTH}`}
     >
       <textarea
         value={description}
@@ -116,16 +124,59 @@ export function DescriptionFieldFragment({
   );
 }
 
+// Codex Light §3 — AutonomyToggle's default copy is Claude-specific
+// ("AskUser"). Codex's own mapping (runtime-chokepoint.ts's
+// `buildCodexCommands`): Guided enables `default_mode_request_user_input`
+// plus `approval_policy=on-request`/`approvals.reviewer=user` (Codex asks
+// before acting or when it needs input); Autonomous passes `--yolo` (no
+// approval prompts at all).
+const CODEX_GUIDED_HINT = (
+  <>
+    <strong>Guided</strong>: Codex asks before it acts or when it needs your
+    input — you respond in the terminal. Slower, full oversight.
+  </>
+);
+const CODEX_AUTONOMOUS_HINT = (
+  <>
+    <strong>Autonomous</strong>: Codex runs without asking for approval
+    (<code>--yolo</code>). Fastest; good for well-scoped work you trust to
+    its spec.
+  </>
+);
+
 export function AutonomyFieldFragment({
   autonomy,
   setAutonomy,
+  runtime,
 }: {
   autonomy: AutonomyValue;
   setAutonomy: Dispatch<SetStateAction<AutonomyValue>>;
+  /** Codex Light §3.5 — swaps in Codex-accurate hint copy when set. */
+  runtime?: RuntimeValue;
 }) {
   return (
     <FieldLabel label="Autonomy">
-      <AutonomyToggle value={autonomy} onChange={setAutonomy} />
+      <AutonomyToggle
+        value={autonomy}
+        onChange={setAutonomy}
+        {...(runtime === "codex"
+          ? { guidedHint: CODEX_GUIDED_HINT, autonomousHint: CODEX_AUTONOMOUS_HINT }
+          : {})}
+      />
+    </FieldLabel>
+  );
+}
+
+export function RuntimeFieldFragment({
+  runtime,
+  setRuntime,
+}: {
+  runtime: RuntimeValue;
+  setRuntime: Dispatch<SetStateAction<RuntimeValue>>;
+}) {
+  return (
+    <FieldLabel label="Runtime">
+      <RuntimeToggle value={runtime} onChange={setRuntime} />
     </FieldLabel>
   );
 }

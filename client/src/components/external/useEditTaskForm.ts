@@ -21,6 +21,7 @@ import {
 import { useUpdateTask } from "../../hooks/useExternalTasks";
 import { isFieldEditable, isNeverStarted } from "../../lib/taskEditability";
 import type { AutonomyValue } from "./AutonomyToggle";
+import type { RuntimeValue } from "./RuntimeToggle";
 import { resolveMode } from "./NewIssueModal/palette";
 
 /** Catalog-free fallback field set — Phase is omitted because validating a
@@ -78,6 +79,9 @@ export function useEditTaskForm(
   const [autonomy, setAutonomy] = useState<AutonomyValue>(
     task.autonomy ?? "guided",
   );
+  const [runtime, setRuntime] = useState<RuntimeValue>(
+    task.runtime ?? "claude",
+  );
   const [domain, setDomain] = useState(task.domain ?? "");
   const [tagsRaw, setTagsRaw] = useState((task.tags ?? []).join(", "));
   const [blockedByRaw, setBlockedByRaw] = useState(
@@ -125,6 +129,7 @@ export function useEditTaskForm(
     setPriority(t.priority ?? "");
     setComplexityHint(t.complexityHint ?? "");
     setAutonomy(t.autonomy ?? "guided");
+    setRuntime(t.runtime ?? "claude");
     setDomain(t.domain ?? "");
     setTagsRaw((t.tags ?? []).join(", "));
     setBlockedByRaw((t.blockedBy ?? []).join(", "));
@@ -159,6 +164,9 @@ export function useEditTaskForm(
     }
     if (showAutonomyToggle && editable("autonomy")) {
       if (autonomy !== (task.autonomy ?? "guided")) patch.autonomy = autonomy;
+    }
+    if (editable("runtime")) {
+      if (runtime !== (task.runtime ?? "claude")) patch.runtime = runtime;
     }
     if (shows("domain") && editable("domain")) {
       const dm = domain.trim();
@@ -213,6 +221,8 @@ export function useEditTaskForm(
     setComplexityHint,
     autonomy,
     setAutonomy,
+    runtime,
+    setRuntime,
     domain,
     setDomain,
     tagsRaw,

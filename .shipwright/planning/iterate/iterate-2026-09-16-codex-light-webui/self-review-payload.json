@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All 9 Codex Light ACs from Spec/codex-light-webui.md implemented: Settings + per-task runtime toggle, launch command/env plumbing, Task Modal RuntimeToggle, autonomy governance per §3, completion detection (oracle + watcher), Inbox feeds (codex_watcher/codex_approval/codex_error), campaign block/explain, readiness combined gate, new-pipeline blocked for Codex keyed on actionId; both explicitly-required regression tests (fork keeps Codex runtime; old task without runtime still loads) are present and passing."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "appendCodexTerminalSignals wraps peekTerminalText in try/catch (best-effort, never throws into the Inbox aggregator); codex-oracle-runner has a 30s per-call ceiling; thread discovery treats null as 'not yet found', never an error; CodexTaskWatcher.tick() is reentrancy-guarded so a stalled call can't corrupt concurrent state."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "n/a",
+      "note": "No new user input reaches SQL or raw HTML output; no secrets/keys added; launch command construction reuses the existing shell-whitelist pty spawn path (CLAUDE.md rule 17), unchanged by this diff."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Outcome-based tests per AC, incl. both named regression tests; full server suite green (4250 passed/12 skipped, 395 files) and full client suite green (4125 passed, 457 files) after the latest changes (reentrancy guard + codex-task-watcher.ts file split)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "Code-review fixed an N+1 settings.json read per CodexTaskWatcher.tick() (now resolved once per tick, not per task); Inbox aggregator's duplicate-detection guard (runtime === codex skip in appendTerminalPrompts) avoids a redundant peekTerminalText read per Codex task per Inbox poll."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "codex-task-watcher.ts split into itself (259 lines) + codex-task-watcher-types.ts (76 lines) to clear the 300-line guideline (bloat Stop-hook confirmed clear); file/folder placement follows existing core/ and external/inbox/ conventions; new components mirror existing sibling patterns (InboxCard.CodexNotice.tsx mirrors InboxCard.Waiting.tsx)."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Producer/consumer pairs: (1) sdk-sessions.json gains runtime/threadId fields — producer sdk-sessions-store.ts, consumer client externalApi.ts types + UI; round-trip covered by sdk-sessions-validate.runtime-backfill.test.ts (old record without runtime still loads — the required regression test). (2) settings.json gains Codex fields (stall timeout, launch-confirm) — producer/consumer round-trip covered by settings-reader.test.ts. touches_io_boundary risk flag fired on both and is satisfied."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run scan_test_hygiene.py --diff: no findings (fell back to working-tree scan since HEAD == origin/main pre-commit; no skip/fixme/xit/focused-test patterns introduced)."
+    }
+  ]
+}

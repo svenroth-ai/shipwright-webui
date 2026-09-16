@@ -12,7 +12,9 @@
  *   - priority / complexityHint = triage inputs the user set up-front
  *   - autonomy    = embedded as `--autonomous` in the launch command itself
  *     (iterate-2026-08-16-task-lifecycle-ux-fixes)
- * These five freeze once started. `title` / `projectId` / `domain` /
+ *   - runtime     = which CLI the launch command is built for (Codex Light,
+ *     Spec/codex-light-webui.md §3.5) — same rule as autonomy.
+ * These six freeze once started. `title` / `projectId` / `domain` /
  * `tags` / `blockedBy` are never frozen.
  *
  * `FROZEN_WHEN_STARTED` is a VERBATIM mirror of
@@ -32,6 +34,7 @@ export const FROZEN_WHEN_STARTED = [
   "priority",
   "complexityHint",
   "autonomy",
+  "runtime",
 ] as const;
 
 export type FrozenField = (typeof FROZEN_WHEN_STARTED)[number];

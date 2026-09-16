@@ -44,6 +44,7 @@ const PATCHABLE = [
   "tags",
   "blockedBy",
   "autonomy",
+  "runtime",
   "poFeedback",
 ];
 
@@ -223,6 +224,25 @@ export function registerTasksPatch(
             error: "invalid_autonomy",
             detail: "autonomy must be guided or autonomous",
           },
+          400,
+        );
+      }
+    }
+
+    // Codex Light §3.5 — EditTaskModal's RuntimeToggle. External-review
+    // finding: this route parsed every other patchable field but dropped
+    // `runtime` on the floor entirely (not even in PATCHABLE), so a
+    // pre-start task flipped to Codex in the modal silently stayed on
+    // Claude server-side. FROZEN_WHEN_STARTED already covers "runtime" in
+    // task-editability.ts, so the lifecycle gate above already enforces
+    // the post-start freeze — this only needed the field wired through.
+    if ("runtime" in body) {
+      const rt = body.runtime;
+      if (rt === "claude" || rt === "codex") {
+        patch.runtime = rt;
+      } else {
+        return c.json(
+          { error: "invalid_runtime", detail: "runtime must be claude or codex" },
           400,
         );
       }

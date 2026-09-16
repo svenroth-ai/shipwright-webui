@@ -296,9 +296,10 @@
     {
       "path": "client/src/lib/externalApi.ts",
       "limit": 300,
-      "current": 832,
+      "current": 856,
       "state": "grandfathered",
-      "adr": null
+      "adr": null,
+      "note": "iterate-codex-light-webui: +24 lines (832 -> 856) from Codex Light's task.runtime/threadId ExternalTask fields (§3.5/§4) plus re-exporting the three new codex_watcher/codex_approval/codex_error InboxItem types (§5.3/AC6, mirroring server/src/external/inbox/_types.ts's AggregatedEntry additions) -- type-surface growth mirroring already-reviewed server types, not new business logic. This file is already grandfathered at the ceiling (project_externalapi_at_bloat_ceiling.md); a genuine extraction is out of scope for this iterate."
     },
     {
       "path": "client/src/pages/InboxPage.test.tsx",
@@ -472,9 +473,10 @@
     {
       "path": "server/src/core/sdk-sessions-store.ts",
       "limit": 300,
-      "current": 543,
+      "current": 577,
       "state": "grandfathered",
-      "adr": null
+      "adr": null,
+      "note": "iterate-2026-09-16-codex-light-webui: +34 lines for Codex Light — the task-level Runtime type (\"claude\"|\"codex\") plus its field/JSDoc on the SdkSession shape, set once at creation and never re-derived."
     },
     {
       "path": "server/src/core/triage-store.ts",
@@ -544,17 +546,18 @@
     {
       "path": "server/src/external/routes.ts",
       "limit": 300,
-      "current": 234,
+      "current": 235,
       "state": "grandfathered",
       "adr": "iterate-2026-08-17-org-route-leads",
-      "note": "Already 301 (pre-existing) before this run added the FR-04.38 org-router mount + deps (comments trimmed to minimize growth)."
+      "note": "Already 301 (pre-existing) before this run added the FR-04.38 org-router mount + deps (comments trimmed to minimize growth). iterate-2026-09-16-codex-light-webui: +2/-1 lines — threads the new CodexTaskWatcher instance through to createInboxRouter so Codex watcher notices (AC6) reach the Inbox."
     },
     {
       "path": "server/src/index.ts",
       "limit": 300,
-      "current": 857,
+      "current": 929,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-06-project-delete-cascades-tasks"
+      "adr": "iterate-2026-07-06-project-delete-cascades-tasks",
+      "note": "iterate-codex-light-webui: constructed the CodexTaskWatcher singleton + its 60s unref'd tick interval, and wired getCodexRuntimeDefault + codexWatcher into the existing createTriageRoutes/createExternalRoutes composition (Codex Light §5.1 AC5/AC6) -- +44 lines (857 -> 901), composition-root wiring of already-tested modules, not new business logic. Then +2 more (901 -> 903) wiring discoverCodexThreadId/defaultCodexThreadDiscoveryDeps into the CodexTaskWatcher constructor call (Codex Light §4 threadId discovery, reviewer finding #5) -- same composition-root pattern, no new business logic here either. Then +6 more (903 -> 909) guarding the stallTimeoutMs getter against a non-numeric settings.codexStallTimeoutMinutes value (code-review finding: PUT /api/settings has no shape validation, so a NaN reaching Math.max would silently defeat the stall guard) -- a defensive Number.isFinite coercion, not new business logic. Then +3 more (909 -> 912) wiring ptyManager.peekTerminalText into the CodexTaskWatcher constructor call as the §5.4 self-report parser's raw text source (external-code-review finding, OpenAI MEDIUM) -- same composition-root pattern, no new business logic. Then +17 more (912 -> 929) wiring killAllTrackedCliChildren() + clearInterval(codexWatcherTimer) into shutdown() and the process.on('exit') handler (required-CI PR-review finding on PR #466: a stalled-task oracle child could still be mid-flight when the 3s hardCap forces process.exit) -- same composition-root pattern, no new business logic."
     },
     {
       "path": "server/src/lib/resolveTrustedOrigins.test.ts",
@@ -566,9 +569,10 @@
     {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 581,
+      "current": 596,
       "state": "grandfathered",
-      "adr": "iterate-2026-08-08-triage-amend-reader"
+      "adr": "iterate-2026-08-08-triage-amend-reader",
+      "note": "iterate-codex-light-webui: added TriageRoutesDeps.getCodexRuntimeDefault + its use in the promote fresh-create branch (Codex Light §3.5 -- promote has no per-task RuntimeToggle, so it reads the global settings default server-side) -- +12 lines (581 -> 593), a narrow read-only dependency injection, not a new concern. +3 lines (593 -> 596): local PR-review preflight finding -- normalized the settings-reader.ts value to \"codex\"|\"claude\" at the call site instead of trusting the unvalidated JSON shape."
     },
     {
       "path": "server/src/terminal/headless-mirror.ts",
@@ -609,10 +613,10 @@
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1337,
+      "current": 1366,
       "state": "exception",
       "adr": "ADR-101",
-      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern. iterate-2026-09-05-terminal-large-command-chunked-pty-write: write() first grew in-place to chunk an oversized single-burst write (chunkUtf8ForPtyWrite + deliverOrChunk/drainPendingWrites, 4 new PtyManagerOpts knobs) to close a real production hang -- an unchunked write() of a multi-KB first-launch command deadlocked the macOS pty's canonical-mode input queue and froze the server's event loop -- reaching 1523 lines (+224) across three internal review passes plus one external Tier-3 PR review (which found a genuinely new stack-overflow bug in the recursive drain, fixed by making it iterative). The user then asked whether this could be made SMALLER instead of just raising the ratchet again: the whole chunking/serialization mechanism was a cohesive, self-contained concern (touches only entry.pty.write() + its own busy/queue bookkeeping, nothing else PtyManager owns), so it was extracted to a new module pty-write-chunker.ts (254 lines, under the 300 limit, no exception needed) as a ChunkedPtyWriter class -- mirroring this file's own existing BackpressureTelemetry precedent (backpressure-telemetry.ts). PtyManager now holds one `chunkedWriter` field and delegates write()/writeMouseReport() to it; PtyEntry keeps only the three data fields (chunkWriteBusy/pendingWrites/pendingWritesBytes) since ChunkedPtyWriter needs a concrete object to mutate, with their detailed doc comments moved to the new module. Net effect on THIS file: +38 over the pre-iterate baseline (1299 -> 1337) instead of +224 -- same responsibility bullet 6, smaller than it would otherwise be, not a new concern."
+      "note": "hadDataWritten (real-input tracking, iterate-2026-08-16-task-lifecycle-ux-fixes) -- small, cohesive in-place addition to the pty lifecycle owner's writer/reader bookkeeping (same responsibility bullet 6 in ADR-101); the now-dead hadWriterAttach latch it replaced was removed (code-review finding), netting the file down from a first-draft 1286 before a doubt-review finding (trg-cdf2bade) added an 8-line known-gap disclosure back onto AttachResult.hadPriorWriter's doc comment; ADR-101 exception stands. iterate-2026-08-24-terminal-readonly-scroll-copy: added writeMouseReport() (+15 lines), a narrow sibling of write() for the reader-scroll/copy exception -- forwards a SGR mouse report to the pty like write() but deliberately skips the hadDataWritten latch (a scroll/select gesture is not real input); same responsibility bullet 6, not a new concern. iterate-2026-09-05-terminal-large-command-chunked-pty-write: write() first grew in-place to chunk an oversized single-burst write (chunkUtf8ForPtyWrite + deliverOrChunk/drainPendingWrites, 4 new PtyManagerOpts knobs) to close a real production hang -- an unchunked write() of a multi-KB first-launch command deadlocked the macOS pty's canonical-mode input queue and froze the server's event loop -- reaching 1523 lines (+224) across three internal review passes plus one external Tier-3 PR review (which found a genuinely new stack-overflow bug in the recursive drain, fixed by making it iterative). The user then asked whether this could be made SMALLER instead of just raising the ratchet again: the whole chunking/serialization mechanism was a cohesive, self-contained concern (touches only entry.pty.write() + its own busy/queue bookkeeping, nothing else PtyManager owns), so it was extracted to a new module pty-write-chunker.ts (254 lines, under the 300 limit, no exception needed) as a ChunkedPtyWriter class -- mirroring this file's own existing BackpressureTelemetry precedent (backpressure-telemetry.ts). PtyManager now holds one `chunkedWriter` field and delegates write()/writeMouseReport() to it; PtyEntry keeps only the three data fields (chunkWriteBusy/pendingWrites/pendingWritesBytes) since ChunkedPtyWriter needs a concrete object to mutate, with their detailed doc comments moved to the new module. Net effect on THIS file: +38 over the pre-iterate baseline (1299 -> 1337) instead of +224 -- same responsibility bullet 6, smaller than it would otherwise be, not a new concern. iterate-codex-light-webui: added PtySpawnOpts.env passthrough + PtyEntry.lastDataAt (Codex Light SHIPWRIGHT_SESSION_ID env plumbing §2.4 + §5.1 pty-silence tracking for CodexTaskWatcher) and getLastDataAt() -- same responsibility bullet 6 (pty lifecycle owner bookkeeping), not a new concern; +29 lines (1337 -> 1366)."
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
@@ -624,9 +628,10 @@
     {
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
-      "current": 543,
+      "current": 554,
       "state": "exception",
-      "adr": "ADR-103"
+      "adr": "ADR-103",
+      "note": "iterate-2026-09-16-codex-light-webui: +11 lines — the pty prewarm route now passes SHIPWRIGHT_SESSION_ID env for a Codex-runtime task, matching the WS-upgrade spawn path (spawn() is idempotent ensure-or-create, so both call sites must agree)."
     },
     {
       "path": "server/src/terminal/scrollback-store.test.ts",
@@ -659,10 +664,10 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 723,
+      "current": 729,
       "state": "exception",
       "adr": "ADR-103",
-      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out. iterate-2026-08-24-terminal-readonly-scroll-copy: added the `mouse` inbound variant (WSMessageMouse + isSgrMouseReport + its onMessage branch, +41 lines) so a read-only reader's scroll/select gestures reach the pty while real keystrokes stay writer-gated -- the writer/role decision this branch reads is the same protected lock set, so it belongs in this module rather than a new one. iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +5 lines -- the replay-only branch's `sendReplaySnapshot` call now passes `{ tearDownInteractionModes: true }` (a closed task's one-shot attach is final: no live pty ever follows up to turn mouse-tracking/alt-scroll back off); the live-attach and resync call sites are unchanged, so this is a one-call, one-comment addition to the same protected branch dispatch, not new surface. +14 more lines (doubt-reviewer, HIGH): the reaped-pty/server-restart branch of `buildLiveHandlers` (no live pty existed before this attach) reads the SAME kind of stale on-disk cell-state snapshot as the replay-only branch and gets attached to a brand-new bare shell that will never turn a latched mouse-tracking/alt-scroll mode back off -- reproducing Bug A's exact defect through this other call site, which the iterate's own root-cause investigation had walked past while discussing the identical `ptyExistedBeforeAttach=false` case for an unrelated reason (the reset banner). Fix: the pre-spawn/live-fallback `sendReplaySnapshot` call now also passes `{ tearDownInteractionModes: true }`, gated on `!ptyExistedBeforeAttach` (the same synchronous probe `terminalReset` is derived from, not `terminalReset` itself, since that flag also requires `firstJsonlObservedAt` and would wrongly skip the teardown on a first-ever-launch edge case). The mid-session `performResync` call site is unchanged (always live-pty-only) -- AC-2 still holds."
+      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out. iterate-2026-08-24-terminal-readonly-scroll-copy: added the `mouse` inbound variant (WSMessageMouse + isSgrMouseReport + its onMessage branch, +41 lines) so a read-only reader's scroll/select gestures reach the pty while real keystrokes stay writer-gated -- the writer/role decision this branch reads is the same protected lock set, so it belongs in this module rather than a new one. iterate-2026-08-27-terminal-replay-reset-reopen-reconnect: +5 lines -- the replay-only branch's `sendReplaySnapshot` call now passes `{ tearDownInteractionModes: true }` (a closed task's one-shot attach is final: no live pty ever follows up to turn mouse-tracking/alt-scroll back off); the live-attach and resync call sites are unchanged, so this is a one-call, one-comment addition to the same protected branch dispatch, not new surface. +14 more lines (doubt-reviewer, HIGH): the reaped-pty/server-restart branch of `buildLiveHandlers` (no live pty existed before this attach) reads the SAME kind of stale on-disk cell-state snapshot as the replay-only branch and gets attached to a brand-new bare shell that will never turn a latched mouse-tracking/alt-scroll mode back off -- reproducing Bug A's exact defect through this other call site, which the iterate's own root-cause investigation had walked past while discussing the identical `ptyExistedBeforeAttach=false` case for an unrelated reason (the reset banner). Fix: the pre-spawn/live-fallback `sendReplaySnapshot` call now also passes `{ tearDownInteractionModes: true }`, gated on `!ptyExistedBeforeAttach` (the same synchronous probe `terminalReset` is derived from, not `terminalReset` itself, since that flag also requires `firstJsonlObservedAt` and would wrongly skip the teardown on a first-ever-launch edge case). The mid-session `performResync` call site is unchanged (always live-pty-only) -- AC-2 still holds. iterate-2026-09-16-codex-light-webui: +6 lines — WS-upgrade pty spawn passes SHIPWRIGHT_SESSION_ID for a Codex-runtime task (Codex reads process.env directly, no CLAUDE_ENV_FILE-equivalent layer); buildSpawnEnv already merges it over process.env, so no other change needed here."
     },
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",

@@ -11,6 +11,7 @@ import type { RunConfigReadResult } from "../core/run-config-reader.js";
 import type { ComplianceReadResult } from "../core/compliance-reader.js";
 import type { OrgRouterDeps } from "./org/routes.js";
 import type { ExternalRouteProjectView } from "./_shared/helpers.js";
+import type { CodexTaskWatcher } from "../core/codex-task-watcher.js";
 
 export interface CreateExternalRoutesArgs {
   store: SdkSessionsStore;
@@ -108,4 +109,11 @@ export interface CreateExternalRoutesArgs {
   /** iterate-2026-09-07-leadwright-setup-wizard (W14) — see OrgRouterDeps. */
   leadwrightCheckoutRoot?: string;
   webuiBaseUrl?: string;
+  /**
+   * Codex Light AC6 — feeds `codex_watcher` inbox rows from the singleton
+   * `CodexTaskWatcher`'s ephemeral snapshot. Optional: tests and legacy
+   * callers omit it and simply get no `codex_watcher` rows; production
+   * (index.ts) wires the real instance.
+   */
+  codexWatcher?: Pick<CodexTaskWatcher, "snapshot">;
 }

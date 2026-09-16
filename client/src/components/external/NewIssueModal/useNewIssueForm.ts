@@ -17,6 +17,7 @@ import { useCallback } from "react";
 
 import { useProjectFilter } from "../../../hooks/useProjectFilter";
 import { useProjects } from "../../../hooks/useProjects";
+import { useSettings } from "../../../hooks/useSettings";
 import { UNASSIGNED_PROJECT_ID } from "../../../lib/projectIds";
 import type { RenderableParamSchema } from "../../../types/action-schema";
 
@@ -65,6 +66,10 @@ export function useNewIssueForm(props: HookInput) {
 
   const { activeProjectId } = useProjectFilter();
   const { data: projects = [] } = useProjects();
+  // Codex Light §3.5 — the GLOBAL runtime default, read once here rather
+  // than threaded through every caller's props (NewIssueModalProps has no
+  // settings dependency otherwise; this keeps that true).
+  const { data: settings } = useSettings();
 
   // Derived needs realProjects/scopedProject/phases first to seed State's
   // initial values; but State needs setters that Derived consumes. The
@@ -100,6 +105,7 @@ export function useNewIssueForm(props: HookInput) {
     realProjects: seedRealProjects,
     phases: seedPhases,
     projectActions,
+    codexRuntimeDefault: settings?.codexRuntimeDefault,
   });
 
   // Local impl for onParamEnableToggle. Uses functional setState (prev =>
@@ -176,6 +182,7 @@ export function useNewIssueForm(props: HookInput) {
     title: state.title,
     description: state.description,
     autonomy: state.autonomy,
+    runtime: state.runtime,
     leadDomain: state.leadDomain,
     leadPriority: state.leadPriority,
     leadComplexityHint: state.leadComplexityHint,

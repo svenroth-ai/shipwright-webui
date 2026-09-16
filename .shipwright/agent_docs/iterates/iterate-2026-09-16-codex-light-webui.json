@@ -1,0 +1,143 @@
+{
+  "run_id": "iterate-2026-09-16-codex-light-webui",
+  "date": "2026-09-16T11:51:10.529943Z",
+  "event_at": "2026-09-16T09:42:43.120370+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/codex-light-webui",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-16-codex-light-webui",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 22,
+      "tested": 22,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 9,
+      "covered_acs": 9
+    },
+    "behaviors": [
+      {
+        "behavior": "AC1: global settings.codexRuntimeDefault toggle persists and seeds new tasks; server-side settings mirror validates/reads it",
+        "disposition": "tested",
+        "evidence": "CodexSettingsCard.test.tsx, settings-reader.test.ts"
+      },
+      {
+        "behavior": "AC1: per-task RuntimeToggle overrides the global default; task.runtime is immutable once the task is created",
+        "disposition": "tested",
+        "evidence": "RuntimeToggle.test.tsx, useNewIssueFormState (payload-create.test.tsx), routes.create-runtime.test.ts"
+      },
+      {
+        "behavior": "AC1 regression: an old task with no `runtime` field on disk still loads, backfilled to 'claude'; a task explicitly persisted as 'codex' survives reload unchanged",
+        "disposition": "tested",
+        "evidence": "sdk-sessions-validate.runtime-backfill.test.ts"
+      },
+      {
+        "behavior": "AC1 regression: forking a Codex task keeps the fork on Codex, not the claude default; a Claude parent's fork stays Claude",
+        "disposition": "tested",
+        "evidence": "fork.codex-runtime.test.ts"
+      },
+      {
+        "behavior": "AC1: PATCH /tasks/:id accepts and persists a runtime change from the Edit dialog (was a silent no-op pre-fix, external-review HIGH #2)",
+        "disposition": "tested",
+        "evidence": "routes.patch-runtime.test.ts"
+      },
+      {
+        "behavior": "AC1: a triage-promoted task carries the runtime chosen at promotion time; a malformed persisted settings.codexRuntimeDefault normalizes to 'claude' instead of passing through raw (local PR-review preflight finding)",
+        "disposition": "tested",
+        "evidence": "triage.promote-runtime.test.ts"
+      },
+      {
+        "behavior": "AC2: buildCodexCommands emits the correct 3 shell forms, cd prefix, and always threads shell_environment_policy.inherit=all (\u00a72.4)",
+        "disposition": "tested",
+        "evidence": "launcher-codex.test.ts"
+      },
+      {
+        "behavior": "AC2: buildCodexPrompt composes model pins/AGENTS.md/phase-SKILL.md pointers correctly and always ends with the \u00a75.4 SHIPWRIGHT-STATUS self-report instruction",
+        "disposition": "tested",
+        "evidence": "launcher-codex.test.ts"
+      },
+      {
+        "behavior": "AC2: applyRuntimeChokepoint passes claude commands through byte-identical, and overrides with buildCodexCommands (fresh launch or `codex resume <threadId>`) for a codex task",
+        "disposition": "tested",
+        "evidence": "runtime-chokepoint.test.ts"
+      },
+      {
+        "behavior": "AC2: real pty spawn merges caller-supplied env (e.g. SHIPWRIGHT_SESSION_ID) over the full process.env, never replacing it (external-review LOW #9, was claimed-but-unverified end-to-end)",
+        "disposition": "tested",
+        "evidence": "create-node-pty-spawn-fn.test.ts (mocks @lydell/node-pty, exercises the real createNodePtySpawnFn -> buildSpawnEnv path)"
+      },
+      {
+        "behavior": "AC2: pty-manager/ws-upgrade-handler thread the Codex env vars through the real spawn call",
+        "disposition": "tested",
+        "evidence": "pty-manager.codex-env.test.ts, ws-upgrade-handler.codex-env.test.ts"
+      },
+      {
+        "behavior": "AC3: NewTaskModal's RuntimeToggle defaults to Claude, selects Codex, persists, and the persisted choice is reflected back in the Edit dialog pre-launch (real browser)",
+        "disposition": "tested",
+        "evidence": "E2E runtime-toggle-codex.spec.ts (test 1)"
+      },
+      {
+        "behavior": "AC3: the runtime field freezes to a read-only label in the Edit dialog after a real /launch round-trip (real browser)",
+        "disposition": "tested",
+        "evidence": "E2E runtime-toggle-codex.spec.ts (test 2); EditTaskModal.runtime-toggle.test.tsx (jsdom, both labels)"
+      },
+      {
+        "behavior": "AC4: autonomy maps onto Codex's approvalPolicy/approvalsReviewer/--enable default_mode_request_user_input vocabulary identically for a fresh launch and a resume (guided and autonomous, both verified live against `codex resume --help`)",
+        "disposition": "tested",
+        "evidence": "launcher-codex.test.ts (guided/autonomous \u00d7 fresh/resume, 4 cases)"
+      },
+      {
+        "behavior": "AC5: CodexTaskWatcher classifies not_done/done/no_oracle/delivery_pending per \u00a75.1's table, nudges at most once per stall episode, skips attached/claude-runtime/no-pty tasks, syncs boardColumn on auto-completion, and clears a nudge_sent notice once fresh output starts a new episode (local PR-review preflight finding)",
+        "disposition": "tested",
+        "evidence": "codex-task-watcher.test.ts, codex-task-watcher.delivery.test.ts, codex-task-watcher.thread-discovery.test.ts"
+      },
+      {
+        "behavior": "AC5: the \u00a75.4 SHIPWRIGHT-STATUS self-report is parsed and, for no_oracle only, a done:true report marks the task done after the nudge is spent; every other verdict still defers to the oracle",
+        "disposition": "tested",
+        "evidence": "codex-status-report.test.ts (8 parser cases), codex-task-watcher.test.ts (\u00a75.4 done:true/done:false cases)"
+      },
+      {
+        "behavior": "AC5: the completion-oracle CLI is spawned injection-safely and its verdict/evidence shape is validated",
+        "disposition": "tested",
+        "evidence": "codex-oracle-runner.test.ts, codex-terminal-signal-detect.test.ts"
+      },
+      {
+        "behavior": "AC5 hardening (required-CI PR-review finding, PR #466): a timed-out oracle/triage-cli child is tree-killed (whole process group, not just the immediate child) instead of relying on execFile's single-process kill; index.ts shutdown() tree-kills any in-flight child and clears the watcher interval",
+        "disposition": "tested",
+        "evidence": "cli-child-spawn.test.ts (timeout drives a real tree-kill never child.kill(), a KILL_GRACE_MS fallback bounds the promise even if the kill fails/throws or the process never closes, shutdown registry tracks/untracks, POSIX/win32 spawn-detached agreement, real process-tree integration test)"
+      },
+      {
+        "behavior": "AC6: the Inbox surfaces Codex watcher notices (nudge_sent, launch_confirmation_failed, delivery_error, no_oracle_unresolved) and terminal signals (pending approval, structured error), scoped to codex-runtime tasks only; a notice clears once the pty is gone (task closed/torn down) rather than lingering forever (local PR-review preflight finding)",
+        "disposition": "tested",
+        "evidence": "_codex.test.ts, routes.codex.test.ts, InboxCard.codex.test.tsx, codex-task-watcher.test.ts"
+      },
+      {
+        "behavior": "AC7: a codex task's campaignSlug/campaignStep/masterRun launch is blocked with an explanatory error; a claude task or an ordinary codex launch with no campaign intent is not blocked",
+        "disposition": "tested",
+        "evidence": "runtime-chokepoint.test.ts (isCodexCampaignBlocked \u2014 AC7)"
+      },
+      {
+        "behavior": "AC8: readiness reports both CLIs as informational with 'at least one available' as the real critical gate; a launch-time codex_cli_not_found check independently blocks a codex launch when the CLI isn't installed, including the fork launch path which does not share the main chokepoint",
+        "disposition": "tested",
+        "evidence": "readiness-probe-codex.test.ts, readiness-probe.test.ts, runtime-chokepoint.test.ts (codex_cli_not_found + claude-task-never-probes cases), fork.codex-runtime.test.ts (CLI-unavailable fork refusal, no orphan child row; claude fork ungated)"
+      },
+      {
+        "behavior": "AC9: a codex task's new-pipeline launch is blocked, keyed on actionId (not phase \u2014 a phase-only submission never blocks); a claude task's new-pipeline launch is unaffected",
+        "disposition": "tested",
+        "evidence": "runtime-chokepoint.test.ts (isCodexNewPipelineBlocked \u2014 AC9)"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 2,
+    "exit_code": 0,
+    "justification": "This diff touches API routes (PATCH runtime, launch chokepoint), store mutations (task.runtime persistence, boardColumn sync on auto-completion) and Inbox feeds \u2014 the Backend-affects-Frontend rule fires unconditionally. The E2E spec proves the one journey unit tests can't: a real browser round-trip through NewTaskModal -> RuntimeToggle -> persisted task.runtime='codex' -> Edit dialog reflecting it pre-launch, and the runtime field freezing read-only after a genuine POST /launch call against the real running stack (client/e2e/isolated-stack.mjs). A real Codex launch is not exercised in E2E because AC8's codex_cli_not_found gate correctly 400s on any machine without the Codex CLI on PATH (a real, correct product gate) \u2014 that path is covered by runtime-chokepoint.test.ts instead."
+  },
+  "declared_removals": []
+}

@@ -25,6 +25,7 @@ import {
   AutonomyFieldFragment,
   DescriptionFieldFragment,
   ProjectFieldFragment,
+  RuntimeFieldFragment,
   TitleFieldFragment,
 } from "./SimpleFields";
 
@@ -43,6 +44,7 @@ export function NewTaskModal({ form }: { form: UseNewIssueFormReturn }) {
         setTitle={form.setTitle}
         showAutoHint={showAutoHint}
       />
+      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} />
 
       {form.phases.length > 0 && (
         <FieldLabel label="Phase" hint="from this project's actions.json">
@@ -83,12 +85,14 @@ export function NewTaskModal({ form }: { form: UseNewIssueFormReturn }) {
         <AutonomyFieldFragment
           autonomy={form.autonomy}
           setAutonomy={form.setAutonomy}
+          runtime={form.runtime}
         />
       )}
 
       <DescriptionFieldFragment
         description={form.description}
         setDescription={form.setDescription}
+        runtime={form.runtime}
       />
 
       {/* Required params stay visible — a hidden required field would
