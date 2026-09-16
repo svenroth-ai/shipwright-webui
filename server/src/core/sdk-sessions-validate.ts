@@ -20,6 +20,7 @@ import type {
   LeadComplexityHint,
   LeadHandoff,
   LeadPriority,
+  Runtime,
 } from "./sdk-sessions-store.js";
 
 /**
@@ -137,6 +138,16 @@ export function validateExternalTask(
     r.autonomy === "guided" || r.autonomy === "autonomous"
       ? (r.autonomy as "guided" | "autonomous")
       : undefined;
+  // Codex Light (§3.5) — loader backfill, same shape as the v1 projectId
+  // backfill above: every task persisted before this field existed has no
+  // `runtime` on disk. Backfilling here (rather than leaving it optional)
+  // is what lets `ExternalTask.runtime` be genuinely non-optional without
+  // every pre-existing task silently failing validation on next load.
+  const runtime: Runtime = r.runtime === "codex" ? "codex" : "claude";
+  const threadId =
+    typeof r.threadId === "string" && r.threadId.length > 0
+      ? r.threadId
+      : undefined;
 
   // iterate-2026-05-14 lead-foundation-task-schema — per-field soft-drop
   // validation. Forward-compat: tolerated on v1/v2/v3 rows alike (matches
@@ -244,6 +255,8 @@ export function validateExternalTask(
     title: r.title,
     projectId,
     state,
+    runtime,
+    ...(threadId ? { threadId } : {}),
     createdAt: r.createdAt,
     launchedAt: typeof r.launchedAt === "string" ? r.launchedAt : undefined,
     firstJsonlObservedAt: typeof r.firstJsonlObservedAt === "string" ? r.firstJsonlObservedAt : undefined,

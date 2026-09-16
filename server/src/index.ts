@@ -56,6 +56,10 @@ import { createCampaignsRoutes } from "./routes/campaigns.js";
 import { resolveCampaignsDir } from "./core/campaign-paths.js";
 import { readCampaigns } from "./core/campaign-store.js";
 import { createTriageLock } from "./core/triage-lock.js";
+import { readGlobalSettings } from "./core/settings-reader.js";
+import { CodexTaskWatcher } from "./core/codex-task-watcher.js";
+import { runCodexOracle } from "./core/codex-oracle-runner.js";
+import { discoverCodexThreadId, defaultCodexThreadDiscoveryDeps } from "./core/codex-thread-discovery.js";
 import { PtyManager } from "./terminal/pty-manager.js";
 import {
   createTerminalRoutes,
@@ -515,6 +519,52 @@ if (isMainModule) {
       }, 24 * 60 * 60 * 1000);
       dailySweepTimer.unref();
 
+      // Codex Light §5.1 — CodexTaskWatcher. Ties the completion oracle
+      // (§1) to the live pty (§4). Tick interval is deliberately much
+      // shorter than the stall-timeout floor (5 min): a not-yet-stalled
+      // task costs nothing per tick (early return before any oracle call).
+      const MIN_STALL_TIMEOUT_MINUTES = 5;
+      const codexTaskWatcher = new CodexTaskWatcher({
+        store: sdkSessionsStore,
+        ptyManager,
+        getProjectById: (id) => {
+          const p = projectManager.getById(id);
+          if (!p || p.synthesized) return undefined;
+          return { path: p.path };
+        },
+        runOracle: runCodexOracle,
+        discoverThreadId: (args) => discoverCodexThreadId(args, defaultCodexThreadDiscoveryDeps),
+        // §5.4 — self-report parser's raw text source; best-effort (see
+        // PtyManager.peekTerminalText's own doc — null-safe by design).
+        peekTerminalText: (taskId) => ptyManager.peekTerminalText(taskId),
+        stallTimeoutMs: async () => {
+          const settings = await readGlobalSettings(settingsPath, settingsDeps);
+          // PUT /api/settings merges the raw request body with no shape
+          // validation (code-review finding) — a non-numeric value reaching
+          // settings.json would otherwise make Math.max(5, NaN) === NaN,
+          // silently defeating the stall guard (a NaN comparison is always
+          // false, so codex-task-watcher.ts never treats a task as stalled).
+          const raw = Number(settings.codexStallTimeoutMinutes);
+          const minutes = Math.max(
+            MIN_STALL_TIMEOUT_MINUTES,
+            Number.isFinite(raw) ? raw : 15,
+          );
+          return minutes * 60 * 1000;
+        },
+      });
+      const codexWatcherTimer = setInterval(() => {
+        codexTaskWatcher.tick().catch((err: unknown) => {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "codex task watcher tick failed",
+              error: String(err).slice(0, 200),
+            }),
+          );
+        });
+      }, 60 * 1000);
+      codexWatcherTimer.unref();
+
       // @hono/node-ws adapter — `upgradeWebSocket` is a Hono middleware
       // factory, `injectWebSocket(server)` patches the underlying
       // http.Server (returned by `serve(...)`) to handle WS upgrades.
@@ -533,6 +583,7 @@ if (isMainModule) {
             ptyManager,
             honoHost,
             config,
+            codexWatcher: codexTaskWatcher,
           }),
         ),
       );
@@ -595,6 +646,10 @@ if (isMainModule) {
               return [];
             }
           },
+          // Codex Light §3.5 — promote has no per-task RuntimeToggle; read
+          // the global default directly at promote time.
+          getCodexRuntimeDefault: async () =>
+            (await readGlobalSettings(settingsPath, settingsDeps)).codexRuntimeDefault,
         }),
       );
 

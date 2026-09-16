@@ -131,16 +131,23 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
 
   // Fire the independent toolchain arms concurrently — the event loop is free
   // the whole time (execFile is async). The python arm may run up to 3 sequential
-  // probes internally (resolvePython), so the wait is max(uv, PYTHON-ARM, git).
-  const [uv, py, git] = await Promise.all([
+  // probes internally (resolvePython), so the wait is max(uv, PYTHON-ARM, git, codex).
+  const [uv, py, git, codex] = await Promise.all([
     run("uv", ["--version"]),
     resolvePython(run),
     run("git", ["--version"]),
+    run("codex", ["--version"]),
   ]);
 
   const checks: ReadinessCheck[] = [];
 
-  // Claude CLI — the engine. Verdict comes pre-resolved from cli-compat.
+  // Claude CLI — one of the two engines. Verdict comes pre-resolved from
+  // cli-compat. Codex Light AC8 (revised 2026-09-16): a per-task runtime
+  // toggle means either CLI can be picked on any task regardless of the
+  // global default, so this can no longer be individually `critical` — an
+  // all-Codex operator with no Claude CLI installed must still reach ready.
+  // Reported informationally here; the combined "at least one engine" gate
+  // below is what actually blocks readiness.
   checks.push({
     key: "claude",
     label: "Claude CLI",
@@ -150,9 +157,22 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
       : deps.claude.raw
         ? `${deps.claude.raw} (need >= ${deps.claude.minSupported})`
         : "not found",
-    why: "the engine the Command Center drives",
-    critical: true,
+    why: "one of two engines the Command Center can drive — needs at least one of Claude CLI / Codex CLI",
+    critical: false,
     hint: deps.claude.supported ? undefined : installHint("claude", platform),
+  });
+
+  // Codex CLI — the other engine (Spec/codex-light-webui.md AC8). Presence
+  // alone is the bar (no version-compat table exists for Codex yet, unlike
+  // Claude's MIN_SUPPORTED_CLI / cli-compat.ts).
+  checks.push({
+    key: "codex",
+    label: "Codex CLI",
+    ok: codex.ok,
+    detail: codex.ok ? extractVersion(codex.stdout + codex.stderr) || "detected" : "not found",
+    why: "one of two engines the Command Center can drive — needs at least one of Claude CLI / Codex CLI",
+    critical: false,
+    hint: codex.ok ? undefined : installHint("codex", platform),
   });
 
   // Shipwright plugins installed — the marketplace cache holds one dir per plugin.
@@ -249,6 +269,9 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
     hint: git.ok ? undefined : installHint("git", platform),
   });
 
-  const ready = checks.every((c) => c.ok || !c.critical);
+  // AC8's combined gate: at least one engine must be usable, on top of every
+  // other individually-critical check (plugins/cache/uv/python/git).
+  const engineReady = deps.claude.supported || codex.ok;
+  const ready = engineReady && checks.every((c) => c.ok || !c.critical);
   return { ready, checks, repairCommand: READINESS_REPAIR_COMMAND };
 }

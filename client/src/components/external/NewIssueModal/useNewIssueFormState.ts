@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { AutonomyValue } from "../AutonomyToggle";
+import type { RuntimeValue } from "../RuntimeToggle";
 import type { Project } from "../../../types";
 import type { PhaseDefinition, ResolvedProjectActions } from "../../../lib/externalApi";
 
@@ -30,6 +31,25 @@ export interface UseNewIssueFormStateInput {
   realProjects: Project[];
   phases: PhaseDefinition[];
   projectActions: ResolvedProjectActions | undefined;
+  /**
+   * Codex Light §3.5 — the GLOBAL `settings.codexRuntimeDefault`, seeding
+   * RuntimeToggle's on-open value. Deliberately NOT per-project (unlike
+   * `autonomy`, seeded from `projectActions?.defaults.autonomy`) — Goal 1
+   * is one switch for everything.
+   *
+   * Disposition (external-code-review finding, OpenAI MEDIUM, accepted not
+   * fixed): the reset effect below is keyed on `[open]` only, so a modal
+   * already open when this value's query resolves does not re-seed —
+   * exactly the same race `autonomy`'s seed (`projectActions?.defaults.
+   * autonomy`, same effect) already has today, unrelated to Codex Light.
+   * Fixing it only for `runtime` while leaving `autonomy` with the
+   * identical gap would be an inconsistent, asymmetric fix to two toggles
+   * this spec deliberately mirrors visually and behaviorally (§3.5). Left
+   * unfixed here as out of this iterate's scope; a real fix (re-seed an
+   * untouched, still-default form when the query resolves) belongs to both
+   * toggles together, in a follow-up that isn't Codex-Light-specific.
+   */
+  codexRuntimeDefault?: RuntimeValue;
 }
 
 export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
@@ -45,6 +65,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     realProjects,
     phases,
     projectActions,
+    codexRuntimeDefault,
   } = input;
 
   const [title, setTitle] = useState("");
@@ -54,6 +75,9 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
   );
   const [autonomy, setAutonomy] = useState<AutonomyValue>(
     projectActions?.defaults.autonomy ?? "guided",
+  );
+  const [runtime, setRuntime] = useState<RuntimeValue>(
+    codexRuntimeDefault === "codex" ? "codex" : "claude",
   );
   const [phaseId, setPhaseId] = useState<string>(phases[0]?.id ?? "");
   const [phaseOverridden, setPhaseOverridden] = useState(false);
@@ -95,6 +119,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
   // the ref so background refetches don't re-arm the reset effect.
   const resetCtxRef = useRef<{
     autonomy: AutonomyValue;
+    runtime: RuntimeValue;
     firstPhaseId: string;
     seedProjectId: string;
     initialTitle?: string;
@@ -104,6 +129,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     initialDomain?: string;
   }>({
     autonomy: projectActions?.defaults.autonomy ?? "guided",
+    runtime: codexRuntimeDefault === "codex" ? "codex" : "claude",
     firstPhaseId: phases[0]?.id ?? "",
     seedProjectId:
       initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
@@ -115,6 +141,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
   });
   resetCtxRef.current = {
     autonomy: projectActions?.defaults.autonomy ?? "guided",
+    runtime: codexRuntimeDefault === "codex" ? "codex" : "claude",
     firstPhaseId: phases[0]?.id ?? "",
     seedProjectId:
       initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
@@ -134,6 +161,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setPhaseOverridden(Boolean(ctx.initialPhaseId));
     setDetectedTrigger(null);
     setAutonomy(ctx.autonomy);
+    setRuntime(ctx.runtime);
     setPhaseId(ctx.initialPhaseId ?? ctx.firstPhaseId);
     setSelectedProjectId(ctx.seedProjectId);
     setAdvancedOpen(false);
@@ -157,6 +185,8 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setSelectedProjectId,
     autonomy,
     setAutonomy,
+    runtime,
+    setRuntime,
     phaseId,
     setPhaseId,
     phaseOverridden,

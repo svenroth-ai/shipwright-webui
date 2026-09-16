@@ -14,7 +14,7 @@
  */
 
 /** A tool the repair command cannot install — it needs its own command. */
-export type ToolchainTool = "claude" | "uv" | "python" | "git";
+export type ToolchainTool = "claude" | "uv" | "python" | "git" | "codex";
 
 /**
  * Platform-correct, copy-pasteable install command for a missing prerequisite.
@@ -42,5 +42,10 @@ export function installHint(tool: ToolchainTool, platform: NodeJS.Platform): str
       return win
         ? 'powershell -c "irm https://claude.ai/install.ps1 | iex"'
         : "curl -fsSL https://claude.ai/install.sh | bash";
+    case "codex":
+      // Codex Light AC8 — no single canonical install-script URL is
+      // confirmed for this tool yet; point at the account/CLI docs rather
+      // than guess a command that could be wrong.
+      return "install the Codex CLI — see your Codex account's CLI setup instructions";
   }
 }

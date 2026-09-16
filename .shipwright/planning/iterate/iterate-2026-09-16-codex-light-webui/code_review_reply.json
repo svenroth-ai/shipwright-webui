@@ -1,0 +1,34 @@
+{
+  "section": "codex-light-webui",
+  "verdict": "PASS",
+  "review": [
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/routes/settings.ts",
+      "line": 66,
+      "finding": "PUT /api/settings merges the raw request body into GlobalSettings with zero type/shape validation. A non-numeric codexStallTimeoutMinutes reaching settings.json would make Math.max(5, NaN) === NaN, and a NaN comparison in codex-task-watcher.ts's stall check is always false, so the oracle CLI would be invoked on every tick for every live Codex task rather than respecting the configured stall floor.",
+      "outcome": "fixed",
+      "resolution": "server/src/index.ts's stallTimeoutMs getter now coerces via Number(...) and falls back to the 15-minute default when the result is not finite (Number.isFinite guard), before applying the existing Math.max floor. tsc --noEmit clean; full server suite green (one unrelated pre-existing flake in pty-replay-attach-detach.test.ts, confirmed by re-running that file alone: 11/11 pass)."
+    },
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/core/launcher-codex.ts",
+      "line": "119-124",
+      "finding": "buildCodexPrompt interpolates phase into a hand-built JSON-looking string without JSON-escaping. Not reachable today (phase is always catalog-validated before persisting) and not parsed by this codebase (prompt text shown to the Codex CLI) -- a latent correctness trap only, no injection risk.",
+      "outcome": "skipped",
+      "resolution": "Reviewer's own assessment: non-blocking, no reachable failure scenario today. Left as-is; worth revisiting only if this function ever receives a non-catalog-derived phase value."
+    },
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "client/src/pages/inbox/InboxCard.CodexNotice.tsx",
+      "line": "18-152",
+      "finding": "CodexNoticeCard duplicates ~110 lines of card-chrome JSX identical to the pre-existing pattern in InboxCard.AskTool.tsx / InboxCard.Waiting.tsx.",
+      "outcome": "no_change_needed",
+      "resolution": "Reviewer's own assessment: not a new violation -- follows an established pre-existing convention faithfully (G5 justified duplication). Reviewer explicitly stated no action needed for this PR; a shared InboxCardChrome extraction is out of scope here."
+    }
+  ],
+  "summary": "High quality. All four flagged special-attention areas (CodexTaskWatcher reentrancy guard, mutual-exclusion between the two Inbox terminal-text detectors, the codex-task-watcher.ts/-types.ts split, client InboxItem exhaustiveness) verified correct with genuine, meaningful regression tests. No high-severity or blocking findings. Two low-severity correctness notes (one fixed in this round, one left as a documented non-reachable latent trap) and one architecture observation (no action needed, per the reviewer). Ready to ship as far as this quality pass is concerned."
+}

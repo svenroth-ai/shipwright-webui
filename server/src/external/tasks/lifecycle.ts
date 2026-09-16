@@ -17,13 +17,19 @@
 
 import type { Hono } from "hono";
 
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { buildCopyCommands } from "../../core/launcher.js";
+import { buildCodexCommands } from "../../core/launcher-codex.js";
 import {
   SdkSessionsStore,
   isBacklogSourceState,
 } from "../../core/sdk-sessions-store.js";
 import { normalizeTitle, withLiveSession } from "../_shared/helpers.js";
 import { isBoardColumn, type BoardColumn } from "../../core/board-column.js";
+import { runtimeForTask } from "../launch/runtime-chokepoint.js";
+import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 
 export function registerTasksLifecycle(
   app: Hono,
@@ -35,6 +41,8 @@ export function registerTasksLifecycle(
       // privacy clears (optional: legacy/test harnesses omit it).
       kill?(taskId: string): void | Promise<void>;
     };
+    /** Codex Light §2.1 — resolves the parent's project for the fork's own AGENTS.md check. */
+    getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
     scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
     snapshotClearBestEffort?: (taskId: string) => Promise<void>;
   },
@@ -42,6 +50,7 @@ export function registerTasksLifecycle(
   const {
     store,
     ptyManager,
+    getProjectById,
     scrollbackClearBestEffort,
     snapshotClearBestEffort,
   } = deps;
@@ -70,15 +79,38 @@ export function registerTasksLifecycle(
       parentSessionUuid: parent.sessionUuid,
       // Section 02 — forks inherit the parent's projectId.
       projectId: parent.projectId,
+      // Codex Light §2.1's correction — fork does NOT share the main
+      // chokepoint; a forked task must inherit the parent's runtime here,
+      // explicitly, or it silently becomes a Claude task.
+      runtime: parent.runtime,
     });
-    const commands = buildCopyCommands({
-      sessionUuid: child.sessionUuid,
-      cwd: child.cwd,
-      fork: true,
-      parentSessionUuid: parent.sessionUuid,
-      pluginDirs: child.pluginDirs,
-      title: child.title,
-    });
+    let commands;
+    if (runtimeForTask(child) === "codex") {
+      const hasAgentsMd = Boolean(
+        getProjectById &&
+          getProjectById(child.projectId)?.path &&
+          existsSync(
+            path.join(getProjectById(child.projectId)!.path || "", "AGENTS.md"),
+          ),
+      );
+      commands = buildCodexCommands({
+        cwd: child.cwd,
+        autonomy: parent.autonomy ?? "guided",
+        resume: false,
+        phase: parent.phase,
+        description: parent.description,
+        hasAgentsMd,
+      });
+    } else {
+      commands = buildCopyCommands({
+        sessionUuid: child.sessionUuid,
+        cwd: child.cwd,
+        fork: true,
+        parentSessionUuid: parent.sessionUuid,
+        pluginDirs: child.pluginDirs,
+        title: child.title,
+      });
+    }
     store.patch(child.taskId, {
       state: "awaiting_external_start",
       launchedAt: new Date().toISOString(),

@@ -210,4 +210,42 @@ describe("createTask POST body — bit-perfect (Step 3.5 OpenAI #9)", () => {
     expect("priority" in parsed).toBe(false);
     expect("complexityHint" in parsed).toBe(false);
   });
+
+  // Codex Light §3.5 — task.runtime is persisted ONLY in createPayload.
+  it("defaults runtime to 'claude' when no global default is set", async () => {
+    const cap: { body?: string } = {};
+    globalThis.fetch = makeFetchMock({ captureCreate: cap }) as unknown as typeof fetch;
+    renderModal({ onToast: () => {} });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "Runtime default" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-save-btn"));
+    });
+    await waitFor(() => expect(cap.body).toBeTruthy());
+    const parsed = JSON.parse(cap.body!);
+    expect(parsed.runtime).toBe("claude");
+  });
+
+  it("posts runtime='codex' when the operator flips the RuntimeToggle before Save", async () => {
+    const cap: { body?: string } = {};
+    globalThis.fetch = makeFetchMock({ captureCreate: cap }) as unknown as typeof fetch;
+    renderModal({ onToast: () => {} });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "Runtime codex" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-save-btn"));
+    });
+    await waitFor(() => expect(cap.body).toBeTruthy());
+    const parsed = JSON.parse(cap.body!);
+    expect(parsed.runtime).toBe("codex");
+  });
 });

@@ -1,0 +1,106 @@
+import { describe, it, expect } from "vitest";
+
+import { buildCodexCommands, buildCodexPrompt } from "./launcher-codex.js";
+
+const CWD = String.raw`C:\Users\you\projects\shipwright`;
+const THREAD_ID = "thread-abc-123";
+
+describe("launcher-codex.buildCodexCommands", () => {
+  it("emits three shell forms with the codex binary and a cd prefix", () => {
+    const c = buildCodexCommands({ cwd: CWD, phase: "iterate" });
+    expect(c.powershell).toContain("& codex ");
+    expect(c.cmd).toContain("codex ");
+    expect(c.posix).toContain("codex ");
+    expect(c.powershell).toMatch(/^Set-Location/);
+    expect(c.cmd).toMatch(/^cd \/d/);
+    expect(c.posix).toMatch(/^cd /);
+  });
+
+  it("guided (default) — enables default_mode_request_user_input, on-request approvals", () => {
+    const c = buildCodexCommands({ cwd: CWD, autonomy: "guided" });
+    expect(c.posix).toContain("--enable default_mode_request_user_input");
+    expect(c.posix).toContain("approval_policy=on-request");
+    expect(c.posix).toContain("approvals.reviewer=user");
+    expect(c.posix).not.toContain("--yolo");
+  });
+
+  it("autonomous — --yolo, no default_mode_request_user_input", () => {
+    const c = buildCodexCommands({ cwd: CWD, autonomy: "autonomous" });
+    expect(c.posix).toContain("--yolo");
+    expect(c.posix).not.toContain("default_mode_request_user_input");
+    expect(c.posix).not.toContain("approval_policy=on-request");
+  });
+
+  it("always threads shell_environment_policy.inherit=all (§2.4)", () => {
+    const c = buildCodexCommands({ cwd: CWD, autonomy: "autonomous" });
+    expect(c.posix).toContain("shell_environment_policy.inherit=all");
+  });
+
+  // External-code-review finding (GLM MEDIUM, 2026-09-16): `codex resume
+  // --help` accepts the same autonomy/env-inherit flags as a fresh launch
+  // (verified live) — resume must carry them too, or a resumed session
+  // silently loses both session-identity tracking and autonomy governance.
+  it("resume=true, guided (default) — still threads env-inherit + on-request approvals", () => {
+    const c = buildCodexCommands({ cwd: CWD, resume: true, threadId: THREAD_ID });
+    expect(c.posix).toContain("codex resume");
+    expect(c.posix).toContain(`'${THREAD_ID}'`);
+    expect(c.posix).toContain("shell_environment_policy.inherit=all");
+    expect(c.posix).toContain("--enable default_mode_request_user_input");
+    expect(c.posix).toContain("approval_policy=on-request");
+    expect(c.posix).not.toContain("--yolo");
+  });
+
+  it("resume=true, autonomous — --yolo, still threads env-inherit, no user-input flag", () => {
+    const c = buildCodexCommands({ cwd: CWD, resume: true, threadId: THREAD_ID, autonomy: "autonomous" });
+    expect(c.posix).toContain("codex resume");
+    expect(c.posix).toContain(`'${THREAD_ID}'`);
+    expect(c.posix).toContain("shell_environment_policy.inherit=all");
+    expect(c.posix).toContain("--yolo");
+    expect(c.posix).not.toContain("default_mode_request_user_input");
+  });
+
+  it("resume=true without a threadId throws", () => {
+    expect(() => buildCodexCommands({ cwd: CWD, resume: true })).toThrow(/threadId/);
+  });
+
+  it("converts path separators to forward slashes for the POSIX cd prefix", () => {
+    const c = buildCodexCommands({ cwd: CWD });
+    expect(c.posix).toContain("cd 'C:/Users/you/projects/shipwright'");
+  });
+});
+
+describe("launcher-codex.buildCodexPrompt", () => {
+  it("no AGENTS.md → inlines model pins + review-cascade authorization", () => {
+    const prompt = buildCodexPrompt({ phase: "build", hasAgentsMd: false });
+    expect(prompt).toMatch(/gpt-5\.6-terra/);
+    expect(prompt).toMatch(/gpt-5\.6-sol/);
+    expect(prompt).toMatch(/review cascade/i);
+  });
+
+  it("no AGENTS.md, phase set → also points at the phase's SKILL.md", () => {
+    const prompt = buildCodexPrompt({ phase: "build", hasAgentsMd: false });
+    expect(prompt).toContain("shipwright-build/skills/build/SKILL.md");
+  });
+
+  it("AGENTS.md present, phase=iterate → omits both the pins AND the SKILL.md pointer", () => {
+    const prompt = buildCodexPrompt({ phase: "iterate", hasAgentsMd: true });
+    expect(prompt).not.toMatch(/gpt-5\.6-terra/);
+    expect(prompt).not.toContain("SKILL.md");
+  });
+
+  it("AGENTS.md present, phase=build (not iterate) → still points at build's SKILL.md", () => {
+    const prompt = buildCodexPrompt({ phase: "build", hasAgentsMd: true });
+    expect(prompt).not.toMatch(/gpt-5\.6-terra/); // AGENTS.md already carries the pins
+    expect(prompt).toContain("shipwright-build/skills/build/SKILL.md");
+  });
+
+  it("always ends with a SHIPWRIGHT-STATUS self-report instruction (§5.4)", () => {
+    const prompt = buildCodexPrompt({ phase: "test", hasAgentsMd: false });
+    expect(prompt).toContain("SHIPWRIGHT-STATUS");
+  });
+
+  it("includes the description as the task brief", () => {
+    const prompt = buildCodexPrompt({ description: "Fix the flaky retry test." });
+    expect(prompt).toContain("Fix the flaky retry test.");
+  });
+});

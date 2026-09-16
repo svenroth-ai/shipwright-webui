@@ -6,6 +6,10 @@
  * terminal_prompt post-pass, ask_tool precedence) is covered by
  * routes.test.ts. This file locks the response-key contract for the
  * standalone sub-router.
+ *
+ * `codex_watcher`/`codex_approval`/`codex_error` coverage (Codex Light
+ * AC6/§5.3) lives in the sibling `routes.codex.test.ts` instead — this
+ * file crossed the 300-line guideline once that section grew.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";

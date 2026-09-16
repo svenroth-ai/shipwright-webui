@@ -158,6 +158,14 @@ export function registerTasksCreate(
       );
     }
 
+    // Codex Light §3.5/AC1 — the per-task RuntimeToggle's value, sent by
+    // NewTaskModal/NewIterateModal/NewPipelineModal. Narrowed the same way
+    // sdk-sessions-store.ts's own default narrows it (spec-reviewer
+    // finding: this field was previously dropped on the floor here, so
+    // every task created through the normal UI silently landed on
+    // runtime="claude" regardless of what the operator picked).
+    const runtime = body.runtime === "codex" ? "codex" : undefined;
+
     const task = store.create({
       title,
       cwd,
@@ -171,6 +179,7 @@ export function registerTasksCreate(
       phaseTaskId: phaseTaskRefs.phaseTaskId,
       runId: phaseTaskRefs.runId,
       parentRunMaster: phaseTaskRefs.parentRunMaster,
+      runtime,
       ...leadFields,
     });
     await store.persist();

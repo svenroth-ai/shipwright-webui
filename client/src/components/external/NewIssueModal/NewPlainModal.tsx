@@ -28,6 +28,7 @@ export function NewPlainModal({ form }: { form: UseNewIssueFormReturn }) {
       <DescriptionFieldFragment
         description={form.description}
         setDescription={form.setDescription}
+        runtime={form.runtime}
       />
     </>
   );

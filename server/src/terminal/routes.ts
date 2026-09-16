@@ -212,6 +212,13 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         const meta = ptyManager.spawn(taskId, {
           cwd: trustedCwd,
           shell: resolveShell(),
+          // Codex Light §2.4 — spawn() is idempotent ensure-or-create, so
+          // whichever call reaches it first (this prewarm route or the WS
+          // upgrade) must carry the same env for a Codex task.
+          env:
+            task.runtime === "codex"
+              ? { SHIPWRIGHT_SESSION_ID: task.sessionUuid }
+              : undefined,
         });
         return c.json({
           taskId: meta.taskId,
@@ -351,6 +358,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
             meta = ptyManager.spawn(taskId, {
               cwd: trustedCwd,
               shell: resolveShell(),
+              env:
+                task.runtime === "codex"
+                  ? { SHIPWRIGHT_SESSION_ID: task.sessionUuid }
+                  : undefined,
             });
           } catch {
             // Spawn failure is non-fatal here — the file save still

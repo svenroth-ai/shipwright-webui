@@ -40,6 +40,7 @@ import {
 import { checkClaimHolderGate } from "./claim-holder-gate.js";
 import { commandsCarryPermissionPerimeter } from "./claim-permission-perimeter-assert.js";
 import { checkMixedLaunchIntents } from "./mixed-intents-guard.js";
+import { applyRuntimeChokepoint } from "./runtime-chokepoint.js";
 
 export interface LaunchRouterDeps {
   store: SdkSessionsStore;
@@ -230,6 +231,25 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         claimAuthorized,
       }));
     }
+
+    // Codex Light (Spec/codex-light-webui.md §2.1) — the ONE chokepoint for
+    // all six launch branches above: overrides `commands`/`taskUpdate` with
+    // `buildCodexCommands` when this task's runtime is Codex, byte-identical
+    // pass-through otherwise. Also carries AC9's new-pipeline block. Must
+    // run before the permission-perimeter assertion below so a blocked
+    // pipeline launch never reaches it, and so a Codex override is present
+    // BY the time that assertion inspects `commands`.
+    const runtimeResult = await applyRuntimeChokepoint({
+      task,
+      parsed,
+      project: getProjectById?.(task.projectId),
+      commands,
+      taskUpdate,
+    });
+    if ("error" in runtimeResult) {
+      return c.json(runtimeResult.error, runtimeResult.status);
+    }
+    ({ commands, taskUpdate } = runtimeResult);
 
     // FR-04.22 Stage-3 doubt review — a per-branch opt-in (only
     // action-substitution-branch.ts and legacy-fallback-branch.ts take

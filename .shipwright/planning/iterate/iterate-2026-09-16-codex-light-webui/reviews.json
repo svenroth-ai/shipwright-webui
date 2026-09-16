@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-16-codex-light-webui",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T08:30:31.292812+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T08:30:44.420982+00:00",
+      "disposition": "external plan/iterate review predates this review record (build was already complete when reviews.json was first initialized this session, after a context compaction); recorded retroactively, not fabricated",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/routes/settings.ts",
+          "line": 66,
+          "finding": "PUT /api/settings merges the raw request body into GlobalSettings with zero type/shape validation. A non-numeric codexStallTimeoutMinutes reaching settings.json would make Math.max(5, NaN) === NaN, and a NaN comparison in codex-task-watcher.ts's stall check is always false, so the oracle CLI would be invoked on every tick for every live Codex task rather than respecting the configured stall floor.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/launcher-codex.ts",
+          "line": null,
+          "finding": "buildCodexPrompt interpolates phase into a hand-built JSON-looking string without JSON-escaping. Not reachable today (phase is always catalog-validated before persisting) and not parsed by this codebase (prompt text shown to the Codex CLI) -- a latent correctness trap only, no injection risk.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/pages/inbox/InboxCard.CodexNotice.tsx",
+          "line": null,
+          "finding": "CodexNoticeCard duplicates ~110 lines of card-chrome JSX identical to the pre-existing pattern in InboxCard.AskTool.tsx / InboxCard.Waiting.tsx.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-16T08:46:51.533668+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/codex-task-watcher.ts",
+          "line": null,
+          "finding": "Claim under doubt: The oracle-done classify() branch in codex-task-watcher.ts correctly finalizes a completed Codex task. — It patches only { state: \"done\" }, never syncing boardColumn -- CLAUDE.md rule 23 requires a done transition to also sync boardColumn (the /close route already does this). A task the operator had dragged to a non-Done column stayed stranded there once auto-completed, locked with no visible reason since no Resume/Launch CTA reads boardColumn once state is done.",
+          "suggestion": "patch { state: \"done\", boardColumn: \"done\" } together, mirroring lifecycle.ts's /close fix",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/codex-task-watcher.ts",
+          "line": null,
+          "finding": "Claim under doubt: The launch_confirmation_failed notice set in checkTask() only ever appears while genuinely needed. — Once set while a task sat in awaiting_external_start past the launch-confirm window, nothing cleared it if the task later moved on and started producing output normally -- only a full \"done\" transition clears the notices map. An otherwise-healthy run that simply started slowly kept a stale \"may not have started correctly\" banner in the Inbox indefinitely.",
+          "suggestion": "clear a stale launch_confirmation_failed notice as soon as state is observed to have left awaiting_external_start",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-16T09:13:19.963705+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/external/useEditTaskForm.ts:168-170` (and `client/src/lib/externalApi.ts:422-424`) The client now sends `patch: { runtime: \"codex\" }` via `useUpdateTask`, but the diff contains no change to the server's task-update route — only `create.ts` and fork's `store.create()` were taught `runtime`. Unless the PATCH handler already whitelists/persists arbitrary `ExternalTa […truncated]",
+          "line": null,
+          "finding": "add `runtime` handling to the tasks update route (with the same `=== \"codex\" ? \"codex\" : \"claude\"` narrowing and the pre-start editability gate enforced server-side, since `FROZEN_WHEN_STARTED` is client-enforced), plus a route-level test like `routes.create-runtime.test.ts`.  2. Category: spec — Severity: medium",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/core/launcher-codex.ts:57-65` The resume branch emits only `codex resume <threadId>`, dropping `-c shell_environment_policy.inherit=all` and all approval/guided flags. §2.4 calls the env-inherit flag a required mitigation (without it `SHIPWRIGHT_SESSION_ID` doesn't survive Codex's shell filter, so `record_event` never stamps the run and the oracle degrades to `--since`), an […truncated]",
+          "line": null,
+          "finding": "thread the same autonomy/`-c` flags into the resume command (they're accepted alongside `codex resume`), or at minimum keep `shell_environment_policy.inherit=all`.  3. Category: bug — Severity: medium",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/core/codex-task-watcher.ts:196-213` (`setNotice` / `notices` map) Notices are only ever deleted on `done`. A `launch_confirmation_failed` notice set at the 90s mark is never cleared when the pty subsequently produces output and the task proceeds normally — the Inbox shows \"Launch may have failed\" for a healthy running task until it completes. Same for `delivery_error` if th […truncated]",
+          "line": null,
+          "finding": "clear the notice when the triggering condition resolves (e.g. delete `launch_confirmation_failed` once `lastDataAt` advances / state leaves `awaiting_external_start`; delete `delivery_error` when the oracle stops reporting `delivery_state: \"error\"`).  4. Category: spec — Severity: medium",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/core/codex-task-watcher.ts:135-155` For case-13 `delivery_pending`, the implementation re-invokes the full oracle CLI on every 60s tick for as long as the task stays silent-past-stall (silence never resets, so the stall gate passes every tick). §1.6/§5.1 specify a low-frequency delivery-watcher re-poll of `watch_pr_delivery.py --once`; this instead hammers `uv run` + the de […truncated]",
+          "line": null,
+          "finding": "track last-poll time per delivery-pending task and apply a separate, longer interval (the spec explicitly leaves the interval as a build-time call — but \"every tick\" is not a low-frequency one).  5. Category: edge-case — Severity: medium",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "server/src/terminal/ws-upgrade-handler.ts:346-351` and `server/src/terminal/routes.ts:215-221` The spawn env passed for Codex tasks is only `{ SHIPWRIGHT_SESSION_ID: ... }`, with a comment asserting `buildSpawnEnv (spawn-env.ts)` merges it over `process.env` as \"the caller-env layer\". If that merge is not actually applied on the production `PtySpawnFn` path (node-pty's `env` option re […truncated]",
+          "line": null,
+          "finding": "add a test (or code) proving the real spawn path receives `process.env` merged with `SHIPWRIGHT_SESSION_ID`; if `buildSpawnEnv` isn't in that path, spread `process.env` explicitly as §2.4 originally specified.  6. Category: edge-case — Severity: low",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "server/src/external/launch/runtime-chokepoint.ts",
+          "line": 122,
+          "finding": "Codex launches never verify that the Codex CLI is installed. AC8 explicitly requires an actionable launch-time failure when the selected runtime is unavailable; this instead returns a command which will fail later inside the terminal.",
+          "suggestion": "Check Codex availability at the chokepoint before building commands and return a clear 4xx launch error with the Codex installation hint. Add a route-level test for a missing Codex executable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/codex-task-watcher.ts",
+          "line": 199,
+          "finding": "The structured `SHIPWRIGHT-STATUS` output requested by `buildCodexPrompt` is never parsed or cross-checked with the oracle. This omits §5.4 and means no-oracle phases cannot surface the agent’s self-check result as required.",
+          "suggestion": "Add bounded terminal-status parsing and feed its result into watcher/Inbox classification, with oracle verdict taking precedence on disagreement.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/NewIssueModal/useNewIssueFormState.ts",
+          "line": 67,
+          "finding": "Runtime state initializes while `useSettings()` is still unresolved, so it starts as Claude. The reset context deliberately does not react to background settings changes; opening a task modal before the settings query completes therefore ignores a persisted `codexRuntimeDefault: \"codex\"` and creates a Claude task unless the operator notices and flips it.",
+          "suggestion": "Seed once settings first resolves during an open, untouched form, or delay form initialization until the settings default is available. Add a test where the settings query resolves to Codex after the modal mounts.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "server/src/terminal/pty-manager.ts",
+          "line": 550,
+          "finding": "Launch confirmation treats any PTY bytes as meaningful Codex output. A shell prompt or echoed typed command updates `lastDataAt`, so a failed/non-started Codex command can avoid the distinct launch-failure notice and only later be treated as an ordinary stall.",
+          "suggestion": "Track successful launch/Codex-specific output separately from generic PTY output, and use that signal for the §5.2 confirmation timeout. Test shell-prompt output followed by no Codex startup output.  Ship-with-fixes: core runtime selection is largely implemented, but the missing launch-time CLI check and completion/self-report gaps leave explicit acceptance criteria unmet.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-16T09:14:02.785091+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: bug — Severity: high**\nFile: `client/src/components/external/useEditTaskForm.ts:168-170` (and `client/src/lib/externalApi.ts:422-424`)\nThe client now sends `patch: { runtime: \"codex\" }` via `useUpdateTask`, but the diff contains **no change to the server's task-update route** — only `create.ts` and fork's `store.create()` were taught `runtime`. Unless the PATCH handler already whitelists/persists arbitrary `ExternalTask` fields (nothing in the diff suggests it does), the EditTaskModal RuntimeToggle is a silent no-op server-side: a pre-start task flipped to Codex stays Claude. Both new EditTaskModal tests mock `useUpdateTask`, so they'd pass against a server that drops the field.\nSuggestion: add `runtime` handling to the tasks update route (with the same `=== \"codex\" ? \"codex\" : \"claude\"` narrowing and the pre-start editability gate enforced server-side, since `FROZEN_WHEN_STARTED` is client-enforced), plus a route-level test like `routes.create-runtime.test.ts`.\n\n**2. Category: spec — Severity: medium**\nFile: `server/src/core/launcher-codex.ts:57-65`\nThe resume branch emits only `codex resume <threadId>`, dropping `-c shell_environment_policy.inherit=all` and all approval/guided flags. §2.4 calls the env-inherit flag a *required* mitigation (without it `SHIPWRIGHT_SESSION_ID` doesn't survive Codex's shell filter, so `record_event` never stamps the run and the oracle degrades to `--since`), and §3/AC4 require autonomy to govern Codex on every launch — a Guided task resumed after a reap silently becomes a defaults-mode session with no user-input mechanism and no session-stamped events.\nSuggestion: thread the same autonomy/`-c` flags into the resume command (they're accepted alongside `codex resume`), or at minimum keep `shell_environment_policy.inherit=all`.\n\n**3. Category: bug — Severity: medium**\nFile: `server/src/core/codex-task-watcher.ts:196-213` (`setNotice` / `notices` map)\nNotices are only ever deleted on `done`. A `lau […truncated]\n\n[openai] - Category: spec\n- Severity: high\n- File: server/src/external/launch/runtime-chokepoint.ts:122\n- Finding: Codex launches never verify that the Codex CLI is installed. AC8 explicitly requires an actionable launch-time failure when the selected runtime is unavailable; this instead returns a command which will fail later inside the terminal.\n- Suggestion: Check Codex availability at the chokepoint before building commands and return a clear 4xx launch error with the Codex installation hint. Add a route-level test for a missing Codex executable.\n\n- Category: spec\n- Severity: medium\n- File: server/src/core/codex-task-watcher.ts:199\n- Finding: The structured `SHIPWRIGHT-STATUS` output requested by `buildCodexPrompt` is never parsed or cross-checked with the oracle. This omits §5.4 and means no-oracle phases cannot surface the agent’s self-check result as required.\n- Suggestion: Add bounded terminal-status parsing and feed its result into watcher/Inbox classification, with oracle verdict taking precedence on disagreement.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/NewIssueModal/useNewIssueFormState.ts:67\n- Finding: Runtime state initializes while `useSettings()` is still unresolved, so it starts as Claude. The reset context deliberately does not react to background settings changes; opening a task modal before the settings query completes therefore ignores a persisted `codexRuntimeDefault: \"codex\"` and creates a Claude task unless the operator notices and flips it.\n- Suggestion: Seed once settings first resolves during an open, untouched form, or delay form initialization until the settings default is available. Add a test where the settings query resolves to Codex after the modal mounts.\n\n- Category: edge-case\n- Severity: medium\n- File: server/src/terminal/pty-manager.ts:550\n- Finding: Launch confirmation treats any PTY bytes as meaningful Codex output. A shell prompt or echoed typed command updates `lastDataAt`, so a failed/n […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T08:39:43.048027+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T08:30:44.535931+00:00",
+      "disposition": "internal plan-review arm predates this review record (build was already complete when reviews.json was first initialized this session, after a context compaction); recorded retroactively, not fabricated",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

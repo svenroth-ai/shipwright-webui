@@ -185,6 +185,16 @@ export function appendTerminalPrompts(
   const peek = ptyManager.peekTerminalText.bind(ptyManager);
   for (const task of store.list()) {
     if (task.state === "done" || task.state === "launch_failed") continue;
+    // Codex Light §5.3 — a Codex-runtime task's terminal is scanned by
+    // appendCodexTerminalSignals instead (_codex.ts), which is keyed to
+    // Codex's own approval-dialog/error text. Without this guard a picker
+    // whose footer happens to also satisfy Claude's generic FOOTER_CUE
+    // regex (extractTerminalPrompt) could double-surface as BOTH a
+    // terminal_prompt and a codex_approval/codex_error entry for the same
+    // task, and every Codex task would pay a second, redundant
+    // peekTerminalText() read on every Inbox poll for no reason (code
+    // review finding, iterate-codex-light-webui).
+    if (task.runtime === "codex") continue;
     // ask_tool wins outright — never double-surface the same task.
     if (out.some((e) => e.taskId === task.taskId && e.kind === "ask_tool")) {
       continue;

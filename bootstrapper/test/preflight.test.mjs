@@ -71,6 +71,35 @@ describe("preflight — AC1a: a missing prerequisite fails LOUDLY", () => {
   });
 });
 
+describe("preflight — AC8 (Codex Light): either engine suffices", () => {
+  it("claude absent, codex present → engineOk true, exit 0 (plugin phase still needs claude)", () => {
+    const r = runPreflight({
+      run: runner({ ...ALL_GOOD, claude: { ok: false }, codex: { ok: true, out: "codex-cli 0.147.0" } }),
+      nodeVersion: "v20.12.0",
+    });
+    expect(r.hasClaude).toBe(false);
+    expect(r.hasCodex).toBe(true);
+    expect(r.engineOk).toBe(true);
+    expect(r.exitCode).toBe(0);
+    // Plugin install genuinely needs claude regardless of runtime choice.
+    expect(r.pluginPhaseOk).toBe(false);
+  });
+
+  it("both claude and codex absent → engineOk false, non-zero exit", () => {
+    const r = runPreflight({ run: runner({ ...ALL_GOOD, claude: { ok: false } }), nodeVersion: "v20.12.0" });
+    expect(r.hasClaude).toBe(false);
+    expect(r.hasCodex).toBe(false);
+    expect(r.engineOk).toBe(false);
+    expect(r.exitCode).toBeGreaterThanOrEqual(1);
+  });
+
+  it("neither claude nor codex is individually `hard` — only the combined gate is", () => {
+    const r = runPreflight({ run: runner(ALL_GOOD), nodeVersion: "v20.12.0" });
+    expect(r.checks.find((c) => c.name === "claude").hard).toBe(false);
+    expect(r.checks.find((c) => c.name === "codex").hard).toBe(false);
+  });
+});
+
 describe("preflight — Python probe TEST-RUNS --version (Microsoft-Store stub trap)", () => {
   it("python3 is the MS-Store stub (found but no version) → falls through to real python", () => {
     // RED anchor: a `command -v`-style presence check would SELECT python3

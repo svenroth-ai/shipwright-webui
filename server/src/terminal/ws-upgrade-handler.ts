@@ -343,6 +343,12 @@ function buildLiveHandlers(
   const meta: PtyHandleMeta = ctx.ptyManager.spawn(taskId, {
     cwd: trustedCwd,
     shell: ctx.resolveShell(),
+    // Codex Light §2.4 — only the Codex pty needs this: it reads
+    // process.env directly (no CLAUDE_ENV_FILE-equivalent layer), so
+    // record_event.py calls made by its shell tool can stamp `session`.
+    // buildSpawnEnv (spawn-env.ts) already merges this over process.env
+    // as the caller-env layer — no need to spread process.env here too.
+    env: task.runtime === "codex" ? { SHIPWRIGHT_SESSION_ID: task.sessionUuid } : undefined,
   });
   // ADR-104 — true when this attach freshly re-created the pty
   // after a prior Claude session was lost (server restart / crash).

@@ -48,7 +48,7 @@ const CLAUDE_OK = { supported: true, raw: "2.1.9", minSupported: "2.0.0" };
 
 describe("probeReadiness", () => {
   // @covers FR-01.51
-  it("all-green → ready, all six checks pass, canonical repair command", async () => {
+  it("all-green → ready, all seven checks pass, canonical repair command", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
@@ -59,6 +59,7 @@ describe("probeReadiness", () => {
     expect(r.repairCommand).toBe(READINESS_REPAIR_COMMAND);
     expect(r.checks.map((c) => c.key)).toEqual([
       "claude",
+      "codex",
       "plugins",
       "cache",
       "uv",
@@ -219,9 +220,11 @@ describe("probeReadiness", () => {
   });
 
   // @covers FR-01.51
-  it("unsupported Claude CLI → claude check fails with a need->= detail", async () => {
+  it("unsupported Claude CLI, codex ALSO absent → claude check fails, not ready", async () => {
+    const run: RunFn = async (cmd) =>
+      cmd === "codex" ? NOT_FOUND : cmd === "python3" ? okRun("3.13.1") : okRun("2.0.0");
     const r = await probeReadiness({
-      run: allToolsRun,
+      run,
       homeDir: HOME,
       claude: { supported: false, raw: "1.2.0", minSupported: "2.0.0" },
       ...healthyFs(),
@@ -229,6 +232,8 @@ describe("probeReadiness", () => {
     const claude = r.checks.find((c) => c.key === "claude");
     expect(claude?.ok).toBe(false);
     expect(claude?.detail).toMatch(/need >= 2\.0\.0/);
+    // AC8 — individually informational, never blocks readiness on its own.
+    expect(claude?.critical).toBe(false);
     expect(r.ready).toBe(false);
   });
 

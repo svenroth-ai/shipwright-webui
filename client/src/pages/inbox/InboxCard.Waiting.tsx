@@ -3,11 +3,15 @@
  *
  * Extracted from InboxPage.tsx lines 672-846 (lifted verbatim).
  *
- * Handles two inbox kinds with identical chrome (amber left strip, context
- * pill, time-ago, whole-card click-through; NO Answer button, NO dismiss):
+ * Handles three inbox kinds with identical chrome (amber left strip,
+ * context pill, time-ago, whole-card click-through; NO Answer button, NO
+ * dismiss):
  *   - `text_question`   — Claude prose, rendered through XSS-safe
  *     <MarkdownText> (iterate 2026-05-19-inbox-markdown-render).
  *   - `terminal_prompt` — escaped plain-text picker (iterate-2026-05-18).
+ *   - `codex_approval`  — escaped plain-text Codex approval dialog (Codex
+ *     Light §5.3) — same "operator answers in the terminal" semantics as
+ *     `terminal_prompt`, just Codex's own approval-elicitation text.
  *
  * Body is `pre-wrap` for picker layout; line-clamped via a fixed-height
  * preview with a soft bottom fade when overflowing.
@@ -25,6 +29,7 @@ import { MarkdownText } from "../../components/external/MarkdownText";
 import { classifyPhase } from "../../lib/classifyPhase";
 import { formatRelativeTime } from "../../lib/formatTime";
 import type {
+  CodexApprovalInboxItem,
   ExternalTask,
   TerminalPromptInboxItem,
   TextQuestionInboxItem,
@@ -41,12 +46,16 @@ export function WaitingReplyCard({
   item,
   task,
 }: {
-  item: TextQuestionInboxItem | TerminalPromptInboxItem;
+  item: TextQuestionInboxItem | TerminalPromptInboxItem | CodexApprovalInboxItem;
   task: ExternalTask | undefined;
 }) {
   const navigate = useNavigate();
   const itemKey =
-    item.kind === "text_question" ? item.questionId : `tp-${item.taskId}`;
+    item.kind === "text_question"
+      ? item.questionId
+      : item.kind === "codex_approval"
+        ? `ca-${item.taskId}`
+        : `tp-${item.taskId}`;
   const bodyText =
     item.kind === "text_question" ? item.questionText : item.promptText;
   const isMarkdown = item.kind === "text_question";

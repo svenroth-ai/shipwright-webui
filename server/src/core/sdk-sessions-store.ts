@@ -102,6 +102,16 @@ export interface LeadHandoff {
 export type LeadPriority = "P0" | "P1" | "P2" | "P3";
 export type LeadComplexityHint = "small" | "medium" | "large";
 
+/**
+ * Codex Light (Spec/codex-light-webui.md §2.1/§3.5) — which CLI a task's
+ * launch commands are built for. Non-optional: `create()` always sets it
+ * (defaulting to "claude"), and the loader backfill in
+ * `sdk-sessions-validate.ts` (`task.runtime ??= "claude"`) guarantees every
+ * row read from disk has one BEFORE validation, so this field can be
+ * genuinely required on the type without dropping pre-existing tasks.
+ */
+export type Runtime = "claude" | "codex";
+
 export interface ExternalTask {
   taskId: string;
   sessionUuid: string;
@@ -137,6 +147,22 @@ export interface ExternalTask {
   phaseLabel?: string;
   description?: string;
   autonomy?: "guided" | "autonomous";
+  /**
+   * Codex Light (Spec/codex-light-webui.md §2.1/§3.5) — which CLI this
+   * task's launch commands are built for. Set once at creation from the
+   * `RuntimeToggle`'s value (never re-read from Settings afterward); a
+   * plain field read at the launch chokepoint (`runtimeForTask`), not a
+   * fallback chain. Immutable once the task has started (same rule as
+   * `autonomy`, see `taskEditability.ts`).
+   */
+  runtime: Runtime;
+  /**
+   * Codex Light §4 — the Codex thread id, stored at launch alongside the
+   * existing Claude `sessionUuid`. Present only for `runtime === "codex"`
+   * tasks that have launched at least once; `codex resume <threadId>`
+   * reconnects a reaped/detached task per the resume state machine.
+   */
+  threadId?: string;
   /**
    * v3 — iterate/multi-session-run-orchestrator-v2. Optional linkage to
    * a framework run-config v2 phase_task. When set, this task is a
@@ -386,6 +412,13 @@ export class SdkSessionsStore {
      * calling here, so this method just stores whatever it is handed.
      */
     description?: string;
+    /**
+     * Codex Light (§3.5) — the `RuntimeToggle`'s value at task-creation
+     * time. Defaults to "claude" so every existing caller (tests, the
+     * fallback inline-create flow) that doesn't yet pass this field keeps
+     * creating Claude-driven tasks.
+     */
+    runtime?: Runtime;
   }): ExternalTask {
     const task: ExternalTask = {
       taskId: randomUUID(),
@@ -400,6 +433,7 @@ export class SdkSessionsStore {
           ? args.projectId.trim()
           : UNASSIGNED_PROJECT_ID,
       state: "draft",
+      runtime: args.runtime === "codex" ? "codex" : "claude",
       createdAt: new Date().toISOString(),
       inbox: {
         pendingToolUseIds: [],

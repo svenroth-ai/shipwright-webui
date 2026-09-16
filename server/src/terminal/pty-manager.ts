@@ -78,6 +78,14 @@ export interface PtySpawnOpts {
   shell: string;
   cols?: number;
   rows?: number;
+  /**
+   * Codex Light §2.4 — extra env vars for the spawned shell, merged over
+   * `process.env` by the caller. Deliberately unused for Claude-driven
+   * tasks: Claude's own `capture_session_id.py` mechanism overwrites
+   * `SHIPWRIGHT_SESSION_ID` via `CLAUDE_ENV_FILE` once Claude starts, so
+   * passing it here would be safe but not beneficial for those tasks.
+   */
+  env?: Record<string, string | undefined>;
 }
 
 export interface AttachResult {
@@ -241,6 +249,15 @@ interface PtyEntry {
    * idle/completed tasks — only the on-disk snapshot file.
    */
   mirror: HeadlessMirror | null;
+  /**
+   * Codex Light §5.1 — wall-clock ms of the most recent `pty.onData` chunk,
+   * per-task. `CodexTaskWatcher` reads this via `getLastDataAt()` to decide
+   * *when to ask* the completion oracle (silence duration is a TRIGGER, not
+   * a verdict — see the spec's rejected I/O-silence-heuristic design
+   * history). Initialised at spawn so a never-emitting pty still reports a
+   * sane "silent since launch" duration instead of `null`.
+   */
+  lastDataAt: number;
   /** Module-level data subscribers (used by tests + observability). */
   dataSubs: Set<(data: string) => void>;
   /** Per-WS-connection subscribers (used by the routes WS bridge). */
@@ -467,6 +484,15 @@ export class PtyManager {
     return new Set(this.entries.keys());
   }
 
+  /**
+   * Codex Light §5.1 — wall-clock ms of the task's most recent pty output,
+   * or `null` when there is no live entry (pty never spawned / already
+   * reaped). `CodexTaskWatcher` computes silence duration from this.
+   */
+  getLastDataAt(taskId: string): number | null {
+    return this.entries.get(taskId)?.lastDataAt ?? null;
+  }
+
   /** Idempotent ensure-or-create. */
   spawn(taskId: string, opts: PtySpawnOpts): PtyHandleMeta {
     const existing = this.entries.get(taskId);
@@ -490,6 +516,7 @@ export class PtyManager {
         cwd: opts.cwd,
         cols: opts.cols ?? 120,
         rows: opts.rows ?? 30,
+        env: opts.env,
       });
     } catch (err) {
       throw new PtySpawnFailedError(opts.cwd, err);
@@ -519,12 +546,14 @@ export class PtyManager {
       pausedConns: new Set(),
       bufferedExceededSince: new Map(),
       closing: false,
+      lastDataAt: this.nowFn(),
     };
     this.entries.set(taskId, entry);
 
     // Forward pty output to all subscribers + reset idle timer.
     pty.onData((data) => {
       this.touchIdle(entry);
+      entry.lastDataAt = this.nowFn();
       // ADR-068-A1: persist to disk before broadcast (fs.appendFileSync;
       // try/catch so a disk error never breaks the broadcaster). D01 #2 —
       // skip once torn down so a stuck shell can't re-create <taskId>.log.

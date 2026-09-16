@@ -10,10 +10,19 @@
  *   - `lead_question` — a leadwright follow-up WRITTEN onto the task's
  *     `description` (FR-04.19), not derived from a JSONL/terminal read
  *     — see `./_lead.ts`.
+ *   - `codex_watcher` — a notice from `CodexTaskWatcher`'s ephemeral,
+ *     in-memory snapshot (Codex Light AC6: auto-nudge outcome,
+ *     delivery_pending errors, unresolved no_oracle self-checks, failed
+ *     launch confirmations) — see `./_codex.ts`.
+ *   - `codex_approval` / `codex_error` — a pending Codex approval dialog or
+ *     a structured Codex error visible in the LIVE embedded terminal
+ *     (Codex Light §5.3/AC6), independent of the silence-timer/oracle loop
+ *     — see `./_codex.ts`.
  *
  * Precedence: ask_tool > terminal_prompt > text_question. terminal_prompt
  * is a post-pass over the JSONL-derived set so the mtime-keyed cache
- * stays byte-identical. `lead_question` is independent of that precedence.
+ * stays byte-identical. `lead_question`, `codex_watcher`, `codex_approval`
+ * and `codex_error` are each independent of that precedence.
  *
  * Phase A4 hot-path: per-session derive cache + negative-result cache
  * — see `./_cache.ts`. JSONL cold-path + terminal_prompt post-pass live
@@ -32,6 +41,8 @@ import {
   extractLeadQuestionBody,
   LEAD_QUESTION_DISMISS_PREFIX,
 } from "./_lead.js";
+import { appendCodexWatcherNotices, appendCodexTerminalSignals } from "./_codex.js";
+import type { CodexTaskWatcher } from "../../core/codex-task-watcher.js";
 
 export interface InboxRouterDeps {
   store: SdkSessionsStore;
@@ -40,11 +51,17 @@ export interface InboxRouterDeps {
     get(taskId: string): unknown;
     peekTerminalText?(taskId: string): string | null;
   };
+  /**
+   * Codex Light AC6 — optional so pre-existing callers/tests that don't
+   * construct a `CodexTaskWatcher` keep working; production (index.ts)
+   * wires the singleton. Absent → the inbox emits no `codex_watcher` rows.
+   */
+  codexWatcher?: Pick<CodexTaskWatcher, "snapshot">;
 }
 
 export function createInboxRouter(deps: InboxRouterDeps): Hono {
   const app = new Hono();
-  const { store, watcher, ptyManager } = deps;
+  const { store, watcher, ptyManager, codexWatcher } = deps;
 
   app.get("/api/external/inbox", async (c) => {
     const { entries, storeDirty } = await deriveInboxFromJsonl({
@@ -53,6 +70,8 @@ export function createInboxRouter(deps: InboxRouterDeps): Hono {
     });
     appendTerminalPrompts(entries, { store, ptyManager });
     appendLeadQuestions(entries, { store });
+    if (codexWatcher) appendCodexWatcherNotices(entries, { store, codexWatcher });
+    appendCodexTerminalSignals(entries, { store, ptyManager });
     if (storeDirty) await store.persist();
     return c.json({ items: entries });
   });

@@ -111,7 +111,7 @@ export function isWindows(platform = process.platform) {
  * Platform-correct, copy-pasteable install command for a missing prerequisite.
  * A missing tool must never be a vague "install it" — the user gets the exact
  * line for THEIR OS. Mirrors the pointers `scripts/verify-setup.sh` prints.
- * @param {"uv"|"python"|"node"|"git"|"claude"} tool
+ * @param {"uv"|"python"|"node"|"git"|"claude"|"codex"} tool
  * @param {NodeJS.Platform} [platform]
  * @returns {string}
  */
@@ -139,6 +139,10 @@ export function installHint(tool, platform = process.platform) {
       return win
         ? 'powershell -c "irm https://claude.ai/install.ps1 | iex"'
         : "curl -fsSL https://claude.ai/install.sh | bash";
+    case "codex":
+      // Codex Light AC8 (server mirror: readiness-install-hints.ts) — no
+      // single canonical install-script URL is confirmed for this tool yet.
+      return "install the Codex CLI — see your Codex account's CLI setup instructions";
     default:
       return "";
   }

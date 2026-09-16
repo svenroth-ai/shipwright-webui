@@ -9,9 +9,29 @@ import type { ReactNode } from "react";
 
 import type { ExternalTask, PhaseDefinition } from "../../lib/externalApi";
 import { AutonomyToggle } from "./AutonomyToggle";
+import { RuntimeToggle } from "./RuntimeToggle";
 import { FieldLabel as Field } from "./NewIssueModal/FieldLabel";
 import { DESCRIPTION_MAX_LENGTH } from "./NewIssueModal/SimpleFields";
 import type { UseEditTaskFormReturn } from "./useEditTaskForm";
+
+// Codex Light §3 — same Codex-accurate hint copy as
+// NewIssueModal/SimpleFields.tsx's AutonomyFieldFragment (Codex asks before
+// acting/needing input in Guided vs runs unattended with `--yolo` in
+// Autonomous) — kept in sync manually since the two forms don't share a
+// component here, only the same underlying AutonomyToggle override props.
+const CODEX_GUIDED_HINT = (
+  <>
+    <strong>Guided</strong>: Codex asks before it acts or when it needs your
+    input — you respond in the terminal. Slower, full oversight.
+  </>
+);
+const CODEX_AUTONOMOUS_HINT = (
+  <>
+    <strong>Autonomous</strong>: Codex runs without asking for approval
+    (<code>--yolo</code>). Fastest; good for well-scoped work you trust to
+    its spec.
+  </>
+);
 
 const inputCls =
   "w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#847a75)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px] outline-none focus:border-[var(--color-primary,#6b5e56)]";
@@ -52,6 +72,17 @@ export function EditTaskModalFields({
         />
       </Field>
 
+      <Field label="Runtime">
+        {editable("runtime") ? (
+          <RuntimeToggle value={form.runtime} onChange={form.setRuntime} />
+        ) : (
+          readonlyValue(
+            "runtime",
+            form.runtime === "codex" ? "Codex" : "Claude",
+          )
+        )}
+      </Field>
+
       {shows("phase") && (
         <Field label="Phase">
           {editable("phase") ? (
@@ -77,7 +108,13 @@ export function EditTaskModalFields({
       {form.showAutonomyToggle && (
         <Field label="Autonomy">
           {editable("autonomy") ? (
-            <AutonomyToggle value={form.autonomy} onChange={form.setAutonomy} />
+            <AutonomyToggle
+              value={form.autonomy}
+              onChange={form.setAutonomy}
+              {...(form.runtime === "codex"
+                ? { guidedHint: CODEX_GUIDED_HINT, autonomousHint: CODEX_AUTONOMOUS_HINT }
+                : {})}
+            />
           ) : (
             readonlyValue(
               "autonomy",
@@ -92,7 +129,7 @@ export function EditTaskModalFields({
           label="Description"
           hint={
             editable("description")
-              ? `the first prompt Claude sees · ${form.description.length}/${DESCRIPTION_MAX_LENGTH}`
+              ? `the first prompt ${form.runtime === "codex" ? "Codex" : "Claude"} sees · ${form.description.length}/${DESCRIPTION_MAX_LENGTH}`
               : undefined
           }
         >

@@ -14,6 +14,7 @@ import type { SnapshotStore } from "./terminal/snapshot-store.js";
 import type { PtyManager } from "./terminal/pty-manager.js";
 import type { ServerConfig } from "./config.js";
 import type { CreateExternalRoutesArgs } from "./external/create-external-routes-args.js";
+import type { CodexTaskWatcher } from "./core/codex-task-watcher.js";
 
 export interface ExternalRoutesWiringDeps {
   sdkSessionsStore: SdkSessionsStore;
@@ -25,6 +26,8 @@ export interface ExternalRoutesWiringDeps {
   ptyManager: PtyManager;
   honoHost: string;
   config: ServerConfig;
+  /** Codex Light AC6 — feeds `codex_watcher` inbox rows. */
+  codexWatcher?: Pick<CodexTaskWatcher, "snapshot">;
 }
 
 export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateExternalRoutesArgs {
@@ -38,6 +41,7 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
     ptyManager,
     honoHost,
     config,
+    codexWatcher,
   } = deps;
 
   return {
@@ -86,5 +90,6 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
     // iterate-2026-09-07-leadwright-setup-wizard (W14)
     leadwrightCheckoutRoot: config.leadwrightCheckoutRoot,
     webuiBaseUrl: `http://localhost:${process.env.VITE_PORT ?? "5173"}`,
+    codexWatcher,
   };
 }

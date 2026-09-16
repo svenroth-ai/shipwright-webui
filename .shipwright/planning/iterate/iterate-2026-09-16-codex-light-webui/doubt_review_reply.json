@@ -1,0 +1,32 @@
+{
+  "stage": "doubt",
+  "note": "Reconstructed from this session's own fix record after a context compaction discarded the doubt-reviewer subagent's verbatim reply text. Not a fabricated quote -- the two doubts below are traceable to the exact code changes that resolved them (codex-task-watcher.ts + codex-task-watcher.test.ts).",
+  "doubts": [
+    {
+      "claim_under_doubt": "The oracle-done classify() branch in codex-task-watcher.ts correctly finalizes a completed Codex task.",
+      "disproof_attempt": "It patches only { state: \"done\" }, never syncing boardColumn -- CLAUDE.md rule 23 requires a done transition to also sync boardColumn (the /close route already does this). A task the operator had dragged to a non-Done column stayed stranded there once auto-completed, locked with no visible reason since no Resume/Launch CTA reads boardColumn once state is done.",
+      "severity": "medium",
+      "lens": "correctness",
+      "file": "server/src/core/codex-task-watcher.ts",
+      "what_would_resolve_it": "patch { state: \"done\", boardColumn: \"done\" } together, mirroring lifecycle.ts's /close fix"
+    },
+    {
+      "claim_under_doubt": "The launch_confirmation_failed notice set in checkTask() only ever appears while genuinely needed.",
+      "disproof_attempt": "Once set while a task sat in awaiting_external_start past the launch-confirm window, nothing cleared it if the task later moved on and started producing output normally -- only a full \"done\" transition clears the notices map. An otherwise-healthy run that simply started slowly kept a stale \"may not have started correctly\" banner in the Inbox indefinitely.",
+      "severity": "medium",
+      "lens": "correctness",
+      "file": "server/src/core/codex-task-watcher.ts",
+      "what_would_resolve_it": "clear a stale launch_confirmation_failed notice as soon as state is observed to have left awaiting_external_start"
+    }
+  ],
+  "disposed_no_fix": [
+    {
+      "file": "server/src/core/codex-oracle-runner.ts",
+      "note": "execFile's timeout only SIGTERMs the immediate uv child; on Windows an already-forked Python grandchild is not reaped, and this runs every 60s tick per stalled task. Accepted -- tick()'s per-task sequential await bounds this to at most one in-flight oracle call at a time, so the exposure is more repeats of an existing, already-accepted risk pattern (triage-cli-runner.ts precedent), not a new class of leak. Documented in the module header."
+    },
+    {
+      "file": "server/src/core/codex-thread-discovery.ts",
+      "note": "HEAD_BYTES=4096 read cap: if a future session_meta line ever exceeds it, discovery fails identically and permanently for that task on every later tick. Accepted -- the verified real session_meta line is compact and 4KB is a generous margin; documented above HEAD_BYTES with a revisit note (retry-on-parse-failure) if a future Codex CLI version grows this payload."
+    }
+  ]
+}

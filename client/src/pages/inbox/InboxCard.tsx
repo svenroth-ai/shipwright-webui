@@ -25,6 +25,7 @@ import type { ExternalTask, InboxItem } from "../../lib/externalApi";
 import { AskToolCard } from "./InboxCard.AskTool";
 import { WaitingReplyCard } from "./InboxCard.Waiting";
 import { LeadQuestionCard } from "./InboxCard.LeadQuestion";
+import { CodexNoticeCard } from "./InboxCard.CodexNotice";
 
 // Known phase ids (mirrors PIPELINE_PHASES but we intentionally don't couple
 // to Kanban phaseMapping, which uses a slightly different vocab). Used as the
@@ -73,6 +74,12 @@ export function inboxItemKey(item: InboxItem): string {
       return item.questionId;
     case "lead_question":
       return `lq-${item.taskId}`;
+    case "codex_watcher":
+      return `cw-${item.taskId}`;
+    case "codex_approval":
+      return `ca-${item.taskId}`;
+    case "codex_error":
+      return `ce-${item.taskId}`;
     default:
       // Exhaustiveness guard (FR-04.19 trap 3/4) — a fifth kind added to
       // `InboxItem` without a case here is a TYPE error at this line,
@@ -126,8 +133,12 @@ export function InboxTerminalHonesty({
  *  - `text_question`   → `WaitingReplyCard` (plain-text end-of-turn question)
  *  - `terminal_prompt` → `WaitingReplyCard` (live AskUserQuestion picker
  *    detected in the embedded terminal — iterate-2026-05-18-inbox-terminal-prompts)
+ *  - `codex_approval`  → `WaitingReplyCard` (live Codex approval dialog —
+ *    Codex Light §5.3, same terminal-answered semantics as `terminal_prompt`)
  *  - `lead_question`   → `LeadQuestionCard` (FR-04.19 — webui answers inline,
- *    PATCHing `poFeedback`, unlike the three terminal-answered kinds above)
+ *    PATCHing `poFeedback`, unlike the terminal-answered kinds above)
+ *  - `codex_watcher`, `codex_error` → `CodexNoticeCard` (Codex Light
+ *    AC6/§5.3 — informational, no reply required)
  */
 export function InboxCard({
   item,
@@ -139,11 +150,15 @@ export function InboxCard({
   switch (item.kind) {
     case "text_question":
     case "terminal_prompt":
+    case "codex_approval":
       return <WaitingReplyCard item={item} task={task} />;
     case "ask_tool":
       return <AskToolCard item={item} task={task} />;
     case "lead_question":
       return <LeadQuestionCard item={item} task={task} />;
+    case "codex_watcher":
+    case "codex_error":
+      return <CodexNoticeCard item={item} task={task} />;
     default:
       // Exhaustiveness guard (FR-04.19 trap 3/4) — see `unhandledInboxItemKind` above.
       return unhandledInboxItemKind(item);

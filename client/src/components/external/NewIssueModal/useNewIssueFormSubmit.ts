@@ -22,6 +22,7 @@ import {
   type PhaseDefinition,
 } from "../../../lib/externalApi";
 import type { AutonomyValue } from "../AutonomyToggle";
+import type { RuntimeValue } from "../RuntimeToggle";
 import type { RenderableParamSchema } from "../../../types/action-schema";
 import type { Project } from "../../../types";
 
@@ -36,6 +37,12 @@ export interface UseNewIssueFormSubmitInput {
   title: string;
   description: string;
   autonomy: AutonomyValue;
+  /**
+   * Codex Light §3.5 — persisted ONLY in createPayload (task-creation
+   * time), never in the separate launchBody below (deliberate difference
+   * from `autonomy`, which IS re-sent per launch — see §2.1's correction).
+   */
+  runtime: RuntimeValue;
   leadDomain: string;
   leadPriority: "" | "P0" | "P1" | "P2" | "P3";
   leadComplexityHint: "" | "small" | "medium" | "large";
@@ -88,6 +95,7 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
           cwd: string;
           pluginDirs: string[];
           projectId: string;
+          runtime: RuntimeValue;
           phase?: string;
           actionId?: string;
           description?: string;
@@ -102,6 +110,7 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
           pluginDirs: [],
           projectId: input.selectedProject.id,
           actionId: input.action.id,
+          runtime: input.runtime,
         };
         if (input.mode === "new-task" && input.currentPhase) {
           createPayload.phase = input.currentPhase.id;

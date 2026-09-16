@@ -56,6 +56,19 @@ export interface ExternalTask {
   phaseLabel?: string;
   description?: string;
   autonomy?: "guided" | "autonomous";
+  /**
+   * Codex Light (Spec/codex-light-webui.md §2.1/§3.5) — which CLI this
+   * task's launch commands are built for. Non-optional on the SERVER
+   * record (backfilled `"claude"` for every pre-existing task); kept
+   * optional here (default read as `task.runtime ?? "claude"`) so the
+   * many existing test fixtures across this workspace that construct an
+   * `ExternalTask` literal don't all need updating for this one field.
+   * Immutable once the task has started (taskEditability.ts
+   * FROZEN_WHEN_STARTED).
+   */
+  runtime?: "claude" | "codex";
+  /** Codex Light §4 — the Codex thread id, stored at launch for resume. */
+  threadId?: string;
   state: ExternalTaskState;
   /** v4 sticky board-column override; canonical type/derive in lib/boardColumnApi.ts. */
   boardColumn?: "backlog" | "in_progress" | "done";
@@ -148,6 +161,9 @@ export type {
   AskToolInboxItem,
   TextQuestionInboxItem,
   TerminalPromptInboxItem,
+  CodexWatcherInboxItem,
+  CodexApprovalInboxItem,
+  CodexErrorInboxItem,
 } from "./inboxItemTypes";
 
 export interface DiagnosticsSnapshot {
@@ -252,6 +268,12 @@ export async function createTask(args: {
   complexityHint?: "small" | "medium" | "large";
   tags?: string[];
   blockedBy?: string[];
+  /**
+   * Codex Light §3.5 — the RuntimeToggle's value at creation time. Omitted
+   * → server defaults to "claude". NewIssueModal always sends it
+   * explicitly; other callers (e.g. Continue Pipeline shadows) may omit.
+   */
+  runtime?: "claude" | "codex";
 }): Promise<ExternalTask> {
   // Server may respond with `{task, reused: true}` when an existing
   // phase-task shadow is reused (idempotency). The `reused` flag is
@@ -397,6 +419,8 @@ export interface TaskUpdatePatch {
   blockedBy?: string[];
   autonomy?: "guided" | "autonomous"; // always set; no clear-to-empty
   poFeedback?: string;
+  /** Codex Light §3.5 — editable only pre-start; see lib/taskEditability.ts. */
+  runtime?: "claude" | "codex";
 }
 
 /**

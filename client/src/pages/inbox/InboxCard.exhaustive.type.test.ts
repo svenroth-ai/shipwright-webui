@@ -35,10 +35,16 @@ describe("InboxItem exhaustiveness guard stays load-bearing", () => {
     expectTypeOf(typeOnlyRejectsFakeFifthKind).returns.toBeVoid();
   });
 
-  it("today's four real kinds are exactly what InboxItem is (no silent fifth)", () => {
+  it("today's seven real kinds are exactly what InboxItem is (no silent eighth)", () => {
     type RealKinds = InboxItem["kind"];
     expectTypeOf<RealKinds>().toEqualTypeOf<
-      "ask_tool" | "text_question" | "terminal_prompt" | "lead_question"
+      | "ask_tool"
+      | "text_question"
+      | "terminal_prompt"
+      | "lead_question"
+      | "codex_watcher"
+      | "codex_approval"
+      | "codex_error"
     >();
   });
 });

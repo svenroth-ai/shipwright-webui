@@ -93,6 +93,7 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
     orgWithDecisionsLock,
     leadwrightCheckoutRoot,
     webuiBaseUrl,
+    codexWatcher,
   } = args;
   // iterate-2026-05-08 v0.8.7 AC-1 — runtime guard (external code review
   // openai medium): TypeScript-only requirement is bypassable in plain
@@ -150,7 +151,7 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
   // CLAUDE.md rule 4 — STATELESS byte-offset; multi-tab works by construction.
   app.route("/", createTranscriptRouter({ store, watcher, ptyManager }));
   // Inbox shares the derive cache + negative cache via ./inbox/_cache.ts.
-  app.route("/", createInboxRouter({ store, watcher, ptyManager }));
+  app.route("/", createInboxRouter({ store, watcher, ptyManager, codexWatcher }));
   // CLAUDE.md rule 12 — run-config is a READ-ONLY observer; no mutation.
   app.route(
     "/",

@@ -18,6 +18,17 @@ import type { LeadQuestionInboxItem } from "./leadQuestionApi";
  *    mirror; read-only, auto-clears once answered.
  *  - `lead_question` (`./leadQuestionApi.ts`) — WRITTEN, not derived; no
  *    `bestEffort` (hence the base/common split below).
+ *  - `codex_watcher` (Codex Light AC6) — an ephemeral notice from
+ *    `CodexTaskWatcher` (nudge sent, delivery error, unresolved
+ *    no_oracle self-check, failed launch confirmation). Informational —
+ *    no reply is required.
+ *  - `codex_approval` (Codex Light §5.3) — a pending Codex approval dialog
+ *    detected in the live terminal; read-only, auto-clears once answered
+ *    — same shape/semantics as `terminal_prompt`, just Codex's own prompt
+ *    text instead of a Claude `AskUserQuestion` picker.
+ *  - `codex_error` (Codex Light §5.3) — a Codex-reported structured error
+ *    (turn abort, rate limit, etc.) detected in the live terminal.
+ *    Informational — no reply is required.
  */
 export interface InboxItemBase {
   taskId: string;
@@ -56,8 +67,37 @@ export interface TerminalPromptInboxItem extends InboxItemCommon {
   promptText: string;
 }
 
+/** Codex Light AC6 — mirrors the server's `codex_watcher` AggregatedEntry
+ *  kind (`server/src/external/inbox/_codex.ts`). */
+export interface CodexWatcherInboxItem extends InboxItemCommon {
+  kind: "codex_watcher";
+  noticeKind:
+    | "nudge_sent"
+    | "delivery_error"
+    | "no_oracle_unresolved"
+    | "launch_confirmation_failed";
+  detail: string;
+}
+
+/** Codex Light §5.3 — mirrors the server's `codex_approval` AggregatedEntry
+ *  kind. Same read-only, terminal-answered semantics as `terminal_prompt`. */
+export interface CodexApprovalInboxItem extends InboxItemCommon {
+  kind: "codex_approval";
+  promptText: string;
+}
+
+/** Codex Light §5.3 — mirrors the server's `codex_error` AggregatedEntry
+ *  kind. Informational — no reply is required. */
+export interface CodexErrorInboxItem extends InboxItemCommon {
+  kind: "codex_error";
+  errorText: string;
+}
+
 export type InboxItem =
   | AskToolInboxItem
   | TextQuestionInboxItem
   | TerminalPromptInboxItem
-  | LeadQuestionInboxItem;
+  | LeadQuestionInboxItem
+  | CodexWatcherInboxItem
+  | CodexApprovalInboxItem
+  | CodexErrorInboxItem;

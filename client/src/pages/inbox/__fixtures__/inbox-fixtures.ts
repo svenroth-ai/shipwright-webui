@@ -7,6 +7,9 @@
  */
 import type {
   AskToolInboxItem,
+  CodexApprovalInboxItem,
+  CodexErrorInboxItem,
+  CodexWatcherInboxItem,
   ExternalTask,
   InboxItem,
   TerminalPromptInboxItem,
@@ -54,6 +57,49 @@ export function makeTerminalPromptItem(
     sessionUuid: "sess-1",
     taskTitle: "task-1",
     promptText: "❯ Overwrite existing migration? (y/N)",
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
+export function makeCodexWatcherItem(
+  overrides: Partial<CodexWatcherInboxItem> = {},
+): CodexWatcherInboxItem {
+  return {
+    kind: "codex_watcher",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    noticeKind: "nudge_sent",
+    detail: "Sent a nudge — the completion oracle reports this run isn't done yet.",
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
+export function makeCodexApprovalItem(
+  overrides: Partial<CodexApprovalInboxItem> = {},
+): CodexApprovalInboxItem {
+  return {
+    kind: "codex_approval",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    promptText: "Allow Codex to run `rm -rf node_modules`?\n1. Yes\n2. No",
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
+export function makeCodexErrorItem(
+  overrides: Partial<CodexErrorInboxItem> = {},
+): CodexErrorInboxItem {
+  return {
+    kind: "codex_error",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    errorText: "turn aborted. Something went wrong? Hit `/feedback` to report the issue.",
     bestEffort: true,
     ...overrides,
   };

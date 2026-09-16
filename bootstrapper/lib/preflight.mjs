@@ -125,15 +125,31 @@ export function runPreflight(deps = {}) {
   /** @type {{name:string, ok:boolean, detail:string, hint?:string, hard:boolean, optional?:boolean}[]} */
   const checks = [];
 
-  // claude — its own gate: absent → skip plugins + loud warning + non-zero exit.
+  // claude / codex — Codex Light AC8 (server mirror: readiness-probe.ts):
+  // a per-task runtime toggle means either CLI can be picked regardless of
+  // the global default, so neither is individually `hard` here — the
+  // combined `engineOk` gate below is what actually blocks. `pluginPhaseOk`
+  // below is UNCHANGED and still requires `claude` specifically: installing
+  // the Shipwright plugins goes through `claude plugin marketplace add`,
+  // which genuinely needs the Claude CLI regardless of runtime choice.
   const claude = run("claude", ["--version"]);
   checks.push({
     name: "claude",
     ok: claude.ok,
     detail: claude.ok ? extractVersion(claude.stdout + claude.stderr) : "not found",
     hint: claude.ok ? undefined : installHint("claude", platform),
-    hard: true,
+    hard: false,
   });
+
+  const codex = run("codex", ["--version"]);
+  checks.push({
+    name: "codex",
+    ok: codex.ok,
+    detail: codex.ok ? extractVersion(codex.stdout + codex.stderr) || "detected" : "not found",
+    hint: codex.ok ? undefined : installHint("codex", platform),
+    hard: false,
+  });
+  const engineOk = claude.ok || codex.ok;
 
   // uv — hard requirement for every plugin hook.
   const uv = run("uv", ["--version"]);
@@ -217,14 +233,17 @@ export function runPreflight(deps = {}) {
     checks,
     python: py,
     hasClaude: claude.ok,
+    hasCodex: codex.ok,
     hasUv: uv.ok,
     hasPython: pyOk,
     hasNode: nodeOk,
     hasGit: git.ok,
     /** Plugins can only be installed when claude + uv + python are all real. */
     pluginPhaseOk,
-    /** Non-zero exit when any hard prerequisite is missing (AC1a). */
-    exitCode: hardFailures.length,
+    /** AC8 — at least one of Claude CLI / Codex CLI must be usable. */
+    engineOk,
+    /** Non-zero exit when any hard prerequisite (or the combined engine gate) is missing (AC1a). */
+    exitCode: hardFailures.length + (engineOk ? 0 : 1),
     isWindows: isWindows(platform),
   };
 }
@@ -240,7 +259,7 @@ export function renderVerdict(result, mark) {
   // A just-installed tool lands in ~/.local/bin but the running shell's PATH was
   // captured before the install — so "not found" here is often really "not on
   // PATH yet". Say so, once, OS-aware, whenever a hard prerequisite is missing.
-  if (result.checks.some((c) => c.hard && !c.ok)) {
+  if (result.checks.some((c) => c.hard && !c.ok) || !result.engineOk) {
     lines.push("");
     lines.push(
       result.isWindows

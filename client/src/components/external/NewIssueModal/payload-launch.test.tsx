@@ -201,6 +201,29 @@ describe("launchExternalTask POST body — bit-perfect", () => {
     expect("phase" in parsed).toBe(false);
     expect("autonomy" in parsed).toBe(false);
   });
+
+  // Codex Light §3.5 — deliberate difference from `autonomy`: `runtime` is
+  // persisted ONLY at task-creation time (payload-create.test.tsx), never
+  // re-sent in this separate launch body.
+  it("never includes 'runtime' in the launch body, even after flipping the toggle", async () => {
+    const cap: { body?: string } = {};
+    globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
+    renderModal({ onToast: () => {} });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "Launch me" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
+    });
+    await waitFor(() => expect(cap.body).toBeTruthy());
+    const parsed = JSON.parse(cap.body!);
+    expect("runtime" in parsed).toBe(false);
+  });
 });
 
 describe("sessionStorage handoff (ADR-068-A1)", () => {

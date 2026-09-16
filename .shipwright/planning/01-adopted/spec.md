@@ -32,6 +32,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 | FR-01.02 | TSK | Task detail — 3-pane viewer | Must | The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. On small screens, the same workspace becomes four direct one-pane-at-a-time destinations so the live work area stays large. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout and a compact mobile work mode; the file preview pane's wide-table horizontal scroll now actually engages for a table with a long free-text column (previously crushed into wrapped lines instead), and the pane gained accessibility fixes (screen-reader-friendly table headers, a focusable labelled region, a keyboard-reachable tab close button). | code | (inferred) |
 | FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. Block-level raw HTML (e.g. a styled call-to-action) is preserved byte-for-byte; it still warns before saving files with other tricky content (tables, inline HTML it can't represent losslessly, footnotes).<br>**Updates:** Gained a formatting toolbar. Raw HTML BLOCKS now round-trip byte-for-byte instead of being silently rewritten. | code | (inferred) |
 | FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. On small screens those same panels become three equal one-at-a-time destinations, and selecting an artifact opens its detail automatically. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. Mobile Mission then gained direct Overview / Activity / Detail navigation. A single-turn card then gained `explanation`, a bounded excerpt of that turn's own prose beyond its headline, restoring content the feed had been silently discarding — though in real sessions the discarding was only partly fixed: a card's headline AND `explanation` then gained the ability to source from the immediately PRECEDING pure-narration turn, since real autonomous sessions almost never combine narration and a tool call in one JSONL event. | code | (inferred) |
+| FR-01.74 | TSK | Codex CLI as an alternate task runtime ("Codex Light") | Should | A task can run on the Codex CLI instead of Claude Code, chosen per task (a new Runtime toggle in the create/edit dialogs) or defaulted from a new Settings switch; once a task is created its runtime is fixed. Launching a Codex task opens the same embedded terminal and runs the matching `codex`/`codex resume` command, with the task's autonomy setting mapped onto Codex's own approval flags. Because Codex has no equivalent of Claude's JSONL transcript heartbeat, completion is instead detected by an automated check that reads the terminal's visible output when the session goes quiet; it nudges the session once if it looks unfinished, and surfaces distinct Inbox notices (needs approval, hit an error, nothing detected) so a stalled Codex task is never silently indistinguishable from a stalled Claude one. Campaign runs and the multi-phase pipeline stay Claude-only for now and are blocked with a plain explanation if attempted on a Codex task. The Settings page shows plainly when the Codex CLI isn't installed, without blocking Claude-only use of the app. | code | unit, e2e |
 
 ### Area TRM — Embedded Terminal
 
@@ -1322,6 +1323,64 @@ write surface; gated, path-guarded, and concurrency-safe.
   `org-chart.json` parse for every lead, no N+1. No terminal-button
   affordance — that slot belongs to a separate card and is deliberately
   omitted, not stubbed.
+
+### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
+
+- (A) **(iterate-2026-09-16-codex-light-webui)** A new global
+  `settings.codexRuntimeDefault` switch (Settings page, `CodexSettingsCard`)
+  seeds the runtime every new task is created with; a per-task `RuntimeToggle`
+  in the create and edit dialogs overrides it for that one task. Once a task
+  exists, `task.runtime` is immutable — the toggle in the Edit dialog freezes
+  to a read-only label the first time the task is launched. An old task
+  persisted before this iterate (no `runtime` field on disk) still loads,
+  backfilled to `claude`. Forking a task inherits the parent's runtime
+  unchanged.
+- (B) **(iterate-2026-09-16-codex-light-webui)** Launching or resuming a
+  Codex-runtime task builds a plain `codex` / `codex resume <threadId>`
+  command (`buildCodexCommands`) and runs it the same way a Claude launch
+  does — inside the embedded terminal, after the same explicit Launch/Resume
+  click (CLAUDE.md rule 1's "webui never spawns" boundary is unchanged: this
+  is still only a command string, auto-executed client-side). The task's
+  autonomy setting maps onto Codex's own approval vocabulary
+  (`approvalPolicy` / `approvalsReviewer` / `--enable
+  default_mode_request_user_input`), identically for a fresh launch and a
+  resume.
+- (C) **(iterate-2026-09-16-codex-light-webui)** The create and edit dialogs'
+  `RuntimeToggle` mirrors the existing `AutonomyToggle`'s visual language on
+  a different axis (Claude / Codex). The choice persists through a normal
+  save and is reflected back the next time the dialog opens, pre-launch;
+  post-launch it renders as the frozen read-only label from (A).
+- (D) **(iterate-2026-09-16-codex-light-webui)** Because Codex has no
+  transcript-heartbeat equivalent to Claude's JSONL polling, completion is
+  instead inferred by a completion-oracle check that runs when a Codex
+  task's terminal has gone quiet past a stall timeout: it classifies the
+  session as done, probably still working (and sends one self-check nudge),
+  waiting on PR delivery (including a distinct error state), or "no
+  automated check available for this phase" (self-report-only, read from a
+  structured status block the launch prompt asks the session to print).
+  Every classification besides the last always defers to the oracle over
+  the self-report when the two disagree.
+- (E) **(iterate-2026-09-16-codex-light-webui)** The cross-project Inbox
+  surfaces Codex-specific notices distinctly from Claude's existing rows: a
+  sent nudge, a launch that never produced visible output, a stalled PR
+  delivery (and whether it failed outright), and "no automated completion
+  check for this phase" — plus terminal-detected signals (a pending
+  approval prompt, a structured error) already surfaced for Claude tasks.
+  Every notice clears again once its triggering condition resolves; none is
+  Claude-only machinery repurposed silently for Codex.
+- (F) **(iterate-2026-09-16-codex-light-webui)** A Codex-runtime task's
+  campaign launch (slug, step, or master-run) and its multi-phase pipeline
+  launch are both blocked at the server with a plain-language explanation
+  rather than silently misbehaving — Codex Light v1 supports only a single
+  ad-hoc session per task. A Claude-runtime task, and an ordinary
+  (non-campaign, non-pipeline) Codex launch, are unaffected.
+- (G) **(iterate-2026-09-16-codex-light-webui)** The readiness check reports
+  Claude and Codex CLI availability informationally, side by side — the app
+  stays usable Claude-only with no Codex CLI installed, and vice versa; "at
+  least one CLI available" is the only hard gate. Separately, attempting to
+  actually launch a Codex task when the CLI isn't on PATH is refused
+  up front with a clear error, checked at launch time regardless of what
+  readiness last reported.
 
 ## Quality Requirements
 
