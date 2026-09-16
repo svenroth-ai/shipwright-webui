@@ -112,6 +112,7 @@ const CODEX_CLI_PRESENT = () => Promise.resolve(true);
 const CODEX_CLI_MISSING = () => Promise.resolve(false);
 
 describe("applyRuntimeChokepoint", () => {
+  // @covers FR-01.74
   it("passes claude commands/taskUpdate through byte-identical", async () => {
     const task = makeTask({ runtime: "claude" });
     const taskUpdate = { state: "awaiting_external_start" as const };

@@ -50,7 +50,7 @@ test.describe("Codex runtime toggle — create, persist, edit-dialog reflect", (
     await cleanupProject(request, project);
   });
 
-  test("select Codex in NewTaskModal → persists → Edit dialog reflects it (pre-launch)", async ({
+  test("select Codex in NewTaskModal → persists → Edit dialog reflects it (pre-launch) @FR-01.74", async ({
     page,
     request,
   }) => {
@@ -104,7 +104,7 @@ test.describe("Codex runtime toggle — create, persist, edit-dialog reflect", (
     await expect(editModal).toHaveCount(0);
   });
 
-  test("runtime field freezes read-only in the Edit dialog after a real /launch round-trip", async ({
+  test("runtime field freezes read-only in the Edit dialog after a real /launch round-trip @FR-01.74", async ({
     page,
     request,
   }) => {

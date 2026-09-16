@@ -6,6 +6,7 @@ const CWD = String.raw`C:\Users\you\projects\shipwright`;
 const THREAD_ID = "thread-abc-123";
 
 describe("launcher-codex.buildCodexCommands", () => {
+  // @covers FR-01.74
   it("emits three shell forms with the codex binary and a cd prefix", () => {
     const c = buildCodexCommands({ cwd: CWD, phase: "iterate" });
     expect(c.powershell).toContain("& codex ");

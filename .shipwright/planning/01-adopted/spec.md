@@ -1326,61 +1326,62 @@ write surface; gated, path-guarded, and concurrency-safe.
 
 ### FR-01.74 Codex CLI as an alternate task runtime ("Codex Light")
 
-- (A) **(iterate-2026-09-16-codex-light-webui)** A new global
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given a global
   `settings.codexRuntimeDefault` switch (Settings page, `CodexSettingsCard`)
-  seeds the runtime every new task is created with; a per-task `RuntimeToggle`
-  in the create and edit dialogs overrides it for that one task. Once a task
-  exists, `task.runtime` is immutable — the toggle in the Edit dialog freezes
-  to a read-only label the first time the task is launched. An old task
-  persisted before this iterate (no `runtime` field on disk) still loads,
-  backfilled to `claude`. Forking a task inherits the parent's runtime
-  unchanged.
-- (B) **(iterate-2026-09-16-codex-light-webui)** Launching or resuming a
-  Codex-runtime task builds a plain `codex` / `codex resume <threadId>`
-  command (`buildCodexCommands`) and runs it the same way a Claude launch
-  does — inside the embedded terminal, after the same explicit Launch/Resume
-  click (CLAUDE.md rule 1's "webui never spawns" boundary is unchanged: this
-  is still only a command string, auto-executed client-side). The task's
-  autonomy setting maps onto Codex's own approval vocabulary
-  (`approvalPolicy` / `approvalsReviewer` / `--enable
-  default_mode_request_user_input`), identically for a fresh launch and a
-  resume.
-- (C) **(iterate-2026-09-16-codex-light-webui)** The create and edit dialogs'
-  `RuntimeToggle` mirrors the existing `AutonomyToggle`'s visual language on
-  a different axis (Claude / Codex). The choice persists through a normal
-  save and is reflected back the next time the dialog opens, pre-launch;
-  post-launch it renders as the frozen read-only label from (A).
-- (D) **(iterate-2026-09-16-codex-light-webui)** Because Codex has no
-  transcript-heartbeat equivalent to Claude's JSONL polling, completion is
-  instead inferred by a completion-oracle check that runs when a Codex
-  task's terminal has gone quiet past a stall timeout: it classifies the
-  session as done, probably still working (and sends one self-check nudge),
-  waiting on PR delivery (including a distinct error state), or "no
-  automated check available for this phase" (self-report-only, read from a
-  structured status block the launch prompt asks the session to print).
-  Every classification besides the last always defers to the oracle over
-  the self-report when the two disagree.
-- (E) **(iterate-2026-09-16-codex-light-webui)** The cross-project Inbox
-  surfaces Codex-specific notices distinctly from Claude's existing rows: a
-  sent nudge, a launch that never produced visible output, a stalled PR
-  delivery (and whether it failed outright), and "no automated completion
-  check for this phase" — plus terminal-detected signals (a pending
-  approval prompt, a structured error) already surfaced for Claude tasks.
-  Every notice clears again once its triggering condition resolves; none is
-  Claude-only machinery repurposed silently for Codex.
-- (F) **(iterate-2026-09-16-codex-light-webui)** A Codex-runtime task's
-  campaign launch (slug, step, or master-run) and its multi-phase pipeline
-  launch are both blocked at the server with a plain-language explanation
-  rather than silently misbehaving — Codex Light v1 supports only a single
-  ad-hoc session per task. A Claude-runtime task, and an ordinary
-  (non-campaign, non-pipeline) Codex launch, are unaffected.
-- (G) **(iterate-2026-09-16-codex-light-webui)** The readiness check reports
-  Claude and Codex CLI availability informationally, side by side — the app
-  stays usable Claude-only with no Codex CLI installed, and vice versa; "at
-  least one CLI available" is the only hard gate. Separately, attempting to
-  actually launch a Codex task when the CLI isn't on PATH is refused
-  up front with a clear error, checked at launch time regardless of what
-  readiness last reported.
+  is set and a new task is created, when the create dialog's per-task
+  `RuntimeToggle` is left at its seeded value or is explicitly changed,
+  then the task's `runtime` is seeded from the global default and can be
+  overridden for that one task; once the task exists, `task.runtime` is
+  immutable — the toggle in the Edit dialog freezes to a read-only label
+  the first time the task is launched, an old task persisted before this
+  iterate (no `runtime` field on disk) still loads backfilled to `claude`,
+  and forking a task inherits the parent's runtime unchanged.
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given a task's `runtime`
+  is `codex`, when the user clicks Launch or Resume, then the embedded
+  terminal runs a plain `codex` / `codex resume <threadId>` command
+  (`buildCodexCommands`) the same way a Claude launch does — after the same
+  explicit click, auto-executed client-side (CLAUDE.md rule 1's "webui
+  never spawns" boundary unchanged) — with the task's autonomy setting
+  mapped onto Codex's own approval vocabulary (`approvalPolicy` /
+  `approvalsReviewer` / `--enable default_mode_request_user_input`)
+  identically for a fresh launch and a resume.
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given the create or edit
+  dialog is open for a task, when its `RuntimeToggle` renders, then it
+  mirrors the existing `AutonomyToggle`'s visual language on a different
+  axis (Claude / Codex); when a choice is made and the dialog is saved,
+  then it persists and is reflected back the next time the dialog opens
+  pre-launch, and renders as the frozen read-only label from the
+  immutability guarantee above once the task has been launched.
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given a Codex-runtime
+  task's terminal has produced no output for longer than the stall
+  timeout, when the completion-oracle check runs, then it classifies the
+  session as done, probably still working (sending one self-check nudge),
+  waiting on PR delivery (including a distinct delivery-error state), or
+  "no automated check available for this phase" (falling back to a
+  structured self-report the launch prompt asks the session to print);
+  every classification except the self-report-only case always defers to
+  the oracle over the self-report when the two disagree.
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given a Codex-runtime
+  task's watcher or terminal detects a notable event (a sent nudge, a
+  launch producing no visible output, a stalled or failed PR delivery, "no
+  automated completion check for this phase", a pending approval prompt,
+  or a structured error), when the cross-project Inbox renders, then it
+  surfaces a notice distinct from Claude's existing rows for that event,
+  and the notice clears again once its triggering condition resolves.
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given a task's `runtime`
+  is `codex`, when a campaign launch (slug, step, or master-run) or a
+  multi-phase pipeline launch is attempted on it, then the server blocks
+  the launch with a plain-language explanation instead of silently
+  misbehaving; a Claude-runtime task, and an ordinary (non-campaign,
+  non-pipeline) Codex launch, are unaffected.
+- (E) **(iterate-2026-09-16-codex-light-webui)** Given the readiness check
+  runs, when it reports CLI availability, then it reports Claude and Codex
+  CLI availability informationally side by side, and the app stays usable
+  Claude-only with no Codex CLI installed (and vice versa) — "at least one
+  CLI available" is the only hard gate; separately, given a user attempts
+  to actually launch a Codex task when the CLI isn't on PATH, when the
+  launch is attempted, then it is refused up front with a clear error,
+  checked at launch time regardless of what readiness last reported.
 
 ## Quality Requirements
 
