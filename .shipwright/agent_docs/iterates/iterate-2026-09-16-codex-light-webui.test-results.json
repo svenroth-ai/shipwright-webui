@@ -5,8 +5,8 @@
     "date": "2026-09-16",
     "unit": {
       "status": "passed",
-      "passed": 8413,
-      "total": 8425,
+      "passed": 8415,
+      "total": 8427,
       "skipped": 12
     },
     "integration": {
@@ -134,7 +134,7 @@
         {
           "behavior": "AC5 hardening (required-CI PR-review finding, PR #466): a timed-out oracle/triage-cli child is tree-killed (whole process group, not just the immediate child) instead of relying on execFile's single-process kill; index.ts shutdown() tree-kills any in-flight child and clears the watcher interval",
           "disposition": "tested",
-          "evidence": "cli-child-spawn.test.ts (timeout drives a real tree-kill never child.kill(), shutdown registry tracks/untracks, POSIX/win32 spawn-detached agreement, real process-tree integration test)"
+          "evidence": "cli-child-spawn.test.ts (timeout drives a real tree-kill never child.kill(), a KILL_GRACE_MS fallback bounds the promise even if the kill fails/throws or the process never closes, shutdown registry tracks/untracks, POSIX/win32 spawn-detached agreement, real process-tree integration test)"
         },
         {
           "behavior": "AC6: the Inbox surfaces Codex watcher notices (nudge_sent, launch_confirmation_failed, delivery_error, no_oracle_unresolved) and terminal signals (pending approval, structured error), scoped to codex-runtime tasks only",

@@ -198,3 +198,18 @@ tracks/untracks correctly, POSIX/win32 spawn-detached agreement, plus one
 REAL process-tree integration test (no `uv`/Python dependency — spawns node
 against itself, proving a genuine grandchild process dies on timeout on
 both platforms).
+
+**Local PR-review preflight, round 2** (before pushing the hardening fix):
+one genuine finding, fixed — the tree-kill on timeout was fire-and-forget
+with no second bound; a failed/ignored kill (unresponsive process, a
+`taskkill` that silently did nothing) would have left the promise pending
+and the child tracked forever, defeating the "bounded" half of "bounded/
+reaped subprocess strategy". Fixed with a `KILL_GRACE_MS` (5s) fallback
+timer that force-resolves (and untracks) regardless of whether the OS
+actually cooperated, plus a `try/catch` around the tree-kill call itself so
+a synchronous throw can't skip the grace bound. Two more tests cover both:
+a hung child that never closes, and a `treeKill` that throws. The other
+finding raised (untracked `.shipwright/.cache/*.claim` session artifacts)
+is the same confirmed false positive as earlier rounds — still genuinely
+untracked (`git ls-files` returns empty for both `client/.shipwright` and
+`server/.shipwright`), never staged.

@@ -57,18 +57,22 @@ describe("createCliChildSpawn — normal completion", () => {
 });
 
 describe("createCliChildSpawn — spawn/kill platform agreement", () => {
-  it("spawns detached on POSIX (group leader, so treeKill's kill(-pid) can reach it)", () => {
+  it("spawns detached on POSIX (group leader, so treeKill's kill(-pid) can reach it)", async () => {
     const child = fakeChild();
     const spawnFn = vi.fn(() => child) as unknown as typeof realSpawn;
-    createCliChildSpawn({ spawnFn, platform: "linux" })("bin", [], { timeoutMs: 1000, env: {} });
+    const p = createCliChildSpawn({ spawnFn, platform: "linux" })("bin", [], { timeoutMs: 1000, env: {} });
     expect(spawnFn).toHaveBeenCalledWith("bin", [], expect.objectContaining({ detached: true }));
+    child.emit("close", 0); // let the registry untrack it, not just assert the spawn args
+    await p;
   });
 
-  it("does NOT spawn detached on win32 — taskkill /t walks Windows' own parent-child tracking", () => {
+  it("does NOT spawn detached on win32 — taskkill /t walks Windows' own parent-child tracking", async () => {
     const child = fakeChild();
     const spawnFn = vi.fn(() => child) as unknown as typeof realSpawn;
-    createCliChildSpawn({ spawnFn, platform: "win32" })("bin", [], { timeoutMs: 1000, env: {} });
+    const p = createCliChildSpawn({ spawnFn, platform: "win32" })("bin", [], { timeoutMs: 1000, env: {} });
     expect(spawnFn).toHaveBeenCalledWith("bin", [], expect.objectContaining({ detached: false }));
+    child.emit("close", 0);
+    await p;
   });
 });
 
@@ -106,6 +110,45 @@ describe("createCliChildSpawn — timeout drives a tree-kill, not child.kill()",
     await p;
     await vi.advanceTimersByTimeAsync(5000);
     expect(treeKillFn).not.toHaveBeenCalled();
+  });
+
+  // Local PR-review preflight finding, round 2 (PR #466): the tree-kill is
+  // fire-and-forget and does not guarantee a `close` event follows (an
+  // unresponsive process, or a kill that silently did nothing) — without a
+  // second bound the promise would hang forever and the child would stay
+  // tracked indefinitely, defeating the "bounded" guarantee.
+  it("resolves anyway, and untracks the child, if a hung process never closes after the tree-kill", async () => {
+    vi.useFakeTimers();
+    const child = fakeChild(1234);
+    const spawnFn = vi.fn(() => child) as unknown as typeof realSpawn;
+    const treeKillFn = vi.fn(); // never emits close — simulates a kill that did nothing
+    const spawnCli = createCliChildSpawn({ spawnFn, treeKillFn, platform: "linux" });
+    const p = spawnCli("bin", [], { timeoutMs: 1000, env: {} });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(treeKillFn).toHaveBeenCalledTimes(1);
+    // Still pending 4999ms into the 5000ms grace window.
+    await vi.advanceTimersByTimeAsync(4999);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(p).resolves.toEqual({ code: 124, stdout: "", stderr: "", spawnError: "timeout" });
+
+    killAllTrackedCliChildren(treeKillFn);
+    expect(treeKillFn).toHaveBeenCalledTimes(1); // untracked — no second kill attempt
+  });
+
+  it("a treeKill that throws synchronously still lets the grace timer bound the promise", async () => {
+    vi.useFakeTimers();
+    const child = fakeChild();
+    const spawnFn = vi.fn(() => child) as unknown as typeof realSpawn;
+    const treeKillFn = vi.fn(() => {
+      throw new Error("taskkill spawn failed");
+    });
+    const spawnCli = createCliChildSpawn({ spawnFn, treeKillFn, platform: "linux" });
+    const p = spawnCli("bin", [], { timeoutMs: 1000, env: {} });
+
+    await vi.advanceTimersByTimeAsync(1000 + 5000);
+    await expect(p).resolves.toEqual({ code: 124, stdout: "", stderr: "", spawnError: "timeout" });
   });
 });
 

@@ -93,6 +93,15 @@ function appendBounded(current: string, chunk: string): string {
   return next.length > MAX_BUFFER_CHARS ? next.slice(0, MAX_BUFFER_CHARS) : next;
 }
 
+// Local PR-review preflight finding, round 2 (PR #466): the tree-kill call
+// on timeout is fire-and-forget — an external `taskkill` process (win32) or
+// a raw `process.kill(-pid)` (POSIX) — and neither GUARANTEES a `close`
+// event follows (an unresponsive process, a `taskkill` that itself failed
+// silently). Without a second bound, a failed kill would leave the
+// returned promise pending and the child in `trackedChildren` forever,
+// defeating the "bounded" half of "bounded/reaped subprocess strategy".
+const KILL_GRACE_MS = 5000;
+
 export function createCliChildSpawn(deps: CliChildSpawnDeps = {}): CliChildSpawnFn {
   const spawnFn = deps.spawnFn ?? spawn;
   const treeKillFn = deps.treeKillFn ?? realTreeKill;
@@ -105,6 +114,7 @@ export function createCliChildSpawn(deps: CliChildSpawnDeps = {}): CliChildSpawn
       let stdout = "";
       let stderr = "";
       let timer: ReturnType<typeof setTimeout>;
+      let killGraceTimer: ReturnType<typeof setTimeout> | undefined;
 
       const child = spawnFn(bin, args, {
         windowsHide: true,
@@ -129,6 +139,7 @@ export function createCliChildSpawn(deps: CliChildSpawnDeps = {}): CliChildSpawn
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        if (killGraceTimer) clearTimeout(killGraceTimer);
         trackedChildren.delete(child);
         resolve(result);
       };
@@ -149,7 +160,16 @@ export function createCliChildSpawn(deps: CliChildSpawnDeps = {}): CliChildSpawn
 
       timer = setTimeout(() => {
         timedOut = true;
-        treeKillFn(child, "SIGKILL", { platform });
+        try {
+          treeKillFn(child, "SIGKILL", { platform });
+        } catch {
+          // best-effort — the grace timer below bounds the promise
+          // regardless of whether the kill itself threw or was ignored.
+        }
+        killGraceTimer = setTimeout(() => {
+          finish({ code: 124, stdout, stderr, spawnError: "timeout" });
+        }, KILL_GRACE_MS);
+        killGraceTimer.unref?.();
       }, options.timeoutMs);
       timer.unref?.();
     });
