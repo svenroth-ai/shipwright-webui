@@ -202,6 +202,28 @@ describe("CodexTaskWatcher — classification", () => {
     expect(w.snapshot().some((n) => n.kind === "nudge_sent")).toBe(false);
   });
 
+  it("local PR-review preflight finding — a notice clears once the pty is gone (task closed/torn down), not left in the Inbox forever", async () => {
+    let lastDataAt: number | null = 0;
+    let now = 20 * 60 * 1000;
+    const deps = {
+      store: { list: () => [makeTask()], patch: vi.fn(), persist: vi.fn(async () => undefined) },
+      ptyManager: { getLastDataAt: () => lastDataAt, attachCount: () => 0, write: vi.fn() },
+      getProjectById: () => ({ path: "/proj" }),
+      runOracle: vi.fn(async (): Promise<OracleOutcome> => ({
+        kind: "ok",
+        result: { verdict: "not_done", phase: "build", session: "sess-1", evidence: {} },
+      })),
+      now: () => now,
+    };
+    const w = new CodexTaskWatcher(deps);
+    await w.tick();
+    expect(w.snapshot().some((n) => n.kind === "nudge_sent")).toBe(true);
+    // The pty disappears (task closed) before ever reaching "done".
+    lastDataAt = null;
+    await w.tick();
+    expect(w.snapshot()).toEqual([]);
+  });
+
   it("silence below the stall threshold does nothing (oracle never called)", async () => {
     const { deps, runOracle } = makeDeps({
       lastDataAt: 19 * 60 * 1000, // 1 minute of silence, under the 15min default

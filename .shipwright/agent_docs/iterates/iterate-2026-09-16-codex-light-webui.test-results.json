@@ -5,8 +5,8 @@
     "date": "2026-09-16",
     "unit": {
       "status": "passed",
-      "passed": 8415,
-      "total": 8427,
+      "passed": 8416,
+      "total": 8428,
       "skipped": 12
     },
     "integration": {
@@ -137,9 +137,9 @@
           "evidence": "cli-child-spawn.test.ts (timeout drives a real tree-kill never child.kill(), a KILL_GRACE_MS fallback bounds the promise even if the kill fails/throws or the process never closes, shutdown registry tracks/untracks, POSIX/win32 spawn-detached agreement, real process-tree integration test)"
         },
         {
-          "behavior": "AC6: the Inbox surfaces Codex watcher notices (nudge_sent, launch_confirmation_failed, delivery_error, no_oracle_unresolved) and terminal signals (pending approval, structured error), scoped to codex-runtime tasks only",
+          "behavior": "AC6: the Inbox surfaces Codex watcher notices (nudge_sent, launch_confirmation_failed, delivery_error, no_oracle_unresolved) and terminal signals (pending approval, structured error), scoped to codex-runtime tasks only; a notice clears once the pty is gone (task closed/torn down) rather than lingering forever (local PR-review preflight finding)",
           "disposition": "tested",
-          "evidence": "_codex.test.ts, routes.codex.test.ts, InboxCard.codex.test.tsx"
+          "evidence": "_codex.test.ts, routes.codex.test.ts, InboxCard.codex.test.tsx, codex-task-watcher.test.ts"
         },
         {
           "behavior": "AC7: a codex task's campaignSlug/campaignStep/masterRun launch is blocked with an explanatory error; a claude task or an ordinary codex launch with no campaign intent is not blocked",

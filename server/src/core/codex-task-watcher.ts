@@ -35,13 +35,11 @@
  *
  * §5.3 Guided-mode approval/structured-error TEXT detection does NOT live
  * here — it runs as an Inbox post-pass (`external/inbox/_codex.ts`'s
- * `appendCodexTerminalSignals`, over `core/codex-terminal-signal-detect.ts`)
- * on every Inbox GET, like `terminal_prompt`'s own `appendTerminalPrompts`.
+ * `appendCodexTerminalSignals`, over `core/codex-terminal-signal-detect.ts`).
  *
  * §5.4's structured self-report (`codex-status-report.ts`) is consulted
  * only in the `no_oracle` branch of `classify()` below — see that branch's
- * own comment for why it is the one place the self-report can change the
- * outcome rather than merely corroborating the oracle.
+ * own comment for why.
  */
 
 import type { ExternalTask } from "./sdk-sessions-store.js";
@@ -155,7 +153,10 @@ export class CodexTaskWatcher {
   ): Promise<void> {
     const lastDataAt = this.deps.ptyManager.getLastDataAt(task.taskId);
     if (lastDataAt === null) {
+      // pty gone (PR #466 preflight finding) — any notice describes a
+      // state that no longer exists; don't leave it in the Inbox forever.
       this.episodes.delete(task.taskId);
+      this.notices.delete(task.taskId);
       return;
     }
 

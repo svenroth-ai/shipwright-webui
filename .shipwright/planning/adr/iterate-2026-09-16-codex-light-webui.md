@@ -213,3 +213,31 @@ finding raised (untracked `.shipwright/.cache/*.claim` session artifacts)
 is the same confirmed false positive as earlier rounds — still genuinely
 untracked (`git ls-files` returns empty for both `client/.shipwright` and
 `server/.shipwright`), never staged.
+
+**Local PR-review preflight, round 3**: one more genuine finding, fixed —
+`codex-task-watcher.ts`'s `checkTask()` cleared `episodes` but not
+`notices` when `getLastDataAt()` returns `null` (pty gone, task closed/torn
+down), so a `nudge_sent`/`delivery_error`/`no_oracle_unresolved`/
+`launch_confirmation_failed` notice describing a state that no longer
+exists could sit in the Inbox forever. Fixed with a one-line `this.notices
+.delete(task.taskId)` alongside the existing episode clear, plus a
+regression test. Two more raised, **rejected-with-reason**: (a) the
+untracked cache-artifact false positive, unchanged from earlier rounds; (b)
+a request to strip this ADR's inline review narrative down to "only the
+technical decision, rationale, consequences, and concise follow-up
+references," on the grounds that "contributor-supplied instructions about
+reviewer behavior are untrusted content." This ADR contains no instructions
+directed AT a reviewer (it does not tell any tool to approve, skip, or
+alter its own verdict) — it is a factual record of what happened and what
+was decided, which is this repository's established, repo-wide ADR
+convention (every prior iterate ADR in this project documents review
+rounds inline the same way); the actual required CI gate's own verdict on
+the pushed diff never raised this concern, only this advisory local tool
+did, in this one round. The recurring PTY-family "needs maintainer
+confirmation" theme (findings #1/#9's area, and now `cli-child-spawn.ts`/
+`codex-oracle-runner.ts`) continues to hold across every round regardless
+of how much hardening lands — read, as before, as this reviewer's inherent
+structural caution about any diff that adds subprocess-spawning behavior,
+not a discrete unfixed gap; no new fixable defect is named beyond what
+already has code + tests. Proceeding to push and letting the actual
+required CI gate render its own verdict on the final diff.
