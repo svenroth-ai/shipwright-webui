@@ -9,11 +9,12 @@ import { chmodSync, copyFileSync, mkdtempSync, mkdirSync, writeFileSync } from "
 import os from "node:os";
 import path from "node:path";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import {
   compareVersions,
   defaultRun,
+  defaultRunShim,
   extractVersion,
   resolvePython,
   type RunFn,
@@ -109,4 +110,121 @@ describe("probe helpers", () => {
       expect(r.code).toBe(0);
     },
   );
+});
+
+describe("defaultRunShim — Windows .cmd/.bat PATH-shim probe", () => {
+  const REAL_PLATFORM = process.platform;
+  function setPlatform(p: NodeJS.Platform): void {
+    Object.defineProperty(process, "platform", { value: p, configurable: true });
+  }
+
+  // @covers FR-01.51 — win32-branch coverage that holds on EVERY host (CI runs
+  // this suite on ubuntu, so the `it.skipIf(win32)` tests above never execute
+  // there): `process.platform` is stubbed the same way win32-spawn.test.ts
+  // stubs it, so `resolveSpawn`'s own internal platform read (it has no
+  // override param — see win32-spawn.ts) also takes the win32 branch.
+  it("under a forced win32 platform, reports not-found (no execFile attempt) when resolveSpawn cannot place the name on PATH", async () => {
+    setPlatform("win32");
+    vi.stubEnv("PATH", "");
+    try {
+      const r = await defaultRunShim("shipwright-no-such-shim-xyz", ["--version"]);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+      setPlatform(REAL_PLATFORM);
+    }
+  });
+
+  // @covers FR-01.51 — win32-branch coverage for the execFile call itself
+  // (the other half of the CI-host gap above). Resolves to a bare name whose
+  // PATHEXT match carries an EXECUTABLE extension (`.exe`/`.com`), so
+  // `resolveSpawn` returns the resolved path directly (win32CmdWrap's
+  // fabricated cmd.exe path is the SHIM branch, not exercised here — it is
+  // already covered end-to-end on real Windows by the `.cmd` test above).
+  // The planted "executable" is a real, runnable file on whichever OS this
+  // actually runs on, so the assertion holds on both hosts — same technique
+  // as the `~/.local/bin` tests earlier in this file.
+  it("under a forced win32 platform, resolves and runs a bare name via an executable-extension PATH match", async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "shim-exe-probe-"));
+    const tool = path.join(dir, "fakecodex.exe");
+    if (REAL_PLATFORM === "win32") {
+      copyFileSync(process.execPath, tool); // a real, runnable Windows .exe
+    } else {
+      writeFileSync(tool, "#!/bin/sh\necho fakecodex 7.7.7\n");
+      chmodSync(tool, 0o755); // extension is cosmetic on POSIX; the shebang runs
+    }
+    setPlatform("win32");
+    vi.stubEnv("PATH", `${dir};${process.env.PATH ?? ""}`);
+    vi.stubEnv("PATHEXT", ".exe");
+    try {
+      const r = await defaultRunShim("fakecodex", ["--version"]);
+      expect(r.ok).toBe(true);
+      if (REAL_PLATFORM !== "win32") {
+        expect(r.stdout + r.stderr).toContain("7.7.7");
+      }
+    } finally {
+      vi.unstubAllEnvs();
+      setPlatform(REAL_PLATFORM);
+    }
+  });
+
+  // @covers FR-01.51 — the codex_cli_not_found bug: defaultRun cannot spawn a
+  // .cmd shim on Windows (execFile shell:false + CVE-2024-27980 hardening →
+  // spawn ENOENT even when the tool is genuinely installed, because a .cmd has
+  // no matching .exe for CreateProcess to launch directly). defaultRunShim
+  // resolves it via win32-spawn's resolveSpawn (ADR-044) first, then runs the
+  // resolved cmd.exe-wrapped command. This reproduces the exact reported bug
+  // (a real, runnable .cmd shim on PATH) and proves the fix against it.
+  it.skipIf(process.platform !== "win32")(
+    "resolves and runs a .cmd PATH shim that defaultRun cannot spawn directly",
+    async () => {
+      const dir = mkdtempSync(path.join(os.tmpdir(), "shim-probe-"));
+      const shim = path.join(dir, "fakecodex.cmd");
+      writeFileSync(shim, "@echo off\r\necho fakecodex 9.9.9\r\n");
+      // vi.stubEnv (not a raw process.env.PATH assignment) — Vitest's own
+      // env-stubbing primitive, restored via vi.unstubAllEnvs() below.
+      vi.stubEnv("PATH", `${dir};${process.env.PATH ?? ""}`);
+      try {
+        const viaShim = await defaultRunShim("fakecodex", ["--version"]);
+        expect(viaShim.ok).toBe(true);
+        expect(viaShim.stdout + viaShim.stderr).toContain("9.9.9");
+
+        // Proves this IS the regression under test: the un-fixed defaultRun
+        // path fails on the identical shim, exactly like the reported bug.
+        const viaDefaultRun = await defaultRun("fakecodex", ["--version"]);
+        expect(viaDefaultRun.ok).toBe(false);
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
+
+  // @covers FR-01.51 — a genuine .exe on PATH still resolves and runs directly
+  // (no cmd.exe wrap needed); the shim resolver is a superset, not a detour.
+  it.skipIf(process.platform !== "win32")("still runs a real .exe on PATH", async () => {
+    const r = await defaultRunShim("node", ["--version"]);
+    expect(r.ok).toBe(true);
+  });
+
+  // @covers FR-01.51 — a name absent from PATH entirely reports not-found
+  // (RunResult), never an unhandled throw or rejection.
+  it.skipIf(process.platform !== "win32")(
+    "reports not-found for a name absent from PATH, without throwing",
+    async () => {
+      const r = await defaultRunShim("shipwright-no-such-shim-xyz", ["--version"]);
+      expect(r.ok).toBe(false);
+      expect(r.code).toBeNull();
+    },
+  );
+
+  // @covers FR-01.51 — POSIX has no .cmd/.bat shim concept: defaultRunShim is
+  // a pure pass-through to defaultRun there (execvp already resolves a shim
+  // script by bare name).
+  it.skipIf(process.platform === "win32")("is a pass-through to defaultRun on POSIX", async () => {
+    const viaShim = await defaultRunShim("node", ["--version"]);
+    const viaDefault = await defaultRun("node", ["--version"]);
+    expect(viaShim.ok).toBe(true);
+    expect(viaShim.ok).toBe(viaDefault.ok);
+  });
 });

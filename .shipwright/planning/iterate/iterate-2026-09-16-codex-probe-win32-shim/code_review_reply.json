@@ -1,0 +1,15 @@
+{
+  "section": "iterate-2026-09-16-codex-probe-win32-shim",
+  "review": [
+    {
+      "severity": "low",
+      "category": "architecture",
+      "file": "server/src/core/readiness-probe-run.test.ts",
+      "line": 123,
+      "finding": "The Windows-only regression tests (skipIf(process.platform !== 'win32')) never run in CI, since every workflow in .github/workflows runs on ubuntu-latest only — no Windows runner exists. A future refactor of resolveSpawn/defaultRunShim could silently break the Windows codepath with CI staying green.",
+      "suggestion": "Non-blocking: mirrors a pre-existing pattern already merged in the same file (the ~/.local/bin win32-only defaultRun test, iterate-2026-08-23). Worth a follow-up ticket to add a Windows CI job; out of scope for this bug fix."
+    }
+  ],
+  "verdict": "PASS",
+  "summary": "No blocking findings across correctness, readability, architecture, security, or performance. defaultRunShim's null-handling, windowsVerbatimArguments threading, POSIX pass-through, and the deps.run test-seam preservation in probeReadiness all verified correct. No new injection surface (hardcoded 'codex'/'--version' argv, shell:false preserved throughout, reuses already-audited win32-spawn.ts). Tests reproduce the actual reported bug with a regression proof (defaultRun fails, defaultRunShim succeeds) and a unique version token ruling out a false pass from a real Codex install."
+}

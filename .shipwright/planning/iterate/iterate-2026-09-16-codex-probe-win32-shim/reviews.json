@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-16-codex-probe-win32-shim",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T18:45:05.432500+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T18:45:16.047853+00:00",
+      "disposition": "Mini-Plan is FEATURE-only at small complexity per the Phase Matrix; this run is a BUG fix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/core/readiness-probe-run.test.ts",
+          "line": 123,
+          "finding": "The Windows-only regression tests (skipIf(process.platform !== 'win32')) never run in CI, since every workflow in .github/workflows runs on ubuntu-latest only — no Windows runner exists. A future refactor of resolveSpawn/defaultRunShim could silently break the Windows codepath with CI staying green.",
+          "suggestion": "Non-blocking: mirrors a pre-existing pattern already merged in the same file (the ~/.local/bin win32-only defaultRun test, iterate-2026-08-23). Worth a follow-up ticket to add a Windows CI job; out of scope for this bug fix.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-16T18:53:19.339895+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "defaultRunShim is safe because both current callers pass hardcoded literals",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "hand-rolled process.env.PATH mutation + try/finally is race-safe under Vitest's worker-thread scheduling",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": null,
+          "line": null,
+          "finding": "resolveSpawn's non-augmented PATH search is sufficient for every real Codex CLI install shape",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-16T18:59:52.058881+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/readiness-probe-run.ts (~line 148, `defaultRunShim` win32 branch)",
+          "line": null,
+          "finding": "On win32, `defaultRunShim` drops the `probeEnv`-augmented environment entirely — `execFile` is called with no `env` option, so the child inherits `process.env`. That's fine for `codex` per the spec's rationale, but the function is exported (re-exported from `readiness-probe.ts`) and documented as a general shim probe; a future caller with a tool whose shim lives in an augmented-PATH location (the exact uv scenario) would silently fail to find it.",
+          "suggestion": "Either note the \"real `process.env` only\" limitation explicitly in the doc comment, or accept an optional `env` and pass it through to `execFile`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/external/launch/runtime-chokepoint.test.ts:247–256",
+          "line": null,
+          "finding": "The unmocked `isCodexCliAvailable` test passes even if a real `codex` is already on the machine's PATH — the fake shim prepended to `PATH` makes the test non-deterministic in what it proves. Also, mutating `process.env.PATH` is process-global; if this file ever gains `describe.concurrent` or other tests running interleaved, they'd see the mutated PATH. Neither breaks correctness today.",
+          "suggestion": "Optional hardening: assert the resolved shim is the fake one (e.g. by having the shim echo a unique token and checking via `defaultRunShim` output), and keep PATH mutation serialized.  On the core questions: (1) spec is fully implemented — both call sites (`runtime-chokepoint.ts`, `readiness-probe.ts` codex arm) route through the new `defaultRunShim`, `defaultRun` is untouched, the `deps.run` seam still governs both arms. (2) The `resolveSpawn` null → not-found path, the timeout/ENOENT → `code:null` contract, and the POSIX pass-through all look correct; `parseExecResult` is a faithful extraction of the original callback logic. (3) No new security surface — `resolveSpawn` is the already-reviewed ADR-044 mechanism, and only hardcoded tool names are probed. (4) The Windows tests genuinely exercise real `.cmd` shims and the not-found/error paths; the POSIX pass-through test is weaker (only checks `ok` equality on `node`) but acceptable. (5) No regression risk to uv/python/git probing since `defaultRun` is unmodified.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-16T18:48:06.058765+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] This diff is a clean, well-scoped fix. Findings:\n\n- Category: edge-case\n  Severity: low\n  File: server/src/core/readiness-probe-run.ts (~line 148, `defaultRunShim` win32 branch)\n  Finding: On win32, `defaultRunShim` drops the `probeEnv`-augmented environment entirely — `execFile` is called with no `env` option, so the child inherits `process.env`. That's fine for `codex` per the spec's rationale, but the function is exported (re-exported from `readiness-probe.ts`) and documented as a general shim probe; a future caller with a tool whose shim lives in an augmented-PATH location (the exact uv scenario) would silently fail to find it.\n  Suggestion: Either note the \"real `process.env` only\" limitation explicitly in the doc comment, or accept an optional `env` and pass it through to `execFile`.\n\n- Category: test\n  Severity: low\n  File: server/src/external/launch/runtime-chokepoint.test.ts:247–256\n  Finding: The unmocked `isCodexCliAvailable` test passes even if a real `codex` is already on the machine's PATH — the fake shim prepended to `PATH` makes the test non-deterministic in what it proves. Also, mutating `process.env.PATH` is process-global; if this file ever gains `describe.concurrent` or other tests running interleaved, they'd see the mutated PATH. Neither breaks correctness today.\n  Suggestion: Optional hardening: assert the resolved shim is the fake one (e.g. by having the shim echo a unique token and checking via `defaultRunShim` output), and keep PATH mutation serialized.\n\nOn the core questions: (1) spec is fully implemented — both call sites (`runtime-chokepoint.ts`, `readiness-probe.ts` codex arm) route through the new `defaultRunShim`, `defaultRun` is untouched, the `deps.run` seam still governs both arms. (2) The `resolveSpawn` null → not-found path, the timeout/ENOENT → `code:null` contract, and the POSIX pass-through all look correct; `parseExecResult` is a faithful extraction of the original callback logic. (3) No new security surface — `re […truncated]\n\n[openai] No concrete defects found. The diff routes both required Codex probes through the Windows shim-aware resolver while preserving `defaultRun` for the augmented-PATH tool probes; the added Windows integration tests exercise real `.cmd` shims and the unmocked launch probe.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T18:49:39.627520+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T18:45:16.188436+00:00",
+      "disposition": "Internal Plan Review is medium+ only per iteration-planning.md; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

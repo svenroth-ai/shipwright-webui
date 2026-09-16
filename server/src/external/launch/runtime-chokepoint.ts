@@ -21,7 +21,7 @@ import path from "node:path";
 import { buildCodexCommands } from "../../core/launcher-codex.js";
 import type { CopyCommandForms } from "../../core/launcher.js";
 import { installHint } from "../../core/readiness-install-hints.js";
-import { defaultRun } from "../../core/readiness-probe-run.js";
+import { defaultRunShim } from "../../core/readiness-probe-run.js";
 import type { ExternalTask, Runtime } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ParsedLaunchBody } from "./parse-body.js";
@@ -36,9 +36,15 @@ import type { ParsedLaunchBody } from "./parse-body.js";
  * Not cached like /api/readiness's 15s TTL — a launch is a low-frequency,
  * user-initiated action, so a fresh check here is worth the one extra
  * process spawn for correctness at the moment that matters.
+ *
+ * `defaultRunShim`, not `defaultRun` — on Windows Codex CLI installs as a
+ * `.cmd` shim (no `codex.exe`), which `defaultRun` cannot spawn under
+ * `shell:false` (ENOENT even when Codex is genuinely installed and working).
+ * See `defaultRunShim`'s own doc comment (iterate-2026-09-16-codex-probe-
+ * win32-shim) for why this is a sibling probe rather than a `defaultRun` fix.
  */
 export async function isCodexCliAvailable(): Promise<boolean> {
-  const result = await defaultRun("codex", ["--version"]);
+  const result = await defaultRunShim("codex", ["--version"]);
   return result.ok;
 }
 

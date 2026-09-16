@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Verified against bug-context.md by reading the current worktree file states. isCodexCliAvailable() and probeReadiness()'s codex arm now route through defaultRunShim; defaultRun is untouched (matches the stated augmented-PATH regression-risk rationale); no scope creep found (only runtime-chokepoint.ts, readiness-probe-run.ts, readiness-probe.ts, and their two test files touched); win32-spawn.ts reused unmodified. Tests match the description. All cited requirements present, faithful, in-scope. Code-reviewer (Stage 2) may proceed."
+}

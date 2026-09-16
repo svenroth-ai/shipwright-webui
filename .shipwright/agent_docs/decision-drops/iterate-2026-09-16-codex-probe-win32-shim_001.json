@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-16-codex-probe-win32-shim",
+  "date": "2026-09-16",
+  "section": "server/src/core/readiness-probe-run.ts",
+  "title": "Route the codex probe through win32-spawn's shim resolver, not defaultRun",
+  "context": "codex_cli_not_found fired on Windows even when Codex CLI was installed: it ships as a .cmd PATH shim (no codex.exe), and execFile(shell:false) cannot spawn a .cmd, so defaultRun('codex', ...) threw ENOENT. defaultRun is documented as .exe-only for exactly this reason.",
+  "decision": "Added a sibling function, defaultRunShim, that resolves the command via the existing win32-spawn.ts resolveSpawn (ADR-044) on Windows before probing; isCodexCliAvailable and probeReadiness's codex arm now use it, while defaultRun itself is untouched.",
+  "consequences": "Both the /launch chokepoint and the /api/readiness card now find a genuinely installed codex on Windows. defaultRunShim reads the raw process PATH (no probeEnv augmentation), so it is deliberately not a drop-in replacement for defaultRun's uv/python/git probing.",
+  "rationale": "resolveSpawn has no env override, so routing defaultRun itself through it would have silently regressed the ~/.local/bin augmented-PATH fix for uv (iterate-2026-08-23). A sibling avoids that coupling entirely.",
+  "rejected": "Editing defaultRun in place to add shim resolution -- rejected because resolveSpawn cannot honor defaultRun's probeEnv-augmented env, risking a silent regression of the already-shipped uv PATH-augmentation fix.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
