@@ -48,6 +48,7 @@ function makeParsed(over: Partial<ParsedLaunchBody> = {}): ParsedLaunchBody {
     campaignSlug: undefined,
     campaignStep: undefined,
     masterRun: false,
+    codexImplementationModel: undefined,
     ...over,
   };
 }

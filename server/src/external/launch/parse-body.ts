@@ -7,6 +7,22 @@
 import { PARAM_NAME_PATTERN } from "../../types/action-schema.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
 
+/**
+ * iterate-2026-09-17-codex-model-tier-parameterization — the confirmed,
+ * user-selectable ("visibility":"list") Codex model catalog, read live via
+ * `codex debug models` against codex-cli 0.147.0. Not schema-driven (see the
+ * iterate spec's client-scope decision: no live-catalog-serving endpoint
+ * exists today) — a closed, hand-maintained enum, same posture as any other
+ * fixed CLI vocabulary this file already validates.
+ */
+export const CODEX_IMPLEMENTATION_MODELS = [
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-5.6-luna",
+  "gpt-5.5",
+] as const;
+export type CodexImplementationModel = (typeof CODEX_IMPLEMENTATION_MODELS)[number];
+
 export interface ParsedLaunchBody {
   resume: boolean;
   dryRun: boolean;
@@ -31,6 +47,13 @@ export interface ParsedLaunchBody {
    *  single_session run_config + builds the fixed `/shipwright-run` command;
    *  this just surfaces the boolean intent. Launch-body only (never persisted). */
   masterRun: boolean;
+  /** iterate-2026-09-17-codex-model-tier-parameterization — session-scoped
+   *  Codex implementation-model override. Body-only (never persisted on the
+   *  task, and no once-set-always-used fallback), same "only for this
+   *  session" posture as Claude's review-model/plan-review-model. Deliberately
+   *  NOT routed through `userParams`/the action-schema `parameters` pipeline
+   *  — see the iterate spec's server-scope decision for why. */
+  codexImplementationModel: CodexImplementationModel | undefined;
 }
 
 /**
@@ -148,6 +171,28 @@ export function parseLaunchBody(
     }
   }
 
+  // iterate-2026-09-17-codex-model-tier-parameterization — closed-enum
+  // check against the confirmed catalog; an unrecognized value fails
+  // closed (400), never silently dropped or coerced to undefined.
+  let codexImplementationModel: CodexImplementationModel | undefined;
+  if (body.codexImplementationModel !== undefined) {
+    if (
+      typeof body.codexImplementationModel !== "string" ||
+      !CODEX_IMPLEMENTATION_MODELS.includes(
+        body.codexImplementationModel as CodexImplementationModel,
+      )
+    ) {
+      return {
+        error: {
+          error: "invalid_codex_implementation_model",
+          detail: `must be one of: ${CODEX_IMPLEMENTATION_MODELS.join(", ")}`,
+        },
+        status: 400,
+      };
+    }
+    codexImplementationModel = body.codexImplementationModel as CodexImplementationModel;
+  }
+
   return {
     resume,
     dryRun,
@@ -161,5 +206,6 @@ export function parseLaunchBody(
     campaignSlug,
     campaignStep,
     masterRun: Boolean(body.masterRun),
+    codexImplementationModel,
   };
 }

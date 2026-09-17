@@ -10,6 +10,24 @@ type OverrideParameterName = "plan-review-model" | "review-model";
 
 type TierRole = "plan_review" | "review";
 
+/**
+ * iterate-2026-09-17-codex-model-tier-parameterization — the confirmed,
+ * user-selectable Codex model catalog (mirrors
+ * `server/src/external/launch/parse-body.ts`'s `CODEX_IMPLEMENTATION_MODELS`;
+ * DO-NOT #7 forbids importing it directly, so this is a verbatim mirror, not
+ * a shared import). Storage key reserved in `paramValues` — see the iterate
+ * spec's client-scope "Storage decided" note for why this reuses the
+ * existing generic paramValues/setParamValues props instead of a new state
+ * slice threaded through useNewIssueForm.ts.
+ */
+export const CODEX_IMPLEMENTATION_MODELS = [
+  "gpt-5.6-sol",
+  "gpt-5.6-terra",
+  "gpt-5.6-luna",
+  "gpt-5.5",
+] as const;
+export const CODEX_IMPLEMENTATION_MODEL_PARAM_KEY = "codex-implementation-model";
+
 interface ModelTierOverrideFieldsProps {
   fields: RenderableParamSchema[];
   projectId: string | undefined;
@@ -42,7 +60,39 @@ export function ModelTierOverrideFields({
   const { data, isError, isLoading } = useModelTierConfig(projectId);
   const supportedFields = fields.filter(isModelOverrideField);
   const defaultStatus = projectDefaultStatus(projectId, data, isLoading, isError);
-  if (runtime === "codex") return null;
+
+  if (runtime === "codex") {
+    const value = paramValues[CODEX_IMPLEMENTATION_MODEL_PARAM_KEY];
+    return (
+      <div className="grid grid-cols-2 gap-3" data-testid="model-tier-override-fields">
+        <FieldLabel label="Implementation model" hint="only for this session">
+          <select
+            value={typeof value === "string" ? value : ""}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setParamValues((previous) => ({
+                ...previous,
+                [CODEX_IMPLEMENTATION_MODEL_PARAM_KEY]: nextValue,
+              }));
+              setParamEnabled((previous) => ({
+                ...previous,
+                [CODEX_IMPLEMENTATION_MODEL_PARAM_KEY]: nextValue !== "",
+              }));
+            }}
+            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+            data-testid={`model-tier-override-${CODEX_IMPLEMENTATION_MODEL_PARAM_KEY}`}
+          >
+            <option value="">Suggested policy (AGENTS.md) — gpt-5.6-terra</option>
+            {CODEX_IMPLEMENTATION_MODELS.map((slug) => (
+              <option key={slug} value={slug}>
+                {slug}
+              </option>
+            ))}
+          </select>
+        </FieldLabel>
+      </div>
+    );
+  }
   if (supportedFields.length === 0) return null;
 
   return (

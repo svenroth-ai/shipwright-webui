@@ -26,6 +26,7 @@ import type { RuntimeValue } from "../RuntimeToggle";
 import type { RenderableParamSchema } from "../../../types/action-schema";
 import type { Project } from "../../../types";
 
+import { CODEX_IMPLEMENTATION_MODEL_PARAM_KEY } from "./ModelTierOverrideFields";
 import { explicitParamEntries } from "./paramHelpers";
 import type { Mode, SubmitAction } from "./types";
 
@@ -158,6 +159,7 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
           phase?: string;
           phaseLabel?: string;
           parameters?: Record<string, string | boolean>;
+          codexImplementationModel?: string;
         } = {
           actionId: input.action.id,
         };
@@ -173,6 +175,16 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
           input.paramEnabled,
         );
         if (Object.keys(explicit).length > 0) body.parameters = explicit;
+        // iterate-2026-09-17-codex-model-tier-parameterization — read
+        // directly by reserved key, NOT via explicitParamEntries (which
+        // iterates currentSchema and would never see this — it's
+        // deliberately not an action-schema parameter).
+        if (input.runtime === "codex") {
+          const codexModel = input.paramValues[CODEX_IMPLEMENTATION_MODEL_PARAM_KEY];
+          if (typeof codexModel === "string" && codexModel.trim().length > 0) {
+            body.codexImplementationModel = codexModel;
+          }
+        }
         const { commands } = await launchExternalTask(task.taskId, body);
         input.onTaskCreated?.();
 
