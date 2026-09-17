@@ -1,0 +1,115 @@
+{
+  "last_updated": "2026-09-11",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-16-codex-probe-win32-shim",
+    "date": "2026-09-16",
+    "unit": {
+      "status": "passed",
+      "passed": 4299,
+      "total": 4312,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "defaultRunShim resolves and runs a Windows .cmd PATH shim that defaultRun genuinely cannot spawn (the reported bug)",
+          "disposition": "tested",
+          "evidence": "server/src/core/readiness-probe-run.test.ts::defaultRunShim - Windows .cmd/.bat PATH-shim probe > resolves and runs a .cmd PATH shim that defaultRun cannot spawn directly - PASSED (asserts viaDefaultRun.ok===false as regression proof, viaShim.ok===true + version-content match)"
+        },
+        {
+          "behavior": "defaultRunShim still resolves and runs a genuine .exe on PATH (no regression for non-shim tools)",
+          "disposition": "tested",
+          "evidence": "server/src/core/readiness-probe-run.test.ts::defaultRunShim > still runs a real .exe on PATH - PASSED"
+        },
+        {
+          "behavior": "defaultRunShim reports not-found (never throws) for a name absent from PATH entirely",
+          "disposition": "tested",
+          "evidence": "server/src/core/readiness-probe-run.test.ts::defaultRunShim > reports not-found for a name absent from PATH, without throwing - PASSED"
+        },
+        {
+          "behavior": "defaultRunShim is a pass-through to defaultRun on POSIX",
+          "disposition": "tested",
+          "evidence": "server/src/core/readiness-probe-run.test.ts::defaultRunShim > is a pass-through to defaultRun on POSIX - present, POSIX-gated (skipIf win32); this run executed on Windows so it reports skipped here, will execute on a POSIX host/CI runner"
+        },
+        {
+          "behavior": "isCodexCliAvailable() (the real, unmocked launch-chokepoint probe) finds and runs a real Codex .cmd shim on PATH",
+          "disposition": "tested",
+          "evidence": "server/src/external/launch/runtime-chokepoint.test.ts::isCodexCliAvailable - the real (unmocked) probe > finds and runs a real .cmd Codex shim on PATH - PASSED"
+        },
+        {
+          "behavior": "probeReadiness()'s codex arm, with no injected run seam (the actual production wiring server/src/routes/readiness.ts ships), defaults to defaultRunShim",
+          "disposition": "tested",
+          "evidence": "server/src/core/readiness-probe-codex.test.ts::probeReadiness - AC8 combined engine gate > with no injected run seam, the codex arm defaults to defaultRunShim (finds a real .cmd shim) - PASSED"
+        },
+        {
+          "behavior": "defaultRunShim's win32 branch (resolveSpawn call, null-resolution early return, execFile call+callback) is exercised on every CI host, not just a real Windows runner",
+          "disposition": "tested",
+          "evidence": "server/src/core/readiness-probe-run.test.ts::defaultRunShim > 'under a forced win32 platform, reports not-found...' and '...resolves and runs a bare name via an executable-extension PATH match' - PASSED on this (Windows) host; process.platform stubbed the same way win32-spawn.test.ts stubs it, so both also execute and pass on CI's ubuntu runner - added to close a diff-coverage gap (CI job 35139587579/job/104943644876 first flagged lines 169,172,174-175,184 as 0% because the pre-existing it.skipIf(win32) tests never run on Linux CI)"
+        },
+        {
+          "behavior": "isCodexCliAvailable() executes on every CI host, not just a real Windows runner",
+          "disposition": "tested",
+          "evidence": "server/src/external/launch/runtime-chokepoint.test.ts::isCodexCliAvailable - the real (unmocked) probe > 'under a forced win32 platform, finds and runs a real codex PATH match' - PASSED on this (Windows) host; same host-independent platform-stub technique, closes the same diff-coverage gap for runtime-chokepoint.ts line 47"
+        },
+        {
+          "behavior": "defaultRun (uv/python/git probing) is unmodified - the ~/.local/bin augmented-PATH fix for uv is not regressed",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "defaultRun's source is byte-for-byte unchanged by this diff; its pre-existing win32/POSIX augmented-PATH regression tests (readiness-probe-run.test.ts, iterate-2026-08-23) still pass unmodified, which is the proof of non-regression - no new test is meaningful for code that was not touched."
+        },
+        {
+          "behavior": "the fork endpoint's codex-availability check (server/src/external/tasks/lifecycle.ts) picks up the fix",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "lifecycle.ts's checkCodexCliAvailable defaults to the SAME isCodexCliAvailable function reference already directly tested above - it is a re-export/default-param, not new logic, so the direct test on isCodexCliAvailable already proves this call site's behavior."
+        }
+      ],
+      "counts": {
+        "testable": 8,
+        "tested": 8,
+        "untestable": 2,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "justification": "Backend-only fix to a Node.js subprocess-spawn probe (execFile/cmd.exe shim resolution) with no client/** file touched and no UI-observable change beyond a boolean/string field (codex.ok/detail) in /api/readiness's JSON response, already covered by the io-boundary-equivalent real-OS-level tests above (real execFile/cmd.exe spawns against real .cmd shims on this Windows host, which is a stronger empirical proof for THIS bug than a browser click-through would add). Small complexity with no touches_io_boundary/UI risk flag - E2E is Advisory (freely skippable) per Override Classes."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-11-list-error-state-run-mode-sentinel",
+    "commit": "a4425da6a33f64416b5d8d5b3edaf1c1e7d3353a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

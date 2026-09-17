@@ -38,6 +38,7 @@ import { installHint } from "./readiness-install-hints.js";
 import {
   compareVersions,
   defaultRun,
+  defaultRunShim,
   extractVersion,
   resolvePython,
   type RunFn,
@@ -49,6 +50,7 @@ import {
 export {
   compareVersions,
   defaultRun,
+  defaultRunShim,
   extractVersion,
   resolvePython,
   PROBE_TIMEOUT_MS,
@@ -123,6 +125,12 @@ export const DOOR_REQUIRED_PLUGINS = ["shipwright-adopt", "shipwright-grade"] as
  */
 export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> {
   const run = deps.run ?? defaultRun;
+  // codex installs as a `.cmd` PATH shim on Windows (no `codex.exe`), which
+  // `defaultRun` cannot spawn under `shell:false` — see `defaultRunShim`'s doc
+  // comment (iterate-2026-09-16-codex-probe-win32-shim). `deps.run`, when
+  // injected (tests), still governs both arms identically — a caller that
+  // wants a single mock for every tool keeps getting exactly that.
+  const runCodex = deps.run ?? defaultRunShim;
   const existsFn = deps.existsFn ?? fsExistsSync;
   const readdirFn = deps.readdirFn ?? ((p: string) => fsReaddirSync(p));
   const homeDir = deps.homeDir ?? os.homedir();
@@ -136,7 +144,7 @@ export async function probeReadiness(deps: ProbeDeps): Promise<ReadinessReport> 
     run("uv", ["--version"]),
     resolvePython(run),
     run("git", ["--version"]),
-    run("codex", ["--version"]),
+    runCodex("codex", ["--version"]),
   ]);
 
   const checks: ReadinessCheck[] = [];

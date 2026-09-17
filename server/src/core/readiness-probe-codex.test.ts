@@ -4,9 +4,11 @@
  * 300-line guideline) — same deterministic-seam style as its sibling.
  */
 
+import { mkdtempSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { probeReadiness, shipwrightCacheRoot, type RunFn, type RunResult } from "./readiness-probe.js";
 
@@ -75,4 +77,32 @@ describe("probeReadiness — AC8 combined engine gate", () => {
     expect(codex?.ok).toBe(false);
     expect(codex?.hint).toBeTruthy();
   });
+
+  // @covers FR-01.51 — production wiring (iterate-2026-09-16-codex-probe-
+  // win32-shim): every test above injects `run`, which collapses `run` and
+  // `runCodex` to the same mock — none of them exercises the REAL default
+  // (`runCodex = deps.run ?? defaultRunShim`) that `server/src/routes/
+  // readiness.ts` actually ships with (it never injects `deps.run`). This
+  // proves the default itself: no `run` override, a real .cmd shim on PATH.
+  it.skipIf(process.platform !== "win32")(
+    "with no injected run seam, the codex arm defaults to defaultRunShim (finds a real .cmd shim)",
+    async () => {
+      const dir = mkdtempSync(path.join(os.tmpdir(), "readiness-codex-shim-"));
+      const shim = path.join(dir, "codex.cmd");
+      writeFileSync(shim, "@echo off\r\necho codex 888.888.888-readiness-default-probe\r\n");
+      vi.stubEnv("PATH", `${dir};${process.env.PATH ?? ""}`);
+      try {
+        const r = await probeReadiness({
+          homeDir: HOME,
+          claude: { supported: true, raw: "2.1.9", minSupported: "2.0.0" },
+          ...healthyFs(),
+        });
+        const codex = r.checks.find((c) => c.key === "codex");
+        expect(codex?.ok).toBe(true);
+        expect(codex?.detail).toContain("888.888.888");
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    },
+  );
 });
