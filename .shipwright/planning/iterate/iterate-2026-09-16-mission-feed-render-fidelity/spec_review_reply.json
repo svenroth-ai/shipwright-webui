@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Re-review after fix. The cited gap (Requirement 5) is closed: resolveToolResults' is_error branch now gates status='err' on !authoringRun. All 5 requirements verified against the diff, no unrequested scope creep. Code-reviewer may now run."
+}

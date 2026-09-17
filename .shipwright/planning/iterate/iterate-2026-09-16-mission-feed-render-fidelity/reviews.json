@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-16-mission-feed-render-fidelity",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T16:45:10.830246+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T16:42:42.000240+00:00",
+      "disposition": "no mini-plan / external plan review phase ran — the user supplied a direct itemized bug list in place of an interview/spec/plan cycle, per iteration-planning.md Interview table (trivial/small skip; this was treated as a direct change with no planning phase)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T16:55:04.039462+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T16:55:10.931845+00:00",
+      "disposition": "docs-only/trivial-surface conditional per iteration-reviews.md Stage 3 — diff is pure frontend reducer/render logic (React state, markdown rendering, test-classification helpers), no migrations, async/concurrency, cross-plugin imports, or irreversible ops",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/missionActivityFeedAuthoringRollback.ts` — `unstampAuthoringRun`, merge branch (the `state.cards.splice` / `failedTestCards.delete(recovered)` lines)",
+          "line": null,
+          "finding": "when the un-stamped card is merged into `unresolvedTest` and spliced out of `cards`/`testCards`, the spliced card itself is not removed from `state.failedTestCards` (or from `authoringConsumedBy` values / `restoreValidationPending`). The in-file trace argues no card can re-enter this function, and the sets die with the derivation, so this is inert today — but it is the exact \"detached card referenced by resolver state\" hazard the 40th/43rd rounds were policing, left half-guarded on the merged-away side.",
+          "suggestion": "add `state.failedTestCards.delete(card)` next to the two `splice` calls (defence-in-depth, two lines, no reachable behavior change), or extend the existing comment to say the merged-away card is deliberately left in the set.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx` — \"remounts a card that changes kind\" test",
+          "line": null,
+          "finding": "the test's guarantee depends entirely on the entry `key` in `MissionActivityFeed.tsx` leading with `card.kind`, which is outside this diff. The test does falsify a regression, so this is sound, but the contract lives cross-file with no in-source marker at the key itself (the comment lives only in the test and in `FeedCard`'s state comment).",
+          "suggestion": "a one-line comment at the `key={...}` site in `MissionActivityFeed.tsx` noting that kind-first ordering is load-bearing for `detailExpanded` reset would make the coupling visible where a future edit would happen.  Spec compliance: all five requirements are implemented and test-pinned — (1) the completed-run `OperationCard`/`mission-completed-stack` mount is removed unconditionally with the designgate surface untouched; (2) `FeedCommands` collapses behind an \"N commands\" toggle for every count including 1; (3) `card.text`/`card.explanation` route through `MarkdownChunk` with the `textLiteral` exception exactly as scoped; (4) the blocker derives a plain-language headline via `summarizeBlockerError` with the raw output/command behind a collapsed disclosure; (5) authoring runs are excluded from the gate stamp at both the resolve and reconcile levels, including the failing-red-step and failed-write-rollback cases. Security posture is preserved: synthesized text renders as React text children, raw output in `<pre>`, markdown only through the sanitized pipeline, with inertness tests carried over.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/missionActivityFeedAuthoringTrack.ts",
+          "line": 253,
+          "finding": "A “freshly-written test file” remains eligible for six subsequent tool calls, so a later targeted verification run can be marked `authoringRun` and lose its Passing/Failing treatment despite not being the first run immediately after authoring. For example: write `foo.test.ts`, perform several unrelated edits/reads, then run `vitest foo.test.ts`.",
+          "suggestion": "Restrict the exemption to the immediate TDD sequence more tightly (for example, consume/clear it on unrelated mutating work), or otherwise require direct adjacency as specified.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedTestPaths.ts",
+          "line": 65,
+          "finding": "sameTestFilePath` suffix-matches any absolute write path to a bare relative test target. In a monorepo, writing `/repo/packages/api/src/foo.test.ts` and then running root-level `src/foo.test.ts` incorrectly matches, suppressing the real verification card’s gate status.",
+          "suggestion": "Thread the shell working directory/project root into path resolution, then compare canonical paths. Until that is available, avoid treating ambiguous bare relative suffixes as the same file.  Overall assessment: ship-with-fixes. The UI requirements are otherwise implemented, but the authoring-run exemption can suppress legitimate verification status in concrete workflows.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-09-17T04:19:34.584206+00:00",
+      "disposition": "Both openai medium findings (6-call authoring-track window; absolute/relative monorepo suffix-bridge false positive) are verbatim re-raises of decisions already declined and test-pinned across ~20-30 prior rounds, independently re-verified by the orchestrating session against current file content (missionActivityFeedAuthoringTrack.ts, missionActivityFeedTestPaths.ts) with full-suite green (4263 tests) and clean tsc --noEmit; glm approved outright. Declined again, no new evidence.",
+      "recorded_by": "self-review",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] I reviewed the diff against the five requirements and looked hard for correctness, security, and test-quality defects across the reducer, renderer, and shell-parsing modules. This change has visibly been through many review rounds, and nearly every issue class I probed (failed-write rollback orderings, quote/`cd` shell parsing, `commandCount` vs deduped labels, `textLiteral` gating, synthesized gate cards, state reset on disclosure close, remount-on-kind-change) is either fixed or explicitly pinned as a recorded decision with a falsifying test.\n\nFindings:\n\n- Category: edge-case\n- Severity: low\n- File: `client/src/lib/missionActivityFeedAuthoringRollback.ts` — `unstampAuthoringRun`, merge branch (the `state.cards.splice` / `failedTestCards.delete(recovered)` lines)\n- Finding: when the un-stamped card is merged into `unresolvedTest` and spliced out of `cards`/`testCards`, the spliced card itself is not removed from `state.failedTestCards` (or from `authoringConsumedBy` values / `restoreValidationPending`). The in-file trace argues no card can re-enter this function, and the sets die with the derivation, so this is inert today — but it is the exact \"detached card referenced by resolver state\" hazard the 40th/43rd rounds were policing, left half-guarded on the merged-away side.\n- Suggestion: add `state.failedTestCards.delete(card)` next to the two `splice` calls (defence-in-depth, two lines, no reachable behavior change), or extend the existing comment to say the merged-away card is deliberately left in the set.\n\n- Category: test\n- Severity: low\n- File: `client/src/components/external/mission/MissionActivityFeed.test.tsx` — \"remounts a card that changes kind\" test\n- Finding: the test's guarantee depends entirely on the entry `key` in `MissionActivityFeed.tsx` leading with `card.kind`, which is outside this diff. The test does falsify a regression, so this is sound, but the contract lives cross-file with no in-source marker at the key itself (the comment liv […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/lib/missionActivityFeedAuthoringTrack.ts:253\n- Finding: A “freshly-written test file” remains eligible for six subsequent tool calls, so a later targeted verification run can be marked `authoringRun` and lose its Passing/Failing treatment despite not being the first run immediately after authoring. For example: write `foo.test.ts`, perform several unrelated edits/reads, then run `vitest foo.test.ts`.\n- Suggestion: Restrict the exemption to the immediate TDD sequence more tightly (for example, consume/clear it on unrelated mutating work), or otherwise require direct adjacency as specified.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedTestPaths.ts:65\n- Finding: `sameTestFilePath` suffix-matches any absolute write path to a bare relative test target. In a monorepo, writing `/repo/packages/api/src/foo.test.ts` and then running root-level `src/foo.test.ts` incorrectly matches, suppressing the real verification card’s gate status.\n- Suggestion: Thread the shell working directory/project root into path resolution, then compare canonical paths. Until that is available, avoid treating ambiguous bare relative suffixes as the same file.\n\nOverall assessment: ship-with-fixes. The UI requirements are otherwise implemented, but the authoring-run exemption can suppress legitimate verification status in concrete workflows.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T16:50:54.506015+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-16T16:42:42.112370+00:00",
+      "disposition": "no mini-plan phase ran for this direct bug-list change, so there is no plan for opus-plan-reviewer to review",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

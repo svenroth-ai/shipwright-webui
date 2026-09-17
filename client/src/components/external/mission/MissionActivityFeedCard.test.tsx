@@ -1,11 +1,9 @@
 /*
- * iterate-2026-09-05-mission-feed-ux-gaps — click-to-expand affordances for
+ * iterate-2026-09-05-mission-feed-ux-gaps - click-to-expand affordances for
  * the "nie croppen" fix (textFull/explanationFull/detailFull/answerFull) and
  * the clickable, inspectable command chip (commandFullText). Split into its
- * own file for `FeedCard` (the per-card component split out of
- * `MissionActivityFeed.tsx` in the same iterate) rather than growing
- * `MissionActivityFeed.test.tsx`, already near the project's 300-line
- * convention.
+ * own file for `FeedCard` rather than growing `MissionActivityFeed.test.tsx`,
+ * already near the project's 300-line convention.
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -26,11 +24,47 @@ function renderCard(card: ActivityCard) {
   return render(<FeedCard card={card} commitArtifact={null} task={TASK} />);
 }
 
+// 24th-round catch (openai, medium): the collapsed summary used
+// `commands.length`, so two DISTINCT calls sharing one label showed "1".
+describe("FeedCard — collapsed command count reflects real tool calls, not deduplicated labels", () => {
+  it("shows the true call count from card.commandCount when it exceeds the deduplicated commands array length", () => {
+    renderCard({ kind: "implement", text: "", commands: ["Read: foo.ts"], commandCount: 2 });
+    expect(screen.getByRole("button", { name: "2 commands" })).toBeInTheDocument();
+  });
+
+  it("falls back to commands.length when commandCount is absent", () => {
+    renderCard({ kind: "implement", text: "", commands: ["Write: login.ts"] });
+    expect(screen.getByRole("button", { name: "1 command" })).toBeInTheDocument();
+  });
+});
+
 describe("FeedCard — empty headline (issue #1: no more generic bucket sentence)", () => {
-  it("renders no text block at all when card.text is empty, only the command chip", () => {
+  it("renders no text block at all when card.text is empty, only the (collapsed) command chip", async () => {
+    const user = userEvent.setup();
     const { container } = renderCard({ kind: "implement", text: "", commands: ["Write: login.ts"] });
     expect(container.querySelector(".mc-feed-card > p")).toBeNull();
+    expect(screen.queryByText("Write: login.ts")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "1 command" }));
     expect(screen.getByText("Write: login.ts")).toBeInTheDocument();
+  });
+});
+
+// 6th-round catch (glm, low): the existing HTML-inertness test for card.text
+// would pass identically if it rendered as a plain text node — proving
+// nothing about markdown actually rendering (item 3).
+describe("FeedCard — card.text renders real markdown, not just inert HTML", () => {
+  it("renders bold markdown syntax in card.text as a real element, not literal source", () => {
+    renderCard({ kind: "implement", text: "**Done:** the change is **bold**.", commands: [] });
+    expect(screen.getByText("bold", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.queryByText(/\*\*Done:\*\*/)).not.toBeInTheDocument();
+  });
+
+  // 17th-round catch (glm, low): the prior fixture put `##` mid-line, which
+  // markdown never treats as a heading - the name promised what it lacked.
+  it("renders a block heading in card.text as a real <h2>, not literal source", () => {
+    renderCard({ kind: "implement", text: "## Heading\n\n**bold**", commands: [] });
+    expect(screen.getByRole("heading", { name: "Heading" })).toBeInTheDocument();
+    expect(screen.queryByText(/## Heading/)).not.toBeInTheDocument();
   });
 });
 
@@ -59,9 +93,9 @@ describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie 
     expect(screen.getByText(/falls back to the legacy header/)).toBeInTheDocument();
   });
 
-  it("expands card.detailFull in place when Show more is clicked", async () => {
+  it("expands card.detailFull in place when Show more is clicked (a non-blocker card's detail — a blocker's own detail toggle is covered separately below)", async () => {
     const user = userEvent.setup();
-    renderCard({ kind: "blocker", text: "A command needs attention.", commands: [], status: "err", detail: "FAIL line one\nline two…", detailFull: "FAIL line one\nline two\nline three\nline four\nline five" });
+    renderCard({ kind: "review", text: "", commands: [], status: "ok", detail: "PASS line one\nline two…", detailFull: "PASS line one\nline two\nline three\nline four\nline five" });
     await user.click(screen.getByRole("button", { name: "Show more" }));
     expect(screen.getByText(/line five/)).toBeInTheDocument();
   });
@@ -81,8 +115,10 @@ describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie 
 });
 
 describe("FeedCard — inspectable command chip (issue #3: long commands could not be read)", () => {
-  it("renders a plain, non-interactive chip when the label already shows the full command", () => {
+  it("renders a plain, non-interactive chip when the label already shows the full command", async () => {
+    const user = userEvent.setup();
     renderCard({ kind: "implement", text: "", commands: ["Bash: npm test"] });
+    await user.click(screen.getByRole("button", { name: "1 command" }));
     expect(screen.queryByRole("button", { name: /Bash: npm test/ })).not.toBeInTheDocument();
     expect(screen.getByText("Bash: npm test")).toBeInTheDocument();
   });
@@ -92,10 +128,50 @@ describe("FeedCard — inspectable command chip (issue #3: long commands could n
     const label = "Bash: npm run build -- --flag xxxxxxxxxx…";
     const full = "Bash: npm run build -- --flag xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
     renderCard({ kind: "implement", text: "", commands: [label], commandFullText: { [label]: full } });
+    await user.click(screen.getByRole("button", { name: "1 command" }));
     const chip = screen.getByRole("button", { name: new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) });
     expect(chip).toHaveAttribute("aria-expanded", "false");
     await user.click(chip);
     expect(chip).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText(full)).toBeInTheDocument();
+  });
+});
+
+describe("FeedCard — commands are collapsed behind a summary line by default (reported: every tool call rendered as its own always-open box)", () => {
+  it("shows a count toggle and no chips until clicked; clicking again hides them", async () => {
+    const user = userEvent.setup();
+    renderCard({ kind: "implement", text: "", commands: ["Read: a.ts", "Bash: npm run build", "Write: b.ts"] });
+    const toggle = screen.getByRole("button", { name: "3 commands" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Read: a.ts")).not.toBeInTheDocument();
+    await user.click(toggle);
+    expect(screen.getByRole("button", { name: "Hide commands" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Read: a.ts")).toBeInTheDocument();
+    expect(screen.getByText("Bash: npm run build")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Hide commands" }));
+    expect(screen.queryByText("Read: a.ts")).not.toBeInTheDocument();
+  });
+
+  // 54th-round catch (glm, low, test), ANSWERED: the `/command/i` matcher is
+  // deliberately BROAD - it must also catch a "Show details (N commands)"
+  // toggle leaking onto a non-blocker card, not only the "N commands" one.
+  // Narrowing it to an exact name would shrink what the test can notice.
+  it("renders no toggle at all when the card has no commands", () => {
+    renderCard({ kind: "implement", text: "Some narration.", commands: [] });
+    expect(screen.queryByRole("button", { name: /command/i })).not.toBeInTheDocument();
+  });
+});
+
+describe("FeedCard — card.explanation renders as markdown (reported: a turn's own table/headers showed as raw markdown source)", () => {
+  it("renders a markdown table from card.explanation as an actual <table>, not raw pipe/dash text", () => {
+    const { container } = renderCard({
+      kind: "implement",
+      text: "",
+      commands: [],
+      explanation: "## Wave 1\n\n| # | Title |\n|---|---|\n| 01 | Do the thing |",
+    });
+    expect(container.querySelector(".mc-feed-explanation table")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Wave 1" })).toBeInTheDocument();
+    expect(screen.queryByText(/\|---\|---\|/)).not.toBeInTheDocument();
   });
 });

@@ -66,6 +66,12 @@ export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, tas
         // reducer is a pure, deterministic function of the same growing
         // event log) while reliably differing from whatever card previously
         // sat at this index.
+        // KIND FIRST is load-bearing, not cosmetic (84th, glm, low, asked for
+        // this marker at the edit site): `FeedCard`'s `detailExpanded` /
+        // `blockerDetailFullyExpanded` state is reset ONLY by the remount a
+        // kind change forces through this key. Reorder it and a card leaving
+        // the blocker bucket keeps an expanded traceback open. Pinned by
+        // "remounts a card that changes kind" in `MissionActivityFeed.test.tsx`.
         const key = `${card.kind}-${card.timestamp ?? ""}-${card.commands[0] ?? ""}-${index}`;
         return (
           <div className="mc-feed-entry" key={key}>

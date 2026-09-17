@@ -146,6 +146,9 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
       },
     }));
     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
+    // Commands are collapsed behind a count toggle by default
+    // (iterate-2026-09-16-mission-feed-render-fidelity) — expand it first.
+    fireEvent.click(within(screen.getByTestId("mission-activity-feed")).getByRole("button", { name: "1 command" }));
     const group = within(screen.getByTestId("mission-activity-feed")).getByText("Edit: /project/.shipwright/planning/iterate/mobile.md");
     fireEvent.click(group);
     expect(screen.getByTestId("mission-compact-tab-activity")).toHaveAttribute("aria-selected", "true");

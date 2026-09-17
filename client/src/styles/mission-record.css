@@ -167,8 +167,7 @@
   .on-photo .mission-panel:not([hidden]) { display: flex; min-width: 0; flex: 1; }
   .on-photo .mission-panel > .record,
   .on-photo .mission-panel > .artifact,
-  .on-photo .mission-panel > .mc-op,
-  .on-photo .mission-panel > .mc-op-stack { width: 100%; min-width: 0; flex: 1; }
+  .on-photo .mission-panel > .mc-op { width: 100%; min-width: 0; flex: 1; }
   .on-photo .mission-panel > .artifact {
     position: static; inset: auto; border-radius: 16px; animation: none;
   }

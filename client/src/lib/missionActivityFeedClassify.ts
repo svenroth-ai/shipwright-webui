@@ -31,6 +31,17 @@ export function containsIterateBanner(lines: readonly string[]): boolean {
 
 const CHAIN_SEPARATORS = new Set(["&", "|", ";"]);
 
+export interface ShellSegment {
+  text: string;
+  /** The raw run of chain-separator characters immediately preceding this
+   *  segment (e.g. `"&&"`, `";"`, `"||"`), or `null` for the first segment —
+   *  `leadingCdPrefix` (`missionActivityFeedAuthoringTrack.ts`) needs this to
+   *  tell an unconditional `&&`/`;` chain apart from a `||` branch, which
+   *  `splitTopLevel`'s plain string[] below discards entirely (32nd-round
+   *  external review catch, openai, medium). */
+  precedingOperator: string | null;
+}
+
 /** Quote-aware split on shell chain separators (`&&`, `||`, `;`, `|`) — NOT
  * a shell parser (no substitution handling), just enough to stop a
  * separator character *inside a quoted argument* from being read as a real
@@ -40,10 +51,11 @@ const CHAIN_SEPARATORS = new Set(["&", "|", ";"]);
  * external reviews caught this on `git commit -m "... \"quoted\" ..."`);
  * POSIX single quotes take everything literally, backslash included, so no
  * escape handling applies there. */
-function splitTopLevel(shell: string): string[] {
-  const segments: string[] = [];
+function splitTopLevelSegments(shell: string): ShellSegment[] {
+  const segments: ShellSegment[] = [];
   let current = "";
   let quote: '"' | "'" | null = null;
+  let pendingOperator: string | null = null;
   for (let i = 0; i < shell.length; i++) {
     const ch = shell[i];
     if (quote === '"' && ch === "\\" && i + 1 < shell.length) {
@@ -62,15 +74,23 @@ function splitTopLevel(shell: string): string[] {
       continue;
     }
     if (CHAIN_SEPARATORS.has(ch)) {
-      segments.push(current);
+      const trimmed = current.trim();
+      if (trimmed) segments.push({ text: trimmed, precedingOperator: pendingOperator });
+      let op = ch;
+      while (i + 1 < shell.length && CHAIN_SEPARATORS.has(shell[i + 1])) { op += shell[i + 1]; i++; }
+      pendingOperator = op;
       current = "";
-      while (i + 1 < shell.length && CHAIN_SEPARATORS.has(shell[i + 1])) i++;
       continue;
     }
     current += ch;
   }
-  segments.push(current);
-  return segments.map((s) => s.trim()).filter(Boolean);
+  const trimmed = current.trim();
+  if (trimmed) segments.push({ text: trimmed, precedingOperator: pendingOperator });
+  return segments;
+}
+
+function splitTopLevel(shell: string): string[] {
+  return splitTopLevelSegments(shell).map((s) => s.text);
 }
 
 // Quote-aware so a quoted value containing an internal space
@@ -126,6 +146,18 @@ export function isTestInvocation(shell: string): boolean {
   return looksLikeInvocation(shell, isTestSegment);
 }
 
+// Exposed for `missionActivityFeedAuthoringTrack.ts` (iterate-2026-09-16-
+// mission-feed-render-fidelity bloat-ceiling split) — the TDD authoring-run
+// detection there needs the same quote-aware shell splitter/tokenizer this
+// file already builds for its own classification, and duplicating it would
+// let the two drift. `isTestSegment` is exposed too (6th-round external
+// review catch, openai, medium): `testInvocationTargetPath` must only look
+// for a test-file path inside a segment that IS a test invocation, never
+// any chained segment — `git diff --check src/foo.test.ts && npm test`
+// mentions the just-written file in an unrelated `git diff` segment, and
+// scanning every segment misread that as the run's own authoring target.
+export { splitTopLevel, splitTopLevelSegments, tokenize, isTestSegment };
+
 export function isReviewInvocation(shell: string): boolean {
   return looksLikeInvocation(shell, isReviewSegment);
 }
@@ -141,4 +173,23 @@ export function isReviewTask(name: string, input: Record<string, unknown> | unde
   const subagentType = typeof input?.subagent_type === "string" ? input.subagent_type : "";
   const description = typeof input?.description === "string" ? input.description : "";
   return REVIEW_TOKEN.test(subagentType) || REVIEW_TOKEN.test(description);
+}
+
+/** Which bucket one tool_use falls into — extracted from
+ *  `missionActivityFeed.ts`'s per-tool loop (iterate-2026-09-16-mission-feed-
+ *  render-fidelity bloat-ceiling split) so the loop itself reads as
+ *  dispatch, not classification. Pure function of the tool's own
+ *  name/input/shell — never MissionContext, which only ever gates whether
+ *  an artifact chip is shown, not the bucket itself. */
+export function classifyToolBucket(
+  toolName: string,
+  input: Record<string, unknown> | undefined,
+  shell: string,
+): "user-input" | "test" | "review" | "investigate" | "spec" | "implement" {
+  if (toolName === "AskUserQuestion") return "user-input";
+  if (isTestInvocation(shell)) return "test";
+  if (isReviewInvocation(shell) || isReviewTask(toolName, input)) return "review";
+  if (toolName === "Read" || toolName === "Grep" || toolName === "Glob") return "investigate";
+  if (/\.shipwright[\\/].*(spec|plan)/i.test(String(input?.file_path ?? ""))) return "spec";
+  return "implement";
 }

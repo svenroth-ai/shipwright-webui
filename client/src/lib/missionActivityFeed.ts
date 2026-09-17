@@ -1,9 +1,10 @@
 import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
 import { attachCommand, commandDetail, commandLabel, commandLabelFull, extractOwnProse, isCompactionMarker } from "./missionActivityFeedText";
-import { containsIterateBanner, isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { classifyToolBucket, containsIterateBanner } from "./missionActivityFeedClassify";
+import { isTestFilePath, sameTestFilePath, testInvocationTargetPath, trackWrittenTestFile, type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
-import { reconcileArtifactCards } from "./missionActivityFeedReconcile";
+import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
 import type { ActivityCard, ActivityFeed, ActivityKind } from "./missionActivityFeedTypes";
 
@@ -15,30 +16,23 @@ function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
 
 /** `pendingNarration` bridges up to `MAX_PENDING_NARRATION_CARRY - 1`
  * consecutive non-consuming (`test`/`user-input`-only) turns before being
- * dropped instead of carried further (doubt-review catch,
- * iterate-2026-08-27-mission-feed-narration-scroll — see the comment on
+ * dropped instead of carried further (doubt-review catch — see the comment on
  * `pendingNarration` in `deriveActivityFeed`). Set to `4` so a realistic
- * 3-retry test-until-green burst is genuinely bridged, not just 2 of its
- * 3 turns — a second doubt-review pass found the increment-then-check in
- * the same non-consuming turn drops on the Nth turn, not after it, so the
- * bridged count is one less than this constant's raw value. */
+ * 3-retry test-until-green burst is genuinely bridged — increment-then-check
+ * happens in the same turn that drops, so the bridged count is one less. */
 const MAX_PENDING_NARRATION_CARRY = 4;
 
 /** Typed-event reducer for the calm Mission activity feed. `MissionContext`
- * stays the SOLE source for any gate verdict (tests pass/fail, artifact
- * availability) — raw `toolResults()` content is permitted only as bounded,
- * sanitized `detail`/`question.answer` text on `blocker`/`test`/`user-input`
- * cards (iterate-2026-08-20-mission-feed-content, narrowing the prior
- * "no raw tool output" constraint). Per-card text prefers the turn's own
- * `assistantText()` explanation over the generic bucket sentence when Claude
- * wrote one (iterate-2026-08-13-mission-mobile-visual) — rendered by the
- * caller through the same safe markdown/text path as the rest of the
- * transcript (`MarkdownChunk` for prose, a literal text node for raw
- * excerpts), never raw HTML, since it is assistant/tool-influenced content.
- * A card built from exactly one assistant turn additionally carries that
- * turn's own words beyond its first line in `card.explanation`
- * (iterate-2026-08-25-mission-feed-progress-narration) — plain text, never
- * markdown, rendered through the same style as an answered question. */
+ * stays the SOLE source for any gate verdict — raw `toolResults()` content is
+ * permitted only as bounded, sanitized `detail`/`question.answer` text on
+ * `blocker`/`test`/`user-input` cards (iterate-2026-08-20-mission-feed-
+ * content). Per-card text prefers the turn's own `assistantText()`
+ * explanation over the generic bucket sentence when Claude wrote one
+ * (iterate-2026-08-13-mission-mobile-visual), rendered through the same safe
+ * markdown/text path as the rest of the transcript. A card built from
+ * exactly one assistant turn additionally carries that turn's own words
+ * beyond its first line in `card.explanation` (iterate-2026-08-25-mission-
+ * feed-progress-narration). */
 export function deriveActivityFeed(
   events: readonly ParsedEvent[],
   context: MissionContext | null,
@@ -49,53 +43,42 @@ export function deriveActivityFeed(
   const unresolvedBlockers = new Map<string, { card: ActivityCard; bucket: ActivityKind }>();
   const pendingTools = new Map<string, PendingTool>();
   // Real per-card event count — deliberately NOT `commands.length`, which
-  // dedupes by label string and can under-count when two distinct events
-  // produce the same label (e.g. two identical `Read` calls). A plain Map,
-  // not a WeakMap: this only lives for one `deriveActivityFeed()` call, so
-  // there is no retention concern a weak reference would address.
+  // dedupes by label and can under-count two events sharing one.
   const cardEventCounts = new Map<ActivityCard, number>();
   // How many distinct ASSISTANT TURNS contributed to a card — deliberately
   // separate from `cardEventCounts` above (which counts tool-use EVENTS). A
-  // card is misattributed only when MORE THAN ONE turn's words land on it;
-  // one turn issuing several tool calls that coalesce into a single card is
-  // not misattribution and must keep its explanation (iterate-2026-08-25-
-  // mission-feed-progress-narration, Internal Plan Review HIGH finding —
-  // `cardEventCounts === 1` alone would have wrongly suppressed that common,
-  // valuable case).
+  // card is misattributed only when MORE THAN ONE turn's words land on it; one
+  // turn issuing several tool calls that coalesce into one card is not
+  // misattribution and must keep its explanation (iterate-2026-08-25-mission-
+  // feed-progress-narration, Internal Plan Review HIGH finding —
+  // `cardEventCounts === 1` alone wrongly suppressed that common case).
   const cardTurnCounts = new Map<ActivityCard, number>();
-  // Test cards genuinely still awaiting ANY result — see `ResolveState.
-  // awaitingTestResult`'s doc comment (missionActivityFeedResolve.ts).
+  // Still awaiting ANY result — see `ResolveState.awaitingTestResult`.
   const awaitingTestResult = new Set<ActivityCard>();
+  // Recently `Write`-ten test-file paths — a bounded SET (a TDD burst writes
+  // several before running any), each consumed on its own matching test
+  // invocation. See `trackWrittenTestFile`.
+  let writtenTestFiles: readonly WrittenTestFileTracker[] = [];
+  // Monotonic tool-call clock — see `PendingTool.writtenTestFileRestoreAt`.
+  let toolCallIndex = 0;
+  // Which test CARD (if any) consumed a given Write/Edit's tracker entry,
+  // keyed by that Write/Edit's own tool_use id — lets resolve.ts un-stamp
+  // `authoringRun` if that SAME Write/Edit's own result later turns out to
+  // be an error (see `WrittenTestFileTracker.sourceToolId`'s doc comment).
+  const authoringConsumedBy = new Map<string, ActivityCard>();
+  // See `ResolveState.failedWriteToolIds`/`.restoreValidationPending`/`.failedTestCards` — mutated in place like `authoringConsumedBy`, no reassignment-back needed.
+  const failedWriteToolIds = new Set<string>();
+  const restoreValidationPending = new Map<string, ActivityCard>();
+  const failedTestCards = new Set<ActivityCard>();
   // A real `/shipwright-iterate` autonomous turn NEVER combines narration
-  // text and a tool call in the same JSONL event — Claude always splits them
-  // into two consecutive assistant events (a pure-narration turn, then a
-  // pure-tool-call turn; confirmed 0 combined turns across independent real
-  // sessions). The original design assumed they co-occurred, so every
-  // narration-only turn's already-computed `prose`/`proseRest` was silently
-  // discarded: the card-creation loop below runs only `for (const tool of
-  // toolUses(event))`, which iterates zero times for a text-only turn.
-  // `pendingNarration` carries one turn's words forward to the VERY NEXT
-  // tool-bearing turn, where they attach in practice — cleared the moment
-  // they are consumed (or overwritten by a later narration-only turn), so
-  // each turn's words can land on at most one card, matching the existing
-  // one-turn-per-explanation invariant below.
-  //
-  // A `test`/`user-input`-only turn never consumes it (neither bucket reads
-  // `prose`/`proseRest`), so it survives past one of those to reach a LATER
-  // real turn instead of being silently dropped (code review catch,
-  // iterate-2026-08-27-mission-feed-narration-scroll). Left wholly unbounded
-  // that same survival can misattribute stale words to unrelated later work
-  // once several non-consuming turns pile up — e.g. narration, several test
-  // retries, then a turn that quietly pivots to something else with no
-  // narration of its own (doubt-review catch, same iterate). `staleness`
-  // counts consecutive non-consuming turns it has survived; past
-  // `MAX_PENDING_NARRATION_CARRY` it is dropped rather than carried
-  // further — a card with no narration behind it simply has no headline
-  // text (iterate-2026-09-05-mission-feed-ux-gaps), which is preferable to
-  // a confident-looking but wrong one. The cap is generous enough for a
-  // realistic retry-until-green burst (a handful of `test` turns) or a
-  // single clarifying question, not for an open-ended run of unrelated
-  // intervening turns.
+  // text and a tool call in the same JSONL event, so `pendingNarration`
+  // carries one narration-only turn's words forward to the VERY NEXT
+  // tool-bearing turn — cleared once consumed (or overwritten by a later
+  // narration-only turn), so each turn's words land on at most one card. A
+  // `test`/`user-input`-only turn never consumes it, so it survives past one
+  // to reach a LATER real turn (code review catch) — but left unbounded that
+  // survival can misattribute stale words once several pile up (doubt-review
+  // catch); `staleness` bounds it via `MAX_PENDING_NARRATION_CARRY` above.
   let pendingNarration: { prose: string; proseFull: string; proseRest: string; proseRestFull: string; staleness: number } | null = null;
   const add = createCardAdder(cards, cardEventCounts);
   for (const event of events) {
@@ -103,7 +86,9 @@ export function deriveActivityFeed(
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
     }
     if (event.kind === "user") {
-      unresolvedTest = resolveToolResults(event, { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult });
+      const resolveState = { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };
+      unresolvedTest = resolveToolResults(event, resolveState);
+      writtenTestFiles = resolveState.writtenTestFiles;
       continue;
     }
     if (event.kind !== "assistant") continue;
@@ -186,24 +171,23 @@ export function deriveActivityFeed(
       const input = tool.input as Record<string, unknown> | undefined;
       const shell = typeof input?.command === "string" ? input.command : "";
       const background = input?.run_in_background === true || input?.background === true;
-      const bucket = tool.name === "AskUserQuestion" ? "user-input"
-        : isTestInvocation(shell) ? "test"
-        : isReviewInvocation(shell) || isReviewTask(tool.name, input) ? "review"
-        : tool.name === "Read" || tool.name === "Grep" || tool.name === "Glob" ? "investigate"
-        : /\.shipwright[\\/].*(spec|plan)/i.test(String(input?.file_path ?? "")) ? "spec"
-        : "implement";
+      const bucket = classifyToolBucket(tool.name, input, shell);
       const label = commandLabel(tool.name, tool.input);
       const labelFull = commandLabelFull(tool.name, tool.input);
       const commandKey = `${tool.name}\u0000${commandDetail(tool.input)}`;
       if (bucket === "test") {
-        // No standard sentence here either (iterate-2026-09-05-mission-
-        // feed-ux-gaps — the user's own quoted example was literally "This
-        // test command completed."): only THIS turn's own words (never
-        // carried pendingNarration, which must stay free to reach a LATER
-        // real turn past this test call, per the narration-bridging
-        // invariant above), or nothing. The status pill + command chip
-        // carry the outcome; resolveToolResults no longer overwrites this
-        // with a hardcoded sentence either.
+        // No standard sentence here either (iterate-2026-09-05-mission-feed-ux-
+        // gaps — the user's own quoted example was literally "This test command
+        // completed."): only THIS turn's own words, never carried
+        // pendingNarration, which must stay free to reach a LATER real turn past
+        // this test call (narration-bridging invariant above). The pill + chip
+        // carry the outcome; resolveToolResults no longer overwrites this.
+        // Deliberately NOT routed through `add()` (32nd-round catch, glm, medium,
+        // declined) — a "test" card is always fresh, one per tool_use, so a second
+        // run of the SAME file can never coalesce into the first (already-
+        // `authoringRun`) card; combined with the consumed tracker entry being
+        // removed below, its own lookup finds nothing. 67th (openai, medium),
+        // DECLINED as a misread — trace in `…CommandCount.test.ts`.
         const card: ActivityCard = {
           kind: "test",
           text: ownProse,
@@ -212,6 +196,18 @@ export function deriveActivityFeed(
           timestamp: event.timestamp,
         };
         if (ownProseFull && ownProseFull.length > ownProse.length) card.textFull = ownProseFull;
+        // A TDD authoring run when this invocation's own single target
+        // (see `testInvocationTargetPath`'s doc comment) plausibly names ANY
+        // currently-tracked just-written/edited file — only the matching
+        // entry is consumed, so an unrelated tracked file survives for its
+        // own later run.
+        const target = testInvocationTargetPath(shell);
+        const matchIndex = target ? writtenTestFiles.findIndex((entry) => sameTestFilePath(target, entry.path)) : -1;
+        if (matchIndex !== -1) {
+          card.authoringRun = true;
+          authoringConsumedBy.set(writtenTestFiles[matchIndex].sourceToolId, card);
+          writtenTestFiles = writtenTestFiles.filter((_, i) => i !== matchIndex);
+        }
         attachCommand(card, label, labelFull);
         cards.push(card);
         testCards.push(card);
@@ -252,8 +248,26 @@ export function deriveActivityFeed(
           }
           explanationAttachedThisTurn = true;
         }
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
+        // Lets a FAILED Write's optimistic tracker entry be rolled back once
+        // its own tool_result is known — see `PendingTool.writtenTestFile` /
+        // `.writtenTestFileRestore`'s doc comments. Write-only, matching
+        // `trackWrittenTestFile` (28th-round catch, openai, medium): Edit no
+        // longer touches the tracker (27th-round fix), so "restoring" on a
+        // failed Edit duplicated the still-present original entry.
+        const writtenTestFile = tool.name === "Write" && typeof input?.file_path === "string" && isTestFilePath(input.file_path)
+          ? input.file_path : undefined;
+        const priorEntry = writtenTestFile ? writtenTestFiles.find((entry) => sameTestFilePath(entry.path, writtenTestFile)) : undefined;
+        const writtenTestFileRestore = priorEntry ? { path: priorEntry.path, staleness: priorEntry.staleness + 1, sourceToolId: priorEntry.sourceToolId } : undefined;
+        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background, writtenTestFile, writtenTestFileRestore, writtenTestFileRestoreAt: toolCallIndex });
       }
+      // Track/age AFTER this tool's own consumption check above, so a call
+      // that just consumed an entry doesn't also age it (double-counting).
+      // 72nd (glm, low), FRAGILITY NOTE, no change: `agedRestore`'s arithmetic
+      // assumes exactly this placement - one increment per tool call, after
+      // consumption. Moving either line shifts the window silently, and
+      // `missionActivityFeedRestoreAging.test.ts` is the guard that catches it.
+      writtenTestFiles = trackWrittenTestFile(writtenTestFiles, tool.name, input, tool.id);
+      toolCallIndex += 1;
     }
     // Clear only once actually used (an eligible bucket read it this turn),
     // or once superseded by this turn's OWN text — a pure test/user-input
@@ -280,21 +294,7 @@ export function deriveActivityFeed(
     }
   }
 
-  // A card that never got a turn's own prose (`text === ""`, no more
-  // `GENERIC_TEXT` fallback — iterate-2026-09-05-mission-feed-ux-gaps)
-  // still renders its command chip(s); nothing to clear here for it.
-  //
-  // This pass clears a stale `explanation` written for a card that turned
-  // out to span MORE than one assistant turn — an explanation is only ever
-  // exactly one turn's words (see `ActivityCard.explanation`'s doc comment)
-  // and a later turn coalescing into the same card must not leave an
-  // earlier turn's words looking like they cover the whole card.
-  for (const card of cards) {
-    if (card.explanation && cardTurnCounts.get(card) !== 1) {
-      delete card.explanation;
-      delete card.explanationFull;
-    }
-  }
+  clearMultiTurnExplanations(cards, cardTurnCounts);
 
   return reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
 }
