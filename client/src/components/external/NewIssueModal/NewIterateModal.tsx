@@ -93,6 +93,7 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
           paramValues={form.paramValues}
           setParamValues={form.setParamValues}
           setParamEnabled={form.setParamEnabled}
+          runtime={form.runtime}
         />
         <LeadwrightFieldsFragment
           showLeadDomain={form.showLeadDomain}

@@ -88,6 +88,26 @@ describe("NewIterateModal — rendering", () => {
     expect(screen.queryByText("Execution")).toBeNull();
   });
 
+  it("trg-517157fe — hides the model-tier override fields once Runtime is flipped to Codex", async () => {
+    renderModal({
+      action: {
+        ...ITERATE_ACTION,
+        parameters: ["plan-review-model", "review-model"].map((name) => ({
+          name,
+          type: "enum" as const,
+          label: `${name} override`,
+          enum: ["opus", "sonnet", "haiku", "inherit"],
+          cli_flag: `--${name}`,
+          value_separator: "space" as const,
+        })),
+      },
+    });
+    openMoreOptions();
+    await waitFor(() => expect(screen.getByTestId("model-tier-override-fields")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("runtime-codex"));
+    expect(screen.queryByTestId("model-tier-override-fields")).toBeNull();
+  });
+
   it("does not present inherited or unreadable configuration as a project default", async () => {
     const { qc } = renderModal({
       action: {
