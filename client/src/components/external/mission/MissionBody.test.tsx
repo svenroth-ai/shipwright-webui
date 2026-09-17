@@ -104,7 +104,9 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
     // No headline sentence any more (iterate-2026-09-05-mission-feed-ux-gaps
     // removed the generic/label-derived fallback) — the real command chip is
-    // the only thing this card has to show.
+    // the only thing this card has to show, collapsed by default
+    // (iterate-2026-09-16-mission-feed-render-fidelity) behind a count toggle.
+    fireEvent.click(screen.getByRole("button", { name: "1 command" }));
     expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
     expect(screen.queryByText(/No run data yet/i)).not.toBeInTheDocument();
     // The left panel shows the business summary + the inferred stage.
@@ -122,23 +124,79 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     expect(screen.getByTestId("mission-stage-none")).toBeInTheDocument();
   });
 
-  it("a COMPLETED run keeps its proof middle + artifact links (AC2)", () => {
+  it("a COMPLETED run shows its activity feed directly + artifact links (AC2)", () => {
+    // The separate verdict/proof header above the feed was removed for a
+    // completed run (Sven: it read as redundant clutter, iterate-2026-09-16-
+    // mission-feed-render-fidelity) — the activity feed is the sole middle
+    // content, same as a live run.
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse });
-    setup("");
-    // COMPLETED_RUN's security gate is unwired -> a neutral verdict, so no
-    // banner renders (iterate-2026-08-13-mission-mobile-visual); the real
-    // proof lines (run id + "review clean") still render underneath.
+    // 40th-round catch (glm, low, test), FIXED: this case used to pass an
+    // EMPTY transcript and then assert mostly absences, so it would have
+    // passed on a completed run that rendered nothing but the artifact rail.
+    // A real transcript + a real card assertion below pin CONTENT, not just
+    // the container. (`useMissionContext` is stubbed to `undefined` for this
+    // whole file, so the card below is transcript-derived, never synthesized
+    // from MissionContext — that synthesis path is the companion file's.)
+    setup(JSON.stringify({
+      type: "assistant",
+      message: { content: [{ type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } }] },
+    }));
     expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
-    expect(screen.getByTestId("proof-summary")).toHaveTextContent("review clean");
-    expect(screen.getByTestId("mission-completed-stack")).toBeInTheDocument();
+    expect(screen.queryByTestId("proof-summary")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mission-completed-stack")).not.toBeInTheDocument();
     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "1 command" }));
+    expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
     // The audit trail is preserved as clickable artifact links.
     for (const key of ["req", "spec", "tests", "review", "commit"] as const) {
       expect(screen.getByTestId(`record-node-${key}`)).toBeInTheDocument();
     }
     // Stage is a done, terminal Merge (FR-01.67).
     expect(screen.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Merge");
+  });
+
+  it("a terminal task with NO MissionContext still renders the feed's honest waiting state, never a blank middle", () => {
+    // 40th-round catch (glm, medium), DECLINED — its premise is false. glm
+    // reads the removal of the `completed`/`OperationCard` branch as leaving
+    // "a completely empty middle panel" when the context fetch returned null
+    // AND the transcript contributes no cards. `useMissionContext` is stubbed
+    // to `{ data: undefined }` for this WHOLE file, so this test IS that arm,
+    // and the middle is not empty: `MissionActivityFeed` always renders its
+    // pinned outcome header plus an explicit empty state. What glm's arm
+    // really loses is the runDetail-derived verdict banner + proof summary —
+    // which is exactly what Sven asked to remove, "removed rather than
+    // conditionally hidden" per this iterate's spec note; re-mounting it for
+    // `feed.cards.length === 0 && context == null` would be that conditional
+    // hiding, inverted. And it needs a TRIPLE fault to be visible at all: the
+    // context request failing while the run request succeeds, plus an empty
+    // transcript for a task whose run IS recorded (so its JSONL exists and
+    // also failed to read) — transient, and self-healing on the next 10 s
+    // `MISSION_CONTEXT_POLL_MS` refetch. An honest "nothing reliable yet"
+    // beats a resurrected header for that window. The 54th round (glm, low)
+    // re-read this and asked only that it be logged as a CONSCIOUS acceptance
+    // rather than an oversight — it is, and this test is the pin. The 55th
+    // agrees it is spec-sanctioned and names the remediation IF it is ever
+    // reported: thread the runDetail gate into the feed's EMPTY STATE, never
+    // resurrect the header.
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue({ data: { status: "ok", run: COMPLETED_RUN } as RunDetailResponse });
+    setup("");
+    // 48th-round catch (glm, low, test), ANSWERED: `operation-card` is carried
+    // by three components (MissionActivityFeed / OperationCard / OperationLive),
+    // so glm asked whether this could match a stale OperationCard. It cannot —
+    // `getByTestId` THROWS on multiple matches, and the string asserted next
+    // lives only in `MissionActivityFeed.tsx`. Both together resolve the testid
+    // to the feed unambiguously; a stale mount would fail, not silently pass.
+    // 65th (glm, low, test) accepts that and notes only that the copy lives
+    // cross-file, so a wording change fails this for an unrelated reason. No
+    // change: that coupling is exactly what resolves the testid, and a loud
+    // failure on a copy change is the cheap half of the trade. Re-raised 82nd
+    // (glm, low, "Acceptable as-is") — same disposition, same reason.
+    const middle = screen.getByTestId("operation-card");
+    expect(middle).toHaveTextContent("Waiting for reliable evidence");
+    expect(middle).toHaveTextContent("Waiting — nothing reliable has appeared yet.");
+    expect(screen.queryByTestId("mission-completed-stack")).not.toBeInTheDocument();
   });
 
   it("clicking an artifact link opens the RIGHT panel; re-click closes it", () => {

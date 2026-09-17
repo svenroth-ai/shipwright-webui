@@ -31,11 +31,7 @@ const renderedLongIterateFixture: ActivityFeed = {
 };
 
 describe("MissionActivityFeed", () => {
-  // Renders 905 DOM nodes and text-queries all of them — comfortably under
-  // 1s locally, but the default 5000ms vitest timeout is too tight under
-  // CI's coverage-instrumented, full-suite-parallel run (observed timing out
-  // at ~5000ms twice on shipwright-webui#366, pre-existing and unrelated to
-  // that PR's diff).
+  // 905 DOM nodes: 5000ms is too tight under CI coverage (webui#366).
   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
     const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"));
     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
@@ -58,8 +54,7 @@ describe("MissionActivityFeed", () => {
     expect(screen.getByTestId("mission-feed-outcome").parentElement).not.toBe(timeline);
   }, 20_000);
 
-  // Preserved affordance (internal + external review): the artifact-open CTA's
-  // accessible name and click wiring must survive the markup rewrite unchanged.
+  // Preserved affordance: the artifact-open CTA keeps name + click wiring.
   it("opens durable evidence from a card", async () => {
     const onArtifactClick = vi.fn();
     render(<MissionActivityFeed
@@ -72,36 +67,41 @@ describe("MissionActivityFeed", () => {
     expect(onArtifactClick).toHaveBeenCalledWith("commit");
   });
 
-  // Content-safety constraint (external review, iterate-2026-08-13-mission-mobile-visual,
-  // extended by iterate-2026-08-20-mission-feed-content to `detail`/`question.*`):
-  // card.text can carry a turn's own assistant prose (assistant-influenced content), so it
-  // must render through the same safe markdown path as the rest of the transcript, never a
-  // raw <p>/dangerouslySetInnerHTML — HTML-like text must never become a real element.
-  it("renders HTML-like card text as inert markdown, never a real element", () => {
-    const { container } = render(<MissionActivityFeed feed={{
-      outcome: "In progress",
-      cards: [{ kind: "implement", text: '<img src=x onerror="window.__pwned=true">Edited the login handler.', commands: [] }],
-    }} commitArtifact={null} task={TASK} />);
-    expect(container.querySelector("img")).toBeNull();
-    expect(screen.getByText(/Edited the login handler/)).toBeInTheDocument();
+  // 40th (glm, low), DECLINED at the `detailExpanded` useState in
+  // `MissionActivityFeedCard.tsx` — pinned here. The entry key leads with
+  // `card.kind` (rounds 47/48/52 asked to confirm that order: verified), so a
+  // card leaving the blocker bucket REMOUNTS and its expanded flag resets. The
+  // 64th (glm, low) notes that key is cross-file and outside this diff, and
+  // concludes this is adequate anyway. No change: the loud failure IS the guard.
+  // 78th (glm, low, test), DECLINED — glm is right that the "FAIL excerpt" line
+  // passes on the non-blocker `<pre>` alone, but the SECOND assertion carries
+  // the test and is not vacuous: `MissionActivityFeedCard.tsx:274` renders
+  // `detailExpanded && card.detailFull ? card.detailFull : card.detail`, so a
+  // surviving flag WOULD dump the full trace here. Falsified by dropping
+  // `card.kind` from the entry key in `MissionActivityFeed.tsx` — this test,
+  // and only this test, then fails. Kept as-is; the name matches what it pins.
+  // 81st + 83rd (glm, low) re-raise only the cross-file coupling and answer
+  // themselves: "fails loudly rather than silently — acceptable as shipped".
+  it("remounts a card that changes kind, so an expanded blocker detail collapses", () => {
+    const blocker = { kind: "blocker" as const, text: "Needs attention.", commands: ["Bash: npm test"], status: "err" as const, detail: "FAIL excerpt", detailFull: "FAIL entire traceback dump", timestamp: "2026-09-16T10:00:00.000Z" };
+    const { rerender } = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [blocker] }} commitArtifact={null} task={TASK} />);
+    fireEvent.click(screen.getByRole("button", { name: "Show details (1 command)" }));
+    rerender(<MissionActivityFeed feed={{ outcome: "In progress", cards: [{ ...blocker, kind: "test" as const }] }} commitArtifact={null} task={TASK} />);
+    expect(screen.getByText("FAIL excerpt")).toBeInTheDocument();
+    expect(screen.queryByText("FAIL entire traceback dump")).toBeNull();
   });
 
-  it("renders HTML-like raw-output detail as inert literal text, never a real element", () => {
-    const { container } = render(<MissionActivityFeed feed={{
-      outcome: "In progress",
-      cards: [{ kind: "blocker", text: "A command needs attention before work can continue.", commands: ["Bash: npm test"], status: "err", detail: '<img src=x onerror="window.__pwned=true">FAIL src/x.test.ts' }],
-    }} commitArtifact={null} task={TASK} />);
-    expect(container.querySelector("img")).toBeNull();
-    expect(screen.getByText(/FAIL src\/x\.test\.ts/)).toBeInTheDocument();
-  });
-
+  // 46th (glm, low, test), ANSWERED: a NON-blocker renders `card.detail` in its own `<pre>` OUTSIDE `FeedCommands` - no toggle.
   it("renders a status pill and a bounded error excerpt for a failing test card", () => {
-    render(<MissionActivityFeed feed={{
+    const { container } = render(<MissionActivityFeed feed={{
       outcome: "In progress",
       cards: [{ kind: "test", text: "This test command needs attention.", commands: ["Bash: vitest run"], status: "err", detail: "FAIL slice3-sources.test.ts\nexpect(received).toEqual(expected)" }],
     }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("Failing")).toBeInTheDocument();
-    expect(screen.getByText(/FAIL slice3-sources\.test\.ts/)).toBeInTheDocument();
+    // 61st (glm, low, test), FIXED: the pill/text assertions would still pass
+    // if the detail were routed through `FeedCommands`. Pins the visible `<pre>`.
+    expect(container.querySelector(".mc-feed-code pre")).toHaveTextContent("FAIL slice3-sources.test.ts");
+    expect(screen.queryByRole("button", { name: /Show details/ })).not.toBeInTheDocument();
   });
 
   describe("question resolution (three branches)", () => {
@@ -157,25 +157,28 @@ describe("MissionActivityFeed", () => {
     expect(screen.queryByText(/merged/i)).not.toBeInTheDocument();
   });
 
-  // Preserved affordance: command chip content (the label text) must survive
-  // the plain-<li> -> icon-chip markup swap unchanged.
+  // Preserved affordance: chip label text survives the <li> -> chip swap.
   it("keeps command chip label text after the chip-treatment rewrite", () => {
     render(<MissionActivityFeed feed={{
       outcome: "In progress",
       cards: [{ kind: "implement", text: "Edited the login handler.", commands: ["Edit: src/auth/login.ts"] }],
     }} commitArtifact={null} task={TASK} />);
+    // Commands are collapsed behind a count toggle by default — expand it first.
+    fireEvent.click(screen.getByRole("button", { name: "1 command" }));
     expect(screen.getByText("Edit: src/auth/login.ts")).toBeInTheDocument();
   });
 
-  // iterate-2026-08-25-mission-feed-progress-narration.
   describe("card.explanation", () => {
-    it("renders it as plain text below the headline, reusing the qa-answer style — never MarkdownChunk", () => {
+    // 51st (glm, medium, test), FIXED: the name read "never MarkdownChunk" —
+    // the contract requirement 3 INVERTED. It pins what ships.
+    it("renders it through the sanitized markdown pipeline, inside the .mc-feed-explanation wrapper", () => {
       const { container } = render(<MissionActivityFeed feed={{
         outcome: "In progress",
-        cards: [{ kind: "investigate", text: "Checking the auth guard.", commands: [], explanation: "It reads the cookie, then falls back to the header." }],
+        cards: [{ kind: "investigate", text: "Checking the auth guard.", commands: [], explanation: "It reads the **cookie**, then falls back to the header." }],
       }} commitArtifact={null} task={TASK} />);
       const node = container.querySelector(".mc-feed-explanation");
       expect(node).toHaveTextContent("It reads the cookie, then falls back to the header.");
+      expect(node?.querySelector("strong")).toHaveTextContent("cookie");
     });
 
     it("renders HTML-like explanation text as inert literal text, never a real element (same safety bar as detail)", () => {
@@ -192,15 +195,13 @@ describe("MissionActivityFeed", () => {
       const { container } = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [card] }} commitArtifact={null} task={TASK} />);
       expect(container.querySelector(".mc-feed-explanation")).toBeNull();
       expect(screen.getByText("Checking the auth guard.")).toBeInTheDocument();
+      // Commands are collapsed behind a count toggle by default — expand it first.
+      fireEvent.click(screen.getByRole("button", { name: "1 command" }));
       expect(screen.getByText("Read: auth.ts")).toBeInTheDocument();
     });
 
-    // External LLM Review (openai) MEDIUM finding: the two prior assertions
-    // only probe specific substrings, so they would still pass if adding
-    // `explanation` had also touched the surrounding card markup (wrapper
-    // element, chip/pill structure, status UI) for the unpopulated case.
-    // This asserts the FULL card markup is unaffected by toggling
-    // `explanation` on/off, beyond just the one new sibling node.
+    // External LLM Review (openai) MEDIUM: substring assertions would pass
+    // even if `explanation` shifted the card markup — this pins FULL markup.
     it("adding explanation changes ONLY the new sibling node — the rest of the card's markup is byte-identical (AC-5 parity, stronger)", () => {
       const base = { kind: "investigate" as const, text: "Checking the auth guard.", status: "ok" as const, commands: ["Read: auth.ts"] };
       const without = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [base] }} commitArtifact={null} task={TASK} />);
@@ -212,8 +213,7 @@ describe("MissionActivityFeed", () => {
       const explanationNode = withExplanation.container.querySelector(".mc-feed-explanation")!.outerHTML;
       withExplanation.unmount();
 
-      // Removing exactly the new node from the "with" render reproduces the
-      // "without" render's markup — nothing else shifted.
+      // Removing the new node reproduces the "without" markup exactly.
       expect(withHtml.replace(explanationNode, "")).toBe(withoutHtml);
     });
   });
@@ -228,10 +228,8 @@ describe("MissionActivityFeed", () => {
       expect(screen.getByText("5m ago")).toBeInTheDocument();
     });
 
-    // External code review (openai) LOW finding, iterate-2026-08-31-mission-feed-gaps:
-    // the relative-time test above would still pass with FeedTime's `title`
-    // tooltip removed entirely — this pins the full-date tooltip itself, the
-    // behavior a reader actually depends on to see the exact timestamp.
+    // Review (openai) LOW, -08-31: the test above would still pass with
+    // FeedTime's `title` tooltip removed.
     it("carries the full local date/time as a title tooltip on the relative-time element", () => {
       const at = "2026-08-31T09:15:00.000Z";
       render(<MissionActivityFeed feed={{
@@ -251,9 +249,8 @@ describe("MissionActivityFeed", () => {
       expect(container.querySelector(".mc-feed-time")).toBeNull();
     });
 
-    // external code review, openai MEDIUM: a `system` card skips the kind
-    // label + pill entirely, and that gate used to hide its timestamp too —
-    // leaving issue #2 unfixed for compaction-marker cards specifically.
+    // review, openai MEDIUM: a `system` card skips the kind label + pill,
+    // and that gate used to hide its timestamp too.
     it("still shows a relative time for a system card, which has no kind label", () => {
       render(<MissionActivityFeed feed={{
         outcome: "In progress",
@@ -263,13 +260,9 @@ describe("MissionActivityFeed", () => {
     });
   });
 
-  // iterate-2026-08-31-mission-feed-gaps: switching to the Mission tab must
-  // open on the LATEST activity, not the earliest — this container had no
-  // scroll management at all before this fix. `scrollHeight` must be
-  // stubbed BEFORE mount (via the prototype, not the instance) so the real
-  // mount-time effect reads a non-zero value — jsdom does no layout, so an
-  // unstubbed `scrollHeight` is always 0 and a no-op `scrollTop = 0` would
-  // pass unconditionally, exactly the vacuous-test trap to avoid here.
+  // iterate-2026-08-31-mission-feed-gaps: the Mission tab opens on the LATEST
+  // activity. `scrollHeight` is stubbed BEFORE mount (on the prototype) —
+  // jsdom does no layout, so an unstubbed 0 makes `scrollTop = 0` vacuous.
   it("scrolls to the bottom on mount instead of defaulting to the top", async () => {
     const restore = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "scrollHeight");
     Object.defineProperty(HTMLElement.prototype, "scrollHeight", { configurable: true, value: 5_000 });

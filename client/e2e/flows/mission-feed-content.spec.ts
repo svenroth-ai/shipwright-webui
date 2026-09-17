@@ -163,7 +163,12 @@ test.describe("Mission activity feed — real content through the real chain", (
 
     const feed = await openTaskMission(page, taskId);
     const testCard = feed.locator('[data-kind="test"]');
-    await expect(testCard).toContainText("needs attention");
+    // No invented "needs attention" sentence any more (pre-existing staleness,
+    // predates iterate-2026-09-16-mission-feed-render-fidelity — the generic
+    // sentence was removed in iterate-2026-09-05-mission-feed-ux-gaps;
+    // `resolveToolResults`'s own doc comment: "card.text stays whatever it
+    // was set to at creation"). The real signal is the pill plus the raw
+    // excerpt, both still asserted below.
     await expect(testCard).toContainText("FAIL src/auth.test.ts");
     await expect(testCard).toContainText("expect(received).toEqual(expected)");
     await expect(testCard.locator(".mc-feed-pill")).toBeVisible();

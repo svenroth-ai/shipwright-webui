@@ -38,14 +38,6 @@
 .mc-hero:focus-visible { outline: none; box-shadow: var(--focus); }
 .mc-hero-line { white-space: pre-wrap; word-break: break-word; }
 
-/* A COMPLETED run shows its verdict AND its story (FR-01.68 AC10). The stack
-   takes the middle slot and never scrolls itself — each card keeps its own
-   internal `.mc-hero` scroller, so DO-NOT #24 does not apply here. The verdict
-   sizes to content; the story takes the remaining height. */
-.mc-op-stack { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
-.mc-op-stack > .mc-op:first-child { flex: 0 0 auto; }
-.mc-op-stack > .mc-op:last-child { flex: 1 1 auto; min-height: 0; }
-
 /* ── the told story (FR-01.68) ─────────────────────────────────────────────
    PROSE, not a log. The `.mc-hero` shell keeps its scroll + keyline, but the
    type switches from mono to the reading face: this is meant for someone who
@@ -94,7 +86,21 @@
 .mc-feed-node svg { width: 15px; height: 15px; }
 .mc-feed-node[data-dashed="true"] { border-style: dashed; }
 .mc-feed-card { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: color-mix(in srgb, var(--card) 88%, transparent); font-size: 13px; line-height: 1.5; color: var(--body); }
-.mc-feed-card p { margin: 0 0 7px; }.mc-feed-card p:last-child { margin-bottom: 0; }
+/* `overflow-wrap: anywhere` — 45th-round external review catch (glm, low):
+   the synthesized blocker headline renders as a LITERAL `<p>` (textLiteral),
+   outside MarkdownChunk's own wrapping, and `summarizeBlockerError` can hand
+   it a 200-char unbroken path/hash that would then overflow the card. Set on
+   the shared `p` rule so the markdown path inherits the same guarantee.
+   (Same round: `.mc-op-stack`'s removal was confirmed by a repo-wide search —
+   zero references remain in client/src, client/e2e or server.)
+   58th-round catch (glm, low, regression), DECLINED: glm reads `anywhere` as
+   breaking ordinary prose mid-word and suggests `break-word` on the shared
+   rule. In normal flow the two break IDENTICALLY — neither splits a word that
+   fits. They differ in MIN-CONTENT contribution, and only `anywhere` shrinks
+   it, which is exactly the property the 45th round needed: the feed card is a
+   flex/grid item, so under `break-word` a 200-char unbroken path still forces
+   the card wider than its track. Swapping it would re-open that overflow. */
+.mc-feed-card p { margin: 0 0 7px; overflow-wrap: anywhere; }.mc-feed-card p:last-child { margin-bottom: 0; }
 .mc-feed-card b, .mc-feed-card strong { color: var(--ink); font-weight: 600; }
 .mc-feed-card code { font-family: var(--mono); font-size: .92em; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--accent); }
 .mc-feed-card[data-kind="system"] { border-style: dashed; background: transparent; color: var(--faint); font-size: 12px; }
@@ -113,6 +119,11 @@
 .mc-feed-chip svg { width: 11px; height: 11px; flex-shrink: 0; }
 .mc-feed-code { margin-top: 9px; border: 1px solid var(--err-line); background: var(--err-tint); border-radius: 8px; overflow: hidden; }
 .mc-feed-code pre { margin: 0; padding: 9px 11px; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; color: var(--err); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+/* A blocker's collapsed-by-default "Show details" toggle (iterate-2026-09-
+   16-mission-feed-render-fidelity) — same reset as `.mc-feed-expand-btn`,
+   colored into the err family and padded to match `.mc-feed-code pre` so
+   the collapsed state reads as one coherent block, not a stray link. */
+.mc-feed-code-toggle { color: var(--err); padding: 9px 11px; margin-top: 0; }
 .mc-feed-qa-question { margin-top: 9px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .mc-feed-qa-options { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .mc-feed-qa-opt { font-size: 12.5px; padding: 5px 11px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .02); }
@@ -120,11 +131,19 @@
 .mc-feed-qa-opt svg { width: 11px; height: 11px; }
 .mc-feed-qa-answer { margin-top: 9px; font-size: 12.5px; color: var(--body); }
 /* iterate-2026-08-25-mission-feed-progress-narration — identical to
-   .mc-feed-qa-answer above (margin-top/font-size/color), plus pre-wrap so
-   a turn's own multi-line explanation keeps its real line breaks. Kept as
-   its own rule rather than editing .mc-feed-qa-answer so that class's
-   existing, already-shipped rendering stays byte-for-byte untouched. */
-.mc-feed-explanation { margin-top: 9px; font-size: 12.5px; color: var(--body); white-space: pre-wrap; }
+   .mc-feed-qa-answer above (margin-top/font-size/color). Kept as its own
+   rule rather than editing .mc-feed-qa-answer so that class's existing,
+   already-shipped rendering stays byte-for-byte untouched. `white-space:
+   pre-wrap` was removed (iterate-2026-09-16-mission-feed-render-fidelity):
+   this now renders through MarkdownChunk, which owns its own line-break/
+   paragraph structure — a `pre-wrap` ancestor would double up on it. */
+/* `overflow-x: auto` + `min-width: 0` because this slot now renders FULL
+   markdown (iterate-2026-09-16-mission-feed-render-fidelity routed
+   `card.explanation` through MarkdownChunk), so a GFM table or a long fenced
+   line can be wider than the card — 42nd-round external review catch (glm,
+   low). It scrolls inside the slot instead of stretching the whole card,
+   which would push the feed's own horizontal scrollbar onto every entry. */
+.mc-feed-explanation { margin-top: 9px; font-size: 12.5px; color: var(--body); min-width: 0; overflow-x: auto; }
 .mc-feed-qa-cta { margin-top: 9px; }
 .mc-feed-pr { margin-top: 9px; border: 1px solid var(--accent-line); background: var(--accent-tint); border-radius: 9px; padding: 9px 11px; display: flex; align-items: center; gap: 10px; }
 .mc-feed-pr-icon { width: 28px; height: 28px; border-radius: 50%; background: rgba(95, 201, 180, .18); display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }

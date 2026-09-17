@@ -154,15 +154,33 @@ describe("context-driven artifact rail", () => {
     expect(screen.getByTestId("artifact-link-requirement")).toBeInTheDocument();
   });
 
-  it.each(["done", "launch_failed"] as const)("keeps the resolved terminal OperationCard for %s when the legacy run join has not caught up", (state) => {
+  it.each(["done", "launch_failed"] as const)("still renders the activity feed for a terminal %s task when the legacy run join has not caught up", (state) => {
+    // The completed-run verdict/proof header (`mission-completed-stack`) was
+    // removed this iterate: a terminal task renders the same feed as a live one.
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
-    contextMock.mockReturnValue({ data: context({ runLive: false }) });
+    // 36th-round catch (glm, medium), DECLINED as stated: its premise ("a
+    // COMPLETED run with an empty transcript renders an empty middle panel")
+    // is false — THIS test already passes `transcriptContent=""` for a
+    // terminal task, and `deriveActivityFeed` RECONCILES MissionContext
+    // artifacts into cards when the transcript contributes none. Only the
+    // gate VERDICT was unpinned, so it and its always-paired `tests` artifact
+    // (one `toMissionTests` over one `work_completed`) are added here.
+    contextMock.mockReturnValue({ data: context({
+      runLive: false,
+      tests: { passed: 0, total: 3, skipped: 0, gate: "fail" },
+      artifacts: [...context().artifacts, { kind: "tests", label: "Tests", state: "available", summary: null, receipt: null, detail: null }],
+    }) });
     render(<MissionBody task={{ ...TASK, state } as ExternalTask} transcriptContent="" onOpenDocument={vi.fn()} />);
-    expect(screen.getByTestId("mission-completed-stack")).toBeInTheDocument();
-    // The live placeholder and the resolved card deliberately share the test
-    // hook; the completed stack must contain the resolved one.
-    expect(screen.getAllByTestId("operation-card")).toHaveLength(2);
+    expect(screen.queryByTestId("mission-completed-stack")).not.toBeInTheDocument();
+    expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
+    expect(screen.getByText("Tests have a recorded failing result.")).toBeInTheDocument();
+    // 30th-round catch (glm, low): the container existing is not proof of
+    // content. 36th-round catch (glm, low, test): READ the string off the
+    // fixture, so a fixture edit fails loudly instead of quietly weakening it.
+    const specSummary = context().artifacts.find((artifact) => artifact.kind === "spec")?.summary;
+    expect(specSummary).toBeTruthy();
+    expect(screen.getByText(specSummary as string)).toBeInTheDocument();
   });
 
   it("HIDES an artifact that does not exist yet (hide-empty)", () => {

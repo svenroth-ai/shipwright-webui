@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-16-mission-feed-render-fidelity",
+  "date": "2026-09-17",
+  "section": "Iterate — change: Mission activity feed render fidelity",
+  "title": "Mission feed plain-language rendering + TDD gate-stamp exclusion",
+  "context": "Mission tab feed showed a redundant completed-run header, always-expanded raw command chips, un-rendered markdown, blocker cards with no plain explanation, and stamped a freshly-written test's own first run with the run-wide Passing/Failing gate.",
+  "decision": "Remove the completed-run header strip; collapse command chips behind an N-commands toggle; route card text/explanation through the existing safe markdown renderer; derive a plain-language blocker headline with raw output behind a collapsed disclosure; exclude TDD authoring runs (first run of a just-written test file, bounded 6-call window) from the run-wide gate stamp.",
+  "consequences": "Reducer split across focused modules (classify/authoringTrack/testPaths/authoringRollback/text/types), each at or under the 300-line convention; full client suite green (4263 tests), tsc clean; no server/API/schema surface touched.",
+  "rationale": "Independently re-verified this session: architecture is a clean layered pipeline (deriveActivityFeed -> resolveToolResults -> reconcileArtifactCards), every edge-case branch traced/tested, two remaining external-review re-raises (authoring window bound, monorepo path suffix bridge) are verbatim repeats of already-declined, test-pinned decisions.",
+  "rejected": "A distinct neutral 'authoring' pill (glm's alternative) was rejected as inventing vocabulary the reported problem never asked for.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

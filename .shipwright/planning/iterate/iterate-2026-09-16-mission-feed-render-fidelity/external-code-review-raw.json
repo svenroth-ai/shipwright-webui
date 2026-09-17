@@ -1,0 +1,33 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/lib/missionActivityFeedAuthoringTrack.ts:253\n- Finding: A \u201cfreshly-written test file\u201d remains eligible for six subsequent tool calls, so a later targeted verification run can be marked `authoringRun` and lose its Passing/Failing treatment despite not being the first run immediately after authoring. For example: write `foo.test.ts`, perform several unrelated edits/reads, then run `vitest foo.test.ts`.\n- Suggestion: Restrict the exemption to the immediate TDD sequence more tightly (for example, consume/clear it on unrelated mutating work), or otherwise require direct adjacency as specified.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedTestPaths.ts:65\n- Finding: `sameTestFilePath` suffix-matches any absolute write path to a bare relative test target. In a monorepo, writing `/repo/packages/api/src/foo.test.ts` and then running root-level `src/foo.test.ts` incorrectly matches, suppressing the real verification card\u2019s gate status.\n- Suggestion: Thread the shell working directory/project root into path resolution, then compare canonical paths. Until that is available, avoid treating ambiguous bare relative suffixes as the same file.\n\nOverall assessment: ship-with-fixes. The UI requirements are otherwise implemented, but the authoring-run exemption can suppress legitimate verification status in concrete workflows.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "I reviewed the diff against the five requirements and looked hard for correctness, security, and test-quality defects across the reducer, renderer, and shell-parsing modules. This change has visibly been through many review rounds, and nearly every issue class I probed (failed-write rollback orderings, quote/`cd` shell parsing, `commandCount` vs deduped labels, `textLiteral` gating, synthesized gate cards, state reset on disclosure close, remount-on-kind-change) is either fixed or explicitly pinned as a recorded decision with a falsifying test.\n\nFindings:\n\n- Category: edge-case\n- Severity: low\n- File: `client/src/lib/missionActivityFeedAuthoringRollback.ts` \u2014 `unstampAuthoringRun`, merge branch (the `state.cards.splice` / `failedTestCards.delete(recovered)` lines)\n- Finding: when the un-stamped card is merged into `unresolvedTest` and spliced out of `cards`/`testCards`, the spliced card itself is not removed from `state.failedTestCards` (or from `authoringConsumedBy` values / `restoreValidationPending`). The in-file trace argues no card can re-enter this function, and the sets die with the derivation, so this is inert today \u2014 but it is the exact \"detached card referenced by resolver state\" hazard the 40th/43rd rounds were policing, left half-guarded on the merged-away side.\n- Suggestion: add `state.failedTestCards.delete(card)` next to the two `splice` calls (defence-in-depth, two lines, no reachable behavior change), or extend the existing comment to say the merged-away card is deliberately left in the set.\n\n- Category: test\n- Severity: low\n- File: `client/src/components/external/mission/MissionActivityFeed.test.tsx` \u2014 \"remounts a card that changes kind\" test\n- Finding: the test's guarantee depends entirely on the entry `key` in `MissionActivityFeed.tsx` leading with `card.kind`, which is outside this diff. The test does falsify a regression, so this is sound, but the contract lives cross-file with no in-source marker at the key itself (the comment lives only in the test and in `FeedCard`'s state comment).\n- Suggestion: a one-line comment at the `key={...}` site in `MissionActivityFeed.tsx` noting that kind-first ordering is load-bearing for `detailExpanded` reset would make the coupling visible where a future edit would happen.\n\nSpec compliance: all five requirements are implemented and test-pinned \u2014 (1) the completed-run `OperationCard`/`mission-completed-stack` mount is removed unconditionally with the designgate surface untouched; (2) `FeedCommands` collapses behind an \"N commands\" toggle for every count including 1; (3) `card.text`/`card.explanation` route through `MarkdownChunk` with the `textLiteral` exception exactly as scoped; (4) the blocker derives a plain-language headline via `summarizeBlockerError` with the raw output/command behind a collapsed disclosure; (5) authoring runs are excluded from the gate stamp at both the resolve and reconcile levels, including the failing-red-step and failed-write-rollback cases. Security posture is preserved: synthesized text renders as React text children, raw output in `<pre>`, markdown only through the sanitized pipeline, with inertness tests carried over.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

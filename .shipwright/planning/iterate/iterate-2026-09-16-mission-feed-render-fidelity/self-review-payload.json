@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All five reported UX gaps addressed: header strip removed (MissionBody.tsx no longer mounts OperationCard/mc-op-stack), commands collapsed by default (MissionActivityFeedCommands.tsx), card.text/explanation render through MarkdownChunk, blocker card shows a derived one-line explanation with raw traceback collapsed behind Show details, and TDD authoring runs (test run immediately after writing the same test file) are excluded from the run-wide gate stamp."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "Purely client-side reducer/render change; no new I/O or API boundaries. summarizeBlockerError() falls back to a generic sentence when the command output has no usable line, tested explicitly."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "card.explanation now renders through the same sanitized MarkdownChunk path already used for card.text/question.text (DO-NOT #4) — no dangerouslySetInnerHTML introduced; no user input reaches an unescaped sink."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New/updated unit tests assert on rendered DOM outcome (toggle collapse/expand, markdown table element, blocker text derivation, gate-stamp exclusion) not internal state; each behavior change has both a happy-path and a boundary case (e.g. blocker fallback with no usable output line)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "n/a",
+      "note": "No new loops over unbounded data; command list rendering was already bounded by the existing feed coalescing."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "The bloat gate caught missionActivityFeed.ts (313 lines) and MissionActivityFeed.test.tsx (301 lines) crossing the 300-line convention. Fixed by real extraction, not line-merging: classifyToolBucket() moved to missionActivityFeedClassify.ts (already houses classification logic) and clearMultiTurnExplanations() moved to missionActivityFeedReconcile.ts (already does post-loop card cleanup); the test file's three new comments were condensed to one line each. missionActivityFeed.ts is now 294 lines, the test file 298."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized/on-disk format changed — ActivityCard is an in-memory reducer output only, never persisted or read back."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reported no findings against the working-tree changes."
+    }
+  ]
+}

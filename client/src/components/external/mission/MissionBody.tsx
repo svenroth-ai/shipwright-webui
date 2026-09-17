@@ -11,10 +11,14 @@
  *
  * ONE derivation for the whole cluster: `useMissionLive` composes the transcript
  * summary (fed the SAME `useTaskTranscript` poll from TaskDetailPage — no second
- * poller), the run join and the Mission state. The MIDDLE is chosen from the
- * model: a `designgate` or a COMPLETED run keeps the A12 Operation card (verdict +
- * proof); a LIVE / ad-hoc / empty session shows the live JSONL narration
- * (`OperationLive`). Read-only observer throughout (rule 1 / DO-NOT #1).
+ * poller), the run join and the Mission state. The MIDDLE is the A12 Operation
+ * card ONLY for a `designgate` (a decision surface, not a story) — every other
+ * state (live or completed) shows the activity feed directly, with no separate
+ * verdict/proof header above it (Sven: the run-id/"suite green" strip above the
+ * feed read as redundant clutter, iterate-2026-09-16-mission-feed-render-
+ * fidelity — removed rather than conditionally hidden, since a genuinely red
+ * gate already surfaces through the feed's own blocker/test cards). Read-only
+ * observer throughout (rule 1 / DO-NOT #1).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -176,20 +180,20 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   }, [compactPanel, detailAvailable]);
 
   // A DESIGN GATE keeps the A12 Operation card outright — it is a decision
-  // surface, not a story.
-  //
-  // A COMPLETED run keeps its verdict + proof AND gains the narrative below it
-  // (FR-01.68 AC10): a run should read the same before and after it finishes,
-  // only more complete. The transcript is still on disk and `useTaskTranscript`
-  // is ungated, so both states drive the SAME derivation and cannot diverge.
+  // surface, not a story. Every other state (live or completed) shows the
+  // activity feed directly — see this component's own doc comment for why
+  // the completed-run verdict/proof header was removed rather than kept
+  // conditionally. 69th (glm, low, regression), FLAGGED-not-fixed by glm's own
+  // reading: a terminal iterate whose legacy run join has not caught up now
+  // gets the feed where it used to get the resolved `OperationCard`, and the
+  // `mission-completed-stack` testid is gone for any downstream consumer. Both
+  // are exactly what requirement 1 asked for ("removed rather than
+  // conditionally hidden"), and the reconciled gate summary card carries the
+  // verdict the header used to. Pinned in `MissionBody.context.test.tsx`.
+  // Re-raised 78-81 (glm, low), each time answering itself "spec-sanctioned
+  // and pinned by tests; only relevant to an OUT-OF-REPO consumer". A repo-wide
+  // search for the testid returns the two rewritten tests and nothing else.
   const isDesignGate = model.missionState === "designgate";
-  // The iterate resolver owns terminal artifacts. Its merged-event fallback can
-  // be complete before the legacy local run-detail reader catches up, so never
-  // let that independent join hide the resolved centre card.
-  const taskTerminal = task.state === "done" || task.state === "launch_failed";
-  const completed = model.mode === "completed" || (
-    context?.scenario === "iterate" && taskTerminal && context.runLive === false
-  );
 
   return (
     // `flex flex-col` (not a bare block) is load-bearing: `.mc-body` is
@@ -235,13 +239,16 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           hidden={compact && compactPanel !== "activity"}
           data-testid="mission-panel-activity"
         >
+          {/* 36th-round external review catch (glm, medium), DECLINED: a
+              COMPLETED run with a missing/empty transcript does NOT render an
+              empty panel here. `reconcileArtifactCards` synthesizes the
+              recorded gate verdict + artifact cards from MissionContext when
+              the transcript contributes none, so the verdict the removed
+              `OperationCard` used to carry still reaches the user. Pinned by
+              two tests in `MissionBody.context.test.tsx` that both pass
+              `transcriptContent=""` for a terminal task. */}
           {isDesignGate ? (
             <OperationCard task={task} context={context} />
-          ) : completed ? (
-            <div className="mc-op-stack" data-testid="mission-completed-stack">
-              <OperationCard task={task} context={context} />
-              <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
-            </div>
           ) : (
             <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
           )}

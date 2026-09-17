@@ -1,0 +1,59 @@
+{
+  "run_id": "iterate-2026-09-16-mission-feed-render-fidelity",
+  "date": "2026-09-17T04:39:33.489005Z",
+  "event_at": "2026-09-17T04:39:03.560694+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/mission-feed-render-fidelity",
+  "spec": ".shipwright/planning/iterate/iterate-2026-09-16-mission-feed-render-fidelity/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-16-mission-feed-render-fidelity",
+  "declared_removals": [],
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    },
+    "behaviors": [
+      {
+        "behavior": "Mission activity feed: the redundant completed-run header strip no longer renders",
+        "disposition": "tested",
+        "evidence": "MissionBody.test.tsx, MissionBody.context.test.tsx"
+      },
+      {
+        "behavior": "Mission activity feed: tool-call commands collapse behind an \"N commands\" toggle by default, for every command count including 1",
+        "disposition": "tested",
+        "evidence": "missionActivityFeedCommandCount.test.ts, MissionActivityFeedCard.test.tsx"
+      },
+      {
+        "behavior": "Mission activity feed: card text/explanation render through the safe markdown pipeline instead of raw source, with the textLiteral carve-out for synthesized blocker headlines",
+        "disposition": "tested",
+        "evidence": "MissionActivityFeedContentSafety.test.tsx, missionActivityFeed.explanation.test.ts"
+      },
+      {
+        "behavior": "Mission activity feed: a blocker card shows a plain-language headline derived from the command's own output, with the raw command/output behind a collapsed \"Show details\" disclosure",
+        "disposition": "tested",
+        "evidence": "MissionActivityFeedBlockerCard.test.tsx, missionActivityFeedBlockerText.test.ts"
+      },
+      {
+        "behavior": "Mission activity feed: a freshly-written test file's own first (TDD authoring) run is excluded from the run-wide Passing/Failing gate stamp, including the failing-red-step and failed-write-rollback cases, within a bounded window",
+        "disposition": "tested",
+        "evidence": "missionActivityFeedBlockerAndTdd.test.ts, missionActivityFeedAuthoringWindow.test.ts, missionActivityFeedGateSynthesis.test.ts, missionActivityFeedAuthoringRollback.test.ts, missionActivityFeedAuthoringTrack.test.ts"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 6,
+    "exit_code": 0,
+    "justification": "Scoped real-browser E2E (client/e2e/isolated-stack.mjs, real Chromium against a real dev stack) over the three Mission-feed specs most load-bearing for this diff's rendering surface (mission-feed-content.spec.ts, mission-recovery-schedule.spec.ts, mission-tests-skipped-gate.spec.ts): blocker plain-text + raw-detail disclosure, command collapse, and TDD-authoring-run gate exclusion all proven through a real browser, not just jsdom. Two pre-existing-broken specs targeting a component (OperationLive/mission-narration) that stopped mounting in an unrelated commit predating this iterate were excluded as out-of-scope rot, not regressions from this diff."
+  }
+}

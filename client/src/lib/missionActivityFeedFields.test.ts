@@ -128,7 +128,13 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(recovered?.detail).toBeUndefined();
   });
 
-  it("does not misattribute one command's error excerpt to a coalesced multi-command card (internal plan review, finding 8)", () => {
+  // Internal plan review, finding 8 — AMENDED by the 42nd-round catch (openai,
+  // medium, spec). The requirement was "one command's error excerpt must not be
+  // misattributed to a coalesced card's OTHER chips", met by withholding the
+  // excerpt entirely; openai showed that also strips requirement 4's disclosure
+  // of all raw output. The requirement is unchanged and still asserted below —
+  // now met by ATTRIBUTING the excerpt to the command that failed.
+  it("attributes one command's error excerpt to the failing chip of a coalesced multi-command card (internal plan review, finding 8)", () => {
     const events = parseSessionJsonl([
       tool("a", "Read", { file_path: "a.ts" }),
       tool("b", "Read", { file_path: "b.ts" }),
@@ -137,7 +143,15 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     const blocker = deriveActivityFeed(events, context("unknown")).cards.find((card) => card.kind === "blocker");
     expect(blocker?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
     expect(blocker?.status).toBe("err");
-    expect(blocker?.detail).toBeUndefined();
+    // 43rd-round catch (glm, low, test), FIXED: the erroring `tool_use_id` is
+    // `"a"` — asserted here so the expectation cannot drift from the fixture.
+    // 55th-round (glm, low) DECLINED as a misread: it supposed the result
+    // events sit outside the diff and might attribute the error to the SECOND
+    // tool. They are three lines up, in the same fixture: `errorResult("a", ...)`.
+    expect(blocker?.detail).toBe("Read: a.ts\nSome read error");
+    // The non-failing sibling is on the card but never named by the excerpt.
+    expect(blocker?.commands).toContain("Read: b.ts");
+    expect(blocker?.detail).not.toContain("b.ts");
   });
 
   it("never shares a test card between two distinct failing test commands (external review catch, verified non-issue)", () => {
@@ -221,6 +235,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     const events = parseSessionJsonl(tool("review", "Task", { description: "Review the change" })).events;
     expect(deriveActivityFeed(events, reviewContext).cards.find((card) => card.kind === "review")?.status).toBe("ok");
   });
+
 });
 
 describe("explanationExcerpt (iterate-2026-08-25-mission-feed-progress-narration)", () => {
