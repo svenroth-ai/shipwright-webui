@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { FieldLabel } from "./FieldLabel";
 import { isModelOverrideField } from "./modelTierOverrideSchema";
+import type { RuntimeValue } from "../RuntimeToggle";
 
 type OverrideParameterName = "plan-review-model" | "review-model";
 
@@ -15,6 +16,14 @@ interface ModelTierOverrideFieldsProps {
   paramValues: Record<string, string | boolean>;
   setParamValues: Dispatch<SetStateAction<Record<string, string | boolean>>>;
   setParamEnabled: Dispatch<SetStateAction<Record<string, boolean>>>;
+  /** trg-517157fe — opus/sonnet/haiku/inherit is the Claude-only ADR-127
+   *  Agent-tier axis (--review-model/--plan-review-model); it has no
+   *  meaning for a Codex-driven task, whose own review subagents are
+   *  pinned separately (AGENTS.md's Codex operating policy). Hidden
+   *  entirely for Codex rather than shown with a value that would be
+   *  silently ignored. Defaults to Claude for callers that don't yet
+   *  carry a runtime value (e.g. pre-Codex-Light form fixtures). */
+  runtime?: RuntimeValue;
 }
 
 const ROLE_BY_PARAMETER: Record<OverrideParameterName, TierRole> = {
@@ -28,10 +37,12 @@ export function ModelTierOverrideFields({
   paramValues,
   setParamValues,
   setParamEnabled,
+  runtime,
 }: ModelTierOverrideFieldsProps) {
   const { data, isError, isLoading } = useModelTierConfig(projectId);
   const supportedFields = fields.filter(isModelOverrideField);
   const defaultStatus = projectDefaultStatus(projectId, data, isLoading, isError);
+  if (runtime === "codex") return null;
   if (supportedFields.length === 0) return null;
 
   return (
