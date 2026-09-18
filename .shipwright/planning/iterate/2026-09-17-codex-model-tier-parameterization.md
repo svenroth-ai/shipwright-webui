@@ -300,6 +300,11 @@ project-default status line pattern.
    confirmed in this session that Codex's own self-report is unreliable;
    the confirmable claim is "the flag is valid and accepted", matching what
    `-c` config overrides are designed to guarantee structurally).
+   **(b) confirmed 2026-09-18:** `codex exec -c model="gpt-5.6-luna"
+   --sandbox read-only --skip-git-repo-check --cd <scratch> "Reply with
+   exactly: OK"` against codex-cli 0.147.0 — exit 0, banner reported `model:
+   gpt-5.6-luna` (the requested override, not the AGENTS.md default
+   `gpt-5.6-terra`), reply `OK`. The flag is accepted and honored.
 3. No behavior change for a Claude-runtime task (existing
    `ModelTierOverrideFields` Claude branch, `applyActionSubstitutionBranch`,
    and `runtime-chokepoint.ts`'s Claude passthrough are all byte-identical).
@@ -337,6 +342,14 @@ project-default status line pattern.
 - **Empirical probes run:** `codex debug models` (live catalog), `codex
   --help`/`codex exec --help`/`codex review --help` (confirmed no
   per-subagent model flag exists), `~/.codex/config.toml` read (independent
-  confirmation of both pinned slugs).
-- **Test Completeness Ledger:** to be filled at Step 7.5.
+  confirmation of both pinned slugs). AC2(b) live `codex exec -c
+  model="gpt-5.6-luna"` smoke invocation, 2026-09-18 — exit 0, banner
+  confirmed the override model, see AC2 for the full command/output.
+- **Test Completeness Ledger:** server (44) + client (15) unit/component
+  tests for the touched files pass as of 2026-09-18. `client/e2e/flows/
+  runtime-toggle-codex.spec.ts` exercises the Codex runtime toggle but only
+  in the plain task-creation modal (no "more options"/parameters step, so
+  it never reaches `ModelTierOverrideFields`) — confirmed by reading it, not
+  assumed; it needs no update. No other E2E spec reaches the Implementation-
+  model select, so mini-plan step 8's "if touched" condition doesn't fire.
 - **Confidence-pattern check:** to be filled at Step 7.5.
