@@ -1,12 +1,17 @@
 # Mini-Plan — Codex model-tier parameterization
 
-**Revised twice after external review** (2026-09-17): plan review (openai
-leg, verdict `revise`) dropped the review-model override from scope;
-architecture review (openai leg, verdict `revise`) then dropped the
-reasoning-effort selector too. See the iterate spec's "Revision after
-external plan review" and "Architecture Review" sections for the full
-rationale. This plan covers the implementation-model override only — one
-value, one CLI flag.
+**Revised three times.** 2026-09-17, after external review: plan review
+(openai leg, verdict `revise`) dropped the review-model override from
+scope; architecture review (openai leg, verdict `revise`) then dropped the
+reasoning-effort selector too. 2026-09-18, after shipwright#771 shipped a
+real `codex_review`/`codex_plan_review` config axis: the four-slug closed
+catalog enum (steps 3 and 5 below) is withdrawn in favor of a free-text
+field validated by the same syntactic allowlist #771 established, and a new
+step 9 adds a read-only Reviewer Identity display sourced from #771's
+config keys. See the iterate spec's "Revision after external plan review",
+"Architecture Review", and "Revision after shipwright#771" sections for the
+full rationale — this file's steps below are updated in place, not
+duplicated.
 
 ## Chosen approach
 
@@ -51,14 +56,19 @@ constant, not server-schema-driven (see spec's client-scope decision).
    existing `q()` quoting helper) in BOTH the fresh-launch and `resume`
    branches. TDD: unit tests first, command-string assertions for
    {fresh, resume} × {override set, override unset} = 4 cases minimum.
-3. `parse-body.ts`: one new optional field, closed-enum validation (the
-   four confirmed catalog slugs).
+3. `parse-body.ts`: one new optional field. ~~Closed-enum validation (the
+   four confirmed catalog slugs).~~ **Revised 2026-09-18:** syntactic
+   allowlist (`CODEX_MODEL_SLUG_PATTERN`, mirrors shipwright#771's
+   `_CODEX_MODEL_SLUG_PATTERN` verbatim), trimmed before validating.
 4. `runtime-chokepoint.ts`: read the field off `parsed`, pass into
    `buildCodexCommands`.
-5. `ModelTierOverrideFields.tsx`: Codex branch — one select, same
-   `FieldLabel`/`"only for this session"` hint pattern; static
-   "Suggested policy (AGENTS.md) — gpt-5.6-terra" status line (not
-   "Default" — external review finding).
+5. `ModelTierOverrideFields.tsx`: Codex branch. ~~One select, same
+   `FieldLabel`/`"only for this session"` hint pattern.~~ **Revised
+   2026-09-18:** a free-text `<input>`, same `FieldLabel`/hint pattern,
+   placeholder "Suggested policy (AGENTS.md) — gpt-5.6-terra" (not
+   "Default" — external review finding), plus a best-effort inline warning
+   (non-blocking; server is the real gate) when the typed value doesn't
+   match the client-mirrored pattern.
 6. Wire the new field into the launch POST body per step 1's trace.
    Integration test: runtime toggle → selected value → launch request body
    → parsed launch value → resulting Codex command — the exact chain the
@@ -72,8 +82,29 @@ constant, not server-schema-driven (see spec's client-scope decision).
    "the model self-identifies correctly".
 8. Full test suite; E2E spec update if `NewIssueModal`'s E2E coverage
    touches the Codex runtime toggle.
+9. **(added 2026-09-18, post-#771 — AC5)** `model-tier-config-reader.ts`:
+   extend to read `codex_review`/`codex_plan_review` (non-empty string
+   after trim, same fail-soft/invalid-value-tolerant posture as the
+   existing Claude-tier roles; independently — one bad key must not blank
+   a good sibling key or any Claude tier). Widen `ModelTier`/`VALID_TIERS`
+   to accept `fable` (DO-NOT #7 mirror fix for #771's Claude-tier
+   addition). `ModelTierOverrideFields.tsx`: second, read-only block in the
+   Codex branch showing both values (or an honest "not configured" status)
+   — no `<input>`/`<select>`, matching "Framework config is never mutated
+   here" (`external/model-config/routes.ts`). TDD: reader unit tests first,
+   then the component test.
 
 ## Alternative considered — Option B: server-side live catalog endpoint
+
+**Superseded 2026-09-18:** the premise this rejection argued from (a
+hardcoded four-slug enum vs. a live-catalog-serving endpoint) no longer
+applies — the enum itself was withdrawn in favor of a syntactic allowlist,
+so there is no longer a catalog to keep in sync either way. Kept below for
+the historical record of why a catalog-serving endpoint wasn't built; the
+same reasoning (scope, new route/hook/readiness-guard/caching policy) would
+apply equally to an *autocomplete-suggestion* endpoint if one were proposed
+later, which is why that's called out explicitly as still out of scope in
+the revised Non-goals.
 
 Add a small `GET /api/external/codex-model-catalog` route that shells out to
 `codex debug models` (or caches its result) and serves the confirmed

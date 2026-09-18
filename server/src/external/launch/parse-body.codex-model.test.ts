@@ -1,6 +1,9 @@
 /*
  * parse-body.codex-model.test.ts —
- * iterate-2026-09-17-codex-model-tier-parameterization.
+ * iterate-2026-09-17-codex-model-tier-parameterization, revised 2026-09-18
+ * after shipwright#771: the closed-enum catalog check was withdrawn in
+ * favor of the same syntactic-allowlist posture #771 established for
+ * `codex_review`/`codex_plan_review` (no live-catalog dependency).
  *
  * parseLaunchBody had no dedicated unit test file (only exercised
  * indirectly via routes.launch-resume-autonomy.test.ts); a small standalone
@@ -36,9 +39,24 @@ describe("parseLaunchBody — codexImplementationModel", () => {
     }
   });
 
-  it("a confirmed catalog slug parses through", () => {
+  it.each([
+    "gpt-5.6-luna",
+    "gpt-5.6-terra",
+    "gpt-5-codex",
+    "a",
+    "custom_model-v2.1",
+    "A".repeat(64),
+  ])("a syntactically valid slug %s parses through", (slug) => {
+    const result = parseLaunchBody({ codexImplementationModel: slug }, makeTask());
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.codexImplementationModel).toBe(slug);
+    }
+  });
+
+  it("trims incidental whitespace before validating and storing", () => {
     const result = parseLaunchBody(
-      { codexImplementationModel: "gpt-5.6-luna" },
+      { codexImplementationModel: "  gpt-5.6-luna  " },
       makeTask(),
     );
     expect("error" in result).toBe(false);
@@ -47,11 +65,18 @@ describe("parseLaunchBody — codexImplementationModel", () => {
     }
   });
 
-  it("an unrecognized slug fails closed with 400, never silently dropped", () => {
-    const result = parseLaunchBody(
-      { codexImplementationModel: "gpt-9-nonexistent" },
-      makeTask(),
-    );
+  it.each([
+    ["", "empty string"],
+    [".leading-dot", "leading dot (must start alnum)"],
+    ["-leading-dash", "leading dash (must start alnum)"],
+    ["has space", "embedded space"],
+    ["has/slash", "embedded slash"],
+    ["has;semicolon", "shell metacharacter"],
+    ['a";x="y', 'embedded double-quote (the -c model="<slug>" boundary char)'],
+    ["a\\x", "embedded backslash"],
+    ["A".repeat(65), "over the 64-char cap"],
+  ])("rejects %s (%s) with 400, never silently dropped", (slug) => {
+    const result = parseLaunchBody({ codexImplementationModel: slug }, makeTask());
     expect("error" in result).toBe(true);
     if ("error" in result) {
       expect(result.status).toBe(400);
@@ -60,10 +85,7 @@ describe("parseLaunchBody — codexImplementationModel", () => {
   });
 
   it("a non-string value fails closed with 400", () => {
-    const result = parseLaunchBody(
-      { codexImplementationModel: 42 },
-      makeTask(),
-    );
+    const result = parseLaunchBody({ codexImplementationModel: 42 }, makeTask());
     expect("error" in result).toBe(true);
     if ("error" in result) {
       expect(result.status).toBe(400);

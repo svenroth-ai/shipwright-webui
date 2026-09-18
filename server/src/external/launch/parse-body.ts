@@ -8,20 +8,19 @@ import { PARAM_NAME_PATTERN } from "../../types/action-schema.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
 
 /**
- * iterate-2026-09-17-codex-model-tier-parameterization — the confirmed,
- * user-selectable ("visibility":"list") Codex model catalog, read live via
- * `codex debug models` against codex-cli 0.147.0. Not schema-driven (see the
- * iterate spec's client-scope decision: no live-catalog-serving endpoint
- * exists today) — a closed, hand-maintained enum, same posture as any other
- * fixed CLI vocabulary this file already validates.
+ * iterate-2026-09-17-codex-model-tier-parameterization, revised
+ * 2026-09-18 after shipwright#771 — a closed, hand-maintained catalog enum
+ * was withdrawn in favor of the same posture shipwright's own
+ * `codex_review`/`codex_plan_review` config axis uses
+ * (`shared/scripts/lib/codex_review_transport.py`'s
+ * `_CODEX_MODEL_SLUG_PATTERN`): an unconditional SYNTACTIC allowlist, never
+ * a live-catalog-pinned enum. #771's own architecture review rejected
+ * catalog validation outright — "a standing dependency on an undocumented,
+ * already-shifting CLI subcommand ... not worth it" — the exact dependency
+ * `CODEX_IMPLEMENTATION_MODELS` (the withdrawn enum) had. Pattern mirrored
+ * verbatim so both repos reject/accept the same slug shapes.
  */
-export const CODEX_IMPLEMENTATION_MODELS = [
-  "gpt-5.6-sol",
-  "gpt-5.6-terra",
-  "gpt-5.6-luna",
-  "gpt-5.5",
-] as const;
-export type CodexImplementationModel = (typeof CODEX_IMPLEMENTATION_MODELS)[number];
+export const CODEX_MODEL_SLUG_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
 export interface ParsedLaunchBody {
   resume: boolean;
@@ -53,7 +52,7 @@ export interface ParsedLaunchBody {
    *  session" posture as Claude's review-model/plan-review-model. Deliberately
    *  NOT routed through `userParams`/the action-schema `parameters` pipeline
    *  — see the iterate spec's server-scope decision for why. */
-  codexImplementationModel: CodexImplementationModel | undefined;
+  codexImplementationModel: string | undefined;
 }
 
 /**
@@ -171,26 +170,33 @@ export function parseLaunchBody(
     }
   }
 
-  // iterate-2026-09-17-codex-model-tier-parameterization — closed-enum
-  // check against the confirmed catalog; an unrecognized value fails
+  // iterate-2026-09-17-codex-model-tier-parameterization, revised for
+  // shipwright#771 — syntactic allowlist, not a catalog enum; trimmed first
+  // so an incidental leading/trailing space from a free-text field doesn't
+  // fail a slug that would otherwise match. An unrecognized shape fails
   // closed (400), never silently dropped or coerced to undefined.
-  let codexImplementationModel: CodexImplementationModel | undefined;
+  // Deliberately unconditional on task.runtime: a value irrelevant to a
+  // Claude-runtime task (runtime-chokepoint.ts never reads it for one) is
+  // still malformed-input-rejected rather than silently accepted, same
+  // fail-closed posture as every other field this function validates.
+  // Today's only caller (useNewIssueFormSubmit.ts) already gates on
+  // runtime === "codex" before ever setting this field.
+  let codexImplementationModel: string | undefined;
   if (body.codexImplementationModel !== undefined) {
-    if (
-      typeof body.codexImplementationModel !== "string" ||
-      !CODEX_IMPLEMENTATION_MODELS.includes(
-        body.codexImplementationModel as CodexImplementationModel,
-      )
-    ) {
+    const trimmed =
+      typeof body.codexImplementationModel === "string"
+        ? body.codexImplementationModel.trim()
+        : "";
+    if (!CODEX_MODEL_SLUG_PATTERN.test(trimmed)) {
       return {
         error: {
           error: "invalid_codex_implementation_model",
-          detail: `must be one of: ${CODEX_IMPLEMENTATION_MODELS.join(", ")}`,
+          detail: `must match ${CODEX_MODEL_SLUG_PATTERN.source}`,
         },
         status: 400,
       };
     }
-    codexImplementationModel = body.codexImplementationModel as CodexImplementationModel;
+    codexImplementationModel = trimmed;
   }
 
   return {

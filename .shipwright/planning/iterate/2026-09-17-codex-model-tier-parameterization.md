@@ -116,6 +116,65 @@ existing "with high reasoning" guidance) is untouched. All references to a
 reasoning-effort cut. Two independent review passes, two independent scope
 reductions, same session — both applied before any code was written.
 
+## Revision after shipwright#771 (2026-09-18)
+
+shipwright#771 (`iterate-2026-09-18-codex-review-tier-config`, merged same
+day) shipped a real, structured Codex-reviewer-identity axis
+(`codex_review`/`codex_plan_review` keys in `shipwright_model_config.json`,
+plus a `--codex-model` CLI flag on `review_via_codex.py`), superseding two
+premises this iterate's original design rested on:
+
+- **The closed-enum catalog decision (Design Question 1) is withdrawn.**
+  #771's own architecture review rejected pinning Codex's live model
+  catalog outright — "a standing dependency on an undocumented,
+  already-shifting CLI subcommand ... not worth it" — and validates instead
+  with an unconditional **syntactic allowlist**
+  (`_CODEX_MODEL_SLUG_PATTERN = r"\A[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z"` in
+  `shared/scripts/lib/codex_review_transport.py`). Sven, 2026-09-18: "ich
+  möchte nicht die fixierten enums einbauen ... sondern das sauber mit dem
+  771 verdrahten." The four-slug `CODEX_IMPLEMENTATION_MODELS` enum (both
+  server and client copies) is replaced by a free-text field validated
+  server-side by the identical pattern (`CODEX_MODEL_SLUG_PATTERN` in
+  `parse-body.ts`) — same posture, same failure mode avoided, applied to
+  the implementation-model axis this iterate already owns.
+- **The review-model axis gets a real, honest answer.** The original HIGH
+  finding (see "Revision after external plan review" above) stands
+  unchanged — there is still no live signal to verify a Codex-CLI
+  subagent honored a requested model, so this iterate still does NOT ship
+  a review-model *override*. #771 gives webui something better than a
+  guess, though: a real, persistent, project-level config value to
+  **display read-only** — exactly the fallback the original review
+  suggested and Non-goals already reserved. `ModelTierOverrideFields`'s
+  Codex branch gains a second, non-interactive block showing whatever
+  `codex_review`/`codex_plan_review` the project's config currently
+  carries, sourced via `model-tier-config-reader.ts` (extended, not
+  forked — same file, same read-only posture, same worktree-aware
+  resolution Claude's four tiers already use). Not editable from webui
+  (`external/model-config/routes.ts`: "Framework config is never mutated
+  here"; CLAUDE.md rule 12/DO-NOT #12 posture).
+- **Two axes, two mechanisms — confirmed still independent, not merged.**
+  Implementation model is a live, ephemeral, per-launch `-c model=` CLI
+  override webui itself builds and passes at launch time (`launcher-codex.ts`
+  /`runtime-chokepoint.ts` — unchanged by this revision). Reviewer identity
+  is a persistent project-config value read by `review_via_codex.py`, a
+  script webui never invokes (Architecture rule 1) — webui's only possible
+  role there is the read-only display added here. No shared code, no
+  merge conflict between this branch and #771; confirmed by re-reading
+  #771's actual diff (`shared/scripts/lib/model_tier_config.py`,
+  `shared/schemas/model_config.schema.json`) rather than assumed from the
+  PR summary alone — the schema's own `codex_review` example value is
+  `gpt-5.6-sol`, matching this iterate's independently-confirmed live
+  catalog, not the `gpt-5-codex` placeholder the summary text used.
+- **`fable` added to the Claude tier axis.** #771 also added `fable` to
+  `lib.model_tier_config.TIERS` (unranked, like `inherit`). `VALID_TIERS`/
+  `ModelTier` in `model-tier-config-reader.ts` is a verbatim mirror
+  (DO-NOT #7) and is updated to match, so a project config with
+  `"review": "fable"` no longer misreports as `model_config_invalid`.
+  Nothing else in this iterate's scope depends on `fable` — the Claude
+  `<select>` enum itself is server-action-schema-driven
+  (`default-actions.json`), untouched here, out of scope for a
+  Codex-focused change.
+
 ## Design questions — resolved
 
 ### 1. Actual Codex model catalog (confirmed against the live CLI)
@@ -139,9 +198,13 @@ this machine independently confirms `model = "gpt-5.6-terra"` and
 `"gpt-5.6-sol" = 2` under `[tui.model_availability_nux]` (a second
 independent sighting of that slug in live config, not just AGENTS.md prose).
 
-**Enum for the new control:** the four `"visibility":"list"` slugs, mirroring
-ADR-127's closed-enum decision on the Claude side (no free-text field, per
-the spec's own Non-goal).
+**Enum for the new control:** ~~the four `"visibility":"list"` slugs,
+mirroring ADR-127's closed-enum decision on the Claude side (no free-text
+field, per the spec's own Non-goal).~~ **Superseded 2026-09-18 — see
+"Revision after shipwright#771."** The catalog table above stays as the
+empirical record of what was live on 2026-09-17 (useful context for the
+placeholder text and for spot-checking the syntactic allowlist against real
+slugs), but is no longer the validation mechanism.
 
 ### 2. One role or two — role-based, not tier-based
 
@@ -215,21 +278,37 @@ project-default status line pattern.
 ### Server (`server/src/`)
 
 - `core/launcher-codex.ts`: `CodexLaunchArgs` gains
-  `implementationModel?: string` (one of the four confirmed catalog slugs —
-  **reasoning effort dropped from scope**, see "Architecture Review" above).
-  `renderCodex` appends `-c model="<slug>"` — the value passed through the
-  existing `q()` shell-quoting helper (`shell-quote.ts`), never manually
-  interpolated. Applies identically to both the fresh-launch and `resume`
-  branches of `renderCodex` — both must be covered by the unit-test matrix
-  (AC2). Codex's own default reasoning-effort behavior per model, and
-  AGENTS.md's existing "with high reasoning" guidance, are untouched.
+  `implementationModel?: string` (a syntactically-validated free-text slug
+  as of the 2026-09-18 revision, see below — **reasoning effort dropped
+  from scope**, see "Architecture Review" above). `renderCodex` appends
+  `-c model="<slug>"` — the value passed through the existing `q()`
+  shell-quoting helper (`shell-quote.ts`), never manually interpolated.
+  Applies identically to both the fresh-launch and `resume` branches of
+  `renderCodex` — both must be covered by the unit-test matrix (AC2).
+  Codex's own default reasoning-effort behavior per model, and AGENTS.md's
+  existing "with high reasoning" guidance, are untouched.
 - `external/launch/runtime-chokepoint.ts`: reads the new override value off
   `parsed` (new `ParsedLaunchBody` field, see below) and passes it into
   `buildCodexCommands`.
 - `external/launch/parse-body.ts`: one new optional field on
-  `ParsedLaunchBody` — `codexImplementationModel: string` — validated
-  against the confirmed four-slug closed enum, same rejection posture as the
-  existing Claude tier fields (unknown value → 400, not silently dropped).
+  `ParsedLaunchBody` — `codexImplementationModel: string` — **revised
+  2026-09-18:** validated against `CODEX_MODEL_SLUG_PATTERN`, a syntactic
+  allowlist mirroring shipwright#771's `_CODEX_MODEL_SLUG_PATTERN`
+  verbatim, not the withdrawn four-slug closed enum. Same rejection
+  posture as before (unrecognized shape → 400, not silently dropped) and
+  as the existing Claude tier fields.
+- `core/model-tier-config-reader.ts` (**new, 2026-09-18**): extended (not
+  forked) to also read `codex_review`/`codex_plan_review` — non-empty
+  string after trim, no tier-enum check (matches
+  `lib.model_tier_config.load_model_config`'s own shape validation; the
+  syntactic slug allowlist is a transport-time concern in
+  `codex_review_transport.py`, not applied at read time). Result gains an
+  optional `codex?: Partial<Record<"codex_review"|"codex_plan_review",
+  string>>` field, present only when at least one key is configured — never
+  emitted as an empty object. Also widens `ModelTier`/`VALID_TIERS` to
+  include `fable` (shipwright#771's Claude-tier addition; DO-NOT #7 mirror
+  fix, see Revision section). No change to `external/model-config/routes.ts`
+  — it already forwards the reader's result verbatim.
 - **Decided (re-reading `parameter-resolver.ts` + `actions-schema-validator.ts`
   in this session):** do NOT route the Codex overrides through
   `resolveParameters()`/`default-actions.json`. That pipeline exists to
@@ -243,9 +322,11 @@ project-default status line pattern.
   Codex task (confirmed above), so plumbing through that pipeline buys
   nothing and risks this exact silent-drop failure mode.
   **Instead:** one new optional field on `ParsedLaunchBody`
-  (`codexImplementationModel`), validated by a small dedicated closed-enum
-  check (the four confirmed catalog slugs) in
-  `parse-body.ts`, read directly by `runtime-chokepoint.ts` and passed into
+  (`codexImplementationModel`), validated in `parse-body.ts` by ~~a small
+  dedicated closed-enum check (the four confirmed catalog slugs)~~
+  **superseded 2026-09-18 — see "Revision after shipwright#771": a
+  syntactic allowlist (`CODEX_MODEL_SLUG_PATTERN`), not a catalog enum**,
+  read directly by `runtime-chokepoint.ts` and passed into
   `buildCodexCommands`. No `server/src/types/` mirror entry is needed for
   this field (it's launch-body-internal, not part of the cross-package
   action-schema shape DO-NOT #7 guards) — confirm this against
@@ -253,19 +334,26 @@ project-default status line pattern.
 
 ### Client (`client/src/`)
 
-- `components/external/NewIssueModal/ModelTierOverrideFields.tsx`: add a
-  `runtime === "codex"` branch rendering one select — Implementation model
-  (the four catalog slugs) — instead of returning `null`. Reuses
-  `FieldLabel` and the `"only for this session"` hint.
-- **Decided:** since the Codex overrides are NOT part of the action-schema
-  parameters (see server decision above), `modelTierOverrideSchema.ts` is
-  untouched — Codex's enum is a small local constant (the four confirmed
-  catalog slugs) in `ModelTierOverrideFields.tsx` itself, not
-  schema-supplied. This is a deliberate, scoped exception to DO-NOT #11's
-  spirit (avoid hardcoding things the server already knows): there is no
-  live-catalog-serving endpoint today (AGENTS.md line 54 explicitly says the
-  existing project-config file is Claude-only), and building one is a
-  reasonable follow-up but out of scope here — see Mini-Plan Alternative B.
+- `components/external/NewIssueModal/ModelTierOverrideFields.tsx`: a
+  `runtime === "codex"` branch instead of returning `null` — **revised
+  2026-09-18:** now renders a free-text `<input>` (placeholder "Suggested
+  policy (AGENTS.md) — gpt-5.6-terra") with a best-effort, non-blocking
+  inline hint when the typed value doesn't match
+  `CODEX_MODEL_SLUG_PATTERN` (a client-mirrored copy of the server pattern
+  — server remains the actual gate), plus a second, read-only "Reviewer
+  Identity" block (AC5) showing `codex_review`/`codex_plan_review` from
+  `useModelTierConfig`'s response, sourced from shipwright#771's config
+  keys. Both reuse `FieldLabel` and the existing hint-text convention.
+- **Decided (original):** since the Codex overrides are NOT part of the
+  action-schema parameters (see server decision above),
+  `modelTierOverrideSchema.ts` stays untouched — the implementation-model
+  field is a plain string input, not schema-supplied. **Decided (revised
+  2026-09-18):** the four-slug catalog constant is withdrawn entirely
+  (superseding the exception this paragraph originally described) — no
+  client-side enum to keep in sync with the server at all, closing the
+  drift-risk DO-NOT #11 exists to guard against rather than carving an
+  exception to it. Building a live-catalog-serving endpoint remains a
+  reasonable but out-of-scope follow-up (Mini-Plan Alternative B).
 - **Storage decided:** reuse the existing generic `paramValues`/
   `setParamValues` props `ModelTierOverrideFields` already receives (no new
   state slice, no new prop threaded through `useNewIssueForm.ts`'s
@@ -312,25 +400,53 @@ project-default status line pattern.
    `buildCodexPrompt`'s existing hardcoded-prose / AGENTS.md-branch logic is
    completely unchanged (this iterate touches `renderCodex`'s flag
    composition only, never `buildCodexPrompt`).
+5. **(added 2026-09-18, post-#771)** Toggling Runtime to Codex shows a
+   read-only Reviewer Identity block in the same slot, reading
+   `codex_review`/`codex_plan_review` off `shipwright_model_config.json`
+   via the extended `model-tier-config-reader.ts` — verified by (a) a unit
+   test on the reader confirming both keys are parsed, trimmed, and
+   independently invalid-value-tolerant (an invalid `codex_review` does not
+   blank a valid `codex_plan_review` or any Claude tier), and (b) a
+   component test asserting the block renders the configured values when
+   present, an honest "not configured" status when absent, and contains no
+   `<input>`/`<select>` (read-only, not editable).
 
-## Non-goals (revised post-review; review-model added here, was in-scope pre-review)
+## Non-goals (revised post-review; review-model added here, was in-scope pre-review; revised again post-#771, 2026-09-18)
 
 - Runtime selection, launch mechanics, resume/lifecycle, completion
   detection.
-- A free-text/arbitrary model string field.
-- A structured per-project Codex model-config file (AGENTS.md prose stays
-  the project-level default; this change only adds a session-scoped
-  override on top of it).
-- **A review-model override control.** Dropped after external plan review:
-  confirmed empirically that no external signal exists to verify Codex's
-  internal review subagents actually honor a requested model (no `model`
-  field anywhere in `codex exec --json`'s event stream; the session's own
-  self-report of even its OWN top-level model was wrong in two different
-  ways across two live test calls). Shipping this would be an unverifiable
-  control presented as parity — the exact failure class #470 fixed.
-  AGENTS.md's existing prose guidance for review subagents is unchanged and
-  untouched by this iterate. A future iterate could revisit this if Codex
-  ever exposes an observable signal for subagent model selection.
+- ~~A free-text/arbitrary model string field.~~ **Superseded 2026-09-18** —
+  see "Revision after shipwright#771": the closed catalog enum was
+  withdrawn and the implementation-model field IS now free text, validated
+  by the same syntactic allowlist #771 established. What remains a
+  non-goal: a live-catalog-validated or catalog-*suggested* free-text field
+  (e.g. autocomplete against `codex debug models`) — plain, unassisted text
+  only.
+- A structured per-project Codex model-config file **for the
+  implementation-model axis** (AGENTS.md prose stays the project-level
+  default there; this change only adds a session-scoped override on top of
+  it). The reviewer-identity axis already HAS one — `codex_review`/
+  `codex_plan_review` in `shipwright_model_config.json`, shipped by #771 —
+  and this iterate now reads it read-only; see below.
+- **A review-model *override* control.** Dropped after external plan
+  review: confirmed empirically that no external signal exists to verify
+  Codex's internal review subagents actually honor a requested model (no
+  `model` field anywhere in `codex exec --json`'s event stream; the
+  session's own self-report of even its OWN top-level model was wrong in
+  two different ways across two live test calls). Shipping an *override*
+  control would still be unverifiable and presented as parity — the exact
+  failure class #470 fixed — **and this remains true after #771**, which
+  did not add any new observability into a running Codex session. What
+  #771 *did* add is a real, persistent, project-level config value webui
+  can honestly display — see the new read-only Reviewer Identity block
+  (AC5) below, which is a config *read*, not a verified-effect claim.
+- Editing/writing `codex_review`/`codex_plan_review` from webui. The
+  Reviewer Identity block is display-only, matching every other framework
+  config webui reads (`external/model-config/routes.ts`'s own comment:
+  "Framework config is never mutated here").
+- Surfacing shipwright#771's `fable` addition anywhere beyond the
+  `model-tier-config-reader.ts` mirror fix (see Revision section) — the
+  Claude `<select>` enum itself is action-schema-driven and untouched.
 
 ## Confidence Calibration
 
@@ -345,11 +461,34 @@ project-default status line pattern.
   confirmation of both pinned slugs). AC2(b) live `codex exec -c
   model="gpt-5.6-luna"` smoke invocation, 2026-09-18 — exit 0, banner
   confirmed the override model, see AC2 for the full command/output.
-- **Test Completeness Ledger:** server (44) + client (15) unit/component
-  tests for the touched files pass as of 2026-09-18. `client/e2e/flows/
+- **Test Completeness Ledger (updated 2026-09-18, post-#771 revision):**
+  full server suite green — 403 files / 4328 tests passed, 1 file / 13
+  tests skipped (pre-existing, unrelated) — and full client suite green —
+  471 files / 4271 tests passed, zero failures — after the enum-withdrawal
+  + reviewer-identity-display revision,
+  including the new/updated files: `parse-body.codex-model.test.ts`
+  (syntactic-allowlist matrix, valid/invalid slug shapes, whitespace
+  trimming), `model-tier-config-reader.test.ts` (+4 tests: `fable` tier,
+  codex-key read/trim, absent-codex omission, invalid-codex-value
+  isolation from Claude tiers), `NewIterateModal.codex-model.test.tsx`
+  (split out of `NewIterateModal.test.tsx`, which crossed 300 LOC —
+  free-text field + inline hint round-trip, reviewer-identity configured/
+  unconfigured states, read-only assertion, Claude-runtime round-trip).
+  `client/e2e/flows/runtime-toggle-codex.spec.ts` still needs no update
+  (confirmed by re-reading it, not assumed — same reasoning as the
+  pre-revision note below).
+- **(pre-revision note, superseded but kept for history)** server (44) +
+  client (15) unit/component tests for the touched files passed as of
+  2026-09-18 under the withdrawn closed-enum design; `client/e2e/flows/
   runtime-toggle-codex.spec.ts` exercises the Codex runtime toggle but only
   in the plain task-creation modal (no "more options"/parameters step, so
-  it never reaches `ModelTierOverrideFields`) — confirmed by reading it, not
-  assumed; it needs no update. No other E2E spec reaches the Implementation-
-  model select, so mini-plan step 8's "if touched" condition doesn't fire.
+  it never reaches `ModelTierOverrideFields`). No other E2E spec reaches
+  the Implementation-model field, so mini-plan step 8's "if touched"
+  condition doesn't fire.
 - **Confidence-pattern check:** to be filled at Step 7.5.
+- **Unrelated same-branch UI tweak (2026-09-18, ad hoc, not part of this
+  iterate's spec/AC):** `RuntimeToggle.tsx`'s generic lucide `Bot`/
+  `Terminal` icons replaced with inlined Claude/OpenAI brand marks (Simple
+  Icons, MIT license), `currentColor`-filled. Labels unchanged. Requested
+  directly by Sven mid-session; covered by the existing
+  `RuntimeToggle.test.tsx` (no icon-specific assertions to update).

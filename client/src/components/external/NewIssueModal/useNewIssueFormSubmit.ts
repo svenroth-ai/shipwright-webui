@@ -181,8 +181,10 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
         // deliberately not an action-schema parameter).
         if (input.runtime === "codex") {
           const codexModel = input.paramValues[CODEX_IMPLEMENTATION_MODEL_PARAM_KEY];
-          if (typeof codexModel === "string" && codexModel.trim().length > 0) {
-            body.codexImplementationModel = codexModel;
+          const trimmedCodexModel =
+            typeof codexModel === "string" ? codexModel.trim() : "";
+          if (trimmedCodexModel.length > 0) {
+            body.codexImplementationModel = trimmedCodexModel;
           }
         }
         const { commands } = await launchExternalTask(task.taskId, body);

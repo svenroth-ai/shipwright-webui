@@ -109,60 +109,9 @@ describe("NewIterateModal — rendering", () => {
     expect(screen.queryByTestId("model-tier-override-review-model")).toBeNull();
   });
 
-  // iterate-2026-09-17-codex-model-tier-parameterization
-  it("Runtime=Codex shows the Implementation-model select in the same slot", async () => {
-    renderModal({
-      action: {
-        ...ITERATE_ACTION,
-        parameters: ["plan-review-model", "review-model"].map((name) => ({
-          name,
-          type: "enum" as const,
-          label: `${name} override`,
-          enum: ["opus", "sonnet", "haiku", "inherit"],
-          cli_flag: `--${name}`,
-          value_separator: "space" as const,
-        })),
-      },
-    });
-    openMoreOptions();
-    fireEvent.click(screen.getByTestId("runtime-codex"));
-    const field = await screen.findByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
-    expect(field).toBeTruthy();
-    expect(field).toHaveValue("");
-    expect(screen.getByText(/Suggested policy \(AGENTS\.md\)/)).toBeTruthy();
-    const options = Array.from(field.querySelectorAll("option")).map(
-      (o) => o.getAttribute("value"),
-    );
-    expect(options).toEqual(["", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5.5"]);
-  });
-
-  it("Runtime=Claude (toggled back from Codex) shows the Claude fields again, unchanged", async () => {
-    renderModal({
-      action: {
-        ...ITERATE_ACTION,
-        parameters: ["plan-review-model", "review-model"].map((name) => ({
-          name,
-          type: "enum" as const,
-          label: `${name} override`,
-          enum: ["opus", "sonnet", "haiku", "inherit"],
-          cli_flag: `--${name}`,
-          value_separator: "space" as const,
-        })),
-      },
-    });
-    openMoreOptions();
-    fireEvent.click(screen.getByTestId("runtime-codex"));
-    await screen.findByTestId("model-tier-override-codex-implementation-model");
-    fireEvent.click(screen.getByTestId("runtime-claude"));
-    await waitFor(() =>
-      expect(screen.getByTestId("model-tier-override-plan-review-model")).toBeTruthy(),
-    );
-    expect(
-      screen.queryByTestId("model-tier-override-codex-implementation-model"),
-    ).toBeNull();
-  });
+  // iterate-2026-09-17-codex-model-tier-parameterization's Codex-branch
+  // tests (free-text field, reviewer-identity read-only block, runtime
+  // round-trip) live in NewIterateModal.codex-model.test.tsx.
 
   it("does not present inherited or unreadable configuration as a project default", async () => {
     const { qc } = renderModal({

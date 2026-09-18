@@ -30,6 +30,48 @@ describe("readModelTierConfig", () => {
     });
   });
 
+  it("accepts fable as a valid Claude tier (shipwright#771)", () => {
+    const root = projectRoot();
+    writeFileSync(join(root, "shipwright_model_config.json"), JSON.stringify({ review: "fable" }));
+
+    const result = readModelTierConfig(root);
+    expect(result.tiers.review).toEqual({ tier: "fable", source: "project_config" });
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("reads the shipwright#771 codex_review/codex_plan_review keys, trimmed", () => {
+    const root = projectRoot();
+    writeFileSync(
+      join(root, "shipwright_model_config.json"),
+      JSON.stringify({ codex_review: "  gpt-5.6-sol  ", codex_plan_review: "gpt-5.6-terra" }),
+    );
+
+    const result = readModelTierConfig(root);
+    expect(result.codex).toEqual({ codex_review: "gpt-5.6-sol", codex_plan_review: "gpt-5.6-terra" });
+    expect(result.warning).toBeUndefined();
+  });
+
+  it("omits `codex` entirely when neither key is configured", () => {
+    const root = projectRoot();
+    writeFileSync(join(root, "shipwright_model_config.json"), JSON.stringify({ review: "opus" }));
+
+    const result = readModelTierConfig(root);
+    expect(result.codex).toBeUndefined();
+  });
+
+  it("warns and drops an invalid codex_review value while leaving the Claude tiers intact", () => {
+    const root = projectRoot();
+    writeFileSync(
+      join(root, "shipwright_model_config.json"),
+      JSON.stringify({ review: "opus", codex_review: "   ", codex_plan_review: 42 }),
+    );
+
+    const result = readModelTierConfig(root);
+    expect(result.warning).toBe("model_config_invalid");
+    expect(result.codex).toBeUndefined();
+    expect(result.tiers.review).toEqual({ tier: "opus", source: "project_config" });
+  });
+
   it("visibly marks a missing config while keeping every role inherited", () => {
     const result = readModelTierConfig(projectRoot());
 
