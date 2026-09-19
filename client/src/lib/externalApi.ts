@@ -345,17 +345,14 @@ export async function launchExternalTask(
   args: {
     description?: string;
     autonomy?: "guided" | "autonomous";
-    /**
-   * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
-   * 4-id union to `string` so user-defined actions in `.shipwright-webui/actions.json`
-   * flow through. The server validates against the project's actions
-   * catalog (`unknown_action_id` 400 on miss).
-   */
+    /** iterate-custom-actions-generic-mode — widened to `string` so user-defined
+   * actions flow through; server validates (`unknown_action_id` 400 on miss). */
   actionId?: string;
     phase?: string;
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
     parameters?: Record<string, string | boolean>;
+    codexImplementationModel?: string;
   } = {},
 ): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
   return await launchTask(taskId, args);

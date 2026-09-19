@@ -39,6 +39,16 @@ export interface CodexLaunchArgs {
    * caller (a plain `existsSync` check) — this module stays pure.
    */
   hasAgentsMd?: boolean;
+  /**
+   * iterate-2026-09-17-codex-model-tier-parameterization — session-scoped
+   * override for Codex's own top-level model (one of the confirmed catalog
+   * slugs, validated by the caller). Emitted as a real `-c model=` CLI
+   * flag, never prose — it is layered on top of `~/.codex/config.toml` and
+   * any project config *before* Codex reads `AGENTS.md`, so it applies
+   * unconditionally on `hasAgentsMd` and doesn't depend on Codex's own
+   * instruction-following. Undefined → no flag, no behavior change.
+   */
+  implementationModel?: string;
 }
 
 export function buildCodexCommands(args: CodexLaunchArgs): CopyCommandForms {
@@ -81,6 +91,9 @@ function renderCodex(
       parts.push("-c", q("approval_policy=on-request"));
       parts.push("-c", q("approvals.reviewer=user"));
     }
+    if (args.implementationModel) {
+      parts.push("-c", q(`model="${args.implementationModel}"`));
+    }
     parts.push(q(args.threadId));
     const cmd = parts.join(" ");
     return cdPrefix + (shellForm === "powershell" ? "& " + cmd : cmd);
@@ -101,6 +114,9 @@ function renderCodex(
   } else {
     parts.push("-c", q("approval_policy=on-request"));
     parts.push("-c", q("approvals.reviewer=user"));
+  }
+  if (args.implementationModel) {
+    parts.push("-c", q(`model="${args.implementationModel}"`));
   }
   parts.push(q(buildCodexPrompt(args)));
 

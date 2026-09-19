@@ -68,6 +68,41 @@ describe("launcher-codex.buildCodexCommands", () => {
     const c = buildCodexCommands({ cwd: CWD });
     expect(c.posix).toContain("cd 'C:/Users/you/projects/shipwright'");
   });
+
+  // iterate-2026-09-17-codex-model-tier-parameterization — implementation-model
+  // override, fresh launch. A real `-c model=` CLI flag (not prose), so it
+  // applies before Codex ever reads AGENTS.md — unconditional on hasAgentsMd.
+  it("implementationModel set, fresh launch — emits -c model=\"<slug>\"", () => {
+    const c = buildCodexCommands({ cwd: CWD, implementationModel: "gpt-5.6-luna" });
+    expect(c.posix).toContain(`-c 'model="gpt-5.6-luna"'`);
+  });
+
+  it("implementationModel unset, fresh launch — emits no -c model= flag", () => {
+    const c = buildCodexCommands({ cwd: CWD });
+    expect(c.posix).not.toContain("model=");
+  });
+
+  it("implementationModel set, resume — emits -c model=\"<slug>\" on the resume command too", () => {
+    const c = buildCodexCommands({
+      cwd: CWD,
+      resume: true,
+      threadId: THREAD_ID,
+      implementationModel: "gpt-5.6-sol",
+    });
+    expect(c.posix).toContain("codex resume");
+    expect(c.posix).toContain(`-c 'model="gpt-5.6-sol"'`);
+  });
+
+  it("implementationModel unset, resume — emits no -c model= flag", () => {
+    const c = buildCodexCommands({ cwd: CWD, resume: true, threadId: THREAD_ID });
+    expect(c.posix).not.toContain("model=");
+  });
+
+  it("implementationModel value is shell-quoted per shell form (cmd, powershell)", () => {
+    const c = buildCodexCommands({ cwd: CWD, implementationModel: "gpt-5.6-terra" });
+    expect(c.cmd).toContain(`-c "model=\\"gpt-5.6-terra\\""`);
+    expect(c.powershell).toContain(`-c 'model="gpt-5.6-terra"'`);
+  });
 });
 
 describe("launcher-codex.buildCodexPrompt", () => {

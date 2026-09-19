@@ -175,6 +175,7 @@ export async function applyRuntimeChokepoint(args: {
     phase: parsed.phase ?? task.phase,
     description: parsed.description ?? task.description,
     hasAgentsMd,
+    implementationModel: parsed.codexImplementationModel,
   });
   return {
     commands: codexCommands,

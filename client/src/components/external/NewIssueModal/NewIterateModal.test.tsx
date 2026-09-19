@@ -88,7 +88,7 @@ describe("NewIterateModal — rendering", () => {
     expect(screen.queryByText("Execution")).toBeNull();
   });
 
-  it("trg-517157fe — hides the model-tier override fields once Runtime is flipped to Codex", async () => {
+  it("trg-517157fe — hides the CLAUDE model-tier fields once Runtime is flipped to Codex", async () => {
     renderModal({
       action: {
         ...ITERATE_ACTION,
@@ -105,8 +105,13 @@ describe("NewIterateModal — rendering", () => {
     openMoreOptions();
     await waitFor(() => expect(screen.getByTestId("model-tier-override-fields")).toBeTruthy());
     fireEvent.click(screen.getByTestId("runtime-codex"));
-    expect(screen.queryByTestId("model-tier-override-fields")).toBeNull();
+    expect(screen.queryByTestId("model-tier-override-plan-review-model")).toBeNull();
+    expect(screen.queryByTestId("model-tier-override-review-model")).toBeNull();
   });
+
+  // iterate-2026-09-17-codex-model-tier-parameterization's Codex-branch
+  // tests (free-text field, reviewer-identity read-only block, runtime
+  // round-trip) live in NewIterateModal.codex-model.test.tsx.
 
   it("does not present inherited or unreadable configuration as a project default", async () => {
     const { qc } = renderModal({

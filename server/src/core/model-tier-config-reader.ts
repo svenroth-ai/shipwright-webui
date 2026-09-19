@@ -19,7 +19,7 @@ export const MODEL_TIER_ROLES = [
 ] as const;
 
 export type ModelTierRole = (typeof MODEL_TIER_ROLES)[number];
-export type ModelTier = "opus" | "sonnet" | "haiku" | "inherit";
+export type ModelTier = "opus" | "sonnet" | "haiku" | "fable" | "inherit";
 export type ModelTierSource = "project_config" | "unset";
 
 export interface EffectiveModelTier {
@@ -27,14 +27,28 @@ export interface EffectiveModelTier {
   source: ModelTierSource;
 }
 
+/**
+ * shipwright#771 (iterate-2026-09-18-codex-review-tier-config) — the two
+ * optional Codex-reviewer-identity keys. NOT part of the Claude
+ * `MODEL_TIER_ROLES`/tier axis: a free-form Codex model slug, validated
+ * shipwright-side by an unconditional syntactic allowlist
+ * (`shared/scripts/lib/codex_review_transport.py`), never checked against
+ * a closed tier enum here either. Read-only, same as the Claude tiers —
+ * webui never writes `shipwright_model_config.json`.
+ */
+export const CODEX_REVIEWER_ROLES = ["codex_review", "codex_plan_review"] as const;
+export type CodexReviewerRole = (typeof CODEX_REVIEWER_ROLES)[number];
+
 export interface ModelTierConfigReadResult {
   tiers: Record<ModelTierRole, EffectiveModelTier>;
+  /** Present only when at least one Codex-reviewer key is configured. */
+  codex?: Partial<Record<CodexReviewerRole, string>>;
   /** A safe, operator-facing warning; it never contains raw config content. */
   warning?: "model_config_missing" | "model_config_unreadable" | "model_config_invalid";
 }
 
 const FILENAME = "shipwright_model_config.json";
-const VALID_TIERS = new Set<ModelTier>(["opus", "sonnet", "haiku", "inherit"]);
+const VALID_TIERS = new Set<ModelTier>(["opus", "sonnet", "haiku", "fable", "inherit"]);
 
 function inheritedTiers(): Record<ModelTierRole, EffectiveModelTier> {
   return Object.fromEntries(
@@ -113,5 +127,28 @@ export function readModelTierConfig(projectPath: string): ModelTierConfigReadRes
       invalidRoleValue = true;
     }
   }
-  return invalidRoleValue ? { tiers, warning: "model_config_invalid" } : { tiers };
+
+  // shipwright#771 — same shape check as `lib.model_tier_config.load_model_config`
+  // (non-empty string after trim); the syntactic slug allowlist is a
+  // transport-time concern (`codex_review_transport.py`), not applied here.
+  const codex: Partial<Record<CodexReviewerRole, string>> = {};
+  let invalidCodexValue = false;
+  for (const role of CODEX_REVIEWER_ROLES) {
+    const candidate = (raw as Record<string, unknown>)[role];
+    if (candidate === undefined) continue;
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      codex[role] = candidate.trim();
+    } else {
+      invalidCodexValue = true;
+    }
+  }
+  const hasCodex = Object.keys(codex).length > 0;
+
+  const warning =
+    invalidRoleValue || invalidCodexValue ? "model_config_invalid" : undefined;
+  return {
+    tiers,
+    ...(hasCodex ? { codex } : {}),
+    ...(warning ? { warning } : {}),
+  };
 }
