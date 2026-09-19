@@ -1,46 +1,61 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-09-07-leadwright-setup-wizard"
+run_id: "iterate-2026-09-19-fix-wizard-plan-card-white-text"
 phase: "iterate"
-reason: "iterate: leadwright lead-setup Intent Wizard"
-timestamp: "2026-09-07T18:14:55.312463+00:00"
+reason: "iterate: fix invisible phase description text in the New-Project wizard plan card"
+timestamp: "2026-09-19T16:57:49.524769+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-09-07 18:22:53 UTC
+> Auto-generated 2026-09-19 16:57:49 UTC
 
 ## Session Info
 
-- **Session ID**: 47a7f8d7-3df9-4199-aeba-ab0c0ac9b9e3
-- **Timestamp**: 2026-09-07 18:22:53 UTC
-- **Reason**: iterate completion: iterate-2026-09-07-leadwright-setup-wizard
+- **Session ID**: 432839b2-c187-477b-952e-efa95f867618
+- **Timestamp**: 2026-09-19 16:57:49 UTC
+- **Reason**: iterate: fix invisible phase description text in the New-Project wizard plan card
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-09-07-leadwright-setup-wizard
-- **Date**: 2026-09-07T18:15:19.218356Z
-- **Type**: feature
+- **Run ID**: iterate-2026-09-19-fix-wizard-plan-card-white-text
+- **Date**: 2026-09-19T16:57:49.364103Z
+- **Type**: bug
 - **Complexity**: medium
-- **Branch**: iterate/leadwright-setup-wizard
-- **ADR**: iterate-2026-09-07-leadwright-setup-wizard
+- **Branch**: fix-wizard-plan-card-white-text
+- **ADR**: iterate-2026-09-19-fix-wizard-plan-card-white-text
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-09-07-leadwright-setup-wizard.md
+- **Spec**: .shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/leadwright-setup-wizard
-- **Run ID**: `iterate-2026-09-07-leadwright-setup-wizard`
-- **Spec**: .shipwright/planning/iterate/iterate-2026-09-07-leadwright-setup-wizard.md
-- **Complexity**: medium (`classify_complexity.py`: estimate `medium`,
-- **External Review Marker**: stale (predates spec (2026-09-07T14:06:34))
-- **Review Cascade**: unreadable (unsafe run_id '`iterate-2026-09-07-leadwright-setup-wizard`' — must be a single path component (letters, digits, dot, dash, underscore))
+- **Branch**: iterate/fix-wizard-plan-card-white-text
+- **Spec**: .shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md
+- **Complexity**: medium (classifier: keyword match, confidence 0.7, no risk flags, cross_split: false)
+- **External Review Marker**: stale (predates spec (2026-09-19T16:30:53))
+- **Review Cascade**: no run_id resolved
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- reviews.json is unreadable — investigate before resuming (unsafe run_id '`iterate-2026-09-07-leadwright-setup-wizard`' — must be a single path component (letters, digits, dot, dash, underscore))
 - Finalization (F0–F11) after all mandatory phases pass
+
+## Pipeline Phases
+
+Authoritative per-phase status from `shipwright_run_config.json` → `phase_tasks[]`; the dispatch pointer from `.shipwright/run_loop_state.json`. **A phase that merely STARTED is not finished** — only `done` / `skipped` count, so an `in_progress` row below is work to pick back up, not work banked. Phase tasks are **planned incrementally** (each one is created as its predecessor completes), so the table lists what has been planned so far, not the whole run.
+
+- **Finished**: 5 of 7 (build, changelog, plan, project, test)
+- **Interrupted**: `design` — started, not finished
+- **Run status**: in_progress
+
+| Phase | Split | Status | Finished? |
+|-------|-------|--------|-----------|
+| build | — | done | yes |
+| changelog | — | done | yes |
+| plan | — | done | yes |
+| project | — | done | yes |
+| test | — | done | yes |
+| design | — | in_progress | **no — interrupted** |
 
 ## Legacy build state
 
@@ -53,8 +68,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/leadwright-setup-wizard
-- **Last Commit**: 40f6d3de fix(iterate): address F11 verifier findings for the lead-setup wizard
+- **Branch**: iterate/fix-wizard-plan-card-white-text
+- **Last Commit**: 518e204d chore(triage): sweep 5 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -70,17 +85,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-2d1278a8 | work_completed | iterate (Bump the test-traceability reader's known-max schema_version to 4, matching the monorepo's shipped AC-scoped @covers tag grammar manifest contract; add a frozen fixture pinning both the AC-scoped and bare-tag v4 shapes.) | 2026-09-07 |
-| evt-528e9990 | work_completed | iterate (Tag-backfill: added // @covers FR-XX.YY comments to 1196 existing WebUI tests that already proved an FR AC but carried no binding, closing all 7 zero-coverage FRs (32/32 now bound) and raising bound-test traceability coverage from 15.75% to 31.97%. Comment-only; no test added, deleted, or weakened.) | 2026-09-07 |
-| evt-3eb9e7e8 | event_amended | — | 2026-09-07 |
-| evt-57131a42 | grade_snapshot | — | 2026-09-07 |
-| evt-5b0caee7 | work_completed | iterate (Leadwright lead-setup Intent Wizard (W14): a guided 7-question wizard on the Org page for creating a new leadwright AI lead, replacing hand-written edits to org-chart.json/charter.md/daemon-config.json that had to silently agree; Finish is gated on a real leadwright preflight verdict re-run server-side just before writing.) | 2026-09-07 |
+| evt-4093d449 | work_completed | iterate (The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card.) | 2026-09-19 |
+| evt-1b7e75e7 | grade_snapshot | — | 2026-09-16 |
+| evt-6aea52af | work_completed | iterate (codex_cli_not_found on Windows: probe via win32-spawn's shim resolver instead of defaultRun) | 2026-09-16 |
+| evt-ee12f56f | grade_snapshot | — | 2026-09-17 |
+| evt-b3721bff | work_completed | iterate (Mission activity feed render-fidelity fixes: header strip removed, command chips collapse by default, markdown rendering, blocker plain-language explanation, TDD authoring runs excluded from the gate stamp) | 2026-09-17 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 468
-- **Last iterate**: change — Bump the test-traceability reader's known-max schema_version to 4, matching the monorepo's shipped AC-scoped @covers tag grammar manifest contract; add a frozen fixture pinning both the AC-scoped and bare-tag v4 shapes. (2026-09-07)
+- **Total work events**: 490
+- **Last iterate**: bug — The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card. (2026-09-19)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

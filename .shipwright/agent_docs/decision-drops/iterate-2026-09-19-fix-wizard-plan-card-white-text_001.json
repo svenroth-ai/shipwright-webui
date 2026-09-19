@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+  "date": "2026-09-19",
+  "section": "Iterate — bug: white-on-white phase description text in the New-Project wizard plan card",
+  "title": "Fix invisible phase description text in the New-Project wizard plan card",
+  "context": "Sven reported (screenshot) the New-Project wizard's plan card rendered its per-phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) invisible: white text on a white card. Root cause: the phase-list container (wizard-plan-phases) was a bare inline-styled <div> outside on-photo.css's .on-photo solid-surface reset whitelist, so --ink stayed flipped white while its own background stayed opaque white.",
+  "decision": "Give the container className=\"iw-card\" — the exact class its sibling envVarsRequired block already uses for the identical background/border/radius/shadow — so on-photo.css's rule-2 solid-surface reset applies and --ink resets to dark-on-white. Also set borderTop: undefined on the first phase row (idx===0) so the now-visible --line separator doesn't read as a stray line above the first item, and add a stable data-testid on each phase description div for test targeting.",
+  "consequences": "Phase descriptions are now legible (verified >=4.5:1 WCAG AA contrast via a real-Chromium Playwright spec). The pre-existing opacity:0.55 dim on the skipped/Deploy row now measures ~3.9:1, below AA — disclosed as pre-existing/out-of-scope, not part of the reported defect. A directory-wide static-scan guard for this recurring defect class (3rd occurrence) was considered and declined for this run's scope.",
+  "rationale": "Reusing iw-card (already used for the sibling envVarsRequired card in the same component) is the smallest possible fix and matches the existing on-photo.css reset-whitelist pattern, avoiding a new bespoke CSS rule for an already-covered surface pattern.",
+  "rejected": "A directory-wide regex/static-scan guard over all of IntentWizard/*.tsx for this defect class — a verified counter-example (GradeDimensionRow.tsx's safe unclassed inline background, which inherits a safe token via CSS custom-property inheritance) would produce false positives; left for a separately-scoped future iterate. Also rejected: inline text-shadow / manual color overrides on the description div, which would fight the token system's light/dark flip guarantee.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-19-fix-wizard-plan-card-white-text.md"
+}

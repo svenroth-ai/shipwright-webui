@@ -1,48 +1,57 @@
 # Triage Inbox
 
-> Auto-generated 2026-07-22T07:21:46.920230Z. Items waiting for triage decision.
+> Auto-generated 2026-09-17T04:39:03.560694Z. Items waiting for triage decision.
 > Promote via WebUI Triage tab (when v1b lands) or `shared/scripts/tools/triage_promote.py --id <id> --task-ref EXT:<ref>`.
 
 ## Status summary
 
-- Total: 127
-- Triage: 4 | Promoted: 1 | Dismissed: 121 | Snoozed: 0
+- Total: 231
+- Triage: 5 | Promoted: 1 | Dismissed: 225 | Snoozed: 0
 
-## Top 4 items (severity-sorted)
+## Top 5 items (severity-sorted)
 
 ### Source: compliance (1 item)
 
-<a id="trg-77bdf9c5"></a>
-- **Compliance: 10 open finding(s)** `id=trg-77bdf9c5 | severity=high | kind=compliance → P1/compliance`
-  - 10 open compliance finding(s): B/B7, C/C1, D/D1, D/D2, D/D3, D/D4, F/F5, G/G2, H/H1, H/H2  - B/B7: Every commit since r…
+<a id="trg-ac2e459b"></a>
+- **Compliance: 1 open finding\(s\)** `id=trg-ac2e459b | severity=medium | kind=compliance → P2/compliance`
+  - 1 open compliance finding\(s\): B/B7  - B/B7: Every commit since release tag has a matching event — 1 commit\(s\) since…
   - Launch payload (copy into a new Claude session):
     ```text
     /shipwright-compliance
     
-    Context: 10 open compliance finding(s): B/B7, C/C1, D/D1, D/D2, D/D3, D/D4, F/F5, G/G2, H/H1, H/H2.
+    Context: 1 open compliance finding(s): B/B7.
     Dashboard: .shipwright/compliance/dashboard.md
     Each finding + hint is listed in this item's detail.
     ```
-  - Promote: `triage_promote.py --id trg-77bdf9c5 --task-ref EXT:<ref>`
-
-### Source: internal-code-review (1 item)
-
-<a id="trg-53b00a71"></a>
-- **Transcript pane still requests the whole JSONL every second (client cursor unused)** `id=trg-53b00a71 | severity=medium | kind=improvement → P2/engineering`
-  - Two follow-ups left by the positional-tail-read run, both deliberately out of that reader-level charter.  1. CLIENT CUR…
-  - Promote: `triage_promote.py --id trg-53b00a71 --task-ref EXT:<ref>`
+  - Promote: `triage_promote.py --id trg-ac2e459b --task-ref EXT:<ref>`
 
 ### Source: iterate (1 item)
 
 <a id="trg-786eab1f"></a>
 - **Serve the WebUI over HTTPS so terminal Ctrl+V paste works over Tailscale** `id=trg-786eab1f | severity=medium | kind=enhancement → P2/engineering`
-  - Follow-up to iterate-2026-05-18-terminal-copy-paste (PR #38), user-approved as a separate iterate during the copy/paste…
+  - Follow-up to iterate-2026-05-18-terminal-copy-paste \(PR #38\), user-approved as a separate iterate during the copy/pas…
   - Promote: `triage_promote.py --id trg-786eab1f --task-ref EXT:<ref>`
 
-### Source: operator (1 item)
+### Source: manual (1 item)
 
-<a id="trg-4c020c34"></a>
-- **Inbox: answer Claude's question in place - options ARE in the JSONL; spike whether the TUI takes a numeric hotkey** `id=trg-4c020c34 | severity=low | kind=feature → P3/engineering`
-  - DEFERRED BY DECISION (Sven, 2026-07-14). The WOW campaign (trg-3edbc478, A19) ships the safe half: the Inbox SURFACES C…
-  - Promote: `triage_promote.py --id trg-4c020c34 --task-ref EXT:<ref>`
+<a id="trg-8de744d4"></a>
+- **\[STILL BLOCKED — REQ3.03 ceiling open\] AC-level enumeration + minting + test re-tagging for webui is unstarted, needs…** `id=trg-8de744d4 | severity=medium | kind=compliance → P2/engineering`
+  - Follow-up to w5 \(bind-and-promote, campaign req3-06-mechanics-webui\): both external plan reviewers flagged w5 as FR-l…
+  - Launch payload (copy into a new Claude session):
+    ```text
+    /shipwright-iterate AC-level enumeration + minting + test re-tagging for webui (campaign req3-06-mechanics-webui follow-on to w5/this card)
+    ```
+  - Promote: `triage_promote.py --id trg-8de744d4 --task-ref EXT:<ref>`
+
+### Source: req3-campaign (2 items)
+
+<a id="trg-58a3e32d"></a>
+- **REQ3.07 \[CAMPAIGN AUTONOM - blocked on AC minting\] Test-Backfill: fehlende AC-Tests - WebUI** `id=trg-58a3e32d | severity=medium | kind=improvement → P2/engineering`
+  - Der Coverage-Motor fuer die WebUI, eigener Anker. Schreibt Tests fuer ACs ohne beweisenden Test \(Liste aus REQ3-2b\).…
+  - Promote: `triage_promote.py --id trg-58a3e32d --task-ref EXT:<ref>`
+
+<a id="trg-35c0daff"></a>
+- **REQ3.03 \[ITERATE\] Requirements + AC schreiben - WebUI \(parser floor closed via PR #462; 17 folded blocks + prose rev…** `id=trg-35c0daff | severity=medium | kind=improvement → P2/engineering`
+  - Phase 2 fuer die WebUI, interaktiv. grill-Runde: Code-Scan auf Vollstaendigkeit, pro Requirement Formulierung + fehlend…
+  - Promote: `triage_promote.py --id trg-35c0daff --task-ref EXT:<ref>`
 

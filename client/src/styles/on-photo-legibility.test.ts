@@ -130,6 +130,66 @@ describe("on-photo legibility — grade-result band pill resets to solid-surface
   });
 });
 
+describe("on-photo legibility — New-Project plan card phase list resets to solid-surface tokens (iterate-2026-09-19-fix-wizard-plan-card-white-text)", () => {
+  // The New-Project wizard's "Here's what I understood." plan card renders a
+  // white phase list (Project/Design/Plan/.../Deploy) with a per-phase
+  // description in `--ink`. Like GradeResult's band pill above, this rides
+  // inside `.on-photo`, which flips `--ink` to #fff (rule 1) and only resets
+  // it back to dark-on-white (rule 2) for classes in on-photo.css's reset
+  // list. Root cause: the phase-list container was a bare inline-styled
+  // <div> — not in that list — so --ink stayed white on its own white
+  // (`var(--card)`) background: invisible text (Sven screenshot report,
+  // 2026-09-19). Fix: give it `.iw-card`, the exact class its sibling
+  // envVarsRequired block already uses for the identical background/border/
+  // radius/shadow (NewPathPlanCard.tsx).
+  // Order-independent: matches the whole opening <div ...> tag for the
+  // testid, then extracts className/style from within it, so attribute
+  // reordering (or an attribute inserted between className and
+  // data-testid) can't produce a misleading null-match RED (code-review
+  // finding, iterate-2026-09-19).
+  function findPlanPhasesTag(src: string): string {
+    const tag = src.match(/<div\b[^>]*data-testid="wizard-plan-phases"[^>]*>/);
+    expect(tag, "wizard-plan-phases opening tag not found").not.toBeNull();
+    return tag?.[0] ?? "";
+  }
+
+  it("wizard-plan-phases container carries a class the .on-photo solid-surface reset targets", () => {
+    const src = read("components/wizard/IntentWizard/NewPathPlanCard.tsx");
+    const tag = findPlanPhasesTag(src);
+    const classAttr = tag.match(/className="([^"]*)"/);
+    expect(classAttr, "wizard-plan-phases container must carry a className").not.toBeNull();
+
+    const onPhotoCss = readFileSync(path.join(SRC, "styles/on-photo.css"), "utf8");
+    const resetRule = onPhotoCss.match(/\.on-photo\s+:is\(([^)]*)\)\s*\{[^}]*--ink:/);
+    expect(resetRule, "on-photo.css rule-2 solid-surface reset (targets --ink) not found").not.toBeNull();
+    const resetSelectors = (resetRule?.[1] ?? "").split(",").map((s) => s.trim().replace(/^\./, ""));
+
+    const containerClasses = (classAttr?.[1] ?? "").split(/\s+/).filter(Boolean);
+    expect(
+      containerClasses.some((c) => resetSelectors.includes(c)),
+      `wizard-plan-phases classes [${containerClasses.join(", ")}] must include one of the .on-photo reset selectors, else --ink flips white while the card background stays white`,
+    ).toBe(true);
+  });
+
+  // External plan review finding (iterate-2026-09-19, glm, low severity): a
+  // class-membership fence alone doesn't stop a FUTURE edit from re-adding an
+  // opaque inline background directly on this container while keeping
+  // `iw-card` — which would silently reintroduce white-on-white while this
+  // test stayed green. Pin the "solid surfaces come from the whitelisted
+  // class, not inline background/shadow overrides" rule directly.
+  it("wizard-plan-phases container sets no inline background/boxShadow (must come from the .on-photo-reset class, not an inline override)", () => {
+    const src = read("components/wizard/IntentWizard/NewPathPlanCard.tsx");
+    const tag = findPlanPhasesTag(src);
+    // Widened per code-review finding (iterate-2026-09-19): the original
+    // /background\s*:/ pattern did not match the `backgroundColor` inline-
+    // style key, which is the more idiomatic React spelling and would have
+    // reintroduced the exact white-on-white defect this fence guards
+    // against while staying green.
+    expect(tag).not.toMatch(/background(Color|Image)?\s*:/i);
+    expect(tag).not.toMatch(/boxShadow\s*:/);
+  });
+});
+
 describe("on-photo legibility — AC4 no text-shadow on the touched surfaces", () => {
   for (const rel of TOUCHED) {
     it(`${rel} introduces no text-shadow`, () => {

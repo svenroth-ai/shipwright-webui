@@ -1,0 +1,10 @@
+{
+  "section": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+  "verdict": "PASS",
+  "review": [
+    {"severity": "low", "category": "correctness", "finding": "inline-override fence regex missed backgroundColor/backgroundImage", "disposition": "fixed"},
+    {"severity": "low", "category": "correctness", "finding": "dimmed Deploy row measures ~3.9:1 post-fix, below 4.5:1 AA", "disposition": "disclosed - pre-existing, out of scope"},
+    {"severity": "low", "category": "architecture", "finding": "contrastRatio was a third verbatim copy", "disposition": "fixed - extracted to client/e2e/helpers/contrast.ts"},
+    {"severity": "low", "category": "correctness", "finding": "new E2E not tagged @smoke, does not run in CI", "disposition": "disclosed - matches existing precedent posture"}
+  ]
+}
