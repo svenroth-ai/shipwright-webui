@@ -49,27 +49,30 @@ export function NewPathPlanCard({
       </div>
 
       <div
+        className="iw-card"
+        data-testid="wizard-plan-phases"
         style={{
           maxWidth: 620,
-          background: "var(--card)",
-          border: "1px solid var(--line-card)",
-          borderRadius: 16,
-          boxShadow: "var(--sh-card)",
           padding: "8px 18px",
         }}
       >
-        {phases.map((ph) => (
+        {phases.map((ph, idx) => (
           <div
             key={ph.name}
             data-testid={`wizard-phase-${ph.name}`}
             style={{
               padding: "12px 0",
-              borderTop: "1px solid var(--line)",
+              borderTop: idx === 0 ? undefined : "1px solid var(--line)",
               opacity: ph.skipped ? 0.55 : 1,
             }}
           >
             <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--accent-deep)" }}>{ph.name}</div>
-            <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.5, marginTop: 2 }}>{ph.desc}</div>
+            <div
+              data-testid={`wizard-phase-desc-${ph.name}`}
+              style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.5, marginTop: 2 }}
+            >
+              {ph.desc}
+            </div>
           </div>
         ))}
       </div>

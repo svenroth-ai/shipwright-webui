@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Every requirement in the iterate spec + mini-plan is present, faithful and in-scope; no scope creep. Code-reviewer (Stage 2) may run."
+}

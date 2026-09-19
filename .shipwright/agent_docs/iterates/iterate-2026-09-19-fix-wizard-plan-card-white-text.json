@@ -1,0 +1,29 @@
+{
+  "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+  "date": "2026-09-19T16:57:49.364103Z",
+  "event_at": "2026-09-17T04:39:03.560694+00:00",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "fix-wizard-plan-card-white-text",
+  "spec": ".shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 4,
+      "tested": 4,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 1,
+    "exit_code": 0
+  }
+}
