@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-19-codex-reviewer-fields",
+  "date": "2026-09-19",
+  "section": "client-scope",
+  "title": "Codex More-options panel: real Plan review / Review overrides, Implementation model relocated",
+  "context": "PR #471 gave Codex a free-text Implementation model field plus a read-only Reviewer-identity block in the slots where Claude shows editable Plan-review/Review dropdowns. User feedback: layout should match Claude's, and a read-only display is not a useful UI concept.",
+  "decision": "Replaced the Codex branch's read-only CodexReviewerIdentity with two free-text session-scoped overrides labeled Plan review / Review, left/right like Claude's fields. Implementation model moved to its own row above the two-column grid. Emitted at launch as SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL / SHIPWRIGHT_CODEX_REVIEW_MODEL, mirroring the existing codexImplementationModel precedent.",
+  "consequences": "Codex-driven tasks can now override which model reviews their plan/code for one session without touching shipwright_model_config.json. Consumed by run_codex_review (shipwright#772, already merged) resolving these env vars ahead of the project-config fallback.",
+  "rationale": "Env-var prefix (not a -c flag) because these override Codex's own review subagents, invoked mid-session by its shell tool, not the top-level codex process itself; shell_environment_policy.inherit=all already carries them through.",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

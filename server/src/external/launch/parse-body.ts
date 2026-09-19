@@ -53,6 +53,14 @@ export interface ParsedLaunchBody {
    *  NOT routed through `userParams`/the action-schema `parameters` pipeline
    *  — see the iterate spec's server-scope decision for why. */
   codexImplementationModel: string | undefined;
+  /** iterate-2026-09-19-codex-reviewer-fields (shipwright#772) —
+   *  session-scoped Codex review-model overrides, same body-only /
+   *  never-persisted posture as `codexImplementationModel` above. Threaded
+   *  to `buildCodexCommands` as `SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL` /
+   *  `SHIPWRIGHT_CODEX_REVIEW_MODEL` env-var prefixes — `run_codex_review`
+   *  resolves those ahead of the project's `shipwright_model_config.json`. */
+  codexPlanReviewModel: string | undefined;
+  codexReviewModel: string | undefined;
 }
 
 /**
@@ -181,23 +189,30 @@ export function parseLaunchBody(
   // fail-closed posture as every other field this function validates.
   // Today's only caller (useNewIssueFormSubmit.ts) already gates on
   // runtime === "codex" before ever setting this field.
-  let codexImplementationModel: string | undefined;
-  if (body.codexImplementationModel !== undefined) {
-    const trimmed =
-      typeof body.codexImplementationModel === "string"
-        ? body.codexImplementationModel.trim()
-        : "";
-    if (!CODEX_MODEL_SLUG_PATTERN.test(trimmed)) {
-      return {
-        error: {
-          error: "invalid_codex_implementation_model",
-          detail: `must match ${CODEX_MODEL_SLUG_PATTERN.source}`,
-        },
-        status: 400,
-      };
-    }
-    codexImplementationModel = trimmed;
-  }
+  const implementationModelResult = parseCodexModelSlugField(
+    body.codexImplementationModel,
+    "invalid_codex_implementation_model",
+  );
+  if ("error" in implementationModelResult) return implementationModelResult;
+  const codexImplementationModel = implementationModelResult.value;
+
+  // iterate-2026-09-19-codex-reviewer-fields — same syntactic allowlist and
+  // fail-closed posture as codexImplementationModel above (see that field's
+  // comment); the value differs only in what it's used for downstream
+  // (an env-var prefix, not a `-c model=` CLI flag).
+  const planReviewModelResult = parseCodexModelSlugField(
+    body.codexPlanReviewModel,
+    "invalid_codex_plan_review_model",
+  );
+  if ("error" in planReviewModelResult) return planReviewModelResult;
+  const codexPlanReviewModel = planReviewModelResult.value;
+
+  const reviewModelResult = parseCodexModelSlugField(
+    body.codexReviewModel,
+    "invalid_codex_review_model",
+  );
+  if ("error" in reviewModelResult) return reviewModelResult;
+  const codexReviewModel = reviewModelResult.value;
 
   return {
     resume,
@@ -213,5 +228,34 @@ export function parseLaunchBody(
     campaignStep,
     masterRun: Boolean(body.masterRun),
     codexImplementationModel,
+    codexPlanReviewModel,
+    codexReviewModel,
   };
+}
+
+/**
+ * Shared validator for the three body-only Codex model-slug overrides
+ * (implementation / plan-review / review): absent → `{ value: undefined }`;
+ * present but malformed → the field's own error code, fail-closed (never
+ * silently dropped or coerced), matching `codexImplementationModel`'s
+ * original inline behavior verbatim.
+ */
+function parseCodexModelSlugField(
+  raw: unknown,
+  errorCode: string,
+):
+  | { value: string | undefined }
+  | { error: { error: string; detail: string }; status: 400 } {
+  if (raw === undefined) return { value: undefined };
+  const trimmed = typeof raw === "string" ? raw.trim() : "";
+  if (!CODEX_MODEL_SLUG_PATTERN.test(trimmed)) {
+    return {
+      error: {
+        error: errorCode,
+        detail: `must match ${CODEX_MODEL_SLUG_PATTERN.source}`,
+      },
+      status: 400,
+    };
+  }
+  return { value: trimmed };
 }

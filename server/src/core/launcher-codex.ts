@@ -49,6 +49,21 @@ export interface CodexLaunchArgs {
    * instruction-following. Undefined → no flag, no behavior change.
    */
   implementationModel?: string;
+  /**
+   * iterate-2026-09-19-codex-reviewer-fields (shipwright#772) — session-
+   * scoped overrides for Codex's own review subagents. Unlike
+   * `implementationModel` these are NOT `-c` flags read by the top-level
+   * `codex` process itself; `run_codex_review` (invoked by Codex's shell
+   * tool mid-session) resolves `SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL` /
+   * `SHIPWRIGHT_CODEX_REVIEW_MODEL` from its OWN process env ahead of the
+   * project's `shipwright_model_config.json` fallback — so they're emitted
+   * here as an env-var prefix on the command line, ahead of `codex`, and
+   * reach that subprocess via `shell_environment_policy.inherit=all`
+   * (already unconditional above). Undefined → no prefix, no behavior
+   * change, same as `implementationModel`.
+   */
+  planReviewModel?: string;
+  reviewModel?: string;
 }
 
 export function buildCodexCommands(args: CodexLaunchArgs): CopyCommandForms {
@@ -66,6 +81,7 @@ function renderCodex(
 ): string {
   const cwd = shellForm === "posix" ? toPosixPath(args.cwd) : args.cwd;
   const cdPrefix = buildCdPrefix(shellForm, args.cwd);
+  const envPrefix = buildReviewEnvPrefix(args, q, shellForm);
 
   const autonomy = args.autonomy ?? "guided";
 
@@ -96,7 +112,7 @@ function renderCodex(
     }
     parts.push(q(args.threadId));
     const cmd = parts.join(" ");
-    return cdPrefix + (shellForm === "powershell" ? "& " + cmd : cmd);
+    return cdPrefix + envPrefix + (shellForm === "powershell" ? "& " + cmd : cmd);
   }
 
   const parts: string[] = ["codex"];
@@ -122,7 +138,37 @@ function renderCodex(
 
   const cmd = parts.join(" ");
   void cwd; // cwd is already folded into cdPrefix; kept for symmetry with launcher.ts's per-shell renderers.
-  return cdPrefix + (shellForm === "powershell" ? "& " + cmd : cmd);
+  return cdPrefix + envPrefix + (shellForm === "powershell" ? "& " + cmd : cmd);
+}
+
+/**
+ * iterate-2026-09-19-codex-reviewer-fields — see `planReviewModel`/
+ * `reviewModel`'s doc comment on `CodexLaunchArgs` for why these are an
+ * env-var prefix rather than a `-c` flag. Empty when neither override is
+ * set, so an ordinary launch's command string is byte-identical to before
+ * this feature existed.
+ */
+function buildReviewEnvPrefix(
+  args: CodexLaunchArgs,
+  q: (v: string) => string,
+  shellForm: "powershell" | "cmd" | "posix",
+): string {
+  const entries: Array<[string, string]> = [];
+  if (args.planReviewModel) {
+    entries.push(["SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL", args.planReviewModel]);
+  }
+  if (args.reviewModel) {
+    entries.push(["SHIPWRIGHT_CODEX_REVIEW_MODEL", args.reviewModel]);
+  }
+  if (entries.length === 0) return "";
+
+  if (shellForm === "powershell") {
+    return entries.map(([name, value]) => `$env:${name} = ${q(value)}; `).join("");
+  }
+  if (shellForm === "cmd") {
+    return entries.map(([name, value]) => `set ${q(`${name}=${value}`)} && `).join("");
+  }
+  return entries.map(([name, value]) => `${name}=${q(value)} `).join("");
 }
 
 /**

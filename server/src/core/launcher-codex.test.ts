@@ -103,6 +103,75 @@ describe("launcher-codex.buildCodexCommands", () => {
     expect(c.cmd).toContain(`-c "model=\\"gpt-5.6-terra\\""`);
     expect(c.powershell).toContain(`-c 'model="gpt-5.6-terra"'`);
   });
+
+  // iterate-2026-09-19-codex-reviewer-fields — review-model overrides are an
+  // env-var prefix ahead of `codex`, not a `-c` flag (see planReviewModel/
+  // reviewModel's doc comment on CodexLaunchArgs for why).
+  it("planReviewModel + reviewModel set — emits both as an env-var prefix, posix", () => {
+    const c = buildCodexCommands({
+      cwd: CWD,
+      planReviewModel: "gpt-5.6-terra",
+      reviewModel: "gpt-5.6-sol",
+    });
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL='gpt-5.6-terra'");
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_REVIEW_MODEL='gpt-5.6-sol'");
+    expect(c.posix.indexOf("SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL")).toBeLessThan(
+      c.posix.indexOf(" codex"),
+    );
+  });
+
+  it("planReviewModel + reviewModel unset — emits no review-model env vars", () => {
+    const c = buildCodexCommands({ cwd: CWD });
+    expect(c.posix).not.toContain("SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL");
+    expect(c.posix).not.toContain("SHIPWRIGHT_CODEX_REVIEW_MODEL");
+  });
+
+  it("only reviewModel set — emits just that one env var", () => {
+    const c = buildCodexCommands({ cwd: CWD, reviewModel: "gpt-5.6-sol" });
+    expect(c.posix).not.toContain("SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL");
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_REVIEW_MODEL='gpt-5.6-sol'");
+  });
+
+  it("review-model overrides thread through a resume launch too", () => {
+    const c = buildCodexCommands({
+      cwd: CWD,
+      resume: true,
+      threadId: THREAD_ID,
+      planReviewModel: "gpt-5.6-terra",
+      reviewModel: "gpt-5.6-sol",
+    });
+    expect(c.posix).toContain("codex resume");
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL='gpt-5.6-terra'");
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_REVIEW_MODEL='gpt-5.6-sol'");
+  });
+
+  it("review-model values are shell-quoted per shell form (cmd, powershell)", () => {
+    const c = buildCodexCommands({
+      cwd: CWD,
+      planReviewModel: "gpt-5.6-terra",
+      reviewModel: "gpt-5.6-sol",
+    });
+    expect(c.cmd).toContain(`set "SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL=gpt-5.6-terra"`);
+    expect(c.cmd).toContain(`set "SHIPWRIGHT_CODEX_REVIEW_MODEL=gpt-5.6-sol"`);
+    expect(c.powershell).toContain(
+      `$env:SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL = 'gpt-5.6-terra';`,
+    );
+    expect(c.powershell).toContain(
+      `$env:SHIPWRIGHT_CODEX_REVIEW_MODEL = 'gpt-5.6-sol';`,
+    );
+  });
+
+  it("review-model prefix composes with an implementationModel override", () => {
+    const c = buildCodexCommands({
+      cwd: CWD,
+      implementationModel: "gpt-5.6-luna",
+      planReviewModel: "gpt-5.6-terra",
+      reviewModel: "gpt-5.6-sol",
+    });
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL='gpt-5.6-terra'");
+    expect(c.posix).toContain("SHIPWRIGHT_CODEX_REVIEW_MODEL='gpt-5.6-sol'");
+    expect(c.posix).toContain(`-c 'model="gpt-5.6-luna"'`);
+  });
 });
 
 describe("launcher-codex.buildCodexPrompt", () => {

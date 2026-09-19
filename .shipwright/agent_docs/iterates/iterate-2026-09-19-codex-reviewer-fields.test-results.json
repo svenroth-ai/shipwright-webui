@@ -1,0 +1,123 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-19-codex-reviewer-fields",
+    "date": "2026-09-19",
+    "unit": {
+      "status": "passed",
+      "passed": 8619,
+      "total": 8632
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 12,
+        "tested": 12,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      },
+      "behaviors": [
+        {
+          "behavior": "Codex branch renders Implementation model in its own row, outside the two-column panel",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.tsx (structural); E2E model-tier-defaults.spec.ts (real browser)"
+        },
+        {
+          "behavior": "Codex branch renders Plan review (left) / Review (right) free-text inputs, matching the Claude layout/labels",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx; E2E model-tier-defaults.spec.ts"
+        },
+        {
+          "behavior": "CodexReviewerIdentity read-only block is fully removed",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx (queryByTestId null); E2E model-tier-defaults.spec.ts"
+        },
+        {
+          "behavior": "Empty Plan review/Review values are omitted from the launch body",
+          "disposition": "tested",
+          "evidence": "payload-launch.codex-model.test.tsx"
+        },
+        {
+          "behavior": "Malformed Plan review/Review slugs show the same invalid-shape hint UX as Implementation model",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx"
+        },
+        {
+          "behavior": "Malformed Plan review/Review slugs are rejected server-side (400) with distinct, independent error codes",
+          "disposition": "tested",
+          "evidence": "parse-body.codex-model.test.ts"
+        },
+        {
+          "behavior": "Valid Plan review/Review overrides thread through to the launch body as codexPlanReviewModel/codexReviewModel",
+          "disposition": "tested",
+          "evidence": "payload-launch.codex-model.test.tsx; E2E model-tier-defaults.spec.ts (real /launch POST intercepted, body asserted)"
+        },
+        {
+          "behavior": "Stale Codex paramValues never leak into a Claude-runtime launch body",
+          "disposition": "tested",
+          "evidence": "payload-launch.codex-model.test.tsx"
+        },
+        {
+          "behavior": "codexPlanReviewModel/codexReviewModel are emitted as SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL / SHIPWRIGHT_CODEX_REVIEW_MODEL env-var prefixes ahead of codex, correctly quoted per shell, for fresh launch and resume alike",
+          "disposition": "tested",
+          "evidence": "launcher-codex.test.ts (posix/cmd/powershell); runtime-chokepoint.model-override.test.ts"
+        },
+        {
+          "behavior": "No env-var prefix is emitted when both overrides are unset (byte-identical command to before this feature)",
+          "disposition": "tested",
+          "evidence": "launcher-codex.test.ts"
+        },
+        {
+          "behavior": "Implementation model continues to work unchanged via -c model=",
+          "disposition": "tested",
+          "evidence": "launcher-codex.test.ts (pre-existing cases re-run green)"
+        },
+        {
+          "behavior": "Overrides are never persisted to shipwright_model_config.json or the task record (no once-set-always-used fallback)",
+          "disposition": "tested",
+          "evidence": "parse-body.codex-model.test.ts; runtime-chokepoint.model-override.test.ts"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "This is a NewIterateModal form UI change (client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx) whose only server-visible effect is two new launch-body fields threaded into an existing command-string builder. Unit/jsdom tests cover the DOM and the payload-threading chain in isolation; the E2E spec (client/e2e/flows/model-tier-defaults.spec.ts, isolated-stack.mjs) proves the same UI renders correctly, the reviewer-identity block is genuinely gone, and the real /launch POST body carries codexPlanReviewModel/codexReviewModel against a real running client+server pair. The POST is intercepted (not let through) because a genuine Codex launch 400s without the Codex CLI on PATH (AC8, runtime-toggle-codex.spec.ts) — this proves the request the UI sends, not the CLI's own execution, which is unrelated to this diff."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-codex-reviewer-fields",
+    "commit": "5d25e2b3d912619cb4d2370323cebfa0a46b7281",
+    "dirty": true,
+    "base": "e589b8668e2fb7d5256007f1bfe7cea29ecb2c6d",
+    "release": null
+  }
+}
