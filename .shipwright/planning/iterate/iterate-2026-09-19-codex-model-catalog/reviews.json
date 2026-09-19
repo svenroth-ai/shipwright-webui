@@ -269,9 +269,9 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-09-19T21:21:53.820333+00:00",
+      "completed_at": "2026-09-19T21:57:59.824819+00:00",
       "disposition": null,
-      "recorded_by": "shipwright-build:spec-reviewer",
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null
     },

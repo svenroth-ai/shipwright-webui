@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-19-codex-terminal-flicker",
+  "date": "2026-09-19",
+  "section": "Iterate (bug, small)",
+  "title": "Codex-runtime terminal flicker: two upstream causes, one fixed here",
+  "context": "User reported the embedded terminal flickers only under the Codex runtime, not Claude, describing it as genuinely disruptive. Reproduced Codex CLI 0.155.x's raw output via bare node-pty spawns outside the webui: one at startup (fixed size, no resize), one across a live turn.",
+  "decision": "Ship `-c tui.animations=false` on every Codex launch (launcher-codex.ts), verified via A/B pty capture to eliminate the recurring ~108ms title-spinner/status-redraw flicker during a turn. Reversible via SHIPWRIGHT_CODEX_TUI_ANIMATIONS=0. A separate, unfixed mechanism -- a one-time startup box-relayout storm (~9 redraws, unwrapped DECSET 2026) -- remains upstream-only; documented, not patched. Both recorded in CLAUDE.md DO-NOT #32.",
+  "consequences": "Codex-runtime turns no longer flicker while 'thinking'. Trade-off: the 'Working Xs' elapsed counter freezes until the terminal is hidden/shown (upstream bug, openai/codex#45564) -- judged acceptable vs continuous flicker. Startup box reflow still flickers once per launch; a future report should map to DO-NOT #32 Cause B, not be re-investigated as #28/#29. Claude-runtime launches (launcher.ts) are untouched.",
+  "rationale": "The recurring flicker is what the user reported as disruptive; Codex's own upstream config key gates exactly that decorative path with zero risk to the surrounding launch-command contract (additive `-c` flag, existing quoting). The startup reflow has no equivalent flag and would need an upstream Codex source fix.",
+  "rejected": "Buffering/coalescing pty output before relay to hide gaps up to ~700ms -- rejected, adds perceptible input lag to every runtime. Treating either cause as WebGL-atlas (#28) or CUF stale-cell (#29) -- rejected, both mechanisms ruled out empirically. Declaring 'no fix possible' -- rejected after a deeper live-turn repro found an actual upstream flag.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/iterate/iterate-2026-09-19-codex-terminal-flicker/bug-report.md"
+}

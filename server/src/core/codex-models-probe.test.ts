@@ -26,6 +26,7 @@ const REAL_SAMPLE = JSON.stringify({
   ],
 });
 
+// @covers FR-01.16
 describe("runCodexModelsProbe", () => {
   it("filters to visibility=list and maps to {slug, display_name}", async () => {
     const result = await runCodexModelsProbe({ run: run({ stdout: REAL_SAMPLE }) });

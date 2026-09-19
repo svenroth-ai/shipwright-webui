@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 import { buildCodexCommands, buildCodexPrompt } from "./launcher-codex.js";
 
@@ -35,6 +35,45 @@ describe("launcher-codex.buildCodexCommands", () => {
   it("always threads shell_environment_policy.inherit=all (§2.4)", () => {
     const c = buildCodexCommands({ cwd: CWD, autonomy: "autonomous" });
     expect(c.posix).toContain("shell_environment_policy.inherit=all");
+  });
+
+  // iterate-2026-09-19-codex-terminal-flicker (CLAUDE.md DO-NOT #32) —
+  // `tui.animations=false` suppresses Codex's own recurring TUI redraw
+  // chatter (title spinner + status-widget redraws) during a turn.
+  describe("tui.animations=false (terminal-flicker mitigation)", () => {
+    const ORIGINAL = process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS;
+    afterEach(() => {
+      if (ORIGINAL === undefined) delete process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS;
+      else process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS = ORIGINAL;
+    });
+
+    it("is threaded by default on a fresh launch", () => {
+      const c = buildCodexCommands({ cwd: CWD });
+      expect(c.posix).toContain("tui.animations=false");
+    });
+
+    it("is threaded by default on resume", () => {
+      const c = buildCodexCommands({ cwd: CWD, resume: true, threadId: THREAD_ID });
+      expect(c.posix).toContain("tui.animations=false");
+    });
+
+    it("is omitted when SHIPWRIGHT_CODEX_TUI_ANIMATIONS=0 (fresh launch)", () => {
+      process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS = "0";
+      const c = buildCodexCommands({ cwd: CWD });
+      expect(c.posix).not.toContain("tui.animations=false");
+    });
+
+    it("is omitted when SHIPWRIGHT_CODEX_TUI_ANIMATIONS=0 (resume)", () => {
+      process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS = "0";
+      const c = buildCodexCommands({ cwd: CWD, resume: true, threadId: THREAD_ID });
+      expect(c.posix).not.toContain("tui.animations=false");
+    });
+
+    it("any other value keeps the flag on (only the literal '0' opts out)", () => {
+      process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS = "false";
+      const c = buildCodexCommands({ cwd: CWD });
+      expect(c.posix).toContain("tui.animations=false");
+    });
   });
 
   // External-code-review finding (GLM MEDIUM, 2026-09-16): `codex resume

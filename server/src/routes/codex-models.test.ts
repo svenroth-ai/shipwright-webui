@@ -17,6 +17,7 @@ const MODELS = [
 const OK_RESULT: CodexModelsProbeResult = { ok: true, models: MODELS };
 const FAIL_RESULT: CodexModelsProbeResult = { ok: false, models: [] };
 
+// @covers FR-01.16
 describe("GET /api/codex-models", () => {
   it("returns ok + the filtered catalog on a successful probe", async () => {
     const app = new Hono();

@@ -101,6 +101,7 @@ function renderCodex(
       parts.push("--enable", "default_mode_request_user_input");
     }
     parts.push("-c", q("shell_environment_policy.inherit=all"));
+    parts.push(...buildTuiAnimationFlags(q));
     if (autonomy === "autonomous") {
       parts.push("--yolo");
     } else {
@@ -124,6 +125,7 @@ function renderCodex(
   // §2.4 — required so `SHIPWRIGHT_SESSION_ID` survives Codex's own shell
   // tool's environment filter (default: a `core` subset, not `all`).
   parts.push("-c", q("shell_environment_policy.inherit=all"));
+  parts.push(...buildTuiAnimationFlags(q));
   // §3 mapping — "approvals" row.
   if (autonomy === "autonomous") {
     parts.push("--yolo");
@@ -145,6 +147,35 @@ function renderCodex(
   const cmd = parts.join(" ");
   void cwd; // cwd is already folded into cdPrefix; kept for symmetry with launcher.ts's per-shell renderers.
   return cdPrefix + envPrefix + (shellForm === "powershell" ? "& " + cmd : cmd);
+}
+
+/**
+ * iterate-2026-09-19-codex-terminal-flicker (CLAUDE.md DO-NOT #32) —
+ * Codex's own TUI (not this webui) redraws its fixed-position input box
+ * every time transcript content changes above it, and does so OUTSIDE
+ * DECSET 2026 (Synchronized Output) — confirmed against a raw pty capture,
+ * independent of the webui entirely. During normal "thinking" turns this
+ * repeats roughly every 100ms via a terminal-title spinner plus periodic
+ * status-widget redraws (upstream: openai/codex#39268, #37706), so any
+ * terminal relaying Codex's raw output shows visible flicker.
+ * `-c tui.animations=false` (upstream config key; see openai/codex#45564,
+ * #46111) suppresses the decorative animation/spinner path entirely,
+ * eliminating the RECURRING flicker during a turn (verified empirically —
+ * zero title-spinner or status-redraw chunks with the flag set, vs. one
+ * every ~108ms without it). It does NOT touch the one-time startup box
+ * reflow (~9 redraws over ~0.2–2s as Codex resolves model/MCP state on
+ * launch) — that part is a separate, currently-unfixed upstream mechanism.
+ * Known trade-off (openai/codex#45564, upstream bug): the elapsed
+ * "Working Xs" counter freezes with animations off until the terminal is
+ * hidden/shown again — a frozen decorative counter is preferable to
+ * continuous flicker. Reversible via `SHIPWRIGHT_CODEX_TUI_ANIMATIONS=0`
+ * (mirrors `SHIPWRIGHT_TERMINAL_NO_FLICKER`'s opt-out contract in
+ * `terminal/spawn-env.ts`) for anyone who wants the elapsed timer back
+ * more than they want the flicker gone.
+ */
+function buildTuiAnimationFlags(q: (v: string) => string): string[] {
+  if (process.env.SHIPWRIGHT_CODEX_TUI_ANIMATIONS === "0") return [];
+  return ["-c", q("tui.animations=false")];
 }
 
 /**
