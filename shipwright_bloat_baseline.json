@@ -569,10 +569,10 @@
     {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 596,
+      "current": 612,
       "state": "grandfathered",
       "adr": "iterate-2026-08-08-triage-amend-reader",
-      "note": "iterate-codex-light-webui: added TriageRoutesDeps.getCodexRuntimeDefault + its use in the promote fresh-create branch (Codex Light §3.5 -- promote has no per-task RuntimeToggle, so it reads the global settings default server-side) -- +12 lines (581 -> 593), a narrow read-only dependency injection, not a new concern. +3 lines (593 -> 596): local PR-review preflight finding -- normalized the settings-reader.ts value to \"codex\"|\"claude\" at the call site instead of trusting the unvalidated JSON shape."
+      "note": "iterate-codex-light-webui: added TriageRoutesDeps.getCodexRuntimeDefault + its use in the promote fresh-create branch (Codex Light §3.5 -- promote has no per-task RuntimeToggle, so it reads the global settings default server-side) -- +12 lines (581 -> 593), a narrow read-only dependency injection, not a new concern. +3 lines (593 -> 596): local PR-review preflight finding -- normalized the settings-reader.ts value to \"codex\"|\"claude\" at the call site instead of trusting the unvalidated JSON shape. +16 lines (596 -> 612), iterate-2026-09-19-codex-launch-phase-empty: added a PROMOTED_TASK_PHASE=\"iterate\" constant (mirroring the existing hardcoded PROMOTED_TASK_ACTION_ID -- every promoted task IS iterate work) and stamped it into the promote fresh-create branch's store.create() call, fixing a real bug -- a Codex-runtime task promoted from triage never got its `phase` field set, so buildCodexPrompt() (launcher-codex.ts) silently dropped the SKILL.md pointer instruction outside a project with an iterate-covering AGENTS.md. One field + a doc comment explaining the why; not a new concern."
     },
     {
       "path": "server/src/terminal/headless-mirror.ts",

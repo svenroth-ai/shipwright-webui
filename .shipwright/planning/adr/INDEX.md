@@ -57,4 +57,5 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [ADR: Reconcile B7/G2/I5 compliance findings](iterate-2026-09-11-compliance-b7-g2-i5.md)
 - [Mobile Triage/task-form layout: flex height-chain fix + spacing/collapse](iterate-2026-09-12-mobile-triage-form-layout-flex-height-chain.md)
 - [Codex Light — Codex CLI as an alternate task runtime](iterate-2026-09-16-codex-light-webui.md)
+- [ADR: fix two Codex-runtime launch-prompt bugs — empty `phase` on triage-promote, unprefixed SKILL.md path](iterate-2026-09-19-codex-launch-phase-empty.md)
 - [ADR — codex-launch-powershell-chunk](iterate-2026-09-19-codex-launch-powershell-chunk.md)

@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-09-19-codex-launch-phase-empty",
+  "date": "2026-09-19T21:51:36.767952Z",
+  "event_at": "2026-09-19T19:35:01.986213+00:00",
+  "type": "bug",
+  "complexity": "trivial",
+  "branch": "iterate/codex-launch-phase-empty",
+  "spec": ".shipwright/planning/adr/iterate-2026-09-19-codex-launch-phase-empty.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-19-codex-launch-phase-empty"
+}

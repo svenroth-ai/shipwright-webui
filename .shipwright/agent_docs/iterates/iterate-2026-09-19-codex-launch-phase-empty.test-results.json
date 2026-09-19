@@ -1,0 +1,80 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-19-codex-launch-phase-empty",
+    "date": "2026-09-19",
+    "unit": {
+      "status": "passed",
+      "passed": 4355,
+      "total": 4368,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 2,
+        "covered_acs": 2
+      },
+      "behaviors": [
+        {
+          "behavior": "A task promoted from triage has phase='iterate' stamped on it, so a Codex-runtime promoted task gets the SKILL.md pointer instruction in its launch prompt",
+          "disposition": "tested",
+          "evidence": "triage.promote-phase.test.ts (new) \u2014 drives the real POST /api/triage/:projectId/promote route and asserts h.store.get(taskId).phase === 'iterate'"
+        },
+        {
+          "behavior": "buildCodexPrompt's SKILL.md pointer line uses the correct plugins/shipwright-<phase>/skills/<phase>/SKILL.md path, matching the real monorepo/plugin-cache layout",
+          "disposition": "tested",
+          "evidence": "launcher-codex.test.ts \u2014 two existing assertions updated to expect the plugins/-prefixed path"
+        },
+        {
+          "behavior": "No other construction site for a promoted task exists that would bypass the phase stamp, and no other consumer of the old unprefixed SKILL.md path template string exists",
+          "disposition": "tested",
+          "evidence": "Full server unit suite (4355/4368 passed, 13 skipped) green; code-reviewer subagent grep-swept both call sites and confirmed single-consumer for each"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "Server-only route/prompt-template fix with no rendered UI surface to verify \u2014 the two root causes (missing phase stamp on triage-promote; wrong SKILL.md path prefix) are both plain server-side string/data construction, fully covered by the unit-level route test (triage.promote-phase.test.ts) and the updated launcher-codex.test.ts assertions. No client changes in this diff."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-codex-launch-phase-empty",
+    "commit": "2045b7c430e93b80facf3539f703a102fc76ca02",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
