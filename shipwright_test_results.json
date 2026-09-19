@@ -6,7 +6,8 @@
     "unit": {
       "status": "passed",
       "passed": 8603,
-      "total": 8616
+      "total": 8616,
+      "skipped": 13
     },
     "integration": {
       "status": "not_run",
