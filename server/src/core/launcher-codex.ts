@@ -236,7 +236,11 @@ export function buildCodexPrompt(args: {
     );
   }
   if (phase && !agentsMdCoversPhase) {
-    lines.push(`Read shipwright-${phase}/skills/${phase}/SKILL.md and execute it.`);
+    // iterate-2026-09-19-codex-launch-phase-empty: the monorepo/plugin-cache
+    // layout is `plugins/shipwright-<phase>/skills/<phase>/SKILL.md` — the
+    // bare `shipwright-<phase>/...` form is not a resolvable path from a
+    // project root or a Codex plugin cache.
+    lines.push(`Read plugins/shipwright-${phase}/skills/${phase}/SKILL.md and execute it.`);
   }
   const description = args.description?.trim();
   if (description) {

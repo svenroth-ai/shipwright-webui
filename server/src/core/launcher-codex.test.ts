@@ -264,9 +264,9 @@ describe("launcher-codex.buildCodexPrompt", () => {
     expect(prompt).toMatch(/review cascade/i);
   });
 
-  it("no AGENTS.md, phase set → also points at the phase's SKILL.md", () => {
+  it("no AGENTS.md, phase set → also points at the phase's SKILL.md (plugins/-prefixed path)", () => {
     const prompt = buildCodexPrompt({ phase: "build", hasAgentsMd: false });
-    expect(prompt).toContain("shipwright-build/skills/build/SKILL.md");
+    expect(prompt).toContain("plugins/shipwright-build/skills/build/SKILL.md");
   });
 
   it("AGENTS.md present, phase=iterate → omits both the pins AND the SKILL.md pointer", () => {
@@ -275,10 +275,10 @@ describe("launcher-codex.buildCodexPrompt", () => {
     expect(prompt).not.toContain("SKILL.md");
   });
 
-  it("AGENTS.md present, phase=build (not iterate) → still points at build's SKILL.md", () => {
+  it("AGENTS.md present, phase=build (not iterate) → still points at build's SKILL.md (plugins/-prefixed path)", () => {
     const prompt = buildCodexPrompt({ phase: "build", hasAgentsMd: true });
     expect(prompt).not.toMatch(/gpt-5\.6-terra/); // AGENTS.md already carries the pins
-    expect(prompt).toContain("shipwright-build/skills/build/SKILL.md");
+    expect(prompt).toContain("plugins/shipwright-build/skills/build/SKILL.md");
   });
 
   it("always ends with a SHIPWRIGHT-STATUS self-report instruction (§5.4)", () => {
