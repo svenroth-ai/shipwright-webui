@@ -95,6 +95,74 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
     expect(screen.queryByTestId("codex-review-model-hint")).toBeNull();
   });
 
+  it("Runtime=Codex populates the shared datalist from a successful /api/codex-models fetch, free text still accepted", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/codex-models")) {
+        return new Response(
+          JSON.stringify({
+            status: "ok",
+            models: [{ slug: "gpt-5.6-sol", display_name: "GPT-5.6-Sol" }],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    try {
+      renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
+      openMoreOptions();
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+      const field = await screen.findByTestId(
+        "model-tier-override-codex-implementation-model",
+      );
+      await waitFor(() => {
+        const datalistId = field.getAttribute("list");
+        expect(datalistId).toBeTruthy();
+        const option = document.querySelector(
+          `#${CSS.escape(datalistId as string)} option[value="gpt-5.6-sol"]`,
+        );
+        expect(option).toBeTruthy();
+      });
+      expect(screen.queryByTestId("codex-model-catalog-status")).toBeNull();
+      // Free text is still accepted regardless of the catalog contents.
+      fireEvent.change(field, { target: { value: "my-custom-slug" } });
+      expect(field).toHaveValue("my-custom-slug");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("Runtime=Codex shows an 'unavailable' caption when the catalog probe has no data, without blocking typing", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/codex-models")) {
+        return new Response(JSON.stringify({ status: "unavailable", models: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("{}", { status: 200 });
+    }) as typeof fetch;
+    try {
+      renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
+      openMoreOptions();
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+      const field = await screen.findByTestId(
+        "model-tier-override-codex-implementation-model",
+      );
+      expect(
+        await screen.findByTestId("codex-model-catalog-status"),
+      ).toHaveTextContent("Model suggestions unavailable");
+      fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
+      expect(field).toHaveValue("gpt-5.6-luna");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("Runtime=Claude (toggled back from Codex) shows the Claude fields again, unchanged", async () => {
     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();

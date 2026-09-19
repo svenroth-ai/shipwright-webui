@@ -59,3 +59,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Codex Light — Codex CLI as an alternate task runtime](iterate-2026-09-16-codex-light-webui.md)
 - [ADR: fix two Codex-runtime launch-prompt bugs — empty `phase` on triage-promote, unprefixed SKILL.md path](iterate-2026-09-19-codex-launch-phase-empty.md)
 - [ADR — codex-launch-powershell-chunk](iterate-2026-09-19-codex-launch-powershell-chunk.md)
+- [Live Codex model catalog for the New Iterate launch form](iterate-2026-09-19-codex-model-catalog.md)

@@ -49,6 +49,7 @@ import { createExternalRoutes } from "./external/routes.js";
 import { buildExternalRoutesArgs } from "./external-routes-wiring.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createReadinessRoutes } from "./routes/readiness.js";
+import { createCodexModelsRoutes } from "./routes/codex-models.js";
 import { createGradeRoutes } from "./routes/grade.js";
 import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
@@ -600,6 +601,10 @@ if (isMainModule) {
       // Wizard (A08) + First Contact (A14) both read this; it re-expresses the
       // bootstrapper preflight set server-side (the browser can't spawn probes).
       app.route("/", createReadinessRoutes({ versionInfo }));
+      // iterate-2026-09-19-codex-model-catalog — live `codex debug models`
+      // catalog for the New Iterate Codex model-tier comboboxes. Separate
+      // cache lifetime from readiness on purpose (architecture review).
+      app.route("/", createCodexModelsRoutes({}));
       // FR-01.53 — read-only Grade door route. Runs shipwright-grade's grade.py
       // (shell:false, validated target) and renders the real ReportModel; no
       // project registration, no writes (a bare grade is a pure observer).

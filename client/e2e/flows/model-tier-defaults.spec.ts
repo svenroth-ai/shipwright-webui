@@ -174,4 +174,91 @@ test.describe("Model-tier defaults", () => {
       codexReviewModel: "gpt-5.6-sol",
     });
   });
+
+  // iterate-2026-09-19-codex-model-catalog — the three Codex model fields
+  // become comboboxes suggesting a live catalog. `/api/codex-models` is
+  // intercepted with a fixed response (external review fix, openai): this
+  // proves the UI wiring deterministically, independent of whether the E2E
+  // runner's machine has the Codex CLI installed — real probe/parsing
+  // behavior is covered by the server-side unit tests instead.
+  test("Runtime=Codex suggests catalog slugs via a datalist and still accepts free text", async ({
+    page,
+  }) => {
+    await page.route("**/api/codex-models", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          models: [
+            { slug: "gpt-6-astra", display_name: "GPT-6-Astra" },
+            { slug: "gpt-5.6-sol", display_name: "GPT-5.6-Sol" },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/");
+    await expect(page.getByTestId("task-card-" + task.taskId)).toBeVisible();
+    await page.getByTestId("create-menu-caret").click();
+    await page.getByTestId("create-menu-item-new-iterate").click();
+    await expect(page.getByTestId("new-issue-modal-new-iterate")).toBeVisible();
+    await page.getByTestId("runtime-codex").click();
+    await page.getByTestId("new-issue-more-options-toggle").click();
+
+    const implementationField = page.getByTestId(
+      "model-tier-override-codex-implementation-model",
+    );
+    await expect(implementationField).toBeVisible();
+
+    // The field is a combobox: its `list` attribute names a populated
+    // <datalist> holding the fetched catalog.
+    // `useId()` (React 18) returns ids containing colons (e.g. `:r1:`), which
+    // is not a valid CSS id-selector token unescaped — an attribute selector
+    // tolerates the raw value with no escaping needed (external code-review
+    // finding, 2026-09-19).
+    const datalistId = await implementationField.getAttribute("list");
+    expect(datalistId).toBeTruthy();
+    const datalistOptions = page.locator(`[id="${datalistId}"] option`);
+    await expect(datalistOptions).toHaveCount(2);
+    await expect(datalistOptions.nth(0)).toHaveAttribute("value", "gpt-6-astra");
+
+    // Free text is still accepted — a suggestion is a convenience, not a
+    // restriction.
+    await implementationField.fill("a-completely-custom-slug");
+    await expect(implementationField).toHaveValue("a-completely-custom-slug");
+    await expect(page.getByTestId("codex-model-catalog-status")).toHaveCount(0);
+  });
+
+  // Degrade path: the endpoint reports unavailable (e.g. Codex CLI missing
+  // on the server host) — the form must still be fully usable.
+  test("Runtime=Codex shows an unavailable caption when the catalog probe fails, form stays usable", async ({
+    page,
+  }) => {
+    await page.route("**/api/codex-models", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "unavailable", models: [] }),
+      });
+    });
+
+    await page.goto("/");
+    await expect(page.getByTestId("task-card-" + task.taskId)).toBeVisible();
+    await page.getByTestId("create-menu-caret").click();
+    await page.getByTestId("create-menu-item-new-iterate").click();
+    await expect(page.getByTestId("new-issue-modal-new-iterate")).toBeVisible();
+    await page.getByTestId("runtime-codex").click();
+    await page.getByTestId("new-issue-more-options-toggle").click();
+
+    const implementationField = page.getByTestId(
+      "model-tier-override-codex-implementation-model",
+    );
+    await expect(implementationField).toBeVisible();
+    await expect(page.getByTestId("codex-model-catalog-status")).toContainText(
+      "Model suggestions unavailable",
+    );
+    await implementationField.fill("gpt-5.6-luna");
+    await expect(implementationField).toHaveValue("gpt-5.6-luna");
+  });
 });

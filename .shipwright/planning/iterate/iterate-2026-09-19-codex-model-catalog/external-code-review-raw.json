@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "glm": {
+      "feedback": "Findings:\n\n- Category: bug\n  - Severity: medium\n  - File: client/e2e/flows/model-tier-defaults.spec.ts:~215 (`page.locator(\\`#${datalistId} option\\`)`)\n  - Finding: `datalistId` comes from React's `useId()`, which in React 18 returns ids containing colons (e.g. `:r1:`). A raw `#`-prefixed string with colons is not a valid CSS selector \u2014 Playwright's CSS engine will throw \"unexpected token\" / fail to match, so `datalistId` fetched from `getAttribute(\"list\")` can break this assertion at runtime (the unit test correctly uses `CSS.escape` for the same id; the E2E does not).\n  - Suggestion: Escape the id before interpolating, e.g. use Playwright's css engine escaping or `locator(`[id=\"${datalistId}\"] option`)` \u2014 or better, assert via an attribute selector that tolerates special characters.\n\n- Category: edge-case\n  - Severity: low\n  - File: server/src/routes/codex-models.ts:60\u201375\n  - Finding: Within `failureTtlMs` of a failure, requests are served the stale/unavailable snapshot without re-probing, and `cache.at` is never refreshed on a stale serve \u2014 after failureTtl elapses every request again pays a cold probe; and a permanently failing probe oscillates between probe attempt and stale serve with the \"stale\" list's actual age unbounded (a stale list older than the success TTL is served indefinitely as long as failures keep resetting `lastFailureAt`). This is acceptable for the stated semantics, but the client caption \"Model list may be out of date\" has no bound; nothing in the response tells the client how stale.\n  - Suggestion: Acceptable as-is given the spec (\"stale = last good cache\"); optionally add a `staleAt`/age field if the client should ever escalate. Not blocking.\n\n- Category: test\n  - Severity: low\n  - File: server/src/routes/codex-models.test.ts:32\u201336 (\"memoises within the TTL\")\n  - Finding: This test would also pass if the route never re-probed at all (no negative control within it); the re-probe behavior is only covered by the separate `ttlMs: -1` test, so the pair is fine, but the memoise test alone wouldn't catch a \"cache forever\" regression if the -1 test were removed. Minor observation only \u2014 coverage as a whole is sound.\n\nEverything else checks out: probe gating on `code === 0` (correctly avoiding the version-regex `ok` heuristic, with a test locking it in), per-entry defensiveness + de-dup, the unconditional hook call with `enabled` gating, the shared-datalist `useId` (unit-test path escapes correctly), slug filtering through `CODEX_MODEL_SLUG_PATTERN` before it reaches the client, server-side validation untouched, and the failure-TTL backoff. ACs are all implemented and the test ledger matches what's in the diff.\n\nOverall: ship-with-fixes \u2014 the only concrete defect is the unescaped `useId()` colon in the E2E locator, which is a one-line fix; everything else is sound.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: [server/src/routes/codex-models.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-ii45_l7l/server/src/routes/codex-models.ts:66)\n- Finding: A rejected `probe()` promise is not caught. It rejects the route handler rather than producing the required HTTP 200 `stale`/`unavailable` response. `runCodexModelsProbe` has the same gap at its awaited `run(...)` call, despite documenting that it \u201cNever throws.\u201d\n- Suggestion: Catch rejected probe/run promises and convert them to `{ ok: false, models: [] }` before cache/degradation handling.\n\n- Category: test\n- Severity: medium\n- File: [server/src/routes/codex-models.test.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-ii45_l7l/server/src/routes/codex-models.test.ts:72)\n- Finding: Failure tests only use a successfully resolved `{ ok: false }` result; none simulates a rejected probe promise. Thus they pass despite the route returning a 500 for a real subprocess/helper rejection.\n- Suggestion: Add route coverage with `probe: async () => { throw new Error(...) }` and assert HTTP 200 plus `unavailable` (and `stale` after a cached success).\n\nShip-with-fixes: the primary behavior is implemented, but the uncaught rejection violates the endpoint\u2019s required non-failing degradation contract.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

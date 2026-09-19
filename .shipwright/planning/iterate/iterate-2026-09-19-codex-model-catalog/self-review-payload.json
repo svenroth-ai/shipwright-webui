@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "All ACs implemented: probe + route + combobox + status caption + unchanged server validation + unchanged Implementation-model wiring; no extra features beyond scope."},
+    {"name": "Error Handling", "verdict": "pass", "note": "Probe never throws; route always returns HTTP 200 across ok/stale/unavailable; no unhandled null at any boundary."},
+    {"name": "Security Basics", "verdict": "pass", "note": "execFile(shell:false) with fixed literal args, no injection surface; catalog slugs re-filtered through CODEX_MODEL_SLUG_PATTERN before reaching the client; display_name renders through React; launch validation untouched."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Every new test asserts observable outcomes, not internals; happy + error/degrade paths covered per behavior."},
+    {"name": "Performance Basics", "verdict": "pass", "note": "TTL + failure-TTL caching bounds probe frequency; async execFile never blocks the event loop; catalog is a handful of entries."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "Files match existing conventions; all new/modified files 279 lines or fewer."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "Producer (codex debug models stdout) -> consumer (codex-models-probe.ts) identified; real captured-JSON fixture round-trips through the probe's unit tests (touches_io_boundary Boundary Probe sub-step satisfied)."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff -> no findings."}
+  ]
+}

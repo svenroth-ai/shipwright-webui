@@ -319,6 +319,9 @@ The guided three-door front entry (New · Adopt · Grade), placed before the exp
 | `useReadiness` | `client/src/components/wizard/IntentWizard/useReadiness.ts` | Reads `GET /api/readiness`; doors stay inert until the probe proves ready. |
 | `readiness-probe` | `server/src/core/readiness-probe.ts` | Async (`execFile`, non-blocking) preflight probe: Claude CLI · door-critical plugins · cache/shared · uv · Python ≥ 3.11 · git. One truth shared with A14 First Contact. |
 | `createReadinessRoutes` | `server/src/routes/readiness.ts` | Mounts `GET /api/readiness`; TTL-memoised + in-flight-coalesced. |
+| `runCodexModelsProbe` | `server/src/core/codex-models-probe.ts` | Async (`defaultRunShim`, non-blocking) `codex debug models` probe, filtered to `visibility==="list"` + valid slugs. iterate-2026-09-19-codex-model-catalog. |
+| `createCodexModelsRoutes` | `server/src/routes/codex-models.ts` | Mounts `GET /api/codex-models`; separate success/failure TTLs + in-flight-coalesced. |
+| `useCodexModels` | `client/src/hooks/useCodexModels.ts` | Feeds `ModelTierOverrideFields`'s Codex model comboboxes; called unconditionally, fetch gated on `runtime === "codex"`. |
 
 ## Launch state machine (A17, FR-01.61)
 
