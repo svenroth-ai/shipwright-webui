@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-09-19-codex-launch-powershell-chunk",
+  "date": "2026-09-19T19:35:01.833684Z",
+  "event_at": "2026-09-19T17:44:30.678395+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/codex-launch-powershell-chunk",
+  "spec": ".shipwright/planning/iterate/iterate-2026-09-19-codex-launch-powershell-chunk/bug-report.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-19-codex-launch-powershell-chunk"
+}

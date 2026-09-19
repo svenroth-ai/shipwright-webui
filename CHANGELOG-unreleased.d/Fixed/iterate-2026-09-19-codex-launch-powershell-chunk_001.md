@@ -1,0 +1,1 @@
+Codex task launch (guided and autonomous) no longer fails on Windows PowerShell 7 with a `done:false: ... is not recognized` error -- the multi-paragraph launch prompt is now delivered without any literal newline reaching PSReadLine's pty-injected input buffer.

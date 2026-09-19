@@ -172,6 +172,49 @@ describe("launcher-codex.buildCodexCommands", () => {
     expect(c.posix).toContain("SHIPWRIGHT_CODEX_REVIEW_MODEL='gpt-5.6-sol'");
     expect(c.posix).toContain(`-c 'model="gpt-5.6-luna"'`);
   });
+
+  // iterate-2026-09-19-codex-launch-powershell-chunk (bug fix): reproduced
+  // live against a real pwsh.exe pty (PowerShell 7) -- PSReadLine, fed a
+  // multi-line single-quoted string via pty keystroke injection (not a real
+  // interactive paste), corrupts its edit buffer and executes a fragment of
+  // the prompt text as a bare command (e.g. the literal parenthetical
+  // "(done:false if you could not complete it)" in the status-report
+  // instruction runs as `done:false: The term 'done:false' is not
+  // recognized...`). Confirmed independent of chunking (fails identically
+  // via one atomic pty.write()) and independent of bracketed paste (PS7's
+  // bracketed-paste handling does not prevent it either) -- the only thing
+  // that avoids it is never putting a literal newline in the bytes sent to
+  // the pty. buildCodexPrompt() always joins its lines with blank-line
+  // separators, so every Codex launch (guided AND autonomous) hits this.
+  // Mirrors launcher.ts's existing "Title cannot contain newlines (would
+  // break the single-line copy-paste flow)" guard for the Claude launcher.
+  it("powershell form contains no raw newline even for a multi-paragraph prompt (PSReadLine corruption guard)", () => {
+    const c = buildCodexCommands({
+      cwd: CWD,
+      phase: "iterate",
+      description: "Line one of the task.\n\nLine two, after a blank line.",
+      hasAgentsMd: false,
+    });
+    expect(c.powershell).not.toMatch(/[\r\n]/);
+  });
+
+  it("powershell form decodes back to the exact original multi-line prompt", () => {
+    const description = "Line one of the task.\n\nLine two, after a blank line.";
+    const c = buildCodexCommands({ cwd: CWD, phase: "iterate", description, hasAgentsMd: false });
+    const match = c.powershell.match(/FromBase64String\('([^']+)'\)/);
+    expect(match).not.toBeNull();
+    const decoded = Buffer.from(match![1], "base64").toString("utf8");
+    expect(decoded).toContain(description);
+    expect(decoded).toContain("SHIPWRIGHT-STATUS");
+  });
+
+  it("cmd and posix forms are untouched -- the fix is scoped to PowerShell only", () => {
+    const description = "Line one of the task.\n\nLine two, after a blank line.";
+    const c = buildCodexCommands({ cwd: CWD, phase: "iterate", description, hasAgentsMd: false });
+    expect(c.posix).toContain(description);
+    expect(c.cmd).toContain(description);
+  });
+
 });
 
 describe("launcher-codex.buildCodexPrompt", () => {

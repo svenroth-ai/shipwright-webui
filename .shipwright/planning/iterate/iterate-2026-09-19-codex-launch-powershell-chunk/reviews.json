@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-19-codex-launch-powershell-chunk",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T19:15:23.921754+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T19:15:31.353545+00:00",
+      "disposition": "small-complexity BUG fix; mini-plan + its external/internal review only apply medium+ or FEATURE per the Phase Matrix",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/launcher-codex.ts",
+          "line": 142,
+          "finding": "cmd.exe is left on the plain qCmd() path (raw \\n embedded in the quoted argument), and cmd.exe is a real, user-selectable auto-execute target (pty-manager.ts ShellKind/WHITELIST includes cmd/cmd.exe alongside pwsh), not just a manual copy-paste convenience. Interactive cmd.exe has no multi-line quote-buffering the way PowerShell's parser does, so this is a disclosed, unproven gap consistent with this bug's stated PowerShell-only scope.",
+          "suggestion": "File a fast follow-up to empirically verify (or fix) the cmd.exe auto-execute path the same way this fix verified PowerShell.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/launcher-codex.ts",
+          "line": 142,
+          "finding": "buildCodexPrompt(args) was called twice in source inside the ternary.",
+          "suggestion": "Hoist to a local const.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/shell-quote.test.ts",
+          "line": 49,
+          "finding": "qPsMultiline's doc comment claims correctness for non-ASCII/multi-byte UTF-8 content, unpinned by any test fixture.",
+          "suggestion": "Add a round-trip test case with a multi-byte character.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-19T19:21:31.007736+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T19:21:38.106255+00:00",
+      "disposition": "diff is a pure string-quoting helper + tests -- no migrations, async/concurrency, cross-plugin imports, or irreversible ops; Stage 3 is conditional on those per iteration-reviews.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-09-19T19:23:16.734453+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] I reviewed the diff against the bug-report spec and looked hard for correctness, security, test-quality, regression, and edge-case defects.\n\nWhat I checked:\n\n1. **Spec compliance**: `qPsMultiline` exists in `shell-quote.ts`, passes through to `qPs` for newline-free input, base64-wraps otherwise; `renderCodex` applies it only to the PowerShell form's prompt argument, leaving `cmd`/`posix` untouched. Matches the spec exactly.\n2. **Correctness**: Node's `toString(\"base64\")` (RFC 4648) never emits `\\r`/`\\n`, so the \"no literal newline reaches the pty\" guarantee holds by construction. The `$(...)` sub-expression, placed as a bare token (no spaces in base64), is a single PowerShell argument. Round-trip is exact since both encode and decode are UTF-8. No bug found.\n3. **Security**: No new injection surface — base64 content is constrained to `[A-Za-z0-9+/=]`, single-quoted via `qPs`, and it *reduces* the risk of prompt fragments being executed as bare commands.\n4. **Test quality**: Tests assert the decoded output equals the original (not just \"function ran\"), cover the pass-through path, `\\r`-only, quote+newline, multi-byte UTF-8, and confirm cmd/posix are untouched. One caveat: tests decode with Node, not a real pwsh — but the spec states live pwsh validation was done, and the regex for the sub-expression form pins the exact PowerShell structure.\n5. **Regressions**: `qPs` is unchanged; `qPsMultiline` is a new export only used by the new call site. Posix/cmd output strings are byte-identical to before (verified by the new \"untouched\" test).\n6. **Edge cases**: Empty string and newline-free values take the plain path (correct); lone `\\r` handled; quotes in base64 impossible. The only theoretical residual risk — PSReadLine mis-handling `$(`/`[` keystrokes — was ruled out empirically per the spec.\n\nNo concrete defects found. The change is well-scoped, matches the spec, and the tests would fail against a broken implementation (e.g., plain `qPs` on multi-line input f […truncated]\n\n[openai] No concrete defects found. The PowerShell-only Base64 path prevents raw prompt newlines while preserving the decoded prompt, and tests cover newline, carriage-return, quotes, UTF-8, and scoping to PowerShell.\n\nShip-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T19:18:01.183312+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T19:15:31.465886+00:00",
+      "disposition": "small-complexity BUG fix; the internal plan-review arm only applies medium+ per iteration-planning.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
