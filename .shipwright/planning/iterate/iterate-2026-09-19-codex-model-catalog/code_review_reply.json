@@ -1,0 +1,13 @@
+{
+  "section": "iterate-2026-09-19-codex-model-catalog",
+  "review": [
+    {
+      "finding": "codex-models-probe.ts gated on result.ok instead of result.code === 0. readiness-probe-run.ts's shared parseExecResult ok heuristic (version-regex) would report ok:false for a real catalog with no dotted-version slug despite a clean exit and valid JSON.",
+      "severity": "high",
+      "category": "correctness",
+      "file": "server/src/core/codex-models-probe.ts",
+      "line": 63,
+      "suggestion": "Fixed: gate on result.code === 0 (RunResult.code's own doc comment already documents this as the intended bypass), no change to the shared module or its other callers. Added a regression test (codex-models-probe.test.ts) with ok:false/code:0 and an all-integer-slug catalog."
+    }
+  ]
+}

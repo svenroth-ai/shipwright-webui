@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-19-codex-model-catalog",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T21:15:51.208712+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Step 5 says \"call `useCodexModels()` once at the top of the `runtime === \"codex\"` branch.\" If that branch is a conditional render inside the component, a conditional hook call violates the rules of hooks and will break when the runtime toggle flips between `codex` and other runtimes mid-session (state mismatch / crash).",
+          "suggestion": "Call the hook unconditionally at the top of `ModelTierOverrideFields` and simply ignore the result when `runtime !== \"codex\"`. React Query's enabled/conditional fetching makes this free.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The `useQuery` `staleTime` is set to equal the server TTL (5 min). A client fetch landing at TTL−ε yields data that is already nearly 5 minutes old when it arrives, and won't refetch for another 5 — so worst case the user sees a ~10-minute-old catalog. Not a correctness problem (free text always works), but the stated reasoning (\"matches the server TTL so the client doesn't re-fetch needlessly\") slightly overshoots.",
+          "suggestion": "Either accept and document the skew, or set client `staleTime` to something like half the server TTL.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "A cold server's first `GET /api/codex-models` waits on the probe (up to 8s) before responding. The spec says the endpoint \"never blocks the launch form,\" but the request itself blocks for up to 8s on first hit, and opening the modal fires it. The 8s timeout reuse is the worst case, not the observed ~0.5s.",
+          "suggestion": "Consider returning `unavailable` immediately with a background probe (stale-while-revalidate, same as readiness may do), or at minimum confirm the modal doesn't show a loading state that blocks typing while the query is in flight. Also worth double-checking what the default `PROBE_TIMEOUT_MS` actually is — the plan asserts 8s.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The single shared `<datalist id=\"codex-model-catalog\">` is a global DOM id. If `ModelTierOverrideFields` can ever render twice (e.g., two modals, a test rendering in parallel), duplicate ids collide. The spec's AC mentions `list=\"<paramKey>-options\"` but the mini-plan hardcodes one shared id — minor internal inconsistency.",
+          "suggestion": "Either reconcile with the AC (per-field ids from the same catalog data) or use a stable id guaranteed unique per instance (`useId()`).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The probe parses JSON from an external CLI whose output shape is not controlled by this codebase. The plan checks for a missing `models` array but doesn't specify defensive handling of unexpected entry shapes (e.g., a model entry missing `slug` or `visibility`, or `models` not being an array). One malformed entry shouldn't kill the whole list.",
+          "suggestion": "Filter entries to those that are objects with a string `slug` and string `display_name`; treat non-array `models` as a parse failure (already specified) — just make per-entry defensiveness explicit in the probe tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "display_name` from the external CLI flows into the DOM. React escapes this, so XSS risk is negligible, but if `display_name` is ever used in an `aria-label` or non-React context, it would matter.",
+          "suggestion": "No change needed; just keep rendering through React and note that `slug` (which does flow into a launch command) remains gated by the unchanged `CODEX_MODEL_SLUG_PATTERN` server-side — never trust the catalog list as validation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "“Call `useCodexModels()` once at the top of the `runtime === \"codex\"` branch” risks calling a React hook conditionally if `runtime` can change during the component lifecycle. That breaks hook ordering and can cause runtime errors when switching runtimes in the modal.",
+          "suggestion": "Call the hook unconditionally in `ModelTierOverrideFields`, or extract the Codex-only UI into a dedicated child component that is conditionally rendered and owns the hook.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "On probe failure, the design deliberately retries on every subsequent request. A missing/broken `codex` executable can therefore turn repeated modal opens, focus refetches, or external requests into repeated eight-second child-process launches. Inflight coalescing only protects simultaneous requests.",
+          "suggestion": "Add a short failure/backoff TTL separate from the successful-cache TTL. Continue returning `stale` or `unavailable` during that window, then retry after it expires.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The catalog’s returned slugs are not explicitly checked against `CODEX_MODEL_SLUG_PATTERN`. A future CLI catalog entry could be suggested by the UI but then rejected by the unchanged launch validation, creating a confusing broken suggestion.",
+          "suggestion": "Validate/filter catalog slugs with the same server-side pattern before returning them, and discard entries whose `slug` or `display_name` is not a non-empty string. Treat an invalid external payload as probe failure or omit invalid individual records.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "This GET route launches a local executable. The plan does not state whether it inherits the application’s existing authentication/loopback protections. If reachable by untrusted clients, it becomes a remotely triggerable process-execution and availability surface, even though arguments are fixed.",
+          "suggestion": "Mount it behind the same middleware and network exposure rules as other internal API routes. Combine this with failure backoff; do not expose an unauthenticated process-triggering endpoint beyond the intended local/UI boundary.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "A fixed `id=\"codex-model-catalog\"` can collide if more than one New Iterate modal/form is mounted (including background or test instances), linking inputs to the wrong datalist.",
+          "suggestion": "Generate an instance-scoped ID with React `useId()` and pass it to the three fields.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The E2E plan relies on a live CLI/catalog but does not specify deterministic interception or fixture setup. It may be flaky on systems without Codex, during slow refreshes, or as the live catalog changes.",
+          "suggestion": "Intercept `/api/codex-models` with a fixed response for the component behavior E2E, while retaining the route/probe unit tests for real parsing and degradation behavior.  Overall, the design is appropriately small and the native datalist choice fits the free-text requirement well. Resolve the conditional-hook risk, validate the external catalog contract, and prevent failure-driven process churn before implementation. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-19T20:57:25.873610+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**Category: approach — Severity: medium**\n**Finding:** Step 5 says \"call `useCodexModels()` once at the top of the `runtime === \"codex\"` branch.\" If that branch is a conditional render inside the component, a conditional hook call violates the rules of hooks and will break when the runtime toggle flips between `codex` and other runtimes mid-session (state mismatch / crash).\n**Suggestion:** Call the hook unconditionally at the top of `ModelTierOverrideFields` and simply ignore the result when `runtime !== \"codex\"`. React Query's enabled/conditional fetching makes this free.\n\n**Category: edge-case — Severity: low**\n**Finding:** The `useQuery` `staleTime` is set to equal the server TTL (5 min). A client fetch landing at TTL−ε yields data that is already nearly 5 minutes old when it arrives, and won't refetch for another 5 — so worst case the user sees a ~10-minute-old catalog. Not a correctness problem (free text always works), but the stated reasoning (\"matches the server TTL so the client doesn't re-fetch needlessly\") slightly overshoots.\n**Suggestion:** Either accept and document the skew, or set client `staleTime` to something like half the server TTL.\n\n**Category: edge-case — Severity: low**\n**Finding:** A cold server's first `GET /api/codex-models` waits on the probe (up to 8s) before responding. The spec says the endpoint \"never blocks the launch form,\" but the *request* itself blocks for up to 8s on first hit, and opening the modal fires it. The 8s timeout reuse is the worst case, not the observed ~0.5s.\n**Suggestion:** Consider returning `unavailable` immediately with a background probe (stale-while-revalidate, same as readiness may do), or at minimum confirm the modal doesn't show a loading state that blocks typing while the query is in flight. Also worth double-checking what the default `PROBE_TIMEOUT_MS` actually is — the plan asserts 8s.\n\n**Category: edge-case — Severity: low**\n**Finding:** The single shared `<datalist id=\" […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** high  \n   **Finding:** “Call `useCodexModels()` once at the top of the `runtime === \"codex\"` branch” risks calling a React hook conditionally if `runtime` can change during the component lifecycle. That breaks hook ordering and can cause runtime errors when switching runtimes in the modal.  \n   **Suggestion:** Call the hook unconditionally in `ModelTierOverrideFields`, or extract the Codex-only UI into a dedicated child component that is conditionally rendered and owns the hook.\n\n2. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** On probe failure, the design deliberately retries on every subsequent request. A missing/broken `codex` executable can therefore turn repeated modal opens, focus refetches, or external requests into repeated eight-second child-process launches. Inflight coalescing only protects simultaneous requests.  \n   **Suggestion:** Add a short failure/backoff TTL separate from the successful-cache TTL. Continue returning `stale` or `unavailable` during that window, then retry after it expires.\n\n3. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The catalog’s returned slugs are not explicitly checked against `CODEX_MODEL_SLUG_PATTERN`. A future CLI catalog entry could be suggested by the UI but then rejected by the unchanged launch validation, creating a confusing broken suggestion.  \n   **Suggestion:** Validate/filter catalog slugs with the same server-side pattern before returning them, and discard entries whose `slug` or `display_name` is not a non-empty string. Treat an invalid external payload as probe failure or omit invalid individual records.\n\n4. **Category:** security  \n   **Severity:** medium  \n   **Finding:** This GET route launches a local executable. The plan does not state whether it inherits the application’s existing authentication/loopback protections. If reachable by untrusted clients, it becomes a remotely triggerable process-execution and a […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "server/src/core/codex-models-probe.ts",
+          "line": 63,
+          "finding": "codex-models-probe.ts gated on result.ok instead of result.code === 0. readiness-probe-run.ts's shared parseExecResult ok heuristic (version-regex) would report ok:false for a real catalog with no dotted-version slug despite a clean exit and valid JSON.",
+          "suggestion": "Fixed: gate on result.code === 0 (RunResult.code's own doc comment already documents this as the intended bypass), no change to the shared module or its other callers. Added a regression test (codex-models-probe.test.ts) with ok:false/code:0 and an all-integer-slug catalog.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-19T21:26:11.638361+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "server/src/core/codex-models-probe.ts",
+          "line": null,
+          "finding": "Claim under doubt: an 8s-timeout, failed `codex debug models` probe cleans up after itself with no side effect beyond returning ok:false — traced runCodexModelsProbe -> defaultRunShim -> (win32) resolveSpawn -> win32CmdWrap, which runs the probe as `cmd.exe /d /s /c codex debug models`. Node's execFile timeout kills only the immediate child; if a grandchild (the real Codex CLI binary) is what hangs, the timeout kill can leave an orphaned process. Shared infra with the pre-existing `codex --version` readiness probe.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx",
+          "line": null,
+          "finding": "Claim under doubt: the client's inline 'best-effort hint' regex and the server's authoritative CODEX_MODEL_SLUG_PATTERN cannot silently drift apart — confirmed byte-identical today but no test pinned it, unlike action-schema-sync.test.ts for other client/server shape mirrors.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/codex-models-probe.ts",
+          "line": null,
+          "finding": "Claim under doubt: runCodexModelsProbe's output is always safe to key React list items by (model.slug) — no de-duplication step over rawModels; a future/buggy codex debug models build emitting a duplicate slug would produce a duplicate React key and a duplicate <option> in the shared <datalist>.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-19T21:33:14.646500+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/e2e/flows/model-tier-defaults.spec.ts:~215 (`page.locator(\\`#${datalistId} option\\`)`)",
+          "line": null,
+          "finding": "datalistId` comes from React's `useId()`, which in React 18 returns ids containing colons (e.g. `:r1:`). A raw `#`-prefixed string with colons is not a valid CSS selector — Playwright's CSS engine will throw \"unexpected token\" / fail to match, so `datalistId` fetched from `getAttribute(\"list\")` can break this assertion at runtime (the unit test correctly uses `CSS.escape` for the same id; the E2E does not).",
+          "suggestion": "Escape the id before interpolating, e.g. use Playwright's css engine escaping or `locator(`[id=\"${datalistId}\"] option`)` — or better, assert via an attribute selector that tolerates special characters.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/routes/codex-models.ts:60–75",
+          "line": null,
+          "finding": "Within `failureTtlMs` of a failure, requests are served the stale/unavailable snapshot without re-probing, and `cache.at` is never refreshed on a stale serve — after failureTtl elapses every request again pays a cold probe; and a permanently failing probe oscillates between probe attempt and stale serve with the \"stale\" list's actual age unbounded (a stale list older than the success TTL is served indefinitely as long as failures keep resetting `lastFailureAt`). This is acceptable for the stated semantics, but the client caption \"Model list may be out of date\" has no bound; nothing in the response tells the client how stale.",
+          "suggestion": "Acceptable as-is given the spec (\"stale = last good cache\"); optionally add a `staleAt`/age field if the client should ever escalate. Not blocking.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/routes/codex-models.test.ts:32–36 (\"memoises within the TTL\")",
+          "line": null,
+          "finding": "This test would also pass if the route never re-probed at all (no negative control within it); the re-probe behavior is only covered by the separate `ttlMs: -1` test, so the pair is fine, but the memoise test alone wouldn't catch a \"cache forever\" regression if the -1 test were removed. Minor observation only — coverage as a whole is sound.  Everything else checks out: probe gating on `code === 0` (correctly avoiding the version-regex `ok` heuristic, with a test locking it in), per-entry defensiveness + de-dup, the unconditional hook call with `enabled` gating, the shared-datalist `useId` (unit-test path escapes correctly), slug filtering through `CODEX_MODEL_SLUG_PATTERN` before it reaches the client, server-side validation untouched, and the failure-TTL backoff. ACs are all implemented and the test ledger matches what's in the diff.  Overall: ship-with-fixes — the only concrete defect is the unescaped `useId()` colon in the E2E locator, which is a one-line fix; everything else is sound.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "[server/src/routes/codex-models.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-ii45_l7l/server/src/routes/codex-models.ts:66)",
+          "line": null,
+          "finding": "A rejected `probe()` promise is not caught. It rejects the route handler rather than producing the required HTTP 200 `stale`/`unavailable` response. `runCodexModelsProbe` has the same gap at its awaited `run(...)` call, despite documenting that it “Never throws.”",
+          "suggestion": "Catch rejected probe/run promises and convert them to `{ ok: false, models: [] }` before cache/degradation handling.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "[server/src/routes/codex-models.test.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-ii45_l7l/server/src/routes/codex-models.test.ts:72)",
+          "line": null,
+          "finding": "Failure tests only use a successfully resolved `{ ok: false }` result; none simulates a rejected probe promise. Thus they pass despite the route returning a 500 for a real subprocess/helper rejection.",
+          "suggestion": "Add route coverage with `probe: async () => { throw new Error(...) }` and assert HTTP 200 plus `unavailable` (and `stale` after a cached success).  Ship-with-fixes: the primary behavior is implemented, but the uncaught rejection violates the endpoint’s required non-failing degradation contract.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-19T21:37:50.447174+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: bug\n  - Severity: medium\n  - File: client/e2e/flows/model-tier-defaults.spec.ts:~215 (`page.locator(\\`#${datalistId} option\\`)`)\n  - Finding: `datalistId` comes from React's `useId()`, which in React 18 returns ids containing colons (e.g. `:r1:`). A raw `#`-prefixed string with colons is not a valid CSS selector — Playwright's CSS engine will throw \"unexpected token\" / fail to match, so `datalistId` fetched from `getAttribute(\"list\")` can break this assertion at runtime (the unit test correctly uses `CSS.escape` for the same id; the E2E does not).\n  - Suggestion: Escape the id before interpolating, e.g. use Playwright's css engine escaping or `locator(`[id=\"${datalistId}\"] option`)` — or better, assert via an attribute selector that tolerates special characters.\n\n- Category: edge-case\n  - Severity: low\n  - File: server/src/routes/codex-models.ts:60–75\n  - Finding: Within `failureTtlMs` of a failure, requests are served the stale/unavailable snapshot without re-probing, and `cache.at` is never refreshed on a stale serve — after failureTtl elapses every request again pays a cold probe; and a permanently failing probe oscillates between probe attempt and stale serve with the \"stale\" list's actual age unbounded (a stale list older than the success TTL is served indefinitely as long as failures keep resetting `lastFailureAt`). This is acceptable for the stated semantics, but the client caption \"Model list may be out of date\" has no bound; nothing in the response tells the client how stale.\n  - Suggestion: Acceptable as-is given the spec (\"stale = last good cache\"); optionally add a `staleAt`/age field if the client should ever escalate. Not blocking.\n\n- Category: test\n  - Severity: low\n  - File: server/src/routes/codex-models.test.ts:32–36 (\"memoises within the TTL\")\n  - Finding: This test would also pass if the route never re-probed at all (no negative control within it); the re-probe behavior is only covered by the separate `ttlMs: - […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: [server/src/routes/codex-models.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-ii45_l7l/server/src/routes/codex-models.ts:66)\n- Finding: A rejected `probe()` promise is not caught. It rejects the route handler rather than producing the required HTTP 200 `stale`/`unavailable` response. `runCodexModelsProbe` has the same gap at its awaited `run(...)` call, despite documenting that it “Never throws.”\n- Suggestion: Catch rejected probe/run promises and convert them to `{ ok: false, models: [] }` before cache/degradation handling.\n\n- Category: test\n- Severity: medium\n- File: [server/src/routes/codex-models.test.ts](C:/Users/SvenRoth/AppData/Local/Temp/shipwright-codex-review-ii45_l7l/server/src/routes/codex-models.test.ts:72)\n- Finding: Failure tests only use a successfully resolved `{ ok: false }` result; none simulates a rejected probe promise. Thus they pass despite the route returning a 500 for a real subprocess/helper rejection.\n- Suggestion: Add route coverage with `probe: async () => { throw new Error(...) }` and assert HTTP 200 plus `unavailable` (and `stale` after a cached success).\n\nShip-with-fixes: the primary behavior is implemented, but the uncaught rejection violates the endpoint’s required non-failing degradation contract.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T21:21:53.820333+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T20:57:19.444699+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}

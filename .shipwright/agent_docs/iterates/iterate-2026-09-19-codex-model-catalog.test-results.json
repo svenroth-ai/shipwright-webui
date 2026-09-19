@@ -1,0 +1,145 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-19-codex-model-catalog",
+    "date": "2026-09-19",
+    "unit": {
+      "status": "passed",
+      "passed": 8654,
+      "total": 8667,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 4,
+      "total": 4
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 16,
+        "tested": 16,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      },
+      "behaviors": [
+        {
+          "behavior": "Probe parses real codex debug models JSON shape, filters to visibility===\"list\" + valid slug/display_name, maps to {slug, display_name}",
+          "disposition": "tested",
+          "evidence": "codex-models-probe.test.ts (7 cases) PASSED"
+        },
+        {
+          "behavior": "Probe drops an individual malformed entry without failing the whole list",
+          "disposition": "tested",
+          "evidence": "codex-models-probe.test.ts::drops an individual malformed entry... PASSED"
+        },
+        {
+          "behavior": "Probe returns not-ok on non-zero exit / timeout / unparseable stdout / non-array models",
+          "disposition": "tested",
+          "evidence": "codex-models-probe.test.ts (4 cases) PASSED"
+        },
+        {
+          "behavior": "Route serves a fresh probe result within TTL without re-probing, coalesces concurrent cold requests",
+          "disposition": "tested",
+          "evidence": "codex-models.test.ts (2 cases) PASSED"
+        },
+        {
+          "behavior": "Route degrades to stale (last good cache) when a later probe fails",
+          "disposition": "tested",
+          "evidence": "codex-models.test.ts::degrades to stale... PASSED"
+        },
+        {
+          "behavior": "Route degrades to unavailable (empty list) when no cache exists and the probe fails",
+          "disposition": "tested",
+          "evidence": "codex-models.test.ts::degrades to unavailable... PASSED"
+        },
+        {
+          "behavior": "Route suppresses re-probing for failureTtlMs after a failure, then retries once it elapses",
+          "disposition": "tested",
+          "evidence": "codex-models.test.ts (3 cases) PASSED"
+        },
+        {
+          "behavior": "Client combobox renders fetched slugs as datalist options, free text still accepted",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx::populates the shared datalist... PASSED + real-browser E2E model-tier-defaults.spec.ts::suggests catalog slugs... PASSED"
+        },
+        {
+          "behavior": "Client shows an unavailable/stale caption without blocking typing",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx::shows an 'unavailable' caption... PASSED + real-browser E2E model-tier-defaults.spec.ts::shows an unavailable caption... PASSED"
+        },
+        {
+          "behavior": "Existing invalid-shape validation/hint/border/testid behavior unchanged",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx (4 pre-existing cases, unmodified) PASSED"
+        },
+        {
+          "behavior": "CODEX_MODEL_SLUG_PATTERN server validation unchanged regardless of catalog reachability",
+          "disposition": "tested",
+          "evidence": "parse-body.test.ts (pre-existing, untouched) PASSED"
+        },
+        {
+          "behavior": "Codex hook call is unconditional (no rules-of-hooks violation when runtime toggles)",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx::Runtime=Claude (toggled back from Codex)... PASSED"
+        },
+        {
+          "behavior": "Probe gates on result.code === 0, not the shared version-regex ok heuristic \u2014 succeeds on an all-integer-slug catalog",
+          "disposition": "tested",
+          "evidence": "codex-models-probe.test.ts::still succeeds when the shared version-regex heuristic reports ok:false... PASSED"
+        },
+        {
+          "behavior": "Probe de-dupes a repeated slug from the external CLI, first-wins",
+          "disposition": "tested",
+          "evidence": "codex-models-probe.test.ts::de-duplicates a repeated slug... PASSED"
+        },
+        {
+          "behavior": "Client's inline slug-pattern mirror stays byte-identical to the server's canonical CODEX_MODEL_SLUG_PATTERN",
+          "disposition": "tested",
+          "evidence": "codex-slug-pattern-client-sync.test.ts PASSED"
+        },
+        {
+          "behavior": "Probe and route both degrade to the HTTP-200 contract (never 500) when the probe/run promise REJECTS, not just resolves ok:false",
+          "disposition": "tested",
+          "evidence": "codex-models-probe.test.ts::is not-ok (never throws) when the run override REJECTS + codex-models.test.ts (2 rejecting-probe cases) PASSED"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 4,
+      "exit_code": 0,
+      "justification": "The New Iterate launch form's Codex model comboboxes (Implementation model / Plan review / Review) need a real browser to prove the <datalist> actually populates from the fetched catalog and that free text remains accepted \u2014 jsdom component tests cover the same behaviors in isolation but not the real DOM datalist/list-attribute wiring or route interception end-to-end. Runs via client/e2e/isolated-stack.mjs (real Chromium): 2 pre-existing Codex-runtime cases + 2 new specs authored for this iterate (datalist-populated suggestion + unavailable-caption degrade path)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-codex-model-catalog",
+    "commit": "f12148686090a615507c0601f9413cc0c7ea3a74",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

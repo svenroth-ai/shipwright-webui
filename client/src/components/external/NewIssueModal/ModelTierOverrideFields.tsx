@@ -1,3 +1,6 @@
+import { useId } from "react";
+
+import { useCodexModels } from "../../../hooks/useCodexModels";
 import { useModelTierConfig } from "../../../hooks/useModelTierConfig";
 import type { RenderableParamSchema } from "../../../types/action-schema";
 import type { Dispatch, SetStateAction } from "react";
@@ -73,12 +76,27 @@ export function ModelTierOverrideFields({
   runtime,
 }: ModelTierOverrideFieldsProps) {
   const { data, isError, isLoading } = useModelTierConfig(projectId);
+  // Called unconditionally regardless of `runtime` — a conditional hook call
+  // here would break React's rules of hooks the moment `runtime` differs
+  // across renders (external review fix, both reviewers, 2026-09-19). The
+  // FETCH stays idle for a non-Codex runtime via `enabled`; only the CALL is
+  // unconditional.
+  const codexCatalogId = useId();
+  const codexCatalog = useCodexModels(runtime === "codex");
   const supportedFields = fields.filter(isModelOverrideField);
   const defaultStatus = projectDefaultStatus(projectId, data, isLoading, isError);
 
   if (runtime === "codex") {
+    const datalistId = `codex-model-catalog-${codexCatalogId}`;
+    const models = codexCatalog.data?.models ?? [];
+    const catalogStatus = codexCatalog.data?.status;
     return (
       <div className="flex flex-col gap-3" data-testid="model-tier-override-fields">
+        <datalist id={datalistId}>
+          {models.map((model) => (
+            <option key={model.slug} value={model.slug} label={model.display_name} />
+          ))}
+        </datalist>
         <CodexModelField
           paramKey={CODEX_IMPLEMENTATION_MODEL_PARAM_KEY}
           label="Implementation model"
@@ -86,6 +104,7 @@ export function ModelTierOverrideFields({
           paramValues={paramValues}
           setParamValues={setParamValues}
           setParamEnabled={setParamEnabled}
+          datalistId={datalistId}
         />
         <div className="grid grid-cols-2 gap-3">
           <CodexModelField
@@ -95,6 +114,7 @@ export function ModelTierOverrideFields({
             paramValues={paramValues}
             setParamValues={setParamValues}
             setParamEnabled={setParamEnabled}
+            datalistId={datalistId}
           />
           <CodexModelField
             paramKey={CODEX_REVIEW_MODEL_PARAM_KEY}
@@ -103,8 +123,20 @@ export function ModelTierOverrideFields({
             paramValues={paramValues}
             setParamValues={setParamValues}
             setParamEnabled={setParamEnabled}
+            datalistId={datalistId}
           />
         </div>
+        {(catalogStatus === "stale" || catalogStatus === "unavailable") && (
+          <p
+            className="text-[11px] text-[var(--body,#44403c)]"
+            role="status"
+            data-testid="codex-model-catalog-status"
+          >
+            {catalogStatus === "stale"
+              ? "Model list may be out of date — you can still type any slug."
+              : "Model suggestions unavailable — you can still type any slug."}
+          </p>
+        )}
       </div>
     );
   }
@@ -164,6 +196,7 @@ function CodexModelField({
   paramValues,
   setParamValues,
   setParamEnabled,
+  datalistId,
 }: {
   paramKey: string;
   label: string;
@@ -171,6 +204,10 @@ function CodexModelField({
   paramValues: Record<string, string | boolean>;
   setParamValues: Dispatch<SetStateAction<Record<string, string | boolean>>>;
   setParamEnabled: Dispatch<SetStateAction<Record<string, boolean>>>;
+  /** Shared `<datalist>` id from the parent — turns the free-text input into
+   *  a combobox suggesting live catalog slugs, without restricting input to
+   *  them (`<input list>` always still accepts arbitrary text). */
+  datalistId: string;
 }) {
   const value = paramValues[paramKey];
   const text = typeof value === "string" ? value : "";
@@ -180,6 +217,7 @@ function CodexModelField({
     <FieldLabel label={label} hint="only for this session">
       <input
         type="text"
+        list={datalistId}
         value={text}
         onChange={(event) => {
           const nextValue = event.target.value;

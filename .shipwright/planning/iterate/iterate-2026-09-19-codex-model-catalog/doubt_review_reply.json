@@ -1,0 +1,32 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "async/concurrency (in-flight probe + TTL cache) + external-CLI trust boundary",
+  "doubts": [
+    {
+      "severity": "medium",
+      "lens": "hidden coupling & blast radius",
+      "claim_under_doubt": "an 8s-timeout, failed `codex debug models` probe cleans up after itself with no side effect beyond returning ok:false",
+      "disproof_attempt": "traced runCodexModelsProbe -> defaultRunShim -> (win32) resolveSpawn -> win32CmdWrap, which runs the probe as `cmd.exe /d /s /c codex debug models`. Node's execFile timeout kills only the immediate child; if a grandchild (the real Codex CLI binary) is what hangs, the timeout kill can leave an orphaned process. Shared infra with the pre-existing `codex --version` readiness probe.",
+      "disposition": "accepted, not fixed — pre-existing shared-infrastructure risk (defaultRunShim/win32-spawn.ts), not introduced by this iterate. A tree-aware kill fix would touch every defaultRunShim/defaultRun caller, out of scope here. Recorded in the iterate spec's new 'Doubt Review (Stage 3)' section as a candidate follow-up, non-blocking.",
+      "file": "server/src/core/codex-models-probe.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "the client's inline 'best-effort hint' regex and the server's authoritative CODEX_MODEL_SLUG_PATTERN cannot silently drift apart",
+      "disproof_attempt": "confirmed byte-identical today but no test pinned it, unlike action-schema-sync.test.ts for other client/server shape mirrors.",
+      "disposition": "fixed — added server/src/external/launch/codex-slug-pattern-client-sync.test.ts, a cross-workspace text-comparison drift guard mirroring the existing action-schema-sync.test.ts pattern.",
+      "file": "client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx"
+    },
+    {
+      "severity": "low",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "runCodexModelsProbe's output is always safe to key React list items by (model.slug)",
+      "disproof_attempt": "no de-duplication step over rawModels; a future/buggy codex debug models build emitting a duplicate slug would produce a duplicate React key and a duplicate <option> in the shared <datalist>.",
+      "disposition": "fixed — runCodexModelsProbe now de-dupes on slug (first-wins, Map-based); regression test added to codex-models-probe.test.ts.",
+      "file": "server/src/core/codex-models-probe.ts"
+    }
+  ],
+  "summary": "Concurrency/ordering could not be disproven — hand-traced every interleaving, existing test suite already covers every branch constructed by hand. Three boundary/blast-radius doubts raised: one medium (accepted as pre-existing shared-infra risk, documented in the spec), two low (both fixed with code + regression tests)."
+}

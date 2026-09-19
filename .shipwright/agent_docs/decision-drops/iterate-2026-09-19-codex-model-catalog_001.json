@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-19-codex-model-catalog",
+  "date": "2026-09-19",
+  "section": "Iterate — feature: live Codex model catalog",
+  "title": "Live Codex model catalog for the New Iterate launch form",
+  "context": "PR #473's Codex model fields are blind free text with no feedback until launch fails; a hardcoded slug enum needs a PR per new model. Neither is acceptable per user feedback.",
+  "decision": "Add a server probe (codex debug models, TTL-cached, always-200) and turn the three Codex model fields into datalist comboboxes; free text always still accepted.",
+  "consequences": "New global read surface GET /api/codex-models, no new persisted state; suggestions track the installed Codex CLI's own catalog instead of a hand-maintained list.",
+  "rationale": "Native input+datalist needs no new dependency and free text is its default; defaultRunShim reuses the existing win32 .cmd-shim pattern already proven for codex --version.",
+  "rejected": "Hardcoded enum (drifts, needs a PR per model); blind free text (status quo, no feedback); disk-caching the catalog; a Radix combobox library; sharing readiness's own cache lifetime.",
+  "commit": "",
+  "architecture_impact": "data-flow",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-19-codex-model-catalog.md"
+}
