@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-05T06:09:38.988252+00:00
-Source-State: run=iterate-2026-09-05-nav-collapse-and-version-badges base=dd7857d77c9f release=v0.27.0
-Consistency-audit: last full run 2026-08-31 (5 days earlier) — PASS; latest 2026-08-31 partial (groups B)
+Generated: 2026-09-19T16:57:49.524769+00:00
+Source-State: run=iterate-2026-09-19-fix-wizard-plan-card-white-text
+Consistency-audit: last full run 2026-08-31 (19 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
 
 ## Summary
 

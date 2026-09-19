@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T16:40:01.619677+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The test is a class-membership fence, but the original bug also involved an inline `background: var(--card)`. A future edit could re-add an opaque inline background to a different bare child of this card (or reintroduce one here) while keeping `iw-card` on the container — the test would stay green while white-on-white returns for that child.",
+          "suggestion": "Consider also asserting (in the new describe block) that the `wizard-plan-phases` container has no inline `background`/`boxShadow` style keys, pinning the \"solid surfaces must come from whitelisted classes, not inline styles\" rule. Cheap to add, directly encodes the lesson.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "Adopting `className=\"iw-card\"` may pull in other `.iw-card` rules beyond background/border/radius/shadow (e.g., hover, cursor, margin, responsive rules in `intent-wizard-panels.css` or elsewhere). The plan asserts byte-identical styles for the four dropped properties but doesn't confirm `.iw-card` carries no additional declarations.",
+          "suggestion": "Before landing, grep all `.iw-card` selector blocks and verify none introduce visual behavior the inline styles didn't have. Likely fine given the sibling usage, but a one-minute check closes it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "AC-1-user (Sven's visual confirmation) is marked optional. Since jsdom can't measure contrast, human verification is the only real check of the actual user-visible symptom, and it's the reported bug.",
+          "suggestion": "Make the visual re-check required for this run before closing, rather than optional. Everything else is a proxy.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The dropped inline styles include `padding` being kept — note the sibling uses `iw-card pad`, implying `.iw-card` alone may set different/no padding. The plan handles this (keeps inline padding/maxWidth), just ensure the rendered padding matches the pre-fix appearance so the card doesn't visually shrink or grow, which the wizard snapshot/text tests won't catch.",
+          "suggestion": "Fold into the same visual check as above.  No security concerns (pure presentation, no data/auth/injection surface). No missing dependencies. The root-cause analysis is genuinely strong — token-chain tracing, red→green test verification, rejected-alternative reasoning, and prior-fix precedent all check out. This is a textbook minimal, mechanism-closing fix.  Overall: sound, well-evidenced minimal fix; the findings are refinements (strengthen the fence test, verify `.iw-card` side effects, make the visual check mandatory).  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The regression test verifies reset-whitelist membership, not computed contrast. A later CSS specificity or token change could still make this surface illegible while preserving `iw-card`.",
+          "suggestion": "Keep the proposed mechanism-level test; optionally include this wizard step in a visual-regression/manual smoke checklist when shared on-photo or card-token CSS changes.  Overall, the approach is sound and appropriately minimal: it reuses the established solid-surface class, removes duplicate styling, and pins the actual failure mechanism. No security, data, or dependency concerns are apparent; the nearby existing `iw-card` usage also substantially reduces compatibility risk.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-19T16:30:53.209391+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: edge-case | Severity: low**\n  **Finding:** The test is a class-membership fence, but the original bug also involved an inline `background: var(--card)`. A future edit could re-add an opaque inline background to a *different* bare child of this card (or reintroduce one here) while keeping `iw-card` on the container — the test would stay green while white-on-white returns for that child.\n  **Suggestion:** Consider also asserting (in the new describe block) that the `wizard-plan-phases` container has no inline `background`/`boxShadow` style keys, pinning the \"solid surfaces must come from whitelisted classes, not inline styles\" rule. Cheap to add, directly encodes the lesson.\n\n- **Category: risk | Severity: low**\n  **Finding:** Adopting `className=\"iw-card\"` may pull in other `.iw-card` rules beyond background/border/radius/shadow (e.g., hover, cursor, margin, responsive rules in `intent-wizard-panels.css` or elsewhere). The plan asserts byte-identical styles for the four dropped properties but doesn't confirm `.iw-card` carries no *additional* declarations.\n  **Suggestion:** Before landing, grep all `.iw-card` selector blocks and verify none introduce visual behavior the inline styles didn't have. Likely fine given the sibling usage, but a one-minute check closes it.\n\n- **Category: approach | Severity: low**\n  **Finding:** AC-1-user (Sven's visual confirmation) is marked optional. Since jsdom can't measure contrast, human verification is the only real check of the actual user-visible symptom, and it's the reported bug.\n  **Suggestion:** Make the visual re-check required for this run before closing, rather than optional. Everything else is a proxy.\n\n- **Category: edge-case | Severity: low**\n  **Finding:** The dropped inline styles include `padding` being kept — note the sibling uses `iw-card pad`, implying `.iw-card` alone may set different/no padding. The plan handles this (keeps inline padding/maxWidth), just ensure the rendere […truncated]\n\n[openai] 1. Category: risk  \n   Severity: low  \n   Finding: The regression test verifies reset-whitelist membership, not computed contrast. A later CSS specificity or token change could still make this surface illegible while preserving `iw-card`.  \n   Suggestion: Keep the proposed mechanism-level test; optionally include this wizard step in a visual-regression/manual smoke checklist when shared on-photo or card-token CSS changes.\n\nOverall, the approach is sound and appropriately minimal: it reuses the established solid-surface class, removes duplicate styling, and pins the actual failure mechanism. No security, data, or dependency concerns are apparent; the nearby existing `iw-card` usage also substantially reduces compatibility risk.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "approve"
+      },
+      "model_tier": "opus"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "inline-override fence regex missed backgroundColor/backgroundImage",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "dimmed Deploy row measures ~3.9:1 post-fix, below 4.5:1 AA",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": null,
+          "line": null,
+          "finding": "contrastRatio was a third verbatim copy",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "new E2E not tagged @smoke, does not run in CI",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-19T16:50:13.948476+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T16:44:07.218816+00:00",
+      "disposition": "diff touches no migrations, async/concurrency, cross-plugin imports, or irreversible ops (pure CSS className + test additions) — Stage 3 conditional trigger does not fire, iteration-reviews.md",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/e2e/flows/wizard-plan-card-legibility.spec.ts:80 (description locator)",
+          "line": null,
+          "finding": "phase.locator(\"> div\").nth(1)` relies on the phase row's second direct child being the description. If the row's child structure ever changes (a wrapper, an icon div), the test silently measures the wrong element's `color` — and since all siblings inherit the same color from the container, it would still pass or fail misleadingly. A `getByText`/role-based locator (or asserting the element's class/text) would be more robust.",
+          "suggestion": "Locate the description via a stable attribute (e.g. a class or the text content) instead of positional child index, or add an assertion on the element's content before measuring.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/e2e/flows/wizard-plan-card-legibility.spec.ts:39-46 (contrastRatio)",
+          "line": null,
+          "finding": "The RGB parser accepts `rgba(...)` but ignores the alpha channel. If the container background ever becomes translucent (or Chromium returns e.g. `color(srgb ...)` / `oklch(...)` under a different color space setting), the math is wrong or the helper throws — the throw is fine (fails loudly), but translucent backgrounds would be computed against black.",
+          "suggestion": "Reject alpha < 1 explicitly, or fall back to a screenshot-based/`element.scrollWidth`-independent check. Low priority since the container background is opaque today.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec |",
+          "file": ".shipwright/planning/iterate/2026-09-19-...-miniplan.md / spec \"Evidence\" section",
+          "line": null,
+          "finding": "AC-2 (the E2E contrast check) is marked mandatory, and the spec's Evidence section says \"E2E — see result appended below once run\", but the diff contains no appended E2E result. The spec file itself was added in this diff with the placeholder still unresolved, so the mandatory AC-2 pass is asserted but not evidenced.",
+          "suggestion": "Append the actual Playwright run result to the spec before finalization, or note it was run and where the output lives.  Everything else checks out: the component change matches the spec exactly (className + testid added, redundant inline background/border/radius/shadow dropped, `maxWidth`/`padding` retained, first-row `borderTop` suppressed per the visual side-effect finding); the unit test is genuinely order-independent, reads the real whitelist from `on-photo.css` rather than hardcoding it (so a future whitelist edit fails loudly rather than silently passing), and the red→green probe was performed; the E2E spec correctly reads `color` from the description and `backgroundColor` from the container, avoiding the transparent-background trap the plan review flagged. No security surface, no API changes, no caller breakage (`phases.map` signature change adds an unused-in-output index only).  The change is sound, minimal, and matches the diagnosed mechanism; findings above are refinements.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-19T16:43:45.392883+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: test | Severity: low\n  File: client/e2e/flows/wizard-plan-card-legibility.spec.ts:80 (description locator)\n  Finding: `phase.locator(\"> div\").nth(1)` relies on the phase row's second direct child being the description. If the row's child structure ever changes (a wrapper, an icon div), the test silently measures the wrong element's `color` — and since all siblings inherit the same color from the container, it would still pass or fail misleadingly. A `getByText`/role-based locator (or asserting the element's class/text) would be more robust.\n  Suggestion: Locate the description via a stable attribute (e.g. a class or the text content) instead of positional child index, or add an assertion on the element's content before measuring.\n\n- Category: test | Severity: low\n  File: client/e2e/flows/wizard-plan-card-legibility.spec.ts:39-46 (contrastRatio)\n  Finding: The RGB parser accepts `rgba(...)` but ignores the alpha channel. If the container background ever becomes translucent (or Chromium returns e.g. `color(srgb ...)` / `oklch(...)` under a different color space setting), the math is wrong or the helper throws — the throw is fine (fails loudly), but translucent backgrounds would be computed against black.\n  Suggestion: Reject alpha < 1 explicitly, or fall back to a screenshot-based/`element.scrollWidth`-independent check. Low priority since the container background is opaque today.\n\n- Category: spec | Severity: low\n  File: .shipwright/planning/iterate/2026-09-19-...-miniplan.md / spec \"Evidence\" section\n  Finding: AC-2 (the E2E contrast check) is marked mandatory, and the spec's Evidence section says \"E2E — see result appended below once run\", but the diff contains no appended E2E result. The spec file itself was added in this diff with the placeholder still unresolved, so the mandatory AC-2 pass is asserted but not evidenced.\n  Suggestion: Append the actual Playwright run result to the spec before finalization, or note it was run an […truncated]\n\n[openai] No real defects found. The change implements the specified token-reset fix, preserves layout, avoids the first-row divider, and adds both mechanism-level and real-browser contrast coverage.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T16:43:38.721216+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-19T16:36:18.320961+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

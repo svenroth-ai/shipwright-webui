@@ -1,32 +1,59 @@
 # Commit Change Log
 
-Generated: 2026-09-05T06:09:38.988252+00:00
-Source-State: run=iterate-2026-09-05-nav-collapse-and-version-badges base=dd7857d77c9f release=v0.27.0
-Consistency-audit: last full run 2026-08-31 (5 days earlier) — PASS; latest 2026-08-31 partial (groups B)
-Total commits: 846
+Generated: 2026-09-19T16:57:49.524769+00:00
+Source-State: run=iterate-2026-09-19-fix-wizard-plan-card-white-text
+Consistency-audit: last full run 2026-08-31 (19 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
+Total commits: 893
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 330
-    "feat" : 214
-    "chore" : 143
-    "docs" : 74
+    "fix" : 357
+    "feat" : 228
+    "chore" : 145
+    "docs" : 75
     "refactor" : 35
     "test" : 30
+    "other" : 9
     "ci" : 8
-    "other" : 6
     "perf" : 5
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 330 commits
+### Fixes (fix) — 357 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-17 | webui | hide model-tier override dropdowns for Codex-driven tasks (#470) | e4654b24c8f4 |
+| 2026-09-17 | webui | Mission activity feed render fidelity (#469) | 847bdf3651fc |
+| 2026-09-16 | server | resolve Codex CLI's Windows .cmd PATH shim in the probe (#468) | eb93734c708d |
+| 2026-09-16 | main | regenerate settings.png visual baseline for Codex Light UI (#467) | d027462bf036 |
+| 2026-09-12 | webui | mobile Triage/task-form layout — height chain, spacing, filter collapse (#465) | f7866383bfd0 |
+| 2026-09-11 | triage | local status precedence outranks a foreign status in the composer (#464) | 4b84fa5cb2de |
+| 2026-09-11 | webui | distinct list load-error state + run-mode default sentinel (#463) | fda1aeabde75 |
+| 2026-09-11 | spec | move FR-01.31/33/35 provenance notes after their bullets (#462) | 15f183ccfa8d |
+| 2026-09-11 | compliance | reconcile B7/G2/I5 detective-audit findings (#461) | 035658c49a18 |
+| 2026-09-09 | deploy | scope tsx-watch kill sweep to the deploying repo (#459) | c6776f774ebc |
+| 2026-09-09 | ci | remove the traceability-manifest gate and its regen-PR job (#455) | 3f4439a27445 |
+| 2026-09-09 | a11y | phone touch-target audit + icon-only new-task trigger (#454) | 81cb38b5a7c7 |
+| 2026-09-09 | main | restore TaskBoardPage.tsx bloat-baseline entry to 446 (#456) | 1a0cbc585ea9 |
+| 2026-09-09 | compliance | reconcile B7/G2/H1/H2 detective-audit findings (#450) | 1e7378f49a72 |
+| 2026-09-08 | ci | traceability manifest gate becomes advisory + auto-opens regen PR (#449) | c496e87e759d |
+| 2026-09-08 | main | regenerate stale traceability manifest (terminal escape hatch) (#448) | 0f6d761c04dd |
+| 2026-09-08 | main | regenerate stale traceability manifest (schema v4 pin bump) (#446) | 5d7beb66d64f |
+| 2026-09-07 | main | regenerate stale traceability manifest (FR-01.73 lead-setup wizard) (#444) | bbf22883de7c |
+| 2026-09-07 | main | regenerate stale traceability manifest (w5 layer-promotion) (#443) | 78384efe1147 |
+| 2026-09-07 | main | regenerate stale traceability manifest (v4 fixture tests) (#441) | 61f5fdc3e0d4 |
+| 2026-09-07 | main | regenerate stale traceability manifest (w4 tag-backfill bindings) (#438) | 5148beeafaa9 |
+| 2026-09-07 | main | regenerate stale traceability manifest (FR-01.02/10/35/71 bindings) (#436) | 15820d108c7b |
+| 2026-09-06 | smartviewer | top-align table cells in the file preview pane (#433) | dd1fd8c4e60c |
+| 2026-09-06 | smartviewer | auto-fit table column widths + accessibility fixes (#430) | 4ade5aba1915 |
+| 2026-09-06 | tablet | terminal reconnect visibility, title truncation, Ship's Log independent scroll (#429) | d3b3652de70d |
+| 2026-09-06 | server | state FR-04.28 lock contract explicitly at shared lock sites (#428) | 91160decbd6f |
+| 2026-09-06 | launch | arm a permission perimeter on claim-authorized launches (#425) | 08ad4b2e0f4d |
 | 2026-09-05 | terminal | chunk pty.write() to stop a large-launch-command hang on macOS (#420) | b2d8082448cc |
 | 2026-09-05 | pr-review | swap PR-review gate default model from GLM 5.3 to GPT-5.6 Luna (#421) | 8d459bf90026 |
 | 2026-09-05 | mission | stop inventing feed sentences, never crop, surface full command/review/answer content (#422) | 9991087daf35 |
@@ -358,10 +385,24 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 214 commits
+### Features (feat) — 228 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-19 | webui | Codex model-tier override — free-text implementation model + read-only reviewer identity (shipwright#771) (#471) | e589b8668e2f |
+| 2026-09-16 | — | Codex CLI as an alternate task runtime (Codex Light) (#466) | 31c8cce07297 |
+| 2026-09-09 | mission | per-AC test coverage view on the Tests artifact (#458) | 924331be2762 |
+| 2026-09-09 | leadwright | add vendored-schema drift check against a real checkout (#457) | 5ccd8165e3f4 |
+| 2026-09-09 | board | gate leadwright board affordances on org-chart presence (#453) | 1b8a1fbb36eb |
+| 2026-09-08 | org | Lead Inventory page — beats, authority ladder, needs-you (FR-01.71(G)) (#451) | 452f94d5d518 |
+| 2026-09-08 | inbox | add terminal escape hatch to lead-question card (#447) | c452b8f999e2 |
+| 2026-09-07 | org | guided lead-setup wizard gated on leadwright's real preflight verdict (#442) | 821bc205c02a |
+| 2026-09-07 | compliance | autonomous FR-level layer promotion, bind-and-promote (w5) (#440) | e6a453c885ce |
+| 2026-09-07 | compliance | accept test-traceability manifest schema v4 (AC-scoped @covers) (#439) | 543b6da02c97 |
+| 2026-09-07 | ci | CI regenerates and diffs the requirement-test traceability manifest (#434) | 4dc78c65eb5b |
+| 2026-09-06 | org | cross-lead activity timeline (merge every lead's audit log) (#432) | 2f3eb3f7a4a4 |
+| 2026-09-06 | org | countersign decisions-proposed.md from the browser (#431) | d4b3746a68f9 |
+| 2026-09-06 | org | surface lead staleness + open beat-register findings on the org card (#426) | 16993fa68de6 |
 | 2026-09-05 | nav | collapsible desktop sidebar + plugin/webui versions on Diagnostics (#423) | dd7857d77c9f |
 | 2026-09-04 | org | relabel lead-card spend as consumed, surface measurement gaps (FR-01.71) (#419) | dfe80bc0c668 |
 | 2026-09-03 | org | wire useOrgThreads to leadwright's real round store (FR-04.42) (#413) | 424ba0201ab2 |
@@ -577,10 +618,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 143 commits
+### Chores (chore) — 145 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-19 | triage | sweep 5 outbox append(s) into branch | 518e204d2f9a |
+| 2026-09-08 | ci | bump pinned shipwright-compliance checkout for manifest schema v4 | 2c4ba5c0088d |
 | 2026-09-03 | external-review | route the GPT review leg through Codex CLI (#414) | 4f80757ff9e9 |
 | 2026-09-01 | release | v0.26.0 (#406) | c064c89ec0d3 |
 | 2026-08-29 | docs | sync guide.md with the npx bootstrapper, Mission tab, Intent Wizard doors (#396) | f4dae7bb194d |
@@ -725,10 +768,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 74 commits
+### Documentation (docs) — 75 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-10 | — | document --plugins-only and --webui-only flags in README + guide (#460) | 80b827cd0a6f |
 | 2026-09-01 | terminal | document root cause of residual table-only smear (ADR-288) (#405) | fa86f26bd1b9 |
 | 2026-08-30 | readme | fix broken triage-inbox link to guide.md §4.11 (#398) | 11e5a612fb43 |
 | 2026-08-08 | — | track Codex operating policy (#353) | 0db83535f1cd |
@@ -879,6 +923,20 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
+### Other (other) — 9 commits
+
+| Date | Scope | Description | Commit |
+|------|-------|-------------|--------|
+| 2026-09-07 | — | iterate(w4): tag-backfill — 1196 tests, 15.75%->31.97% coverage (#437) | 1a5c3df339a5 |
+| 2026-09-07 | — | iterate(w2): form-convergence — Origin->Basis, Layers column, 29-vs-35 diagnosis (#435) | e3bbc1edcd38 |
+| 2026-09-06 | — | Release v0.27.0 (#424) | c9d3170c8394 |
+| 2026-08-11 | — | MIS-2: replace Mission narrator with activity feed (#363) | 894efb22ec5b |
+| 2026-08-08 | — | Release v0.24.0 (#354) | fe9ae487bd9c |
+| 2026-05-01 | — | Revert "Merge iterate/overflow-anchor-virtualized: disable browser scroll-anchoring in virtualized branch (ADR-063)" | a3de45595930 |
+| 2026-04-23 | — | iterate 3.9 — E2E spec backlog cleanup + TaskCard menu-bubbling fix (#9) | f8f89f135182 |
+| 2026-04-22 | — | iterate 3.8 — post-iterate-3 cleanup (E2E + scrollbar gutter) (#8) | d58cb21c8b5f |
+| 2026-04-17 | — | poc: assistant-ui migration probe (branch poc/assistant-ui-migration) | f8ea3f403df8 |
+
 ### CI/CD (ci) — 8 commits
 
 | Date | Scope | Description | Commit |
@@ -891,17 +949,6 @@ pie title Commit Types
 | 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | 0a42fb366386 |
 | 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | b11a7e5bb7c6 |
 | 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | 0d152274b995 |
-
-### Other (other) — 6 commits
-
-| Date | Scope | Description | Commit |
-|------|-------|-------------|--------|
-| 2026-08-11 | — | MIS-2: replace Mission narrator with activity feed (#363) | 894efb22ec5b |
-| 2026-08-08 | — | Release v0.24.0 (#354) | fe9ae487bd9c |
-| 2026-05-01 | — | Revert "Merge iterate/overflow-anchor-virtualized: disable browser scroll-anchoring in virtualized branch (ADR-063)" | a3de45595930 |
-| 2026-04-23 | — | iterate 3.9 — E2E spec backlog cleanup + TaskCard menu-bubbling fix (#9) | f8f89f135182 |
-| 2026-04-22 | — | iterate 3.8 — post-iterate-3 cleanup (E2E + scrollbar gutter) (#8) | d58cb21c8b5f |
-| 2026-04-17 | — | poc: assistant-ui migration probe (branch poc/assistant-ui-migration) | f8ea3f403df8 |
 
 ### Performance (perf) — 5 commits
 
@@ -923,7 +970,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 846 |
+| Total commits | 893 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 846 |
+| Human-authored commits | 893 |
 
