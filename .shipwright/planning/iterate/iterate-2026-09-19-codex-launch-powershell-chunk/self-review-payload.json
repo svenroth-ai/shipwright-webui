@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "No formal spec (small BUG, spec impact NONE); fix restores intended behavior (Codex auto-execute must run cleanly on PowerShell 7/pwsh), no extra features added."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "Pure string transform, no I/O, no new failure modes (Buffer.from never throws on a valid JS string)."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No SQL/HTML involved; the base64 literal is still passed through qPs() defensively before embedding; no secrets/tokens added."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New tests assert on the produced command shape and a full decode round-trip (outcome-based); both the unchanged (no-newline) and fixed (has-newline) paths are covered, at the unit level and via a live pwsh.exe repro during investigation."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "O(n) string encode, no loops/DB calls."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "Touched files (85/220/81/254 LOC) all under 300; qPsMultiline follows the existing qPs/qCmd/qPosix naming convention in the same file."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Producer (launcher-codex.ts renderCodex) / consumer (the PowerShell process reading the pty input stream) identified; round-trip test in shell-quote.test.ts (encode -> no raw newline -> decode the extracted base64 literal in JS -> exact match) plus a live real-pwsh.exe repro during investigation (ungitted scratch script, not part of the committed suite -- a real-shell spawn is environment-dependent, not CI-suited)."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reports no findings."
+    }
+  ]
+}

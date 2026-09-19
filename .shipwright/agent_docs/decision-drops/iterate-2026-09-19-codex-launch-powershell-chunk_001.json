@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-19-codex-launch-powershell-chunk",
+  "date": "2026-09-19",
+  "section": "Iterate — bug: codex-launch-powershell-chunk",
+  "title": "Fix Codex launch failing on Windows PowerShell 7 (PSReadLine multi-line buffer corruption)",
+  "context": "Clicking Launch on a Codex task (guided or autonomous) failed on Windows/pwsh.exe with `done:false: The term 'done:false' is not recognized...` and no Codex process started. PSReadLine (PowerShell 7's line editor), fed the pty-injected launch command, corrupts its own multi-line edit buffer whenever the single-quoted argument contains a literal newline -- Codex's prompt is always multi-paragraph. See spec_ref for the full empirical repro.",
+  "decision": "Added `qPsMultiline()` (server/src/core/shell-quote.ts): pass-through to `qPs()` when the value has no \\r/\\n; otherwise Base64-encodes it and wraps it in a PowerShell sub-expression that decodes back to the exact original text before the command runs, so no literal newline reaches the pty. `renderCodex()` uses it only for the PowerShell form's prompt argument; cmd/posix and the resume path are untouched. Full mechanism in spec_ref.",
+  "consequences": "Codex launches (fresh, guided and autonomous) now work on Windows PowerShell 7 without corrupting the multi-paragraph prompt. cmd.exe's auto-execute path is left on the plain quoter -- unproven for this class, disclosed follow-up from code review. No architectural surface changed: one new pure string-transform helper plus its single call site.",
+  "rationale": "Verified live and empirically, not guessed: an atomic (unchunked) pty.write() control reproduced the bug identically, ruling out ChunkedPtyWriter/ADR-308 chunking. Bracketed-paste wrapping also did not prevent the corruption. Base64 + a PowerShell-native decode sub-expression was the only approach that survived a real pwsh.exe repro. Details in spec_ref.",
+  "rejected": "ChunkedPtyWriter chunking as root cause (disproved by atomic-write control test). Bracketed-paste wrapping (tested, did not fix it). Rejecting/truncating multi-line prompts outright (mirrors launcher.ts's Claude-title newline guard, but Codex prompts are legitimately multi-paragraph, so preserving content via decode was preferred over rejection).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-19-codex-launch-powershell-chunk.md"
+}

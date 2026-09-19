@@ -1,0 +1,34 @@
+{
+  "section": "iterate-2026-09-19-codex-launch-powershell-chunk",
+  "verdict": "PASS",
+  "summary": "5-axis code review: fix is correct, well-scoped, well-documented, well-tested. No blocking findings. Three low-severity advisories, two applied in-line (call dedup, UTF-8 round-trip test), one tracked as an out-of-scope disclosed follow-up (cmd.exe auto-execute path unproven).",
+  "review": [
+    {
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/core/launcher-codex.ts",
+      "line": 142,
+      "finding": "cmd.exe is left on the plain qCmd() path (raw \\n embedded in the quoted argument), and cmd.exe is a real, user-selectable auto-execute target (pty-manager.ts ShellKind/WHITELIST includes cmd/cmd.exe alongside pwsh), not just a manual copy-paste convenience. Interactive cmd.exe has no multi-line quote-buffering the way PowerShell's parser does, so this is a disclosed, unproven gap consistent with this bug's stated PowerShell-only scope.",
+      "suggestion": "File a fast follow-up to empirically verify (or fix) the cmd.exe auto-execute path the same way this fix verified PowerShell.",
+      "disposition": "accepted-and-deferred: documented as an out-of-scope, disclosed follow-up in the iterate ADR rather than blocking this PowerShell-scoped fix (reported bug is PowerShell-specific; expanding scope to an unreported/unreproduced cmd.exe issue would be speculative)."
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/core/launcher-codex.ts",
+      "line": 142,
+      "finding": "buildCodexPrompt(args) was called twice in source inside the ternary.",
+      "suggestion": "Hoist to a local const.",
+      "disposition": "accepted-and-fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "server/src/core/shell-quote.test.ts",
+      "line": 49,
+      "finding": "qPsMultiline's doc comment claims correctness for non-ASCII/multi-byte UTF-8 content, unpinned by any test fixture.",
+      "suggestion": "Add a round-trip test case with a multi-byte character.",
+      "disposition": "accepted-and-fixed"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-19-codex-launch-powershell-chunk",
+    "date": "2026-09-19",
+    "unit": {
+      "status": "passed",
+      "passed": 4354,
+      "total": 4367,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      },
+      "behaviors": [
+        {
+          "behavior": "qPsMultiline() never emits a raw \\r/\\n onto the wire for a multi-line PowerShell arg, and passes through unchanged (byte-identical to qPs()) when the input has no \\r/\\n",
+          "disposition": "tested",
+          "evidence": "shell-quote.test.ts \u2014 \"no newline in the input\", \"a newline in the input \u2192 no raw newline or carriage return\", \"a lone \\r (no \\n) also takes the base64-safe path\""
+        },
+        {
+          "behavior": "The Base64 sub-expression qPsMultiline() emits decodes back to the exact original multi-paragraph, single-quote-containing, multi-byte-UTF-8 prompt text before the enclosing command ever runs",
+          "disposition": "tested",
+          "evidence": "shell-quote.test.ts \u2014 \"decodes back to the exact original text\", \"a single quote AND a newline\", \"multi-byte UTF-8 content (umlaut, emoji) round-trips exactly\"; launcher-codex.test.ts \u2014 \"powershell form decodes back to the exact original multi-line prompt\""
+        },
+        {
+          "behavior": "Only the PowerShell render form of a fresh Codex launch is changed \u2014 cmd/posix forms and the resume path (threadId only, no prompt text) remain byte-identical to before the fix",
+          "disposition": "tested",
+          "evidence": "launcher-codex.test.ts \u2014 \"powershell form contains no raw newline even for a multi-paragraph prompt\", \"cmd and posix forms are untouched -- the fix is scoped to PowerShell only\""
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 0,
+      "exit_code": 0,
+      "justification": "The bug's causal layer is the real PowerShell/PSReadLine process, not the browser/xterm layer -- a Playwright browser E2E would exercise the xterm.js DOM/WS path, not the actual defect mechanism (PSReadLine's own multi-line edit-buffer corruption on pty keystroke injection). This was verified directly against a real pwsh.exe via node-pty (both the production ChunkedPtyWriter path and an atomic single pty.write() path): the pre-fix command reproduced the exact reported error, the post-fix command launched `codex` cleanly and reached its TUI. Launching a genuine Codex CLI agent process from an automated E2E test would be disproportionate scope/risk for a shell-quoting fix and would contradict this repo's own established precedent (runtime-toggle-codex.spec.ts AC8 explicitly avoids depending on the Codex CLI being present on every machine including CI, for portability)."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-codex-launch-powershell-chunk",
+    "commit": "21c776152da4a86add32a20f4cced83a7b208fa3",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

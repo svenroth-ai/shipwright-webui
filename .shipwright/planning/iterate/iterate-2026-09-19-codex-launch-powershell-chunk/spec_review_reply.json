@@ -1,0 +1,21 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Diff matches the bug report's stated root cause and fix intent; correctly scoped to PowerShell only; addresses the mechanism (literal newlines reaching PSReadLine via pty injection) rather than the symptom string.",
+  "files_reviewed": [
+    "server/src/core/shell-quote.ts",
+    "server/src/core/shell-quote.test.ts",
+    "server/src/core/launcher-codex.ts",
+    "server/src/core/launcher-codex.test.ts"
+  ],
+  "findings": [
+    "Present: qPsMultiline() (shell-quote.ts:46-50) exists exactly as described - pass-through to qPs() for input with no \\r/\\n, Base64-encode + PowerShell sub-expression otherwise. renderCodex() in launcher-codex.ts:142 calls it for the powershell form's prompt argument only.",
+    "Faithful: addresses the root cause (any embedded \\r/\\n in the prompt text), not a special-case filter for the literal error-triggering substring.",
+    "Scope correct: cmd/posix forms explicitly untouched; resume command construction never embeds buildCodexPrompt() output (only threadId, a UUID), correctly unaffected without change.",
+    "Preserves paragraph structure vs. a reject-outright approach; round-trip test proves exact decode.",
+    "Test coverage matches the bug's own reproduction shape (multi-paragraph description, SHIPWRIGHT-STATUS footer present, no-raw-newline + round-trip + cmd/posix-untouched assertions).",
+    "No unrelated changes - all four touched files are exactly the ones the bug report names."
+  ],
+  "reject_citations": []
+}

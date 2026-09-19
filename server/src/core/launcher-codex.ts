@@ -18,7 +18,7 @@
  * and §2.4's mitigation 1 plus AC4 both require it on every launch.
  */
 
-import { qPs, qCmd, qPosix, toPosixPath } from "./shell-quote.js";
+import { qPs, qPsMultiline, qCmd, qPosix, toPosixPath } from "./shell-quote.js";
 import { buildCdPrefix, type CopyCommandForms } from "./launcher.js";
 
 export interface CodexLaunchArgs {
@@ -134,7 +134,13 @@ function renderCodex(
   if (args.implementationModel) {
     parts.push("-c", q(`model="${args.implementationModel}"`));
   }
-  parts.push(q(buildCodexPrompt(args)));
+  // Codex prompts are always multi-paragraph (model pins / SKILL.md pointer
+  // / description / SHIPWRIGHT-STATUS footer, blank-line-separated) — the
+  // PowerShell form needs the PSReadLine-multi-line-corruption-safe quoter
+  // (see qPsMultiline's doc comment); cmd/posix are unaffected, so they keep
+  // the plain per-shell quoter.
+  const promptText = buildCodexPrompt(args);
+  parts.push(shellForm === "powershell" ? qPsMultiline(promptText) : q(promptText));
 
   const cmd = parts.join(" ");
   void cwd; // cwd is already folded into cdPrefix; kept for symmetry with launcher.ts's per-shell renderers.
