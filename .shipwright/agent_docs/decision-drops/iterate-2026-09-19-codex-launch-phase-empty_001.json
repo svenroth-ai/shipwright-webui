@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-19-codex-launch-phase-empty",
+  "date": "2026-09-19",
+  "section": "Iterate — bug: Codex-runtime launch-prompt phase/path fixes",
+  "title": "Fix empty phase on triage-promote + unprefixed SKILL.md path in Codex launch prompt",
+  "context": "An Opus review of a reported Codex launch failure falsified the original worktree-creation hypothesis and instead found two real bugs: triage-promote never set task.phase, so buildCodexPrompt() dropped the SKILL.md pointer line; and that pointer's path template was missing the plugins/ prefix the real layout needs.",
+  "decision": "Stamp phase='iterate' on every triage-promoted task (mirrors the existing hardcoded actionId) and add the missing plugins/ prefix to the SKILL.md pointer template; update the two tests that encoded the old wrong path and add a new test for the phase stamp.",
+  "consequences": "Triage-promoted Codex tasks now get the SKILL.md pointer instruction, pointed at a resolvable path for every phase. No client-visible change (phase badge already derived from actionId). Idempotent-recovery reuse of a pre-existing phase-less task is a noted, pre-existing, out-of-scope edge case.",
+  "rationale": "",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-19-codex-launch-phase-empty.md"
+}

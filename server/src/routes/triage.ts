@@ -64,6 +64,21 @@ export const TRIAGE_WRITE_AVAILABILITY_TTL_MS = 15_000;
  */
 const PROMOTED_TASK_ACTION_ID = "new-iterate";
 
+/**
+ * iterate-2026-09-19-codex-launch-phase-empty: `actionId` alone is enough
+ * for the Claude launch path (`actions-substitute.ts` reads `actionId`, not
+ * `phase`), but a Codex-runtime task's launch prompt (`buildCodexCommands`
+ * -> `buildCodexPrompt`, launcher-codex.ts) is keyed on `task.phase` — it is
+ * what selects the SKILL.md pointer line and what the SHIPWRIGHT-STATUS
+ * self-report footer echoes back. Promote never set it, so a Codex-runtime
+ * promoted task shipped with `phase: undefined` and got no explicit
+ * instruction to read the iterate skill at all outside a curated repo's
+ * `AGENTS.md` (which most adopted projects don't have). `PROMOTED_TASK_
+ * ACTION_ID`'s own semantics ("new-iterate") already fix this task's phase
+ * unconditionally, so this is the same hardcode, not a catalog lookup.
+ */
+const PROMOTED_TASK_PHASE = "iterate";
+
 export interface TriageProjectMeta {
   id: string;
   path: string;
@@ -324,6 +339,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           cwd: project.path,
           projectId,
           actionId: PROMOTED_TASK_ACTION_ID,
+          phase: PROMOTED_TASK_PHASE,
           domain: parsed.value.domain,
           priority: parsed.value.priority,
           complexityHint: parsed.value.complexityHint,
