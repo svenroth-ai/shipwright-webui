@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "Diagnosis-plus-fix bug iterate; no formal spec (small complexity, no iterate spec file). Deliverable is bug-report.md, CLAUDE.md DO-NOT #32, and a real code fix (launcher-codex.ts) — matching the ask (reproduce, root-cause, fix at the correct layer). Two independent causes were found: a recurring during-turn redraw (FIXED via `-c tui.animations=false`) and a one-time startup box reflow (remains upstream-only, unfixed here)."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "buildTuiAnimationFlags() has one branch (env opt-out) with no failure mode — reading process.env cannot throw, and an unset/malformed value falls through to the safe default (flag emitted)."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "The new flag is a static string literal passed through the existing per-shell quoter `q()`, same as every other `-c key=value` flag already emitted here (e.g. shell_environment_policy.inherit=all) — no new untrusted-input surface. Scratch repro scripts used to gather evidence ran from an untracked location and are excluded from the shipped diff."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "launcher-codex.test.ts: new tests assert the flag is present by default on both fresh-launch and resume, absent under SHIPWRIGHT_CODEX_TUI_ANIMATIONS=0 on both paths, and unaffected by any other env value (only the literal \"0\" opts out) — 5 new cases, all 33 tests in the file pass. The root-cause claim itself (Codex's own TUI timing) is evidenced by a captured raw-pty byte stream external to the diff, not a repo test — a unit/E2E test cannot pin upstream Codex CLI TUI output, but the fix's own behavior (flag threading) is fully covered."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "Change is a static CLI flag appended to a launch command string, built once per launch — no added runtime cost."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New DO-NOT #32 follows the existing numbered-rule format and cross-references #28/#29 by number per the file's own convention (numbering is load-bearing, never renumbered). buildTuiAnimationFlags() follows the file's existing helper-function pattern (buildReviewEnvPrefix) and its opt-out env var follows the existing SHIPWRIGHT_TERMINAL_NO_FLICKER naming/semantics precedent."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Boundary touched: the Codex CLI launch-command string built by renderCodex() (server/src/core/launcher-codex.ts), read only by the client-side auto-execute WS data-frame (rule 19) — an additive `-c` flag, no shape change. Claude-runtime launches (launcher.ts) are a separate code path, untouched."
+    }
+  ]
+}
