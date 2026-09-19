@@ -21,6 +21,22 @@ type TierRole = "plan_review" | "review";
  * props instead of a new state slice threaded through useNewIssueForm.ts.
  */
 export const CODEX_IMPLEMENTATION_MODEL_PARAM_KEY = "codex-implementation-model";
+/**
+ * iterate-2026-09-19-codex-reviewer-fields (follow-up to shipwright#471,
+ * unblocked by shipwright#772) — session-scoped Codex review-model
+ * overrides, same free-text/body-only/never-persisted posture as the
+ * implementation-model override above. Replaces the read-only "Reviewer
+ * identity" display: these are real overrides, not a project-config
+ * mirror. Layout mirrors the Claude branch below — left = Plan review,
+ * right = Review. Read server-side by `parse-body.ts` and threaded to
+ * `buildCodexCommands` as `SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL` /
+ * `SHIPWRIGHT_CODEX_REVIEW_MODEL` env-var prefixes ahead of the actual
+ * `codex` invocation — `run_codex_review` resolves those env vars before
+ * falling back to the project's `shipwright_model_config.json`.
+ */
+export const CODEX_PLAN_REVIEW_MODEL_PARAM_KEY = "codex-plan-review-model";
+export const CODEX_REVIEW_MODEL_PARAM_KEY = "codex-review-model";
+
 /** Mirrors `server/src/external/launch/parse-body.ts`'s
  *  `CODEX_MODEL_SLUG_PATTERN` verbatim (DO-NOT #7 forbids importing it
  *  directly) — used only for an inline, best-effort hint; the server is
@@ -35,11 +51,11 @@ interface ModelTierOverrideFieldsProps {
   setParamEnabled: Dispatch<SetStateAction<Record<string, boolean>>>;
   /** trg-517157fe — opus/sonnet/haiku/inherit is the Claude-only ADR-127
    *  Agent-tier axis (--review-model/--plan-review-model); it has no
-   *  meaning for a Codex-driven task, whose own review subagents are
-   *  pinned separately (AGENTS.md's Codex operating policy). Hidden
-   *  entirely for Codex rather than shown with a value that would be
-   *  silently ignored. Defaults to Claude for callers that don't yet
-   *  carry a runtime value (e.g. pre-Codex-Light form fixtures). */
+   *  meaning for a Codex-driven task, whose review overrides are free-text
+   *  Codex model slugs instead (see CODEX_PLAN_REVIEW_MODEL_PARAM_KEY /
+   *  CODEX_REVIEW_MODEL_PARAM_KEY above). Defaults to Claude for callers
+   *  that don't yet carry a runtime value (e.g. pre-Codex-Light form
+   *  fixtures). */
   runtime?: RuntimeValue;
 }
 
@@ -61,46 +77,34 @@ export function ModelTierOverrideFields({
   const defaultStatus = projectDefaultStatus(projectId, data, isLoading, isError);
 
   if (runtime === "codex") {
-    const value = paramValues[CODEX_IMPLEMENTATION_MODEL_PARAM_KEY];
-    const text = typeof value === "string" ? value : "";
-    const trimmed = text.trim();
-    const isInvalidShape = trimmed.length > 0 && !CODEX_MODEL_SLUG_PATTERN.test(trimmed);
     return (
-      <div className="grid grid-cols-2 gap-3" data-testid="model-tier-override-fields">
-        <FieldLabel label="Implementation model" hint="only for this session">
-          <input
-            type="text"
-            value={text}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setParamValues((previous) => ({
-                ...previous,
-                [CODEX_IMPLEMENTATION_MODEL_PARAM_KEY]: nextValue,
-              }));
-              setParamEnabled((previous) => ({
-                ...previous,
-                [CODEX_IMPLEMENTATION_MODEL_PARAM_KEY]: nextValue.trim() !== "",
-              }));
-            }}
-            placeholder="Suggested policy (AGENTS.md) — gpt-5.6-terra"
-            className={`w-full rounded-[var(--radius-button,8px)] border-[1.5px] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)] ${
-              isInvalidShape
-                ? "border-[var(--color-error,#DC2626)]"
-                : "border-[var(--color-border,#e0dbd4)]"
-            }`}
-            data-testid={`model-tier-override-${CODEX_IMPLEMENTATION_MODEL_PARAM_KEY}`}
+      <div className="flex flex-col gap-3" data-testid="model-tier-override-fields">
+        <CodexModelField
+          paramKey={CODEX_IMPLEMENTATION_MODEL_PARAM_KEY}
+          label="Implementation model"
+          placeholder="Suggested policy (AGENTS.md) — gpt-5.6-terra"
+          paramValues={paramValues}
+          setParamValues={setParamValues}
+          setParamEnabled={setParamEnabled}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <CodexModelField
+            paramKey={CODEX_PLAN_REVIEW_MODEL_PARAM_KEY}
+            label="Plan review"
+            placeholder="e.g. gpt-5.6-sol"
+            paramValues={paramValues}
+            setParamValues={setParamValues}
+            setParamEnabled={setParamEnabled}
           />
-          {isInvalidShape && (
-            <p
-              className="text-[11px] text-[var(--color-error,#DC2626)]"
-              data-testid="codex-implementation-model-hint"
-            >
-              Letters, digits, {"."} _ - only (no spaces) — the launch will be
-              rejected otherwise.
-            </p>
-          )}
-        </FieldLabel>
-        <CodexReviewerIdentity data={data} isLoading={isLoading} isError={isError} />
+          <CodexModelField
+            paramKey={CODEX_REVIEW_MODEL_PARAM_KEY}
+            label="Review"
+            placeholder="e.g. gpt-5.6-sol"
+            paramValues={paramValues}
+            setParamValues={setParamValues}
+            setParamEnabled={setParamEnabled}
+          />
+        </div>
       </div>
     );
   }
@@ -148,6 +152,64 @@ export function ModelTierOverrideFields({
   );
 }
 
+/**
+ * Shared free-text Codex model-slug input — backs Implementation model,
+ * Plan review and Review alike. Inline best-effort shape hint only; the
+ * server (`CODEX_MODEL_SLUG_PATTERN` in `parse-body.ts`) is the real gate.
+ */
+function CodexModelField({
+  paramKey,
+  label,
+  placeholder,
+  paramValues,
+  setParamValues,
+  setParamEnabled,
+}: {
+  paramKey: string;
+  label: string;
+  placeholder: string;
+  paramValues: Record<string, string | boolean>;
+  setParamValues: Dispatch<SetStateAction<Record<string, string | boolean>>>;
+  setParamEnabled: Dispatch<SetStateAction<Record<string, boolean>>>;
+}) {
+  const value = paramValues[paramKey];
+  const text = typeof value === "string" ? value : "";
+  const trimmed = text.trim();
+  const isInvalidShape = trimmed.length > 0 && !CODEX_MODEL_SLUG_PATTERN.test(trimmed);
+  return (
+    <FieldLabel label={label} hint="only for this session">
+      <input
+        type="text"
+        value={text}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setParamValues((previous) => ({ ...previous, [paramKey]: nextValue }));
+          setParamEnabled((previous) => ({
+            ...previous,
+            [paramKey]: nextValue.trim() !== "",
+          }));
+        }}
+        placeholder={placeholder}
+        className={`w-full rounded-[var(--radius-button,8px)] border-[1.5px] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)] ${
+          isInvalidShape
+            ? "border-[var(--color-error,#DC2626)]"
+            : "border-[var(--color-border,#e0dbd4)]"
+        }`}
+        data-testid={`model-tier-override-${paramKey}`}
+      />
+      {isInvalidShape && (
+        <p
+          className="text-[11px] text-[var(--color-error,#DC2626)]"
+          data-testid={`${paramKey}-hint`}
+        >
+          Letters, digits, {"."} _ - only (no spaces) — the launch will be
+          rejected otherwise.
+        </p>
+      )}
+    </FieldLabel>
+  );
+}
+
 function formatTier(tier: string): string {
   return tier.slice(0, 1).toUpperCase() + tier.slice(1);
 }
@@ -161,75 +223,6 @@ function defaultOptionLabel(
   if (isLoading) return "Loading project default…";
   if (isError) return "Project default unavailable";
   return "Project default unavailable";
-}
-
-/**
- * shipwright#771 — read-only display of whatever `codex_review`/
- * `codex_plan_review` the project's `shipwright_model_config.json`
- * currently carries. Not editable from webui (`server/src/external/
- * model-config/routes.ts`: "Framework config is never mutated here"), and
- * webui never invokes `review_via_codex.py` itself (CLAUDE.md rule 1), so
- * there is no live signal to confirm a value actually took effect — this
- * is a config read, not a verified-parity claim, same honesty standard the
- * dropped review-model override was held to.
- */
-function CodexReviewerIdentity({
-  data,
-  isLoading,
-  isError,
-}: {
-  data: { codex?: Partial<Record<"codex_review" | "codex_plan_review", string>> } | undefined;
-  isLoading: boolean;
-  isError: boolean;
-}) {
-  return (
-    <FieldLabel label="Reviewer identity" hint="read-only — project config">
-      <div
-        className="flex flex-col gap-1 rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#f5f3ef)] px-3 py-2 text-[12px] text-[var(--body,#44403c)]"
-        data-testid="codex-reviewer-identity"
-      >
-        <ReviewerLine
-          label="Plan review"
-          value={data?.codex?.codex_plan_review}
-          isLoading={isLoading}
-          isError={isError}
-          testId="codex-reviewer-identity-plan-review"
-        />
-        <ReviewerLine
-          label="Review"
-          value={data?.codex?.codex_review}
-          isLoading={isLoading}
-          isError={isError}
-          testId="codex-reviewer-identity-review"
-        />
-      </div>
-    </FieldLabel>
-  );
-}
-
-function ReviewerLine({
-  label,
-  value,
-  isLoading,
-  isError,
-  testId,
-}: {
-  label: string;
-  value: string | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  testId: string;
-}) {
-  let status: string;
-  if (isLoading) status = "Loading…";
-  else if (isError) status = "Unavailable";
-  else if (value) status = value;
-  else status = "Codex default (not configured)";
-  return (
-    <span data-testid={testId}>
-      <span className="font-medium">{label}:</span> {status}
-    </span>
-  );
 }
 
 function projectDefaultStatus(

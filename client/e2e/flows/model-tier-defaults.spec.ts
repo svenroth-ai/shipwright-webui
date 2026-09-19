@@ -117,4 +117,61 @@ test.describe("Model-tier defaults", () => {
     expect(Object.values(launched.commands).join(" ")).toContain("--review-model opus");
 
   });
+
+  // iterate-2026-09-19-codex-reviewer-fields — Codex runtime gets its own
+  // free-text Plan review / Review overrides instead of the Claude dropdowns,
+  // laid out the same way (left/right), plus Implementation model in its own
+  // row. AC8 (runtime-toggle-codex.spec.ts) makes a genuine Codex /launch
+  // 400 on any machine without the Codex CLI on PATH, so this test
+  // intercepts the /launch POST rather than letting it hit the real route —
+  // it is proving the request BODY and the UI, not a real Codex launch.
+  test("Runtime=Codex shows real Plan review / Review overrides (no reviewer-identity block) and threads them into the launch body", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("task-card-" + task.taskId)).toBeVisible();
+
+    await page.getByTestId("create-menu-caret").click();
+    await page.getByTestId("create-menu-item-new-iterate").click();
+    await expect(page.getByTestId("new-issue-modal-new-iterate")).toBeVisible();
+    await page.getByTestId("runtime-codex").click();
+    await page.getByTestId("new-issue-more-options-toggle").click();
+
+    await expect(page.getByTestId("codex-reviewer-identity")).toHaveCount(0);
+
+    const implementationField = page.getByTestId(
+      "model-tier-override-codex-implementation-model",
+    );
+    const planReviewField = page.getByTestId(
+      "model-tier-override-codex-plan-review-model",
+    );
+    const reviewField = page.getByTestId("model-tier-override-codex-review-model");
+    await expect(implementationField).toBeVisible();
+    await expect(planReviewField).toBeVisible();
+    await expect(reviewField).toBeVisible();
+
+    await planReviewField.fill("gpt-5.6-terra");
+    await reviewField.fill("gpt-5.6-sol");
+
+    await page.getByTestId("new-issue-title-input").fill("Codex review-model launch fixture");
+
+    let capturedBody: Record<string, unknown> | undefined;
+    await page.route("**/api/external/tasks/*/launch", async (route) => {
+      capturedBody = route.request().postDataJSON() as Record<string, unknown>;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          task: { taskId: "stub", runtime: "codex" },
+          commands: { powershell: "codex", cmd: "codex", posix: "codex" },
+        }),
+      });
+    });
+    await page.getByTestId("new-issue-launch-btn").click();
+    await expect.poll(() => capturedBody).toBeTruthy();
+    expect(capturedBody).toMatchObject({
+      codexPlanReviewModel: "gpt-5.6-terra",
+      codexReviewModel: "gpt-5.6-sol",
+    });
+  });
 });

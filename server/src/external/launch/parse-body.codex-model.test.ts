@@ -104,3 +104,72 @@ describe("parseLaunchBody — codexImplementationModel", () => {
     }
   });
 });
+
+// iterate-2026-09-19-codex-reviewer-fields — codexPlanReviewModel/
+// codexReviewModel share parseCodexModelSlugField with
+// codexImplementationModel above (same pattern, same fail-closed posture),
+// so this covers the two fields' own error codes and independence rather
+// than re-proving every shape case the shared validator already covers.
+describe("parseLaunchBody — codexPlanReviewModel / codexReviewModel", () => {
+  it("both absent → both undefined, no error", () => {
+    const result = parseLaunchBody({}, makeTask());
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.codexPlanReviewModel).toBeUndefined();
+      expect(result.codexReviewModel).toBeUndefined();
+    }
+  });
+
+  it("both present and valid parse through independently", () => {
+    const result = parseLaunchBody(
+      { codexPlanReviewModel: "gpt-5.6-terra", codexReviewModel: "gpt-5.6-sol" },
+      makeTask(),
+    );
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.codexPlanReviewModel).toBe("gpt-5.6-terra");
+      expect(result.codexReviewModel).toBe("gpt-5.6-sol");
+    }
+  });
+
+  it("trims incidental whitespace before validating and storing", () => {
+    const result = parseLaunchBody(
+      { codexPlanReviewModel: "  gpt-5.6-terra  " },
+      makeTask(),
+    );
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.codexPlanReviewModel).toBe("gpt-5.6-terra");
+    }
+  });
+
+  it("a malformed codexPlanReviewModel fails 400 invalid_codex_plan_review_model, independent of codexReviewModel", () => {
+    const result = parseLaunchBody(
+      { codexPlanReviewModel: "has space", codexReviewModel: "gpt-5.6-sol" },
+      makeTask(),
+    );
+    expect("error" in result).toBe(true);
+    if ("error" in result) {
+      expect(result.status).toBe(400);
+      expect(result.error.error).toBe("invalid_codex_plan_review_model");
+    }
+  });
+
+  it("a malformed codexReviewModel fails 400 invalid_codex_review_model", () => {
+    const result = parseLaunchBody({ codexReviewModel: "has/slash" }, makeTask());
+    expect("error" in result).toBe(true);
+    if ("error" in result) {
+      expect(result.status).toBe(400);
+      expect(result.error.error).toBe("invalid_codex_review_model");
+    }
+  });
+
+  it("has no once-set-always-used task fallback for either field", () => {
+    const result = parseLaunchBody({}, makeTask({ runtime: "codex" }));
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.codexPlanReviewModel).toBeUndefined();
+      expect(result.codexReviewModel).toBeUndefined();
+    }
+  });
+});

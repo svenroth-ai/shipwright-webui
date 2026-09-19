@@ -58,55 +58,41 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
     expect(screen.queryByTestId("codex-implementation-model-hint")).toBeNull();
   });
 
-  it("Runtime=Codex shows the reviewer-identity block, read-only, sourced from project config", async () => {
-    const { qc } = renderModal({
-      action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS },
-    });
-    qc.setQueryData(["model-tier-config", "proj-1"], {
-      tiers: {
-        plan_review: { tier: "inherit", source: "unset" },
-        review: { tier: "inherit", source: "unset" },
-        finalization: { tier: "inherit", source: "unset" },
-        execution: { tier: "inherit", source: "unset" },
-      },
-      codex: { codex_review: "gpt-5.6-sol", codex_plan_review: "gpt-5.6-terra" },
-    });
+  it("Runtime=Codex shows real free-text Plan review / Review overrides, not a read-only identity block", async () => {
+    renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();
     fireEvent.click(screen.getByTestId("runtime-codex"));
     await screen.findByTestId("model-tier-override-codex-implementation-model");
-    expect(screen.getByTestId("codex-reviewer-identity-plan-review")).toHaveTextContent(
-      "gpt-5.6-terra",
+
+    expect(screen.queryByTestId("codex-reviewer-identity")).toBeNull();
+
+    const planReviewField = screen.getByTestId(
+      "model-tier-override-codex-plan-review-model",
     );
-    expect(screen.getByTestId("codex-reviewer-identity-review")).toHaveTextContent(
-      "gpt-5.6-sol",
-    );
-    // Read-only — no input/select inside the block.
-    expect(
-      screen.getByTestId("codex-reviewer-identity").querySelector("input, select"),
-    ).toBeNull();
+    const reviewField = screen.getByTestId("model-tier-override-codex-review-model");
+    expect(planReviewField.tagName).toBe("INPUT");
+    expect(reviewField.tagName).toBe("INPUT");
+    expect(planReviewField).toHaveValue("");
+    expect(reviewField).toHaveValue("");
+
+    fireEvent.change(planReviewField, { target: { value: "gpt-5.6-terra" } });
+    fireEvent.change(reviewField, { target: { value: "gpt-5.6-sol" } });
+    expect(planReviewField).toHaveValue("gpt-5.6-terra");
+    expect(reviewField).toHaveValue("gpt-5.6-sol");
   });
 
-  it("reviewer-identity block falls back to an honest 'not configured' status when the project has no codex_review/codex_plan_review keys", async () => {
-    const { qc } = renderModal({
-      action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS },
-    });
-    qc.setQueryData(["model-tier-config", "proj-1"], {
-      tiers: {
-        plan_review: { tier: "inherit", source: "unset" },
-        review: { tier: "inherit", source: "unset" },
-        finalization: { tier: "inherit", source: "unset" },
-        execution: { tier: "inherit", source: "unset" },
-      },
-    });
+  it("Plan review / Review inputs show the same invalid-shape hint as Implementation model", async () => {
+    renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();
     fireEvent.click(screen.getByTestId("runtime-codex"));
-    await screen.findByTestId("model-tier-override-codex-implementation-model");
-    expect(screen.getByTestId("codex-reviewer-identity-plan-review")).toHaveTextContent(
-      "Codex default (not configured)",
+    const reviewField = await screen.findByTestId(
+      "model-tier-override-codex-review-model",
     );
-    expect(screen.getByTestId("codex-reviewer-identity-review")).toHaveTextContent(
-      "Codex default (not configured)",
-    );
+    expect(screen.queryByTestId("codex-review-model-hint")).toBeNull();
+    fireEvent.change(reviewField, { target: { value: "has space" } });
+    expect(await screen.findByTestId("codex-review-model-hint")).toBeTruthy();
+    fireEvent.change(reviewField, { target: { value: "gpt-5.6-sol" } });
+    expect(screen.queryByTestId("codex-review-model-hint")).toBeNull();
   });
 
   it("Runtime=Claude (toggled back from Codex) shows the Claude fields again, unchanged", async () => {

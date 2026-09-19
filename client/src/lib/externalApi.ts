@@ -353,6 +353,8 @@ export async function launchExternalTask(
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
     parameters?: Record<string, string | boolean>;
     codexImplementationModel?: string;
+    codexPlanReviewModel?: string;
+    codexReviewModel?: string;
   } = {},
 ): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
   return await launchTask(taskId, args);
