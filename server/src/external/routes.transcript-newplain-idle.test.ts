@@ -47,94 +47,108 @@ function makePtyManagerStub(liveTaskIds: string[] = []): { get: (taskId: string)
   return { get: (taskId: string) => (live.has(taskId) ? { taskId } : undefined) };
 }
 
-describe("AC-1 — transcript poll patches new-plain `active → idle` when pty is gone", () => {
-  let app: Hono;
-  let store: SdkSessionsStore;
-  let projectsDir: string;
+/**
+ * Shared test harness for both describe blocks below (AC-1 new-plain and
+ * iterate-2026-09-20-codex-liveness-transition's Codex-runtime widening) —
+ * hoisted per code-review finding (2026-09-20) to avoid a second, driftable
+ * copy of the same setup/request helpers.
+ */
+interface Harness {
+  app: Hono;
+  store: SdkSessionsStore;
+  projectsDir: string;
+}
 
-  async function setupWithPty(liveTaskIds: string[] = []) {
-    projectsDir = mkdtempSync(path.join(tmpdir(), "ac1-newplain-idle-"));
-    const deps = inMemoryDeps();
-    store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
-    await store.load();
-    const watcher = new SessionWatcher({ projectsDir });
-    app = new Hono();
-    app.route(
-      "/",
-      createExternalRoutes({
-        store,
-        watcher,
-        ptyManager: makePtyManagerStub(liveTaskIds),
-      }),
-    );
-  }
+async function setupWithPty(prefix: string, liveTaskIds: string[] = []): Promise<Harness> {
+  const projectsDir = mkdtempSync(path.join(tmpdir(), `${prefix}-`));
+  const deps = inMemoryDeps();
+  const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+  await store.load();
+  const watcher = new SessionWatcher({ projectsDir });
+  const app = new Hono();
+  app.route(
+    "/",
+    createExternalRoutes({
+      store,
+      watcher,
+      ptyManager: makePtyManagerStub(liveTaskIds),
+    }),
+  );
+  return { app, store, projectsDir };
+}
+
+async function createTask(
+  app: Hono,
+  opts: { actionId?: string; title?: string; runtime?: string },
+): Promise<string> {
+  const res = await app.request("/api/external/tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: opts.title ?? "t",
+      cwd: "/tmp",
+      actionId: opts.actionId,
+      runtime: opts.runtime,
+    }),
+  });
+  const json = (await res.json()) as { task: { taskId: string } };
+  return json.task.taskId;
+}
+
+async function patchState(store: SdkSessionsStore, taskId: string, state: string) {
+  store.patch(taskId, { state: state as never });
+  await store.persist();
+}
+
+async function pollTranscript(app: Hono, taskId: string) {
+  const res = await app.request(`/api/external/tasks/${taskId}/transcript`);
+  return { status: res.status, body: (await res.json()) as { task: { state: string } } };
+}
+
+describe("AC-1 — transcript poll patches new-plain `active → idle` when pty is gone", () => {
+  let h: Harness;
 
   beforeEach(async () => {
-    await setupWithPty();
+    h = await setupWithPty("ac1-newplain-idle");
   });
 
-  async function createTask(opts: { actionId?: string; title?: string; runtime?: string }): Promise<string> {
-    const res = await app.request("/api/external/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: opts.title ?? "t",
-        cwd: "/tmp",
-        actionId: opts.actionId,
-        runtime: opts.runtime,
-      }),
-    });
-    const json = (await res.json()) as { task: { taskId: string } };
-    return json.task.taskId;
-  }
-
-  async function patchState(taskId: string, state: string) {
-    store.patch(taskId, { state: state as never });
-    await store.persist();
-  }
-
-  async function pollTranscript(taskId: string) {
-    const res = await app.request(`/api/external/tasks/${taskId}/transcript`);
-    return { status: res.status, body: (await res.json()) as { task: { state: string } } };
-  }
-
   it("patches new-plain + active + no-pty to `idle` on transcript poll", async () => {
-    const taskId = await createTask({ actionId: "new-plain", title: "newplain-overnight" });
-    await patchState(taskId, "active");
+    const taskId = await createTask(h.app, { actionId: "new-plain", title: "newplain-overnight" });
+    await patchState(h.store, taskId, "active");
 
-    const { body } = await pollTranscript(taskId);
+    const { body } = await pollTranscript(h.app, taskId);
     expect(body.task.state).toBe("idle");
   });
 
   it("does NOT patch when pty is still alive (live pty entry)", async () => {
-    const taskId = await createTask({ actionId: "new-plain", title: "newplain-live-pty" });
-    await patchState(taskId, "active");
+    const taskId = await createTask(h.app, { actionId: "new-plain", title: "newplain-live-pty" });
+    await patchState(h.store, taskId, "active");
 
     // Re-construct the app with the task-id reported as live pty entry.
-    await setupWithPty([taskId]);
+    h = await setupWithPty("ac1-newplain-idle");
     // Re-create the same task in the new store (test uses fresh store per setup).
-    const newTaskId = await createTask({ actionId: "new-plain", title: "newplain-live-pty" });
-    await patchState(newTaskId, "active");
+    const newTaskId = await createTask(h.app, { actionId: "new-plain", title: "newplain-live-pty" });
+    await patchState(h.store, newTaskId, "active");
     // Make pty live for the actual created id.
-    app = new Hono();
-    app.route(
+    h.app = new Hono();
+    h.app.route(
       "/",
       createExternalRoutes({
-        store,
-        watcher: new SessionWatcher({ projectsDir }),
+        store: h.store,
+        watcher: new SessionWatcher({ projectsDir: h.projectsDir }),
         ptyManager: makePtyManagerStub([newTaskId]),
       }),
     );
 
-    const { body } = await pollTranscript(newTaskId);
+    const { body } = await pollTranscript(h.app, newTaskId);
     expect(body.task.state).toBe("active");
   });
 
   it("does NOT patch slash-command-launch tasks (only new-plain gate fires)", async () => {
-    const taskId = await createTask({ actionId: "new-iterate-build", title: "slash-task" });
-    await patchState(taskId, "active");
+    const taskId = await createTask(h.app, { actionId: "new-iterate-build", title: "slash-task" });
+    await patchState(h.store, taskId, "active");
 
-    const { body } = await pollTranscript(taskId);
+    const { body } = await pollTranscript(h.app, taskId);
     expect(body.task.state).toBe("active");
   });
 
@@ -144,30 +158,28 @@ describe("AC-1 — transcript poll patches new-plain `active → idle` when pty 
     // repeated polls. An implementation that redundantly calls
     // `patch + persist` on every poll after the first would still keep
     // state=idle but waste IO + potentially churn `sdk-sessions.json`.
-    const taskId = await createTask({ actionId: "new-plain", title: "idempotent" });
-    await patchState(taskId, "active");
+    const taskId = await createTask(h.app, { actionId: "new-plain", title: "idempotent" });
+    await patchState(h.store, taskId, "active");
 
     // Spy on store.patch — count calls AFTER baseline state setup.
-    const baseline = (store as unknown as { _patchCount?: number })._patchCount ?? 0;
-    const origPatch = store.patch.bind(store);
+    const origPatch = h.store.patch.bind(h.store);
     let patchCallsForTask = 0;
-    store.patch = ((id: string, p: unknown) => {
+    h.store.patch = ((id: string, p: unknown) => {
       if (id === taskId) patchCallsForTask++;
       return origPatch(id, p as never);
-    }) as typeof store.patch;
-    void baseline; // silence unused warning
+    }) as typeof h.store.patch;
 
     try {
-      const first = await pollTranscript(taskId);
+      const first = await pollTranscript(h.app, taskId);
       expect(first.body.task.state).toBe("idle");
       // Exactly ONE patch call so far for this task (the active→idle
       // transition fired once).
       expect(patchCallsForTask).toBe(1);
 
       // Re-poll N=3 times
-      const second = await pollTranscript(taskId);
-      const third = await pollTranscript(taskId);
-      const fourth = await pollTranscript(taskId);
+      const second = await pollTranscript(h.app, taskId);
+      const third = await pollTranscript(h.app, taskId);
+      const fourth = await pollTranscript(h.app, taskId);
       expect(second.body.task.state).toBe("idle");
       expect(third.body.task.state).toBe("idle");
       expect(fourth.body.task.state).toBe("idle");
@@ -175,15 +187,15 @@ describe("AC-1 — transcript poll patches new-plain `active → idle` when pty 
       // additional patches. Total count stays at exactly 1.
       expect(patchCallsForTask).toBe(1);
     } finally {
-      store.patch = origPatch;
+      h.store.patch = origPatch;
     }
   });
 
   it("does NOT patch when state is already `idle` (no-op short-circuit)", async () => {
-    const taskId = await createTask({ actionId: "new-plain", title: "already-idle" });
-    await patchState(taskId, "idle");
+    const taskId = await createTask(h.app, { actionId: "new-plain", title: "already-idle" });
+    await patchState(h.store, taskId, "idle");
 
-    const { body } = await pollTranscript(taskId);
+    const { body } = await pollTranscript(h.app, taskId);
     expect(body.task.state).toBe("idle");
   });
 });
@@ -197,69 +209,25 @@ describe("AC-1 — transcript poll patches new-plain `active → idle` when pty 
 // ---------------------------------------------------------------------------
 
 describe("Codex-runtime — transcript poll patches `active → idle` when pty is gone", () => {
-  let app: Hono;
-  let store: SdkSessionsStore;
-  let projectsDir: string;
-
-  async function setupWithPty(liveTaskIds: string[] = []) {
-    projectsDir = mkdtempSync(path.join(tmpdir(), "codex-idle-"));
-    const deps = inMemoryDeps();
-    store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
-    await store.load();
-    const watcher = new SessionWatcher({ projectsDir });
-    app = new Hono();
-    app.route(
-      "/",
-      createExternalRoutes({
-        store,
-        watcher,
-        ptyManager: makePtyManagerStub(liveTaskIds),
-      }),
-    );
-  }
+  let h: Harness;
 
   beforeEach(async () => {
-    await setupWithPty();
+    h = await setupWithPty("codex-idle");
   });
 
-  async function createTask(opts: { actionId?: string; title?: string; runtime?: string }): Promise<string> {
-    const res = await app.request("/api/external/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: opts.title ?? "t",
-        cwd: "/tmp",
-        actionId: opts.actionId,
-        runtime: opts.runtime,
-      }),
-    });
-    const json = (await res.json()) as { task: { taskId: string } };
-    return json.task.taskId;
-  }
-
-  async function patchState(taskId: string, state: string) {
-    store.patch(taskId, { state: state as never });
-    await store.persist();
-  }
-
-  async function pollTranscript(taskId: string) {
-    const res = await app.request(`/api/external/tasks/${taskId}/transcript`);
-    return { status: res.status, body: (await res.json()) as { task: { state: string } } };
-  }
-
   it("patches codex + active + no-pty to `idle`, under a non-new-plain actionId", async () => {
-    const taskId = await createTask({ actionId: "new-iterate", runtime: "codex", title: "codex-overnight" });
-    await patchState(taskId, "active");
+    const taskId = await createTask(h.app, { actionId: "new-iterate", runtime: "codex", title: "codex-overnight" });
+    await patchState(h.store, taskId, "active");
 
-    const { body } = await pollTranscript(taskId);
+    const { body } = await pollTranscript(h.app, taskId);
     expect(body.task.state).toBe("idle");
   });
 
   it("does NOT patch a claude-runtime task under a non-new-plain actionId (regression guard)", async () => {
-    const taskId = await createTask({ actionId: "new-iterate", runtime: "claude", title: "claude-slash" });
-    await patchState(taskId, "active");
+    const taskId = await createTask(h.app, { actionId: "new-iterate", runtime: "claude", title: "claude-slash" });
+    await patchState(h.store, taskId, "active");
 
-    const { body } = await pollTranscript(taskId);
+    const { body } = await pollTranscript(h.app, taskId);
     expect(body.task.state).toBe("active");
   });
 });

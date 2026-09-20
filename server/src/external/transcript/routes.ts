@@ -12,8 +12,9 @@
  *   { status: "rotated", task, currentFingerprint }
  *
  * Also drives the active/idle decay state machine — see comments inline
- * for the new-plain pty-up exception (ADR-085) and AWAITING-external-start
- * re-launch path.
+ * for the new-plain pty-up exception (ADR-085, generalized to every
+ * Codex-runtime task regardless of actionId by ADR-309) and
+ * AWAITING-external-start re-launch path.
  */
 
 import { Hono } from "hono";
