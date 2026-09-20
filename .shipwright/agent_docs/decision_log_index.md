@@ -316,3 +316,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_decision_log_index.py 
 - [ADR-306 — Log every PR-review decision, not just unknown ones (webui port)](decision_log.md#adr-306-log-every-pr-review-decision-not-just-unknown-ones-webui-port)
 - [ADR-307 — Persisted desktop sidebar collapse + plugin/webui version badges](decision_log.md#adr-307-persisted-desktop-sidebar-collapse--pluginwebui-version-badges)
 - [ADR-308 — Chunk pty.write() to stop the macOS large-command hang](decision_log.md#adr-308-chunk-ptywrite-to-stop-the-macos-large-command-hang)
+- [ADR-309 — Generalize the awaiting_external_start → active liveness flip to every Codex-runtime actionId](decision_log.md#adr-309-generalize-the-awaiting_external_start--active-liveness-flip-to-every-codex-runtime-actionid)

@@ -12,8 +12,9 @@
  *   { status: "rotated", task, currentFingerprint }
  *
  * Also drives the active/idle decay state machine — see comments inline
- * for the new-plain pty-up exception (ADR-085) and AWAITING-external-start
- * re-launch path.
+ * for the new-plain pty-up exception (ADR-085, generalized to every
+ * Codex-runtime task regardless of actionId by ADR-309) and
+ * AWAITING-external-start re-launch path.
  */
 
 import { Hono } from "hono";
@@ -84,7 +85,16 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
         // JSONL (per known_issues.md). Without this branch, AC-4's pty-up
         // active-state never decays back to `idle` after pty-kill, so the
         // header CTA stays empty (Resume only renders for state=idle).
-        task.actionId === "new-plain" &&
+        //
+        // iterate-2026-09-20-codex-liveness-transition — a Codex-runtime
+        // task never writes a Claude JSONL under any actionId either, so
+        // once the ws-upgrade-handler.ts AC-4 sibling fix lets it reach
+        // `active`, the SAME decay gap applies: without `runtime ===
+        // "codex"` here too, a Codex task whose pty has already gone
+        // would be stuck `active` forever instead of decaying to `idle`
+        // (external review, GLM, 2026-09-20 — flagged as the same
+        // conceptual edit left inconsistent if deferred).
+        (task.actionId === "new-plain" || task.runtime === "codex") &&
         task.state === "active" &&
         ptyManager.get(task.taskId) === undefined
       ) {

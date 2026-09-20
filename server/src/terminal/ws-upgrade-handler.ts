@@ -462,15 +462,15 @@ function buildLiveHandlers(
       // actionIds (slash-command launches; resume; fork) — they
       // write JSONL at first prompt and the existing
       // !firstJsonlObservedAt branch handles them.
+      //
+      // ADR-309 — a Codex task never writes a Claude `.jsonl` under any
+      // actionId, so `runtime === "codex"` generalizes this flip to it.
       if (
         task.state === "awaiting_external_start" &&
-        task.actionId === "new-plain"
+        (task.actionId === "new-plain" || task.runtime === "codex")
       ) {
         store.patch(taskId, { state: "active" });
-        // Don't set firstJsonlObservedAt — pty-up is not the
-        // same evidence as JSONL-on-disk; the existing
-        // transcript-poll transition will set the timestamp
-        // correctly when the user actually types something.
+        // Don't set firstJsonlObservedAt — new-plain sets it later; Codex never will (ADR-309).
         void store.persist();
       }
 
