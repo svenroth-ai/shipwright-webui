@@ -6,7 +6,7 @@
  * effect of each fix.
  */
 import { describe, expect, it } from "vitest";
-import { isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
+import { isReviewInvocation, isReviewTask, isTestInvocation, reviewerDisplayName } from "./missionActivityFeedClassify";
 import { parseSessionJsonl } from "../external/session-parser";
 import { deriveActivityFeed } from "./missionActivityFeed";
 import type { MissionContext } from "./missionContextApi";
@@ -110,6 +110,33 @@ describe("isReviewTask", () => {
   });
 });
 
+// iterate-2026-09-20-mission-feed-transcript-fidelity, review-catch #3: this
+// function shipped with no direct unit coverage of its own — only indirectly
+// exercised through reducer-level fixtures that always used a known
+// `subagent_type`.
+describe("reviewerDisplayName", () => {
+  it("returns a friendly name for a known reviewer subagent_type", () => {
+    expect(reviewerDisplayName("Task", { subagent_type: "code-reviewer" })).toBe("the code reviewer");
+  });
+
+  it("humanizes an unrecognized subagent_type rather than falling back to the generic name", () => {
+    expect(reviewerDisplayName("Task", { subagent_type: "external-review-bot" })).toBe("the external review bot");
+  });
+
+  it("falls back to a generic name when the Task carries no subagent_type", () => {
+    expect(reviewerDisplayName("Task", { description: "Review the auth diff" })).toBe("a reviewer");
+  });
+
+  it("falls back to a generic name when a review-sounding DESCRIPTION matched but subagent_type itself doesn't look review-related (round-2 code review catch)", () => {
+    expect(reviewerDisplayName("Task", { subagent_type: "general-purpose", description: "Review the auth diff" })).toBe("a reviewer");
+  });
+
+  it("returns null for a non-review Task or a non-Task tool", () => {
+    expect(reviewerDisplayName("Task", { subagent_type: "general-purpose" })).toBeNull();
+    expect(reviewerDisplayName("Bash", { description: "review the output" })).toBeNull();
+  });
+});
+
 describe("deriveActivityFeed bucket classification (reducer-level)", () => {
   it("does not misclassify a checkout of a test-results file as a test card", () => {
     const events = parseSessionJsonl(tool("a", "Bash", { command: "git checkout -- shipwright_test_results.json" })).events;
@@ -118,7 +145,14 @@ describe("deriveActivityFeed bucket classification (reducer-level)", () => {
   });
 
   it("does not misclassify a general-purpose Task spawn as review", () => {
-    const events = parseSessionJsonl(tool("a", "Task", { subagent_type: "general-purpose", description: "Investigate the auth bug" })).events;
+    // Narrated (unlike this file's other bare `tool()` fixtures) so the
+    // resulting card survives the empty-tool-only-card filter
+    // (iterate-2026-09-20-mission-feed-transcript-fidelity) — this test is
+    // about bucket classification, not the no-narration path.
+    const events = parseSessionJsonl(event({ type: "assistant", message: { role: "assistant", content: [
+      { type: "text", text: "Digging into the auth bug." },
+      { type: "tool_use", id: "a", name: "Task", input: { subagent_type: "general-purpose", description: "Investigate the auth bug" } },
+    ] } })).events;
     const feed = deriveActivityFeed(events, context());
     expect(feed.cards.find((c) => c.commands.length)?.kind).toBe("implement");
   });

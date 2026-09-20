@@ -163,6 +163,15 @@
 .mc-feed-chip-detail { width: 100%; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .03); border-radius: 6px; overflow: hidden; }
 .mc-feed-chip-detail pre { margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--body); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 .mc-feed-pr-meta [data-merged="true"] { color: var(--ok); }
+/* The "Open commit" link is a bare, margin-less `.mc-story-link` reset (an
+   inline word in the "told story" prose view — see that rule's own comment)
+   reused here as the artifact CTA below the PR box; scoped to the sibling
+   pairing so the prose view's own inline usage stays untouched. Without
+   this the two sat flush against each other (reported: "Delivered Box
+   braucht einen Abstand ... ziemlich zusammengewürgt",
+   iterate-2026-09-20-mission-feed-transcript-fidelity) — same 9px rhythm
+   `.mc-feed-pr`/`.mc-feed-code`/`.mc-feed-qa-question` already use above. */
+.mc-feed-pr + .mc-story-link { margin-top: 9px; }
 .mc-hero .t { color: #5fc9b4; }
 .mc-hero .p { color: #3fbf9a; }
 .mc-hero .r { color: #f08772; }

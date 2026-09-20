@@ -73,6 +73,14 @@ describe("the ask — chosen by provenance (AC2)", () => {
     expect(facts(say("[Request interrupted by user]")).ask).toBeNull();
   });
 
+  it("does not narrate Claude Code's own auto-compaction continuation banner as the ask (INJECTED shared with missionActivityFeedTurn.ts's humanText, round-3 code review catch)", () => {
+    expect(facts(
+      say("This session is being continued from a previous conversation. Summary below."),
+      say("Real ask here"),
+    ).ask).toBe("Real ask here");
+    expect(facts(say("This session is being continued from a previous conversation. Summary below.")).ask).toBeNull();
+  });
+
   it("is null when nothing was asked", () => {
     expect(facts(tool("Read", { file_path: "/r/a.ts" })).ask).toBeNull();
   });

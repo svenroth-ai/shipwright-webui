@@ -105,7 +105,11 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
       result("p1", true),
     ].join("\n")).events;
     const blocked = deriveActivityFeed(events, context()).cards.find((c) => c.kind === "blocker");
-    expect(blocked?.explanation).toBeUndefined();
+    // Blocker cards now always carry an interaction hint (reported: "Blocker
+    // sind immer noch rot ohne info... ob es seine Interaktion braucht" —
+    // iterate-2026-09-20-mission-feed-transcript-fidelity), which replaces
+    // the turn-derived explanation rather than merely clearing it.
+    expect(blocked?.explanation).toBe("Claude may retry this automatically, or may be waiting for you to respond in the terminal.");
 
     const recovered = parseSessionJsonl([
       turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),

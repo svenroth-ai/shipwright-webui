@@ -29,6 +29,56 @@ export function containsIterateBanner(lines: readonly string[]): boolean {
   return lines.some((line) => line.trim() === ITERATE_BANNER_LINE);
 }
 
+/** Every OTHER line the fixed banner block prints alongside `ITERATE_BANNER_LINE`
+ *  itself (SKILL.md "Print Intro Banner", verbatim), EXCEPT the `====` border
+ *  (handled separately below) — matched as an EXACT trimmed-line equality, not
+ *  a prefix pattern (round-5 external review catch, both reviewers, medium +
+ *  low: an earlier version matched broad prefixes like `Usage:.*`/`Paths:.*`/
+ *  `Complexity:.*`/`ADR:.*`, so genuine narration immediately adjacent to a
+ *  real banner turn that merely HAPPENED to start with one of those words —
+ *  e.g. "Complexity: this migration needs manual verification." — was
+ *  silently stripped along with the actual boilerplate. A future SKILL.md
+ *  banner-text edit fails SAFE against this set: the changed line simply stops
+ *  matching and is left un-stripped (the pre-round-4 symptom), never eats
+ *  adjacent real prose). */
+const BANNER_KNOWN_LINES = new Set([
+  'Usage: /shipwright-iterate --type feature|change|bug [--review-model opus|sonnet|haiku|inherit|fable] [--finalization-model ...] [--plan-review-model ...] "description"',
+  "or: Auto-detected from your prompt (via hook context)",
+  "Paths: FEATURE / CHANGE → [interview]→[spec]→[plan]→[approval]→[review]→[design]→build→test→commit",
+  "BUG              → [spec]→reproduce→[plan]→fix→test→commit",
+  "Complexity: trivial | small | medium | large (auto-detected, overridable)",
+  "In plain words (shared index → docs/guide.md Appendix A):",
+  "ADR: Log of architectural decisions with rationale (why this database, why this pattern)",
+  "Conventional Commits: Standardized commit-message format (`feat:`, `fix:`, etc.) so version history is machine-readable",
+]);
+
+/** The `====` border line is kept as a loose length-agnostic pattern rather
+ *  than an exact string — unlike the labeled lines above, a bare run of `=`
+ *  carries no words a real sentence could coincidentally start with, so there
+ *  is nothing for a prefix match to wrongly eat here. */
+function isBannerSurroundLine(trimmed: string): boolean {
+  return /^=+$/.test(trimmed) || BANNER_KNOWN_LINES.has(trimmed);
+}
+
+/** Removes the fixed banner block (and ONLY it) from `lines`, keeping any real
+ *  narration before or after it intact — a maximal contiguous run outward from
+ *  `ITERATE_BANNER_LINE` of lines that are either the banner line itself or one
+ *  of its known surrounding lines (external code review catch, medium: an
+ *  earlier version discarded a WHOLE turn's prose on any banner match, so a
+ *  turn that combined the banner with genuine narration lost that narration —
+ *  and, via the empty-tool-only-card filter, could then drop its own tool card
+ *  entirely too). No-op (returns `lines` unchanged) when the banner isn't
+ *  present. */
+export function stripIterateBanner(lines: readonly string[]): string[] {
+  const bannerIdx = lines.findIndex((line) => line.trim() === ITERATE_BANNER_LINE);
+  if (bannerIdx === -1) return [...lines];
+  let start = bannerIdx;
+  while (start > 0 && isBannerSurroundLine(lines[start - 1].trim())) start -= 1;
+  let end = bannerIdx;
+  while (end + 1 < lines.length && isBannerSurroundLine(lines[end + 1].trim())) end += 1;
+  return [...lines.slice(0, start), ...lines.slice(end + 1)];
+}
+
 const CHAIN_SEPARATORS = new Set(["&", "|", ";"]);
 
 export interface ShellSegment {
@@ -173,6 +223,36 @@ export function isReviewTask(name: string, input: Record<string, unknown> | unde
   const subagentType = typeof input?.subagent_type === "string" ? input.subagent_type : "";
   const description = typeof input?.description === "string" ? input.description : "";
   return REVIEW_TOKEN.test(subagentType) || REVIEW_TOKEN.test(description);
+}
+
+const REVIEWER_NAMES: Record<string, string> = {
+  "spec-reviewer": "the spec reviewer",
+  "code-reviewer": "the code reviewer",
+  "doubt-reviewer": "the doubt reviewer",
+  "opus-plan-reviewer": "the plan reviewer",
+};
+
+/** A short, human-readable name for a review `Task`'s spawned subagent — lets
+ * a review-bucket card narrate "Spawned X to review the change." when the
+ * dispatching turn wrote no words of its own. Before this, the ONLY trace of
+ * a reviewer starting was its command chip's truncated label; the turn that
+ * eventually wrote something (often much later, once verdicts were back)
+ * usually described the OUTCOME, not the dispatch, so the feed jumped
+ * straight to a verdict sentence with no visible "a reviewer was spawned"
+ * moment (reported: "steht nichts, dass die Reviewer was starten",
+ * iterate-2026-09-20-mission-feed-transcript-fidelity). Returns `null` for a
+ * non-review `Task` (or any other tool) so callers fall back unchanged. */
+export function reviewerDisplayName(name: string, input: Record<string, unknown> | undefined): string | null {
+  if (!isReviewTask(name, input)) return null;
+  const subagentType = typeof input?.subagent_type === "string" ? input.subagent_type : "";
+  // `isReviewTask` above also matches on the DESCRIPTION alone (round-2 code
+  // review catch, low) — a `general-purpose` spawn with a review-sounding
+  // description must not get humanized into "the general purpose", which
+  // names the wrong thing and reads as broken grammar. Only a subagent_type
+  // that ITSELF looks review-related earns a name; anything else falls back
+  // to the same generic name a missing subagent_type already gets.
+  if (subagentType && REVIEW_TOKEN.test(subagentType)) return REVIEWER_NAMES[subagentType] ?? `the ${subagentType.replace(/-/g, " ")}`;
+  return "a reviewer";
 }
 
 /** Which bucket one tool_use falls into — extracted from

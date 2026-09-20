@@ -60,3 +60,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [ADR: fix two Codex-runtime launch-prompt bugs — empty `phase` on triage-promote, unprefixed SKILL.md path](iterate-2026-09-19-codex-launch-phase-empty.md)
 - [ADR — codex-launch-powershell-chunk](iterate-2026-09-19-codex-launch-powershell-chunk.md)
 - [Live Codex model catalog for the New Iterate launch form](iterate-2026-09-19-codex-model-catalog.md)
+- [Mission activity feed: transcript fidelity fixes](iterate-2026-09-20-mission-feed-transcript-fidelity.md)

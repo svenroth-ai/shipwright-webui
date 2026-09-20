@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-20-mission-feed-transcript-fidelity",
+  "date": "2026-09-20",
+  "section": "Iterate — bug: mission feed transcript fidelity",
+  "title": "Mission activity feed: transcript fidelity fixes",
+  "context": "Sven reported 7 gaps between the Mission feed and the real transcript: wordless tool cards, missing user replies, cramped Delivered spacing, no run start/end narration, uninformative blockers, empty spec cards, invisible reviewer-spawn narration.",
+  "decision": "Extended deriveActivityFeed's reducer + 3 cooperating modules: filter wordless cards while preserving evidence, surface user replies, dedupe a goal card for the intro banner, flush trailing narration, explain every blocker, synthesize reviewer-spawn text, add one CSS spacing rule.",
+  "consequences": "Pure client-side change, no server/API impact. Real correctness fixes across 6 review rounds pushed 5 files over the 300-line bloat baseline; each was mechanically split into cohesive sibling modules (zero behavior change, re-verified) instead of grandfathered, to avoid touching the sensitive bloat-baseline policy file per user direction. shipwright_bloat_baseline.json is unchanged from origin/main.",
+  "rationale": "3 internal + 3 external review rounds progressively caught a self-inflicted regression and 2 external-only defects; each was fixed and test-pinned before the cascade closed with both external reviewers approving.",
+  "rejected": "Adding slash-command XML tags to the shared INJECTED denylist (already handled upstream by the parser's own structural reclassification); a CSS display override (traced the DOM — the sibling is a button, already inline-block, no fix needed).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-20-mission-feed-transcript-fidelity.md"
+}

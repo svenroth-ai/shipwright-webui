@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "No concrete defects found. The reducer, presentation rule, and coverage implement the specified fidelity fixes, including user replies, reviewer-spawn narration, trailing narration flushing, blocker guidance, and empty-card filtering.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "Review of the diff against the spec (7 reported symptoms, one reducer mechanism per symptom):\n\n**Spec compliance:** All seven items are implemented: empty tool-only card filter (1/5), user \"You\" cards via `humanText`/`buildUserReplyCard` (1), `.mc-feed-pr + .mc-story-link` spacing (2), goal card + `flushPendingNarration` with the correct ordering (after `clearMultiTurnExplanations`, before `reconcileArtifactCards`) and the `runLive` gate (3), blocker interaction hints covering live/ended/null-context (4), reviewer-spawn synthesis via `reviewerDisplayName` (6). The spec's stated filter scope (\"3 of 10 kinds\") is technically exceeded — `missionActivityFeedReconcile.ts` also drops wordless `review` cards at the end — but that filter is guarded by `!card.detail` and runs after the review-artifact reconcile, so it only removes genuinely empty cards the spec's own reasoning (\"review always carries real content\") doesn't protect. Acceptable deviation, worth noting.\n\nFindings:\n\n- Category: edge-case\n  Severity: medium\n  File: `client/src/styles/mission-operation.css` (`.mc-feed-pr + .mc-story-link { margin-top: 9px; }`)\n  Finding: The rule's own comment describes `.mc-story-link` as a \"bare, margin-less\" *inline* word in the prose view. If the element is `display: inline` (or `a` default) in the PR-box context too, `margin-top` has no effect and the cramped-spacing fix (issue #2) silently does nothing — the spec explicitly waives E2E coverage for this rule, so nothing would catch it.\n  Suggestion: Confirm the CTA under the PR box is `inline-block`/`block` (or add `display: inline-block` in this scoped rule); better, verify visually once per the spec's AC-1-user check.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/lib/missionActivityFeed.ts` (banner branch, `cards.push({ kind: \"goal\", ... })`)\n  Finding: A goal card is pushed for *every* banner turn with no dedupe; a transcript where the banner text appears again (e.g. a resumed/replayed session segment) renders duplicate \"Started a /shipwright-iterate run.\" cards. The `add()` coalescer is bypassed by the direct `cards.push`.\n  Suggestion: Gate on \"no existing goal card\" or route through `add()` if duplicates are undesirable.\n\n- Category: regression\n  Severity: low\n  File: `client/src/lib/missionActivityFeedReconcile.ts` (wordless spec card drop + backfill)\n  Finding: When a wordless spec-write card is dropped and re-synthesized from the artifact summary, the new card has `commands: []` — the file-path command chip (and commandCount) evidence from the original card is lost. The spec's round-2 ledger test only asserts text, so this regression passes unnoticed.\n  Suggestion: Carry the dropped card's `commands`/`commandCount` onto the backfilled card, or accept and document the loss.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/lib/missionActivityFeedTurn.ts` (`stripInjectedNoise`)\n  Finding: `startsWith` prefix matching means a genuine human reply that happens to begin with e.g. \"API Error: ...\" or \"This session is being continued from a previous conversation\" is silently dropped from the feed — the exact \"not everything I typed shows up\" class Sven reported in item 7. Low likelihood, but the failure mode is invisible.\n  Suggestion: Acceptable given the list's documented design; no change needed, but consider a whole-string vs. prefix distinction if it recurs.\n\n- Category: test\n  Severity: low\n  File: `client/src/components/external/mission/MissionActivityFeed.test.tsx` (`findIndex(kind === \"system\")).toBeGreaterThan(0)`)\n  Finding: This assertion is weak: any non-first system card (e.g. the pre-existing compaction marker in the fixture) satisfies it, so it does not actually pin the new end-of-transcript flush behavior on its own. The dedicated `splitTurn.test.ts` cases do cover it properly, so this is redundancy, not a gap.\n\nNo security issues (pure client-side reducer over already-served transcript data; no injection-prone sinks — the synthesized strings are constants). No unawaited async, no broken exports (`extractOwnProse` kept as a wrapper; `INJECTED` export is additive). Test quality overall is strong: red→green fixture rewrites, direct unit coverage of `humanText`/`reviewerDisplayName`/`stripIterateBanner` including the real 12-line banner, and real-browser E2E through the JSONL→reducer→DOM chain.\n\nOverall: ship-with-fixes — the CSS margin question (issue #2, the one symptom with zero behavioral test coverage) should be visually confirmed before merge; everything else is sound.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "verdicts": {
+    "openai": "approve",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

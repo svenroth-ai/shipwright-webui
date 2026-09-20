@@ -16,6 +16,12 @@
 import { describe, expect, it } from "vitest";
 import { parseSessionJsonl } from "../external/session-parser";
 import { deriveActivityFeed } from "./missionActivityFeed";
+import type { MissionContext } from "./missionContextApi";
+
+const liveContext: MissionContext = {
+  schemaVersion: 1, scenario: "iterate", missionTabVisible: true, runId: "iterate-x", runLive: true,
+  servesFrId: null, sourceRev: "x", tests: null, artifacts: [],
+};
 
 const event = (value: unknown) => JSON.stringify(value);
 
@@ -47,13 +53,11 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
     const investigate = cards.find((c) => c.kind === "investigate");
     const implement = cards.find((c) => c.kind === "implement");
     expect(investigate?.text).toBe("Auditing the login flow for a session-fixation gap.");
-    // Not stale narration leaking from the first turn — this card's own
-    // turn wrote no narration at all, so `text` stays empty (no more
-    // generic-bucket-sentence or label-derived fallback,
-    // iterate-2026-09-05-mission-feed-ux-gaps); the chip still carries the
-    // real command.
-    expect(implement?.text).toBe("");
-    expect(implement?.commands).toContain("Write: login.ts");
+    // Not stale narration leaking from the first turn — this card's own turn
+    // wrote no narration at all, so it carries no words of its own and is
+    // dropped entirely by the empty-tool-only-card filter
+    // (iterate-2026-09-20-mission-feed-transcript-fidelity).
+    expect(implement).toBeUndefined();
   });
 
   it("two consecutive narration-only turns: the SECOND (most recent) turn's words win, not the first", () => {
@@ -129,24 +133,34 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
       turn(null, { id: "w1", name: "Write", input: { file_path: "emailTemplate.ts", content: "x" } }),
     ].join("\n")).events;
     const card = deriveActivityFeed(events, null).cards.find((c) => c.kind === "implement");
-    expect(card?.text).not.toBe("Investigating the race condition in the scheduler.");
-    // No fallback sentence any more — stays empty, same as any card with no
-    // prose of its own (iterate-2026-09-05-mission-feed-ux-gaps).
-    expect(card?.text).toBe("");
-    expect(card?.commands).toContain("Write: emailTemplate.ts");
+    // No stale narration AND no fallback sentence — this card carries no
+    // words of its own, so it is dropped entirely by the empty-tool-only-card
+    // filter (iterate-2026-09-20-mission-feed-transcript-fidelity) rather
+    // than shown with the wrong (or blank) headline.
+    expect(card).toBeUndefined();
   });
 
-  it("trailing narration with no following tool call is dropped, not crashed on or leaked onto an unrelated later card", () => {
+  it("trailing narration with no following tool call is flushed as its own system card, not dropped or crashed on (iterate-2026-09-20-mission-feed-transcript-fidelity)", () => {
     const events = parseSessionJsonl([
       turn(null, { id: "r1", name: "Read", input: { file_path: "auth.ts" } }),
       turn("Wrapping up — no further action needed."),
     ].join("\n")).events;
     const feed = deriveActivityFeed(events, null);
-    // The trailing narration produces no second card and does not overwrite
-    // this one — no fallback sentence, same as any card with no prose
-    // (iterate-2026-09-05-mission-feed-ux-gaps).
+    // The wordless investigate card is dropped by the empty-tool-only-card
+    // filter; the trailing narration that used to vanish silently (reported:
+    // "Schluss auch nicht [geprintet]. Die Prints scheinen zu verschwinden.")
+    // now flushes to its own system card instead of being lost.
     expect(feed.cards).toHaveLength(1);
-    expect(feed.cards[0].text).toBe("");
-    expect(feed.cards[0].commands).toContain("Read: auth.ts");
+    expect(feed.cards[0].kind).toBe("system");
+    expect(feed.cards[0].text).toBe("Wrapping up — no further action needed.");
+  });
+
+  it("does NOT flush trailing narration while the run is confirmed still live (round-2 code review catch, low: avoids a mid-run flash-then-vanish system card)", () => {
+    const events = parseSessionJsonl([
+      turn(null, { id: "r1", name: "Read", input: { file_path: "auth.ts" } }),
+      turn("Still working on this."),
+    ].join("\n")).events;
+    const feed = deriveActivityFeed(events, liveContext);
+    expect(feed.cards.some((card) => card.kind === "system" && card.text === "Still working on this.")).toBe(false);
   });
 });

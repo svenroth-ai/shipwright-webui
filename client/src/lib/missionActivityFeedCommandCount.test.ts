@@ -10,6 +10,12 @@ import type { MissionContext } from "./missionContextApi";
 
 const event = (value: unknown) => JSON.stringify(value);
 const tool = (id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] } });
+// Narrated variant — needed wherever this file's fixture must survive the
+// empty-tool-only-card filter (iterate-2026-09-20-mission-feed-transcript-
+// fidelity) so the commandCount mechanic under test still has a card to
+// assert on; the bare `tool()` above stays for cases that don't care.
+const narratedTool = (text: string, id: string, name: string, input: Record<string, unknown>) =>
+  event({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }, { type: "tool_use", id, name, input }] } });
 const result = (id: string, isError = false) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "output", is_error: isError }] } });
 const errorResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: true }] } });
 const okResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: false }] } });
@@ -24,8 +30,8 @@ describe("deriveActivityFeed - commandCount tracks real tool calls, not deduped 
   // the real call count separately from `commands.length`.
   it("counts two identical-label tool calls as commandCount 2, even though they dedupe to one command chip", () => {
     const events = parseSessionJsonl([
-      tool("r1", "Read", { file_path: "src/foo.ts" }), result("r1"),
-      tool("r2", "Read", { file_path: "src/foo.ts" }), result("r2"),
+      narratedTool("Re-reading foo.ts.", "r1", "Read", { file_path: "src/foo.ts" }), result("r1"),
+      narratedTool("Re-reading foo.ts.", "r2", "Read", { file_path: "src/foo.ts" }), result("r2"),
     ].join("\n")).events;
     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "investigate");
     expect(card?.commands).toHaveLength(1);
@@ -49,10 +55,15 @@ describe("deriveActivityFeed - commandCount tracks real tool calls, not deduped 
   // test was falsified against in round 61, so the guard openai asks for ships.
   it("keeps commandCount equal to the label count on every card the reducer builds, across buckets", () => {
     const events = parseSessionJsonl([
-      tool("a", "Edit", { file_path: "src/a.ts" }), result("a"),
-      tool("b", "Read", { file_path: "src/b.ts" }), result("b"),
+      // Narrated (implement/investigate cards would otherwise carry no text
+      // of their own and be dropped entirely by the empty-tool-only-card
+      // filter, iterate-2026-09-20-mission-feed-transcript-fidelity) — a
+      // `test`/`blocker` card always carries real content regardless, so
+      // those two stay bare.
+      narratedTool("Fixing the typo in a.ts.", "a", "Edit", { file_path: "src/a.ts" }), result("a"),
+      narratedTool("Double-checking b.ts.", "b", "Read", { file_path: "src/b.ts" }), result("b"),
       tool("t", "Bash", { command: "npm test" }), result("t"),
-      tool("r", "Bash", { command: "uv run review.py" }), okResult("r", "PASS"),
+      narratedTool("Running the review script.", "r", "Bash", { command: "uv run review.py" }), okResult("r", "PASS"),
       tool("x", "Bash", { command: "python build.py" }), errorResult("x", "boom"),
     ].join("\n")).events;
     const cards = deriveActivityFeed(events, context("pass")).cards.filter((card) => card.commands.length > 0);

@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All 7 reported gaps have a corresponding fix in the diff and iterate spec; no extra features added beyond what was reported (no new card kinds beyond the one needed for human replies, no unrelated refactors)."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "Pure client-side reducer over already-parsed data, no new API routes or external calls; new code uses optional chaining consistently and humanText()/buildUserReplyCard() return early on non-string/empty content rather than throwing."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No SQL, no raw HTML injection — humanText() only extracts already-JSONL-parsed text blocks for the same downstream sanitized react-markdown render path every other card already uses; no secrets or tokens added."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Tests assert on card presence/absence and rendered text content (outcomes), not internal reducer state; both the happy path (narrated card survives) and the negative path (wordless card is dropped) are covered per changed behavior."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "No new loops beyond the existing single pass over ParsedEvent[]; the end-of-reduction filter is one more O(n) pass over the already-built card list, no N+1 or unbounded growth introduced."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "New missionActivityFeedTurn.ts follows the codebase's existing pattern of splitting the reducer into single-concern cooperating files; every touched/new production file is at or under 300 lines except the pre-existing grandfathered session-parser.ts (baseline bumped 816->838 in the same commit for the 14-line humanText() addition, per shipwright_bloat_baseline.json's documented anti-ratchet process)."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "n/a",
+      "note": "No serialized format producer/consumer changed — deriveActivityFeed's input (ParsedEvent[], MissionContext) and output (ActivityFeed) shapes are unchanged; this run only changes which cards the same inputs produce. touches_io_boundary does not fire."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff invocation was denied by the local auto-mode permission classifier (Sensitive-Source Provenance); verified manually instead via Grep for .skip(/.only(/xit(/test.fixme/describe.skip/it.skip across every touched test file under client/src/lib and client/src/components/external/mission — zero matches, no skip/quarantine patterns introduced."
+    }
+  ]
+}

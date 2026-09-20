@@ -1,0 +1,23 @@
+{
+  "section": "iterate-2026-09-20-mission-feed-transcript-fidelity (round 3 — clean pass)",
+  "review": [],
+  "summary": "Round 1: 10 findings (6 medium, 4 low), all fixed. Round 2: 2 new medium correctness regressions found in the round-1 fixes plus 5 low findings; both mediums and 3 of 5 lows fixed, 2 lows deliberately deferred as documented trade-offs. Round 3: CLEAN PASS, both round-2 regressions verified correct against source with falsifying tests; 4 additional low/informational notes surfaced, 3 of which were then also fixed (embedded <system-reminder> span stripping, askFrom continuation-banner pinning test, banner false-positive blast-radius documentation update) and 1 left as optional cosmetic wording not requested by the user.",
+  "deferred": [
+    {
+      "severity": "low",
+      "area": "client/src/lib/missionActivityFeedText.ts",
+      "note": "assistantText(event).split(\"\\n\") computed twice per assistant turn (extractTurnProse + extractOwnProse). Reviewer's own framing: advisory, non-blocking, ~0 LOC saved. Not fixed."
+    },
+    {
+      "severity": "low",
+      "area": "client/src/lib/missionActivityFeedTurn.ts",
+      "note": "Banner-line false-positive blast radius on a combined banner+tool turn grew within this same iterate (now also discards the turn's own narration and can cause the resulting wordless tool card to be dropped). Documented in-code rather than re-scoped, per reviewer's explicit acceptance of the trade-off; re-flagged in the doc comment so a future round doesn't re-accept it on the smaller pre-iterate blast radius."
+    },
+    {
+      "severity": "low",
+      "area": "client/src/components/external/mission/MissionActivityFeed.tsx",
+      "note": "Empty-state copy (\"Waiting — nothing reliable has appeared yet.\") also now covers a 'plenty happened, none of it narrated' case. Optional wording softening suggested; not part of the reported bug and left unchanged."
+    }
+  ],
+  "bloat_baseline_judgment": "Reviewer endorsed grandfathering the 3 new/updated over-300-line files (missionActivityFeed.ts 308, MissionActivityFeedCard.tsx 301, missionActivityFeed.test.ts 315) rather than forcing a structural extraction into this bug-fix diff, on the grounds the overruns are causal (a mandatory Record key, a correctness-fix gate, and new regression tests) not padding, and that mixing a pure refactor into this diff would defeat bisection. Real extraction deferred to a future iterate; baseline entries carry explanatory notes citing this review round."
+}
