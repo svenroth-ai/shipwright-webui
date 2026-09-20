@@ -40,12 +40,28 @@ link.
 ## Consequences
 
 Pure client-side reducer change plus one CSS rule — no server or API
-changes. Three files pushed over the project's 300-line bloat-baseline
-convention by real correctness fixes found across 3 internal + 3 external
-code-review rounds (each grandfathered with a causal note, not reflowed to
-hide the crossing): `missionActivityFeed.ts` (313), `missionActivityFeedCard.tsx`
-(301), `missionActivityFeedReconcile.ts` (324), `missionActivityFeed.test.ts`
-(315), `missionActivityFeedText.ts` (312).
+changes. Real correctness fixes found across 3 internal + 3 external
+code-review rounds pushed five files over the project's 300-line
+bloat-baseline convention: `missionActivityFeed.ts` (313),
+`missionActivityFeedCard.tsx` (301), `missionActivityFeedReconcile.ts` (324),
+`missionActivityFeed.test.ts` (334), `missionActivityFeedText.ts` (312).
+Rather than grandfather the crossings in `shipwright_bloat_baseline.json`
+(which would have tripped CLAUDE.md rule 30's sensitive-path PR-review gate,
+per Sven's explicit direction to keep zero policy-file changes), each was
+mechanically split into cohesive sibling modules with zero behavior change —
+verified via `tsc --noEmit`, the full unit suite, real-browser E2E, and an
+independent code-reviewer pass: `MissionActivityFeedCard.tsx` (239) +
+`MissionActivityFeedCardParts.tsx` (72, new); `missionActivityFeed.ts` (180)
++ its per-turn-tool loop into `missionActivityFeedTurn.ts` (280, already
+existed, absorbed the loop body); `missionActivityFeedTurn.ts`'s own
+user-reply helpers further split into `missionActivityFeedHumanReply.ts`
+(83, new); `missionActivityFeedReconcile.ts` (194) + its test-gate
+reconciliation into `missionActivityFeedReconcileTests.ts` (156, new);
+`missionActivityFeedText.ts` (223) + `summarizeBlockerError` into
+`missionActivityFeedBlockerText.ts` (101, new); `missionActivityFeed.test.ts`
+(223) + its wordless/empty-card tests into
+`missionActivityFeed.wordlessCards.test.ts` (136, new).
+`shipwright_bloat_baseline.json` is unchanged from `origin/main`.
 
 ## Rationale
 

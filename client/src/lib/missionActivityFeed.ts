@@ -1,19 +1,14 @@
-import { askUserQuestionSummary, toolUses, type ParsedEvent } from "../external/session-parser";
-import type { ArtifactKind, MissionContext } from "./missionContextApi";
-import { attachCommand, commandDetail, commandLabel, commandLabelFull, isCompactionMarker } from "./missionActivityFeedText";
-import { classifyToolBucket, reviewerDisplayName } from "./missionActivityFeedClassify";
-import { buildUserReplyCard, extractTurnProse, flushPendingNarration, type PendingNarration } from "./missionActivityFeedTurn";
-import { isTestFilePath, sameTestFilePath, testInvocationTargetPath, trackWrittenTestFile, type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
+import { toolUses, type ParsedEvent } from "../external/session-parser";
+import type { MissionContext } from "./missionContextApi";
+import { isCompactionMarker } from "./missionActivityFeedText";
+import { buildUserReplyCard, extractTurnProse, flushPendingNarration, processTurnTools, type PendingNarration, type TurnToolsState } from "./missionActivityFeedTurn";
+import { type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
 import type { ActivityCard, ActivityFeed, ActivityKind } from "./missionActivityFeedTypes";
 
 export type { ActivityCard, ActivityFeed, ActivityKind, ActivityQuestion } from "./missionActivityFeedTypes";
-
-function artifact(context: MissionContext | null, kind: ArtifactKind): boolean {
-  return context?.artifacts.some((item) => item.kind === kind && item.state === "available") ?? false;
-}
 
 /** `pendingNarration` bridges up to `MAX_PENDING_NARRATION_CARRY - 1`
  * consecutive non-consuming (`test`/`user-input`-only) turns before being
@@ -135,146 +130,18 @@ export function deriveActivityFeed(
     // that was headed for a LATER real (review/spec/investigate/implement)
     // turn past an intervening test run or user prompt (code review catch,
     // iterate-2026-08-27-mission-feed-narration-scroll).
-    let proseConsumedThisTurn = false;
-    // Set instead of `proseConsumedThisTurn` when a test-bucket card takes
-    // THIS turn's own words directly (spec-reviewer catch, iterate-2026-09-
-    // 05-mission-feed-ux-gaps): a test card is not a "real" (review/spec/
-    // investigate/implement) card, so it must not flip this turn into the
-    // consuming case below and null out an OLDER, still-waiting
-    // `pendingNarration` meant for a genuinely later real turn — that older
-    // value must keep aging (staleness+1) exactly as it would if this test
-    // turn had written no words of its own at all. It also must not become
-    // the NEW `pendingNarration` itself: it already has a home (the test
-    // card), and carrying it forward too would let the same sentence show
-    // up twice.
-    let ownProseGivenToTestCard = false;
-    // At most ONE card per turn gets this turn's explanation — a turn whose
-    // tool calls land in two genuinely different (non-coalescing) cards
-    // does not duplicate the same words onto both (External LLM Review,
-    // deepseek). Declared once per assistant event/turn.
-    let explanationAttachedThisTurn = false;
-    // Every DISTINCT card this turn touches must be counted, not only the
-    // first (explanation-receiving) one — a card that was this turn's
-    // SECOND card (so never got an explanation write here) can still be
-    // the FIRST card another, later turn happens to coalesce into, and
-    // that later turn's own `!explanationAttachedThisTurn` write would
-    // have started `cardTurnCounts` from zero for it, undercounting a
-    // genuinely two-turn card down to 1 (External LLM Review, openai HIGH
-    // finding — the provenance count and the explanation-attach gate are
-    // two different questions and must not share one guard).
-    const cardsTouchedThisTurn = new Set<ActivityCard>();
-    for (const tool of tools) {
-      const input = tool.input as Record<string, unknown> | undefined;
-      const shell = typeof input?.command === "string" ? input.command : "";
-      const background = input?.run_in_background === true || input?.background === true;
-      const bucket = classifyToolBucket(tool.name, input, shell);
-      const label = commandLabel(tool.name, tool.input);
-      const labelFull = commandLabelFull(tool.name, tool.input);
-      const commandKey = `${tool.name}\u0000${commandDetail(tool.input)}`;
-      if (bucket === "test") {
-        // No standard sentence here either (iterate-2026-09-05-mission-feed-ux-
-        // gaps — the user's own quoted example was literally "This test command
-        // completed."): only THIS turn's own words, never carried
-        // pendingNarration, which must stay free to reach a LATER real turn past
-        // this test call (narration-bridging invariant above). The pill + chip
-        // carry the outcome; resolveToolResults no longer overwrites this.
-        // Deliberately NOT routed through `add()` (32nd-round catch, glm, medium,
-        // declined) — a "test" card is always fresh, one per tool_use, so a second
-        // run of the SAME file can never coalesce into the first (already-
-        // `authoringRun`) card; combined with the consumed tracker entry being
-        // removed below, its own lookup finds nothing. 67th (openai, medium),
-        // DECLINED as a misread — trace in `…CommandCount.test.ts`.
-        const card: ActivityCard = {
-          kind: "test",
-          text: ownProse,
-          commands: [],
-          artifact: artifact(context, "tests") ? "tests" : undefined,
-          timestamp: event.timestamp,
-        };
-        if (ownProseFull && ownProseFull.length > ownProse.length) card.textFull = ownProseFull;
-        // A TDD authoring run when this invocation's own single target
-        // (see `testInvocationTargetPath`'s doc comment) plausibly names ANY
-        // currently-tracked just-written/edited file — only the matching
-        // entry is consumed, so an unrelated tracked file survives for its
-        // own later run.
-        const target = testInvocationTargetPath(shell);
-        const matchIndex = target ? writtenTestFiles.findIndex((entry) => sameTestFilePath(target, entry.path)) : -1;
-        if (matchIndex !== -1) {
-          card.authoringRun = true;
-          authoringConsumedBy.set(writtenTestFiles[matchIndex].sourceToolId, card);
-          writtenTestFiles = writtenTestFiles.filter((_, i) => i !== matchIndex);
-        }
-        attachCommand(card, label, labelFull);
-        cards.push(card);
-        testCards.push(card);
-        awaitingTestResult.add(card);
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
-        if (ownProse) ownProseGivenToTestCard = true;
-      } else if (bucket === "user-input") {
-        const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, event.timestamp, undefined, labelFull);
-        // Always set `card.question` — even the `fallback` shape carries a
-        // real (if generic) placeholder question. Gating this on
-        // `!summary.fallback` (code review catch) silently dropped the
-        // terminal CTA for a genuinely unparseable AskUserQuestion payload,
-        // since the whole question block — CTA included — renders only when
-        // `card.question` is truthy.
-        const summary = askUserQuestionSummary(tool.input);
-        card.question = { text: summary.question, options: summary.options, resolved: false };
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
-      } else {
-        // No more generic-bucket-sentence fallback (`GENERIC_TEXT`): the
-        // user already sees the tool call in their own terminal, and a
-        // templated "The implementation was updated in compact steps."
-        // added no information of its own — an empty `text` here means the
-        // card renders only its command chip(s)
-        // (iterate-2026-09-05-mission-feed-ux-gaps).
-        // A review-bucket `Task` whose turn wrote no words of its own still
-        // gets a real headline naming which reviewer was spawned, not an
-        // empty card carrying only its command chip — otherwise the ONLY
-        // visible trace of a reviewer starting was that chip's truncated
-        // label, and the feed jumped straight to whatever LATER turn's
-        // verdict sentence happened to land on an unrelated card (reported:
-        // "steht nichts, dass die Reviewer was starten",
-        // iterate-2026-09-20-mission-feed-transcript-fidelity).
-        const reviewerSpawn = bucket === "review" && !prose ? reviewerDisplayName(tool.name, input) : null;
-        const reviewProse = reviewerSpawn ? `Spawned ${reviewerSpawn} to review the change.` : prose;
-        const card = bucket === "review" ? add("review", reviewProse, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, reviewerSpawn ? undefined : proseFull, labelFull)
-          : bucket === "spec" ? add("spec", prose, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp, proseFull, labelFull)
-          : bucket === "investigate" ? add("investigate", prose, label, undefined, true, event.timestamp, proseFull, labelFull)
-          : add("implement", prose, label, undefined, true, event.timestamp, proseFull, labelFull);
-        proseConsumedThisTurn = true;
-        if (!cardsTouchedThisTurn.has(card)) {
-          cardsTouchedThisTurn.add(card);
-          cardTurnCounts.set(card, (cardTurnCounts.get(card) ?? 0) + 1);
-        }
-        if (!explanationAttachedThisTurn) {
-          if (proseRest) {
-            card.explanation = proseRest;
-            if (proseRestFull && proseRestFull.length > proseRest.length) card.explanationFull = proseRestFull;
-          }
-          explanationAttachedThisTurn = true;
-        }
-        // Lets a FAILED Write's optimistic tracker entry be rolled back once
-        // its own tool_result is known — see `PendingTool.writtenTestFile` /
-        // `.writtenTestFileRestore`'s doc comments. Write-only, matching
-        // `trackWrittenTestFile` (28th-round catch, openai, medium): Edit no
-        // longer touches the tracker (27th-round fix), so "restoring" on a
-        // failed Edit duplicated the still-present original entry.
-        const writtenTestFile = tool.name === "Write" && typeof input?.file_path === "string" && isTestFilePath(input.file_path)
-          ? input.file_path : undefined;
-        const priorEntry = writtenTestFile ? writtenTestFiles.find((entry) => sameTestFilePath(entry.path, writtenTestFile)) : undefined;
-        const writtenTestFileRestore = priorEntry ? { path: priorEntry.path, staleness: priorEntry.staleness + 1, sourceToolId: priorEntry.sourceToolId } : undefined;
-        pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background, writtenTestFile, writtenTestFileRestore, writtenTestFileRestoreAt: toolCallIndex });
-      }
-      // Track/age AFTER this tool's own consumption check above, so a call
-      // that just consumed an entry doesn't also age it (double-counting).
-      // 72nd (glm, low), FRAGILITY NOTE, no change: `agedRestore`'s arithmetic
-      // assumes exactly this placement - one increment per tool call, after
-      // consumption. Moving either line shifts the window silently, and
-      // `missionActivityFeedRestoreAging.test.ts` is the guard that catches it.
-      writtenTestFiles = trackWrittenTestFile(writtenTestFiles, tool.name, input, tool.id);
-      toolCallIndex += 1;
-    }
+    // The per-tool bucket-dispatch branch lives in `processTurnTools`
+    // (missionActivityFeedTurn.ts, bloat-ceiling split — this reducer has no
+    // spare budget of its own). `state` is the same mutable maps/arrays this
+    // derivation already owns; `writtenTestFiles`/`toolCallIndex` are
+    // reassigned (immutable-swap contract), so they are read back from the
+    // outcome and written back below.
+    const turnState: TurnToolsState = { cards, testCards, pendingTools, awaitingTestResult, authoringConsumedBy, cardTurnCounts, writtenTestFiles, toolCallIndex };
+    const outcome = processTurnTools(tools, { context, ownProse, ownProseFull, prose, proseFull, proseRest, proseRestFull, timestamp: event.timestamp }, add, turnState);
+    writtenTestFiles = outcome.writtenTestFiles;
+    toolCallIndex = outcome.toolCallIndex;
+    const ownProseGivenToTestCard = outcome.ownProseGivenToTestCard;
+    const proseConsumedThisTurn = outcome.proseConsumedThisTurn;
     // Clear only once actually used (an eligible bucket read it this turn),
     // or once superseded by this turn's OWN text — a pure test/user-input
     // turn with no text of its own leaves `pendingNarration` untouched so it
