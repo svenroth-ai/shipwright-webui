@@ -73,11 +73,16 @@ describe("AC-1 — transcript poll patches new-plain `active → idle` when pty 
     await setupWithPty();
   });
 
-  async function createTask(opts: { actionId?: string; title?: string }): Promise<string> {
+  async function createTask(opts: { actionId?: string; title?: string; runtime?: string }): Promise<string> {
     const res = await app.request("/api/external/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: opts.title ?? "t", cwd: "/tmp", actionId: opts.actionId }),
+      body: JSON.stringify({
+        title: opts.title ?? "t",
+        cwd: "/tmp",
+        actionId: opts.actionId,
+        runtime: opts.runtime,
+      }),
     });
     const json = (await res.json()) as { task: { taskId: string } };
     return json.task.taskId;
@@ -180,5 +185,81 @@ describe("AC-1 — transcript poll patches new-plain `active → idle` when pty 
 
     const { body } = await pollTranscript(taskId);
     expect(body.task.state).toBe("idle");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// iterate-2026-09-20-codex-liveness-transition — the same `active → idle`
+// decay gap applies to Codex-runtime tasks under ANY actionId (a Codex task
+// never writes a Claude JSONL either), not just new-plain. Without this, a
+// Codex task that reaches `active` via the ws-upgrade-handler.ts sibling fix
+// would be stuck `active` forever once its pty is gone.
+// ---------------------------------------------------------------------------
+
+describe("Codex-runtime — transcript poll patches `active → idle` when pty is gone", () => {
+  let app: Hono;
+  let store: SdkSessionsStore;
+  let projectsDir: string;
+
+  async function setupWithPty(liveTaskIds: string[] = []) {
+    projectsDir = mkdtempSync(path.join(tmpdir(), "codex-idle-"));
+    const deps = inMemoryDeps();
+    store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const watcher = new SessionWatcher({ projectsDir });
+    app = new Hono();
+    app.route(
+      "/",
+      createExternalRoutes({
+        store,
+        watcher,
+        ptyManager: makePtyManagerStub(liveTaskIds),
+      }),
+    );
+  }
+
+  beforeEach(async () => {
+    await setupWithPty();
+  });
+
+  async function createTask(opts: { actionId?: string; title?: string; runtime?: string }): Promise<string> {
+    const res = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: opts.title ?? "t",
+        cwd: "/tmp",
+        actionId: opts.actionId,
+        runtime: opts.runtime,
+      }),
+    });
+    const json = (await res.json()) as { task: { taskId: string } };
+    return json.task.taskId;
+  }
+
+  async function patchState(taskId: string, state: string) {
+    store.patch(taskId, { state: state as never });
+    await store.persist();
+  }
+
+  async function pollTranscript(taskId: string) {
+    const res = await app.request(`/api/external/tasks/${taskId}/transcript`);
+    return { status: res.status, body: (await res.json()) as { task: { state: string } } };
+  }
+
+  it("patches codex + active + no-pty to `idle`, under a non-new-plain actionId", async () => {
+    const taskId = await createTask({ actionId: "new-iterate", runtime: "codex", title: "codex-overnight" });
+    await patchState(taskId, "active");
+
+    const { body } = await pollTranscript(taskId);
+    expect(body.task.state).toBe("idle");
+  });
+
+  it("does NOT patch a claude-runtime task under a non-new-plain actionId (regression guard)", async () => {
+    const taskId = await createTask({ actionId: "new-iterate", runtime: "claude", title: "claude-slash" });
+    await patchState(taskId, "active");
+
+    const { body } = await pollTranscript(taskId);
+    expect(body.task.state).toBe("active");
   });
 });

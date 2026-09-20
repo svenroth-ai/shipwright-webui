@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n**Category: edge-case \u2014 Severity: medium**\n**Finding:** Fix 1 flips `awaiting_external_start \u2192 active` synchronously on WS attach, but pty lifetime may be shorter than task lifetime. If the user closes the embedded terminal (pty dies) while the client tab still polls, the task correctly decays to `idle` via fix 2 \u2014 but a *re-attach* then never returns it to `active`, because the `awaiting_external_start` precondition is gone forever. This means `CodexTaskWatcher`'s stall-nudge is unreachable for a resumed-after-terminal-close session even though the task is visibly running again.\n**Suggestion:** Confirm this is the same behavior `new-plain` Claude tasks exhibit today (it appears to be \u2014 in which case this is pre-existing parity, not a regression, and fine to ship). If it differs, document it as a known gap in the ADR rather than fixing here.\n\n**Category: edge-case \u2014 Severity: medium**\n**Finding:** Fix 2's reachability depends entirely on the *client* polling `GET /tasks/:id/transcript`. If the terminal component unmounts (user navigates away), polling stops and the `active \u2192 idle` decay never fires \u2014 a Codex task with a dead pty stays `active` indefinitely, and the watcher's stall-nudge/oracle now runs against a dead task for hours (exactly the stuck-state the bug report showed). The spec's reachability trace proves the *happy* path, not this one.\n**Suggestion:** Verify whether the 60s `CodexTaskWatcher` tick itself checks pty liveness as a backstop for `state === \"active\"`. If it doesn't, note it as a known limitation \u2014 don't build a third mechanism now, but it should be on record.\n\n**Category: dependency \u2014 Severity: low**\n**Finding:** The guard relies on `task.runtime === \"codex\"` being reliably populated. The spec never confirms that `runtime` is set at task creation for *all* launch paths (`fork`, `triage-promote`, `resume`) and for tasks persisted before the `runtime` field existed. A `runtime: undefined` Codex task would silently fail both widened guards.\n**Suggestion:** Add a one-line assertion or test fixture check that all five actionIds set `runtime` at creation, or confirm the persisted store backfilled it.\n\n**Category: risk \u2014 Severity: low**\n**Finding:** Fix 2's decay fires on every 1s poll for Codex (since `readChunk` always returns `missing`). Combined with fix 1, a Codex task whose pty dies and is respawned by the same actionId could oscillate `active \u2192 idle` while the underlying process is still logically the task. Low practical risk given pty death \u2248 task death for these actionIds, but worth a comment.\n**Suggestion:** None needed if the pty-death-implies-task-death assumption holds for all targeted actionIds \u2014 state that assumption explicitly in the ADR.\n\n**Category: approach \u2014 Severity: low**\n**Finding:** The approach itself is sound and notably well-calibrated: pure OR-widening, keyed on the real precondition (`runtime`) rather than an actionId allowlist, rejected alternatives documented with concrete reasons, and reachability of fix 2 traced rather than asserted. The self-escalation to medium and folding fix 2 in (rather than deferring) was the right call.\n\n## Overall Assessment\n\nA well-scoped, minimal, correctly-paired fix with an unusually strong root-cause and reachability analysis; the residual concerns (client-unmount decay gap, `runtime` field population on older/forked tasks) are refinements to verify or document, not blockers.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** The described new tests cover only the paired transcript-route decay. They do not explicitly cover the primary WS transition for a Codex task using a non-`new-plain` action ID, which is the reported defect and the prerequisite for watcher reachability. Existing `new-plain` tests do not prove the runtime clause works.  \n   **Suggestion:** Add a `ws-upgrade-handler` test using `runtime: \"codex\"`, `actionId: \"new-iterate\"` (and ideally one other non-launch action such as `resume`), asserting `awaiting_external_start \u2192 active` on attach and that `firstJsonlObservedAt` remains unset.\n\n2. **Category:** edge-case  \n   **Severity:** low  \n   **Finding:** The plan correctly calls out headless Codex launches as remaining in `awaiting_external_start`, but it does not establish an operational guard against accidentally using such a launch path later. A future action ID could be introduced without an embedded-terminal attach and silently inherit the same liveness failure.  \n   **Suggestion:** Keep this change scoped as proposed, but add a concise invariant comment near the Codex clause (or a launch-path test) that Codex tasks require WS/PTy attachment as their activation signal. This makes the remaining limitation visible to future launchers.\n\n3. **Category:** risk  \n   **Severity:** low  \n   **Finding:** The new Codex decay path depends on `ptyManager.get(task.taskId) === undefined` accurately representing a dead PTY. If PTY cleanup is asynchronous, the task can remain `active` temporarily after process exit; if cleanup occurs before a valid attach is fully established, it could be made `idle` quickly. This is pre-existing behavior for Claude `new-plain`, but becomes relevant to all Codex launch flows.  \n   **Suggestion:** Confirm the PTY manager\u2019s lifetime semantics and include one integration-level test for Codex attach followed by PTY disposal, asserting eventual `active \u2192 idle`.\n\nOverall, the runtime-based widening is the right minimal fix: it states the actual distinction without creating action-ID-specific logic, and the paired idle decay prevents a newly reachable inconsistent state. No new security concern is introduced, assuming the existing WS and transcript-route task authorization remains unchanged.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}
