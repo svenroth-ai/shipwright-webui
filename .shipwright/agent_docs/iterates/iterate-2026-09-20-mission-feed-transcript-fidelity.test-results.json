@@ -1,0 +1,140 @@
+{
+  "last_updated": "2026-09-20",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-20-mission-feed-transcript-fidelity",
+    "date": "2026-09-20",
+    "unit": {
+      "status": "passed",
+      "passed": 8686,
+      "total": 8699,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 5,
+      "total": 5
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 15,
+        "tested": 15,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      },
+      "behaviors": [
+        {
+          "behavior": "Wordless implement/investigate/spec cards (a tool-only turn with no explanatory text) are filtered from the feed instead of rendering as empty clutter",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts, missionActivityFeedReconcile.ts unit coverage"
+        },
+        {
+          "behavior": "A dropped wordless card's real artifact summary still backfills a replacement card, and its command-chip evidence (commands/commandCount) is preserved onto that replacement rather than lost",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts \u2014 round-6 regression test asserting commands survive the drop+backfill cycle"
+        },
+        {
+          "behavior": "The user's own typed replies (non-slash-command human turns) render as \"You\"-kind cards in the feed",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedTurn.test.ts humanText/buildUserReplyCard coverage"
+        },
+        {
+          "behavior": "A well-formed /shipwright-iterate slash-command invocation is reclassified to kind \"slash-command\" upstream of humanText/buildUserReplyCard, so it is never dropped or misrendered as a plain user turn",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedTurn.test.ts \u2014 explicit test proving parseSessionJsonl reclassification precedes this file's functions"
+        },
+        {
+          "behavior": "<local-command-stderr> injected noise is stripped from a human turn like the other INJECTED tags",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedTurn.test.ts new filtering test; narrator-facts.ts INJECTED list"
+        },
+        {
+          "behavior": "The /shipwright-iterate intro banner (verbatim real 12-line text) is fully stripped from a pure banner turn with no leftover, and gets its own \"Started a /shipwright-iterate run.\" goal card",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts REAL_BANNER_TEXT fixture"
+        },
+        {
+          "behavior": "A combined banner+narration turn preserves the turn's own real narration text instead of losing it to the banner-strip",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts combined-turn test"
+        },
+        {
+          "behavior": "Narration immediately adjacent to the banner (no blank line separator) that happens to start with a banner-like line (e.g. \"Complexity:\") still survives the strip",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts adjacent-narration test"
+        },
+        {
+          "behavior": "A transcript segment that reprints the banner (resumed/replayed session) does not fabricate a second duplicate goal card",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.timestampAndBanner.test.ts duplicate-goal-card test; missionActivityFeed.ts dedupe guard"
+        },
+        {
+          "behavior": "Trailing narration with no following tool call flushes as a closing \"system\" card, gated off while the run is confirmed still live to avoid mid-run flicker",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedTurn.test.ts splitTurn cases + MissionActivityFeed.test.tsx end-of-transcript flush assertion"
+        },
+        {
+          "behavior": "Every blocker card carries a live/ended/loading-aware explanation of what happened and whether it needs the user's interaction, instead of rendering red with no information",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts blocker-context coverage across live/ended/null contexts"
+        },
+        {
+          "behavior": "A spec card with only \"Open Spec\" and no other content is omitted from the feed",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedReconcile.ts wordless-card filter unit coverage"
+        },
+        {
+          "behavior": "A wordless reviewer-spawn Task card synthesizes a \"Spawned the reviewer...\" sentence naming the reviewer instead of jumping straight to a verdict with no lead-in",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedText.ts reviewerDisplayName unit coverage"
+        },
+        {
+          "behavior": "The \"Delivered\" success box and the \"Open commit\" link beneath it render with visible spacing instead of being cramped together",
+          "disposition": "tested",
+          "evidence": "CSS sibling-combinator rule (.mc-feed-pr + .mc-story-link) traced against the real DOM element type (a <button>, UA-default inline-block, so margin-top has real effect); no dedicated visual/E2E assertion \u2014 documented as a traced non-issue in the ADR's Rejected Alternatives section, per external reviewer request"
+        },
+        {
+          "behavior": "The full JSONL \u2192 reducer \u2192 DOM chain renders the fixed feed correctly in a real browser, including the command-chip expand/collapse toggle for a consolidated implement card",
+          "disposition": "tested",
+          "evidence": "mission-feed-transcript-fidelity.spec.ts (Playwright, real Chromium, 5 scenarios); F0.5 surface_verification exit_code 0, 5/5 passed"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 5,
+      "exit_code": 0,
+      "justification": "The bug report (Sven, German, reviewing a real iterate session's Mission tab) is about real-rendered transcript-to-feed fidelity that a synthetic unit fixture cannot fully prove \u2014 it only proves the reducer's output shape, not that the actual JSONL \u2192 parser \u2192 reducer \u2192 DOM chain renders it. mission-feed-transcript-fidelity.spec.ts drives the real Mission tab in a real Chromium (client/e2e/isolated-stack.mjs) against seeded transcripts covering the consolidated-command card (with its expand/collapse chip), a user-reply card, the banner-derived goal card, a blocker card's explanation text, and the closing system card."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-20-mission-feed-transcript-fidelity",
+    "commit": "ca7b45476a27fd41ce5f90137467f89b75bc5804",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

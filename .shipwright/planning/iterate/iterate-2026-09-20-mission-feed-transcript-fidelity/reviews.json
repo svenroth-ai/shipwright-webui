@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-20-mission-feed-transcript-fidelity",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-20T09:01:14.321993+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-20T09:01:40.390097+00:00",
+      "disposition": "session resumed mid-implementation after a context compaction; the mini-plan/external-plan-review window (Step 3.5) had already passed before this review record existed for the run",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-20T10:04:30.630329+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-20T10:04:38.300440+00:00",
+      "disposition": "No migrations, async/concurrency changes, cross-plugin imports, or irreversible ops in this diff — a pure client-side Mission activity-feed reducer change (deriveActivityFeed and its cooperating modules) plus one CSS spacing rule and a new E2E spec. Doubt-reviewer's trigger conditions (build Step 6 / this skill's risk taxonomy) are not met.",
+      "recorded_by": "orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/styles/mission-operation.css` (`.mc-feed-pr + .mc-story-link { margin-top: 9px; }`)",
+          "line": null,
+          "finding": "The rule's own comment describes `.mc-story-link` as a \"bare, margin-less\" inline word in the prose view. If the element is `display: inline` (or `a` default) in the PR-box context too, `margin-top` has no effect and the cramped-spacing fix (issue #2) silently does nothing — the spec explicitly waives E2E coverage for this rule, so nothing would catch it.",
+          "suggestion": "Confirm the CTA under the PR box is `inline-block`/`block` (or add `display: inline-block` in this scoped rule); better, verify visually once per the spec's AC-1-user check.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/missionActivityFeed.ts` (banner branch, `cards.push({ kind: \"goal\", ... })`)",
+          "line": null,
+          "finding": "A goal card is pushed for every banner turn with no dedupe; a transcript where the banner text appears again (e.g. a resumed/replayed session segment) renders duplicate \"Started a /shipwright-iterate run.\" cards. The `add()` coalescer is bypassed by the direct `cards.push`.",
+          "suggestion": "Gate on \"no existing goal card\" or route through `add()` if duplicates are undesirable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/lib/missionActivityFeedReconcile.ts` (wordless spec card drop + backfill)",
+          "line": null,
+          "finding": "When a wordless spec-write card is dropped and re-synthesized from the artifact summary, the new card has `commands: []` — the file-path command chip (and commandCount) evidence from the original card is lost. The spec's round-2 ledger test only asserts text, so this regression passes unnoticed.",
+          "suggestion": "Carry the dropped card's `commands`/`commandCount` onto the backfilled card, or accept and document the loss.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/missionActivityFeedTurn.ts` (`stripInjectedNoise`)",
+          "line": null,
+          "finding": "startsWith` prefix matching means a genuine human reply that happens to begin with e.g. \"API Error: ...\" or \"This session is being continued from a previous conversation\" is silently dropped from the feed — the exact \"not everything I typed shows up\" class Sven reported in item 7. Low likelihood, but the failure mode is invisible.",
+          "suggestion": "Acceptable given the list's documented design; no change needed, but consider a whole-string vs. prefix distinction if it recurs.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx` (`findIndex(kind === \"system\")).toBeGreaterThan(0)`)",
+          "line": null,
+          "finding": "This assertion is weak: any non-first system card (e.g. the pre-existing compaction marker in the fixture) satisfies it, so it does not actually pin the new end-of-transcript flush behavior on its own. The dedicated `splitTurn.test.ts` cases do cover it properly, so this is redundancy, not a gap.  No security issues (pure client-side reducer over already-served transcript data; no injection-prone sinks — the synthesized strings are constants). No unawaited async, no broken exports (`extractOwnProse` kept as a wrapper; `INJECTED` export is additive). Test quality overall is strong: red→green fixture rewrites, direct unit coverage of `humanText`/`reviewerDisplayName`/`stripIterateBanner` including the real 12-line banner, and real-browser E2E through the JSONL→reducer→DOM chain.  Overall: ship-with-fixes — the CSS margin question (issue #2, the one symptom with zero behavioral test coverage) should be visually confirmed before merge; everything else is sound.  SHIPWRIGHT_VERDICT: approve",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": "glm+openai",
+      "completed_at": "2026-09-20T10:41:26.721404+00:00",
+      "disposition": "3 cascade runs. Run 1: openai revise (2 medium, both fixed). Run 2: openai revise (1 self-caught-first HIGH regression in run-1's own fix, fixed + verified against real 12-line banner text). Run 3 (this payload): both approve; 2 of 4 low findings fixed anyway (duplicate goal card, lost command-chip evidence on backfill), 1 medium (CSS margin) verified as a non-issue by DOM inspection, 2 low left as documented accepted trade-offs.",
+      "recorded_by": "external_review",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] Review of the diff against the spec (7 reported symptoms, one reducer mechanism per symptom):\n\n**Spec compliance:** All seven items are implemented: empty tool-only card filter (1/5), user \"You\" cards via `humanText`/`buildUserReplyCard` (1), `.mc-feed-pr + .mc-story-link` spacing (2), goal card + `flushPendingNarration` with the correct ordering (after `clearMultiTurnExplanations`, before `reconcileArtifactCards`) and the `runLive` gate (3), blocker interaction hints covering live/ended/null-context (4), reviewer-spawn synthesis via `reviewerDisplayName` (6). The spec's stated filter scope (\"3 of 10 kinds\") is technically exceeded — `missionActivityFeedReconcile.ts` also drops wordless `review` cards at the end — but that filter is guarded by `!card.detail` and runs after the review-artifact reconcile, so it only removes genuinely empty cards the spec's own reasoning (\"review always carries real content\") doesn't protect. Acceptable deviation, worth noting.\n\nFindings:\n\n- Category: edge-case\n  Severity: medium\n  File: `client/src/styles/mission-operation.css` (`.mc-feed-pr + .mc-story-link { margin-top: 9px; }`)\n  Finding: The rule's own comment describes `.mc-story-link` as a \"bare, margin-less\" *inline* word in the prose view. If the element is `display: inline` (or `a` default) in the PR-box context too, `margin-top` has no effect and the cramped-spacing fix (issue #2) silently does nothing — the spec explicitly waives E2E coverage for this rule, so nothing would catch it.\n  Suggestion: Confirm the CTA under the PR box is `inline-block`/`block` (or add `display: inline-block` in this scoped rule); better, verify visually once per the spec's AC-1-user check.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/lib/missionActivityFeed.ts` (banner branch, `cards.push({ kind: \"goal\", ... })`)\n  Finding: A goal card is pushed for *every* banner turn with no dedupe; a transcript where the banner text appears again (e.g. a resumed/replayed session seg […truncated]\n\n[openai] No concrete defects found. The reducer, presentation rule, and coverage implement the specified fidelity fixes, including user replies, reviewer-spawn narration, trailing narration flushing, blocker guidance, and empty-card filtering.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-20T09:14:17.910309+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-20T09:01:40.503414+00:00",
+      "disposition": "session resumed mid-implementation after a context compaction; the internal plan-review sub-step had already passed before this review record existed for the run",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

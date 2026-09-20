@@ -87,7 +87,7 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
 
   it("records a long Bash command's full text under commandFullText, keyed by its truncated chip label (reported: a long command could not be inspected past its preview)", () => {
     const longCommand = `npm run build -- --flag ${"x".repeat(200)}`;
-    const events = parseSessionJsonl(tool("b", "Bash", { command: longCommand })).events;
+    const events = parseSessionJsonl(turn("Running the production build.", "b", "Bash", { command: longCommand })).events;
     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
     const label = card?.commands[0];
     expect(label).toBeDefined();
@@ -104,8 +104,8 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
   it("keeps the FIRST command's full text when two different commands share the same truncated chip label (code review catch)", () => {
     const sharedPrefix = "a".repeat(200);
     const events = parseSessionJsonl([
-      tool("w1", "Write", { file_path: `${sharedPrefix}/first.ts` }),
-      tool("w2", "Write", { file_path: `${sharedPrefix}/second.ts` }),
+      turn("Writing the two generated files.", "w1", "Write", { file_path: `${sharedPrefix}/first.ts` }),
+      turn("Writing the two generated files.", "w2", "Write", { file_path: `${sharedPrefix}/second.ts` }),
     ].join("\n")).events;
     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
     // Both calls truncate to the identical chip label (the divergence point
@@ -166,8 +166,10 @@ describe("deriveActivityFeed — test-bucket cards use only their own narration 
     const feed = deriveActivityFeed(events, context("unknown"));
     const investigateCard = feed.cards.find((c) => c.kind === "investigate");
     // The test turn's own words already have a home on the test card; they
-    // must not duplicate onto the next card too.
-    expect(investigateCard?.text).toBe("");
+    // must not duplicate onto the next card too — which now, carrying no
+    // words of its own, is dropped entirely by the empty-tool-only-card
+    // filter (iterate-2026-09-20-mission-feed-transcript-fidelity).
+    expect(investigateCard).toBeUndefined();
   });
 
   it("does not let an unrelated pending test's caveat pill clobber a resolved test card's own narration", () => {

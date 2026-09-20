@@ -74,9 +74,15 @@ describe("deriveActivityFeed", () => {
     const events = parseSessionJsonl([event({ type: "user", message: { role: "user", content: "This session is being continued from a previous conversation. Summary below." } }), tool("ask", "AskUserQuestion", { questions: [] }), tool("blocked", "Bash", { command: "git push" }), result("blocked", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
     expect(feed.cards.map((card) => card.kind)).toEqual(expect.arrayContaining(["user-input", "blocker"]));
+    expect(feed.cards.some((card) => card.kind === "user")).toBe(false);
   });
 
   it("coalesces a 900-tool iterate into a short feed and preserves system-marker order", () => {
+    // Every `Read` in this fixture shares identical narration, so `add()`'s
+    // exact-match coalescing collapses all 450 either side of the compaction
+    // marker into one real card each, instead of the empty-tool-only-card
+    // filter (iterate-2026-09-20-mission-feed-transcript-fidelity) dropping
+    // them and leaving only the marker.
     const feed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"));
     expect(feed.cards.length).toBeLessThanOrEqual(6);
     expect(feed.cards.findIndex((card) => card.kind === "system")).toBeGreaterThan(0);
@@ -210,81 +216,8 @@ describe("deriveActivityFeed", () => {
     expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Checking how the auth guard handles a stale token.");
   });
 
-  // iterate-2026-09-05-mission-feed-ux-gaps: the generic bucket sentence AND
-  // its label-derived second-tier fallback (`GENERIC_TEXT`/`sentenceFromLabel`)
-  // are both gone — reported as pure noise, since the same tool call already
-  // shows in the user's own terminal ("ich würde nur das printen, was claude
-  // sagt, keine Toolcalls mit standard Satz"). A card with no turn-authored
-  // prose now leaves `text` empty and renders through its command chip(s)
-  // alone; nothing invents a sentence from the chip label any more.
-  it("leaves the headline empty for a solo command with no explanatory prose", () => {
-    const events = parseSessionJsonl(tool("read1", "Read", { file_path: "auth.ts" })).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    const card = feed.cards.find((card) => card.kind === "investigate");
-    expect(card?.text).toBe("");
-    expect(card?.textFull).toBeUndefined();
-    expect(card?.commands).toEqual(["Read: auth.ts"]);
-  });
-
-  it("leaves the headline empty when several distinct commands coalesce into one card", () => {
-    const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), result("a"), tool("b", "Read", { file_path: "b.ts" }), result("b")].join("\n")).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    const card = feed.cards.find((card) => card.kind === "investigate");
-    expect(card?.text).toBe("");
-    expect(card?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
-  });
-
-  it("leaves the headline empty when two distinct events share the same derived label", () => {
-    const events = parseSessionJsonl([tool("a", "TodoWrite", { todos: [] }), result("a"), tool("b", "TodoWrite", { todos: [] }), result("b")].join("\n")).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    const card = feed.cards.find((c) => c.commands.includes("Used TodoWrite"));
-    expect(card?.text).toBe("");
-  });
-
-  it("leaves the headline empty for a solo TodoWrite call with no explanatory prose", () => {
-    const events = parseSessionJsonl(tool("a", "TodoWrite", { todos: [] })).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))?.text).toBe("");
-  });
-
-  it("still shows the command chip's real label even when the headline is empty", () => {
-    const events = parseSessionJsonl(tool("read1", "Read", { file_path: "src/config/api-key-rotation.ts" })).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    const card = feed.cards.find((c) => c.kind === "investigate");
-    expect(card?.commands[0]).toBe("Read: src/config/api-key-rotation.ts");
-    expect(card?.text).toBe("");
-  });
-
-  // External code review (low) — the tests above only exercised
-  // `investigate`/`implement`; `review` and `spec` share the same
-  // empty-headline path and must be covered independently.
-  it("leaves the headline empty for a solo review card with no explanatory prose", () => {
-    const events = parseSessionJsonl(tool("t1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" })).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    const card = feed.cards.find((card) => card.kind === "review");
-    expect(card?.text).toBe("");
-    expect(card?.commands[0]).toBe("Task: Review the auth diff");
-  });
-
-  it("leaves the headline empty for a solo spec card with no explanatory prose", () => {
-    const events = parseSessionJsonl(tool("w1", "Write", { file_path: ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md" })).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.find((card) => card.kind === "spec")?.text).toBe("");
-  });
-
-  it("carries a card's headline into textFull only when the real turn text is longer than the 280-char cap (\"nie croppen\")", () => {
-    const longSentence = `${"This change touches a lot of surface area and needs a careful, thorough explanation. ".repeat(4)}Done.`;
-    const events = parseSessionJsonl(event({
-      type: "assistant",
-      message: { role: "assistant", content: [
-        { type: "text", text: longSentence },
-        { type: "tool_use", id: "read1", name: "Read", input: { file_path: "auth.ts" } },
-      ] },
-    })).events;
-    const feed = deriveActivityFeed(events, context("unknown"));
-    const card = feed.cards.find((card) => card.kind === "investigate");
-    expect(card?.text.length).toBeLessThanOrEqual(280);
-    expect(card?.textFull).toBe(longSentence);
-    expect(card?.textFull?.length).toBeGreaterThan(card!.text.length);
-  });
+  // The wordless/empty-card filtering + evidence-preservation tests moved to
+  // `missionActivityFeed.wordlessCards.test.ts` once this file re-crossed the
+  // project's 300-line convention (iterate-2026-09-20-mission-feed-
+  // transcript-fidelity) — a cohesive, already-separately-described group.
 });

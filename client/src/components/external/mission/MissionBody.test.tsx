@@ -98,14 +98,18 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
     const transcript = JSON.stringify({
       type: "assistant",
-      message: { content: [{ type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } }] },
+      message: { content: [
+        { type: "text", text: "Fixing the login redirect." },
+        { type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } },
+      ] },
     });
     setup(transcript);
     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
-    // No headline sentence any more (iterate-2026-09-05-mission-feed-ux-gaps
-    // removed the generic/label-derived fallback) — the real command chip is
-    // the only thing this card has to show, collapsed by default
-    // (iterate-2026-09-16-mission-feed-render-fidelity) behind a count toggle.
+    // Its own real command chip stays collapsed by default
+    // (iterate-2026-09-16-mission-feed-render-fidelity) behind a count toggle
+    // — a wordless tool-only card would now be dropped entirely by the
+    // empty-tool-only-card filter (iterate-2026-09-20-mission-feed-
+    // transcript-fidelity), so this fixture carries real narration.
     fireEvent.click(screen.getByRole("button", { name: "1 command" }));
     expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
     expect(screen.queryByText(/No run data yet/i)).not.toBeInTheDocument();
@@ -140,7 +144,10 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     // from MissionContext — that synthesis path is the companion file's.)
     setup(JSON.stringify({
       type: "assistant",
-      message: { content: [{ type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } }] },
+      message: { content: [
+        { type: "text", text: "Fixing the login redirect." },
+        { type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } },
+      ] },
     }));
     expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
     expect(screen.queryByTestId("proof-summary")).not.toBeInTheDocument();

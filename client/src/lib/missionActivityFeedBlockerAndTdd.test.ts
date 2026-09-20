@@ -188,7 +188,16 @@ describe("deriveActivityFeed — TDD authoring runs are excluded from the gate s
   it("gives a Go test file written and immediately run NO gate stamp, because `go test` is not a recognized test invocation", () => {
     const events = parseSessionJsonl([
       tool("w1", "Write", { file_path: "pkg/foo_test.go" }), result("w1"),
-      tool("b1", "Bash", { command: "go test ./pkg/foo_test.go" }), result("b1"),
+      // Narrated (unlike the bare `tool()` calls elsewhere in this file) so
+      // the resulting card carries real text and survives the empty-tool-
+      // only-card filter (iterate-2026-09-20-mission-feed-transcript-
+      // fidelity) — this test is about bucket/gate classification, not about
+      // the no-narration path, which has its own coverage elsewhere.
+      event({ type: "assistant", message: { role: "assistant", content: [
+        { type: "text", text: "Running the new Go test." },
+        { type: "tool_use", id: "b1", name: "Bash", input: { command: "go test ./pkg/foo_test.go" } },
+      ] } }),
+      result("b1"),
     ].join("\n")).events;
     const feed = deriveActivityFeed(events, context("pass"));
     const goCard = feed.cards.find((card) => card.commands.some((label) => label.includes("go test")));

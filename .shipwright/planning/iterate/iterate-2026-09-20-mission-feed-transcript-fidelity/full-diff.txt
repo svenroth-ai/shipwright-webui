@@ -1,0 +1,1875 @@
+diff --git a/.shipwright/triage.jsonl b/.shipwright/triage.jsonl
+index f7c7859d..f9ced07f 100644
+--- a/.shipwright/triage.jsonl
++++ b/.shipwright/triage.jsonl
+@@ -587,3 +587,4 @@
+ {"event":"append","id":"trg-c542f584","ts":"2026-09-19T20:43:38.280960Z","originalTs":"2026-09-19T20:43:38.280960Z","source":"manual","severity":"medium","kind":"bug","title":"Embedded terminal flickers under Codex runtime -- repeated repaint near the 'Ask Codex to do anything' input box","detail":"User report (2026-09-19): when a task runs under the Codex runtime, the embedded terminal (xterm.js pane) visibly flickers -- two checkmark-looking glyphs repaint in the input box area ('Ask Codex to do anything') and three lines further up also repaint. Reported as Codex-specific -- not observed with the Claude runtime's embedded terminal. Not yet root-caused; needs reproduction + diagnosis as part of the iterate, not assumed.\\n\\nPOSSIBLY RELATED CONTEXT (not confirmed to be the same mechanism, just the nearest prior art to start from):\\n- PR #474 (merged 2026-09-19, this same day) fixed a Codex-launch failure on Windows PowerShell 7 caused by PSReadLine multi-line buffer corruption -- also in the neighborhood of Codex's own multi-line input handling. Worth checking whether this flicker is a residual/related symptom of the same root cause or a genuinely separate issue.\\n- CLAUDE.md DO-NOT #28/#29 document two earlier, distinct 'smear' mechanisms in this same embedded terminal for the CLAUDE runtime (WebGL glyph-atlas corruption, now DOM-renderer-by-default; and a CUF differential-repaint buffer-staleness bug needing a forced redraw nudge after snapshot restore). Codex's TUI is a different program with its own repaint behavior, so neither fix necessarily applies as-is, but both are useful background on how this terminal's smear-class bugs have been diagnosed before.\\n\\nWHAT: reproduce reliably (which action triggers it -- typing, resize, a specific Codex TUI redraw?), determine whether this is a buffer-content bug (stale cells, like DO-NOT #29) or a pixel/rendering bug (glyph atlas, like DO-NOT #28) or something Codex-TUI-specific (e.g. a repaint pattern xterm.js handles differently than Claude Code's), then fix at the correct layer.","evidencePath":null,"runId":null,"commit":null,"dedupKey":null,"launchPayload":"C:/Program Files/Git/shipwright-iterate Embedded terminal flickers under Codex runtime near the input box -- reproduce, diagnose (buffer vs render vs Codex-TUI-specific), fix","frId":null,"suiteId":null,"eventId":null,"status":"triage","suggestedPriority":"P2","suggestedDomain":"engineering"}
+ {"event":"status","id":"trg-c542f584","ts":"2026-09-19T20:43:48.365746Z","newStatus":"dismissed","by":"cli","reason":"recreated with correct launchPayload (Git-Bash slash mangling again)","promotedTaskId":null}
+ {"event":"append","id":"trg-7e4b898f","ts":"2026-09-19T20:43:48.582841Z","originalTs":"2026-09-19T20:43:48.582841Z","source":"manual","severity":"medium","kind":"bug","title":"Embedded terminal flickers under Codex runtime -- repeated repaint near the 'Ask Codex to do anything' input box","detail":"User report (2026-09-19): when a task runs under the Codex runtime, the embedded terminal (xterm.js pane) visibly flickers -- two checkmark-looking glyphs repaint in the input box area ('Ask Codex to do anything') and three lines further up also repaint. Reported as Codex-specific -- not observed with the Claude runtime's embedded terminal. Not yet root-caused; needs reproduction + diagnosis as part of the iterate, not assumed.\\n\\nPOSSIBLY RELATED CONTEXT (not confirmed to be the same mechanism, just the nearest prior art to start from):\\n- PR #474 (merged 2026-09-19, this same day) fixed a Codex-launch failure on Windows PowerShell 7 caused by PSReadLine multi-line buffer corruption -- also in the neighborhood of Codex's own multi-line input handling. Worth checking whether this flicker is a residual/related symptom of the same root cause or a genuinely separate issue.\\n- CLAUDE.md DO-NOT #28/#29 document two earlier, distinct 'smear' mechanisms in this same embedded terminal for the CLAUDE runtime (WebGL glyph-atlas corruption, now DOM-renderer-by-default; and a CUF differential-repaint buffer-staleness bug needing a forced redraw nudge after snapshot restore). Codex's TUI is a different program with its own repaint behavior, so neither fix necessarily applies as-is, but both are useful background on how this terminal's smear-class bugs have been diagnosed before.\\n\\nWHAT: reproduce reliably (which action triggers it -- typing, resize, a specific Codex TUI redraw?), determine whether this is a buffer-content bug (stale cells, like DO-NOT #29) or a pixel/rendering bug (glyph atlas, like DO-NOT #28) or something Codex-TUI-specific (e.g. a repaint pattern xterm.js handles differently than Claude Code's), then fix at the correct layer.","evidencePath":null,"runId":null,"commit":null,"dedupKey":null,"launchPayload":"/shipwright-iterate Embedded terminal flickers under Codex runtime near the input box -- reproduce, diagnose (buffer vs render vs Codex-TUI-specific), fix","frId":null,"suiteId":null,"eventId":null,"status":"triage","suggestedPriority":"P2","suggestedDomain":"engineering"}
++{"event":"status","id":"trg-7e4b898f","ts":"2026-09-19T22:24:39.398767Z","newStatus":"dismissed","by":"cli","reason":"Implemented PR #475","promotedTaskId":null}
+diff --git a/client/e2e/flows/mission-feed-transcript-fidelity.spec.ts b/client/e2e/flows/mission-feed-transcript-fidelity.spec.ts
+new file mode 100644
+index 00000000..461e2d2b
+--- /dev/null
++++ b/client/e2e/flows/mission-feed-transcript-fidelity.spec.ts
+@@ -0,0 +1,275 @@
++/*
++ * iterate-2026-09-20-mission-feed-transcript-fidelity — real-browser proof
++ * that the seven reported Mission activity-feed gaps are fixed through the
++ * REAL JSONL -> reducer -> DOM chain, not just fixture-driven unit tests.
++ * Follows the seedProject/seedTask/seedClaudeJsonlEvents pattern established
++ * by mission-feed-content.spec.ts / mission-feed-explanation.spec.ts.
++ *
++ * Scope note (same convention as mission-feed-content.spec.ts): deliberately
++ * limited to the transcript-derived behaviors a synthetic ActivityCard
++ * fixture cannot exercise (the reducer reading real JSONL turns). The
++ * Delivered-box CSS spacing fix (`.mc-feed-pr + .mc-story-link` in
++ * mission-operation.css) is a static sibling-combinator rule with no
++ * JSONL-derived behavior to seed — verified by direct inspection and the
++ * existing CSS cascade, consistent with this codebase's convention of not
++ * standing up a real-browser test for a presentation-only rule with no
++ * seedable precondition.
++ *
++ * @covers FR-01.66
++ */
++
++import { test, expect } from "@playwright/test";
++import {
++  cleanupProject,
++  cleanupTask,
++  seedProject,
++  seedTask,
++  setActiveProject,
++  type SeededProject,
++} from "../helpers/fixtures";
++import { writeFiles } from "../helpers/temp-dir";
++import { seedClaudeJsonlEvents } from "../helpers/claude-jsonl";
++
++const RUN_ID = "iterate-2026-09-20-mission-feed-transcript-fidelity-e2e";
++
++const SPEC_DOC = `# Mission feed transcript fidelity — E2E fixture
++
++This iterate touches FR-01.66 (the Mission view) and nothing else.
++
++## Affected Boundaries
++
++Reads only data already recorded in the session JSONL.
++`;
++
++function pointer(sessionUuid: string, mainRoot: string): string {
++  return JSON.stringify({
++    run_id: RUN_ID,
++    slug: "mission-feed-transcript-fidelity-e2e",
++    branch: "iterate/mission-feed-transcript-fidelity-e2e",
++    main_root: mainRoot,
++    session_id: sessionUuid,
++    created_at: "2026-09-20T10:00:00Z",
++  });
++}
++
++const bareTool = (id: string, name: string, input: Record<string, unknown>) => ({
++  type: "assistant",
++  message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] },
++});
++const narratedTool = (text: string, id: string, name: string, input: Record<string, unknown>) => ({
++  type: "assistant",
++  message: { role: "assistant", content: [
++    { type: "text", text },
++    { type: "tool_use", id, name, input },
++  ] },
++});
++const narrationOnly = (text: string) => ({
++  type: "assistant",
++  message: { role: "assistant", content: [{ type: "text", text }] },
++});
++const humanReply = (text: string) => ({
++  type: "user",
++  message: { role: "user", content: [{ type: "text", text }] },
++});
++const toolResult = (id: string, content: string, isError = false) => ({
++  type: "user",
++  message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: isError }] },
++});
++
++test.describe("Mission activity feed — transcript fidelity (Sven's 2026-09-20 report)", () => {
++  test.describe.configure({ timeout: 120_000 });
++
++  let project: SeededProject;
++  let taskId: string;
++  // Tracks whether THIS test's own seedProject() call actually succeeded —
++  // `project` itself can't be used for that check, because on a throw it
++  // keeps holding the PREVIOUS test's (already-cleaned) value, not undefined
++  // (round-5 external review catch, glm, low: the same class of bug the
++  // `taskId = ""` reset below was already added for, just missed on this
++  // sibling variable — a seedProject() throw in test N would otherwise leave
++  // afterEach re-cleaning test N-1's project, masking test N's real failure).
++  let projectSeeded = false;
++
++  test.beforeEach(async ({ page, request }) => {
++    // Reset so a test that throws before reaching its own `taskId = ...`
++    // assignment doesn't leave afterEach re-cleaning up the PREVIOUS test's
++    // already-deleted task id (code review catch, low).
++    taskId = "";
++    projectSeeded = false;
++    project = await seedProject(request, { name: "MissionFeedTranscriptFidelityE2E", adopted: true });
++    projectSeeded = true;
++    await setActiveProject(page, project.projectId);
++  });
++
++  test.afterEach(async ({ request }) => {
++    if (taskId) await cleanupTask(request, taskId);
++    if (projectSeeded) await cleanupProject(request, project);
++  });
++
++  // @covers FR-01.66
++  test("a wordless tool-only turn produces no card, but a narrated one shows both headline and command (issue #1)", async ({
++    page,
++    request,
++  }) => {
++    const task = await seedTask(request, { title: "Consolidate wordless cards", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [
++        // No narration at all — must produce no investigate/implement card.
++        bareTool("r1", "Read", { file_path: "src/wordless.ts" }),
++        // Real narration — must produce a card with both the headline and the chip.
++        narratedTool("Fixing the login redirect.", "e1", "Edit", { file_path: "src/login.tsx" }),
++      ],
++    });
++
++    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
++    await page.getByTestId("mission-tab-mission").click();
++    const feed = page.getByTestId("mission-activity-feed");
++    await expect(feed).toBeVisible({ timeout: 15_000 });
++
++    // The wordless Read never coalesces with the narrated Edit (different
++    // buckets: investigate vs. implement), so if the filter failed to drop
++    // it a second, empty investigate card would render.
++    await expect(feed.locator('[data-kind="investigate"]')).toHaveCount(0);
++    const implement = feed.locator('[data-kind="implement"]');
++    await expect(implement).toBeVisible();
++    await expect(implement).toContainText("Fixing the login redirect.");
++
++    // The narrated card must also carry its command chip/toggle (not just the
++    // headline text) — expanding it must reveal the actual command
++    // (openai external review catch, low: the prior assertion only checked
++    // the headline, so a regression that dropped the commands entirely would
++    // have gone unnoticed here).
++    const commandToggle = implement.locator(".mc-feed-expand-btn");
++    await expect(commandToggle).toBeVisible();
++    await expect(commandToggle).toContainText("1 command");
++    await commandToggle.click();
++    await expect(implement.locator(".mc-feed-chip-row")).toContainText("src/login.tsx");
++  });
++
++  // @covers FR-01.66
++  test("a human's own typed reply shows up as its own card (issue #1 — \"meine Antworten gehören auch da hinein\")", async ({
++    page,
++    request,
++  }) => {
++    const task = await seedTask(request, { title: "Surface my own replies", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [humanReply("Please also fix the spacing under the Delivered box.")],
++    });
++
++    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
++    await page.getByTestId("mission-tab-mission").click();
++    const feed = page.getByTestId("mission-activity-feed");
++    await expect(feed).toBeVisible({ timeout: 15_000 });
++
++    const userCard = feed.locator('[data-kind="user"]');
++    await expect(userCard).toBeVisible();
++    await expect(userCard).toContainText("Please also fix the spacing under the Delivered box.");
++  });
++
++  // @covers FR-01.66
++  test("a reviewer Task spawn with no narration of its own gets a synthesized 'Spawned...' sentence (issue #6)", async ({
++    page,
++    request,
++  }) => {
++    const task = await seedTask(request, { title: "Announce the reviewer spawn", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [
++        bareTool("rev1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" }),
++        toolResult("rev1", "Verdict: approved.", false),
++      ],
++    });
++
++    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
++    await page.getByTestId("mission-tab-mission").click();
++    const feed = page.getByTestId("mission-activity-feed");
++    await expect(feed).toBeVisible({ timeout: 15_000 });
++
++    const review = feed.locator('[data-kind="review"]');
++    await expect(review).toBeVisible();
++    await expect(review).toContainText("Spawned the code reviewer to review the change.");
++  });
++
++  // @covers FR-01.66
++  test("a blocker card explains what to do about it, not just a red pill (issue #4)", async ({ page, request }) => {
++    const task = await seedTask(request, { title: "Explain the blocker", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [
++        narratedTool("Pushing the branch.", "p1", "Bash", { command: "git push" }),
++        toolResult("p1", "! [rejected] main -> main (fetch first)", true),
++      ],
++    });
++
++    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
++    await page.getByTestId("mission-tab-mission").click();
++    const feed = page.getByTestId("mission-activity-feed");
++    await expect(feed).toBeVisible({ timeout: 15_000 });
++
++    const blocker = feed.locator('[data-kind="blocker"]');
++    await expect(blocker).toBeVisible();
++    // Either wording is correct depending on this seeded task's derived
++    // runLive state (this E2E harness's fixture task has no attached live
++    // pty, so it renders the "ended" variant) — the point under test is
++    // that SOME interaction-status sentence renders, not a bare red pill.
++    await expect(blocker).toContainText(
++      /Claude may retry this automatically, or may be waiting for you to respond in the terminal\.|This run ended before the blocker was resolved — resume the task or check the terminal to continue\./,
++    );
++  });
++
++  // @covers FR-01.66
++  test("trailing narration with no further tool call is flushed as its own card instead of vanishing (issue #3)", async ({
++    page,
++    request,
++  }) => {
++    const task = await seedTask(request, { title: "Print the closing summary", projectId: project.projectId });
++    taskId = task.taskId;
++    await writeFiles(project.path, {
++      [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
++      [`.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`]: SPEC_DOC,
++    });
++    seedClaudeJsonlEvents({
++      sessionUuid: task.sessionUuid,
++      cwd: task.cwd,
++      events: [
++        narratedTool("Fixing the last typo.", "e1", "Edit", { file_path: "src/last.ts" }),
++        narrationOnly("All seven reported gaps are fixed. Wrapping up here."),
++      ],
++    });
++
++    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
++    await page.getByTestId("mission-tab-mission").click();
++    const feed = page.getByTestId("mission-activity-feed");
++    await expect(feed).toBeVisible({ timeout: 15_000 });
++
++    await expect(feed).toContainText("All seven reported gaps are fixed. Wrapping up here.");
++    const closing = feed.locator('[data-kind="system"]', { hasText: "Wrapping up here." });
++    await expect(closing).toBeVisible();
++  });
++});
+diff --git a/client/src/components/external/mission/MissionActivityFeed.test.tsx b/client/src/components/external/mission/MissionActivityFeed.test.tsx
+index 11e3cb92..76ee52da 100644
+--- a/client/src/components/external/mission/MissionActivityFeed.test.tsx
++++ b/client/src/components/external/mission/MissionActivityFeed.test.tsx
+@@ -35,6 +35,7 @@ describe("MissionActivityFeed", () => {
+   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
+     const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"));
+     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
++    expect(conciseFeed.cards.findIndex((card) => card.kind === "system")).toBeGreaterThan(0);
+     render(<MissionActivityFeed feed={renderedLongIterateFixture} commitArtifact={null} task={TASK} />);
+     const timeline = screen.getByTestId("mission-activity-feed");
+     expect(timeline).toHaveAttribute("role", "log");
+diff --git a/client/src/components/external/mission/MissionActivityFeedCard.tsx b/client/src/components/external/mission/MissionActivityFeedCard.tsx
+index 21917fd8..a7613d16 100644
+--- a/client/src/components/external/mission/MissionActivityFeedCard.tsx
++++ b/client/src/components/external/mission/MissionActivityFeedCard.tsx
+@@ -20,6 +20,7 @@ const KIND_LABEL: Record<ActivityCard["kind"], string> = {
+   test: "Test",
+   review: "Review",
+   "user-input": "Question",
++  user: "You",
+   blocker: "Blocker",
+   delivery: "Delivered",
+   system: "System",
+diff --git a/client/src/components/external/mission/MissionBody.compact.test.tsx b/client/src/components/external/mission/MissionBody.compact.test.tsx
+index 2726dbdb..a8710767 100644
+--- a/client/src/components/external/mission/MissionBody.compact.test.tsx
++++ b/client/src/components/external/mission/MissionBody.compact.test.tsx
+@@ -137,12 +137,15 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
+     setupCompletedCompact(JSON.stringify({
+       type: "assistant",
+       message: {
+-        content: [{
+-          type: "tool_use",
+-          id: "spec-write",
+-          name: "Edit",
+-          input: { file_path: "/project/.shipwright/planning/iterate/mobile.md" },
+-        }],
++        content: [
++          { type: "text", text: "Updating the mobile iterate spec." },
++          {
++            type: "tool_use",
++            id: "spec-write",
++            name: "Edit",
++            input: { file_path: "/project/.shipwright/planning/iterate/mobile.md" },
++          },
++        ],
+       },
+     }));
+     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));
+diff --git a/client/src/components/external/mission/MissionBody.test.tsx b/client/src/components/external/mission/MissionBody.test.tsx
+index 215bdf00..801c68de 100644
+--- a/client/src/components/external/mission/MissionBody.test.tsx
++++ b/client/src/components/external/mission/MissionBody.test.tsx
+@@ -98,14 +98,18 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
+     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
+     const transcript = JSON.stringify({
+       type: "assistant",
+-      message: { content: [{ type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } }] },
++      message: { content: [
++        { type: "text", text: "Fixing the login redirect." },
++        { type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } },
++      ] },
+     });
+     setup(transcript);
+     expect(screen.getByTestId("mission-activity-feed")).toBeInTheDocument();
+-    // No headline sentence any more (iterate-2026-09-05-mission-feed-ux-gaps
+-    // removed the generic/label-derived fallback) — the real command chip is
+-    // the only thing this card has to show, collapsed by default
+-    // (iterate-2026-09-16-mission-feed-render-fidelity) behind a count toggle.
++    // Its own real command chip stays collapsed by default
++    // (iterate-2026-09-16-mission-feed-render-fidelity) behind a count toggle
++    // — a wordless tool-only card would now be dropped entirely by the
++    // empty-tool-only-card filter (iterate-2026-09-20-mission-feed-
++    // transcript-fidelity), so this fixture carries real narration.
+     fireEvent.click(screen.getByRole("button", { name: "1 command" }));
+     expect(screen.getByTestId("mission-activity-feed")).toHaveTextContent("Edit: /x/login.tsx");
+     expect(screen.queryByText(/No run data yet/i)).not.toBeInTheDocument();
+@@ -140,7 +144,10 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
+     // from MissionContext — that synthesis path is the companion file's.)
+     setup(JSON.stringify({
+       type: "assistant",
+-      message: { content: [{ type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } }] },
++      message: { content: [
++        { type: "text", text: "Fixing the login redirect." },
++        { type: "tool_use", id: "t1", name: "Edit", input: { file_path: "/x/login.tsx" } },
++      ] },
+     }));
+     expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
+     expect(screen.queryByTestId("proof-summary")).not.toBeInTheDocument();
+diff --git a/client/src/components/external/mission/MissionFeedIcons.tsx b/client/src/components/external/mission/MissionFeedIcons.tsx
+index 46420f7f..b93f6e75 100644
+--- a/client/src/components/external/mission/MissionFeedIcons.tsx
++++ b/client/src/components/external/mission/MissionFeedIcons.tsx
+@@ -26,6 +26,12 @@ const PATHS: Record<ActivityKind, ReactElement> = {
+     </>
+   ),
+   "user-input": <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />,
++  user: (
++    <>
++      <circle cx="12" cy="8" r="4" />
++      <path d="M4 21v-1a8 8 0 0116 0v1" />
++    </>
++  ),
+   spec: (
+     <>
+       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+diff --git a/client/src/lib/missionActivityFeed.explanation.test.ts b/client/src/lib/missionActivityFeed.explanation.test.ts
+index 7267d6c6..ab381a69 100644
+--- a/client/src/lib/missionActivityFeed.explanation.test.ts
++++ b/client/src/lib/missionActivityFeed.explanation.test.ts
+@@ -105,7 +105,11 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
+       result("p1", true),
+     ].join("\n")).events;
+     const blocked = deriveActivityFeed(events, context()).cards.find((c) => c.kind === "blocker");
+-    expect(blocked?.explanation).toBeUndefined();
++    // Blocker cards now always carry an interaction hint (reported: "Blocker
++    // sind immer noch rot ohne info... ob es seine Interaktion braucht" —
++    // iterate-2026-09-20-mission-feed-transcript-fidelity), which replaces
++    // the turn-derived explanation rather than merely clearing it.
++    expect(blocked?.explanation).toBe("Claude may retry this automatically, or may be waiting for you to respond in the terminal.");
+ 
+     const recovered = parseSessionJsonl([
+       turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),
+diff --git a/client/src/lib/missionActivityFeed.fixtures.ts b/client/src/lib/missionActivityFeed.fixtures.ts
+index 32666993..d4a34e34 100644
+--- a/client/src/lib/missionActivityFeed.fixtures.ts
++++ b/client/src/lib/missionActivityFeed.fixtures.ts
+@@ -6,6 +6,19 @@ const tool = (id: string, name: string, input: Record<string, unknown>) => recor
+   type: "assistant",
+   message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] },
+ });
++// Identical narration text on every turn keeps `add()`'s exact-match
++// coalescing path engaged (same trick as missionActivityFeedCommandCount.
++// test.ts) — a bare `tool()` call carries no text at all, so every card it
++// produced was empty and got dropped by the empty-tool-only-card filter,
++// leaving the 900-tool scale test with nothing real left to coalesce
++// (code-review catch, medium, iterate-2026-09-20-mission-feed-transcript-fidelity).
++const narratedTool = (id: string, name: string, input: Record<string, unknown>) => record({
++  type: "assistant",
++  message: { role: "assistant", content: [
++    { type: "text", text: "Reading through the source tree." },
++    { type: "tool_use", id, name, input },
++  ] },
++});
+ const result = (id: string, isError = false) => record({
+   type: "user",
+   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "output", is_error: isError }] },
+@@ -49,7 +62,7 @@ export const releaseFixture: MissionContext = {
+   ],
+ };
+ 
+-export const longIterateFixture = parseSessionJsonl(Array.from({ length: 905 }, (_, index) => tool(
++export const longIterateFixture = parseSessionJsonl(Array.from({ length: 905 }, (_, index) => narratedTool(
+   `read-${index}`,
+   "Read",
+   { file_path: `/repo/source-${index}.ts` },
+diff --git a/client/src/lib/missionActivityFeed.splitTurn.test.ts b/client/src/lib/missionActivityFeed.splitTurn.test.ts
+index 9f8c18a5..ece0f51e 100644
+--- a/client/src/lib/missionActivityFeed.splitTurn.test.ts
++++ b/client/src/lib/missionActivityFeed.splitTurn.test.ts
+@@ -16,6 +16,12 @@
+ import { describe, expect, it } from "vitest";
+ import { parseSessionJsonl } from "../external/session-parser";
+ import { deriveActivityFeed } from "./missionActivityFeed";
++import type { MissionContext } from "./missionContextApi";
++
++const liveContext: MissionContext = {
++  schemaVersion: 1, scenario: "iterate", missionTabVisible: true, runId: "iterate-x", runLive: true,
++  servesFrId: null, sourceRev: "x", tests: null, artifacts: [],
++};
+ 
+ const event = (value: unknown) => JSON.stringify(value);
+ 
+@@ -47,13 +53,11 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session
+     const investigate = cards.find((c) => c.kind === "investigate");
+     const implement = cards.find((c) => c.kind === "implement");
+     expect(investigate?.text).toBe("Auditing the login flow for a session-fixation gap.");
+-    // Not stale narration leaking from the first turn — this card's own
+-    // turn wrote no narration at all, so `text` stays empty (no more
+-    // generic-bucket-sentence or label-derived fallback,
+-    // iterate-2026-09-05-mission-feed-ux-gaps); the chip still carries the
+-    // real command.
+-    expect(implement?.text).toBe("");
+-    expect(implement?.commands).toContain("Write: login.ts");
++    // Not stale narration leaking from the first turn — this card's own turn
++    // wrote no narration at all, so it carries no words of its own and is
++    // dropped entirely by the empty-tool-only-card filter
++    // (iterate-2026-09-20-mission-feed-transcript-fidelity).
++    expect(implement).toBeUndefined();
+   });
+ 
+   it("two consecutive narration-only turns: the SECOND (most recent) turn's words win, not the first", () => {
+@@ -129,24 +133,34 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session
+       turn(null, { id: "w1", name: "Write", input: { file_path: "emailTemplate.ts", content: "x" } }),
+     ].join("\n")).events;
+     const card = deriveActivityFeed(events, null).cards.find((c) => c.kind === "implement");
+-    expect(card?.text).not.toBe("Investigating the race condition in the scheduler.");
+-    // No fallback sentence any more — stays empty, same as any card with no
+-    // prose of its own (iterate-2026-09-05-mission-feed-ux-gaps).
+-    expect(card?.text).toBe("");
+-    expect(card?.commands).toContain("Write: emailTemplate.ts");
++    // No stale narration AND no fallback sentence — this card carries no
++    // words of its own, so it is dropped entirely by the empty-tool-only-card
++    // filter (iterate-2026-09-20-mission-feed-transcript-fidelity) rather
++    // than shown with the wrong (or blank) headline.
++    expect(card).toBeUndefined();
+   });
+ 
+-  it("trailing narration with no following tool call is dropped, not crashed on or leaked onto an unrelated later card", () => {
++  it("trailing narration with no following tool call is flushed as its own system card, not dropped or crashed on (iterate-2026-09-20-mission-feed-transcript-fidelity)", () => {
+     const events = parseSessionJsonl([
+       turn(null, { id: "r1", name: "Read", input: { file_path: "auth.ts" } }),
+       turn("Wrapping up — no further action needed."),
+     ].join("\n")).events;
+     const feed = deriveActivityFeed(events, null);
+-    // The trailing narration produces no second card and does not overwrite
+-    // this one — no fallback sentence, same as any card with no prose
+-    // (iterate-2026-09-05-mission-feed-ux-gaps).
++    // The wordless investigate card is dropped by the empty-tool-only-card
++    // filter; the trailing narration that used to vanish silently (reported:
++    // "Schluss auch nicht [geprintet]. Die Prints scheinen zu verschwinden.")
++    // now flushes to its own system card instead of being lost.
+     expect(feed.cards).toHaveLength(1);
+-    expect(feed.cards[0].text).toBe("");
+-    expect(feed.cards[0].commands).toContain("Read: auth.ts");
++    expect(feed.cards[0].kind).toBe("system");
++    expect(feed.cards[0].text).toBe("Wrapping up — no further action needed.");
++  });
++
++  it("does NOT flush trailing narration while the run is confirmed still live (round-2 code review catch, low: avoids a mid-run flash-then-vanish system card)", () => {
++    const events = parseSessionJsonl([
++      turn(null, { id: "r1", name: "Read", input: { file_path: "auth.ts" } }),
++      turn("Still working on this."),
++    ].join("\n")).events;
++    const feed = deriveActivityFeed(events, liveContext);
++    expect(feed.cards.some((card) => card.kind === "system" && card.text === "Still working on this.")).toBe(false);
+   });
+ });
+diff --git a/client/src/lib/missionActivityFeed.test.ts b/client/src/lib/missionActivityFeed.test.ts
+index 3bba4d1f..4631851a 100644
+--- a/client/src/lib/missionActivityFeed.test.ts
++++ b/client/src/lib/missionActivityFeed.test.ts
+@@ -74,9 +74,15 @@ describe("deriveActivityFeed", () => {
+     const events = parseSessionJsonl([event({ type: "user", message: { role: "user", content: "This session is being continued from a previous conversation. Summary below." } }), tool("ask", "AskUserQuestion", { questions: [] }), tool("blocked", "Bash", { command: "git push" }), result("blocked", true)].join("\n")).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+     expect(feed.cards.map((card) => card.kind)).toEqual(expect.arrayContaining(["user-input", "blocker"]));
++    expect(feed.cards.some((card) => card.kind === "user")).toBe(false);
+   });
+ 
+   it("coalesces a 900-tool iterate into a short feed and preserves system-marker order", () => {
++    // Every `Read` in this fixture shares identical narration, so `add()`'s
++    // exact-match coalescing collapses all 450 either side of the compaction
++    // marker into one real card each, instead of the empty-tool-only-card
++    // filter (iterate-2026-09-20-mission-feed-transcript-fidelity) dropping
++    // them and leaving only the marker.
+     const feed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"));
+     expect(feed.cards.length).toBeLessThanOrEqual(6);
+     expect(feed.cards.findIndex((card) => card.kind === "system")).toBeGreaterThan(0);
+@@ -210,66 +216,104 @@ describe("deriveActivityFeed", () => {
+     expect(feed.cards.find((card) => card.kind === "investigate")?.text).toBe("Checking how the auth guard handles a stale token.");
+   });
+ 
+-  // iterate-2026-09-05-mission-feed-ux-gaps: the generic bucket sentence AND
+-  // its label-derived second-tier fallback (`GENERIC_TEXT`/`sentenceFromLabel`)
+-  // are both gone — reported as pure noise, since the same tool call already
+-  // shows in the user's own terminal ("ich würde nur das printen, was claude
+-  // sagt, keine Toolcalls mit standard Satz"). A card with no turn-authored
+-  // prose now leaves `text` empty and renders through its command chip(s)
+-  // alone; nothing invents a sentence from the chip label any more.
+-  it("leaves the headline empty for a solo command with no explanatory prose", () => {
++  // iterate-2026-09-05-mission-feed-ux-gaps removed the generic bucket
++  // sentence AND its label-derived fallback (reported as pure noise, since
++  // the same tool call already shows in the user's own terminal). That left
++  // a textless card rendering its command chip(s) alone — itself later
++  // reported as noise of its own kind ("viele implement mit ...
++  // Bashbefehlen, aber ohne Text ... nicht anzeigen"): a bare header + chip
++  // row a reader can learn nothing from. iterate-2026-09-20-mission-feed-
++  // transcript-fidelity drops such a card entirely instead of rendering it
++  // empty — "only when Claude or I wrote something".
++  it("drops a solo command card with no explanatory prose", () => {
+     const events = parseSessionJsonl(tool("read1", "Read", { file_path: "auth.ts" })).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+-    const card = feed.cards.find((card) => card.kind === "investigate");
+-    expect(card?.text).toBe("");
+-    expect(card?.textFull).toBeUndefined();
+-    expect(card?.commands).toEqual(["Read: auth.ts"]);
++    expect(feed.cards.find((card) => card.kind === "investigate")).toBeUndefined();
+   });
+ 
+-  it("leaves the headline empty when several distinct commands coalesce into one card", () => {
++  it("drops a card whose several distinct commands coalesced with no prose", () => {
+     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), result("a"), tool("b", "Read", { file_path: "b.ts" }), result("b")].join("\n")).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+-    const card = feed.cards.find((card) => card.kind === "investigate");
+-    expect(card?.text).toBe("");
+-    expect(card?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
++    expect(feed.cards.find((card) => card.kind === "investigate")).toBeUndefined();
+   });
+ 
+-  it("leaves the headline empty when two distinct events share the same derived label", () => {
++  it("drops a card whose two distinct events share the same derived label and no prose", () => {
+     const events = parseSessionJsonl([tool("a", "TodoWrite", { todos: [] }), result("a"), tool("b", "TodoWrite", { todos: [] }), result("b")].join("\n")).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+-    const card = feed.cards.find((c) => c.commands.includes("Used TodoWrite"));
+-    expect(card?.text).toBe("");
++    expect(feed.cards.find((c) => c.commands.includes("Used TodoWrite"))).toBeUndefined();
+   });
+ 
+-  it("leaves the headline empty for a solo TodoWrite call with no explanatory prose", () => {
++  it("drops a solo TodoWrite call with no explanatory prose", () => {
+     const events = parseSessionJsonl(tool("a", "TodoWrite", { todos: [] })).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+-    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))?.text).toBe("");
++    expect(feed.cards.find((card) => card.commands.includes("Used TodoWrite"))).toBeUndefined();
+   });
+ 
+-  it("still shows the command chip's real label even when the headline is empty", () => {
+-    const events = parseSessionJsonl(tool("read1", "Read", { file_path: "src/config/api-key-rotation.ts" })).events;
++  it("still shows a command chip's real label when the card has real narration", () => {
++    const events = parseSessionJsonl(event({
++      type: "assistant",
++      message: { role: "assistant", content: [
++        { type: "text", text: "Checking the API key rotation config." },
++        { type: "tool_use", id: "read1", name: "Read", input: { file_path: "src/config/api-key-rotation.ts" } },
++      ] },
++    })).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+     const card = feed.cards.find((c) => c.kind === "investigate");
+     expect(card?.commands[0]).toBe("Read: src/config/api-key-rotation.ts");
+-    expect(card?.text).toBe("");
++    expect(card?.text).toBe("Checking the API key rotation config.");
+   });
+ 
+   // External code review (low) — the tests above only exercised
+-  // `investigate`/`implement`; `review` and `spec` share the same
+-  // empty-headline path and must be covered independently.
+-  it("leaves the headline empty for a solo review card with no explanatory prose", () => {
++  // `investigate`/`implement`; `review` and `spec` share the empty-headline
++  // filter path (spec) or the reviewer-spawn synthesis (review) and must be
++  // covered independently.
++  it("names the spawned reviewer for a solo review card with no explanatory prose", () => {
+     const events = parseSessionJsonl(tool("t1", "Task", { subagent_type: "code-reviewer", description: "Review the auth diff" })).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+     const card = feed.cards.find((card) => card.kind === "review");
+-    expect(card?.text).toBe("");
++    expect(card?.text).toBe("Spawned the code reviewer to review the change.");
+     expect(card?.commands[0]).toBe("Task: Review the auth diff");
+   });
+ 
+-  it("leaves the headline empty for a solo spec card with no explanatory prose", () => {
++  it("drops a solo spec card with no explanatory prose", () => {
+     const events = parseSessionJsonl(tool("w1", "Write", { file_path: ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md" })).events;
+     const feed = deriveActivityFeed(events, context("unknown"));
+-    expect(feed.cards.find((card) => card.kind === "spec")?.text).toBe("");
++    expect(feed.cards.find((card) => card.kind === "spec")).toBeUndefined();
++  });
++
++  it("still shows the artifact's real summary for a wordless spec write, instead of dropping the evidence along with the empty card (round-2 code review catch)", () => {
++    const events = parseSessionJsonl(tool("w1", "Write", { file_path: ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md" })).events;
++    const withSummary: MissionContext = {
++      ...context("unknown"),
++      artifacts: [
++        { kind: "spec", label: "Spec", state: "available", summary: "Fixed the mission feed's empty-card noise.", receipt: null, detail: null },
++        { kind: "tests", label: "Tests", state: "available", summary: null, receipt: null, detail: null },
++        { kind: "commit", label: "Delivery", state: "available", summary: null, receipt: null, detail: null },
++      ],
++    };
++    const feed = deriveActivityFeed(events, withSummary);
++    const specCards = feed.cards.filter((card) => card.kind === "spec");
++    expect(specCards).toHaveLength(1);
++    expect(specCards[0].text).toBe("Fixed the mission feed's empty-card noise.");
++  });
++
++  it("keeps the dropped card's command chip evidence on its summary-backfilled replacement (round-6 external review catch, glm, low)", () => {
++    const events = parseSessionJsonl(tool("w1", "Write", { file_path: ".shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md" })).events;
++    const withSummary: MissionContext = {
++      ...context("unknown"),
++      artifacts: [
++        { kind: "spec", label: "Spec", state: "available", summary: "Fixed the mission feed's empty-card noise.", receipt: null, detail: null },
++        { kind: "tests", label: "Tests", state: "available", summary: null, receipt: null, detail: null },
++        { kind: "commit", label: "Delivery", state: "available", summary: null, receipt: null, detail: null },
++      ],
++    };
++    const feed = deriveActivityFeed(events, withSummary);
++    const specCards = feed.cards.filter((card) => card.kind === "spec");
++    expect(specCards).toHaveLength(1);
++    // Before this fix, the backfilled replacement always started from
++    // `commands: []`, silently discarding the tool call that actually
++    // produced the artifact.
++    expect(specCards[0].commands).toEqual(["Write: .shipwright/planning/iterate/2026-08-22-mission-feed-fixes.md"]);
+   });
+ 
+   it("carries a card's headline into textFull only when the real turn text is longer than the 280-char cap (\"nie croppen\")", () => {
+diff --git a/client/src/lib/missionActivityFeed.timestampAndBanner.test.ts b/client/src/lib/missionActivityFeed.timestampAndBanner.test.ts
+index 740d57b3..98e38ac3 100644
+--- a/client/src/lib/missionActivityFeed.timestampAndBanner.test.ts
++++ b/client/src/lib/missionActivityFeed.timestampAndBanner.test.ts
+@@ -29,11 +29,42 @@ function turn(
+   return event({ type: "assistant", timestamp, message: { role: "assistant", content } });
+ }
+ 
++// Minimal self-contained banner block — just the border + the one line
++// `containsIterateBanner`/`stripIterateBanner` actually anchor on. Trimmed
++// down from an earlier version that also carried a shortened "Usage:" line
++// (round-5 fix: `stripIterateBanner`'s surround-line matching moved from
++// loose prefixes to EXACT known-line equality against the REAL banner text
++// below, so a made-up shortened Usage line no longer matches and would be
++// left un-stripped — these tests don't need it to prove what they're
++// actually testing).
+ const BANNER_TEXT = [
+   "================================================================================",
+   "SHIPWRIGHT-ITERATE: Adaptive Change Lifecycle",
+   "================================================================================",
+-  'Usage: /shipwright-iterate --type feature|change|bug "description"',
++].join("\n");
++
++// Verbatim from SKILL.md "A. Print Intro Banner" — the REAL banner, not the
++// truncated 4-line BANNER_TEXT fixture above. Round-4 code review caught that
++// every existing test (including the two below that were added to close the
++// openai medium #2 finding) only ever exercised the truncated fixture, which
++// never reached BANNER_SURROUND_LINE's three `\s+`-prefixed alternatives —
++// masking that those alternatives could never match an already-`.trim()`med
++// line and left this exact real banner's indented continuation lines
++// (the "BUG" Paths continuation, "  ADR:", "  Conventional Commits:")
++// un-stripped in production.
++const REAL_BANNER_TEXT = [
++  "================================================================================",
++  "SHIPWRIGHT-ITERATE: Adaptive Change Lifecycle",
++  "================================================================================",
++  'Usage: /shipwright-iterate --type feature|change|bug [--review-model opus|sonnet|haiku|inherit|fable] [--finalization-model ...] [--plan-review-model ...] "description"',
++  "   or: Auto-detected from your prompt (via hook context)",
++  "Paths: FEATURE / CHANGE → [interview]→[spec]→[plan]→[approval]→[review]→[design]→build→test→commit",
++  "       BUG              → [spec]→reproduce→[plan]→fix→test→commit",
++  "Complexity: trivial | small | medium | large (auto-detected, overridable)",
++  "In plain words (shared index → docs/guide.md Appendix A):",
++  "  ADR: Log of architectural decisions with rationale (why this database, why this pattern)",
++  "  Conventional Commits: Standardized commit-message format (`feat:`, `fix:`, etc.) so version history is machine-readable",
++  "================================================================================",
+ ].join("\n");
+ 
+ describe("deriveActivityFeed — card.timestamp", () => {
+@@ -47,8 +78,8 @@ describe("deriveActivityFeed — card.timestamp", () => {
+ 
+   it("keeps the FIRST event's timestamp when a later event coalesces into the same card", () => {
+     const events = parseSessionJsonl([
+-      turn(null, "2026-08-31T09:00:00.000Z", { id: "e1", name: "Read", input: { file_path: "a.ts" } }),
+-      turn(null, "2026-08-31T09:05:00.000Z", { id: "e2", name: "Read", input: { file_path: "b.ts" } }),
++      turn("Re-reading the config files.", "2026-08-31T09:00:00.000Z", { id: "e1", name: "Read", input: { file_path: "a.ts" } }),
++      turn("Re-reading the config files.", "2026-08-31T09:05:00.000Z", { id: "e2", name: "Read", input: { file_path: "b.ts" } }),
+     ].join("\n")).events;
+     const card = deriveActivityFeed(events, null).cards.find((c) => c.kind === "investigate");
+     expect(card?.timestamp).toBe("2026-08-31T09:00:00.000Z");
+@@ -77,13 +108,26 @@ describe("deriveActivityFeed — /shipwright-iterate intro banner recognition",
+     // The banner turn's OWN narration is boilerplate usage text (a `====`
+     // border line), not a real explanation of the next tool call — it must
+     // not leak into the implement card's headline as if it were real
+-    // narration. With no real prose to draw on and no more generic/label-
+-    // derived fallback (iterate-2026-09-05-mission-feed-ux-gaps), the
+-    // headline stays empty; the real command still shows in the chip.
++    // narration. With no real prose to draw on, the card would carry only a
++    // command chip and no words of its own — the empty-tool-only-card filter
++    // (iterate-2026-09-20-mission-feed-transcript-fidelity) now drops it
++    // entirely rather than show a wordless "implement" card.
+     const implement = feed.cards.find((c) => c.kind === "implement");
+-    expect(implement?.text).not.toMatch(/={5,}/);
+-    expect(implement?.text).toBe("");
+-    expect(implement?.commands[0]).toMatch(/cat shipwright_run_config\.json/);
++    expect(implement).toBeUndefined();
++  });
++
++  it("keeps a combined banner+tool turn's OWN real narration instead of discarding it along with the banner boilerplate (external code review catch, medium)", () => {
++    const events = parseSessionJsonl([
++      turn(
++        `${BANNER_TEXT}\n\nChecking the run config before proceeding.`,
++        "2026-08-31T08:00:00.000Z",
++        { id: "e1", name: "Bash", input: { command: "cat shipwright_run_config.json" } },
++      ),
++    ].join("\n")).events;
++    const feed = deriveActivityFeed(events, null);
++    expect(feed.cards.find((c) => c.kind === "goal")?.text).toMatch(/shipwright-iterate/i);
++    const implement = feed.cards.find((c) => c.kind === "implement");
++    expect(implement?.text).toBe("Checking the run config before proceeding.");
+   });
+ 
+   it("does NOT fire on ordinary prose that merely mentions the banner phrase mid-sentence (external code review, openai MEDIUM)", () => {
+@@ -98,6 +142,60 @@ describe("deriveActivityFeed — /shipwright-iterate intro banner recognition",
+     expect(goal).toBeUndefined();
+   });
+ 
++  it("strips the REAL 12-line banner (verbatim from SKILL.md, not the truncated fixture) down to no leftover prose when the turn carries no other narration (round-4 code review catch, high)", () => {
++    const events = parseSessionJsonl([
++      turn(REAL_BANNER_TEXT, "2026-08-31T08:00:00.000Z"),
++      turn(null, "2026-08-31T08:00:05.000Z", { id: "e1", name: "Bash", input: { command: "cat shipwright_run_config.json" } }),
++    ].join("\n")).events;
++    const feed = deriveActivityFeed(events, null);
++    expect(feed.cards.find((c) => c.kind === "goal")?.text).toMatch(/shipwright-iterate/i);
++    // Before the round-4 fix, the banner's indented continuation lines (the
++    // "BUG" Paths line, "  ADR:", "  Conventional Commits:") were left
++    // un-stripped and leaked onto the pendingNarration queue, corrupting the
++    // NEXT unrelated tool card's headline with banner boilerplate instead of
++    // leaving it wordless (and thus dropped by the empty-tool-only-card
++    // filter, same as the truncated-fixture case above).
++    const implement = feed.cards.find((c) => c.kind === "implement");
++    expect(implement).toBeUndefined();
++    const system = feed.cards.find((c) => c.kind === "system");
++    expect(system).toBeUndefined();
++  });
++
++  it("keeps a combined banner+tool turn's OWN real narration with the REAL 12-line banner, not just the truncated fixture (round-4 code review catch, high)", () => {
++    const events = parseSessionJsonl([
++      turn(
++        `${REAL_BANNER_TEXT}\n\nChecking the run config before proceeding.`,
++        "2026-08-31T08:00:00.000Z",
++        { id: "e1", name: "Bash", input: { command: "cat shipwright_run_config.json" } },
++      ),
++    ].join("\n")).events;
++    const feed = deriveActivityFeed(events, null);
++    expect(feed.cards.find((c) => c.kind === "goal")?.text).toMatch(/shipwright-iterate/i);
++    const implement = feed.cards.find((c) => c.kind === "implement");
++    expect(implement?.text).toBe("Checking the run config before proceeding.");
++  });
++
++  it("keeps real narration immediately adjacent to the banner (no blank-line separator) even when it happens to start with a word the banner's own surround lines use (round-5 external review catch, both reviewers, medium+low)", () => {
++    const events = parseSessionJsonl([
++      turn(
++        `${REAL_BANNER_TEXT}\nComplexity: this migration needs manual verification before merging.`,
++        "2026-08-31T08:00:00.000Z",
++        { id: "e1", name: "Bash", input: { command: "cat shipwright_run_config.json" } },
++      ),
++    ].join("\n")).events;
++    const feed = deriveActivityFeed(events, null);
++    expect(feed.cards.find((c) => c.kind === "goal")?.text).toMatch(/shipwright-iterate/i);
++    // Before the round-5 fix, BANNER_SURROUND_LINE matched broad prefixes
++    // (`Complexity:.*` among them), so this genuine sentence — which merely
++    // happens to start with the same word the banner's own line uses — would
++    // have been swallowed as if it were banner boilerplate. Exact-line
++    // matching against the REAL known banner text fixes this: the sentence
++    // differs from the banner's actual "Complexity: trivial | small |
++    // medium..." line, so it survives.
++    const implement = feed.cards.find((c) => c.kind === "implement");
++    expect(implement?.text).toBe("Complexity: this migration needs manual verification before merging.");
++  });
++
+   it("does not appear at all when the transcript never printed the banner", () => {
+     const events = parseSessionJsonl([
+       turn("Just getting started on this change.", "2026-08-31T08:00:00.000Z"),
+@@ -106,4 +204,16 @@ describe("deriveActivityFeed — /shipwright-iterate intro banner recognition",
+     const feed = deriveActivityFeed(events, null);
+     expect(feed.cards.some((c) => c.kind === "goal")).toBe(false);
+   });
++
++  it("never fabricates a SECOND goal card when a transcript segment reprints the banner (round-6 external review catch, glm, low)", () => {
++    const events = parseSessionJsonl([
++      turn(BANNER_TEXT, "2026-08-31T08:00:00.000Z"),
++      turn(null, "2026-08-31T08:00:05.000Z", { id: "e1", name: "Bash", input: { command: "echo start" } }),
++      // A resumed/replayed segment reprinting the same banner mid-transcript.
++      turn(BANNER_TEXT, "2026-08-31T09:00:00.000Z"),
++      turn(null, "2026-08-31T09:00:05.000Z", { id: "e2", name: "Bash", input: { command: "echo resumed" } }),
++    ].join("\n")).events;
++    const feed = deriveActivityFeed(events, null);
++    expect(feed.cards.filter((c) => c.kind === "goal")).toHaveLength(1);
++  });
+ });
+diff --git a/client/src/lib/missionActivityFeed.ts b/client/src/lib/missionActivityFeed.ts
+index c3d9c47b..d62780e8 100644
+--- a/client/src/lib/missionActivityFeed.ts
++++ b/client/src/lib/missionActivityFeed.ts
+@@ -1,7 +1,8 @@
+-import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
++import { askUserQuestionSummary, toolUses, type ParsedEvent } from "../external/session-parser";
+ import type { ArtifactKind, MissionContext } from "./missionContextApi";
+-import { attachCommand, commandDetail, commandLabel, commandLabelFull, extractOwnProse, isCompactionMarker } from "./missionActivityFeedText";
+-import { classifyToolBucket, containsIterateBanner } from "./missionActivityFeedClassify";
++import { attachCommand, commandDetail, commandLabel, commandLabelFull, isCompactionMarker } from "./missionActivityFeedText";
++import { classifyToolBucket, reviewerDisplayName } from "./missionActivityFeedClassify";
++import { buildUserReplyCard, extractTurnProse, flushPendingNarration, type PendingNarration } from "./missionActivityFeedTurn";
+ import { isTestFilePath, sameTestFilePath, testInvocationTargetPath, trackWrittenTestFile, type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
+ import { createCardAdder } from "./missionActivityFeedCardFactory";
+ import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
+@@ -79,49 +80,44 @@ export function deriveActivityFeed(
+   // to reach a LATER real turn (code review catch) — but left unbounded that
+   // survival can misattribute stale words once several pile up (doubt-review
+   // catch); `staleness` bounds it via `MAX_PENDING_NARRATION_CARRY` above.
+-  let pendingNarration: { prose: string; proseFull: string; proseRest: string; proseRestFull: string; staleness: number } | null = null;
++  let pendingNarration: PendingNarration | null = null;
+   const add = createCardAdder(cards, cardEventCounts);
+   for (const event of events) {
+     if (isCompactionMarker(event)) {
+       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
+     }
+     if (event.kind === "user") {
++      const replyCard = buildUserReplyCard(event);
++      if (replyCard) cards.push(replyCard);
+       const resolveState = { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };
+       unresolvedTest = resolveToolResults(event, resolveState);
+       writtenTestFiles = resolveState.writtenTestFiles;
+       continue;
+     }
+     if (event.kind !== "assistant") continue;
+-    // This turn's own words (when Claude wrote any alongside its tool
+-    // calls), replacing the generic bucket sentence below when present —
+-    // see `extractOwnProse`'s doc comment (missionActivityFeedText.ts).
+-    const { ownProse, ownProseFull, ownProseRest, ownProseRestFull } = extractOwnProse(event);
+-    const assistantLines = assistantText(event).split("\n");
++    const { isBannerTurn, ownProse, ownProseFull, ownProseRest, ownProseRestFull } = extractTurnProse(event);
++    if (isBannerTurn) {
++      // Guarded so a transcript segment that reprints the banner (a resumed
++      // or replayed session) doesn't fabricate a SECOND "run started" card
++      // (round-6 external review catch, glm, low).
++      if (!cards.some((c) => c.kind === "goal")) {
++        cards.push({ kind: "goal", text: "Started a /shipwright-iterate run.", commands: [], timestamp: event.timestamp });
++      }
++      // A run start invalidates anything carried over from before it — else
++      // a combined banner+tool turn could let an unrelated EARLIER turn's
++      // narration attach to THIS turn's tool card (code review catch, low).
++      pendingNarration = null;
++    }
+     const tools = toolUses(event);
+     if (tools.length === 0) {
+       // A pure-narration turn — the common real-world shape. Its words are
+       // not lost: they wait for the next tool-bearing turn (below), which is
+-      // where a human reader actually expects them to show up.
+-      //
+-      // The one exception: the /shipwright-iterate intro banner is exactly
+-      // this shape (SKILL.md prints it with no tool call), so left to the
+-      // rule above it never surfaced as its own moment — it just became
+-      // whatever generic sentence the NEXT tool-bearing turn's bucket picked
+-      // (iterate-2026-08-31-mission-feed-gaps). Give it its own card instead
+-      // of relying on the narration-carry heuristic to make it visible.
+-      const isBannerTurn = containsIterateBanner(assistantLines);
+-      if (isBannerTurn) {
+-        cards.push({
+-          kind: "goal",
+-          text: "Started a /shipwright-iterate run.",
+-          commands: [],
+-          timestamp: event.timestamp,
+-        });
+-      }
+-      // The banner turn's own "prose" is its `====` border line, not real
+-      // explanatory narration — it must not become the next tool-bearing
+-      // turn's headline (the goal card above already carries the meaning).
+-      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
++      // where a human reader actually expects them to show up. If this is
++      // the transcript's LAST turn and nothing tool-bearing ever follows
++      // (a closing summary is exactly this shape), the flush after this loop
++      // gives it a card of its own instead of dropping it silently
++      // (reported: "Schluss ... wird nicht geprintet", same run as above).
++      if (ownProse) pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0, timestamp: event.timestamp };
+       continue;
+     }
+     // This turn called tools. Prefer ITS OWN text when it wrote any (the
+@@ -232,7 +228,17 @@ export function deriveActivityFeed(
+         // added no information of its own — an empty `text` here means the
+         // card renders only its command chip(s)
+         // (iterate-2026-09-05-mission-feed-ux-gaps).
+-        const card = bucket === "review" ? add("review", prose, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, proseFull, labelFull)
++        // A review-bucket `Task` whose turn wrote no words of its own still
++        // gets a real headline naming which reviewer was spawned, not an
++        // empty card carrying only its command chip — otherwise the ONLY
++        // visible trace of a reviewer starting was that chip's truncated
++        // label, and the feed jumped straight to whatever LATER turn's
++        // verdict sentence happened to land on an unrelated card (reported:
++        // "steht nichts, dass die Reviewer was starten",
++        // iterate-2026-09-20-mission-feed-transcript-fidelity).
++        const reviewerSpawn = bucket === "review" && !prose ? reviewerDisplayName(tool.name, input) : null;
++        const reviewProse = reviewerSpawn ? `Spawned ${reviewerSpawn} to review the change.` : prose;
++        const card = bucket === "review" ? add("review", reviewProse, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, reviewerSpawn ? undefined : proseFull, labelFull)
+           : bucket === "spec" ? add("spec", prose, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp, proseFull, labelFull)
+           : bucket === "investigate" ? add("investigate", prose, label, undefined, true, event.timestamp, proseFull, labelFull)
+           : add("implement", prose, label, undefined, true, event.timestamp, proseFull, labelFull);
+@@ -286,7 +292,7 @@ export function deriveActivityFeed(
+     if (proseConsumedThisTurn) {
+       pendingNarration = null;
+     } else if (ownProse && !ownProseGivenToTestCard) {
+-      pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
++      pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0, timestamp: event.timestamp };
+     } else if (pendingNarration) {
+       pendingNarration = pendingNarration.staleness + 1 >= MAX_PENDING_NARRATION_CARRY
+         ? null
+@@ -295,6 +301,13 @@ export function deriveActivityFeed(
+   }
+ 
+   clearMultiTurnExplanations(cards, cardTurnCounts);
++  // Skipped while genuinely still live (round-2 review catch, low): an
++  // unconditional flush made trailing narration flash in as a `system` card
++  // on one ~1s poll, then vanish into the NEXT tool card's headline on the
++  // next real tool call — `null` context (transient initial load) still
++  // flushes, so a closing summary is never lost.
++  const flushed = context?.runLive === true ? null : flushPendingNarration(pendingNarration);
++  if (flushed) cards.push(flushed);
+ 
+   return reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
+ }
+diff --git a/client/src/lib/missionActivityFeed.uxGaps.test.ts b/client/src/lib/missionActivityFeed.uxGaps.test.ts
+index dbce17f4..ae52b049 100644
+--- a/client/src/lib/missionActivityFeed.uxGaps.test.ts
++++ b/client/src/lib/missionActivityFeed.uxGaps.test.ts
+@@ -87,7 +87,7 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
+ 
+   it("records a long Bash command's full text under commandFullText, keyed by its truncated chip label (reported: a long command could not be inspected past its preview)", () => {
+     const longCommand = `npm run build -- --flag ${"x".repeat(200)}`;
+-    const events = parseSessionJsonl(tool("b", "Bash", { command: longCommand })).events;
++    const events = parseSessionJsonl(turn("Running the production build.", "b", "Bash", { command: longCommand })).events;
+     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
+     const label = card?.commands[0];
+     expect(label).toBeDefined();
+@@ -104,8 +104,8 @@ describe("deriveActivityFeed — never crop (iterate-2026-09-05-mission-feed-ux-
+   it("keeps the FIRST command's full text when two different commands share the same truncated chip label (code review catch)", () => {
+     const sharedPrefix = "a".repeat(200);
+     const events = parseSessionJsonl([
+-      tool("w1", "Write", { file_path: `${sharedPrefix}/first.ts` }),
+-      tool("w2", "Write", { file_path: `${sharedPrefix}/second.ts` }),
++      turn("Writing the two generated files.", "w1", "Write", { file_path: `${sharedPrefix}/first.ts` }),
++      turn("Writing the two generated files.", "w2", "Write", { file_path: `${sharedPrefix}/second.ts` }),
+     ].join("\n")).events;
+     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "implement");
+     // Both calls truncate to the identical chip label (the divergence point
+@@ -166,8 +166,10 @@ describe("deriveActivityFeed — test-bucket cards use only their own narration
+     const feed = deriveActivityFeed(events, context("unknown"));
+     const investigateCard = feed.cards.find((c) => c.kind === "investigate");
+     // The test turn's own words already have a home on the test card; they
+-    // must not duplicate onto the next card too.
+-    expect(investigateCard?.text).toBe("");
++    // must not duplicate onto the next card too — which now, carrying no
++    // words of its own, is dropped entirely by the empty-tool-only-card
++    // filter (iterate-2026-09-20-mission-feed-transcript-fidelity).
++    expect(investigateCard).toBeUndefined();
+   });
+ 
+   it("does not let an unrelated pending test's caveat pill clobber a resolved test card's own narration", () => {
+diff --git a/client/src/lib/missionActivityFeedBlockerAndTdd.test.ts b/client/src/lib/missionActivityFeedBlockerAndTdd.test.ts
+index 81ab3d15..88a7d332 100644
+--- a/client/src/lib/missionActivityFeedBlockerAndTdd.test.ts
++++ b/client/src/lib/missionActivityFeedBlockerAndTdd.test.ts
+@@ -188,7 +188,16 @@ describe("deriveActivityFeed — TDD authoring runs are excluded from the gate s
+   it("gives a Go test file written and immediately run NO gate stamp, because `go test` is not a recognized test invocation", () => {
+     const events = parseSessionJsonl([
+       tool("w1", "Write", { file_path: "pkg/foo_test.go" }), result("w1"),
+-      tool("b1", "Bash", { command: "go test ./pkg/foo_test.go" }), result("b1"),
++      // Narrated (unlike the bare `tool()` calls elsewhere in this file) so
++      // the resulting card carries real text and survives the empty-tool-
++      // only-card filter (iterate-2026-09-20-mission-feed-transcript-
++      // fidelity) — this test is about bucket/gate classification, not about
++      // the no-narration path, which has its own coverage elsewhere.
++      event({ type: "assistant", message: { role: "assistant", content: [
++        { type: "text", text: "Running the new Go test." },
++        { type: "tool_use", id: "b1", name: "Bash", input: { command: "go test ./pkg/foo_test.go" } },
++      ] } }),
++      result("b1"),
+     ].join("\n")).events;
+     const feed = deriveActivityFeed(events, context("pass"));
+     const goCard = feed.cards.find((card) => card.commands.some((label) => label.includes("go test")));
+diff --git a/client/src/lib/missionActivityFeedClassify.test.ts b/client/src/lib/missionActivityFeedClassify.test.ts
+index 1efedb78..41304234 100644
+--- a/client/src/lib/missionActivityFeedClassify.test.ts
++++ b/client/src/lib/missionActivityFeedClassify.test.ts
+@@ -6,7 +6,7 @@
+  * effect of each fix.
+  */
+ import { describe, expect, it } from "vitest";
+-import { isReviewInvocation, isReviewTask, isTestInvocation } from "./missionActivityFeedClassify";
++import { isReviewInvocation, isReviewTask, isTestInvocation, reviewerDisplayName } from "./missionActivityFeedClassify";
+ import { parseSessionJsonl } from "../external/session-parser";
+ import { deriveActivityFeed } from "./missionActivityFeed";
+ import type { MissionContext } from "./missionContextApi";
+@@ -110,6 +110,33 @@ describe("isReviewTask", () => {
+   });
+ });
+ 
++// iterate-2026-09-20-mission-feed-transcript-fidelity, review-catch #3: this
++// function shipped with no direct unit coverage of its own — only indirectly
++// exercised through reducer-level fixtures that always used a known
++// `subagent_type`.
++describe("reviewerDisplayName", () => {
++  it("returns a friendly name for a known reviewer subagent_type", () => {
++    expect(reviewerDisplayName("Task", { subagent_type: "code-reviewer" })).toBe("the code reviewer");
++  });
++
++  it("humanizes an unrecognized subagent_type rather than falling back to the generic name", () => {
++    expect(reviewerDisplayName("Task", { subagent_type: "external-review-bot" })).toBe("the external review bot");
++  });
++
++  it("falls back to a generic name when the Task carries no subagent_type", () => {
++    expect(reviewerDisplayName("Task", { description: "Review the auth diff" })).toBe("a reviewer");
++  });
++
++  it("falls back to a generic name when a review-sounding DESCRIPTION matched but subagent_type itself doesn't look review-related (round-2 code review catch)", () => {
++    expect(reviewerDisplayName("Task", { subagent_type: "general-purpose", description: "Review the auth diff" })).toBe("a reviewer");
++  });
++
++  it("returns null for a non-review Task or a non-Task tool", () => {
++    expect(reviewerDisplayName("Task", { subagent_type: "general-purpose" })).toBeNull();
++    expect(reviewerDisplayName("Bash", { description: "review the output" })).toBeNull();
++  });
++});
++
+ describe("deriveActivityFeed bucket classification (reducer-level)", () => {
+   it("does not misclassify a checkout of a test-results file as a test card", () => {
+     const events = parseSessionJsonl(tool("a", "Bash", { command: "git checkout -- shipwright_test_results.json" })).events;
+@@ -118,7 +145,14 @@ describe("deriveActivityFeed bucket classification (reducer-level)", () => {
+   });
+ 
+   it("does not misclassify a general-purpose Task spawn as review", () => {
+-    const events = parseSessionJsonl(tool("a", "Task", { subagent_type: "general-purpose", description: "Investigate the auth bug" })).events;
++    // Narrated (unlike this file's other bare `tool()` fixtures) so the
++    // resulting card survives the empty-tool-only-card filter
++    // (iterate-2026-09-20-mission-feed-transcript-fidelity) — this test is
++    // about bucket classification, not the no-narration path.
++    const events = parseSessionJsonl(event({ type: "assistant", message: { role: "assistant", content: [
++      { type: "text", text: "Digging into the auth bug." },
++      { type: "tool_use", id: "a", name: "Task", input: { subagent_type: "general-purpose", description: "Investigate the auth bug" } },
++    ] } })).events;
+     const feed = deriveActivityFeed(events, context());
+     expect(feed.cards.find((c) => c.commands.length)?.kind).toBe("implement");
+   });
+diff --git a/client/src/lib/missionActivityFeedClassify.ts b/client/src/lib/missionActivityFeedClassify.ts
+index 0bb0dedc..b1564282 100644
+--- a/client/src/lib/missionActivityFeedClassify.ts
++++ b/client/src/lib/missionActivityFeedClassify.ts
+@@ -29,6 +29,56 @@ export function containsIterateBanner(lines: readonly string[]): boolean {
+   return lines.some((line) => line.trim() === ITERATE_BANNER_LINE);
+ }
+ 
++/** Every OTHER line the fixed banner block prints alongside `ITERATE_BANNER_LINE`
++ *  itself (SKILL.md "Print Intro Banner", verbatim), EXCEPT the `====` border
++ *  (handled separately below) — matched as an EXACT trimmed-line equality, not
++ *  a prefix pattern (round-5 external review catch, both reviewers, medium +
++ *  low: an earlier version matched broad prefixes like `Usage:.*`/`Paths:.*`/
++ *  `Complexity:.*`/`ADR:.*`, so genuine narration immediately adjacent to a
++ *  real banner turn that merely HAPPENED to start with one of those words —
++ *  e.g. "Complexity: this migration needs manual verification." — was
++ *  silently stripped along with the actual boilerplate. A future SKILL.md
++ *  banner-text edit fails SAFE against this set: the changed line simply stops
++ *  matching and is left un-stripped (the pre-round-4 symptom), never eats
++ *  adjacent real prose). */
++const BANNER_KNOWN_LINES = new Set([
++  'Usage: /shipwright-iterate --type feature|change|bug [--review-model opus|sonnet|haiku|inherit|fable] [--finalization-model ...] [--plan-review-model ...] "description"',
++  "or: Auto-detected from your prompt (via hook context)",
++  "Paths: FEATURE / CHANGE → [interview]→[spec]→[plan]→[approval]→[review]→[design]→build→test→commit",
++  "BUG              → [spec]→reproduce→[plan]→fix→test→commit",
++  "Complexity: trivial | small | medium | large (auto-detected, overridable)",
++  "In plain words (shared index → docs/guide.md Appendix A):",
++  "ADR: Log of architectural decisions with rationale (why this database, why this pattern)",
++  "Conventional Commits: Standardized commit-message format (`feat:`, `fix:`, etc.) so version history is machine-readable",
++]);
++
++/** The `====` border line is kept as a loose length-agnostic pattern rather
++ *  than an exact string — unlike the labeled lines above, a bare run of `=`
++ *  carries no words a real sentence could coincidentally start with, so there
++ *  is nothing for a prefix match to wrongly eat here. */
++function isBannerSurroundLine(trimmed: string): boolean {
++  return /^=+$/.test(trimmed) || BANNER_KNOWN_LINES.has(trimmed);
++}
++
++/** Removes the fixed banner block (and ONLY it) from `lines`, keeping any real
++ *  narration before or after it intact — a maximal contiguous run outward from
++ *  `ITERATE_BANNER_LINE` of lines that are either the banner line itself or one
++ *  of its known surrounding lines (external code review catch, medium: an
++ *  earlier version discarded a WHOLE turn's prose on any banner match, so a
++ *  turn that combined the banner with genuine narration lost that narration —
++ *  and, via the empty-tool-only-card filter, could then drop its own tool card
++ *  entirely too). No-op (returns `lines` unchanged) when the banner isn't
++ *  present. */
++export function stripIterateBanner(lines: readonly string[]): string[] {
++  const bannerIdx = lines.findIndex((line) => line.trim() === ITERATE_BANNER_LINE);
++  if (bannerIdx === -1) return [...lines];
++  let start = bannerIdx;
++  while (start > 0 && isBannerSurroundLine(lines[start - 1].trim())) start -= 1;
++  let end = bannerIdx;
++  while (end + 1 < lines.length && isBannerSurroundLine(lines[end + 1].trim())) end += 1;
++  return [...lines.slice(0, start), ...lines.slice(end + 1)];
++}
++
+ const CHAIN_SEPARATORS = new Set(["&", "|", ";"]);
+ 
+ export interface ShellSegment {
+@@ -175,6 +225,36 @@ export function isReviewTask(name: string, input: Record<string, unknown> | unde
+   return REVIEW_TOKEN.test(subagentType) || REVIEW_TOKEN.test(description);
+ }
+ 
++const REVIEWER_NAMES: Record<string, string> = {
++  "spec-reviewer": "the spec reviewer",
++  "code-reviewer": "the code reviewer",
++  "doubt-reviewer": "the doubt reviewer",
++  "opus-plan-reviewer": "the plan reviewer",
++};
++
++/** A short, human-readable name for a review `Task`'s spawned subagent — lets
++ * a review-bucket card narrate "Spawned X to review the change." when the
++ * dispatching turn wrote no words of its own. Before this, the ONLY trace of
++ * a reviewer starting was its command chip's truncated label; the turn that
++ * eventually wrote something (often much later, once verdicts were back)
++ * usually described the OUTCOME, not the dispatch, so the feed jumped
++ * straight to a verdict sentence with no visible "a reviewer was spawned"
++ * moment (reported: "steht nichts, dass die Reviewer was starten",
++ * iterate-2026-09-20-mission-feed-transcript-fidelity). Returns `null` for a
++ * non-review `Task` (or any other tool) so callers fall back unchanged. */
++export function reviewerDisplayName(name: string, input: Record<string, unknown> | undefined): string | null {
++  if (!isReviewTask(name, input)) return null;
++  const subagentType = typeof input?.subagent_type === "string" ? input.subagent_type : "";
++  // `isReviewTask` above also matches on the DESCRIPTION alone (round-2 code
++  // review catch, low) — a `general-purpose` spawn with a review-sounding
++  // description must not get humanized into "the general purpose", which
++  // names the wrong thing and reads as broken grammar. Only a subagent_type
++  // that ITSELF looks review-related earns a name; anything else falls back
++  // to the same generic name a missing subagent_type already gets.
++  if (subagentType && REVIEW_TOKEN.test(subagentType)) return REVIEWER_NAMES[subagentType] ?? `the ${subagentType.replace(/-/g, " ")}`;
++  return "a reviewer";
++}
++
+ /** Which bucket one tool_use falls into — extracted from
+  *  `missionActivityFeed.ts`'s per-tool loop (iterate-2026-09-16-mission-feed-
+  *  render-fidelity bloat-ceiling split) so the loop itself reads as
+diff --git a/client/src/lib/missionActivityFeedCommandCount.test.ts b/client/src/lib/missionActivityFeedCommandCount.test.ts
+index e656ad12..9fc54acd 100644
+--- a/client/src/lib/missionActivityFeedCommandCount.test.ts
++++ b/client/src/lib/missionActivityFeedCommandCount.test.ts
+@@ -10,6 +10,12 @@ import type { MissionContext } from "./missionContextApi";
+ 
+ const event = (value: unknown) => JSON.stringify(value);
+ const tool = (id: string, name: string, input: Record<string, unknown>) => event({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] } });
++// Narrated variant — needed wherever this file's fixture must survive the
++// empty-tool-only-card filter (iterate-2026-09-20-mission-feed-transcript-
++// fidelity) so the commandCount mechanic under test still has a card to
++// assert on; the bare `tool()` above stays for cases that don't care.
++const narratedTool = (text: string, id: string, name: string, input: Record<string, unknown>) =>
++  event({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text }, { type: "tool_use", id, name, input }] } });
+ const result = (id: string, isError = false) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "output", is_error: isError }] } });
+ const errorResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: true }] } });
+ const okResult = (id: string, content: string) => event({ type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content, is_error: false }] } });
+@@ -24,8 +30,8 @@ describe("deriveActivityFeed - commandCount tracks real tool calls, not deduped
+   // the real call count separately from `commands.length`.
+   it("counts two identical-label tool calls as commandCount 2, even though they dedupe to one command chip", () => {
+     const events = parseSessionJsonl([
+-      tool("r1", "Read", { file_path: "src/foo.ts" }), result("r1"),
+-      tool("r2", "Read", { file_path: "src/foo.ts" }), result("r2"),
++      narratedTool("Re-reading foo.ts.", "r1", "Read", { file_path: "src/foo.ts" }), result("r1"),
++      narratedTool("Re-reading foo.ts.", "r2", "Read", { file_path: "src/foo.ts" }), result("r2"),
+     ].join("\n")).events;
+     const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "investigate");
+     expect(card?.commands).toHaveLength(1);
+@@ -49,10 +55,15 @@ describe("deriveActivityFeed - commandCount tracks real tool calls, not deduped
+   // test was falsified against in round 61, so the guard openai asks for ships.
+   it("keeps commandCount equal to the label count on every card the reducer builds, across buckets", () => {
+     const events = parseSessionJsonl([
+-      tool("a", "Edit", { file_path: "src/a.ts" }), result("a"),
+-      tool("b", "Read", { file_path: "src/b.ts" }), result("b"),
++      // Narrated (implement/investigate cards would otherwise carry no text
++      // of their own and be dropped entirely by the empty-tool-only-card
++      // filter, iterate-2026-09-20-mission-feed-transcript-fidelity) — a
++      // `test`/`blocker` card always carries real content regardless, so
++      // those two stay bare.
++      narratedTool("Fixing the typo in a.ts.", "a", "Edit", { file_path: "src/a.ts" }), result("a"),
++      narratedTool("Double-checking b.ts.", "b", "Read", { file_path: "src/b.ts" }), result("b"),
+       tool("t", "Bash", { command: "npm test" }), result("t"),
+-      tool("r", "Bash", { command: "uv run review.py" }), okResult("r", "PASS"),
++      narratedTool("Running the review script.", "r", "Bash", { command: "uv run review.py" }), okResult("r", "PASS"),
+       tool("x", "Bash", { command: "python build.py" }), errorResult("x", "boom"),
+     ].join("\n")).events;
+     const cards = deriveActivityFeed(events, context("pass")).cards.filter((card) => card.commands.length > 0);
+diff --git a/client/src/lib/missionActivityFeedReconcile.ts b/client/src/lib/missionActivityFeedReconcile.ts
+index c53b89ea..ef563a0b 100644
+--- a/client/src/lib/missionActivityFeedReconcile.ts
++++ b/client/src/lib/missionActivityFeedReconcile.ts
+@@ -167,6 +167,56 @@ export function reconcileArtifactCards(
+       }
+     }
+   }
++  // A tool-only turn that wrote no words of its own renders as a bare header
++  // + command chip(s) with nothing a reader can learn from (reported: "viele
++  // implement mit ... Bashbefehlen, aber ohne Text", iterate-2026-09-20-
++  // mission-feed-transcript-fidelity; the same shape for `spec` is the bare
++  // "Open Spec"-and-nothing-else card called out separately). Filtered here
++  // — BEFORE the spec/requirement/decisions backfill loop, not after (code-
++  // review catch, medium): a wordless `spec`-bucket card can already carry
++  // `artifact: "spec"`, and the backfill's own dedupe guard would otherwise
++  // see it and skip synthesizing the richer server-summary card — losing the
++  // evidence altogether. `review`/`test`/`user-input` are exempt: `review`
++  // gets its own narrower filter below (after the review-artifact reconcile
++  // has a chance to supply real content), and `test`'s pill/chip already
++  // carry real information with no narration needed. `droppedNoSummaryKinds`
++  // below is what stops that SAME backfill loop from resynthesizing the
++  // generic PLACEHOLDER sentence for a kind whose only card was just
++  // wordless-dropped here AND whose artifact carries no real summary either
++  // — item 5 of the bug report wants a content-free "Open Spec and nothing
++  // else" gone, not reworded. It must NOT also suppress a REAL summary
++  // (round-2 code review catch, medium: an earlier version keyed only on
++  // "was a card dropped", which threw away genuine spec/requirement/decision
++  // evidence too — issue #6's guarantee that durable evidence is never
++  // invisible merely because `summary` is null still has to hold for the
++  // "dropped" case, not just the "never touched" one).
++  const droppedNoSummaryKinds = new Set(
++    cards
++      .filter((card) => (card.kind === "implement" || card.kind === "investigate" || card.kind === "spec")
++        && !card.text && !card.explanation && card.artifact
++        && !context?.artifacts.find((entry) => entry.kind === card.artifact)?.summary)
++      .map((card) => card.artifact),
++  );
++  // Preserves a dropped wordless card's command evidence (the tool call(s)
++  // that actually produced the artifact) for the backfill loop below to
++  // carry onto its synthesized replacement — without this, a card dropped
++  // here because it had a `summary` to fall back on (so it's NOT in
++  // `droppedNoSummaryKinds` and DOES get backfilled) silently lost its
++  // command chip/count along the way (round-6 external review catch, glm,
++  // low): the backfilled card always started from `commands: []`.
++  const droppedCardCommands = new Map(
++    cards
++      .filter((card) => (card.kind === "implement" || card.kind === "investigate" || card.kind === "spec")
++        && !card.text && !card.explanation && card.artifact)
++      .map((card) => [
++        card.artifact,
++        { commands: card.commands, commandCount: card.commandCount, commandFullText: card.commandFullText },
++      ] as const),
++  );
++  let filtered = cards.filter((card) => !(
++    (card.kind === "implement" || card.kind === "investigate" || card.kind === "spec")
++    && !card.text && !card.explanation
++  ));
+   for (const kind of ["spec", "requirement", "decisions"] as const) {
+     // The server already writes a rich, always-populated `summary` for every
+     // `state: "available"` artifact (`server/src/core/mission-context/
+@@ -175,17 +225,23 @@ export function reconcileArtifactCards(
+     // (iterate-2026-09-05-mission-feed-ux-gaps: "Requirement evidence is
+     // available. ist irgendwie leer immer am Ende der Kette"). The fallback
+     // stays for the rare artifact shape with no `summary` field at all
+-    // (`CommitArtifact`, `TestsArtifact`, `ReviewArtifact` — not reachable
+-    // through this loop's three kinds, but kept as a defensive floor).
++    // (issue #6) — but never for a kind whose own wordless, summary-less
++    // card was just dropped above (code-review-driven full-suite catch,
++    // iterate-2026-09-20-mission-feed-transcript-fidelity).
+     const item = context?.artifacts.find((entry) => entry.kind === kind && entry.state === "available");
+-    if (item && !cards.some((card) => card.artifact === kind)) {
++    if (item && !droppedNoSummaryKinds.has(kind) && !filtered.some((card) => card.artifact === kind)) {
+       const fallback = kind === "spec" ? "Specification evidence is available."
+         : kind === "requirement" ? "Requirement evidence is available." : "A recorded decision is available.";
+-      cards.push({ kind: "spec", text: item.summary ?? fallback, commands: [], artifact: kind, status: "ok" });
++      const preserved = droppedCardCommands.get(kind);
++      filtered.push({
++        kind: "spec", text: item.summary ?? fallback, commands: preserved?.commands ?? [],
++        commandCount: preserved?.commandCount, commandFullText: preserved?.commandFullText,
++        artifact: kind, status: "ok",
++      });
+     }
+   }
+   if (artifact(context, "review")) {
+-    const review = [...cards].reverse().find((card) => card.kind === "review");
++    const review = [...filtered].reverse().find((card) => card.kind === "review");
+     if (review) {
+       review.text = "The recorded review evidence is available.";
+       // A rewritten headline must never sit above an explanation excerpted
+@@ -198,7 +254,7 @@ export function reconcileArtifactCards(
+       review.artifact = "review";
+       review.status = "ok";
+     } else {
+-      cards.push({ kind: "review", text: "The recorded review evidence is available.", commands: [], artifact: "review", status: "ok" });
++      filtered.push({ kind: "review", text: "The recorded review evidence is available.", commands: [], artifact: "review", status: "ok" });
+     }
+   }
+   const pipelinePhase = context?.artifacts.find((item) => item.kind === "phase");
+@@ -222,8 +278,47 @@ export function reconcileArtifactCards(
+     const text = !pipelineFinished && commit?.detail?.message
+       ? `Merged as "${commit.detail.message}".`
+       : "This completed run is recorded through durable artifacts.";
+-    cards.push({ kind: "delivery", text, commands: [], artifact: link });
++    filtered.push({ kind: "delivery", text, commands: [], artifact: link });
++  }
++  // A blocker still open at this point (its `kind` never flipped back — see
++  // `resolveToolResults`' recovery branch) tells the reader WHAT failed via
++  // its headline + raw output, but not whether it needs THEM specifically —
++  // reported as "Blocker sind immer noch rot ohne info ... ob es seine
++  // Interaktion braucht" (iterate-2026-09-20-mission-feed-transcript-
++  // fidelity). `context.runLive` is the one honest signal available here
++  // (no LLM call, MissionContext stays the sole verdict source): while the
++  // run is still live, Claude may yet retry or is waiting on the terminal;
++  // once it has ended with the blocker never recovering, nothing further is
++  // coming on its own. A `null` context (transient initial load, same state
++  // referenced by the gate-verdict guard above) gets its OWN conservative
++  // wording rather than no explanation at all (external review catch,
++  // medium: skipping it entirely reproduced the exact uninformative red
++  // blocker the run was fixing, just windowed to the load gap) — never
++  // claims live-vs-ended either way, since that isn't known yet.
++  for (const card of filtered) {
++    if (card.kind !== "blocker") continue;
++    card.explanation = context == null
++      ? "Run status is still loading — check the terminal for next steps."
++      : context.runLive
++        ? "Claude may retry this automatically, or may be waiting for you to respond in the terminal."
++        : "This run ended before the blocker was resolved — resume the task or check the terminal to continue.";
+   }
++  // A `review`-bucket card whose dispatch turn produced no narration of its
++  // own AND no artifact reconcile above supplied one is dropped the same
++  // way as the implement/investigate/spec filter earlier — but ONLY here,
++  // after the review-artifact reconcile block has had its chance to
++  // rewrite the card's `text` (code-review catch, medium): `reviewerDisplayName`
++  // only synthesizes narration for a `Task` spawn, so a review invoked via
++  // a shell command (`uv run review.py`, `gh pr review`, matched by
++  // `isReviewInvocation` in `missionActivityFeedClassify.ts`) still reaches
++  // this point wordless when no durable review artifact exists yet to
++  // rewrite it. `!card.detail` is load-bearing here, unlike the earlier
++  // filter: `resolveToolResults`' review branch attaches the tool_result's
++  // own verdict text to `card.detail`, which IS real content a reader can
++  // use even with no headline.
++  filtered = filtered.filter((card) => !(
++    card.kind === "review" && !card.text && !card.explanation && !card.detail
++  ));
+   const outcome = finished ? "Completed run" : context?.runLive ? "In progress" : "Waiting for reliable evidence";
+-  return { outcome, cards };
++  return { outcome, cards: filtered };
+ }
+diff --git a/client/src/lib/missionActivityFeedText.ts b/client/src/lib/missionActivityFeedText.ts
+index 4eaa1239..e9d488d5 100644
+--- a/client/src/lib/missionActivityFeedText.ts
++++ b/client/src/lib/missionActivityFeedText.ts
+@@ -36,25 +36,37 @@ export const cleanFull = (value: string) => clean(value, Infinity);
+  * (iterate-2026-09-05-mission-feed-ux-gaps, bloat-ceiling split) — pure text
+  * transform with no dependency on the reducer's mutation state machine.
+  */
+-export function extractOwnProse(event: AssistantEvent): {
++/** Same extraction `extractOwnProse` does, over already-split lines rather
++ *  than a raw event — lets a caller pre-process the lines (e.g. stripping
++ *  the /shipwright-iterate banner block, `missionActivityFeedClassify.ts`'s
++ *  `stripIterateBanner`) before headline/rest extraction runs, instead of
++ *  discarding a whole turn's prose whenever it happens to contain that
++ *  block (external code review catch, medium, iterate-2026-09-20-mission-
++ *  feed-transcript-fidelity). */
++export function proseFromLines(lines: readonly string[]): {
+   ownProse: string; ownProseFull: string; ownProseRest: string; ownProseRestFull: string;
+ } {
+-  const assistantLines = assistantText(event).split("\n");
+-  const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
+-  const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
+-  const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(assistantLines[firstNonEmptyIdx]);
++  const firstNonEmptyIdx = lines.findIndex((line) => line.trim().length > 0);
++  const ownProse = clean(firstNonEmptyIdx === -1 ? "" : lines[firstNonEmptyIdx]);
++  const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(lines[firstNonEmptyIdx]);
+   // The turn's own words BEYOND its headline — never a bare `slice(1)`,
+   // which would leak a leading blank line's absence of content back in as
+   // if it were the headline (Internal Plan/External LLM Review finding).
+   // `join("\n")`, never space-joined or empty-line-filtered like
+   // `excerpt()`: this is plain-text-rendered prose, and blank lines are
+   // real paragraph breaks in it.
+-  const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
++  const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : lines.slice(firstNonEmptyIdx + 1).join("\n");
+   const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
+   const ownProseRestFull = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw, Infinity, Infinity) : "";
+   return { ownProse, ownProseFull, ownProseRest, ownProseRestFull };
+ }
+ 
++export function extractOwnProse(event: AssistantEvent): {
++  ownProse: string; ownProseFull: string; ownProseRest: string; ownProseRestFull: string;
++} {
++  return proseFromLines(assistantText(event).split("\n"));
++}
++
+ export function isCompactionMarker(event: ParsedEvent): boolean {
+   return event.kind === "system" && (
+     /compact/i.test(event.subtype ?? "") || /context automatically compacted/i.test(event.text)
+diff --git a/client/src/lib/missionActivityFeedTurn.test.ts b/client/src/lib/missionActivityFeedTurn.test.ts
+new file mode 100644
+index 00000000..194ceca9
+--- /dev/null
++++ b/client/src/lib/missionActivityFeedTurn.test.ts
+@@ -0,0 +1,110 @@
++/*
++ * iterate-2026-09-20-mission-feed-transcript-fidelity, review-catch #3:
++ * `humanText()` and `buildUserReplyCard()` moved into this file during code
++ * review with no unit coverage of their own — only indirectly exercised via
++ * `missionActivityFeed.test.ts`'s reducer-level fixtures. Direct coverage
++ * for the shape those fixtures don't isolate: a mixed tool_result+text turn,
++ * and a tool_result-only turn (the common case — most `user`-role JSONL
++ * events carry no human words at all).
++ */
++import { describe, expect, it } from "vitest";
++import type { UserEvent } from "../external/session-parser";
++import { parseSessionJsonl } from "../external/session-parser";
++import { deriveActivityFeed } from "./missionActivityFeed";
++import { buildUserReplyCard, humanText } from "./missionActivityFeedTurn";
++import type { MissionContext } from "./missionContextApi";
++
++const event = (value: unknown) => JSON.stringify(value);
++const context = (): MissionContext => ({
++  schemaVersion: 1, scenario: "iterate", missionTabVisible: true, runId: "iterate-x", runLive: true,
++  servesFrId: null, sourceRev: "x", tests: null, artifacts: [],
++});
++
++function userEvent(content: unknown): UserEvent {
++  return parseSessionJsonl(event({ type: "user", message: { role: "user", content } })).events[0] as UserEvent;
++}
++
++describe("humanText", () => {
++  it("extracts only the real typed text from a turn mixing a tool_result with a text block", () => {
++    const e = userEvent([
++      { type: "tool_result", tool_use_id: "t1", content: "output", is_error: false },
++      { type: "text", text: "Looks good, please continue." },
++    ]);
++    expect(humanText(e)).toBe("Looks good, please continue.");
++  });
++
++  it("returns an empty string for a tool_result-only turn", () => {
++    const e = userEvent([{ type: "tool_result", tool_use_id: "t1", content: "output", is_error: false }]);
++    expect(humanText(e)).toBe("");
++  });
++
++  it("drops a plain-string turn that is actually a harness-injected banner (round-2 code review catch)", () => {
++    const e = userEvent("This session is being continued from a previous conversation. Summary below.");
++    expect(humanText(e)).toBe("");
++  });
++
++  it("extracts real text from the plain-string shape when it is NOT injected noise", () => {
++    const e = userEvent("Please also update the docs.");
++    expect(humanText(e)).toBe("Please also update the docs.");
++  });
++
++  it("extracts real text from the {content: string} object shape userText() also handles", () => {
++    const e = userEvent({ content: "Sounds good, go ahead." });
++    expect(humanText(e)).toBe("Sounds good, go ahead.");
++  });
++
++  it("drops injected noise carried in the {content: string} object shape", () => {
++    const e = userEvent({ content: "API Error: 529 overloaded" });
++    expect(humanText(e)).toBe("");
++  });
++
++  it("strips an embedded <system-reminder> span from otherwise-real typed text instead of only matching a whole-string envelope (round-3 code review catch)", () => {
++    const e = userEvent("Please also update the docs.\n\n<system-reminder>Some harness context.</system-reminder>");
++    expect(humanText(e)).toBe("Please also update the docs.");
++  });
++
++  it("returns an empty string when a block is nothing but a system-reminder plus whitespace", () => {
++    const e = userEvent("  <system-reminder>Some harness context.</system-reminder>  ");
++    expect(humanText(e)).toBe("");
++  });
++
++  it("drops a failed local-command's stderr output, mirroring the already-filtered stdout shape (round-5 external review catch, glm)", () => {
++    const e = userEvent("<local-command-stderr>command not found</local-command-stderr>");
++    expect(humanText(e)).toBe("");
++  });
++});
++
++describe("a real /shipwright-iterate invocation never reaches humanText/buildUserReplyCard at all", () => {
++  it("is reclassified to kind \"slash-command\" by the parser BEFORE this file ever sees it (round-5 external review catch, glm: investigated a suggestion to add <command-name>/<command-message>/<command-args> to the INJECTED denylist and declined it — this is why)", () => {
++    const raw = event({
++      type: "user",
++      message: {
++        role: "user",
++        content: "<command-message>shipwright-iterate:iterate</command-message>\n"
++          + "<command-name>/shipwright-iterate:iterate</command-name>\n"
++          + "<command-args>fix the mission feed</command-args>",
++      },
++    });
++    const parsed = parseSessionJsonl(raw).events[0];
++    expect(parsed.kind).toBe("slash-command");
++    expect(parsed.kind).not.toBe("user");
++  });
++});
++
++describe("buildUserReplyCard", () => {
++  it("returns null for a tool_result-only turn (no card, not an empty one)", () => {
++    const e = userEvent([{ type: "tool_result", tool_use_id: "t1", content: "output", is_error: false }]);
++    expect(buildUserReplyCard(e)).toBeNull();
++  });
++});
++
++describe("deriveActivityFeed — user-reply cards", () => {
++  it("produces no user-kind card from a transcript whose only user event is a tool_result", () => {
++    const events = parseSessionJsonl(event({
++      type: "user",
++      message: { role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: "output", is_error: false }] },
++    })).events;
++    const feed = deriveActivityFeed(events, context());
++    expect(feed.cards.some((card) => card.kind === "user")).toBe(false);
++  });
++});
+diff --git a/client/src/lib/missionActivityFeedTurn.ts b/client/src/lib/missionActivityFeedTurn.ts
+new file mode 100644
+index 00000000..f9fd9245
+--- /dev/null
++++ b/client/src/lib/missionActivityFeedTurn.ts
+@@ -0,0 +1,151 @@
++/**
++ * Per-turn extraction helpers for `missionActivityFeed.ts`'s reducer: the
++ * intro-banner check + prose override for one ASSISTANT turn, and the card
++ * a human's own typed USER turn produces. Split into its own file (bloat-
++ * ceiling — the reducer itself has no budget left) rather than folded into
++ * `missionActivityFeedText.ts`, which is at the same limit
++ * (iterate-2026-09-20-mission-feed-transcript-fidelity). `humanText()` lives
++ * here too, not in `session-parser.ts` (moved during code review, same run)
++ * — this file is its ONLY consumer, and `session-parser.ts` is already a
++ * grandfathered over-limit file with no spare headroom.
++ */
++import { assistantText, type AssistantEvent, type UserEvent } from "../external/session-parser";
++import { containsIterateBanner, stripIterateBanner } from "./missionActivityFeedClassify";
++import { explanationExcerpt, proseFromLines } from "./missionActivityFeedText";
++import type { ActivityCard } from "./missionActivityFeedTypes";
++import { INJECTED } from "./narrator-facts";
++
++const SYSTEM_REMINDER_SPAN = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
++
++/** One shared cleanup for "strip harness noise, keep whatever real words are
++ *  left" — applied identically to every content shape `humanText` handles
++ *  below (round-2 code review catch, medium: the first pass only ran an
++ *  equivalent check inside the array-of-blocks branch, so the plain-string
++ *  shape — which is exactly how BOTH a real prompt and an injected
++ *  continuation banner arrive — skipped it entirely). Strips EVERY
++ *  `<system-reminder>` span rather than only matching when the envelope is
++ *  the WHOLE string (round-3 code review catch, low): a real typed reply
++ *  with a reminder appended in the SAME block — "do X\n\n<system-reminder>
++ *  ...</system-reminder>" — previously passed through with the reminder
++ *  rendered verbatim in the card. Returns `""` when nothing real is left,
++ *  including when a leading `INJECTED` prefix remains after stripping. */
++function stripInjectedNoise(text: string): string {
++  const withoutReminders = text.replace(SYSTEM_REMINDER_SPAN, "").trim();
++  return INJECTED.some((p) => withoutReminders.startsWith(p)) ? "" : withoutReminders;
++}
++
++/** Extracts ONLY a user event's own genuinely typed text — never a
++ * `tool_result` block's content, unlike `userText()` in `session-parser.ts`
++ * (which prefixes those with `[tool_result]` for a different, minimal-viewer
++ * purpose). Most `user`-role JSONL events are synthetic tool-result carriers
++ * with no human words in them at all; this returns `""` for those so a
++ * caller can tell "nothing typed here" apart from "the terminal reply was
++ * empty". Handles the same three content shapes `userText()` does (string /
++ * array of blocks / `{content: string}`) so a genuinely typed reply in any
++ * of them is never silently dropped (round-2 catch: the object shape was
++ * missing entirely, the exact gap report item 1 asked to close). Drops the
++ * same harness-injected shapes `narrator-facts.ts`'s `askFrom` already
++ * filters via the shared `isInjectedText` above — reusing the SAME exported
++ * `INJECTED` list rather than forking a second copy that could drift. */
++export function humanText(e: UserEvent): string {
++  const c = e.content;
++  if (typeof c === "string") return stripInjectedNoise(c);
++  if (Array.isArray(c)) {
++    const parts: string[] = [];
++    for (const block of c) {
++      if (block && typeof block === "object") {
++        const b = block as { type?: unknown; text?: unknown };
++        if (b.type !== "text" || typeof b.text !== "string") continue;
++        const cleaned = stripInjectedNoise(b.text);
++        if (cleaned) parts.push(cleaned);
++      }
++    }
++    return parts.join("\n");
++  }
++  if (c && typeof c === "object") {
++    const obj = c as { content?: unknown };
++    if (typeof obj.content === "string") return stripInjectedNoise(obj.content);
++  }
++  return "";
++}
++
++export interface TurnProse {
++  isBannerTurn: boolean;
++  ownProse: string;
++  ownProseFull: string;
++  ownProseRest: string;
++  ownProseRestFull: string;
++}
++
++export interface PendingNarration {
++  prose: string;
++  proseFull: string;
++  proseRest: string;
++  proseRestFull: string;
++  staleness: number;
++  timestamp?: string;
++}
++
++/** A still-waiting `pendingNarration` with no later tool-bearing turn left to
++ * consume it would otherwise vanish with no card at all — the exact shape of
++ * a closing summary (SKILL.md's F12 prints its own text, then the run simply
++ * ends). Flushed as its own `system`-kind card (a plain note, no kind
++ * label/pill to imply a category it doesn't have) rather than dropped
++ * silently (reported: "Schluss ... wird nicht geprintet",
++ * iterate-2026-09-20-mission-feed-transcript-fidelity). The caller must push
++ * this AFTER `clearMultiTurnExplanations`, not before — that pass would
++ * otherwise strip the returned card's `explanation` right back off, since it
++ * never ran through `cardTurnCounts` at all. */
++export function flushPendingNarration(pendingNarration: PendingNarration | null): ActivityCard | null {
++  if (!pendingNarration) return null;
++  const { prose, proseFull, proseRest, proseRestFull, timestamp } = pendingNarration;
++  return {
++    kind: "system",
++    text: prose,
++    textFull: proseFull.length > prose.length ? proseFull : undefined,
++    explanation: proseRest || undefined,
++    explanationFull: proseRest && proseRestFull.length > proseRest.length ? proseRestFull : undefined,
++    commands: [],
++    timestamp,
++  };
++}
++
++/** One assistant turn's banner status + own words. Checked BEFORE the turn's
++ * prose is even extracted, and regardless of whether it also calls a tool —
++ * the intro banner does not always land as a pure-narration turn on its own
++ * (SKILL.md's very next instruction is a tool call, and a real autonomous
++ * turn can combine both). A narrower "pure-narration only" check left the
++ * combined shape falling through to plain `extractOwnProse`, which reads a
++ * turn's FIRST NON-EMPTY line — the banner's `====` border or its own text
++ * line — and hung it on whatever unrelated tool call the turn happened to
++ * make, so the real start moment never appeared as its own card either way
++ * (reported: "Start des Iterate wird nicht geprintet",
++ * iterate-2026-09-20-mission-feed-transcript-fidelity). Only the fixed
++ * banner BLOCK itself is stripped before prose extraction runs — not the
++ * whole turn's text (external code review catch, medium: an earlier version
++ * discarded ALL of a banner turn's prose unconditionally, so a turn that
++ * combined the banner with genuine narration lost that narration too, and
++ * via the empty-tool-only-card filter could then drop its own tool card
++ * entirely). `stripIterateBanner` bounds itself to the banner's own known
++ * lines, so real narration before or after the block survives untouched. */
++export function extractTurnProse(event: AssistantEvent): TurnProse {
++  const lines = assistantText(event).split("\n");
++  const isBannerTurn = containsIterateBanner(lines);
++  const { ownProse, ownProseFull, ownProseRest, ownProseRestFull } = proseFromLines(stripIterateBanner(lines));
++  return { isBannerTurn, ownProse, ownProseFull, ownProseRest, ownProseRestFull };
++}
++
++/** A human's own typed reply as its own card — never a `tool_result`
++ * carrier (see `humanText()`'s doc comment) — so it reads back the same way
++ * it would in the terminal itself (reported: "meine Antworten gehören auch
++ * da hinein", iterate-2026-09-20-mission-feed-transcript-fidelity). Bounded
++ * the same way an assistant turn's own trailing prose already is; `null`
++ * when this user event carried no genuinely typed text (the common case —
++ * most `user`-role events are synthetic tool-result carriers). */
++export function buildUserReplyCard(event: UserEvent): ActivityCard | null {
++  const typed = humanText(event);
++  if (!typed.trim()) return null;
++  const bounded = explanationExcerpt(typed);
++  const full = explanationExcerpt(typed, Infinity, Infinity);
++  return { kind: "user", text: bounded, textFull: full.length > bounded.length ? full : undefined, commands: [], timestamp: event.timestamp };
++}
+diff --git a/client/src/lib/missionActivityFeedTypes.ts b/client/src/lib/missionActivityFeedTypes.ts
+index 98e95be0..74d73e92 100644
+--- a/client/src/lib/missionActivityFeedTypes.ts
++++ b/client/src/lib/missionActivityFeedTypes.ts
+@@ -1,7 +1,7 @@
+ import type { ArtifactKind } from "./missionContextApi";
+ import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
+ 
+-export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "blocker" | "system" | "delivery";
++export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery";
+ 
+ export interface ActivityQuestion {
+   text: string;
+diff --git a/client/src/lib/narrator-facts.test.ts b/client/src/lib/narrator-facts.test.ts
+index 89fac39a..7a0bbb88 100644
+--- a/client/src/lib/narrator-facts.test.ts
++++ b/client/src/lib/narrator-facts.test.ts
+@@ -73,6 +73,14 @@ describe("the ask — chosen by provenance (AC2)", () => {
+     expect(facts(say("[Request interrupted by user]")).ask).toBeNull();
+   });
+ 
++  it("does not narrate Claude Code's own auto-compaction continuation banner as the ask (INJECTED shared with missionActivityFeedTurn.ts's humanText, round-3 code review catch)", () => {
++    expect(facts(
++      say("This session is being continued from a previous conversation. Summary below."),
++      say("Real ask here"),
++    ).ask).toBe("Real ask here");
++    expect(facts(say("This session is being continued from a previous conversation. Summary below.")).ask).toBeNull();
++  });
++
+   it("is null when nothing was asked", () => {
+     expect(facts(tool("Read", { file_path: "/r/a.ts" })).ask).toBeNull();
+   });
+diff --git a/client/src/lib/narrator-facts.ts b/client/src/lib/narrator-facts.ts
+index 80dca749..c1c3eeda 100644
+--- a/client/src/lib/narrator-facts.ts
++++ b/client/src/lib/narrator-facts.ts
+@@ -72,8 +72,37 @@ export interface NarrativeFacts {
+ /** Harness-injected user content the SHIPPING PARSER does not yet reclassify
+  *  into its own kind. Closed list, deliberately tiny: event structure does the
+  *  filtering (AC2), and a growing denylist would start rejecting real requests
+- *  that merely resemble a banner. */
+-const INJECTED = ["[Request interrupted", "API Error:", "<local-command-stdout>"];
++ *  that merely resemble a banner. Exported so `missionActivityFeedTurn.ts`'s
++ *  `buildUserReplyCard` can reuse the SAME list rather than fork a second,
++ *  drifting copy (code-review catch, medium,
++ *  iterate-2026-09-20-mission-feed-transcript-fidelity). `"This session is
++ *  being continued..."` added at the SAME review, round 2: Claude Code's own
++ *  auto-compaction banner, previously harmless here only because nothing yet
++ *  turned raw user text into a rendered card — `buildUserReplyCard` now does,
++ *  and without this entry it rendered as if the operator had typed the whole
++ *  continuation summary themselves. `"<local-command-stderr>"` added at
++ *  round-5 external review (glm, medium), alongside its already-present
++ *  stdout twin — same harness-injected shape, not real typed content, so it
++ *  belongs on this list by the same reasoning stdout already earned. glm's
++ *  BROADER suggestion — adding `<command-name>`/`<command-message>`/
++ *  `<command-args>` here too — was investigated and declined: that exact
++ *  shape is already reclassified to its own `kind: "slash-command"`
++ *  `ParsedEvent` by `detectSlashCommand()` (`external/parsers/slash-
++ *  command.ts`) BEFORE `missionActivityFeed.ts`'s reducer ever dispatches on
++ *  `event.kind === "user"`, so `humanText()` never sees it for a
++ *  well-formed invocation — confirmed by tracing `session-parser.ts`'s
++ *  `parseOne()`. Adding it here anyway would ALSO contradict this list's own
++ *  stated design above: growing it risks rejecting a real user request that
++ *  starts with one of those literal strings, exactly the failure mode
++ *  `detectSlashCommand`'s structural reclassification exists to avoid. */
++export const INJECTED = [
++  "[Request interrupted",
++  "API Error:",
++  "<local-command-stdout>",
++  "<local-command-stderr>",
++  "This session is being continued from a previous conversation",
++];
++// reclassification exists to avoid.
+ 
+ const EMPTY: NarrativeFacts = {
+   ask: null,
+diff --git a/client/src/styles/mission-operation.css b/client/src/styles/mission-operation.css
+index 9e25800b..2bab1a8c 100644
+--- a/client/src/styles/mission-operation.css
++++ b/client/src/styles/mission-operation.css
+@@ -163,6 +163,15 @@
+ .mc-feed-chip-detail { width: 100%; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .03); border-radius: 6px; overflow: hidden; }
+ .mc-feed-chip-detail pre { margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--body); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+ .mc-feed-pr-meta [data-merged="true"] { color: var(--ok); }
++/* The "Open commit" link is a bare, margin-less `.mc-story-link` reset (an
++   inline word in the "told story" prose view — see that rule's own comment)
++   reused here as the artifact CTA below the PR box; scoped to the sibling
++   pairing so the prose view's own inline usage stays untouched. Without
++   this the two sat flush against each other (reported: "Delivered Box
++   braucht einen Abstand ... ziemlich zusammengewürgt",
++   iterate-2026-09-20-mission-feed-transcript-fidelity) — same 9px rhythm
++   `.mc-feed-pr`/`.mc-feed-code`/`.mc-feed-qa-question` already use above. */
++.mc-feed-pr + .mc-story-link { margin-top: 9px; }
+ .mc-hero .t { color: #5fc9b4; }
+ .mc-hero .p { color: #3fbf9a; }
+ .mc-hero .r { color: #f08772; }
+diff --git a/shipwright_bloat_baseline.json b/shipwright_bloat_baseline.json
+index 63f3447d..7ad50b98 100644
+--- a/shipwright_bloat_baseline.json
++++ b/shipwright_bloat_baseline.json
+@@ -177,6 +177,14 @@
+       "state": "grandfathered",
+       "adr": null
+     },
++    {
++      "path": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
++      "limit": 300,
++      "current": 301,
++      "state": "grandfathered",
++      "adr": null,
++      "note": "New `user`-kind KIND_LABEL entry (iterate-2026-09-20-mission-feed-transcript-fidelity) pushed one line over; code review flagged an earlier cosmetic doc-comment collapse used to force it back under 300 as bloat-avoidance-by-reformatting rather than a real fix, so that reflow was reverted. Real extraction deferred — advisory per this project's own hook policy for a first-time crossing."
++    },
+     {
+       "path": "client/src/components/external/mission/MissionSlice2Details.test.tsx",
+       "limit": 300,
+@@ -776,6 +784,38 @@
+       "current": 340,
+       "state": "grandfathered",
+       "adr": null
++    },
++    {
++      "path": "client/src/lib/missionActivityFeed.ts",
++      "limit": 300,
++      "current": 313,
++      "state": "grandfathered",
++      "adr": null,
++      "note": "iterate-2026-09-20-mission-feed-transcript-fidelity's round-2 code review added a runLive gate on the pending-narration flush (a real correctness fix, not padding); code review also flagged an earlier collapse of this function's signature to one line as bloat-avoidance-by-reformatting, so that reflow was reverted. This reducer already runs with no spare budget per its own header comment; real extraction (e.g. the per-tool bucket-dispatch branch into missionActivityFeedTurn.ts) deferred to a future iterate. Round-6 external review (glm, low) added a dedupe guard so a transcript segment that reprints the /shipwright-iterate banner (a resumed/replayed session) doesn't fabricate a second 'goal' card — another real correctness fix, +5 lines."
++    },
++    {
++      "path": "client/src/lib/missionActivityFeed.test.ts",
++      "limit": 300,
++      "current": 315,
++      "state": "grandfathered",
++      "adr": null,
++      "note": "iterate-2026-09-20-mission-feed-transcript-fidelity's round-2 code review required a new regression test (a wordless spec card must still surface the artifact's real summary instead of losing the evidence) that this file was the natural home for."
++    },
++    {
++      "path": "client/src/lib/missionActivityFeedReconcile.ts",
++      "limit": 300,
++      "current": 324,
++      "state": "grandfathered",
++      "adr": null,
++      "note": "External code review (openai, medium) flagged that a blocker-explanation loop was only running inside an `if (context != null)` guard, so a null/loading context left blocker cards with no explanation at all; removing that guard is a real correctness fix, not padding, and pushed this file 3 lines over. Round-6 external review (glm, low) then flagged that a wordless card's command-chip evidence (commands/commandCount/commandFullText) was lost when the card was dropped and backfilled from the artifact's summary; preserving it through the drop+backfill added a tracking map, +21 lines. No spare budget for a same-file extraction (iterate-2026-09-20-mission-feed-transcript-fidelity)."
++    },
++    {
++      "path": "client/src/lib/missionActivityFeedText.ts",
++      "limit": 300,
++      "current": 312,
++      "state": "grandfathered",
++      "adr": null,
++      "note": "External code review (openai, medium) flagged that a combined banner+tool turn discarded ALL of its own prose along with the banner boilerplate; the fix extracted `proseFromLines()` out of `extractOwnProse()` so `missionActivityFeedTurn.ts` could strip just the banner block before parsing prose, rather than duplicating the parsing logic. This file was already at the exact 300-line limit with no spare budget (iterate-2026-09-20-mission-feed-transcript-fidelity)."
+     }
+   ]
+ }
