@@ -35,6 +35,7 @@ describe("MissionActivityFeed", () => {
   it("renders the long-iterate fixture in a focusable, operable scrolling timeline", async () => {
     const conciseFeed = deriveActivityFeed(longIterateFixture, fixtureContext("unknown"));
     expect(conciseFeed.cards.length).toBeLessThanOrEqual(6);
+    expect(conciseFeed.cards.findIndex((card) => card.kind === "system")).toBeGreaterThan(0);
     render(<MissionActivityFeed feed={renderedLongIterateFixture} commitArtifact={null} task={TASK} />);
     const timeline = screen.getByTestId("mission-activity-feed");
     expect(timeline).toHaveAttribute("role", "log");

@@ -36,23 +36,35 @@ export const cleanFull = (value: string) => clean(value, Infinity);
  * (iterate-2026-09-05-mission-feed-ux-gaps, bloat-ceiling split) — pure text
  * transform with no dependency on the reducer's mutation state machine.
  */
-export function extractOwnProse(event: AssistantEvent): {
+/** Same extraction `extractOwnProse` does, over already-split lines rather
+ *  than a raw event — lets a caller pre-process the lines (e.g. stripping
+ *  the /shipwright-iterate banner block, `missionActivityFeedClassify.ts`'s
+ *  `stripIterateBanner`) before headline/rest extraction runs, instead of
+ *  discarding a whole turn's prose whenever it happens to contain that
+ *  block (external code review catch, medium, iterate-2026-09-20-mission-
+ *  feed-transcript-fidelity). */
+export function proseFromLines(lines: readonly string[]): {
   ownProse: string; ownProseFull: string; ownProseRest: string; ownProseRestFull: string;
 } {
-  const assistantLines = assistantText(event).split("\n");
-  const firstNonEmptyIdx = assistantLines.findIndex((line) => line.trim().length > 0);
-  const ownProse = clean(firstNonEmptyIdx === -1 ? "" : assistantLines[firstNonEmptyIdx]);
-  const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(assistantLines[firstNonEmptyIdx]);
+  const firstNonEmptyIdx = lines.findIndex((line) => line.trim().length > 0);
+  const ownProse = clean(firstNonEmptyIdx === -1 ? "" : lines[firstNonEmptyIdx]);
+  const ownProseFull = firstNonEmptyIdx === -1 ? "" : cleanFull(lines[firstNonEmptyIdx]);
   // The turn's own words BEYOND its headline — never a bare `slice(1)`,
   // which would leak a leading blank line's absence of content back in as
   // if it were the headline (Internal Plan/External LLM Review finding).
   // `join("\n")`, never space-joined or empty-line-filtered like
   // `excerpt()`: this is plain-text-rendered prose, and blank lines are
   // real paragraph breaks in it.
-  const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : assistantLines.slice(firstNonEmptyIdx + 1).join("\n");
+  const ownProseRestRaw = firstNonEmptyIdx === -1 ? "" : lines.slice(firstNonEmptyIdx + 1).join("\n");
   const ownProseRest = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw) : "";
   const ownProseRestFull = ownProseRestRaw.trim().length > 0 ? explanationExcerpt(ownProseRestRaw, Infinity, Infinity) : "";
   return { ownProse, ownProseFull, ownProseRest, ownProseRestFull };
+}
+
+export function extractOwnProse(event: AssistantEvent): {
+  ownProse: string; ownProseFull: string; ownProseRest: string; ownProseRestFull: string;
+} {
+  return proseFromLines(assistantText(event).split("\n"));
 }
 
 export function isCompactionMarker(event: ParsedEvent): boolean {

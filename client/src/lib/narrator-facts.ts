@@ -72,8 +72,37 @@ export interface NarrativeFacts {
 /** Harness-injected user content the SHIPPING PARSER does not yet reclassify
  *  into its own kind. Closed list, deliberately tiny: event structure does the
  *  filtering (AC2), and a growing denylist would start rejecting real requests
- *  that merely resemble a banner. */
-const INJECTED = ["[Request interrupted", "API Error:", "<local-command-stdout>"];
+ *  that merely resemble a banner. Exported so `missionActivityFeedTurn.ts`'s
+ *  `buildUserReplyCard` can reuse the SAME list rather than fork a second,
+ *  drifting copy (code-review catch, medium,
+ *  iterate-2026-09-20-mission-feed-transcript-fidelity). `"This session is
+ *  being continued..."` added at the SAME review, round 2: Claude Code's own
+ *  auto-compaction banner, previously harmless here only because nothing yet
+ *  turned raw user text into a rendered card — `buildUserReplyCard` now does,
+ *  and without this entry it rendered as if the operator had typed the whole
+ *  continuation summary themselves. `"<local-command-stderr>"` added at
+ *  round-5 external review (glm, medium), alongside its already-present
+ *  stdout twin — same harness-injected shape, not real typed content, so it
+ *  belongs on this list by the same reasoning stdout already earned. glm's
+ *  BROADER suggestion — adding `<command-name>`/`<command-message>`/
+ *  `<command-args>` here too — was investigated and declined: that exact
+ *  shape is already reclassified to its own `kind: "slash-command"`
+ *  `ParsedEvent` by `detectSlashCommand()` (`external/parsers/slash-
+ *  command.ts`) BEFORE `missionActivityFeed.ts`'s reducer ever dispatches on
+ *  `event.kind === "user"`, so `humanText()` never sees it for a
+ *  well-formed invocation — confirmed by tracing `session-parser.ts`'s
+ *  `parseOne()`. Adding it here anyway would ALSO contradict this list's own
+ *  stated design above: growing it risks rejecting a real user request that
+ *  starts with one of those literal strings, exactly the failure mode
+ *  `detectSlashCommand`'s structural reclassification exists to avoid. */
+export const INJECTED = [
+  "[Request interrupted",
+  "API Error:",
+  "<local-command-stdout>",
+  "<local-command-stderr>",
+  "This session is being continued from a previous conversation",
+];
+// reclassification exists to avoid.
 
 const EMPTY: NarrativeFacts = {
   ask: null,

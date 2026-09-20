@@ -1,7 +1,7 @@
 import type { ArtifactKind } from "./missionContextApi";
 import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 
-export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "blocker" | "system" | "delivery";
+export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery";
 
 export interface ActivityQuestion {
   text: string;

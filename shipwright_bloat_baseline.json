@@ -178,6 +178,14 @@
       "adr": null
     },
     {
+      "path": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+      "limit": 300,
+      "current": 301,
+      "state": "grandfathered",
+      "adr": null,
+      "note": "New `user`-kind KIND_LABEL entry (iterate-2026-09-20-mission-feed-transcript-fidelity) pushed one line over; code review flagged an earlier cosmetic doc-comment collapse used to force it back under 300 as bloat-avoidance-by-reformatting rather than a real fix, so that reflow was reverted. Real extraction deferred — advisory per this project's own hook policy for a first-time crossing."
+    },
+    {
       "path": "client/src/components/external/mission/MissionSlice2Details.test.tsx",
       "limit": 300,
       "current": 370,
@@ -776,6 +784,38 @@
       "current": 340,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "client/src/lib/missionActivityFeed.ts",
+      "limit": 300,
+      "current": 313,
+      "state": "grandfathered",
+      "adr": null,
+      "note": "iterate-2026-09-20-mission-feed-transcript-fidelity's round-2 code review added a runLive gate on the pending-narration flush (a real correctness fix, not padding); code review also flagged an earlier collapse of this function's signature to one line as bloat-avoidance-by-reformatting, so that reflow was reverted. This reducer already runs with no spare budget per its own header comment; real extraction (e.g. the per-tool bucket-dispatch branch into missionActivityFeedTurn.ts) deferred to a future iterate. Round-6 external review (glm, low) added a dedupe guard so a transcript segment that reprints the /shipwright-iterate banner (a resumed/replayed session) doesn't fabricate a second 'goal' card — another real correctness fix, +5 lines."
+    },
+    {
+      "path": "client/src/lib/missionActivityFeed.test.ts",
+      "limit": 300,
+      "current": 334,
+      "state": "grandfathered",
+      "adr": null,
+      "note": "iterate-2026-09-20-mission-feed-transcript-fidelity's round-2 code review required a new regression test (a wordless spec card must still surface the artifact's real summary instead of losing the evidence) that this file was the natural home for. Round-6 external review added one more regression test (command-chip evidence preserved through the same drop+backfill cycle), same file."
+    },
+    {
+      "path": "client/src/lib/missionActivityFeedReconcile.ts",
+      "limit": 300,
+      "current": 324,
+      "state": "grandfathered",
+      "adr": null,
+      "note": "External code review (openai, medium) flagged that a blocker-explanation loop was only running inside an `if (context != null)` guard, so a null/loading context left blocker cards with no explanation at all; removing that guard is a real correctness fix, not padding, and pushed this file 3 lines over. Round-6 external review (glm, low) then flagged that a wordless card's command-chip evidence (commands/commandCount/commandFullText) was lost when the card was dropped and backfilled from the artifact's summary; preserving it through the drop+backfill added a tracking map, +21 lines. No spare budget for a same-file extraction (iterate-2026-09-20-mission-feed-transcript-fidelity)."
+    },
+    {
+      "path": "client/src/lib/missionActivityFeedText.ts",
+      "limit": 300,
+      "current": 312,
+      "state": "grandfathered",
+      "adr": null,
+      "note": "External code review (openai, medium) flagged that a combined banner+tool turn discarded ALL of its own prose along with the banner boilerplate; the fix extracted `proseFromLines()` out of `extractOwnProse()` so `missionActivityFeedTurn.ts` could strip just the banner block before parsing prose, rather than duplicating the parsing logic. This file was already at the exact 300-line limit with no spare budget (iterate-2026-09-20-mission-feed-transcript-fidelity)."
     }
   ]
 }

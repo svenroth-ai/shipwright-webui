@@ -26,6 +26,12 @@ const PATHS: Record<ActivityKind, ReactElement> = {
     </>
   ),
   "user-input": <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />,
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21v-1a8 8 0 0116 0v1" />
+    </>
+  ),
   spec: (
     <>
       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />

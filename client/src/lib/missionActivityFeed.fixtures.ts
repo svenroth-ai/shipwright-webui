@@ -6,6 +6,19 @@ const tool = (id: string, name: string, input: Record<string, unknown>) => recor
   type: "assistant",
   message: { role: "assistant", content: [{ type: "tool_use", id, name, input }] },
 });
+// Identical narration text on every turn keeps `add()`'s exact-match
+// coalescing path engaged (same trick as missionActivityFeedCommandCount.
+// test.ts) — a bare `tool()` call carries no text at all, so every card it
+// produced was empty and got dropped by the empty-tool-only-card filter,
+// leaving the 900-tool scale test with nothing real left to coalesce
+// (code-review catch, medium, iterate-2026-09-20-mission-feed-transcript-fidelity).
+const narratedTool = (id: string, name: string, input: Record<string, unknown>) => record({
+  type: "assistant",
+  message: { role: "assistant", content: [
+    { type: "text", text: "Reading through the source tree." },
+    { type: "tool_use", id, name, input },
+  ] },
+});
 const result = (id: string, isError = false) => record({
   type: "user",
   message: { role: "user", content: [{ type: "tool_result", tool_use_id: id, content: "output", is_error: isError }] },
@@ -49,7 +62,7 @@ export const releaseFixture: MissionContext = {
   ],
 };
 
-export const longIterateFixture = parseSessionJsonl(Array.from({ length: 905 }, (_, index) => tool(
+export const longIterateFixture = parseSessionJsonl(Array.from({ length: 905 }, (_, index) => narratedTool(
   `read-${index}`,
   "Read",
   { file_path: `/repo/source-${index}.ts` },

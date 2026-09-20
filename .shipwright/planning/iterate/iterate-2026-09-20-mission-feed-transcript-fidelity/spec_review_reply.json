@@ -1,0 +1,23 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "Re-review (pass 3) confirms both previously-cited issues are resolved. (1) The Test Completeness Ledger row cites client/e2e/flows/mission-feed-transcript-fidelity.spec.ts, matching the canonical filename used elsewhere in the doc. (2) Fix #3's prose now states the correct ordering and rationale: flushPendingNarration() runs after clearMultiTurnExplanations() and its result is pushed before reconcileArtifactCards(), because clearMultiTurnExplanations would otherwise strip the freshly-flushed card's own explanation. Cross-checked directly against the diff and missionActivityFeedTurn.ts's own doc comment. No new inconsistency introduced. Diff content was verified item-by-item in prior passes (pass 2: ActivityKind 'user' member, icon, label, humanText(), the three new missionActivityFeedTurn.ts functions, reviewerDisplayName() + narration synthesis, the end-of-reconcile empty-card filter scoped to implement/investigate/spec, the CSS spacing rule, the blocker explanation overwrite, the flush call site) and found faithful, in-scope, with no undisclosed extra changes. Stage 2 (code-reviewer) may proceed.",
+  "history": [
+    {
+      "pass": 1,
+      "verdict": "REJECT",
+      "reason": "Diff omitted the untracked new file client/src/lib/missionActivityFeedTurn.ts (imported by missionActivityFeed.ts but absent from plain `git diff`); the mandatory AC-2-agent E2E test cited in the spec (client/e2e/flows/98-mission-feed-transcript-fidelity.spec.ts) did not exist and the spec had no ## E2E section."
+    },
+    {
+      "pass": 2,
+      "verdict": "REJECT",
+      "reason": "Both pass-1 issues fixed (git add -N + real E2E authored, run, and passing 5/5), but the Test Completeness Ledger row still cited the stale nonexistent 98- filename."
+    },
+    {
+      "pass": 3,
+      "verdict": "PASS",
+      "reason": "Ledger filename corrected; Fix #3's ordering rationale corrected to match the code's own documented contract. No new inconsistency."
+    }
+  ]
+}

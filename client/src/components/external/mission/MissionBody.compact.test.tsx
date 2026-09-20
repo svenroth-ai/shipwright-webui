@@ -137,12 +137,15 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     setupCompletedCompact(JSON.stringify({
       type: "assistant",
       message: {
-        content: [{
-          type: "tool_use",
-          id: "spec-write",
-          name: "Edit",
-          input: { file_path: "/project/.shipwright/planning/iterate/mobile.md" },
-        }],
+        content: [
+          { type: "text", text: "Updating the mobile iterate spec." },
+          {
+            type: "tool_use",
+            id: "spec-write",
+            name: "Edit",
+            input: { file_path: "/project/.shipwright/planning/iterate/mobile.md" },
+          },
+        ],
       },
     }));
     fireEvent.click(screen.getByTestId("mission-compact-tab-activity"));

@@ -1,7 +1,8 @@
-import { askUserQuestionSummary, assistantText, toolUses, type ParsedEvent } from "../external/session-parser";
+import { askUserQuestionSummary, toolUses, type ParsedEvent } from "../external/session-parser";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
-import { attachCommand, commandDetail, commandLabel, commandLabelFull, extractOwnProse, isCompactionMarker } from "./missionActivityFeedText";
-import { classifyToolBucket, containsIterateBanner } from "./missionActivityFeedClassify";
+import { attachCommand, commandDetail, commandLabel, commandLabelFull, isCompactionMarker } from "./missionActivityFeedText";
+import { classifyToolBucket, reviewerDisplayName } from "./missionActivityFeedClassify";
+import { buildUserReplyCard, extractTurnProse, flushPendingNarration, type PendingNarration } from "./missionActivityFeedTurn";
 import { isTestFilePath, sameTestFilePath, testInvocationTargetPath, trackWrittenTestFile, type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
@@ -79,49 +80,44 @@ export function deriveActivityFeed(
   // to reach a LATER real turn (code review catch) — but left unbounded that
   // survival can misattribute stale words once several pile up (doubt-review
   // catch); `staleness` bounds it via `MAX_PENDING_NARRATION_CARRY` above.
-  let pendingNarration: { prose: string; proseFull: string; proseRest: string; proseRestFull: string; staleness: number } | null = null;
+  let pendingNarration: PendingNarration | null = null;
   const add = createCardAdder(cards, cardEventCounts);
   for (const event of events) {
     if (isCompactionMarker(event)) {
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
     }
     if (event.kind === "user") {
+      const replyCard = buildUserReplyCard(event);
+      if (replyCard) cards.push(replyCard);
       const resolveState = { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };
       unresolvedTest = resolveToolResults(event, resolveState);
       writtenTestFiles = resolveState.writtenTestFiles;
       continue;
     }
     if (event.kind !== "assistant") continue;
-    // This turn's own words (when Claude wrote any alongside its tool
-    // calls), replacing the generic bucket sentence below when present —
-    // see `extractOwnProse`'s doc comment (missionActivityFeedText.ts).
-    const { ownProse, ownProseFull, ownProseRest, ownProseRestFull } = extractOwnProse(event);
-    const assistantLines = assistantText(event).split("\n");
+    const { isBannerTurn, ownProse, ownProseFull, ownProseRest, ownProseRestFull } = extractTurnProse(event);
+    if (isBannerTurn) {
+      // Guarded so a transcript segment that reprints the banner (a resumed
+      // or replayed session) doesn't fabricate a SECOND "run started" card
+      // (round-6 external review catch, glm, low).
+      if (!cards.some((c) => c.kind === "goal")) {
+        cards.push({ kind: "goal", text: "Started a /shipwright-iterate run.", commands: [], timestamp: event.timestamp });
+      }
+      // A run start invalidates anything carried over from before it — else
+      // a combined banner+tool turn could let an unrelated EARLIER turn's
+      // narration attach to THIS turn's tool card (code review catch, low).
+      pendingNarration = null;
+    }
     const tools = toolUses(event);
     if (tools.length === 0) {
       // A pure-narration turn — the common real-world shape. Its words are
       // not lost: they wait for the next tool-bearing turn (below), which is
-      // where a human reader actually expects them to show up.
-      //
-      // The one exception: the /shipwright-iterate intro banner is exactly
-      // this shape (SKILL.md prints it with no tool call), so left to the
-      // rule above it never surfaced as its own moment — it just became
-      // whatever generic sentence the NEXT tool-bearing turn's bucket picked
-      // (iterate-2026-08-31-mission-feed-gaps). Give it its own card instead
-      // of relying on the narration-carry heuristic to make it visible.
-      const isBannerTurn = containsIterateBanner(assistantLines);
-      if (isBannerTurn) {
-        cards.push({
-          kind: "goal",
-          text: "Started a /shipwright-iterate run.",
-          commands: [],
-          timestamp: event.timestamp,
-        });
-      }
-      // The banner turn's own "prose" is its `====` border line, not real
-      // explanatory narration — it must not become the next tool-bearing
-      // turn's headline (the goal card above already carries the meaning).
-      if (ownProse && !isBannerTurn) pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
+      // where a human reader actually expects them to show up. If this is
+      // the transcript's LAST turn and nothing tool-bearing ever follows
+      // (a closing summary is exactly this shape), the flush after this loop
+      // gives it a card of its own instead of dropping it silently
+      // (reported: "Schluss ... wird nicht geprintet", same run as above).
+      if (ownProse) pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0, timestamp: event.timestamp };
       continue;
     }
     // This turn called tools. Prefer ITS OWN text when it wrote any (the
@@ -232,7 +228,17 @@ export function deriveActivityFeed(
         // added no information of its own — an empty `text` here means the
         // card renders only its command chip(s)
         // (iterate-2026-09-05-mission-feed-ux-gaps).
-        const card = bucket === "review" ? add("review", prose, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, proseFull, labelFull)
+        // A review-bucket `Task` whose turn wrote no words of its own still
+        // gets a real headline naming which reviewer was spawned, not an
+        // empty card carrying only its command chip — otherwise the ONLY
+        // visible trace of a reviewer starting was that chip's truncated
+        // label, and the feed jumped straight to whatever LATER turn's
+        // verdict sentence happened to land on an unrelated card (reported:
+        // "steht nichts, dass die Reviewer was starten",
+        // iterate-2026-09-20-mission-feed-transcript-fidelity).
+        const reviewerSpawn = bucket === "review" && !prose ? reviewerDisplayName(tool.name, input) : null;
+        const reviewProse = reviewerSpawn ? `Spawned ${reviewerSpawn} to review the change.` : prose;
+        const card = bucket === "review" ? add("review", reviewProse, label, artifact(context, "review") ? "review" : undefined, true, event.timestamp, reviewerSpawn ? undefined : proseFull, labelFull)
           : bucket === "spec" ? add("spec", prose, label, artifact(context, "spec") ? "spec" : undefined, true, event.timestamp, proseFull, labelFull)
           : bucket === "investigate" ? add("investigate", prose, label, undefined, true, event.timestamp, proseFull, labelFull)
           : add("implement", prose, label, undefined, true, event.timestamp, proseFull, labelFull);
@@ -286,7 +292,7 @@ export function deriveActivityFeed(
     if (proseConsumedThisTurn) {
       pendingNarration = null;
     } else if (ownProse && !ownProseGivenToTestCard) {
-      pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0 };
+      pendingNarration = { prose: ownProse, proseFull: ownProseFull, proseRest: ownProseRest, proseRestFull: ownProseRestFull, staleness: 0, timestamp: event.timestamp };
     } else if (pendingNarration) {
       pendingNarration = pendingNarration.staleness + 1 >= MAX_PENDING_NARRATION_CARRY
         ? null
@@ -295,6 +301,13 @@ export function deriveActivityFeed(
   }
 
   clearMultiTurnExplanations(cards, cardTurnCounts);
+  // Skipped while genuinely still live (round-2 review catch, low): an
+  // unconditional flush made trailing narration flash in as a `system` card
+  // on one ~1s poll, then vanish into the NEXT tool card's headline on the
+  // next real tool call — `null` context (transient initial load) still
+  // flushes, so a closing summary is never lost.
+  const flushed = context?.runLive === true ? null : flushPendingNarration(pendingNarration);
+  if (flushed) cards.push(flushed);
 
   return reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
 }

@@ -20,6 +20,7 @@ const KIND_LABEL: Record<ActivityCard["kind"], string> = {
   test: "Test",
   review: "Review",
   "user-input": "Question",
+  user: "You",
   blocker: "Blocker",
   delivery: "Delivered",
   system: "System",
