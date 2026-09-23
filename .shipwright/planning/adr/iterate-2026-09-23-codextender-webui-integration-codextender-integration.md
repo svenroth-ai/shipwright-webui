@@ -151,6 +151,22 @@ model catalog always 500 (if it didn't).
    rejects a present-but-invalid `codextenderPort` with
    `400 invalid_codextender_port` before it's ever merged/persisted.
 
+9. **Routing `authToken` through a hidden pty-environment write or a fresh
+   env-file mechanism instead of the visible copyable command** — considered
+   at the F11 local PR-review preflight (round 7, BLOCK: the token is visible
+   in terminal input/scrollback even after round 7's own env-cleanup fix).
+   Rejected/disclosed rather than implemented: a hidden pty write conflicts
+   with CLAUDE.md rule 19 (auto-execute must be built exclusively as a
+   copyable command string, never a server-side `pty.write`); a new env-file
+   side-channel would trade a scrollback-visibility risk for a NEW
+   orphaned-on-disk-secret risk (a killed pty skips its cleanup step) without
+   an existing mechanism to reuse safely under this pass's time budget.
+   Disclosed in `launcher-codextender.ts`'s `buildCodextenderEnvPrefix` doc
+   comment — the token's blast radius is a `127.0.0.1`-only proxy the
+   operator themselves started, the same "local-only, non-secret nature"
+   argument item 5 above already established for this same token. Worth a
+   dedicated design in a follow-up iterate if tightened further.
+
 ## Testing
 
 Server: `codextender-proxy-probe.test.ts` (both probes, plus the no-fetch-

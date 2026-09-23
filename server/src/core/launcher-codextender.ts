@@ -155,6 +155,25 @@ function buildCodextenderEnvCleanupSuffix(shellForm: "powershell" | "cmd" | "pos
  * `set X=Y &&`, posix `X=Y `) — reused as a pattern, not imported (that
  * function is private to `launcher-codex.ts` and this module has no
  * dependency on Codex-CLI concerns).
+ *
+ * PR-review preflight (round 7, iterate-2026-09-23) — flagged BLOCK: the
+ * literal `authToken` value below lands in the visible, copyable command
+ * text (so it appears in terminal input/scrollback and any session
+ * recording), even after `buildCodextenderEnvCleanupSuffix`'s fix removed it
+ * from the shell's PERSISTENT environment. Disclosed rather than fixed here:
+ * every remediation the reviewer itself suggested conflicts with a hard
+ * architecture rule — routing it through a hidden/pre-set pty environment
+ * violates CLAUDE.md rule 19 ("auto-execute is built EXCLUSIVELY by
+ * buildCopyCommands() as a copyable command string, never a server-side
+ * pty.write"), and this repo has no existing env-file mechanism to reuse (a
+ * fresh one risks a NEW, arguably worse failure mode: an orphaned on-disk
+ * secret file if the pty is killed before its cleanup step runs). The
+ * token's blast radius is a `127.0.0.1`-only LiteLLM proxy the operator
+ * themselves started on this same machine — the same "local-only,
+ * non-secret nature" `resolveCodextenderAuthToken`'s own doc comment already
+ * argues, from an earlier PR-review round. Worth a dedicated design (not a
+ * rushed F11 patch) if tightened further; not re-opened by every future
+ * touch of this file on that basis alone.
  */
 function buildCodextenderEnvPrefix(
   args: CodextenderLaunchArgs,
