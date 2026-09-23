@@ -68,19 +68,32 @@ separate `shipwright` monorepo iterate.
    `CopyCommandForms` (the chokepoint's own `args.commands`, built by the
    caller in `routes.ts` the same way a Claude-runtime task always is) and
    prepends a per-shell env-var prefix (`ANTHROPIC_BASE_URL`,
-   `ANTHROPIC_AUTH_TOKEN` — fixed placeholder `sk-codextender-local`, matching
-   `codextender`'s own README example verbatim — `ANTHROPIC_MODEL`,
-   `CODEXTENDER_ACTIVE=1`, `CODEXTENDER_MODEL`) right after the recomputed
-   `buildCdPrefix(shellForm, cwd)` (an exact-match string slice point, since
-   `buildCdPrefix` is pure/exported — no regex parsing of the rendered
-   string). **Alternative considered and rejected**: reimplementing
-   `launcher.ts`'s private argv builders inside the new module (the
-   `launcher-codex.ts` pattern) — rejected because Codextender's launch
-   target genuinely IS an ordinary Claude launch; duplicating
-   session/resume/name/plugin-dir logic would drift from `launcher.ts`'s own
-   fixes over time for zero benefit. Model alias resolves from
-   `parsed.codexImplementationModel` (reusing the existing free-text field —
-   Part A's "no closed enum" stance), defaulting to `"sol"` when absent.
+   `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_MODEL`, `CODEXTENDER_ACTIVE=1`,
+   `CODEXTENDER_MODEL`) right after the recomputed `buildCdPrefix(shellForm,
+   cwd)` (an exact-match string slice point, since `buildCdPrefix` is
+   pure/exported — no regex parsing of the rendered string). **Superseded
+   sub-decision, corrected during F11 PR-review preflight**: this line
+   originally proposed a fixed bearer-shaped placeholder value for
+   `ANTHROPIC_AUTH_TOKEN` (matching the `codextender` CLI's own README
+   example) — that shape was rejected by the PR-review preflight's second
+   round before ever shipping (`resolveCodextenderAuthToken()` has NO
+   built-in fallback; it reads `CODEXTENDER_AUTH_TOKEN` from the environment
+   only, failing closed with `codextender_auth_token_missing` when unset —
+   see the ADR's Rejected-alternatives item 5). A later preflight round
+   (7/8) additionally found the resolved token's literal VALUE landing in
+   the visible, copyable command text (terminal scrollback exposure); fixed
+   by writing it once to a private per-launch temp file and having each
+   shell read it back via its own no-echo idiom (PowerShell `Get-Content`,
+   cmd `set /p VAR=<file`, posix `$(cat file)`) instead of interpolating the
+   value directly — see the ADR's Rejected-alternatives item 9. **Alternative
+   considered and rejected**: reimplementing `launcher.ts`'s private argv
+   builders inside the new module (the `launcher-codex.ts` pattern) —
+   rejected because Codextender's launch target genuinely IS an ordinary
+   Claude launch; duplicating session/resume/name/plugin-dir logic would
+   drift from `launcher.ts`'s own fixes over time for zero benefit. Model
+   alias resolves from `parsed.codexImplementationModel` (reusing the
+   existing free-text field — Part A's "no closed enum" stance), defaulting
+   to `"sol"` when absent.
 
 5. **Task-level `codexIntegrationMode` stamp** (new optional field on
    `ExternalTask`, `server/src/core/sdk-sessions-store.ts`) — decided instead
