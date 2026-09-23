@@ -74,7 +74,12 @@ export function createCodextenderModelsRoutes(args: {
     }
 
     if (!inflight || inflight.port !== port) {
-      inflight = {
+      // Capture this specific inflight entry by reference (PR-review round
+      // 4): an older port's probe finishing AFTER a newer port's probe has
+      // already replaced the module-level `inflight` must not null out that
+      // newer entry out from under it — only clear `inflight` if it's still
+      // THIS one.
+      const self: { port: number; promise: Promise<CodextenderModelsResponse> } = {
         port,
         promise: probe(port)
           .catch(() => ({ ok: false, models: [] }) satisfies CodextenderProbeResult)
@@ -92,9 +97,10 @@ export function createCodextenderModelsRoutes(args: {
             ) satisfies CodextenderModelsResponse;
           })
           .finally(() => {
-            inflight = null;
+            if (inflight === self) inflight = null;
           }),
       };
+      inflight = self;
     }
     return c.json(await inflight.promise);
   });

@@ -141,6 +141,33 @@ describe("GET /api/codextender-models", () => {
     expect(await res.json()).toEqual({ status: "unavailable", models: [] });
   });
 
+  // PR-review round 4: an older port's slow probe resolving AFTER a newer
+  // port's probe has already replaced the module-level `inflight` entry
+  // must not null it out from under the newer entry — that would make a
+  // request landing during the newer probe's own window start a SECOND,
+  // redundant probe for that same port instead of coalescing onto it.
+  it("an older port's finally() never clears a newer port's still-pending inflight entry", async () => {
+    let port = 4000;
+    const probe = vi.fn(
+      (p: number) =>
+        new Promise<CodextenderProbeResult>((resolve) =>
+          setTimeout(() => resolve(OK_RESULT), p === 4000 ? 10 : 40),
+        ),
+    );
+    const app = new Hono();
+    app.route("/", createCodextenderModelsRoutes({ getPort: async () => port, probe }));
+
+    const reqA = app.request("/api/codextender-models"); // starts the port-4000 probe (10ms)
+    await new Promise((resolve) => setTimeout(resolve, 2));
+    port = 5000;
+    const reqB = app.request("/api/codextender-models"); // starts the port-5000 probe (40ms), replaces inflight
+    await new Promise((resolve) => setTimeout(resolve, 20)); // port-4000 probe resolves; its finally() must not clear port 5000's entry
+    const reqC = app.request("/api/codextender-models"); // still port 5000 — must coalesce onto reqB's inflight
+
+    await Promise.all([reqA, reqB, reqC]);
+    expect(probe.mock.calls.filter(([p]) => p === 5000)).toHaveLength(1);
+  });
+
   it("suppresses re-probing for failureTtlMs after a failure", async () => {
     const probe = vi.fn(async () => FAIL_RESULT);
     const app = new Hono();
