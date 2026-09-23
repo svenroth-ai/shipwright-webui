@@ -38,16 +38,23 @@ export function createCodextenderModelsRoutes(args: {
   const failureTtlMs = args.failureTtlMs ?? 30_000;
   const probe = args.probe ?? probeCodextenderModels;
 
-  let cache: { models: CodextenderModelEntry[]; at: number } | null = null;
-  let lastFailureAt: number | null = null;
-  let inflight: Promise<CodextenderModelsResponse> | null = null;
+  // Keyed by port (PR-review BLOCK fix, iterate-2026-09-23 fourth round):
+  // the cache/failure state must be scoped to the port it was fetched
+  // against, or changing `codextenderPort` in Settings would keep serving
+  // the PREVIOUS proxy's model list for up to `ttlMs`.
+  let cache: { port: number; models: CodextenderModelEntry[]; at: number } | null = null;
+  let lastFailure: { port: number; at: number } | null = null;
+  let inflight: { port: number; promise: Promise<CodextenderModelsResponse> } | null = null;
 
   app.get("/api/codextender-models", async (c) => {
     const now = Date.now();
-    if (cache !== null && now - cache.at <= ttlMs) {
-      return c.json({ status: "ok", models: cache.models } satisfies CodextenderModelsResponse);
-    }
-    if (lastFailureAt !== null && now - lastFailureAt <= failureTtlMs) {
+    let port: number;
+    try {
+      port = await args.getPort();
+    } catch {
+      // A getPort() rejection (e.g. a settings-read fault) must degrade
+      // the same as a probe failure, never escape as a 500 — this route
+      // is documented as always-200.
       return c.json(
         (cache !== null
           ? { status: "stale", models: cache.models }
@@ -55,42 +62,41 @@ export function createCodextenderModelsRoutes(args: {
       );
     }
 
-    if (!inflight) {
-      inflight = (async () => {
-        let port: number;
-        try {
-          port = await args.getPort();
-        } catch {
-          // A getPort() rejection (e.g. a settings-read fault) must degrade
-          // the same as a probe failure, never escape as a 500 — this route
-          // is documented as always-200.
-          lastFailureAt = Date.now();
-          return (
-            cache !== null
-              ? { status: "stale", models: cache.models }
-              : { status: "unavailable", models: [] }
-          ) satisfies CodextenderModelsResponse;
-        }
-        return probe(port)
+    if (cache !== null && cache.port === port && now - cache.at <= ttlMs) {
+      return c.json({ status: "ok", models: cache.models } satisfies CodextenderModelsResponse);
+    }
+    if (lastFailure !== null && lastFailure.port === port && now - lastFailure.at <= failureTtlMs) {
+      return c.json(
+        (cache !== null && cache.port === port
+          ? { status: "stale", models: cache.models }
+          : { status: "unavailable", models: [] }) satisfies CodextenderModelsResponse,
+      );
+    }
+
+    if (!inflight || inflight.port !== port) {
+      inflight = {
+        port,
+        promise: probe(port)
           .catch(() => ({ ok: false, models: [] }) satisfies CodextenderProbeResult)
           .then((result) => {
             if (result.ok) {
-              cache = { models: result.models, at: Date.now() };
-              lastFailureAt = null;
+              cache = { port, models: result.models, at: Date.now() };
+              lastFailure = null;
               return { status: "ok", models: result.models } satisfies CodextenderModelsResponse;
             }
-            lastFailureAt = Date.now();
+            lastFailure = { port, at: Date.now() };
             return (
-              cache !== null
+              cache !== null && cache.port === port
                 ? { status: "stale", models: cache.models }
                 : { status: "unavailable", models: [] }
             ) satisfies CodextenderModelsResponse;
-          });
-      })().finally(() => {
-        inflight = null;
-      });
+          })
+          .finally(() => {
+            inflight = null;
+          }),
+      };
     }
-    return c.json(await inflight);
+    return c.json(await inflight.promise);
   });
 
   return app;

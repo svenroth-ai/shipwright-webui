@@ -101,6 +101,46 @@ describe("GET /api/codextender-models", () => {
     expect(await res.json()).toEqual({ status: "stale", models: MODELS });
   });
 
+  // PR-review BLOCK fix, iterate-2026-09-23 fourth round: cache/failure state
+  // is scoped to the port it was fetched against, so a `codextenderPort`
+  // change re-probes immediately instead of serving the previous proxy's
+  // list for up to `ttlMs`.
+  it("re-probes immediately when the resolved port changes, even within the TTL", async () => {
+    let port = 4000;
+    const probe = vi.fn(async (p: number) =>
+      p === 4000 ? OK_RESULT : { ok: true, models: [{ slug: "other", display_name: "other" }] },
+    );
+    const app = new Hono();
+    app.route(
+      "/",
+      createCodextenderModelsRoutes({ getPort: async () => port, probe, ttlMs: 300_000 }),
+    );
+    const first = await app.request("/api/codextender-models");
+    expect(await first.json()).toEqual({ status: "ok", models: MODELS });
+
+    port = 5000;
+    const second = await app.request("/api/codextender-models");
+    expect(probe).toHaveBeenCalledWith(5000);
+    expect(await second.json()).toEqual({
+      status: "ok",
+      models: [{ slug: "other", display_name: "other" }],
+    });
+  });
+
+  it("a stale-port failure never masks with a different port's cached list", async () => {
+    let port = 4000;
+    const probe = vi.fn(async (p: number) => (p === 4000 ? OK_RESULT : FAIL_RESULT));
+    const app = new Hono();
+    app.route(
+      "/",
+      createCodextenderModelsRoutes({ getPort: async () => port, probe, ttlMs: -1 }),
+    );
+    await app.request("/api/codextender-models"); // caches MODELS under port 4000
+    port = 5000;
+    const res = await app.request("/api/codextender-models"); // fails under port 5000
+    expect(await res.json()).toEqual({ status: "unavailable", models: [] });
+  });
+
   it("suppresses re-probing for failureTtlMs after a failure", async () => {
     const probe = vi.fn(async () => FAIL_RESULT);
     const app = new Hono();

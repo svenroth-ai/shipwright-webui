@@ -14,6 +14,7 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   port: 3847,
   maxConcurrent: 3,
   heartbeatIntervalMs: 30000,
+  runtimeDefault: "claude",
 };
 
 export interface SettingsReaderDeps {

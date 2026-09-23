@@ -27,6 +27,16 @@ describe("Settings Routes", () => {
     expect(body.data.maxConcurrent).toBe(3);
   });
 
+  // PR-review finding, iterate-2026-09-23 fourth round — a fresh install's
+  // default payload must use only the renamed field.
+  it("GET /api/settings's fresh-install defaults use only the renamed runtimeDefault field", async () => {
+    const { app } = setup();
+    const res = await app.request("/api/settings");
+    const body = await res.json();
+    expect(body.data.runtimeDefault).toBe("claude");
+    expect(body.data).not.toHaveProperty("codexRuntimeDefault");
+  });
+
   // @covers FR-01.06
   it("PUT /api/settings persists and returns updated", async () => {
     const { app } = setup();

@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   port: 3847,
   maxConcurrent: 3,
   heartbeatIntervalMs: 30000,
+  runtimeDefault: "claude",
 };
 
 export function createSettingsRoutes(

@@ -120,6 +120,23 @@ model catalog always 500 (if it didn't).
    `CodexSettingsCard.tsx`'s port input accepting fractional/out-of-range
    values; fixed by validating `Number.isInteger` plus the 1-65535 TCP range
    in `changePort` before it saves.
+7. **Leaving the `codextender-models` route's TTL cache/failure state keyed
+   globally rather than per-port, and defaulting the settings' `runtimeDefault`
+   only implicitly (via client-side `?? "claude"` fallbacks) rather than in
+   `DEFAULT_GLOBAL_SETTINGS`/`DEFAULT_SETTINGS` themselves** — a fourth
+   preflight round BLOCKED on both. (a) Changing `codextenderPort` in
+   Settings kept serving the previous proxy's model catalog for up to the
+   5-minute `ttlMs`/30-second `failureTtlMs` windows, because `cache`/
+   `lastFailureAt` carried no memory of which port produced them. Fixed by
+   resolving `getPort()` once per request (moved out of the lazy `inflight`
+   closure) and scoping `cache`/`lastFailure`/`inflight` to `{port, ...}`, so
+   a port change is treated as a cold miss even mid-TTL. (b) A fresh install
+   (no `settings.json` yet) returned a payload with no `runtimeDefault` key
+   at all rather than the explicit renamed default; fixed by adding
+   `runtimeDefault: "claude"` to both default-settings constants — a
+   behavior-preserving change (every consumer already treated a missing
+   value as `"claude"`), made explicit so the rename reads as complete at
+   the settings surface itself, not just in the migration shim.
 
 ## Testing
 
@@ -128,10 +145,14 @@ when-unconfigured degrade), `launcher-codextender.test.ts` (env-prefix
 injection + cwd-mismatch throw + `resolveCodextenderAuthToken`
 env-override/blank/unset-returns-undefined), `settings-reader.test.ts` +
 `routes/settings.test.ts` (legacy-key migration, both the GET path and PUT's
-read-merge-write), `runtime-chokepoint.codextender.test.ts` (chokepoint
-branch + AC7/AC9 bypass + cwd-mismatch 500 + `codextender_auth_token_missing`
-400 with the proxy reachable), `fork.codextender.test.ts` (fork inheritance +
-TOCTOU regression + the same missing-token 400 with no orphan child row).
+read-merge-write, plus the fresh-install-defaults-use-only-the-renamed-field
+case), `runtime-chokepoint.codextender.test.ts` (chokepoint branch + AC7/AC9
+bypass + cwd-mismatch 500 + `codextender_auth_token_missing` 400 with the
+proxy reachable), `fork.codextender.test.ts` (fork inheritance + TOCTOU
+regression + the same missing-token 400 with no orphan child row),
+`codextender-models.test.ts` (added: re-probes immediately on a port change
+even within the TTL, and a stale-port failure never masks with a different
+port's cached list).
 Client: `ModelTierOverrideFields.codextender.test.tsx`,
 `EditTaskModal.runtime-availability-race.test.tsx` (forced-runtime submit on
 late settings resolution + a user's own pick under "both" surviving an

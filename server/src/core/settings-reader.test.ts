@@ -15,6 +15,19 @@ describe("readGlobalSettings", () => {
     expect(result).toEqual(DEFAULT_GLOBAL_SETTINGS);
   });
 
+  // PR-review finding, iterate-2026-09-23 fourth round — a fresh install
+  // (no settings.json yet) must expose `runtimeDefault: "claude"` directly,
+  // never the removed `codexRuntimeDefault` key, so the rename is complete
+  // even before any settings.json exists on disk.
+  it("a fresh install's defaults use only the renamed runtimeDefault field", async () => {
+    const result = await readGlobalSettings("/x/settings.json", {
+      existsSync: () => false,
+      readFile: async () => { throw new Error("should not be called"); },
+    });
+    expect(result.runtimeDefault).toBe("claude");
+    expect(result).not.toHaveProperty("codexRuntimeDefault");
+  });
+
   it("merges the stored fields over the defaults", async () => {
     const result = await readGlobalSettings("/x/settings.json", {
       existsSync: () => true,
