@@ -8,5 +8,66 @@
   "branch": "iterate/codextender-webui-integration",
   "spec": ".shipwright/planning/iterate/2026-09-23-codextender-webui-integration.md",
   "tests_passed": true,
-  "adr": "iterate-2026-09-23-codextender-webui-integration"
+  "adr": "iterate-2026-09-23-codextender-webui-integration",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    },
+    "behaviors": [
+      {
+        "behavior": "probeCodextenderLiveness hits GET /health/liveliness with no auth header; probeCodextenderModels hits GET /v1/models with Authorization: Bearer <token>",
+        "disposition": "tested",
+        "evidence": "codextender-proxy-probe.test.ts PASSED"
+      },
+      {
+        "behavior": "buildCodextenderCommands prepends the env-var block (ANTHROPIC_BASE_URL/AUTH_TOKEN/MODEL, CODEXTENDER_ACTIVE/MODEL) on all 3 shells, and throws CodextenderCwdMismatchError (never silently double-prefixes) when the claude command's cd-prefix doesn't match the given cwd",
+        "disposition": "tested",
+        "evidence": "launcher-codextender.test.ts PASSED"
+      },
+      {
+        "behavior": "runtime-chokepoint's Codextender branch overrides with buildCodextenderCommands, gates on the liveness probe (never the CLI probe), bypasses AC7/AC9 campaign/pipeline blocks, and refuses (codextender_cwd_mismatch, 500) on a cwd mismatch",
+        "disposition": "tested",
+        "evidence": "runtime-chokepoint.codextender.test.ts PASSED"
+      },
+      {
+        "behavior": "POST /tasks/:id/fork inherits codexIntegrationMode from a Codextender-mode parent, reuses plain-Claude fork commands, and is immune to a concurrent mid-request mutation of the parent's codexIntegrationMode (TOCTOU snapshot)",
+        "disposition": "tested",
+        "evidence": "fork.codextender.test.ts PASSED (incl. doubt-review HIGH regression test)"
+      },
+      {
+        "behavior": "GET /api/codextender-models serves the proxy's catalog with the same stale/unavailable degrade shape as the Codex CLI catalog route, and degrades to the stale/unavailable response rather than an unhandled 500 when getPort() rejects",
+        "disposition": "tested",
+        "evidence": "codextender-models.test.ts PASSED"
+      },
+      {
+        "behavior": "ModelTierOverrideFields/CodexModelOverrideFields render Codextender-specific placeholders and a static sol/astra fallback when isCodextender is true and the live catalog is empty, sourced from a codexIntegrationMode PROP rather than an independent settings read",
+        "disposition": "tested",
+        "evidence": "ModelTierOverrideFields.codextender.test.tsx PASSED"
+      },
+      {
+        "behavior": "New Iterate modal, real browser: Codextender mode shows its own model-field placeholders + a live /api/codextender-models catalog datalist, no reviewer-identity block, and free text is still accepted",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/codextender-integration.spec.ts::Codextender mode shows its own model-field placeholders... PASSED"
+      },
+      {
+        "behavior": "New Iterate modal, real browser: Codextender mode falls back to static sol/astra suggestions plus an unreachable-proxy caption when the catalog is empty; Light mode (default) is unaffected by a prior Codextender selection",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/codextender-integration.spec.ts (2 remaining tests) PASSED; F0.5 surface_verification exit_code 0, 3/3 passed"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 3,
+    "exit_code": 0,
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium codextender-integration.spec.ts"
+  }
 }
