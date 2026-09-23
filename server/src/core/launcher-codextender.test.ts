@@ -4,9 +4,11 @@
  * `CopyCommandForms`, across all three shells, plus the model default.
  */
 
-import { readFileSync, unlinkSync } from "node:fs";
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { buildCopyCommands } from "./launcher.js";
 import {
@@ -15,6 +17,12 @@ import {
   DEFAULT_CODEXTENDER_MODEL_ALIAS,
   resolveCodextenderAuthToken,
 } from "./launcher-codextender.js";
+
+vi.mock("node:crypto", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:crypto")>();
+  return { ...actual, randomUUID: vi.fn(actual.randomUUID) };
+});
+import { randomUUID } from "node:crypto";
 
 const SESSION_UUID = "00000000-0000-0000-0000-000000000001";
 const CWD = "C:\\01_Development\\demo";
@@ -217,6 +225,35 @@ describe("buildCodextenderCommands", () => {
     expect(result.posix).not.toContain(" & set ");
 
     unlinkSync(tokenPath);
+  });
+
+  it("PR-review round 12 — a pre-existing file (e.g. an attacker-planted symlink) at the generated token-file path is never followed; the writer retries under a fresh random name instead", () => {
+    const collisionId = "11111111-1111-1111-1111-111111111111";
+    const freshId = "22222222-2222-2222-2222-222222222222";
+    const collisionPath = path.join(tmpdir(), `codextender-auth-${collisionId}.tmp`);
+    const DECOY_CONTENT = "PRE-EXISTING-DECOY-CONTENT-DO-NOT-OVERWRITE";
+    writeFileSync(collisionPath, DECOY_CONTENT);
+    vi.mocked(randomUUID).mockReturnValueOnce(collisionId as `${string}-${string}-${string}-${string}-${string}`);
+    vi.mocked(randomUUID).mockReturnValueOnce(freshId as `${string}-${string}-${string}-${string}-${string}`);
+
+    try {
+      const result = buildCodextenderCommands({
+        cwd: CWD,
+        baseUrl: "http://127.0.0.1:4000",
+        authToken: FIXTURE_MASTER_KEY,
+        claudeCommands: claudeCommands(),
+      });
+      const tokenPath = extractTokenFilePath(result.posix, "posix");
+
+      expect(tokenPath).not.toBe(collisionPath);
+      expect(tokenPath).toContain(freshId);
+      expect(readFileSync(collisionPath, "utf8")).toBe(DECOY_CONTENT);
+
+      readAndDeleteTokenFile(result.posix, "posix");
+    } finally {
+      vi.mocked(randomUUID).mockRestore();
+      unlinkSync(collisionPath);
+    }
   });
 
   it("doubt-review HIGH — throws CodextenderCwdMismatchError (never silently double-prefixes) when the claude command's embedded cd-prefix doesn't match the given cwd", () => {

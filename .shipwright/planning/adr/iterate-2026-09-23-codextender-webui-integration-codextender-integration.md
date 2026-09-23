@@ -206,6 +206,17 @@ model catalog always 500 (if it didn't).
    server-side default exists for `codextenderPort`, so it would have left a
    fresh install's model list permanently unloaded).
 
+   **Round 12: `writeCodextenderAuthTokenFile` created the token temp file
+   non-exclusively (`writeFileSync` with no `flag`)**, so a pre-existing
+   file or symlink at the generated path — a TOCTOU race in the shared OS
+   temp dir — would be silently followed and overwritten with the bearer
+   token. The random UUID in the filename already makes a genuine collision
+   astronomically unlikely, but the write itself gave no guarantee. Fixed by
+   creating with `flag: "wx"` (exclusive create, fails `EEXIST` rather than
+   following an existing path) inside a bounded retry loop
+   (`MAX_TOKEN_FILE_CREATE_ATTEMPTS = 5`) that picks a fresh random name on
+   each `EEXIST` and re-throws any other error.
+
 ## Testing
 
 Server: `codextender-auth-file-sweep.test.ts` (round 10, new — boundary
@@ -221,7 +232,10 @@ round 8 additions: the token never appears literally in any of the 3
 command strings, all 3 reference the same temp file, each shell's own
 no-echo read idiom actually resolves it for a child process, and the temp
 file is deleted on both the normal cleanup-suffix path and the
-cwd-mismatch throw path), `settings-reader.test.ts` +
+cwd-mismatch throw path; round 12 addition: a pre-existing file/symlink at
+the generated token-file path is never followed — the writer retries under
+a fresh random name and the decoy content is left untouched),
+`settings-reader.test.ts` +
 `routes/settings.test.ts` (legacy-key migration, both the GET path and PUT's
 read-merge-write, plus the fresh-install-defaults-use-only-the-renamed-field
 case), `runtime-chokepoint.codextender.test.ts` (chokepoint branch + AC7/AC9

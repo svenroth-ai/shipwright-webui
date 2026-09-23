@@ -137,11 +137,32 @@ export function buildCodextenderCommands(args: CodextenderLaunchArgs): CopyComma
  * smaller and shorter-lived exposure than the permanent scrollback record
  * this replaces, and the OS temp dir is already user-scoped (not
  * world-readable) on both Windows and POSIX.
+ *
+ * Round-12 preflight hardening: `flag: "wx"` creates the file exclusively
+ * (fails with EEXIST instead of following a pre-existing symlink at the
+ * generated path), so a TOCTOU symlink race in the shared temp dir can
+ * never redirect the token write onto an attacker-chosen file. A random
+ * UUID path already makes a genuine collision astronomically unlikely; the
+ * bounded retry only exists to survive that near-impossible case rather
+ * than crash the launch.
  */
+const MAX_TOKEN_FILE_CREATE_ATTEMPTS = 5;
+
 function writeCodextenderAuthTokenFile(token: string): string {
-  const filePath = path.join(tmpdir(), `codextender-auth-${randomUUID()}.tmp`);
-  writeFileSync(filePath, `${token}\n`, { mode: 0o600 });
-  return filePath;
+  for (let attempt = 0; attempt < MAX_TOKEN_FILE_CREATE_ATTEMPTS; attempt++) {
+    const filePath = path.join(tmpdir(), `codextender-auth-${randomUUID()}.tmp`);
+    try {
+      writeFileSync(filePath, `${token}\n`, { mode: 0o600, flag: "wx" });
+      return filePath;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "EEXIST") continue;
+      throw err;
+    }
+  }
+  throw new Error(
+    "Failed to create a unique Codextender auth token file after " +
+      `${MAX_TOKEN_FILE_CREATE_ATTEMPTS} attempts`,
+  );
 }
 
 function injectEnvPrefix(
