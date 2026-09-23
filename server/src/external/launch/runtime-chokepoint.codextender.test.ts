@@ -64,6 +64,7 @@ const CLAUDE_COMMANDS = {
 };
 const PROXY_UP = () => Promise.resolve(true);
 const PROXY_DOWN = () => Promise.resolve(false);
+const FIXTURE_TOKEN = () => "test-fixture-token";
 
 describe("isCodexNewPipelineBlocked — Codextender bypass (Part B.6)", () => {
   it("does NOT block a Codextender-mode task's new-pipeline launch (AC9 is a real-codex-CLI limitation)", () => {
@@ -119,6 +120,7 @@ describe("applyRuntimeChokepoint — Codextender branch (Part B.3)", () => {
       codexIntegrationMode: "codextender",
       codextenderPort: 4000,
       checkCodextenderProxyAvailable: PROXY_UP,
+      getCodextenderAuthToken: FIXTURE_TOKEN,
     });
     expect("commands" in result).toBe(true);
     if ("commands" in result) {
@@ -156,10 +158,30 @@ describe("applyRuntimeChokepoint — Codextender branch (Part B.3)", () => {
       taskUpdate: {},
       codexIntegrationMode: "codextender",
       checkCodextenderProxyAvailable: PROXY_UP,
+      getCodextenderAuthToken: FIXTURE_TOKEN,
     });
     expect("commands" in result).toBe(true);
     if ("commands" in result) {
       expect(result.commands.posix).toContain("http://127.0.0.1:4000");
+    }
+  });
+
+  it("PR-review BLOCK (iterate-2026-09-23, second round) — blocks with codextender_auth_token_missing when no auth token is configured, even though the proxy is reachable", async () => {
+    const task = makeTask();
+    const result = await applyRuntimeChokepoint({
+      task,
+      parsed: makeParsed(),
+      project: undefined,
+      commands: CLAUDE_COMMANDS,
+      taskUpdate: {},
+      codexIntegrationMode: "codextender",
+      codextenderPort: 4000,
+      checkCodextenderProxyAvailable: PROXY_UP,
+      getCodextenderAuthToken: () => undefined,
+    });
+    expect("error" in result && result.status).toBe(400);
+    if ("error" in result) {
+      expect(result.error.error).toBe("codextender_auth_token_missing");
     }
   });
 
@@ -198,6 +220,7 @@ describe("applyRuntimeChokepoint — Codextender branch (Part B.3)", () => {
       taskUpdate: {},
       codexIntegrationMode: "codextender",
       checkCodextenderProxyAvailable: PROXY_UP,
+      getCodextenderAuthToken: FIXTURE_TOKEN,
     });
     expect("commands" in result).toBe(true);
   });
@@ -233,6 +256,7 @@ describe("applyRuntimeChokepoint — Codextender branch (Part B.3)", () => {
       codexIntegrationMode: "codextender",
       codextenderPort: 4000,
       checkCodextenderProxyAvailable: PROXY_UP,
+      getCodextenderAuthToken: FIXTURE_TOKEN,
     });
     expect("error" in result).toBe(true);
     if ("error" in result) {

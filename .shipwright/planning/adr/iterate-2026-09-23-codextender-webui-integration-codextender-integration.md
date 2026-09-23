@@ -86,27 +86,38 @@ model catalog always 500 (if it didn't).
    reused by `routes/settings.ts` GET and PUT's read-merge-write) — a plain
    PUT with the new field name completes the migration on disk on next save.
 5. **Leaving `ANTHROPIC_AUTH_TOKEN`/the probe's `Authorization` header as an
-   unconditional hardcoded constant** (`CODEXTENDER_AUTH_TOKEN_PLACEHOLDER`)
-   — rejected by the same preflight: an externally-contributed change that
-   hardcodes a bearer-shaped string AND suppresses the secret scanner for it
-   reads as unsafe regardless of the value's actual local-only nature.
-   `launcher-codextender.ts`'s new `resolveCodextenderAuthToken()` reads
-   `process.env.CODEXTENDER_AUTH_TOKEN` first, falling back to the same
-   placeholder — the constant stays (still the correct default for every
-   stock `codextender` install, and still the reason the `.gitleaks.toml`
-   entry exists), but it is no longer the only value the code can send, so
-   an operator who has customized their own local proxy's `master_key` is
-   not silently locked out either.
+   unconditional hardcoded constant** (`CODEXTENDER_AUTH_TOKEN_PLACEHOLDER`,
+   the documented `codextender` README example) — rejected by the same
+   preflight, in TWO rounds. Round 1 kept the constant as a fallback default
+   behind a `process.env.CODEXTENDER_AUTH_TOKEN` override; re-run, the
+   preflight blocked again — an externally-contributed change that hardcodes
+   a bearer-shaped string AND suppresses the secret scanner for it reads as
+   unsafe regardless of the value's actual local-only nature or whether it
+   is reachable as a fallback. Round 2: `resolveCodextenderAuthToken()` has
+   NO built-in fallback at all — it reads `CODEXTENDER_AUTH_TOKEN` from the
+   environment only and returns `undefined` when unset/blank.
+   `buildCodextenderCommands`'s `authToken` became a required field (a
+   caller that skips resolving it is a compile error, not a silent empty/
+   placeholder token); `probeCodextenderModels` degrades to `{ok: false}`
+   without calling `fetch` at all when unconfigured; the launch chokepoint
+   and the fork route both gained a preflight (`getCodextenderAuthToken()`)
+   returning a new `codextender_auth_token_missing` 400
+   (`runtime-chokepoint-errors.ts`) before either would otherwise build a
+   command. The `.gitleaks.toml` entry for the placeholder string was
+   removed — it no longer appears in source at all.
 
 ## Testing
 
-Server: `codextender-proxy-probe.test.ts` (both probes),
-`launcher-codextender.test.ts` (env-prefix injection + cwd-mismatch throw +
-`resolveCodextenderAuthToken` env-override/blank/unset), `settings-reader.test.ts`
-+ `routes/settings.test.ts` (legacy-key migration, both the GET path and PUT's
-read-merge-write), `runtime-chokepoint.codextender.test.ts` (chokepoint branch
-+ AC7/AC9 bypass + cwd-mismatch 500), `fork.codextender.test.ts` (fork
-inheritance + TOCTOU regression). Client: `ModelTierOverrideFields.codextender.test.tsx`. E2E:
+Server: `codextender-proxy-probe.test.ts` (both probes, plus the no-fetch-
+when-unconfigured degrade), `launcher-codextender.test.ts` (env-prefix
+injection + cwd-mismatch throw + `resolveCodextenderAuthToken`
+env-override/blank/unset-returns-undefined), `settings-reader.test.ts` +
+`routes/settings.test.ts` (legacy-key migration, both the GET path and PUT's
+read-merge-write), `runtime-chokepoint.codextender.test.ts` (chokepoint
+branch + AC7/AC9 bypass + cwd-mismatch 500 + `codextender_auth_token_missing`
+400 with the proxy reachable), `fork.codextender.test.ts` (fork inheritance +
+TOCTOU regression + the same missing-token 400 with no orphan child row).
+Client: `ModelTierOverrideFields.codextender.test.tsx`. E2E:
 `client/e2e/flows/codextender-integration.spec.ts` (3 tests — Codextender
 placeholders/catalog, static fallback + unreachable caption, light-mode
 non-regression), run via the isolated stack, F0.5 surface_verification

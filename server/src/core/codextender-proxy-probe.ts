@@ -10,16 +10,17 @@
  *    equivalent in `external/tasks/fork.ts`) — a launch/fork only needs to
  *    know the proxy is UP, not what it serves.
  *  - `probeCodextenderModels` -> `GET /v1/models`, WITH
- *    `Authorization: Bearer <resolveCodextenderAuthToken()>` — the proxy's
- *    own `config.py` sets `general_settings.master_key` to that same fixed
- *    value by default (overridable via `CODEXTENDER_AUTH_TOKEN`, see
- *    `launcher-codextender.ts`), and confirmed live against a real local
- *    LiteLLM proxy: an unauthenticated `/v1/models` request returns `500`
- *    (a LiteLLM quirk, not a clean 401), so omitting the header makes every
- *    probe look like a hard failure. Backs the cached
- *    `/api/codextender-models` route (`routes/codextender-models.ts`),
- *    which wraps this probe in a TTL cache mirroring `codex-models.ts`'s
- *    shape.
+ *    `Authorization: Bearer <token>` where `<token>` comes from
+ *    `process.env.CODEXTENDER_AUTH_TOKEN` (`resolveCodextenderAuthToken()`
+ *    in `launcher-codextender.ts` — no built-in default, PR-review BLOCK,
+ *    iterate-2026-09-23) — an unconfigured token degrades this probe to
+ *    `{ok: false}` the same as an unreachable proxy, rather than sending a
+ *    baked-in value. Confirmed live against a real local LiteLLM proxy: an
+ *    unauthenticated `/v1/models` request returns `500` (a LiteLLM quirk,
+ *    not a clean 401), so omitting the header makes every probe look like
+ *    a hard failure regardless. Backs the cached `/api/codextender-models`
+ *    route (`routes/codextender-models.ts`), which wraps this probe in a
+ *    TTL cache mirroring `codex-models.ts`'s shape.
  *
  * Deliberately no CLI shell-out (unlike `codex-models-probe.ts`) — the
  * proxy already speaks these two endpoints natively (LiteLLM's own
@@ -45,13 +46,17 @@ export interface CodextenderProbeDeps {
   /** Probe timeout in ms. Default 1500 — short enough that a launch or a
    *  datalist render never feels stuck on an unreachable proxy. */
   timeoutMs?: number;
+  /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
+   *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
+  authToken?: string;
 }
 
 /**
- * `GET http://127.0.0.1:<port>/v1/models` with the fixed Codextender
- * master-key bearer token. Never throws — any network error, non-2xx
- * status, timeout, or malformed body resolves `{ok: false, models: []}`
- * rather than rejecting, so callers never need a try/catch.
+ * `GET http://127.0.0.1:<port>/v1/models` with the configured Codextender
+ * master-key bearer token (`deps.authToken` or `resolveCodextenderAuthToken()`).
+ * Never throws — an unconfigured token, any network error, non-2xx status,
+ * timeout, or malformed body all resolve `{ok: false, models: []}` rather
+ * than rejecting, so callers never need a try/catch.
  *
  * LiteLLM's `/v1/models` response is OpenAI-shaped (`{"data": [{"id":
  * "sol"}, ...]}`) — it carries no separate display name, so `display_name`
@@ -62,6 +67,8 @@ export async function probeCodextenderModels(
   port: number,
   deps: CodextenderProbeDeps = {},
 ): Promise<CodextenderProbeResult> {
+  const authToken = deps.authToken ?? resolveCodextenderAuthToken();
+  if (!authToken) return { ok: false, models: [] };
   const fetchFn = deps.fetchFn ?? fetch;
   const timeoutMs = deps.timeoutMs ?? 1500;
   const controller = new AbortController();
@@ -69,7 +76,7 @@ export async function probeCodextenderModels(
   try {
     const res = await fetchFn(`http://127.0.0.1:${port}/v1/models`, {
       signal: controller.signal,
-      headers: { Authorization: `Bearer ${resolveCodextenderAuthToken()}` },
+      headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!res.ok) return { ok: false, models: [] };
     const body: unknown = await res.json();

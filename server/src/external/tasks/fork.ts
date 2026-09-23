@@ -18,12 +18,16 @@ import path from "node:path";
 import { probeCodextenderLiveness } from "../../core/codextender-proxy-probe.js";
 import { buildCopyCommands } from "../../core/launcher.js";
 import { buildCodexCommands } from "../../core/launcher-codex.js";
-import { buildCodextenderCommands } from "../../core/launcher-codextender.js";
+import {
+  buildCodextenderCommands,
+  resolveCodextenderAuthToken,
+} from "../../core/launcher-codextender.js";
 import { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 import { normalizeTitle, withLiveSession } from "../_shared/helpers.js";
 import { isCodexCliAvailable, runtimeForTask } from "../launch/runtime-chokepoint.js";
 import {
   codexCliNotFoundError,
+  codextenderAuthTokenMissingError,
   codextenderProxyUnreachableError,
 } from "../launch/runtime-chokepoint-errors.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
@@ -44,6 +48,9 @@ export function registerTasksFork(
     checkCodextenderProxyAvailable?: () => Promise<boolean>;
     /** The `codextenderPort` global setting; defaults to 4000. */
     getCodextenderPort?: () => Promise<number | undefined>;
+    /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
+     *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
+    getCodextenderAuthToken?: () => string | undefined;
   },
 ): void {
   const {
@@ -53,6 +60,7 @@ export function registerTasksFork(
     checkCodexCliAvailable = isCodexCliAvailable,
     checkCodextenderProxyAvailable,
     getCodextenderPort,
+    getCodextenderAuthToken = resolveCodextenderAuthToken,
   } = deps;
 
   app.post("/api/external/tasks/:id/fork", async (c) => {
@@ -93,6 +101,7 @@ export function registerTasksFork(
     // so the common case — forking an ordinary Claude-runtime task — never
     // pays for a settings read whose result it would discard.
     let codextenderPort: number | undefined;
+    let codextenderAuthToken: string | undefined;
     if (parentRuntime === "codex" && parentCodexIntegrationMode === "codextender") {
       codextenderPort = (await getCodextenderPort?.()) ?? 4000;
       const proxyOk = checkCodextenderProxyAvailable
@@ -100,6 +109,10 @@ export function registerTasksFork(
         : await probeCodextenderLiveness(codextenderPort);
       if (!proxyOk) {
         return c.json(codextenderProxyUnreachableError(codextenderPort), 400);
+      }
+      codextenderAuthToken = getCodextenderAuthToken();
+      if (!codextenderAuthToken) {
+        return c.json(codextenderAuthTokenMissingError(), 400);
       }
     } else if (parentRuntime === "codex" && !(await checkCodexCliAvailable())) {
       return c.json(codexCliNotFoundError(), 400);
@@ -133,13 +146,16 @@ export function registerTasksFork(
       });
       commands = buildCodextenderCommands({
         cwd: child.cwd,
-        // `codextenderPort` is always set on this path — the same
-        // `parentCodexIntegrationMode === "codextender"` guard above it
-        // assigned it (both branches now read the same snapshot local, so
-        // this invariant can no longer be defeated by a concurrent mutation
-        // of the live `parent` object between the two checks). The `?? 4000`
-        // is unreachable-but-safe, not a real fallback.
+        // `codextenderPort`/`codextenderAuthToken` are always set on this
+        // path — the same `parentCodexIntegrationMode === "codextender"`
+        // guard above assigned both (both branches now read the same
+        // snapshot local, so this invariant can no longer be defeated by a
+        // concurrent mutation of the live `parent` object between the two
+        // checks). The `?? 4000` / `!` are unreachable-but-safe, not real
+        // fallbacks — the auth-token preflight above already returned 400
+        // if it were missing.
         baseUrl: `http://127.0.0.1:${codextenderPort ?? 4000}`,
+        authToken: codextenderAuthToken!,
         claudeCommands: plainForkCommands,
       });
     } else if (runtimeForTask(child) === "codex") {

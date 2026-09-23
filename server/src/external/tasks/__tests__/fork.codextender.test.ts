@@ -37,6 +37,7 @@ async function buildApp(overrides: {
   checkCodexCliAvailable?: () => Promise<boolean>;
   checkCodextenderProxyAvailable?: () => Promise<boolean>;
   getCodextenderPort?: () => Promise<number | undefined>;
+  getCodextenderAuthToken?: () => string | undefined;
 } = {}) {
   const store = new SdkSessionsStore("/store/sdk-sessions.json", inMemoryDeps());
   await store.load();
@@ -44,6 +45,10 @@ async function buildApp(overrides: {
   registerTasksFork(app, {
     store,
     ptyManager: { get: () => undefined },
+    // Default fixture token so existing Codextender-mode success tests
+    // don't each need their own override; the one test that cares about
+    // the missing-token block passes its own `() => undefined`.
+    getCodextenderAuthToken: () => "test-fixture-token",
     ...overrides,
   });
   return { app, store };
@@ -119,6 +124,24 @@ describe("POST /tasks/:id/fork — Codextender inheritance", () => {
     });
     const body = (await res.json()) as { commands: { posix: string } };
     expect(body.commands.posix).toContain("http://127.0.0.1:4100");
+  });
+
+  it("PR-review BLOCK (iterate-2026-09-23, second round) — refuses (codextender_auth_token_missing) when no auth token is configured, even though the proxy is up, no orphan child row", async () => {
+    const { app, store } = await buildApp({
+      checkCodextenderProxyAvailable: async () => true,
+      getCodextenderAuthToken: () => undefined,
+    });
+    const parent = await makeCodextenderParent(store);
+    const before = store.list().length;
+    const res = await app.request(`/api/external/tasks/${parent.taskId}/fork`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("codextender_auth_token_missing");
+    expect(store.list().length).toBe(before);
   });
 
   it("does not probe the Codex CLI at all for a Codextender-mode parent's fork", async () => {

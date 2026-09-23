@@ -22,6 +22,7 @@ import { buildCodexCommands } from "../../core/launcher-codex.js";
 import {
   buildCodextenderCommands,
   CodextenderCwdMismatchError,
+  resolveCodextenderAuthToken,
 } from "../../core/launcher-codextender.js";
 import type { CopyCommandForms } from "../../core/launcher.js";
 import { defaultRunShim } from "../../core/readiness-probe-run.js";
@@ -30,6 +31,7 @@ import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ParsedLaunchBody } from "./parse-body.js";
 import {
   codexCliNotFoundError,
+  codextenderAuthTokenMissingError,
   codextenderCwdMismatchError,
   codextenderProxyUnreachableError,
 } from "./runtime-chokepoint-errors.js";
@@ -166,6 +168,9 @@ export async function applyRuntimeChokepoint(args: {
   /** Test seam — defaults to a real `GET /health/liveliness` probe of the
    *  Codextender proxy at `codextenderPort` (no auth required). */
   checkCodextenderProxyAvailable?: () => Promise<boolean>;
+  /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
+   *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
+  getCodextenderAuthToken?: () => string | undefined;
 }): Promise<RuntimeChokepointOk | RuntimeChokepointBlocked> {
   const { task, parsed, project, commands, taskUpdate, codexIntegrationMode } = args;
   const checkCodexCliAvailable = args.checkCodexCliAvailable ?? isCodexCliAvailable;
@@ -173,6 +178,7 @@ export async function applyRuntimeChokepoint(args: {
   const checkCodextenderProxyAvailable =
     args.checkCodextenderProxyAvailable ??
     (() => probeCodextenderLiveness(codextenderPort));
+  const getCodextenderAuthToken = args.getCodextenderAuthToken ?? resolveCodextenderAuthToken;
 
   if (isCodexNewPipelineBlocked(task, parsed, codexIntegrationMode)) {
     return {
@@ -214,12 +220,17 @@ export async function applyRuntimeChokepoint(args: {
     if (!(await checkCodextenderProxyAvailable())) {
       return { error: codextenderProxyUnreachableError(codextenderPort), status: 400 };
     }
+    const codextenderAuthToken = getCodextenderAuthToken();
+    if (!codextenderAuthToken) {
+      return { error: codextenderAuthTokenMissingError(), status: 400 };
+    }
     let codextenderCommands: CopyCommandForms;
     try {
       codextenderCommands = buildCodextenderCommands({
         cwd: task.cwd,
         baseUrl: `http://127.0.0.1:${codextenderPort}`,
         model: parsed.codexImplementationModel,
+        authToken: codextenderAuthToken,
         claudeCommands: commands,
       });
     } catch (err) {

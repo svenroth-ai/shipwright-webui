@@ -23,6 +23,27 @@ export function codextenderProxyUnreachableError(port: number) {
   };
 }
 
+/**
+ * PR-review BLOCK (iterate-2026-09-23-codextender-webui-integration,
+ * second round) — a hardcoded fallback bearer token read as an unsafe
+ * unconditional credential. `resolveCodextenderAuthToken()` now has no
+ * built-in default: a launch/fork attempted with none configured fails
+ * loud here instead of silently sending nothing (which `claude` would
+ * reject anyway once it tries to use `ANTHROPIC_BASE_URL`) or falling
+ * back to a baked-in value.
+ */
+export function codextenderAuthTokenMissingError() {
+  return {
+    error: "codextender_auth_token_missing" as const,
+    detail:
+      "This task's runtime is Codex, and the Codex Integration Mode is " +
+      "Codextender, but no CODEXTENDER_AUTH_TOKEN is set in the webui " +
+      "server's environment. Set it to the local Codextender proxy's " +
+      "configured master key (see the codextender README) and restart " +
+      "the server, or switch this task's runtime to Claude.",
+  };
+}
+
 export function codexCliNotFoundError() {
   return {
     error: "codex_cli_not_found" as const,

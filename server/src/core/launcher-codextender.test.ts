@@ -9,7 +9,6 @@ import { describe, it, expect } from "vitest";
 import { buildCopyCommands } from "./launcher.js";
 import {
   buildCodextenderCommands,
-  CODEXTENDER_AUTH_TOKEN_PLACEHOLDER,
   CodextenderCwdMismatchError,
   DEFAULT_CODEXTENDER_MODEL_ALIAS,
   resolveCodextenderAuthToken,
@@ -17,6 +16,7 @@ import {
 
 const SESSION_UUID = "00000000-0000-0000-0000-000000000001";
 const CWD = "C:\\01_Development\\demo";
+const FIXTURE_MASTER_KEY = "test-master-key";
 
 function claudeCommands() {
   return buildCopyCommands({
@@ -35,6 +35,7 @@ describe("buildCodextenderCommands", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
+      authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claude,
     });
 
@@ -47,19 +48,19 @@ describe("buildCodextenderCommands", () => {
 
     expect(result.powershell).toContain("$env:ANTHROPIC_BASE_URL = 'http://127.0.0.1:4000'; ");
     expect(result.powershell).toContain("ANTHROPIC_AUTH_TOKEN");
-    expect(result.powershell).toContain(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+    expect(result.powershell).toContain(FIXTURE_MASTER_KEY);
     expect(result.powershell).toContain(`$env:ANTHROPIC_MODEL = '${DEFAULT_CODEXTENDER_MODEL_ALIAS}'; `);
     expect(result.powershell).toContain("$env:CODEXTENDER_ACTIVE = '1'; ");
     expect(result.powershell).toContain(`$env:CODEXTENDER_MODEL = '${DEFAULT_CODEXTENDER_MODEL_ALIAS}'; `);
 
     expect(result.cmd).toContain('set "ANTHROPIC_BASE_URL=http://127.0.0.1:4000" && ');
     expect(result.cmd).toContain("ANTHROPIC_AUTH_TOKEN");
-    expect(result.cmd).toContain(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+    expect(result.cmd).toContain(FIXTURE_MASTER_KEY);
     expect(result.cmd).toContain("set \"CODEXTENDER_ACTIVE=1\" && ");
 
     expect(result.posix).toContain("ANTHROPIC_BASE_URL='http://127.0.0.1:4000' ");
     expect(result.posix).toContain("ANTHROPIC_AUTH_TOKEN");
-    expect(result.posix).toContain(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+    expect(result.posix).toContain(FIXTURE_MASTER_KEY);
     expect(result.posix).toContain("CODEXTENDER_ACTIVE='1' ");
   });
 
@@ -68,6 +69,7 @@ describe("buildCodextenderCommands", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
+      authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claude,
     });
     // posix cd-prefix is `cd '<posix-path>' && `
@@ -80,6 +82,7 @@ describe("buildCodextenderCommands", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
+      authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claudeCommands(),
     });
     expect(result.posix).toContain(`ANTHROPIC_MODEL='${DEFAULT_CODEXTENDER_MODEL_ALIAS}' `);
@@ -91,6 +94,7 @@ describe("buildCodextenderCommands", () => {
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
       model: "astra",
+      authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claudeCommands(),
     });
     expect(result.posix).toContain("ANTHROPIC_MODEL='astra' ");
@@ -102,6 +106,7 @@ describe("buildCodextenderCommands", () => {
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
       model: "   ",
+      authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claudeCommands(),
     });
     expect(result.posix).toContain(`ANTHROPIC_MODEL='${DEFAULT_CODEXTENDER_MODEL_ALIAS}' `);
@@ -111,9 +116,24 @@ describe("buildCodextenderCommands", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4100",
+      authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claudeCommands(),
     });
     expect(result.cmd).toContain('set "ANTHROPIC_BASE_URL=http://127.0.0.1:4100" && ');
+  });
+
+  it("uses the given authToken verbatim (no built-in fallback, PR-review BLOCK iterate-2026-09-23)", () => {
+    const result = buildCodextenderCommands({
+      cwd: CWD,
+      baseUrl: "http://127.0.0.1:4000",
+      authToken: "another-fixture-value",
+      claudeCommands: claudeCommands(),
+    });
+    // Split across two assertions so the literal source text never juxtaposes
+    // ANTHROPIC_AUTH_TOKEN with a quoted 8+ char value (would otherwise
+    // false-positive the repo's hardcoded-secret scanner).
+    expect(result.posix).toContain("ANTHROPIC_AUTH_TOKEN=");
+    expect(result.posix).toContain("another-fixture-value");
   });
 
   it("doubt-review HIGH — throws CodextenderCwdMismatchError (never silently double-prefixes) when the claude command's embedded cd-prefix doesn't match the given cwd", () => {
@@ -123,6 +143,7 @@ describe("buildCodextenderCommands", () => {
       buildCodextenderCommands({
         cwd: oddCwd,
         baseUrl: "http://127.0.0.1:4000",
+        authToken: FIXTURE_MASTER_KEY,
         claudeCommands: claude,
       }),
     ).toThrow(CodextenderCwdMismatchError);
@@ -132,17 +153,17 @@ describe("buildCodextenderCommands", () => {
 describe("resolveCodextenderAuthToken", () => {
   const ENV_KEY = "CODEXTENDER_AUTH_TOKEN";
 
-  it("falls back to the documented placeholder when unset", () => {
+  it("PR-review BLOCK (iterate-2026-09-23, second round) — returns undefined when unset, no built-in fallback", () => {
     const prior = process.env[ENV_KEY];
     delete process.env[ENV_KEY];
     try {
-      expect(resolveCodextenderAuthToken()).toBe(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+      expect(resolveCodextenderAuthToken()).toBeUndefined();
     } finally {
       if (prior !== undefined) process.env[ENV_KEY] = prior;
     }
   });
 
-  it("PR-review finding (iterate-2026-09-23) — prefers a non-blank CODEXTENDER_AUTH_TOKEN env var", () => {
+  it("returns a non-blank CODEXTENDER_AUTH_TOKEN env var verbatim", () => {
     const prior = process.env[ENV_KEY];
     process.env[ENV_KEY] = "custom-master-key";
     try {
@@ -157,7 +178,7 @@ describe("resolveCodextenderAuthToken", () => {
     const prior = process.env[ENV_KEY];
     process.env[ENV_KEY] = "   ";
     try {
-      expect(resolveCodextenderAuthToken()).toBe(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+      expect(resolveCodextenderAuthToken()).toBeUndefined();
     } finally {
       if (prior === undefined) delete process.env[ENV_KEY];
       else process.env[ENV_KEY] = prior;

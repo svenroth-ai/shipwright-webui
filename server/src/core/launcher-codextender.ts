@@ -22,26 +22,19 @@ import { buildCdPrefix, type CopyCommandForms } from "./launcher.js";
 import { qPs, qCmd, qPosix } from "./shell-quote.js";
 
 /**
- * Matches the `codextender` README's own documented local-usage example
- * verbatim (`ANTHROPIC_AUTH_TOKEN=sk-codextender-local`) — the local
- * LiteLLM proxy's own fixed `general_settings.master_key`, not a real
- * credential for any Anthropic/OpenAI account. Used only as the DEFAULT;
- * see `resolveCodextenderAuthToken`.
+ * Resolves the bearer token sent to the local Codextender proxy from
+ * `process.env.CODEXTENDER_AUTH_TOKEN` — a validated configuration/
+ * environment value, never a value baked into this source (PR-review
+ * BLOCK, iterate-2026-09-23, second round: a hardcoded fallback here read
+ * as an unconditional credential regardless of its actual local-only,
+ * non-secret nature). Returns `undefined` when unset or blank; every
+ * caller must treat that as "Codextender isn't configured on this machine"
+ * and fail closed (`codextenderAuthTokenMissingError`) rather than send an
+ * empty/placeholder token.
  */
-export const CODEXTENDER_AUTH_TOKEN_PLACEHOLDER = "sk-codextender-local";
-
-/**
- * Resolves the bearer token sent to the local Codextender proxy. Reads
- * `process.env.CODEXTENDER_AUTH_TOKEN` first (validated configuration/
- * environment, per PR-review finding on iterate-2026-09-23) so an operator
- * who has customized their own local proxy's `master_key` is not silently
- * locked out of the model-catalog probe or launch; falls back to
- * `CODEXTENDER_AUTH_TOKEN_PLACEHOLDER` — the value every stock
- * `codextender` install already uses — when unset.
- */
-export function resolveCodextenderAuthToken(): string {
+export function resolveCodextenderAuthToken(): string | undefined {
   const fromEnv = process.env.CODEXTENDER_AUTH_TOKEN?.trim();
-  return fromEnv && fromEnv.length > 0 ? fromEnv : CODEXTENDER_AUTH_TOKEN_PLACEHOLDER;
+  return fromEnv && fromEnv.length > 0 ? fromEnv : undefined;
 }
 
 /** Matches `codextender`'s own CLI default (`codextender --port 4000`
@@ -57,6 +50,13 @@ export interface CodextenderLaunchArgs {
    *  reuses the existing `codexImplementationModel` launch-body field).
    *  Defaults to `DEFAULT_CODEXTENDER_MODEL_ALIAS` when omitted. */
   model?: string;
+  /**
+   * Resolved via `resolveCodextenderAuthToken()` by the caller — this
+   * function has no built-in default and never resolves it itself, so a
+   * caller that skips the "is Codextender configured?" preflight gets a
+   * TypeScript error here, not a silently-sent empty/placeholder token.
+   */
+  authToken: string;
   /**
    * The already-built plain-Claude commands for THIS task (same
    * session-id/resume/name/plugin-dir/slash-command shape an ordinary
@@ -129,7 +129,7 @@ function buildCodextenderEnvPrefix(
   const model = args.model?.trim() || DEFAULT_CODEXTENDER_MODEL_ALIAS;
   const entries: Array<[string, string]> = [
     ["ANTHROPIC_BASE_URL", args.baseUrl],
-    ["ANTHROPIC_AUTH_TOKEN", resolveCodextenderAuthToken()],
+    ["ANTHROPIC_AUTH_TOKEN", args.authToken],
     ["ANTHROPIC_MODEL", model],
     ["CODEXTENDER_ACTIVE", "1"],
     ["CODEXTENDER_MODEL", model],
