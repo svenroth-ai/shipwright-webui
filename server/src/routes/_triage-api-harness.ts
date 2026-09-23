@@ -87,7 +87,11 @@ export interface Harness {
 export async function makeHarness(
   overrides: Pick<
     TriageRoutesDeps,
-    "runTriageCli" | "triageWriteAvailability" | "triageWriteAvailabilityTtlMs" | "getCodexRuntimeDefault"
+    | "runTriageCli"
+    | "triageWriteAvailability"
+    | "triageWriteAvailabilityTtlMs"
+    | "getCodexRuntimeDefault"
+    | "getCodexAvailability"
   > = {},
 ): Promise<Harness> {
   _clearCache_TEST_ONLY();

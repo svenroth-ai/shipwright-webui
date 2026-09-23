@@ -1,7 +1,9 @@
 /*
  * Drift-guard between the server's canonical `CODEX_MODEL_SLUG_PATTERN`
  * (parse-body.ts) and its manual mirror in
- * client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx
+ * client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx
+ * (moved out of ModelTierOverrideFields.tsx in the Codextender integration's
+ * file-size split, 2026-09-23 — the mirror itself is unchanged).
  * (DO-NOT #7 forbids importing the server constant directly, so the client
  * keeps its own copy for its inline "best-effort hint" only — the server
  * remains the real gate either way). Lives in `server/` for the same reason
@@ -23,7 +25,7 @@ import { CODEX_MODEL_SLUG_PATTERN } from "./parse-body.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const clientFile = resolve(
   here,
-  "../../../../client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx",
+  "../../../../client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx",
 );
 
 describe("CODEX_MODEL_SLUG_PATTERN sync — server canonical vs client mirror", () => {

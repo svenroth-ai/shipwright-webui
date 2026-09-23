@@ -52,7 +52,7 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
         realProjects={form.realProjects}
       />
       <TitleFieldFragment title={form.title} setTitle={form.setTitle} />
-      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} />
+      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} availability={form.runtimeAvailability} codexIntegrationMode={form.codexIntegrationMode} />
 
       {form.showAutonomyToggle && (
         <AutonomyFieldFragment
@@ -94,6 +94,7 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
           setParamValues={form.setParamValues}
           setParamEnabled={form.setParamEnabled}
           runtime={form.runtime}
+          codexIntegrationMode={form.codexIntegrationMode}
         />
         <LeadwrightFieldsFragment
           showLeadDomain={form.showLeadDomain}

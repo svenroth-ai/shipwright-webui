@@ -231,3 +231,46 @@ describe("Codex-runtime — transcript poll patches `active → idle` when pty i
     expect(body.task.state).toBe("active");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Codextender integration Part B.6 companion fix — a Codextender-mode task
+// is EXCLUDED from the Codex-runtime widening above (it drives ordinary
+// `claude` and DOES write a real `.jsonl`), mirroring ws-upgrade-handler.ts's
+// own exclusion. In practice `task.state` never becomes `active` for it via
+// the missing-JSONL window in the first place (excluded there too), so this
+// locks the invariant explicitly rather than relying on that indirectly.
+// ---------------------------------------------------------------------------
+
+describe("Codextender-mode — excluded from the Codex-runtime active→idle widening", () => {
+  let h: Harness;
+
+  beforeEach(async () => {
+    h = await setupWithPty("codextender-idle");
+  });
+
+  it("does NOT patch a Codextender-mode task under a non-new-plain actionId, even if somehow active with no pty", async () => {
+    const taskId = await createTask(h.app, {
+      actionId: "new-iterate",
+      runtime: "codex",
+      title: "codextender-overnight",
+    });
+    h.store.patch(taskId, { codexIntegrationMode: "codextender" });
+    await patchState(h.store, taskId, "active");
+
+    const { body } = await pollTranscript(h.app, taskId);
+    expect(body.task.state).toBe("active");
+  });
+
+  it("still patches a Codex-Light-mode task (codexIntegrationMode: 'light') under a non-new-plain actionId", async () => {
+    const taskId = await createTask(h.app, {
+      actionId: "new-iterate",
+      runtime: "codex",
+      title: "codex-light-overnight",
+    });
+    h.store.patch(taskId, { codexIntegrationMode: "light" });
+    await patchState(h.store, taskId, "active");
+
+    const { body } = await pollTranscript(h.app, taskId);
+    expect(body.task.state).toBe("idle");
+  });
+});

@@ -14,11 +14,11 @@ describe("readGlobalSettings", () => {
   it("merges the stored fields over the defaults", async () => {
     const result = await readGlobalSettings("/x/settings.json", {
       existsSync: () => true,
-      readFile: async () => JSON.stringify({ codexRuntimeDefault: "codex", codexStallTimeoutMinutes: 20 }),
+      readFile: async () => JSON.stringify({ runtimeDefault: "codex", codexStallTimeoutMinutes: 20 }),
     });
     expect(result).toMatchObject({
       ...DEFAULT_GLOBAL_SETTINGS,
-      codexRuntimeDefault: "codex",
+      runtimeDefault: "codex",
       codexStallTimeoutMinutes: 20,
     });
   });

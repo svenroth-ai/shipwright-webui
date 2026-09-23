@@ -94,6 +94,8 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
     leadwrightCheckoutRoot,
     webuiBaseUrl,
     codexWatcher,
+    getCodexIntegrationMode,
+    getCodextenderPort,
   } = args;
   // iterate-2026-05-08 v0.8.7 AC-1 — runtime guard (external code review
   // openai medium): TypeScript-only requirement is bypassable in plain
@@ -129,6 +131,7 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
       getProjectById,
       scrollbackClearBestEffort,
       snapshotClearBestEffort,
+      getCodextenderPort,
     }),
   );
   // CLAUDE.md rule 13 — phaseTaskRef re-reads run-config server-side +
@@ -146,6 +149,8 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
       // duplicate `--session-id`. Filename-first discovery (CLAUDE.md rule 3).
       jsonlExistsOnDisk: async (uuid) =>
         (await watcher.findByUuid(uuid)) !== null,
+      getCodexIntegrationMode,
+      getCodextenderPort,
     }),
   );
   // CLAUDE.md rule 4 — STATELESS byte-offset; multi-tab works by construction.

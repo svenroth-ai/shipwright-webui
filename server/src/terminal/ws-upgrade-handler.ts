@@ -47,6 +47,7 @@ import {
 import { deriveTerminalReset } from "./terminal-reset.js";
 import { startWsHeartbeat } from "./ws-heartbeat.js";
 import { createResyncGate } from "./resync-gate.js";
+import { isCodexNonCodextenderTask } from "../external/launch/runtime-chokepoint.js";
 
 // ---------------------------------------------------------------------------
 // Inbound message contract
@@ -463,14 +464,16 @@ function buildLiveHandlers(
       // write JSONL at first prompt and the existing
       // !firstJsonlObservedAt branch handles them.
       //
-      // ADR-309 — a Codex task never writes a Claude `.jsonl` under any
-      // actionId, so `runtime === "codex"` generalizes this flip to it.
+      // ADR-309 — a Codex Light task never writes a Claude `.jsonl` under
+      // any actionId, so `runtime === "codex"` generalizes this flip to it.
+      // `isCodexNonCodextenderTask` excludes Codextender mode (Part B.6) —
+      // see its own doc comment in runtime-chokepoint.ts for why.
       if (
         task.state === "awaiting_external_start" &&
-        (task.actionId === "new-plain" || task.runtime === "codex")
+        (task.actionId === "new-plain" || isCodexNonCodextenderTask(task))
       ) {
         store.patch(taskId, { state: "active" });
-        // Don't set firstJsonlObservedAt — new-plain sets it later; Codex never will (ADR-309).
+        // Don't set firstJsonlObservedAt — new-plain sets it later; Codex Light never will (ADR-309).
         void store.persist();
       }
 

@@ -105,7 +105,8 @@ export function useNewIssueForm(props: HookInput) {
     realProjects: seedRealProjects,
     phases: seedPhases,
     projectActions,
-    codexRuntimeDefault: settings?.codexRuntimeDefault,
+    runtimeDefault: settings?.runtimeDefault,
+    runtimeAvailability: settings?.codexAvailability,
   });
 
   // Local impl for onParamEnableToggle. Uses functional setState (prev =>
@@ -218,6 +219,11 @@ export function useNewIssueForm(props: HookInput) {
     ...derived,
     // Handlers
     onSubmit,
+    // Codextender integration Part B.1 — pure passthrough of the current
+    // global setting (no reset-on-open / touched-tracking needed, unlike
+    // `runtime`/`autonomy`; it's not a form field, just context for the
+    // Runtime field's advisory hint).
+    codexIntegrationMode: settings?.codexIntegrationMode ?? "light",
   };
 }
 

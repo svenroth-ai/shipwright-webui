@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-23-codextender-webui-integration",
+  "date": "2026-09-23",
+  "section": "Iterate — feature: Codextender WebUI integration",
+  "title": "Codextender integration mode for Codex-runtime tasks",
+  "context": "Codex Light added the codex CLI as a runtime; some users run Codextender (claude via a local proxy) instead and need the same webui UI/model surfaces.",
+  "decision": "New global codexIntegrationMode setting (light|codextender), orthogonal to runtime; Codextender reuses plain-Claude commands plus an env-var prefix, gated by a proxy liveness probe.",
+  "consequences": "New settings surface, new read surface (2 proxy endpoints), new GET /api/codextender-models route; fork.ts duplicates the mode check via shared error builders.",
+  "rationale": "Reusing plain-Claude CopyCommandForms keeps one source of truth for the claude invocation; the liveness vs model-catalog probes differ because the proxy's two endpoints have different real auth requirements.",
+  "rejected": "Silent double-cd-prefix fallback (now a typed error); one combined proxy probe (spec-reviewer REJECTed); an independent useSettings() read in ModelTierOverrideFields (code-reviewer fix).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-23-codextender-webui-integration-codextender-integration.md"
+}

@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-23-codextender-webui-integration",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-23T09:42:18.040199+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-23T09:44:41.808486+00:00",
+      "disposition": "record_review_pass tracking was not invoked live during this run's early planning phase; no durable external-plan-review or external-code-review artifact was captured for this run (no external_review_state.json entry, no mini-plan file). Backfilled during finalization as not_run rather than fabricating a payload; the internal spec/code/doubt cascade (all completed) is what actually gated this run's build.",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "robustness",
+          "file": "server/src/routes/codextender-models.ts",
+          "line": null,
+          "finding": "The inflight models-catalog IIFE's getPort() rejection could propagate as an unhandled 500 instead of degrading to the existing stale/unavailable response shape.",
+          "suggestion": "Fixed: wrapped the getPort() call in its own try/catch.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "duplication",
+          "file": "server/src/external/launch/runtime-chokepoint.ts",
+          "line": null,
+          "finding": "The ADR-309 Codex-runtime JSONL-liveness special-case needed a Codextender exclusion; the condition risked duplication across call sites (ws-upgrade-handler.ts).",
+          "suggestion": "Fixed: extracted isCodexNonCodextenderTask() into runtime-chokepoint.ts and reused it from ws-upgrade-handler.ts.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx",
+          "line": null,
+          "finding": "codexIntegrationMode was read from an independent useSettings() call instead of being passed down from the parent form state, risking a stale/inconsistent read.",
+          "suggestion": "Fixed: threaded codexIntegrationMode through as a prop from NewIterateModal.tsx's form state.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "secrets-hygiene",
+          "file": ".gitleaks.toml",
+          "line": null,
+          "finding": "The new sk-codextender-local placeholder token needed a documented allowlist entry.",
+          "suggestion": "Fixed: added a third allowlist entry following the file's existing two-entry precedent style, with rationale.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "cleanup",
+          "file": "client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx",
+          "line": null,
+          "finding": "Now-unused useSettings import/call left over after the prop-threading fix.",
+          "suggestion": "Fixed: removed the unused import/call.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "duplication",
+          "file": "server/src/external/launch/runtime-chokepoint.ts",
+          "line": null,
+          "finding": "Codex-runtime error message builders (codextender_proxy_unreachable, codex_cli_not_found) were duplicated risk between runtime-chokepoint.ts and fork.ts, which cannot call the chokepoint directly.",
+          "suggestion": "Fixed: extracted the three error-builder functions into a new sibling runtime-chokepoint-errors.ts, imported by both call sites.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-23T09:44:05.800178+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "concurrency",
+          "file": "server/src/external/tasks/fork.ts",
+          "line": null,
+          "finding": "Claim under doubt: Reading parent.runtime and parent.codexIntegrationMode directly from the live SdkSessionsStore across multiple await points is safe. — A concurrent store.patch() on the same task (e.g. the user relaunching the parent in another tab) can mutate those fields mid-request, desyncing the preflight check from the command-building branch — a TOCTOU race.",
+          "suggestion": "Fixed: snapshotted both fields into local consts (parentRuntime, parentCodexIntegrationMode) immediately after store.get(), before any await; used only the locals thereafter. Regression test added in fork.codextender.test.ts.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "fail-safety",
+          "file": "server/src/core/launcher-codextender.ts",
+          "line": null,
+          "finding": "Claim under doubt: injectEnvPrefix's fallback to prepending the env-var block when the cd-prefix doesn't match cwd is a safe defensive default. — It silently produces a command with two cd-prefixes / an ambiguous working directory (e.g. a custom action built from project.path instead of task.cwd) instead of failing loudly, which can launch in the wrong directory undetected.",
+          "suggestion": "Fixed: added CodextenderCwdMismatchError, thrown instead of silently falling through; runtime-chokepoint.ts catches it and returns a codextender_cwd_mismatch 500. Regression tests added in launcher-codextender.test.ts and runtime-chokepoint.codextender.test.ts.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "escaping",
+          "file": "server/src/core/launcher-codextender.ts",
+          "line": null,
+          "finding": "Claim under doubt: The qCmd-style escaping helper's quoting model matches cmd.exe's own tokenizer for all inputs. — It does not exactly match cmd.exe's tokenizer for all inputs, though no current caller passes attacker-controlled input through that path, so it is not currently exploitable.",
+          "suggestion": "Left unfixed by decision — 'don't validate scenarios that can't happen'. This recorded finding stands as the warning for any future extension of this code.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-23T09:44:05.910278+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-23T09:44:41.808486+00:00",
+      "disposition": "record_review_pass tracking was not invoked live during this run's early planning phase; no durable external-plan-review or external-code-review artifact was captured for this run (no external_review_state.json entry, no mini-plan file). Backfilled during finalization as not_run rather than fabricating a payload; the internal spec/code/doubt cascade (all completed) is what actually gated this run's build.",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-23T09:44:05.689815+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

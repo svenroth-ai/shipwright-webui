@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "name": "Implementation matches iterate spec Part B items 1-6 (launcher env-var injection, runtime chokepoint Codextender branch, fork inheritance, proxy probe endpoints, client model-tier UI wiring)",
+      "verdict": "pass",
+      "note": "Verified against .shipwright/planning/iterate/2026-09-23-codextender-webui-integration.md before invoking spec-reviewer."
+    },
+    {
+      "name": "Bloat anti-ratchet gate compliance",
+      "verdict": "pass",
+      "note": "All 4 flagged files (index.ts, ws-upgrade-handler.ts, and two extraction splits) brought into compliance via file splits or chronicled baseline-JSON note bumps, matching this project's own established precedent."
+    },
+    {
+      "name": "Full server + client test suite and typecheck green before handing off to the review cascade",
+      "verdict": "pass",
+      "note": "server + client suites green at self-review time."
+    }
+  ]
+}

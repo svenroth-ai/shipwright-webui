@@ -12,7 +12,7 @@
 import type { Dispatch, SetStateAction } from "react";
 
 import { AutonomyToggle, type AutonomyValue } from "../AutonomyToggle";
-import { RuntimeToggle, type RuntimeValue } from "../RuntimeToggle";
+import { RuntimeToggle, type RuntimeAvailability, type RuntimeValue } from "../RuntimeToggle";
 import { ProjectContextStrip } from "../ProjectContextStrip";
 import type { Project } from "../../../types";
 
@@ -167,16 +167,43 @@ export function AutonomyFieldFragment({
   );
 }
 
+/**
+ * Codextender integration Part B.1 — advisory note shown whenever Codex
+ * Light is the active mechanism AND Codex is reachable at all (the operator
+ * could pick it, or it's forced on). Points at the campaign/pipeline
+ * restriction the toggle itself deliberately doesn't hide or disable for
+ * (AC9's block belongs to the launch chokepoint, not the widget).
+ */
+const CODEX_LIGHT_LIMITATION_HINT =
+  "Codex Light doesn't support campaign or multi-phase pipeline launches yet " +
+  "— use Claude for those, or switch to Codextender in Settings.";
+
 export function RuntimeFieldFragment({
   runtime,
   setRuntime,
+  availability = "both",
+  codexIntegrationMode = "light",
 }: {
   runtime: RuntimeValue;
   setRuntime: Dispatch<SetStateAction<RuntimeValue>>;
+  /** Codextender integration Part B.1 — the global `codexAvailability`. */
+  availability?: RuntimeAvailability;
+  /** Codextender integration Part B.1 — the global `codexIntegrationMode`. */
+  codexIntegrationMode?: "light" | "codextender";
 }) {
+  const showLightLimitationHint =
+    codexIntegrationMode === "light" && availability !== "claude_only";
   return (
     <FieldLabel label="Runtime">
-      <RuntimeToggle value={runtime} onChange={setRuntime} />
+      <RuntimeToggle value={runtime} onChange={setRuntime} availability={availability} />
+      {showLightLimitationHint && (
+        <p
+          className="mt-1 text-[11px] text-[var(--body,#44403c)]"
+          data-testid="runtime-codex-light-hint"
+        >
+          {CODEX_LIGHT_LIMITATION_HINT}
+        </p>
+      )}
     </FieldLabel>
   );
 }

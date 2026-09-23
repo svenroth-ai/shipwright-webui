@@ -50,6 +50,7 @@ import { buildExternalRoutesArgs } from "./external-routes-wiring.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createReadinessRoutes } from "./routes/readiness.js";
 import { createCodexModelsRoutes } from "./routes/codex-models.js";
+import { createCodextenderModelsRoutes } from "./routes/codextender-models.js";
 import { createGradeRoutes } from "./routes/grade.js";
 import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
@@ -283,6 +284,7 @@ if (isMainModule) {
         lock: lockPath,
         ensureFile: ensureFileExists,
       };
+      const readSettings = () => readGlobalSettings(settingsPath, settingsDeps);
       const projectFsDeps = {
         existsSync: (p: string) => fs.existsSync(p),
         mkdirSync: (p: string, o?: { recursive: boolean }) => fs.mkdirSync(p, o),
@@ -540,7 +542,7 @@ if (isMainModule) {
         // PtyManager.peekTerminalText's own doc — null-safe by design).
         peekTerminalText: (taskId) => ptyManager.peekTerminalText(taskId),
         stallTimeoutMs: async () => {
-          const settings = await readGlobalSettings(settingsPath, settingsDeps);
+          const settings = await readSettings();
           // PUT /api/settings merges the raw request body with no shape
           // validation (code-review finding) — a non-numeric value reaching
           // settings.json would otherwise make Math.max(5, NaN) === NaN,
@@ -586,6 +588,9 @@ if (isMainModule) {
             honoHost,
             config,
             codexWatcher: codexTaskWatcher,
+            // Codextender B.6 — fresh reads, never cached on the task.
+            getCodexIntegrationMode: async () => (await readSettings()).codexIntegrationMode,
+            getCodextenderPort: async () => (await readSettings()).codextenderPort,
           }),
         ),
       );
@@ -605,6 +610,9 @@ if (isMainModule) {
       // catalog for the New Iterate Codex model-tier comboboxes. Separate
       // cache lifetime from readiness on purpose (architecture review).
       app.route("/", createCodexModelsRoutes({}));
+      // Codextender Part B.5 — live proxy `/v1/models` catalog; separate cache.
+      const getCodextenderModelsPort = async () => (await readSettings()).codextenderPort ?? 4000;
+      app.route("/", createCodextenderModelsRoutes({ getPort: getCodextenderModelsPort }));
       // FR-01.53 — read-only Grade door route. Runs shipwright-grade's grade.py
       // (shell:false, validated target) and renders the real ReportModel; no
       // project registration, no writes (a bare grade is a pure observer).
@@ -652,10 +660,9 @@ if (isMainModule) {
               return [];
             }
           },
-          // Codex Light §3.5 — promote has no per-task RuntimeToggle; read
-          // the global default directly at promote time.
-          getCodexRuntimeDefault: async () =>
-            (await readGlobalSettings(settingsPath, settingsDeps)).codexRuntimeDefault,
+          // Codex Light §3.5 — promote has no per-task RuntimeToggle; read the global default directly.
+          getCodexRuntimeDefault: async () => (await readSettings()).runtimeDefault,
+          getCodexAvailability: async () => (await readSettings()).codexAvailability,
         }),
       );
 

@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-09-23-codextender-webui-integration",
+  "date": "2026-09-23T09:59:49.130264Z",
+  "event_at": "2026-09-23T09:59:40.987943+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/codextender-webui-integration",
+  "spec": ".shipwright/planning/iterate/2026-09-23-codextender-webui-integration.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-23-codextender-webui-integration"
+}

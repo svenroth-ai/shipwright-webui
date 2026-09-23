@@ -23,7 +23,7 @@ function renderCard() {
 }
 
 describe("CodexSettingsCard", () => {
-  it("defaults the runtime toggle to Claude when settings.codexRuntimeDefault is unset", async () => {
+  it("defaults the runtime toggle to Claude when settings.runtimeDefault is unset", async () => {
     server.use(
       http.get("/api/settings", () => HttpResponse.json({ data: {} })),
     );
@@ -33,9 +33,9 @@ describe("CodexSettingsCard", () => {
     );
   });
 
-  it("reflects a persisted codexRuntimeDefault of codex", async () => {
+  it("reflects a persisted runtimeDefault of codex", async () => {
     server.use(
-      http.get("/api/settings", () => HttpResponse.json({ data: { codexRuntimeDefault: "codex" } })),
+      http.get("/api/settings", () => HttpResponse.json({ data: { runtimeDefault: "codex" } })),
     );
     renderCard();
     await waitFor(() =>
@@ -43,7 +43,7 @@ describe("CodexSettingsCard", () => {
     );
   });
 
-  it("saves codexRuntimeDefault when the toggle is switched to Codex", async () => {
+  it("saves runtimeDefault when the toggle is switched to Codex", async () => {
     const putBodies: Record<string, unknown>[] = [];
     server.use(
       http.get("/api/settings", () => HttpResponse.json({ data: {} })),
@@ -57,7 +57,7 @@ describe("CodexSettingsCard", () => {
     renderCard();
     await waitFor(() => expect(screen.getByTestId("runtime-toggle")).toBeInTheDocument());
     await user.click(screen.getByTestId("runtime-codex"));
-    await waitFor(() => expect(putBodies).toContainEqual({ codexRuntimeDefault: "codex" }));
+    await waitFor(() => expect(putBodies).toContainEqual({ runtimeDefault: "codex" }));
   });
 
   it("defaults the stall-timeout input to 15 minutes when unset", async () => {
@@ -112,5 +112,88 @@ describe("CodexSettingsCard", () => {
       expect(screen.getByTestId("settings-codex-stall-timeout-error")).toHaveTextContent("Minimum is 5"),
     );
     expect(putBodies.some((b) => "codexStallTimeoutMinutes" in b)).toBe(false);
+  });
+
+  it("defaults availability to 'both' and integration mode to 'light' when unset", async () => {
+    server.use(http.get("/api/settings", () => HttpResponse.json({ data: {} })));
+    renderCard();
+    await waitFor(() =>
+      expect((screen.getByTestId("settings-codex-availability-select") as HTMLSelectElement).value).toBe(
+        "both",
+      ),
+    );
+    expect((screen.getByTestId("settings-codex-integration-mode-select") as HTMLSelectElement).value).toBe(
+      "light",
+    );
+  });
+
+  it("saves codexAvailability when changed", async () => {
+    const putBodies: Record<string, unknown>[] = [];
+    server.use(
+      http.get("/api/settings", () => HttpResponse.json({ data: {} })),
+      http.put("/api/settings", async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        putBodies.push(body);
+        return HttpResponse.json({ data: body });
+      }),
+    );
+    const user = userEvent.setup();
+    renderCard();
+    const select = await screen.findByTestId("settings-codex-availability-select");
+    await user.selectOptions(select, "codex_only");
+    await waitFor(() => expect(putBodies).toContainEqual({ codexAvailability: "codex_only" }));
+  });
+
+  it("hides the RuntimeToggle behind the fixed pill when availability is not 'both'", async () => {
+    server.use(
+      http.get("/api/settings", () => HttpResponse.json({ data: { codexAvailability: "codex_only" } })),
+    );
+    renderCard();
+    await waitFor(() => expect(screen.getByTestId("runtime-toggle-fixed")).toBeInTheDocument());
+    expect(screen.queryByTestId("runtime-toggle")).not.toBeInTheDocument();
+  });
+
+  it("does not render the Codextender port input while integration mode is 'light'", async () => {
+    server.use(http.get("/api/settings", () => HttpResponse.json({ data: {} })));
+    renderCard();
+    await waitFor(() =>
+      expect(screen.getByTestId("settings-codex-integration-mode-select")).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId("settings-codextender-port-input")).not.toBeInTheDocument();
+  });
+
+  it("switching integration mode to Codextender reveals the port input, defaulted to 4000", async () => {
+    server.use(
+      http.get("/api/settings", () => HttpResponse.json({ data: {} })),
+      http.put("/api/settings", async ({ request }) => HttpResponse.json({ data: await request.json() })),
+    );
+    const user = userEvent.setup();
+    renderCard();
+    const modeSelect = await screen.findByTestId("settings-codex-integration-mode-select");
+    await user.selectOptions(modeSelect, "codextender");
+    await waitFor(() =>
+      expect((screen.getByTestId("settings-codextender-port-input") as HTMLInputElement).value).toBe(
+        "4000",
+      ),
+    );
+  });
+
+  it("reflects a persisted codexIntegrationMode + codextenderPort and saves a port change", async () => {
+    const putBodies: Record<string, unknown>[] = [];
+    server.use(
+      http.get("/api/settings", () =>
+        HttpResponse.json({ data: { codexIntegrationMode: "codextender", codextenderPort: 4100 } }),
+      ),
+      http.put("/api/settings", async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        putBodies.push(body);
+        return HttpResponse.json({ data: body });
+      }),
+    );
+    renderCard();
+    const portInput = await screen.findByTestId("settings-codextender-port-input");
+    expect((portInput as HTMLInputElement).value).toBe("4100");
+    fireEvent.change(portInput, { target: { value: "5000" } });
+    await waitFor(() => expect(putBodies).toContainEqual({ codextenderPort: 5000 }));
   });
 });

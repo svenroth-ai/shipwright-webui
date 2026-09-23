@@ -25,6 +25,7 @@ import { registerTasksCreate } from "./create.js";
 import { registerTasksListGet } from "./list-get.js";
 import { registerTasksPatch } from "./patch.js";
 import { registerTasksLifecycle } from "./lifecycle.js";
+import { registerTasksFork } from "./fork.js";
 
 export interface TasksRouterDeps {
   store: SdkSessionsStore;
@@ -39,6 +40,8 @@ export interface TasksRouterDeps {
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
   scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
   snapshotClearBestEffort?: (taskId: string) => Promise<void>;
+  /** Codextender integration Part B.6 — see `CreateExternalRoutesArgs`. */
+  getCodextenderPort?: () => Promise<number | undefined>;
 }
 
 export function createTasksRouter(deps: TasksRouterDeps): Hono {
@@ -63,9 +66,14 @@ export function createTasksRouter(deps: TasksRouterDeps): Hono {
   registerTasksLifecycle(app, {
     store: deps.store,
     ptyManager: deps.ptyManager,
-    getProjectById: deps.getProjectById,
     scrollbackClearBestEffort: deps.scrollbackClearBestEffort,
     snapshotClearBestEffort: deps.snapshotClearBestEffort,
+  });
+  registerTasksFork(app, {
+    store: deps.store,
+    ptyManager: deps.ptyManager,
+    getProjectById: deps.getProjectById,
+    getCodextenderPort: deps.getCodextenderPort,
   });
   return app;
 }

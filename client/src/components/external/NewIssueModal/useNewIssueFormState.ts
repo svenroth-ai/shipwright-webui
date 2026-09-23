@@ -32,10 +32,12 @@ export interface UseNewIssueFormStateInput {
   phases: PhaseDefinition[];
   projectActions: ResolvedProjectActions | undefined;
   /**
-   * Codex Light §3.5 — the GLOBAL `settings.codexRuntimeDefault`, seeding
+   * Codex Light §3.5 — the GLOBAL `settings.runtimeDefault` (renamed from
+   * `codexRuntimeDefault`, Codextender integration Part B.1), seeding
    * RuntimeToggle's on-open value. Deliberately NOT per-project (unlike
    * `autonomy`, seeded from `projectActions?.defaults.autonomy`) — Goal 1
-   * is one switch for everything.
+   * is one switch for everything. Only meaningful when `runtimeAvailability
+   * === "both"` — see that field below.
    *
    * Local PR-review preflight finding (2026-09-16): a modal already open
    * when this value's query resolves used to never re-seed — the same race
@@ -44,7 +46,14 @@ export interface UseNewIssueFormStateInput {
    * never gets overwritten), since the two toggles deliberately mirror
    * each other (§3.5).
    */
-  codexRuntimeDefault?: RuntimeValue;
+  runtimeDefault?: RuntimeValue;
+  /**
+   * Codextender integration Part B.1 — the GLOBAL `settings.codexAvailability`.
+   * When not "both" there is no per-task choice: the seeded/reseeded
+   * `runtime` value is forced to the one allowed runtime, ignoring
+   * `runtimeDefault` entirely (there is nothing left for it to seed).
+   */
+  runtimeAvailability?: "both" | "claude_only" | "codex_only";
 }
 
 export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
@@ -60,8 +69,18 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     realProjects,
     phases,
     projectActions,
-    codexRuntimeDefault,
+    runtimeDefault,
+    runtimeAvailability = "both",
   } = input;
+
+  // Codextender integration Part B.1 — with no per-task choice
+  // ("claude_only"/"codex_only"), the seeded runtime is the one allowed
+  // value, not whatever the operator left in `runtimeDefault`.
+  const resolveSeedRuntime = (): RuntimeValue => {
+    if (runtimeAvailability === "claude_only") return "claude";
+    if (runtimeAvailability === "codex_only") return "codex";
+    return runtimeDefault === "codex" ? "codex" : "claude";
+  };
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -72,7 +91,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     projectActions?.defaults.autonomy ?? "guided",
   );
   const [runtime, setRuntime] = useState<RuntimeValue>(
-    codexRuntimeDefault === "codex" ? "codex" : "claude",
+    resolveSeedRuntime(),
   );
   const [phaseId, setPhaseId] = useState<string>(phases[0]?.id ?? "");
   const [phaseOverridden, setPhaseOverridden] = useState(false);
@@ -124,7 +143,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     initialDomain?: string;
   }>({
     autonomy: projectActions?.defaults.autonomy ?? "guided",
-    runtime: codexRuntimeDefault === "codex" ? "codex" : "claude",
+    runtime: resolveSeedRuntime(),
     firstPhaseId: phases[0]?.id ?? "",
     seedProjectId:
       initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
@@ -136,7 +155,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
   });
   resetCtxRef.current = {
     autonomy: projectActions?.defaults.autonomy ?? "guided",
-    runtime: codexRuntimeDefault === "codex" ? "codex" : "claude",
+    runtime: resolveSeedRuntime(),
     firstPhaseId: phases[0]?.id ?? "",
     seedProjectId:
       initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
@@ -194,7 +213,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
   useEffect(() => {
     if (!open) return;
     if (!runtimeTouchedRef.current) setRuntime(resetCtxRef.current.runtime);
-  }, [open, codexRuntimeDefault]);
+  }, [open, runtimeDefault, runtimeAvailability]);
 
   // Exposed to consumers in place of the raw setState — marks the field
   // touched so the re-seed effects above never clobber a user's own choice.
@@ -218,6 +237,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setAutonomy: setAutonomyTouched,
     runtime,
     setRuntime: setRuntimeTouched,
+    runtimeAvailability,
     phaseId,
     setPhaseId,
     phaseOverridden,

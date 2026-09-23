@@ -22,18 +22,33 @@
 # compliance note about an unrelated test-cleanup bug — not credentials.
 # Confirmed with Sven (svroch) 2026-08-13. Scoped to the exact matched
 # strings only, not the whole file or rule.
+#
+# False positive 3 (iterate-2026-09-23-codextender-webui-integration): the
+# built-in `generic-api-key` rule is likely to fire on `server/src/core/
+# launcher-codextender.ts`'s `CODEXTENDER_AUTH_TOKEN_PLACEHOLDER =
+# "sk-codextender-local"` (an AUTH_TOKEN-named constant assigned an
+# sk-prefixed string literal — the exact shape that rule targets), and on
+# its re-import/reuse in `server/src/core/codextender-proxy-probe.ts`'s
+# Authorization header. This is NOT a credential: it is the local
+# Codextender (LiteLLM) proxy's OWN fixed, hardcoded `general_settings.
+# master_key` — a value that proxy's `config.py` sets to this exact string
+# and validates ONLY against a proxy instance the operator runs themselves
+# on their own machine, never against any real Anthropic/OpenAI account.
+# Both files' own doc comments state this. Code-review finding
+# (iterate-2026-09-23), fixed pre-emptively before a CI Security Scan run.
 title = "shipwright-webui gitleaks config"
 
 [extend]
 useDefault = true
 
 [allowlist]
-description = "Confirmed non-secret false positives: cafebabe:deadbeef placeholder (sidekiq-secret) and triage fixture IDs trg-e2emsngmaykjb2h / trg-e2emsnhw2r2hy88 (generic-api-key)."
+description = "Confirmed non-secret false positives: cafebabe:deadbeef placeholder (sidekiq-secret), triage fixture IDs trg-e2emsngmaykjb2h / trg-e2emsnhw2r2hy88 (generic-api-key), and the Codextender local-proxy fixed master-key placeholder sk-codextender-local (generic-api-key)."
 regexTarget = "match"
 regexes = [
   '''cafebabe:deadbeef''',
   '''trg-e2emsngmaykjb2h''',
   '''trg-e2emsnhw2r2hy88''',
+  '''sk-codextender-local''',
 ]
 # Belt-and-suspenders: any finding whose secret contains these known
 # non-secret placeholders/fixture IDs is treated as a non-secret regardless
@@ -43,4 +58,5 @@ stopwords = [
   "deadbeef",
   "trg-e2emsngmaykjb2h",
   "trg-e2emsnhw2r2hy88",
+  "sk-codextender-local",
 ]

@@ -7,7 +7,7 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
 
-import { registerTasksLifecycle } from "../lifecycle.js";
+import { registerTasksFork } from "../fork.js";
 import { SdkSessionsStore, type SdkSessionsStoreDeps } from "../../../core/sdk-sessions-store.js";
 
 function inMemoryDeps(): SdkSessionsStoreDeps {
@@ -35,7 +35,7 @@ async function buildApp(checkCodexCliAvailable?: () => Promise<boolean>) {
   const store = new SdkSessionsStore("/store/sdk-sessions.json", inMemoryDeps());
   await store.load();
   const app = new Hono();
-  registerTasksLifecycle(app, {
+  registerTasksFork(app, {
     store,
     ptyManager: { get: () => undefined },
     checkCodexCliAvailable,

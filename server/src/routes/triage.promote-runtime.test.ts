@@ -1,7 +1,7 @@
 /*
  * triage.promote-runtime.test.ts — Codex Light §3.5's scoped promote
  * behavior: no per-task RuntimeToggle on this surface (PromoteModal.tsx has
- * no launch form) — promote reads the GLOBAL `settings.codexRuntimeDefault`
+ * no launch form) — promote reads the GLOBAL `settings.runtimeDefault`
  * directly, server-side, and stamps it on the created task.
  */
 import { writeFileSync } from "node:fs";
@@ -24,7 +24,7 @@ describe("POST /api/triage/:projectId/promote — runtime default", () => {
 
   afterEach(() => h?.cleanup());
 
-  it("stamps runtime='codex' when settings.codexRuntimeDefault is codex", async () => {
+  it("stamps runtime='codex' when settings.runtimeDefault is codex", async () => {
     h = await makeHarness({
       getCodexRuntimeDefault: async () => "codex",
       runTriageCli: async (input) => ({ kind: "ok", operation: input.operation, item: { id: input.itemId, status: "promoted" } }),

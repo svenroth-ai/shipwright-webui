@@ -1,0 +1,30 @@
+{
+  "stage": "doubt",
+  "doubts": [
+    {
+      "severity": "HIGH",
+      "lens": "concurrency",
+      "file": "server/src/external/tasks/fork.ts",
+      "claim_under_doubt": "Reading parent.runtime and parent.codexIntegrationMode directly from the live SdkSessionsStore across multiple await points is safe.",
+      "disproof_attempt": "A concurrent store.patch() on the same task (e.g. the user relaunching the parent in another tab) can mutate those fields mid-request, desyncing the preflight check from the command-building branch — a TOCTOU race.",
+      "what_would_resolve_it": "Fixed: snapshotted both fields into local consts (parentRuntime, parentCodexIntegrationMode) immediately after store.get(), before any await; used only the locals thereafter. Regression test added in fork.codextender.test.ts."
+    },
+    {
+      "severity": "HIGH",
+      "lens": "fail-safety",
+      "file": "server/src/core/launcher-codextender.ts",
+      "claim_under_doubt": "injectEnvPrefix's fallback to prepending the env-var block when the cd-prefix doesn't match cwd is a safe defensive default.",
+      "disproof_attempt": "It silently produces a command with two cd-prefixes / an ambiguous working directory (e.g. a custom action built from project.path instead of task.cwd) instead of failing loudly, which can launch in the wrong directory undetected.",
+      "what_would_resolve_it": "Fixed: added CodextenderCwdMismatchError, thrown instead of silently falling through; runtime-chokepoint.ts catches it and returns a codextender_cwd_mismatch 500. Regression tests added in launcher-codextender.test.ts and runtime-chokepoint.codextender.test.ts."
+    },
+    {
+      "severity": "LOW",
+      "lens": "escaping",
+      "file": "server/src/core/launcher-codextender.ts",
+      "claim_under_doubt": "The qCmd-style escaping helper's quoting model matches cmd.exe's own tokenizer for all inputs.",
+      "disproof_attempt": "It does not exactly match cmd.exe's tokenizer for all inputs, though no current caller passes attacker-controlled input through that path, so it is not currently exploitable.",
+      "what_would_resolve_it": "Left unfixed by decision — 'don't validate scenarios that can't happen'. This recorded finding stands as the warning for any future extension of this code."
+    }
+  ],
+  "verification": "Both HIGH findings fixed and verified with dedicated regression tests plus a full server test-suite re-run."
+}
