@@ -9,7 +9,11 @@
 
 import { describe, it, expect, vi } from "vitest";
 
-import { probeCodextenderModels, probeCodextenderLiveness } from "./codextender-proxy-probe.js";
+import {
+  probeCodextenderModels,
+  probeCodextenderLiveness,
+  isValidCodextenderPort,
+} from "./codextender-proxy-probe.js";
 
 const FIXTURE_TOKEN = "test-fixture-token";
 
@@ -67,6 +71,21 @@ describe("probeCodextenderModels", () => {
       "http://127.0.0.1:4100/v1/models",
       expect.anything(),
     );
+  });
+
+  it("PR-review BLOCK (iterate-2026-09-23, fifth round) — never calls fetch with a non-integer/out-of-range port, e.g. an authority-confusion string", async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({ data: [] })) as unknown as typeof fetch;
+    for (const bad of [
+      "4000@attacker.example" as unknown as number,
+      4000.5,
+      0,
+      65536,
+      NaN,
+    ]) {
+      const result = await probeCodextenderModels(bad, { fetchFn, authToken: FIXTURE_TOKEN });
+      expect(result).toEqual({ ok: false, models: [] });
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("skips malformed entries (missing/blank id) without throwing", async () => {
@@ -158,5 +177,28 @@ describe("probeCodextenderLiveness", () => {
     ) as unknown as typeof fetch;
     const result = await probeCodextenderLiveness(4000, { fetchFn, timeoutMs: 5 });
     expect(result).toBe(false);
+  });
+
+  it("PR-review BLOCK (iterate-2026-09-23, fifth round) — never calls fetch with an invalid port", async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({})) as unknown as typeof fetch;
+    const result = await probeCodextenderLiveness("4000@attacker.example" as unknown as number, {
+      fetchFn,
+    });
+    expect(result).toBe(false);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe("isValidCodextenderPort", () => {
+  it("accepts integers 1-65535 only", () => {
+    expect(isValidCodextenderPort(1)).toBe(true);
+    expect(isValidCodextenderPort(4000)).toBe(true);
+    expect(isValidCodextenderPort(65535)).toBe(true);
+  });
+
+  it("rejects 0, negatives, >65535, fractions, NaN, and non-numbers", () => {
+    for (const bad of [0, -1, 65536, 4000.5, NaN, "4000", "4000@attacker.example", null, undefined]) {
+      expect(isValidCodextenderPort(bad)).toBe(false);
+    }
   });
 });

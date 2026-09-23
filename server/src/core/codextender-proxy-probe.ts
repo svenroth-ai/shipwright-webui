@@ -30,6 +30,27 @@
 
 import { resolveCodextenderAuthToken } from "./launcher-codextender.js";
 
+/**
+ * `codextenderPort` is persisted/read as arbitrary JSON (PUT /api/settings
+ * accepts an unvalidated body; a hand-edited settings.json is untyped on
+ * disk too) before ever reaching here, so `port: number`'s compile-time
+ * type is not a runtime guarantee. Both probes below MUST reject anything
+ * outside a real TCP port before interpolating it into a URL — a value
+ * like `"4000@attacker.example"` would otherwise redirect the request via
+ * URL userinfo-authority confusion (PR-review BLOCK, iterate-2026-09-23
+ * fifth round). This is the enforcement point regardless of how an invalid
+ * value got in; `routes/settings.ts`'s PUT-time rejection (same finding)
+ * is defense-in-depth on top of it, not a substitute for it.
+ */
+export function isValidCodextenderPort(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= 65535
+  );
+}
+
 export interface CodextenderModelEntry {
   slug: string;
   display_name: string;
@@ -67,6 +88,7 @@ export async function probeCodextenderModels(
   port: number,
   deps: CodextenderProbeDeps = {},
 ): Promise<CodextenderProbeResult> {
+  if (!isValidCodextenderPort(port)) return { ok: false, models: [] };
   const authToken = deps.authToken ?? resolveCodextenderAuthToken();
   if (!authToken) return { ok: false, models: [] };
   const fetchFn = deps.fetchFn ?? fetch;
@@ -108,6 +130,7 @@ export async function probeCodextenderLiveness(
   port: number,
   deps: CodextenderProbeDeps = {},
 ): Promise<boolean> {
+  if (!isValidCodextenderPort(port)) return false;
   const fetchFn = deps.fetchFn ?? fetch;
   const timeoutMs = deps.timeoutMs ?? 1500;
   const controller = new AbortController();

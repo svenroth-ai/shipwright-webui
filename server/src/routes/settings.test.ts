@@ -37,6 +37,36 @@ describe("Settings Routes", () => {
     expect(body.data).not.toHaveProperty("codexRuntimeDefault");
   });
 
+  // PR-review BLOCK fix, iterate-2026-09-23 fifth round — codextenderPort is
+  // interpolated into an outbound proxy URL server-side; an unvalidated
+  // value must never reach disk.
+  it("PUT /api/settings rejects a non-integer/out-of-range codextenderPort with 400, and does not persist it", async () => {
+    const { app, storage } = setup();
+    for (const bad of ["4000@attacker.example", 4000.5, 0, 65536, "4000"]) {
+      const res = await app.request("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codextenderPort: bad }),
+      });
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe("invalid_codextender_port");
+    }
+    expect(storage["/tmp/settings.json"]).toBeUndefined();
+  });
+
+  it("PUT /api/settings accepts a valid codextenderPort", async () => {
+    const { app } = setup();
+    const res = await app.request("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ codextenderPort: 4100 }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.codextenderPort).toBe(4100);
+  });
+
   // @covers FR-01.06
   it("PUT /api/settings persists and returns updated", async () => {
     const { app } = setup();

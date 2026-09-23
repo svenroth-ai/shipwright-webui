@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { GlobalSettings } from "../types/settings.js";
 import { migrateLegacyRuntimeDefault } from "../core/settings-reader.js";
+import { isValidCodextenderPort } from "../core/codextender-proxy-probe.js";
 
 export interface SettingsDeps {
   readFile: (path: string, encoding: string) => Promise<string>;
@@ -46,6 +47,19 @@ export function createSettingsRoutes(
 
   app.put("/api/settings", async (c) => {
     const body = await c.req.json();
+    // `codextenderPort` is interpolated into an outbound proxy URL
+    // (`core/codextender-proxy-probe.ts`) — an unvalidated value could
+    // redirect that request via URL userinfo-authority confusion (e.g.
+    // `"4000@attacker.example"`). Reject before it ever reaches disk
+    // (PR-review BLOCK, iterate-2026-09-23 fifth round); the probes
+    // themselves also re-validate as defense-in-depth against a value
+    // that reached settings.json some other way.
+    if ("codextenderPort" in body && !isValidCodextenderPort(body.codextenderPort)) {
+      return c.json(
+        { error: "invalid_codextender_port", detail: "codextenderPort must be an integer from 1 to 65535." },
+        400,
+      );
+    }
     const dir = settingsPath.substring(0, settingsPath.lastIndexOf("/"));
     if (dir && !deps.existsSync(dir)) {
       deps.mkdirSync(dir, { recursive: true });

@@ -137,6 +137,19 @@ model catalog always 500 (if it didn't).
    behavior-preserving change (every consumer already treated a missing
    value as `"claude"`), made explicit so the rename reads as complete at
    the settings surface itself, not just in the migration shim.
+8. **Trusting `codextenderPort` as an already-safe `number` everywhere it's
+   used** — a fifth preflight round BLOCKED: the value flows from
+   unvalidated JSON (a PUT body, or a hand-edited `settings.json`) through
+   to `http://127.0.0.1:${port}/...` template interpolation, so a crafted
+   value like `"4000@attacker.example"` changes the URL's authority via
+   userinfo confusion, redirecting the server-side request off localhost —
+   an SSRF-shaped risk introduced by this iterate's new network boundary.
+   Fixed with `isValidCodextenderPort()` (`core/codextender-proxy-probe.ts`,
+   integer 1-65535) enforced at BOTH ends: the two probes reject an invalid
+   port before ever building a URL (the actual point of use — defends even
+   a value that reached disk some other way), and `PUT /api/settings` now
+   rejects a present-but-invalid `codextenderPort` with
+   `400 invalid_codextender_port` before it's ever merged/persisted.
 
 ## Testing
 
@@ -152,7 +165,11 @@ proxy reachable), `fork.codextender.test.ts` (fork inheritance + TOCTOU
 regression + the same missing-token 400 with no orphan child row),
 `codextender-models.test.ts` (added: re-probes immediately on a port change
 even within the TTL, and a stale-port failure never masks with a different
-port's cached list).
+port's cached list), `codextender-proxy-probe.test.ts` (added:
+`isValidCodextenderPort` + both probes never call `fetch` with an
+authority-confusion string/fractional/out-of-range/NaN port),
+`routes/settings.test.ts` (added: PUT rejects an invalid `codextenderPort`
+with 400 and never persists it; accepts a valid one).
 Client: `ModelTierOverrideFields.codextender.test.tsx`,
 `EditTaskModal.runtime-availability-race.test.tsx` (forced-runtime submit on
 late settings resolution + a user's own pick under "both" surviving an
