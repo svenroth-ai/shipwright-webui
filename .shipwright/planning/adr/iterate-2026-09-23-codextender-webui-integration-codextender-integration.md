@@ -105,6 +105,21 @@ model catalog always 500 (if it didn't).
    (`runtime-chokepoint-errors.ts`) before either would otherwise build a
    command. The `.gitleaks.toml` entry for the placeholder string was
    removed — it no longer appears in source at all.
+6. **Leaving `useEditTaskForm.ts`'s `runtime` state seeded only on the `open`
+   false-to-true edge** — a third preflight round found this pre-existing
+   race (unrelated to the Codextender feature itself, but reachable through
+   the same `runtimeAvailability` gating this iterate widened): `useSettings()`
+   can resolve, or `codexAvailability` can change, while the modal is already
+   open, and the fixed pill would then show the forced runtime while the
+   submitted patch still held the task's stale one. Fixed by mirroring
+   `useNewIssueFormState.ts`'s 2026-09-16 fix for the create forms: a
+   `runtimeTouchedRef` guarding a re-seed effect keyed on
+   `[open, neverStarted, runtimeAvailability]`, so a user's own interactive
+   pick (only reachable under `availability === "both"`) is never clobbered.
+   The same round also flagged (non-blocking comment)
+   `CodexSettingsCard.tsx`'s port input accepting fractional/out-of-range
+   values; fixed by validating `Number.isInteger` plus the 1-65535 TCP range
+   in `changePort` before it saves.
 
 ## Testing
 
@@ -117,7 +132,11 @@ read-merge-write), `runtime-chokepoint.codextender.test.ts` (chokepoint
 branch + AC7/AC9 bypass + cwd-mismatch 500 + `codextender_auth_token_missing`
 400 with the proxy reachable), `fork.codextender.test.ts` (fork inheritance +
 TOCTOU regression + the same missing-token 400 with no orphan child row).
-Client: `ModelTierOverrideFields.codextender.test.tsx`. E2E:
+Client: `ModelTierOverrideFields.codextender.test.tsx`,
+`EditTaskModal.runtime-availability-race.test.tsx` (forced-runtime submit on
+late settings resolution + a user's own pick under "both" surviving an
+unrelated re-render), `CodexSettingsCard.test.tsx` (added case: a fractional
+or out-of-range port is rejected, no PUT sent). E2E:
 `client/e2e/flows/codextender-integration.spec.ts` (3 tests — Codextender
 placeholders/catalog, static fallback + unreachable caption, light-mode
 non-regression), run via the isolated stack, F0.5 surface_verification

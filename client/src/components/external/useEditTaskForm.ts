@@ -95,9 +95,18 @@ export function useEditTaskForm(
   const [autonomy, setAutonomy] = useState<AutonomyValue>(
     task.autonomy ?? "guided",
   );
-  const [runtime, setRuntime] = useState<RuntimeValue>(
+  const [runtime, setRuntimeRaw] = useState<RuntimeValue>(
     resolveRuntime(task.runtime ?? "claude"),
   );
+  // Local PR-review preflight finding (iterate-2026-09-23, mirrors the same
+  // fix already applied to useNewIssueFormState.ts on 2026-09-16) — only a
+  // user's own interactive pick (reachable when runtimeAvailability ===
+  // "both") sets this; the re-seed effect below never clobbers it.
+  const runtimeTouchedRef = useRef(false);
+  const setRuntime: typeof setRuntimeRaw = (value) => {
+    runtimeTouchedRef.current = true;
+    setRuntimeRaw(value);
+  };
   const [domain, setDomain] = useState(task.domain ?? "");
   const [tagsRaw, setTagsRaw] = useState((task.tags ?? []).join(", "));
   const [blockedByRaw, setBlockedByRaw] = useState(
@@ -145,12 +154,29 @@ export function useEditTaskForm(
     setPriority(t.priority ?? "");
     setComplexityHint(t.complexityHint ?? "");
     setAutonomy(t.autonomy ?? "guided");
-    setRuntime(resolveRuntime(t.runtime ?? "claude"));
+    setRuntimeRaw(resolveRuntime(t.runtime ?? "claude"));
+    runtimeTouchedRef.current = false;
     setDomain(t.domain ?? "");
     setTagsRaw((t.tags ?? []).join(", "));
     setBlockedByRaw((t.blockedBy ?? []).join(", "));
     setError(null);
   }, [open]);
+
+  // Local PR-review preflight finding (iterate-2026-09-23) — a modal already
+  // open when `settings` resolves (or when `codexAvailability` changes
+  // mid-session) never used to re-resolve `runtime`, so a never-started
+  // task under restricted availability could display RuntimeToggle's forced
+  // fixed pill while `runtime` state still held the task's stale value and
+  // would have been submitted as-is. Untouched-only: a user's own
+  // interactive pick (only reachable when `runtimeAvailability === "both"`)
+  // is never clobbered. Mirrors `useNewIssueFormState.ts`'s identical fix
+  // for the create forms (2026-09-16).
+  useEffect(() => {
+    if (!open) return;
+    if (!neverStarted) return;
+    if (runtimeTouchedRef.current) return;
+    setRuntimeRaw(resolveRuntime(taskRef.current.runtime ?? "claude"));
+  }, [open, neverStarted, runtimeAvailability]);
 
   const shows = (f: string) => f === "title" || modalFields.includes(f);
   const editable = (f: string) => isFieldEditable(f, task);

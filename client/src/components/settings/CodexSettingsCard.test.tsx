@@ -196,4 +196,27 @@ describe("CodexSettingsCard", () => {
     fireEvent.change(portInput, { target: { value: "5000" } });
     await waitFor(() => expect(putBodies).toContainEqual({ codextenderPort: 5000 }));
   });
+
+  it("rejects a fractional or out-of-TCP-range port without saving (PR-review comment, iterate-2026-09-23)", async () => {
+    const putBodies: Record<string, unknown>[] = [];
+    server.use(
+      http.get("/api/settings", () =>
+        HttpResponse.json({ data: { codexIntegrationMode: "codextender", codextenderPort: 4100 } }),
+      ),
+      http.put("/api/settings", async ({ request }) => {
+        putBodies.push((await request.json()) as Record<string, unknown>);
+        return HttpResponse.json({ data: {} });
+      }),
+    );
+    renderCard();
+    const portInput = await screen.findByTestId("settings-codextender-port-input");
+    expect((portInput as HTMLInputElement).value).toBe("4100");
+
+    fireEvent.change(portInput, { target: { value: "4000.5" } });
+    fireEvent.change(portInput, { target: { value: "65536" } });
+    fireEvent.change(portInput, { target: { value: "0" } });
+
+    expect((portInput as HTMLInputElement).value).toBe("4100");
+    expect(putBodies.some((b) => "codextenderPort" in b)).toBe(false);
+  });
 });

@@ -81,7 +81,10 @@ export function CodexSettingsCard() {
 
   const changePort = (raw: string): void => {
     const next = Number(raw);
-    if (!Number.isFinite(next) || next <= 0) return;
+    // PR-review comment (iterate-2026-09-23) — a fractional or out-of-range
+    // value would save but then fail every proxy request; TCP ports are
+    // 1-65535 integers.
+    if (!Number.isInteger(next) || next < 1 || next > 65535) return;
     setPortState(next);
     saveSettings.mutate({ codextenderPort: next });
   };
