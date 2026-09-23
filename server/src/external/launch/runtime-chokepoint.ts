@@ -36,7 +36,22 @@ import {
   codextenderProxyUnreachableError,
 } from "./runtime-chokepoint-errors.js";
 
-type CodexIntegrationMode = "light" | "codextender";
+export type CodexIntegrationMode = "light" | "codextender";
+
+/**
+ * Plan-review HIGH fix (iterate-2026-09-23) — pin to the task's OWN stamped
+ * mode once one exists, falling back to the live global setting only on a
+ * task's very first Codex-runtime launch. Without this, a Resume straddling
+ * a post-first-launch mode flip would silently switch mechanisms mid-session
+ * (e.g. discard a real `codex` thread's history for a Codextender relaunch).
+ * Pure/IO-free so `routes.ts` can unit-test the choice directly.
+ */
+export function resolveCodexIntegrationModeForLaunch(
+  task: ExternalTask,
+  liveGlobalSetting: CodexIntegrationMode | undefined,
+): CodexIntegrationMode | undefined {
+  return task.codexIntegrationMode ?? liveGlobalSetting;
+}
 
 /**
  * AC8 — "a task launched with a runtime whose CLI isn't installed fails at

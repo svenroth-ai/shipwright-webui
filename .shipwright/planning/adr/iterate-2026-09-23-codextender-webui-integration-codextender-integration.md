@@ -179,3 +179,15 @@ or out-of-range port is rejected, no PUT sent). E2E:
 placeholders/catalog, static fallback + unreachable caption, light-mode
 non-regression), run via the isolated stack, F0.5 surface_verification
 `web` surface, `tests_run: 3`, exit 0.
+
+## Internal Plan Review
+
+Ran: yes (retroactively, at F11 — see the iterate spec's `## Internal Plan
+Review` section for full detail and why it ran late). Status: 2 fixed
+(HIGH env-var persistent-shell leak in `launcher-codextender.ts`; HIGH
+`codexIntegrationMode` not pinned across Resume in `routes.ts`, fixed via
+new `resolveCodexIntegrationModeForLaunch()`), 6 medium + 3 low disclosed
+(untriaged this session, findings text not retained). New/updated tests:
+`launcher-codextender.test.ts` (env cleanup suffix, both mutating shells),
+`runtime-chokepoint.test.ts` (`resolveCodexIntegrationModeForLaunch` pin/
+fallback/undefined cases).

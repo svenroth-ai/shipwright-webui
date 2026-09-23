@@ -40,7 +40,10 @@ import {
 import { checkClaimHolderGate } from "./claim-holder-gate.js";
 import { commandsCarryPermissionPerimeter } from "./claim-permission-perimeter-assert.js";
 import { checkMixedLaunchIntents } from "./mixed-intents-guard.js";
-import { applyRuntimeChokepoint } from "./runtime-chokepoint.js";
+import {
+  applyRuntimeChokepoint,
+  resolveCodexIntegrationModeForLaunch,
+} from "./runtime-chokepoint.js";
 
 export interface LaunchRouterDeps {
   store: SdkSessionsStore;
@@ -248,7 +251,10 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       project: getProjectById?.(task.projectId),
       commands,
       taskUpdate,
-      codexIntegrationMode: await deps.getCodexIntegrationMode?.(),
+      codexIntegrationMode: resolveCodexIntegrationModeForLaunch(
+        task,
+        await deps.getCodexIntegrationMode?.(),
+      ),
       codextenderPort: await deps.getCodextenderPort?.(),
     });
     if ("error" in runtimeResult) {

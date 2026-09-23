@@ -111,7 +111,42 @@ function injectEnvPrefix(
     throw new CodextenderCwdMismatchError(args.cwd);
   }
   const rest = full.slice(cdPrefix.length);
-  return cdPrefix + buildCodextenderEnvPrefix(args, q, shellForm) + rest;
+  return (
+    cdPrefix +
+    buildCodextenderEnvPrefix(args, q, shellForm) +
+    rest +
+    buildCodextenderEnvCleanupSuffix(shellForm)
+  );
+}
+
+/**
+ * Doubt-review/plan-review HIGH — PowerShell (`$env:X = ...;`) and cmd
+ * (`set X=Y &&`) mutate the CURRENT, persistent shell's environment (unlike
+ * the posix prefix form, which scopes to the one invocation it precedes).
+ * The embedded terminal is a long-lived pty shell, not spawned fresh per
+ * command, so without this suffix the proxy's `ANTHROPIC_BASE_URL` /
+ * `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` would silently outlive this one
+ * `claude` invocation and get inherited by whatever the user (or a later
+ * Relaunch-as-Claude/Codex-Light) types next in the same tab. Runs
+ * unconditionally after `rest` (cmd's `&`, PowerShell's `;` — neither is
+ * gated on `rest`'s own exit code, so cleanup still happens if `claude`
+ * exits non-zero). No posix form: nothing to clean up there.
+ */
+function buildCodextenderEnvCleanupSuffix(shellForm: "powershell" | "cmd" | "posix"): string {
+  const names = [
+    "ANTHROPIC_BASE_URL",
+    "ANTHROPIC_AUTH_TOKEN",
+    "ANTHROPIC_MODEL",
+    "CODEXTENDER_ACTIVE",
+    "CODEXTENDER_MODEL",
+  ];
+  if (shellForm === "powershell") {
+    return `; Remove-Item ${names.map((n) => `Env:${n}`).join(",")} -ErrorAction SilentlyContinue`;
+  }
+  if (shellForm === "cmd") {
+    return names.map((n) => ` & set ${n}=`).join("");
+  }
+  return "";
 }
 
 /**

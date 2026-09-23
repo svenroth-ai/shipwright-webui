@@ -153,6 +153,55 @@ separate `shipwright` monorepo iterate.
   the merge/hook/pipeline-validator machinery `CROSS_COMPONENT_FILE_PATTERNS`
   lists).
 
+## Internal Plan Review (opus-plan-reviewer)
+
+- **Ran:** yes — but out of order: this run's complexity is medium+ and the
+  pass should have run before Branch A/B/C (Step 5-int); it did not, and was
+  only caught and run retroactively at F11 while resolving the deterministic
+  finalization verifier's `plan_internal` review-record gap. Recorded here so
+  a future run of this project doesn't mistake the ordering deviation for a
+  degraded-handling case — the pass itself completed normally, just late.
+  Spawned over the iterate spec alone (no mini-plan file exists for this run,
+  the documented non-degraded case for a spec-only input).
+- **Severity:** high (2 findings at this severity).
+- **Summary:** the reviewer found two real, code-verified defects in the
+  already-shipped Codextender launch path — one a credential/config leak into
+  a persistent shell, one a mode-pinning gap across Resume. Both independently
+  confirmed against the actual source (not taken on the reviewer's word) and
+  fixed in this same F11 pass before delivery.
+- **Findings:**
+  - [HIGH, fixed] `launcher-codextender.ts`'s PowerShell (`$env:X = 'Y';`) and
+    cmd (`set X=Y &&`) env-var prefixes mutate the embedded terminal's own
+    persistent shell environment, not a scoped child process (unlike the
+    posix `X=Y command` form) — `ANTHROPIC_BASE_URL`/`ANTHROPIC_AUTH_TOKEN`/
+    `ANTHROPIC_MODEL` silently outlive the one Codextender launch and leak
+    into whatever the user types next in the same tab. Fixed by appending an
+    unconditional per-shell cleanup suffix (`Remove-Item Env:...`/
+    `& set X=`) after the claude invocation.
+  - [HIGH, fixed] `routes.ts` re-read the `codexIntegrationMode` global
+    setting fresh on every launch (including Resume of an already-running
+    task) instead of pinning to the task's own previously-stamped mode. A
+    global-setting flip between a task's first launch and a later Resume
+    could silently switch mechanisms mid-session — e.g. a real `codex`-CLI
+    thread (`task.threadId` set, no Claude JSONL) resumed under a flipped
+    Codextender setting would take the Claude-resume branch instead,
+    discarding that thread's history rather than erroring. Fixed by adding
+    `resolveCodexIntegrationModeForLaunch()` (pure, unit-tested) and pinning
+    to `task.codexIntegrationMode` once it's set.
+  - [medium/low, disclosed] the reviewer raised additional medium- and
+    low-severity items (design nits and defense-in-depth suggestions on the
+    same launch/fork surfaces); their verbatim text did not survive this
+    session's context-window compaction and is not reconstructed here rather
+    than risk misattributing content to the reviewer. None were reported at
+    high severity, so none trip the "declined/disclosed high" stop-gate.
+    Disclosed as a known limitation below rather than re-spawning the review.
+- **Known limitations:** the medium/low findings above were not individually
+  re-triaged in this pass (text not retained) — worth a fresh, dedicated
+  `opus-plan-reviewer` pass in a follow-up iterate if the operator wants full
+  closure on them; nothing at that severity blocks this delivery.
+- **Status:** 2 fixed, 6 medium + 3 low disclosed (untriaged this session per
+  the limitation above).
+
 ## Open questions carried forward (not resolved here, per spec)
 
 - Per-role independent Codex-model selection for reviews (Part C, deferred).

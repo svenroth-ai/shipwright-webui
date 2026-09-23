@@ -136,6 +136,24 @@ describe("buildCodextenderCommands", () => {
     expect(result.posix).toContain("another-fixture-value");
   });
 
+  it("plan-review HIGH — cleans up all 5 env vars after the claude invocation on powershell and cmd, but leaves posix untouched (already scoped)", () => {
+    const result = buildCodextenderCommands({
+      cwd: CWD,
+      baseUrl: "http://127.0.0.1:4000",
+      authToken: FIXTURE_MASTER_KEY,
+      claudeCommands: claudeCommands(),
+    });
+
+    expect(result.powershell.trimEnd()).toMatch(
+      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL -ErrorAction SilentlyContinue$/,
+    );
+    expect(result.cmd.trimEnd()).toMatch(
+      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL=$/,
+    );
+    expect(result.posix).not.toContain("Remove-Item");
+    expect(result.posix).not.toContain(" & set ");
+  });
+
   it("doubt-review HIGH — throws CodextenderCwdMismatchError (never silently double-prefixes) when the claude command's embedded cd-prefix doesn't match the given cwd", () => {
     const claude = claudeCommands();
     const oddCwd = "C:\\Somewhere\\Else";

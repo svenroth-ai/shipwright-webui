@@ -162,15 +162,16 @@
     },
     "plan_internal": {
       "review_type": "plan_internal",
-      "status": "pending",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
+      "completed_at": "2026-09-23T11:25:57.901329+00:00",
       "disposition": null,
-      "recorded_by": null,
+      "recorded_by": "opus-plan-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "opus"
     }
   }
 }
