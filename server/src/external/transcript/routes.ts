@@ -32,6 +32,7 @@ import {
   parseIntSafe,
   withLiveSession,
 } from "../_shared/helpers.js";
+import { isCodexNonCodextenderTask } from "../launch/runtime-chokepoint.js";
 
 export interface TranscriptRouterDeps {
   store: SdkSessionsStore;
@@ -94,7 +95,18 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
         // would be stuck `active` forever instead of decaying to `idle`
         // (external review, GLM, 2026-09-20 — flagged as the same
         // conceptual edit left inconsistent if deferred).
-        (task.actionId === "new-plain" || task.runtime === "codex") &&
+        //
+        // Codextender integration Part B.6 companion fix — EXCLUDED from
+        // that generalization here too via the shared
+        // `isCodexNonCodextenderTask` predicate (runtime-chokepoint.ts),
+        // mirroring ws-upgrade-handler.ts's own companion fix: a
+        // Codextender task drives ordinary `claude` and DOES write a real
+        // `.jsonl`, so it never reaches `active` via the early-flip path
+        // this branch backstops in the first place (`task.state ===
+        // "active"` below is structurally unreachable for it during a
+        // missing-JSONL window) — kept explicit rather than relying on
+        // that invariant holding forever.
+        (task.actionId === "new-plain" || isCodexNonCodextenderTask(task)) &&
         task.state === "active" &&
         ptyManager.get(task.taskId) === undefined
       ) {

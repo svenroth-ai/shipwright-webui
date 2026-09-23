@@ -28,6 +28,9 @@ export interface ExternalRoutesWiringDeps {
   config: ServerConfig;
   /** Codex Light AC6 — feeds `codex_watcher` inbox rows. */
   codexWatcher?: Pick<CodexTaskWatcher, "snapshot">;
+  /** Codextender integration Part B.6 — see `CreateExternalRoutesArgs`. */
+  getCodexIntegrationMode?: () => Promise<"light" | "codextender" | undefined>;
+  getCodextenderPort?: () => Promise<number | undefined>;
 }
 
 export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateExternalRoutesArgs {
@@ -42,6 +45,8 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
     honoHost,
     config,
     codexWatcher,
+    getCodexIntegrationMode,
+    getCodextenderPort,
   } = deps;
 
   return {
@@ -91,5 +96,7 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
     leadwrightCheckoutRoot: config.leadwrightCheckoutRoot,
     webuiBaseUrl: `http://localhost:${process.env.VITE_PORT ?? "5173"}`,
     codexWatcher,
+    getCodexIntegrationMode,
+    getCodextenderPort,
   };
 }

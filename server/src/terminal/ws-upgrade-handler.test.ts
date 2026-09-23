@@ -4,8 +4,10 @@
  *
  * Sibling files (split per Stop-hook bloat gate on the original 570-LOC
  * single file, 2026-05-27):
- *   - ws-upgrade-handler.parse.test.ts  — inbound JSON parse table + onMessage
- *   - ws-upgrade-handler.detach.test.ts — onClose / onError atomic detach
+ *   - ws-upgrade-handler.parse.test.ts     — inbound JSON parse table + onMessage
+ *   - ws-upgrade-handler.detach.test.ts    — onClose / onError atomic detach
+ *   - ws-upgrade-handler.codex-flip.test.ts — ADR-309 Codex-runtime early
+ *     flip + its Codextender-mode exclusion (split 2026-09-23)
  *
  * Coverage of the iterate spec ACs (subset):
  *   (a) replay-only attach: ready envelope shape, close cleanly, no
@@ -224,85 +226,6 @@ describe("buildWsHandlers — new-plain state flip", () => {
     const ctx = makeCtx({
       store: store as unknown as ValidatedWsUpgradeContext["store"],
       task: makeTask({ state: "active", actionId: "new-plain" }),
-    });
-    const handlers = buildWsHandlers(ctx);
-    handlers.onOpen?.({} as Event, makeWs() as never);
-    expect(store.patch).not.toHaveBeenCalled();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// (f) Codex-runtime awaiting_external_start → active flip
-//     (iterate-2026-09-20-codex-liveness-transition)
-// ---------------------------------------------------------------------------
-
-describe("buildWsHandlers — Codex-runtime state flip", () => {
-  it("flips awaiting_external_start → active for a Codex task under a non-new-plain actionId (new-iterate)", () => {
-    const store = makeStore();
-    const ctx = makeCtx({
-      store: store as unknown as ValidatedWsUpgradeContext["store"],
-      task: makeTask({
-        state: "awaiting_external_start",
-        actionId: "new-iterate",
-        runtime: "codex",
-      }),
-    });
-    const handlers = buildWsHandlers(ctx);
-    handlers.onOpen?.({} as Event, makeWs() as never);
-    expect(store.patch).toHaveBeenCalledWith("task-1", { state: "active" });
-    expect(store.persist).toHaveBeenCalled();
-  });
-
-  it("flips awaiting_external_start → active for a Codex task under resume/fork actionIds too", () => {
-    for (const actionId of ["resume", "fork", "triage-promote"]) {
-      const store = makeStore();
-      const ctx = makeCtx({
-        store: store as unknown as ValidatedWsUpgradeContext["store"],
-        task: makeTask({ state: "awaiting_external_start", actionId, runtime: "codex" }),
-      });
-      const handlers = buildWsHandlers(ctx);
-      handlers.onOpen?.({} as Event, makeWs() as never);
-      expect(store.patch).toHaveBeenCalledWith("task-1", { state: "active" });
-    }
-  });
-
-  it("does NOT flip a Claude-runtime task under a non-new-plain actionId (regression guard)", () => {
-    const store = makeStore();
-    const ctx = makeCtx({
-      store: store as unknown as ValidatedWsUpgradeContext["store"],
-      task: makeTask({
-        state: "awaiting_external_start",
-        actionId: "new-iterate",
-        runtime: "claude",
-      }),
-    });
-    const handlers = buildWsHandlers(ctx);
-    handlers.onOpen?.({} as Event, makeWs() as never);
-    expect(store.patch).not.toHaveBeenCalled();
-  });
-
-  it("does NOT set firstJsonlObservedAt when flipping a Codex task", () => {
-    const store = makeStore();
-    const ctx = makeCtx({
-      store: store as unknown as ValidatedWsUpgradeContext["store"],
-      task: makeTask({
-        state: "awaiting_external_start",
-        actionId: "new-iterate",
-        runtime: "codex",
-      }),
-    });
-    const handlers = buildWsHandlers(ctx);
-    handlers.onOpen?.({} as Event, makeWs() as never);
-    const patchCall = store.patch.mock.calls.find((c) => c[0] === "task-1");
-    expect(patchCall?.[1]).toEqual({ state: "active" });
-    expect(patchCall?.[1]).not.toHaveProperty("firstJsonlObservedAt");
-  });
-
-  it("does NOT flip a Codex task when state is already active", () => {
-    const store = makeStore();
-    const ctx = makeCtx({
-      store: store as unknown as ValidatedWsUpgradeContext["store"],
-      task: makeTask({ state: "active", actionId: "new-iterate", runtime: "codex" }),
     });
     const handlers = buildWsHandlers(ctx);
     handlers.onOpen?.({} as Event, makeWs() as never);

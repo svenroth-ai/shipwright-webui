@@ -39,7 +39,7 @@ export function NewPipelineModal({ form }: { form: UseNewIssueFormReturn }) {
         realProjects={form.realProjects}
       />
       <TitleFieldFragment title={form.title} setTitle={form.setTitle} />
-      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} />
+      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} availability={form.runtimeAvailability} codexIntegrationMode={form.codexIntegrationMode} />
 
       {form.showAutonomyToggle && (
         <AutonomyFieldFragment

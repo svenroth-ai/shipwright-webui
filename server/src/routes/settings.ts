@@ -1,5 +1,7 @@
 import { Hono } from "hono";
 import type { GlobalSettings } from "../types/settings.js";
+import { migrateLegacyRuntimeDefault } from "../core/settings-reader.js";
+import { isValidCodextenderPort } from "../core/codextender-proxy-probe.js";
 
 export interface SettingsDeps {
   readFile: (path: string, encoding: string) => Promise<string>;
@@ -17,6 +19,7 @@ const DEFAULT_SETTINGS: GlobalSettings = {
   port: 3847,
   maxConcurrent: 3,
   heartbeatIntervalMs: 30000,
+  runtimeDefault: "claude",
 };
 
 export function createSettingsRoutes(
@@ -31,7 +34,12 @@ export function createSettingsRoutes(
     }
     try {
       const content = await deps.readFile(settingsPath, "utf-8");
-      return c.json({ data: { ...DEFAULT_SETTINGS, ...JSON.parse(content) } });
+      return c.json({
+        data: {
+          ...DEFAULT_SETTINGS,
+          ...migrateLegacyRuntimeDefault(JSON.parse(content)),
+        },
+      });
     } catch {
       return c.json({ data: DEFAULT_SETTINGS });
     }
@@ -39,6 +47,19 @@ export function createSettingsRoutes(
 
   app.put("/api/settings", async (c) => {
     const body = await c.req.json();
+    // `codextenderPort` is interpolated into an outbound proxy URL
+    // (`core/codextender-proxy-probe.ts`) — an unvalidated value could
+    // redirect that request via URL userinfo-authority confusion (e.g.
+    // `"4000@attacker.example"`). Reject before it ever reaches disk
+    // (PR-review BLOCK, iterate-2026-09-23 fifth round); the probes
+    // themselves also re-validate as defense-in-depth against a value
+    // that reached settings.json some other way.
+    if ("codextenderPort" in body && !isValidCodextenderPort(body.codextenderPort)) {
+      return c.json(
+        { error: "invalid_codextender_port", detail: "codextenderPort must be an integer from 1 to 65535." },
+        400,
+      );
+    }
     const dir = settingsPath.substring(0, settingsPath.lastIndexOf("/"));
     if (dir && !deps.existsSync(dir)) {
       deps.mkdirSync(dir, { recursive: true });
@@ -57,7 +78,10 @@ export function createSettingsRoutes(
         try {
           const content = await deps.readFile(settingsPath, "utf-8");
           if (content.trim()) {
-            existing = { ...existing, ...JSON.parse(content) };
+            existing = {
+              ...existing,
+              ...migrateLegacyRuntimeDefault(JSON.parse(content)),
+            };
           }
         } catch {
           // Malformed or empty — fall back to defaults.

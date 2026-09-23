@@ -22,6 +22,18 @@
 # compliance note about an unrelated test-cleanup bug — not credentials.
 # Confirmed with Sven (svroch) 2026-08-13. Scoped to the exact matched
 # strings only, not the whole file or rule.
+#
+# iterate-2026-09-23-codextender-webui-integration: an earlier version of
+# `server/src/core/launcher-codextender.ts` hardcoded a fixed Codextender
+# proxy master-key ("sk-codextender-local") as a fallback default, which
+# needed an entry here. PR-review BLOCK (second round) rejected that shape
+# outright regardless of the value's actual local-only, non-secret nature:
+# `resolveCodextenderAuthToken()` now has NO built-in fallback — it reads
+# `CODEXTENDER_AUTH_TOKEN` from the environment only, returning `undefined`
+# (a fail-closed 400, `codextender_auth_token_missing`) when unset. The
+# literal string no longer appears in source, so no allowlist entry is
+# needed for it; this note stays only so a future report of the finding
+# isn't re-investigated as unresolved.
 title = "shipwright-webui gitleaks config"
 
 [extend]

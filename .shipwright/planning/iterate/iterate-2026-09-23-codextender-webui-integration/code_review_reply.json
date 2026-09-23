@@ -1,0 +1,48 @@
+{
+  "section": "codextender-webui-integration",
+  "review": [
+    {
+      "severity": "medium",
+      "category": "robustness",
+      "file": "server/src/routes/codextender-models.ts",
+      "finding": "The inflight models-catalog IIFE's getPort() rejection could propagate as an unhandled 500 instead of degrading to the existing stale/unavailable response shape.",
+      "suggestion": "Fixed: wrapped the getPort() call in its own try/catch."
+    },
+    {
+      "severity": "medium",
+      "category": "duplication",
+      "file": "server/src/external/launch/runtime-chokepoint.ts",
+      "finding": "The ADR-309 Codex-runtime JSONL-liveness special-case needed a Codextender exclusion; the condition risked duplication across call sites (ws-upgrade-handler.ts).",
+      "suggestion": "Fixed: extracted isCodexNonCodextenderTask() into runtime-chokepoint.ts and reused it from ws-upgrade-handler.ts."
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx",
+      "finding": "codexIntegrationMode was read from an independent useSettings() call instead of being passed down from the parent form state, risking a stale/inconsistent read.",
+      "suggestion": "Fixed: threaded codexIntegrationMode through as a prop from NewIterateModal.tsx's form state."
+    },
+    {
+      "severity": "low",
+      "category": "secrets-hygiene",
+      "file": ".gitleaks.toml",
+      "finding": "The new sk-codextender-local placeholder token needed a documented allowlist entry.",
+      "suggestion": "Fixed: added a third allowlist entry following the file's existing two-entry precedent style, with rationale."
+    },
+    {
+      "severity": "low",
+      "category": "cleanup",
+      "file": "client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx",
+      "finding": "Now-unused useSettings import/call left over after the prop-threading fix.",
+      "suggestion": "Fixed: removed the unused import/call."
+    },
+    {
+      "severity": "medium",
+      "category": "duplication",
+      "file": "server/src/external/launch/runtime-chokepoint.ts",
+      "finding": "Codex-runtime error message builders (codextender_proxy_unreachable, codex_cli_not_found) were duplicated risk between runtime-chokepoint.ts and fork.ts, which cannot call the chokepoint directly.",
+      "suggestion": "Fixed: extracted the three error-builder functions into a new sibling runtime-chokepoint-errors.ts, imported by both call sites."
+    }
+  ],
+  "verification": "Full server + client typecheck and test suite re-run after fixes: server 4438 passed, client 4313 passed."
+}

@@ -43,12 +43,39 @@ function OpenAILogo({ size }: { size: number }) {
   );
 }
 
+export type RuntimeAvailability = "both" | "claude_only" | "codex_only";
+
 interface RuntimeToggleProps {
   value: RuntimeValue;
   onChange: (next: RuntimeValue) => void;
+  /**
+   * Codextender integration Part B.1 — `codexAvailability` global setting.
+   * Defaults to "both" (today's behavior, unchanged): a live two-segment
+   * radiogroup. "claude_only" / "codex_only" render a single fixed,
+   * non-interactive label instead — there is no per-task choice left to
+   * make, so there is nothing to toggle. Callers are responsible for
+   * auto-assigning `runtime`/`task.runtime` to the one allowed value; this
+   * component only decides how to DISPLAY that already-resolved value.
+   */
+  availability?: RuntimeAvailability;
 }
 
-export function RuntimeToggle({ value, onChange }: RuntimeToggleProps) {
+export function RuntimeToggle({ value, onChange, availability = "both" }: RuntimeToggleProps) {
+  if (availability !== "both") {
+    const fixedLabel = availability === "codex_only" ? "Codex" : "Claude";
+    const fixedIcon =
+      availability === "codex_only" ? <OpenAILogo size={12} /> : <ClaudeLogo size={12} />;
+    return (
+      <div
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-primary,#6b5e56)] px-3 py-1.5 text-[12px] font-medium text-white"
+        data-testid="runtime-toggle-fixed"
+        aria-label={`Runtime — fixed to ${fixedLabel} in Settings`}
+      >
+        {fixedIcon} {fixedLabel}
+      </div>
+    );
+  }
+
   return (
     <div
       className="inline-flex overflow-hidden rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)]"

@@ -1,0 +1,1 @@
+Codex tasks can now run through Codextender (a local proxy pointing an ordinary Claude session at your Codex-plan subscription) instead of the real Codex CLI, toggled per-machine in Settings, with its own model-catalog suggestions and campaign/pipeline support.

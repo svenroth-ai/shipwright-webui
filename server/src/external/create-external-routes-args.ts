@@ -116,4 +116,13 @@ export interface CreateExternalRoutesArgs {
    * (index.ts) wires the real instance.
    */
   codexWatcher?: Pick<CodexTaskWatcher, "snapshot">;
+  /**
+   * Codextender integration Part B.6 — fresh global-settings reads threaded
+   * to the launch router's runtime chokepoint (never cached on the task
+   * itself; the setting can change between a task's launches). Optional:
+   * tests and legacy callers that omit either get the chokepoint's own
+   * "light" / port-4000 defaults.
+   */
+  getCodexIntegrationMode?: () => Promise<"light" | "codextender" | undefined>;
+  getCodextenderPort?: () => Promise<number | undefined>;
 }

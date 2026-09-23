@@ -1,8 +1,10 @@
 /*
- * external/tasks/lifecycle.ts — POST /tasks/:id/fork, /close, /backlog +
- * DELETE /tasks/:id.
+ * external/tasks/lifecycle.ts — POST /tasks/:id/close, /backlog, /reopen,
+ * /column + DELETE /tasks/:id.
  *
- * fork — clone a task with a parent linkage + emit fresh launch commands.
+ * (Fork lives in `./fork.ts` — split out during the Codextender integration's
+ * file-size cleanup, 2026-09-23.)
+ *
  * close — `state → done` (terminal). backlog — `state → draft` (FR-01.32,
  * back to the Backlog column). delete — drop the task + cascade-clear
  * scrollback + snapshot (ADR-068-A1 + ADR-087, best-effort; the task
@@ -14,21 +16,12 @@
 
 import type { Hono } from "hono";
 
-import { existsSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-
-import { buildCopyCommands } from "../../core/launcher.js";
-import { buildCodexCommands } from "../../core/launcher-codex.js";
-import { installHint } from "../../core/readiness-install-hints.js";
 import {
   SdkSessionsStore,
   isBacklogSourceState,
 } from "../../core/sdk-sessions-store.js";
-import { normalizeTitle, withLiveSession } from "../_shared/helpers.js";
+import { withLiveSession } from "../_shared/helpers.js";
 import { isBoardColumn, type BoardColumn } from "../../core/board-column.js";
-import { isCodexCliAvailable, runtimeForTask } from "../launch/runtime-chokepoint.js";
-import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 
 export function registerTasksLifecycle(
   app: Hono,
@@ -40,101 +33,11 @@ export function registerTasksLifecycle(
       // privacy clears (optional: legacy/test harnesses omit it).
       kill?(taskId: string): void | Promise<void>;
     };
-    /** Codex Light §2.1 — resolves the parent's project for the fork's AGENTS.md check. */
-    getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
     scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
     snapshotClearBestEffort?: (taskId: string) => Promise<void>;
-    /** Test seam — defaults to a real `codex --version` probe. */
-    checkCodexCliAvailable?: () => Promise<boolean>;
   },
 ): void {
-  const {
-    store,
-    ptyManager,
-    getProjectById,
-    scrollbackClearBestEffort,
-    snapshotClearBestEffort,
-    checkCodexCliAvailable = isCodexCliAvailable,
-  } = deps;
-
-  app.post("/api/external/tasks/:id/fork", async (c) => {
-    const parent = store.get(c.req.param("id"));
-    if (!parent) return c.json({ error: "Parent task not found" }, 404);
-    const body = await c.req.json().catch(() => ({}));
-    // D22/F27 — validate a PROVIDED (non-blank) title with PATCH's own rule
-    // BEFORE creating the child (no orphan row on an invalid title). Absent/
-    // blank keeps the "<parent> — fork" default.
-    let title = `${parent.title} — fork`;
-    if (typeof body.title === "string" && body.title.trim()) {
-      const r = normalizeTitle(body.title);
-      if (!r.ok) return c.json({ error: r.error }, 400);
-      title = r.value;
-    }
-    // AC8 (PR-review preflight finding) — fork bypasses the main chokepoint
-    // (§2.1's correction), so it needs its own CLI check, before store.create
-    // like the title validation above (no orphan child row).
-    if (parent.runtime === "codex" && !(await checkCodexCliAvailable())) {
-      return c.json(
-        {
-          error: "codex_cli_not_found",
-          detail:
-            "This task's runtime is Codex, but the Codex CLI isn't installed " +
-            "on this machine. " + installHint("codex", os.platform()) +
-            ", or switch this task's runtime to Claude.",
-        },
-        400,
-      );
-    }
-    const child = store.create({
-      title,
-      cwd: parent.cwd,
-      pluginDirs: parent.pluginDirs,
-      parentTaskId: parent.taskId,
-      parentSessionUuid: parent.sessionUuid,
-      // Section 02 — forks inherit the parent's projectId.
-      projectId: parent.projectId,
-      // Codex Light §2.1's correction — fork does NOT share the main
-      // chokepoint; a forked task must inherit the parent's runtime here,
-      // explicitly, or it silently becomes a Claude task.
-      runtime: parent.runtime,
-    });
-    let commands;
-    if (runtimeForTask(child) === "codex") {
-      const hasAgentsMd = Boolean(
-        getProjectById &&
-          getProjectById(child.projectId)?.path &&
-          existsSync(
-            path.join(getProjectById(child.projectId)!.path || "", "AGENTS.md"),
-          ),
-      );
-      commands = buildCodexCommands({
-        cwd: child.cwd,
-        autonomy: parent.autonomy ?? "guided",
-        resume: false,
-        phase: parent.phase,
-        description: parent.description,
-        hasAgentsMd,
-      });
-    } else {
-      commands = buildCopyCommands({
-        sessionUuid: child.sessionUuid,
-        cwd: child.cwd,
-        fork: true,
-        parentSessionUuid: parent.sessionUuid,
-        pluginDirs: child.pluginDirs,
-        title: child.title,
-      });
-    }
-    store.patch(child.taskId, {
-      state: "awaiting_external_start",
-      launchedAt: new Date().toISOString(),
-    });
-    await store.persist();
-    return c.json({
-      task: withLiveSession(store.get(child.taskId), ptyManager),
-      commands,
-    });
-  });
+  const { store, ptyManager, scrollbackClearBestEffort, snapshotClearBestEffort } = deps;
 
   app.post("/api/external/tasks/:id/close", async (c) => {
     const task = store.get(c.req.param("id"));

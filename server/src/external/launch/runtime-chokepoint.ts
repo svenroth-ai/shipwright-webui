@@ -8,23 +8,50 @@
  * `getProjectById` are already in scope there.
  *
  * `POST /tasks/:id/fork` does NOT share this chokepoint — it calls
- * `buildCopyCommands`/`buildCodexCommands` directly in
- * `external/tasks/lifecycle.ts` (§2.1's correction). Both import
+ * `buildCopyCommands`/`buildCodexCommands`/`buildCodextenderCommands`
+ * directly in `external/tasks/fork.ts` (§2.1's correction). Both import
  * `runtimeForTask` from here so the two insertion points agree on what
  * "this task's runtime" means.
  */
 
 import { existsSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
+import { probeCodextenderLiveness } from "../../core/codextender-proxy-probe.js";
 import { buildCodexCommands } from "../../core/launcher-codex.js";
+import {
+  buildCodextenderCommands,
+  CodextenderCwdMismatchError,
+  resolveCodextenderAuthToken,
+} from "../../core/launcher-codextender.js";
 import type { CopyCommandForms } from "../../core/launcher.js";
-import { installHint } from "../../core/readiness-install-hints.js";
 import { defaultRunShim } from "../../core/readiness-probe-run.js";
 import type { ExternalTask, Runtime } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ParsedLaunchBody } from "./parse-body.js";
+import {
+  codexCliNotFoundError,
+  codextenderAuthTokenMissingError,
+  codextenderCwdMismatchError,
+  codextenderProxyUnreachableError,
+} from "./runtime-chokepoint-errors.js";
+
+export type CodexIntegrationMode = "light" | "codextender";
+
+/**
+ * Plan-review HIGH fix (iterate-2026-09-23) — pin to the task's OWN stamped
+ * mode once one exists, falling back to the live global setting only on a
+ * task's very first Codex-runtime launch. Without this, a Resume straddling
+ * a post-first-launch mode flip would silently switch mechanisms mid-session
+ * (e.g. discard a real `codex` thread's history for a Codextender relaunch).
+ * Pure/IO-free so `routes.ts` can unit-test the choice directly.
+ */
+export function resolveCodexIntegrationModeForLaunch(
+  task: ExternalTask,
+  liveGlobalSetting: CodexIntegrationMode | undefined,
+): CodexIntegrationMode | undefined {
+  return task.codexIntegrationMode ?? liveGlobalSetting;
+}
 
 /**
  * AC8 — "a task launched with a runtime whose CLI isn't installed fails at
@@ -54,15 +81,40 @@ export function runtimeForTask(task: ExternalTask): Runtime {
 }
 
 /**
+ * ADR-309 generalized the `new-plain` JSONL-liveness special-case to every
+ * Codex-runtime task (a Codex Light task never writes a Claude `.jsonl`
+ * under any actionId). Codextender integration Part B.6 excludes
+ * Codextender mode from that generalization: it drives ordinary `claude`
+ * via the local proxy, so it DOES write a real `.jsonl` and the ordinary
+ * `!firstJsonlObservedAt` transcript-poll path is already authoritative for
+ * it, exactly like a plain Claude task. Shared by `ws-upgrade-handler.ts`
+ * and `external/transcript/routes.ts` — their own companion-fix comments
+ * point back here rather than re-typing the condition.
+ */
+export function isCodexNonCodextenderTask(task: ExternalTask): boolean {
+  return task.runtime === "codex" && task.codexIntegrationMode !== "codextender";
+}
+
+/**
  * AC9 — a multi-phase single thread's "done" has no oracle row (§1.8); a
  * `new-pipeline` launch for a Codex task is blocked here, not silently
  * downgraded. Keys on `actionId === "new-pipeline"` (never `phase`, which
  * a pipeline launch never submits — `useNewIssueFormSubmit.ts`).
+ *
+ * Codextender integration Part B.6 — AC9's rationale (no thread/app-server
+ * resume machinery, `codex-light-webui.md` §1.8) is specific to the real
+ * `codex` CLI; a Codextender task drives ordinary `claude` underneath, so it
+ * has the SAME pipeline/resume machinery a Claude-runtime task does. Bypass
+ * keys on the FRESH `codexIntegrationMode` param (not `task.
+ * codexIntegrationMode`), which is unset on a task's very first Codextender
+ * launch — reading the stale/absent task field would wrongly block it.
  */
 export function isCodexNewPipelineBlocked(
   task: ExternalTask,
   parsed: ParsedLaunchBody,
+  codexIntegrationMode?: CodexIntegrationMode,
 ): boolean {
+  if (codexIntegrationMode === "codextender") return false;
   return parsed.actionId === "new-pipeline" && runtimeForTask(task) === "codex";
 }
 
@@ -77,11 +129,17 @@ export function isCodexNewPipelineBlocked(
  * fields (never persisted on the task — parse-body.ts), so it fires
  * exactly when a campaign launch surface (not an ordinary per-task
  * Launch/Resume) is the caller, resume or fresh start alike.
+ *
+ * Codextender integration Part B.6 — same bypass rationale as
+ * `isCodexNewPipelineBlocked` above: AC7 is a real-`codex`-CLI limitation,
+ * not one Codextender (ordinary `claude` underneath) inherits.
  */
 export function isCodexCampaignBlocked(
   task: ExternalTask,
   parsed: ParsedLaunchBody,
+  codexIntegrationMode?: CodexIntegrationMode,
 ): boolean {
+  if (codexIntegrationMode === "codextender") return false;
   return (
     runtimeForTask(task) === "codex" &&
     (Boolean(parsed.campaignSlug) || Boolean(parsed.campaignStep) || parsed.masterRun)
@@ -94,7 +152,10 @@ export interface RuntimeChokepointOk {
 }
 export interface RuntimeChokepointBlocked {
   error: Record<string, unknown>;
-  status: 400;
+  // 500 is the codextender_cwd_mismatch case only — a server-side data
+  // inconsistency (the task's own commands were built from an unexpected
+  // cwd), not a user-actionable 400.
+  status: 400 | 500;
 }
 
 /**
@@ -109,13 +170,32 @@ export async function applyRuntimeChokepoint(args: {
   project: ExternalRouteProjectView | undefined;
   commands: CopyCommandForms;
   taskUpdate: Partial<ExternalTask>;
+  /** Codextender integration Part B.6 — a FRESH read of the global
+   *  `codexIntegrationMode` setting (never `task.codexIntegrationMode`,
+   *  which is unset on this task's very first Codextender launch). Absent
+   *  or `"light"` behaves exactly as before this feature existed. */
+  codexIntegrationMode?: CodexIntegrationMode;
+  /** The `codextenderPort` global setting; defaults to 4000 (matches the
+   *  `codextender` CLI's own default) when omitted. */
+  codextenderPort?: number;
   /** Test seam — defaults to a real `codex --version` probe. */
   checkCodexCliAvailable?: () => Promise<boolean>;
+  /** Test seam — defaults to a real `GET /health/liveliness` probe of the
+   *  Codextender proxy at `codextenderPort` (no auth required). */
+  checkCodextenderProxyAvailable?: () => Promise<boolean>;
+  /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
+   *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
+  getCodextenderAuthToken?: () => string | undefined;
 }): Promise<RuntimeChokepointOk | RuntimeChokepointBlocked> {
-  const { task, parsed, project, commands, taskUpdate } = args;
+  const { task, parsed, project, commands, taskUpdate, codexIntegrationMode } = args;
   const checkCodexCliAvailable = args.checkCodexCliAvailable ?? isCodexCliAvailable;
+  const codextenderPort = args.codextenderPort ?? 4000;
+  const checkCodextenderProxyAvailable =
+    args.checkCodextenderProxyAvailable ??
+    (() => probeCodextenderLiveness(codextenderPort));
+  const getCodextenderAuthToken = args.getCodextenderAuthToken ?? resolveCodextenderAuthToken;
 
-  if (isCodexNewPipelineBlocked(task, parsed)) {
+  if (isCodexNewPipelineBlocked(task, parsed, codexIntegrationMode)) {
     return {
       error: {
         error: "codex_new_pipeline_unsupported",
@@ -128,7 +208,7 @@ export async function applyRuntimeChokepoint(args: {
     };
   }
 
-  if (isCodexCampaignBlocked(task, parsed)) {
+  if (isCodexCampaignBlocked(task, parsed, codexIntegrationMode)) {
     return {
       error: {
         error: "codex_campaign_unsupported",
@@ -145,18 +225,47 @@ export async function applyRuntimeChokepoint(args: {
     return { commands, taskUpdate };
   }
 
+  // Codextender integration Part B.3/B.6 — a Codex-runtime task whose
+  // Codex Integration Mode is Codextender drives ordinary `claude`
+  // underneath (via a local LiteLLM proxy), not the `codex` CLI. It gets
+  // its own availability probe (the proxy's `/v1/models`, not `codex
+  // --version`) and reuses the already-built plain-Claude `commands` this
+  // chokepoint received, rather than `buildCodexCommands`.
+  if (codexIntegrationMode === "codextender") {
+    if (!(await checkCodextenderProxyAvailable())) {
+      return { error: codextenderProxyUnreachableError(codextenderPort), status: 400 };
+    }
+    const codextenderAuthToken = getCodextenderAuthToken();
+    if (!codextenderAuthToken) {
+      return { error: codextenderAuthTokenMissingError(), status: 400 };
+    }
+    let codextenderCommands: CopyCommandForms;
+    try {
+      codextenderCommands = buildCodextenderCommands({
+        cwd: task.cwd,
+        baseUrl: `http://127.0.0.1:${codextenderPort}`,
+        model: parsed.codexImplementationModel,
+        authToken: codextenderAuthToken,
+        claudeCommands: commands,
+      });
+    } catch (err) {
+      if (!(err instanceof CodextenderCwdMismatchError)) throw err;
+      return { error: codextenderCwdMismatchError(), status: 500 };
+    }
+    return {
+      commands: codextenderCommands,
+      taskUpdate: {
+        ...taskUpdate,
+        state: "awaiting_external_start",
+        launchedAt: new Date().toISOString(),
+        codexIntegrationMode: "codextender",
+      },
+    };
+  }
+
   // AC8 — see isCodexCliAvailable's doc comment above.
   if (!(await checkCodexCliAvailable())) {
-    return {
-      error: {
-        error: "codex_cli_not_found",
-        detail:
-          "This task's runtime is Codex, but the Codex CLI isn't installed " +
-          "on this machine. " + installHint("codex", os.platform()) +
-          ", or switch this task's runtime to Claude.",
-      },
-      status: 400,
-    };
+    return { error: codexCliNotFoundError(), status: 400 };
   }
 
   // §4 resume state machine — we only ever know a `threadId` once a prior
@@ -185,6 +294,7 @@ export async function applyRuntimeChokepoint(args: {
       ...taskUpdate,
       state: "awaiting_external_start",
       launchedAt: new Date().toISOString(),
+      codexIntegrationMode: "light",
     },
   };
 }

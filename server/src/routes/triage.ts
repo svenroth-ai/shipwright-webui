@@ -114,6 +114,15 @@ export interface TriageRoutesDeps {
    * absent means "claude", same as the loader backfill.
    */
   getCodexRuntimeDefault?: () => Promise<"claude" | "codex" | undefined>;
+  /**
+   * Codextender integration Part B.1 — promote has no per-task toggle, so
+   * when the operator has restricted `codexAvailability` there is no choice
+   * to make: the created task's runtime is forced to the one allowed value,
+   * overriding `getCodexRuntimeDefault` entirely. Optional, same
+   * back-compat posture as `getCodexRuntimeDefault` — absent means "both"
+   * (today's behavior).
+   */
+  getCodexAvailability?: () => Promise<"both" | "claude_only" | "codex_only" | undefined>;
 }
 
 export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
@@ -333,7 +342,15 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         // Local PR-review preflight finding — settings.json is unvalidated
         // JSON (settings-reader.ts), so normalize here rather than trust
         // the persisted shape.
-        const runtime = (await deps.getCodexRuntimeDefault?.()) === "codex" ? "codex" : "claude";
+        const availability = await deps.getCodexAvailability?.();
+        const runtime =
+          availability === "claude_only"
+            ? "claude"
+            : availability === "codex_only"
+              ? "codex"
+              : (await deps.getCodexRuntimeDefault?.()) === "codex"
+                ? "codex"
+                : "claude";
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,

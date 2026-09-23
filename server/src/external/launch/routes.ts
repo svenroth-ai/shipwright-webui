@@ -40,7 +40,10 @@ import {
 import { checkClaimHolderGate } from "./claim-holder-gate.js";
 import { commandsCarryPermissionPerimeter } from "./claim-permission-perimeter-assert.js";
 import { checkMixedLaunchIntents } from "./mixed-intents-guard.js";
-import { applyRuntimeChokepoint } from "./runtime-chokepoint.js";
+import {
+  applyRuntimeChokepoint,
+  resolveCodexIntegrationModeForLaunch,
+} from "./runtime-chokepoint.js";
 
 export interface LaunchRouterDeps {
   store: SdkSessionsStore;
@@ -56,6 +59,9 @@ export interface LaunchRouterDeps {
    * per-router unit tests that don't wire a watcher default to "no JSONL".
    */
   jsonlExistsOnDisk?: (sessionUuid: string) => Promise<boolean>;
+  /** Codextender Part B.6 — fresh settings reads for the runtime chokepoint. */
+  getCodexIntegrationMode?: () => Promise<"light" | "codextender" | undefined>;
+  getCodextenderPort?: () => Promise<number | undefined>;
 }
 
 export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
@@ -245,6 +251,11 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       project: getProjectById?.(task.projectId),
       commands,
       taskUpdate,
+      codexIntegrationMode: resolveCodexIntegrationModeForLaunch(
+        task,
+        await deps.getCodexIntegrationMode?.(),
+      ),
+      codextenderPort: await deps.getCodextenderPort?.(),
     });
     if ("error" in runtimeResult) {
       return c.json(runtimeResult.error, runtimeResult.status);

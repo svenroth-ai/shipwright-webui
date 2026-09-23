@@ -74,13 +74,29 @@ export function EditTaskModalFields({
 
       <Field label="Runtime">
         {editable("runtime") ? (
-          <RuntimeToggle value={form.runtime} onChange={form.setRuntime} />
+          <RuntimeToggle
+            value={form.runtime}
+            onChange={form.setRuntime}
+            availability={form.runtimeAvailability}
+          />
         ) : (
           readonlyValue(
             "runtime",
             form.runtime === "codex" ? "Codex" : "Claude",
           )
         )}
+        {editable("runtime") &&
+          form.codexIntegrationMode === "light" &&
+          form.runtimeAvailability !== "claude_only" && (
+            <p
+              className="mt-1 text-[11px] text-[var(--body,#44403c)]"
+              data-testid="runtime-codex-light-hint"
+            >
+              Codex Light doesn't support campaign or multi-phase pipeline
+              launches yet — use Claude for those, or switch to Codextender
+              in Settings.
+            </p>
+          )}
       </Field>
 
       {shows("phase") && (

@@ -44,7 +44,7 @@ export function NewTaskModal({ form }: { form: UseNewIssueFormReturn }) {
         setTitle={form.setTitle}
         showAutoHint={showAutoHint}
       />
-      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} />
+      <RuntimeFieldFragment runtime={form.runtime} setRuntime={form.setRuntime} availability={form.runtimeAvailability} codexIntegrationMode={form.codexIntegrationMode} />
 
       {form.phases.length > 0 && (
         <FieldLabel label="Phase" hint="from this project's actions.json">

@@ -14,11 +14,30 @@ export const DEFAULT_GLOBAL_SETTINGS: GlobalSettings = {
   port: 3847,
   maxConcurrent: 3,
   heartbeatIntervalMs: 30000,
+  runtimeDefault: "claude",
 };
 
 export interface SettingsReaderDeps {
   readFile: (path: string, encoding: string) => Promise<string>;
   existsSync: (path: string) => boolean;
+}
+
+/**
+ * Back-compat for the `codexRuntimeDefault` -> `runtimeDefault` rename
+ * (Codextender integration, Part B.1). A settings.json written before the
+ * rename has `codexRuntimeDefault` but no `runtimeDefault`; without this,
+ * the parsed value is silently dropped on read and an operator's configured
+ * default reverts to "claude". Read-side only — a PUT always writes
+ * whatever field name the caller sends, so a re-save completes the
+ * migration on disk.
+ */
+export function migrateLegacyRuntimeDefault(
+  parsed: Record<string, unknown>,
+): Record<string, unknown> {
+  if (parsed.runtimeDefault !== undefined) return parsed;
+  const legacy = parsed.codexRuntimeDefault;
+  if (legacy !== "claude" && legacy !== "codex") return parsed;
+  return { ...parsed, runtimeDefault: legacy };
 }
 
 export async function readGlobalSettings(
@@ -29,7 +48,10 @@ export async function readGlobalSettings(
   try {
     const content = await deps.readFile(settingsPath, "utf-8");
     if (!content.trim()) return { ...DEFAULT_GLOBAL_SETTINGS };
-    return { ...DEFAULT_GLOBAL_SETTINGS, ...JSON.parse(content) };
+    return {
+      ...DEFAULT_GLOBAL_SETTINGS,
+      ...migrateLegacyRuntimeDefault(JSON.parse(content)),
+    };
   } catch {
     return { ...DEFAULT_GLOBAL_SETTINGS };
   }

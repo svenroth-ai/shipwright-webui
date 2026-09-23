@@ -19,9 +19,10 @@ import {
   type TaskUpdatePatch,
 } from "../../lib/externalApi";
 import { useUpdateTask } from "../../hooks/useExternalTasks";
+import { useSettings } from "../../hooks/useSettings";
 import { isFieldEditable, isNeverStarted } from "../../lib/taskEditability";
 import type { AutonomyValue } from "./AutonomyToggle";
-import type { RuntimeValue } from "./RuntimeToggle";
+import type { RuntimeAvailability, RuntimeValue } from "./RuntimeToggle";
 import { resolveMode } from "./NewIssueModal/palette";
 
 /** Catalog-free fallback field set — Phase is omitted because validating a
@@ -57,8 +58,23 @@ export function useEditTaskForm(
 ) {
   const updateMut = useUpdateTask();
   const qc = useQueryClient();
+  const { data: settings } = useSettings();
 
   const neverStarted = isNeverStarted(task);
+  // Codextender integration Part B.1 — `RuntimeToggle.tsx:7-10`'s own
+  // comment names EditTaskModal as a caller; a never-started task's runtime
+  // is still editable, so it needs the same auto-assign-under-restricted-
+  // availability behavior as the create forms. A started task is already
+  // frozen read-only via `editable("runtime")` below regardless of
+  // availability.
+  const runtimeAvailability: RuntimeAvailability = settings?.codexAvailability ?? "both";
+  const codexIntegrationMode = settings?.codexIntegrationMode ?? "light";
+  const resolveRuntime = (taskRuntime: RuntimeValue): RuntimeValue => {
+    if (!neverStarted) return taskRuntime;
+    if (runtimeAvailability === "claude_only") return "claude";
+    if (runtimeAvailability === "codex_only") return "codex";
+    return taskRuntime;
+  };
   const action = projectActions?.actions.find((a) => a.id === task.actionId);
   const phases = projectActions?.phases ?? [];
   // Field set: the resolved action's modal_fields. When the action does
@@ -79,9 +95,18 @@ export function useEditTaskForm(
   const [autonomy, setAutonomy] = useState<AutonomyValue>(
     task.autonomy ?? "guided",
   );
-  const [runtime, setRuntime] = useState<RuntimeValue>(
-    task.runtime ?? "claude",
+  const [runtime, setRuntimeRaw] = useState<RuntimeValue>(
+    resolveRuntime(task.runtime ?? "claude"),
   );
+  // Local PR-review preflight finding (iterate-2026-09-23, mirrors the same
+  // fix already applied to useNewIssueFormState.ts on 2026-09-16) — only a
+  // user's own interactive pick (reachable when runtimeAvailability ===
+  // "both") sets this; the re-seed effect below never clobbers it.
+  const runtimeTouchedRef = useRef(false);
+  const setRuntime: typeof setRuntimeRaw = (value) => {
+    runtimeTouchedRef.current = true;
+    setRuntimeRaw(value);
+  };
   const [domain, setDomain] = useState(task.domain ?? "");
   const [tagsRaw, setTagsRaw] = useState((task.tags ?? []).join(", "));
   const [blockedByRaw, setBlockedByRaw] = useState(
@@ -129,12 +154,29 @@ export function useEditTaskForm(
     setPriority(t.priority ?? "");
     setComplexityHint(t.complexityHint ?? "");
     setAutonomy(t.autonomy ?? "guided");
-    setRuntime(t.runtime ?? "claude");
+    setRuntimeRaw(resolveRuntime(t.runtime ?? "claude"));
+    runtimeTouchedRef.current = false;
     setDomain(t.domain ?? "");
     setTagsRaw((t.tags ?? []).join(", "));
     setBlockedByRaw((t.blockedBy ?? []).join(", "));
     setError(null);
   }, [open]);
+
+  // Local PR-review preflight finding (iterate-2026-09-23) — a modal already
+  // open when `settings` resolves (or when `codexAvailability` changes
+  // mid-session) never used to re-resolve `runtime`, so a never-started
+  // task under restricted availability could display RuntimeToggle's forced
+  // fixed pill while `runtime` state still held the task's stale value and
+  // would have been submitted as-is. Untouched-only: a user's own
+  // interactive pick (only reachable when `runtimeAvailability === "both"`)
+  // is never clobbered. Mirrors `useNewIssueFormState.ts`'s identical fix
+  // for the create forms (2026-09-16).
+  useEffect(() => {
+    if (!open) return;
+    if (!neverStarted) return;
+    if (runtimeTouchedRef.current) return;
+    setRuntimeRaw(resolveRuntime(taskRef.current.runtime ?? "claude"));
+  }, [open, neverStarted, runtimeAvailability]);
 
   const shows = (f: string) => f === "title" || modalFields.includes(f);
   const editable = (f: string) => isFieldEditable(f, task);
@@ -223,6 +265,8 @@ export function useEditTaskForm(
     setAutonomy,
     runtime,
     setRuntime,
+    runtimeAvailability,
+    codexIntegrationMode,
     domain,
     setDomain,
     tagsRaw,

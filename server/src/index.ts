@@ -21,6 +21,7 @@ import { serve } from "@hono/node-server";
 import fs from "fs";
 import { readFile, writeFile } from "fs/promises";
 import { execSync } from "node:child_process";
+import { tmpdir } from "node:os";
 
 import { getConfig } from "./config.js";
 import { formatBindError } from "./lib/bind-errors.js";
@@ -50,6 +51,7 @@ import { buildExternalRoutesArgs } from "./external-routes-wiring.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createReadinessRoutes } from "./routes/readiness.js";
 import { createCodexModelsRoutes } from "./routes/codex-models.js";
+import { createCodextenderModelsRoutes } from "./routes/codextender-models.js";
 import { createGradeRoutes } from "./routes/grade.js";
 import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
@@ -71,6 +73,10 @@ import { ScrollbackStore } from "./terminal/scrollback-store.js";
 import { SnapshotStore } from "./terminal/snapshot-store.js";
 import { runBootWipe } from "./terminal/boot-wipe.js";
 import { sweepOrphanSnapshotTmp } from "./terminal/snapshot-tmp-sweep.js";
+import {
+  sweepOrphanCodextenderAuthFiles,
+  DEFAULT_CODEXTENDER_AUTH_TMP_MAX_AGE_MS,
+} from "./core/codextender-auth-file-sweep.js";
 import { probeHeadlessDeps } from "./terminal/headless-probe.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 
@@ -283,6 +289,7 @@ if (isMainModule) {
         lock: lockPath,
         ensureFile: ensureFileExists,
       };
+      const readSettings = () => readGlobalSettings(settingsPath, settingsDeps);
       const projectFsDeps = {
         existsSync: (p: string) => fs.existsSync(p),
         mkdirSync: (p: string, o?: { recursive: boolean }) => fs.mkdirSync(p, o),
@@ -500,6 +507,18 @@ if (isMainModule) {
         );
       }
       await sweepOrphanSnapshotTmp({ dir: config.terminalScrollbackDir }).catch(() => {});
+      // PR-review round 10 (iterate-2026-09-23) — bounded reclamation of any
+      // orphaned Codextender auth-token temp file (see
+      // codextender-auth-file-sweep.ts's own doc comment for why this gap
+      // exists and why a short, credential-appropriate max age applies).
+      // Runs on its own short interval (not the 24h scrollback/snapshot
+      // cadence below): a stranded credential file should not wait up to a
+      // day to be reclaimed.
+      await sweepOrphanCodextenderAuthFiles({ dir: tmpdir() }).catch(() => {});
+      const codextenderAuthSweepTimer = setInterval(() => {
+        void sweepOrphanCodextenderAuthFiles({ dir: tmpdir() }).catch(() => {});
+      }, DEFAULT_CODEXTENDER_AUTH_TMP_MAX_AGE_MS);
+      codextenderAuthSweepTimer.unref();
       // Daily periodic sweep. setInterval is unref'd so it doesn't keep the
       // event loop alive past graceful shutdown.
       const dailySweepTimer = setInterval(() => {
@@ -540,7 +559,7 @@ if (isMainModule) {
         // PtyManager.peekTerminalText's own doc — null-safe by design).
         peekTerminalText: (taskId) => ptyManager.peekTerminalText(taskId),
         stallTimeoutMs: async () => {
-          const settings = await readGlobalSettings(settingsPath, settingsDeps);
+          const settings = await readSettings();
           // PUT /api/settings merges the raw request body with no shape
           // validation (code-review finding) — a non-numeric value reaching
           // settings.json would otherwise make Math.max(5, NaN) === NaN,
@@ -586,6 +605,9 @@ if (isMainModule) {
             honoHost,
             config,
             codexWatcher: codexTaskWatcher,
+            // Codextender B.6 — fresh reads, never cached on the task.
+            getCodexIntegrationMode: async () => (await readSettings()).codexIntegrationMode,
+            getCodextenderPort: async () => (await readSettings()).codextenderPort,
           }),
         ),
       );
@@ -605,6 +627,9 @@ if (isMainModule) {
       // catalog for the New Iterate Codex model-tier comboboxes. Separate
       // cache lifetime from readiness on purpose (architecture review).
       app.route("/", createCodexModelsRoutes({}));
+      // Codextender Part B.5 — live proxy `/v1/models` catalog; separate cache.
+      const getCodextenderModelsPort = async () => (await readSettings()).codextenderPort ?? 4000;
+      app.route("/", createCodextenderModelsRoutes({ getPort: getCodextenderModelsPort }));
       // FR-01.53 — read-only Grade door route. Runs shipwright-grade's grade.py
       // (shell:false, validated target) and renders the real ReportModel; no
       // project registration, no writes (a bare grade is a pure observer).
@@ -652,10 +677,9 @@ if (isMainModule) {
               return [];
             }
           },
-          // Codex Light §3.5 — promote has no per-task RuntimeToggle; read
-          // the global default directly at promote time.
-          getCodexRuntimeDefault: async () =>
-            (await readGlobalSettings(settingsPath, settingsDeps)).codexRuntimeDefault,
+          // Codex Light §3.5 — promote has no per-task RuntimeToggle; read the global default directly.
+          getCodexRuntimeDefault: async () => (await readSettings()).runtimeDefault,
+          getCodexAvailability: async () => (await readSettings()).codexAvailability,
         }),
       );
 

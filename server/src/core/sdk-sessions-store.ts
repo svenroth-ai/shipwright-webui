@@ -164,6 +164,20 @@ export interface ExternalTask {
    */
   threadId?: string;
   /**
+   * Codextender integration Part B.1 — which Codex MECHANISM this task's
+   * launch commands were actually built for, stamped by
+   * `applyRuntimeChokepoint` at every launch (present only for
+   * `runtime === "codex"` tasks that have launched at least once; a fork
+   * inherits it verbatim from the parent rather than re-deriving it).
+   * Deliberately NOT the live global `settings.codexIntegrationMode` — that
+   * can change after this task launched, so the ADR-309 liveness guards in
+   * `ws-upgrade-handler.ts` / `transcript/routes.ts` need to ask "what did
+   * THIS session actually launch as", not "what does the setting say now".
+   * Undefined means "light" (today's only mechanism, unchanged for every
+   * pre-existing row).
+   */
+  codexIntegrationMode?: "light" | "codextender";
+  /**
    * v3 — iterate/multi-session-run-orchestrator-v2. Optional linkage to
    * a framework run-config v2 phase_task. When set, this task is a
    * "shadow" of an external multi-session phase the user is running.

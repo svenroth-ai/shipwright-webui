@@ -13,6 +13,7 @@ import {
   isCodexCliAvailable,
   isCodexNewPipelineBlocked,
   isCodexCampaignBlocked,
+  resolveCodexIntegrationModeForLaunch,
 } from "./runtime-chokepoint.js";
 import { defaultRunShim } from "../../core/readiness-probe-run.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
@@ -296,4 +297,21 @@ describe("isCodexCliAvailable — the real (unmocked) probe", () => {
       }
     },
   );
+});
+
+describe("resolveCodexIntegrationModeForLaunch — plan-review HIGH fix (iterate-2026-09-23)", () => {
+  it("pins to the task's own stamped mode when one exists, ignoring a flipped live setting", () => {
+    const task = makeTask({ runtime: "codex", codexIntegrationMode: "light" });
+    expect(resolveCodexIntegrationModeForLaunch(task, "codextender")).toBe("light");
+  });
+
+  it("falls back to the live global setting on a task's very first Codex-runtime launch (no stamp yet)", () => {
+    const task = makeTask({ runtime: "codex" });
+    expect(resolveCodexIntegrationModeForLaunch(task, "codextender")).toBe("codextender");
+  });
+
+  it("is undefined when neither the task nor the live setting has a mode", () => {
+    const task = makeTask({ runtime: "codex" });
+    expect(resolveCodexIntegrationModeForLaunch(task, undefined)).toBeUndefined();
+  });
 });
