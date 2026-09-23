@@ -190,6 +190,22 @@ model catalog always 500 (if it didn't).
    the gap independently of whether the launch command ever runs, is
    copied out instead, or the pty is killed before its own cleanup fires.
 
+   **Round 11 (unrelated to the credential class — not subject to
+   `deliver_pr.py`'s non-converging stop): `useCodextenderModels.ts`'s React
+   Query key omitted `codextenderPort`.** The server route was already
+   port-scoped (round 4), but the client kept serving the previous proxy's
+   cached model catalog for up to `staleTime` (2 min) after a Settings port
+   change, because React Query has no way to know the response depends on a
+   value it never saw. Fixed by folding
+   `settings?.codextenderPort ?? 4000` into the query key
+   (`["codextender-models", port]`); `4000` mirrors the server's own
+   `runtime-chokepoint.ts` default so a fresh install with no explicit port
+   saved yet fetches/keys identically to how the server resolves it — the
+   hook does not gate on `settings` having loaded first (an earlier
+   `enabled: enabled && port !== undefined` attempt was reverted: no
+   server-side default exists for `codextenderPort`, so it would have left a
+   fresh install's model list permanently unloaded).
+
 ## Testing
 
 Server: `codextender-auth-file-sweep.test.ts` (round 10, new — boundary
@@ -219,7 +235,10 @@ port's cached list), `codextender-proxy-probe.test.ts` (added:
 authority-confusion string/fractional/out-of-range/NaN port),
 `routes/settings.test.ts` (added: PUT rejects an invalid `codextenderPort`
 with 400 and never persists it; accepts a valid one).
-Client: `ModelTierOverrideFields.codextender.test.tsx`,
+Client: `useCodextenderModels.test.tsx` (round 11, new — re-fetches on a
+port change even within `staleTime`; defaults to port 4000 when settings
+haven't resolved yet; stays disabled when `enabled=false`),
+`ModelTierOverrideFields.codextender.test.tsx`,
 `EditTaskModal.runtime-availability-race.test.tsx` (forced-runtime submit on
 late settings resolution + a user's own pick under "both" surviving an
 unrelated re-render), `CodexSettingsCard.test.tsx` (added case: a fractional
