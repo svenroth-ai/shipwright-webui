@@ -151,28 +151,38 @@ model catalog always 500 (if it didn't).
    rejects a present-but-invalid `codextenderPort` with
    `400 invalid_codextender_port` before it's ever merged/persisted.
 
-9. **Routing `authToken` through a hidden pty-environment write or a fresh
-   env-file mechanism instead of the visible copyable command** — considered
-   at the F11 local PR-review preflight (round 7, BLOCK: the token is visible
-   in terminal input/scrollback even after round 7's own env-cleanup fix).
-   Rejected/disclosed rather than implemented: a hidden pty write conflicts
-   with CLAUDE.md rule 19 (auto-execute must be built exclusively as a
-   copyable command string, never a server-side `pty.write`); a new env-file
-   side-channel would trade a scrollback-visibility risk for a NEW
-   orphaned-on-disk-secret risk (a killed pty skips its cleanup step) without
-   an existing mechanism to reuse safely under this pass's time budget.
-   Disclosed in `launcher-codextender.ts`'s `buildCodextenderEnvPrefix` doc
-   comment — the token's blast radius is a `127.0.0.1`-only proxy the
-   operator themselves started, the same "local-only, non-secret nature"
-   argument item 5 above already established for this same token. Worth a
-   dedicated design in a follow-up iterate if tightened further.
+9. **Leaving `authToken` as a literal value in the generated command** — the
+   F11 local PR-review preflight BLOCKED twice on this (round 7: the token
+   is visible in terminal input/scrollback even after round 7's own
+   env-cleanup fix; round 8, after an initial disclose-rather-than-fix
+   write-up: rejected outright — "the implementation explicitly acknowledges
+   the exposure without mitigating it"). A hidden pty-environment write was
+   considered and rejected (conflicts with CLAUDE.md rule 19 — auto-execute
+   must be built exclusively as a copyable command string, never a
+   server-side `pty.write`). Fixed instead with a private, per-launch temp
+   file (`0o600`, random name, `os.tmpdir()`): the token is written once in
+   `writeCodextenderAuthTokenFile`, and each shell reads it back via its own
+   no-echo idiom — PowerShell `Get-Content -LiteralPath ... -Raw`, cmd
+   `set /p VAR=<file`, posix `$(cat file)` — confirmed empirically against
+   real `cmd.exe`/`powershell.exe` (not just read) that each correctly sets
+   the var for a child process without ever printing the file's contents.
+   `buildCodextenderEnvCleanupSuffix` deletes it unconditionally after the
+   `claude` invocation on all three shells; a thrown `CodextenderCwdMismatchError`
+   also deletes it before propagating, so only a killed pty (not a normal
+   error path) can orphan the file — a materially smaller, shorter-lived
+   exposure than the permanent scrollback record it replaces.
 
 ## Testing
 
 Server: `codextender-proxy-probe.test.ts` (both probes, plus the no-fetch-
 when-unconfigured degrade), `launcher-codextender.test.ts` (env-prefix
-injection + cwd-mismatch throw + `resolveCodextenderAuthToken`
-env-override/blank/unset-returns-undefined), `settings-reader.test.ts` +
+injection + cwd-mismatch throw, now also cleaning up its own temp file +
+`resolveCodextenderAuthToken` env-override/blank/unset-returns-undefined;
+round 8 additions: the token never appears literally in any of the 3
+command strings, all 3 reference the same temp file, each shell's own
+no-echo read idiom actually resolves it for a child process, and the temp
+file is deleted on both the normal cleanup-suffix path and the
+cwd-mismatch throw path), `settings-reader.test.ts` +
 `routes/settings.test.ts` (legacy-key migration, both the GET path and PUT's
 read-merge-write, plus the fresh-install-defaults-use-only-the-renamed-field
 case), `runtime-chokepoint.codextender.test.ts` (chokepoint branch + AC7/AC9
