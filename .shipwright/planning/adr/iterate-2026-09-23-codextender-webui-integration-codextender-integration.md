@@ -172,9 +172,32 @@ model catalog always 500 (if it didn't).
    error path) can orphan the file — a materially smaller, shorter-lived
    exposure than the permanent scrollback record it replaces.
 
+   **Round 10 (post-merge-attempt): the required CI `PR Review` gate BLOCKed
+   a third time on the SAME finding class** — `deliver_pr.py`'s own
+   non-converging guard fired (two consecutive BLOCKs sharing a finding),
+   correctly refusing to auto-merge on a third patch attempt and handing the
+   decision to the operator instead: "if the pty is killed, or execution
+   fails before the cleanup suffix runs, the credential remains on disk
+   indefinitely." Sven's own decision (asked directly, in plain language,
+   given three concrete options): add bounded, automatic cleanup rather than
+   accept the residual risk or redesign the proxy's auth model. Implemented
+   as `core/codextender-auth-file-sweep.ts` — an age-gated sweep (10 min
+   default, `sweepOrphanCodextenderAuthFiles`) mirroring
+   `terminal/snapshot-tmp-sweep.ts`'s shape exactly (same injectable-deps,
+   best-effort, never-throws posture), wired into `index.ts` on boot and a
+   short periodic interval (NOT the 24h scrollback/snapshot cadence — a
+   stranded credential shouldn't wait a day to be reclaimed). This closes
+   the gap independently of whether the launch command ever runs, is
+   copied out instead, or the pty is killed before its own cleanup fires.
+
 ## Testing
 
-Server: `codextender-proxy-probe.test.ts` (both probes, plus the no-fetch-
+Server: `codextender-auth-file-sweep.test.ts` (round 10, new — boundary
+probe over real files/mtime: reclaims an aged orphan credential file while
+preserving a fresh one and an unrelated file; missing-dir no-op; exact-cutoff
+boundary preserved; non-ENOENT readdir failure surfaced vs. benign ENOENT
+silent; a per-file unlink failure counted but doesn't stop the sweep),
+`codextender-proxy-probe.test.ts` (both probes, plus the no-fetch-
 when-unconfigured degrade), `launcher-codextender.test.ts` (env-prefix
 injection + cwd-mismatch throw, now also cleaning up its own temp file +
 `resolveCodextenderAuthToken` env-override/blank/unset-returns-undefined;

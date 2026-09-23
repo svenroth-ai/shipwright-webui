@@ -21,6 +21,7 @@ import { serve } from "@hono/node-server";
 import fs from "fs";
 import { readFile, writeFile } from "fs/promises";
 import { execSync } from "node:child_process";
+import { tmpdir } from "node:os";
 
 import { getConfig } from "./config.js";
 import { formatBindError } from "./lib/bind-errors.js";
@@ -72,6 +73,10 @@ import { ScrollbackStore } from "./terminal/scrollback-store.js";
 import { SnapshotStore } from "./terminal/snapshot-store.js";
 import { runBootWipe } from "./terminal/boot-wipe.js";
 import { sweepOrphanSnapshotTmp } from "./terminal/snapshot-tmp-sweep.js";
+import {
+  sweepOrphanCodextenderAuthFiles,
+  DEFAULT_CODEXTENDER_AUTH_TMP_MAX_AGE_MS,
+} from "./core/codextender-auth-file-sweep.js";
 import { probeHeadlessDeps } from "./terminal/headless-probe.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 
@@ -502,6 +507,18 @@ if (isMainModule) {
         );
       }
       await sweepOrphanSnapshotTmp({ dir: config.terminalScrollbackDir }).catch(() => {});
+      // PR-review round 10 (iterate-2026-09-23) — bounded reclamation of any
+      // orphaned Codextender auth-token temp file (see
+      // codextender-auth-file-sweep.ts's own doc comment for why this gap
+      // exists and why a short, credential-appropriate max age applies).
+      // Runs on its own short interval (not the 24h scrollback/snapshot
+      // cadence below): a stranded credential file should not wait up to a
+      // day to be reclaimed.
+      await sweepOrphanCodextenderAuthFiles({ dir: tmpdir() }).catch(() => {});
+      const codextenderAuthSweepTimer = setInterval(() => {
+        void sweepOrphanCodextenderAuthFiles({ dir: tmpdir() }).catch(() => {});
+      }, DEFAULT_CODEXTENDER_AUTH_TMP_MAX_AGE_MS);
+      codextenderAuthSweepTimer.unref();
       // Daily periodic sweep. setInterval is unref'd so it doesn't keep the
       // event loop alive past graceful shutdown.
       const dailySweepTimer = setInterval(() => {
