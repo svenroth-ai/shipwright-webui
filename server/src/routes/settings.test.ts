@@ -157,4 +157,24 @@ describe("Settings Routes", () => {
     expect(body.data.defaultModel).toBe("claude-haiku-4-5");
     expect(body.data.defaultMode).toBe("bypassPermissions");
   });
+
+  // PR-review finding, iterate-2026-09-23 — codexRuntimeDefault -> runtimeDefault rename
+  it("GET /api/settings migrates a pre-rename codexRuntimeDefault to runtimeDefault", async () => {
+    const { app } = setup(JSON.stringify({ codexRuntimeDefault: "codex" }));
+    const res = await app.request("/api/settings");
+    const body = await res.json();
+    expect(body.data.runtimeDefault).toBe("codex");
+  });
+
+  it("PUT /api/settings migrates a pre-rename codexRuntimeDefault from the existing file when the body doesn't touch it", async () => {
+    const { app } = setup(JSON.stringify({ codexRuntimeDefault: "codex" }));
+    const res = await app.request("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxConcurrent: 9 }),
+    });
+    const body = await res.json();
+    expect(body.data.runtimeDefault).toBe("codex");
+    expect(body.data.maxConcurrent).toBe(9);
+  });
 });

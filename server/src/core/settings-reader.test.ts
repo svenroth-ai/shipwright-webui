@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { readGlobalSettings, DEFAULT_GLOBAL_SETTINGS } from "./settings-reader.js";
+import {
+  readGlobalSettings,
+  DEFAULT_GLOBAL_SETTINGS,
+  migrateLegacyRuntimeDefault,
+} from "./settings-reader.js";
 
 describe("readGlobalSettings", () => {
   it("returns defaults when the file doesn't exist", async () => {
@@ -29,5 +33,34 @@ describe("readGlobalSettings", () => {
       readFile: async () => "{not json",
     });
     expect(result).toEqual(DEFAULT_GLOBAL_SETTINGS);
+  });
+
+  it("migrates a pre-rename codexRuntimeDefault to runtimeDefault (PR-review finding, iterate-2026-09-23)", async () => {
+    const result = await readGlobalSettings("/x/settings.json", {
+      existsSync: () => true,
+      readFile: async () => JSON.stringify({ codexRuntimeDefault: "codex" }),
+    });
+    expect(result.runtimeDefault).toBe("codex");
+  });
+
+  it("prefers a present runtimeDefault over the legacy key", async () => {
+    const result = await readGlobalSettings("/x/settings.json", {
+      existsSync: () => true,
+      readFile: async () =>
+        JSON.stringify({ codexRuntimeDefault: "codex", runtimeDefault: "claude" }),
+    });
+    expect(result.runtimeDefault).toBe("claude");
+  });
+});
+
+describe("migrateLegacyRuntimeDefault", () => {
+  it("ignores a legacy value that isn't claude/codex", () => {
+    expect(migrateLegacyRuntimeDefault({ codexRuntimeDefault: "bogus" })).toEqual({
+      codexRuntimeDefault: "bogus",
+    });
+  });
+
+  it("is a no-op when neither field is present", () => {
+    expect(migrateLegacyRuntimeDefault({ port: 3847 })).toEqual({ port: 3847 });
   });
 });

@@ -10,11 +10,12 @@
  *    equivalent in `external/tasks/fork.ts`) — a launch/fork only needs to
  *    know the proxy is UP, not what it serves.
  *  - `probeCodextenderModels` -> `GET /v1/models`, WITH
- *    `Authorization: Bearer <CODEXTENDER_AUTH_TOKEN_PLACEHOLDER>` — the
- *    proxy's own `config.py` sets `general_settings.master_key` to that
- *    same fixed value, and confirmed live against a real local LiteLLM
- *    proxy: an unauthenticated `/v1/models` request returns `500` (a
- *    LiteLLM quirk, not a clean 401), so omitting the header makes every
+ *    `Authorization: Bearer <resolveCodextenderAuthToken()>` — the proxy's
+ *    own `config.py` sets `general_settings.master_key` to that same fixed
+ *    value by default (overridable via `CODEXTENDER_AUTH_TOKEN`, see
+ *    `launcher-codextender.ts`), and confirmed live against a real local
+ *    LiteLLM proxy: an unauthenticated `/v1/models` request returns `500`
+ *    (a LiteLLM quirk, not a clean 401), so omitting the header makes every
  *    probe look like a hard failure. Backs the cached
  *    `/api/codextender-models` route (`routes/codextender-models.ts`),
  *    which wraps this probe in a TTL cache mirroring `codex-models.ts`'s
@@ -26,7 +27,7 @@
  * datalist's real source.
  */
 
-import { CODEXTENDER_AUTH_TOKEN_PLACEHOLDER } from "./launcher-codextender.js";
+import { resolveCodextenderAuthToken } from "./launcher-codextender.js";
 
 export interface CodextenderModelEntry {
   slug: string;
@@ -68,7 +69,7 @@ export async function probeCodextenderModels(
   try {
     const res = await fetchFn(`http://127.0.0.1:${port}/v1/models`, {
       signal: controller.signal,
-      headers: { Authorization: `Bearer ${CODEXTENDER_AUTH_TOKEN_PLACEHOLDER}` },
+      headers: { Authorization: `Bearer ${resolveCodextenderAuthToken()}` },
     });
     if (!res.ok) return { ok: false, models: [] };
     const body: unknown = await res.json();

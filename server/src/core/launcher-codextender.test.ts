@@ -12,6 +12,7 @@ import {
   CODEXTENDER_AUTH_TOKEN_PLACEHOLDER,
   CodextenderCwdMismatchError,
   DEFAULT_CODEXTENDER_MODEL_ALIAS,
+  resolveCodextenderAuthToken,
 } from "./launcher-codextender.js";
 
 const SESSION_UUID = "00000000-0000-0000-0000-000000000001";
@@ -125,5 +126,41 @@ describe("buildCodextenderCommands", () => {
         claudeCommands: claude,
       }),
     ).toThrow(CodextenderCwdMismatchError);
+  });
+});
+
+describe("resolveCodextenderAuthToken", () => {
+  const ENV_KEY = "CODEXTENDER_AUTH_TOKEN";
+
+  it("falls back to the documented placeholder when unset", () => {
+    const prior = process.env[ENV_KEY];
+    delete process.env[ENV_KEY];
+    try {
+      expect(resolveCodextenderAuthToken()).toBe(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+    } finally {
+      if (prior !== undefined) process.env[ENV_KEY] = prior;
+    }
+  });
+
+  it("PR-review finding (iterate-2026-09-23) — prefers a non-blank CODEXTENDER_AUTH_TOKEN env var", () => {
+    const prior = process.env[ENV_KEY];
+    process.env[ENV_KEY] = "custom-master-key";
+    try {
+      expect(resolveCodextenderAuthToken()).toBe("custom-master-key");
+    } finally {
+      if (prior === undefined) delete process.env[ENV_KEY];
+      else process.env[ENV_KEY] = prior;
+    }
+  });
+
+  it("treats a blank/whitespace env var as unset", () => {
+    const prior = process.env[ENV_KEY];
+    process.env[ENV_KEY] = "   ";
+    try {
+      expect(resolveCodextenderAuthToken()).toBe(CODEXTENDER_AUTH_TOKEN_PLACEHOLDER);
+    } finally {
+      if (prior === undefined) delete process.env[ENV_KEY];
+      else process.env[ENV_KEY] = prior;
+    }
   });
 });

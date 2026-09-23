@@ -23,12 +23,26 @@ import { qPs, qCmd, qPosix } from "./shell-quote.js";
 
 /**
  * Matches the `codextender` README's own documented local-usage example
- * verbatim (`ANTHROPIC_AUTH_TOKEN=sk-codextender-local`). The local LiteLLM
- * proxy doesn't validate this against anything — Claude Code just requires
- * the env var to be present and non-empty to use a custom `ANTHROPIC_BASE_URL`
- * at all.
+ * verbatim (`ANTHROPIC_AUTH_TOKEN=sk-codextender-local`) — the local
+ * LiteLLM proxy's own fixed `general_settings.master_key`, not a real
+ * credential for any Anthropic/OpenAI account. Used only as the DEFAULT;
+ * see `resolveCodextenderAuthToken`.
  */
 export const CODEXTENDER_AUTH_TOKEN_PLACEHOLDER = "sk-codextender-local";
+
+/**
+ * Resolves the bearer token sent to the local Codextender proxy. Reads
+ * `process.env.CODEXTENDER_AUTH_TOKEN` first (validated configuration/
+ * environment, per PR-review finding on iterate-2026-09-23) so an operator
+ * who has customized their own local proxy's `master_key` is not silently
+ * locked out of the model-catalog probe or launch; falls back to
+ * `CODEXTENDER_AUTH_TOKEN_PLACEHOLDER` — the value every stock
+ * `codextender` install already uses — when unset.
+ */
+export function resolveCodextenderAuthToken(): string {
+  const fromEnv = process.env.CODEXTENDER_AUTH_TOKEN?.trim();
+  return fromEnv && fromEnv.length > 0 ? fromEnv : CODEXTENDER_AUTH_TOKEN_PLACEHOLDER;
+}
 
 /** Matches `codextender`'s own CLI default (`codextender --port 4000`
  *  exposes `gpt-6-sol` as alias `sol` unless told otherwise). */
@@ -115,7 +129,7 @@ function buildCodextenderEnvPrefix(
   const model = args.model?.trim() || DEFAULT_CODEXTENDER_MODEL_ALIAS;
   const entries: Array<[string, string]> = [
     ["ANTHROPIC_BASE_URL", args.baseUrl],
-    ["ANTHROPIC_AUTH_TOKEN", CODEXTENDER_AUTH_TOKEN_PLACEHOLDER],
+    ["ANTHROPIC_AUTH_TOKEN", resolveCodextenderAuthToken()],
     ["ANTHROPIC_MODEL", model],
     ["CODEXTENDER_ACTIVE", "1"],
     ["CODEXTENDER_MODEL", model],

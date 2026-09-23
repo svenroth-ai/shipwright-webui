@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import type { GlobalSettings } from "../types/settings.js";
+import { migrateLegacyRuntimeDefault } from "../core/settings-reader.js";
 
 export interface SettingsDeps {
   readFile: (path: string, encoding: string) => Promise<string>;
@@ -31,7 +32,12 @@ export function createSettingsRoutes(
     }
     try {
       const content = await deps.readFile(settingsPath, "utf-8");
-      return c.json({ data: { ...DEFAULT_SETTINGS, ...JSON.parse(content) } });
+      return c.json({
+        data: {
+          ...DEFAULT_SETTINGS,
+          ...migrateLegacyRuntimeDefault(JSON.parse(content)),
+        },
+      });
     } catch {
       return c.json({ data: DEFAULT_SETTINGS });
     }
@@ -57,7 +63,10 @@ export function createSettingsRoutes(
         try {
           const content = await deps.readFile(settingsPath, "utf-8");
           if (content.trim()) {
-            existing = { ...existing, ...JSON.parse(content) };
+            existing = {
+              ...existing,
+              ...migrateLegacyRuntimeDefault(JSON.parse(content)),
+            };
           }
         } catch {
           // Malformed or empty — fall back to defaults.

@@ -76,14 +76,37 @@ model catalog always 500 (if it didn't).
    threading it down as a prop from the same `form.codexIntegrationMode`
    value its sibling `RuntimeFieldFragment` already receives, avoiding a
    second settings read for the same value.
+4. **Leaving the `codexRuntimeDefault` -> `runtimeDefault` rename
+   (`server`/`client`'s `types/settings.ts`) with no back-compat path** —
+   rejected by the F11 local PR-review preflight (Tier-3, same gate as the
+   required CI check): a pre-existing `settings.json` written before the
+   rename would silently lose its configured default (the parsed value sits
+   under a key nothing reads anymore) rather than erroring. Fixed with a
+   read-side-only `migrateLegacyRuntimeDefault()` (`core/settings-reader.ts`,
+   reused by `routes/settings.ts` GET and PUT's read-merge-write) — a plain
+   PUT with the new field name completes the migration on disk on next save.
+5. **Leaving `ANTHROPIC_AUTH_TOKEN`/the probe's `Authorization` header as an
+   unconditional hardcoded constant** (`CODEXTENDER_AUTH_TOKEN_PLACEHOLDER`)
+   — rejected by the same preflight: an externally-contributed change that
+   hardcodes a bearer-shaped string AND suppresses the secret scanner for it
+   reads as unsafe regardless of the value's actual local-only nature.
+   `launcher-codextender.ts`'s new `resolveCodextenderAuthToken()` reads
+   `process.env.CODEXTENDER_AUTH_TOKEN` first, falling back to the same
+   placeholder — the constant stays (still the correct default for every
+   stock `codextender` install, and still the reason the `.gitleaks.toml`
+   entry exists), but it is no longer the only value the code can send, so
+   an operator who has customized their own local proxy's `master_key` is
+   not silently locked out either.
 
 ## Testing
 
 Server: `codextender-proxy-probe.test.ts` (both probes),
-`launcher-codextender.test.ts` (env-prefix injection + cwd-mismatch throw),
-`runtime-chokepoint.codextender.test.ts` (chokepoint branch + AC7/AC9 bypass
-+ cwd-mismatch 500), `fork.codextender.test.ts` (fork inheritance + TOCTOU
-regression). Client: `ModelTierOverrideFields.codextender.test.tsx`. E2E:
+`launcher-codextender.test.ts` (env-prefix injection + cwd-mismatch throw +
+`resolveCodextenderAuthToken` env-override/blank/unset), `settings-reader.test.ts`
++ `routes/settings.test.ts` (legacy-key migration, both the GET path and PUT's
+read-merge-write), `runtime-chokepoint.codextender.test.ts` (chokepoint branch
++ AC7/AC9 bypass + cwd-mismatch 500), `fork.codextender.test.ts` (fork
+inheritance + TOCTOU regression). Client: `ModelTierOverrideFields.codextender.test.tsx`. E2E:
 `client/e2e/flows/codextender-integration.spec.ts` (3 tests — Codextender
 placeholders/catalog, static fallback + unreachable caption, light-mode
 non-regression), run via the isolated stack, F0.5 surface_verification
