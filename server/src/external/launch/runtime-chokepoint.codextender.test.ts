@@ -109,6 +109,7 @@ describe("isCodexCampaignBlocked — Codextender bypass (Part B.6)", () => {
 });
 
 describe("applyRuntimeChokepoint — Codextender branch (Part B.3)", () => {
+  // @covers FR-01.74
   it("overrides with buildCodextenderCommands (reusing the plain-Claude `commands`) for a Codextender-mode codex task", async () => {
     const task = makeTask();
     const result = await applyRuntimeChokepoint({

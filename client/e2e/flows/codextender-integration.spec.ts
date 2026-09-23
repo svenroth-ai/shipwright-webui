@@ -51,6 +51,7 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.74
   test("Codextender mode shows its own model-field placeholders and a live catalog datalist, no reviewer-identity block", async ({
     page,
     request,
