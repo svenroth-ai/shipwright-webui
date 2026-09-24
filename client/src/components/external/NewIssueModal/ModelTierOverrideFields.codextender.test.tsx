@@ -112,6 +112,70 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
     }
   });
 
+  it("disables the review-model fields under Codextender and explains why, instead of silently dropping them", async () => {
+    // iterate-2026-09-24-codextender-review-model-disable — post-merge gap:
+    // `buildCodextenderCommands` (launcher-codextender.ts) never reads a
+    // plan-review/review model override, so whatever an operator typed here
+    // was silently dropped at launch. The fields are disabled (not hidden)
+    // rather than removed.
+    const originalFetch = global.fetch;
+    global.fetch = mockFetch({
+      "/api/settings": settingsResponse({ codexIntegrationMode: "codextender" }),
+      "/api/codextender-models": () =>
+        new Response(
+          JSON.stringify({ status: "ok", models: [{ slug: "astra", display_name: "astra" }] }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    });
+    try {
+      renderModal({ action: { ...ITERATE_ACTION } });
+      openMoreOptions();
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+      const planReviewField = await screen.findByTestId(
+        "model-tier-override-codex-plan-review-model",
+      );
+      const reviewField = screen.getByTestId("model-tier-override-codex-review-model");
+      await waitFor(() => expect(planReviewField).toBeDisabled());
+      expect(reviewField).toBeDisabled();
+      // The implementation-model field is unaffected — it IS wired through
+      // to Codextender (`buildCodextenderCommands`'s `model` arg).
+      expect(
+        screen.getByTestId("model-tier-override-codex-implementation-model"),
+      ).toBeEnabled();
+      expect(
+        await screen.findByTestId("codextender-review-inherit-note"),
+      ).toHaveTextContent("Reviews automatically follow the main model under Codextender.");
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
+  it("leaves the review-model fields enabled, with no inherit note, in Codex Light mode", async () => {
+    const originalFetch = global.fetch;
+    global.fetch = mockFetch({
+      "/api/settings": settingsResponse({ codexIntegrationMode: "light" }),
+      "/api/codex-models": () =>
+        new Response(JSON.stringify({ status: "ok", models: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    });
+    try {
+      renderModal({ action: { ...ITERATE_ACTION } });
+      openMoreOptions();
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+      const planReviewField = await screen.findByTestId(
+        "model-tier-override-codex-plan-review-model",
+      );
+      const reviewField = screen.getByTestId("model-tier-override-codex-review-model");
+      expect(planReviewField).toBeEnabled();
+      expect(reviewField).toBeEnabled();
+      expect(screen.queryByTestId("codextender-review-inherit-note")).toBeNull();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("Codex Light mode (default) never calls /api/codextender-models", async () => {
     const codextenderCalls: string[] = [];
     const originalFetch = global.fetch;

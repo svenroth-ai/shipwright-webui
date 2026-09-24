@@ -1,0 +1,90 @@
+{
+  "last_updated": "2026-09-24",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-24-codextender-review-model-disable",
+    "date": "2026-09-24",
+    "unit": {
+      "status": "passed",
+      "passed": 8803,
+      "total": 8816,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 3,
+      "total": 3
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      },
+      "behaviors": [
+        {
+          "behavior": "Under Codextender, the Plan review model field is disabled (not editable)",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx::disables the review-model fields...; codextender-integration.spec.ts (Playwright, real Chromium)"
+        },
+        {
+          "behavior": "Under Codextender, the Review model field is disabled (not editable)",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx::disables the review-model fields...; codextender-integration.spec.ts"
+        },
+        {
+          "behavior": "Under Codextender, an inline note explains reviews follow the main model",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx (codextender-review-inherit-note text assertion); codextender-integration.spec.ts"
+        },
+        {
+          "behavior": "Under Codex Light, the Plan review / Review fields stay enabled and no inherit note renders",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx::leaves the review-model fields enabled...; codextender-integration.spec.ts (Light mode test)"
+        },
+        {
+          "behavior": "Under Codextender, the Implementation model field remains enabled/editable (it IS wired through buildCodextenderCommands)",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx::disables the review-model fields... (implementation field toBeEnabled assertion)"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 3,
+      "exit_code": 0,
+      "justification": "UI-observable behavior change (form fields become disabled + an inline note appears) in the New Iterate modal under a real DOM/CSS pipeline. codextender-integration.spec.ts was updated (not newly authored \u2014 modified flow with simple selector changes) and executed against the real stack via client/e2e/isolated-stack.mjs (real Chromium, real Hono+Vite servers, real /api/settings + /api/codextender-models roundtrip), proving the disabled state and note render for real rather than only in jsdom."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-24-codextender-review-model-disable",
+    "commit": "f52ee8abb5f25ddab0ac8067342f7c3ff54ade45",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

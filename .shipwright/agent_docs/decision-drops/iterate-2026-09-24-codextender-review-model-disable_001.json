@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-24-codextender-review-model-disable",
+  "date": "2026-09-24",
+  "section": "Iterate — change: disable unwired Codextender review-model fields",
+  "title": "Disable Plan review / Review model fields under Codextender integration mode",
+  "context": "PR #480 shipped Codextender integration. Post-merge gap: CodexModelOverrideFields.tsx still rendered free-text Plan review / Review model fields under codexIntegrationMode === \"codextender\", but buildCodextenderCommands (launcher-codextender.ts) never reads codexPlanReviewModel/codexReviewModel — only the implementation model is threaded through — so any value an operator typed there was silently dropped at launch.",
+  "decision": "Disable (not hide) both review-model fields when codexIntegrationMode === \"codextender\", with an inline note that reviews follow the main model. The implementation-model field is untouched — it IS wired through buildCodextenderCommands's model arg.",
+  "consequences": "Operators no longer see a form field that silently discards their input. spec.md FR-01.74's Codextender AC updated to match the corrected behavior. No server-side change — Codextender's proxy has no per-role model concept to receive these overrides.",
+  "rationale": "Wiring the fields through would require Codextender's proxy to support per-role models, which it structurally does not (single-model proxy, confirmed via grep before starting). Making the client honest about that limit is the correctly-sized fix. Classified small despite Stage-1's medium keyword match (confidence 0.6) — the actual diff is 2 files, UI-only, no risk flags, fully covered by unit+E2E tests, matching the operator's own \"small follow-up fix\" framing.",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-24-codextender-review-model-disable.md"
+}
