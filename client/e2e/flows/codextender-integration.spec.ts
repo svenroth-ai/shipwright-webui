@@ -95,6 +95,18 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
     await expect(planReviewField).toHaveAttribute("placeholder", "e.g. sol");
     await expect(reviewField).toHaveAttribute("placeholder", "e.g. sol");
 
+    // iterate-2026-09-24-codextender-review-model-disable — Codextender
+    // never reads a plan-review/review model override (only the
+    // implementation model is threaded through), so the two fields are
+    // disabled with an explanatory note rather than silently ignoring
+    // whatever an operator types.
+    await expect(implementationField).toBeEnabled();
+    await expect(planReviewField).toBeDisabled();
+    await expect(reviewField).toBeDisabled();
+    await expect(page.getByTestId("codextender-review-inherit-note")).toHaveText(
+      "Reviews automatically follow the main model under Codextender.",
+    );
+
     const datalistId = await implementationField.getAttribute("list");
     expect(datalistId).toBeTruthy();
     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
@@ -180,5 +192,11 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
       "Suggested policy (AGENTS.md) — gpt-5.6-terra",
     );
     await expect(page.getByTestId("codextender-model-catalog-status")).toHaveCount(0);
+
+    // The review-model disable is Codextender-only — Light mode keeps both
+    // fields editable and shows no "inherit" note.
+    await expect(page.getByTestId("model-tier-override-codex-plan-review-model")).toBeEnabled();
+    await expect(page.getByTestId("model-tier-override-codex-review-model")).toBeEnabled();
+    await expect(page.getByTestId("codextender-review-inherit-note")).toHaveCount(0);
   });
 });

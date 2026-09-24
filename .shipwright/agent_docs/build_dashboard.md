@@ -1,11 +1,18 @@
 # Project Activity Dashboard
-> Updated: 2026-09-19 16:57 UTC | Session: 432839b2-c187-477b-952e-efa95f867618 | Run: iterate-2026-09-19-fix-wizard-plan-card-white-text
+> Updated: 2026-09-24 06:01 UTC | Session: 0a4d725c-1b4e-4667-b6b5-b4f1e62f21ef | Run: iterate-2026-09-24-codextender-review-model-disable
 
-## Recent Changes (420 iterations)
+## Recent Changes (427 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| bug | The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card. | 8604/8617 |  | FR-01.03 | 2026-09-19 |
+| change | Disable the Codextender Plan review / Review model fields (with an inline note) since buildCodextenderCommands never reads them | 8806/8819 (13 skipped) |  | FR-01.74 | 2026-09-24 |
+| feature | Codextender integration: Codex-runtime tasks can run through a local Codextender proxy (ordinary claude pointed at a Codex-plan subscription) instead of the real Codex CLI, gated by a liveness probe, with its own model-catalog datalist and campaign/pipeline support. | 8756/8769 (13 skipped) |  | FR-01.74 | 2026-09-23 |
+| bug | Mission activity feed transcript fidelity fixes | 8691/8704 (13 skipped) |  | FR-01.66 | 2026-09-20 |
+| bug | Fix two Codex-runtime launch bugs: triage-promote never stamped task.phase (dropping the SKILL.md pointer instruction), and the pointer's path template was missing its plugins/ prefix. | 4355/4368 (13 skipped) |  | infra | 2026-09-19 |
+| feature | Live Codex model catalog for the New Iterate launch form's Implementation model / Plan review / Review comboboxes | 8658/8671 (13 skipped) |  | FR-01.16 | 2026-09-19 |
+| bug | Fix Codex launch failing on Windows PowerShell 7 (PSReadLine multi-line buffer corruption via pty keystroke injection) | 4354/4367 (13 skipped) |  | infra | 2026-09-19 |
+| bug | The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card. | 8604/8617 (13 skipped) |  | FR-01.03 | 2026-09-19 |
+| change | Codex More-options panel: real Plan review / Review overrides, Implementation model relocated | 8621/8634 |  | FR-01.16 | 2026-09-19 |
 | bug | codex_cli_not_found on Windows: probe via win32-spawn's shim resolver instead of defaultRun | 4299/4312 (13 skipped) |  | FR-01.51 | 2026-09-16 |
 | change | Mission activity feed render-fidelity fixes: header strip removed, command chips collapse by default, markdown rendering, blocker plain-language explanation, TDD authoring runs excluded from the gate stamp | 8560/8572 (12 skipped) |  | FR-01.66 | 2026-09-17 |
 | feature | Codex CLI as an alternate task runtime (Codex Light) | 8416/8428 (12 skipped) |  |  | 2026-09-16 |
@@ -427,7 +434,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-09-19 | Unit: 8603/8616 | E2E: 1/1 | Smoke: not_run | (iterate)
+Last run: 2026-09-24 | Unit: 8803/8816 | E2E: 3/3 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

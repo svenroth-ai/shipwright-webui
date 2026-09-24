@@ -89,15 +89,25 @@ export function CodexModelOverrideFields({
           paramKey={CODEX_PLAN_REVIEW_MODEL_PARAM_KEY}
           label="Plan review"
           placeholder={isCodextender ? "e.g. sol" : "e.g. gpt-5.6-sol"}
+          disabled={isCodextender}
           {...fieldProps}
         />
         <CodexModelField
           paramKey={CODEX_REVIEW_MODEL_PARAM_KEY}
           label="Review"
           placeholder={isCodextender ? "e.g. sol" : "e.g. gpt-5.6-sol"}
+          disabled={isCodextender}
           {...fieldProps}
         />
       </div>
+      {isCodextender && (
+        <p
+          className="text-[11px] text-[var(--body,#44403c)]"
+          data-testid="codextender-review-inherit-note"
+        >
+          Reviews automatically follow the main model under Codextender.
+        </p>
+      )}
       {!isCodextender && (catalogStatus === "stale" || catalogStatus === "unavailable") && (
         <p
           className="text-[11px] text-[var(--body,#44403c)]"
@@ -137,6 +147,7 @@ function CodexModelField({
   setParamValues,
   setParamEnabled,
   datalistId,
+  disabled,
 }: {
   paramKey: string;
   label: string;
@@ -148,6 +159,13 @@ function CodexModelField({
    *  a combobox suggesting live catalog slugs, without restricting input to
    *  them (`<input list>` always still accepts arbitrary text). */
   datalistId: string;
+  /** Codextender review-model gap fix — `buildCodextenderCommands`
+   *  (`server/src/core/launcher-codextender.ts`) never reads a plan-review
+   *  or review model override, so under Codextender any value typed here
+   *  would be silently dropped at launch. Disabled (not hidden) rather than
+   *  removed, so the field's placement stays stable if a caller returns to
+   *  Codex Light. */
+  disabled?: boolean;
 }) {
   const value = paramValues[paramKey];
   const text = typeof value === "string" ? value : "";
@@ -168,7 +186,8 @@ function CodexModelField({
           }));
         }}
         placeholder={placeholder}
-        className={`w-full rounded-[var(--radius-button,8px)] border-[1.5px] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)] ${
+        disabled={disabled}
+        className={`w-full rounded-[var(--radius-button,8px)] border-[1.5px] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)] disabled:cursor-not-allowed disabled:opacity-60 ${
           isInvalidShape
             ? "border-[var(--color-error,#DC2626)]"
             : "border-[var(--color-border,#e0dbd4)]"

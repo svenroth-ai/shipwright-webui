@@ -1,38 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-09-19-fix-wizard-plan-card-white-text"
+run_id: "iterate-2026-09-24-codextender-review-model-disable"
 phase: "iterate"
-reason: "iterate: fix invisible phase description text in the New-Project wizard plan card"
-timestamp: "2026-09-19T16:57:49.524769+00:00"
+reason: "iterate: disable unwired Codextender review-model fields"
+timestamp: "2026-09-24T06:01:37.524858+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-09-19 16:57:49 UTC
+> Auto-generated 2026-09-24 06:01:37 UTC
 
 ## Session Info
 
-- **Session ID**: 432839b2-c187-477b-952e-efa95f867618
-- **Timestamp**: 2026-09-19 16:57:49 UTC
-- **Reason**: iterate: fix invisible phase description text in the New-Project wizard plan card
+- **Session ID**: 0a4d725c-1b4e-4667-b6b5-b4f1e62f21ef
+- **Timestamp**: 2026-09-24 06:01:37 UTC
+- **Reason**: iterate: disable unwired Codextender review-model fields
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-09-19-fix-wizard-plan-card-white-text
-- **Date**: 2026-09-19T16:57:49.364103Z
-- **Type**: bug
-- **Complexity**: medium
-- **Branch**: fix-wizard-plan-card-white-text
-- **ADR**: iterate-2026-09-19-fix-wizard-plan-card-white-text
+- **Run ID**: iterate-2026-09-24-codextender-review-model-disable
+- **Date**: 2026-09-24T06:01:30.086231Z
+- **Type**: change
+- **Complexity**: small
+- **Branch**: iterate/codextender-review-model-disable
+- **ADR**: iterate-2026-09-24-codextender-review-model-disable
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-wizard-plan-card-white-text
-- **Spec**: .shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md
-- **Complexity**: medium (classifier: keyword match, confidence 0.7, no risk flags, cross_split: false)
-- **External Review Marker**: stale (predates spec (2026-09-19T16:30:53))
+- **Branch**: iterate/codextender-review-model-disable
+- **External Review Marker**: completed (external_review_state.json @ 2026-09-19T20:57:25)
 - **Review Cascade**: no run_id resolved
 
 ### Mandatory replay on Resume
@@ -68,8 +65,8 @@ Authoritative per-phase status from `shipwright_run_config.json` → `phase_task
 
 ## Git State
 
-- **Branch**: iterate/fix-wizard-plan-card-white-text
-- **Last Commit**: 518e204d chore(triage): sweep 5 outbox append(s) into branch
+- **Branch**: iterate/codextender-review-model-disable
+- **Last Commit**: f52ee8ab chore(triage): sweep 2 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -85,23 +82,23 @@ Authoritative per-phase status from `shipwright_run_config.json` → `phase_task
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-4093d449 | work_completed | iterate (The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card.) | 2026-09-19 |
-| evt-1b7e75e7 | grade_snapshot | — | 2026-09-16 |
-| evt-6aea52af | work_completed | iterate (codex_cli_not_found on Windows: probe via win32-spawn's shim resolver instead of defaultRun) | 2026-09-16 |
-| evt-ee12f56f | grade_snapshot | — | 2026-09-17 |
-| evt-b3721bff | work_completed | iterate (Mission activity feed render-fidelity fixes: header strip removed, command chips collapse by default, markdown rendering, blocker plain-language explanation, TDD authoring runs excluded from the gate stamp) | 2026-09-17 |
+| evt-e1e41c14 | grade_snapshot | — | 2026-09-24 |
+| evt-9a7383ba | work_completed | iterate (Disable the Codextender Plan review / Review model fields (with an inline note) since buildCodextenderCommands never reads them) | 2026-09-24 |
+| evt-ae58a4a4 | grade_snapshot | — | 2026-09-23 |
+| evt-2ea25c62 | work_completed | iterate (Codextender integration: Codex-runtime tasks can run through a local Codextender proxy (ordinary claude pointed at a Codex-plan subscription) instead of the real Codex CLI, gated by a liveness probe, with its own model-catalog datalist and campaign/pipeline support.) | 2026-09-23 |
+| evt-0c0993e3 | work_completed | iterate (Mission activity feed transcript fidelity fixes) | 2026-09-20 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 490
-- **Last iterate**: bug — The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card. (2026-09-19)
+- **Total work events**: 497
+- **Last iterate**: change — Disable the Codextender Plan review / Review model fields (with an inline note) since buildCodextenderCommands never reads them (2026-09-24)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-308: Chunk pty.write() to stop the macOS large-command hang
-- **Date:** 2026-09-05
-- **Section:** Iterate — bug: embedded-terminal-large-command-hang
-- **Run-ID:** iterate-2026-09-05-terminal-large-command-chunked-pty-write
-- **Context:** Prod incident (macOS): a first launch with a ~5.8KB prompt baked into the command froze the server. PtyManager.write() forwarded the whole burst in one call; macOS's ~1KB canonical-mode tty queue can't drain until the trailing newline arrives, which was stuck a
+### ADR-309: Generalize the awaiting_external_start → active liveness flip to every Codex-runtime actionId
+- **Date:** 2026-09-20
+- **Section:** Iterate — bug: codex-liveness-transition
+- **Run-ID:** iterate-2026-09-20-codex-liveness-transition
+- **Context:** A Codex-runtime task launched under any `actionId` other than `new-plain` (i.e. `new-iterate`, `resume`, `fork`, `triage-promote` — the actual production usage) never left `awaiting_external_start`: the JSONL-transcript-poll transition path (`trans

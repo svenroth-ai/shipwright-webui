@@ -1395,10 +1395,15 @@ write surface; gated, path-guarded, and concurrency-safe.
   /health/liveliness`) instead of the `codex --version` check, and the
   campaign/pipeline block above does not apply (a Codextender task has
   Claude's own resume machinery); the New Iterate modal's Implementation
-  model / Plan review / Review fields instead suggest slugs from a new
-  `GET /api/codextender-models` catalog (falling back to static `sol`/
-  `astra` suggestions when the proxy is unreachable), free text always
-  still accepted.
+  model field instead suggests slugs from a new `GET
+  /api/codextender-models` catalog (falling back to static `sol`/`astra`
+  suggestions when the proxy is unreachable), free text always still
+  accepted. **(iterate-2026-09-24-codextender-review-model-disable)**
+  `buildCodextenderCommands` never reads a plan-review/review-model
+  override — Codextender is a single-model proxy with no such concept, so
+  the Plan review and Review fields are disabled (not hidden) under
+  Codextender, with an inline note that reviews follow the main model;
+  they remain free-text/live-suggested under Codex Light.
 
 ## Quality Requirements
 

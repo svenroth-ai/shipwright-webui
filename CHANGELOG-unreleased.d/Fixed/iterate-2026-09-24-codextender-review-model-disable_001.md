@@ -1,0 +1,1 @@
+Disabled the Codextender Plan review and Review model fields (with an inline note) since Codextender's single-model proxy never read them — previously, a value typed into either field was silently dropped at launch.

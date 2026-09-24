@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-09-24-codextender-review-model-disable",
+  "date": "2026-09-24T06:01:30.086231Z",
+  "event_at": "2026-09-23T09:59:40.987943+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/codextender-review-model-disable",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-24-codextender-review-model-disable"
+}
