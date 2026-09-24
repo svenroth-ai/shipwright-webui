@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-09-24T06:01:30.287626+00:00
-Source-State: run=iterate-2026-09-24-codextender-review-model-disable
-Consistency-audit: last full run 2026-08-31 (24 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
-Total commits: 902
+Generated: 2026-09-19T16:57:49.524769+00:00
+Source-State: run=iterate-2026-09-19-fix-wizard-plan-card-white-text
+Consistency-audit: last full run 2026-08-31 (19 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
+Total commits: 893
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 364
-    "feat" : 230
+    "fix" : 357
+    "feat" : 228
     "chore" : 145
     "docs" : 75
     "refactor" : 35
@@ -23,17 +23,10 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 364 commits
+### Fixes (fix) — 357 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-09-20 | webui | generalize Codex-runtime liveness flip to every actionId (#478) | 5213ab3b6363 |
-| 2026-09-20 | webui | Mission activity feed transcript fidelity (#479) | d17fc9977ac3 |
-| 2026-09-20 | webui | Codex-runtime launch missing phase + unprefixed SKILL.md path (#476) | 7f60f952e253 |
-| 2026-09-19 | webui | Codex-runtime terminal flicker during a turn (-c tui.animations=false) (#475) | c4048ecfd91e |
-| 2026-09-19 | webui | Codex launch fails on Windows PowerShell 7 (PSReadLine multi-line buffer corruption) (#474) | 371f9a36ddbe |
-| 2026-09-19 | webui | Codex model-tier panel — real Plan review / Review overrides, drop reviewer-identity display (#473) | d6da40b028cf |
-| 2026-09-19 | webui | restore visible phase description text in New-Project wizard plan card (#472) | 11603cf29cf9 |
 | 2026-09-17 | webui | hide model-tier override dropdowns for Codex-driven tasks (#470) | e4654b24c8f4 |
 | 2026-09-17 | webui | Mission activity feed render fidelity (#469) | 847bdf3651fc |
 | 2026-09-16 | server | resolve Codex CLI's Windows .cmd PATH shim in the probe (#468) | eb93734c708d |
@@ -392,12 +385,10 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 230 commits
+### Features (feat) — 228 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-09-23 | webui | Codextender integration mode for Codex-runtime tasks (#480) | 36168d56152e |
-| 2026-09-20 | webui | live Codex model catalog for the New Iterate launch form (#477) | 19ddf6a49119 |
 | 2026-09-19 | webui | Codex model-tier override — free-text implementation model + read-only reviewer identity (shipwright#771) (#471) | e589b8668e2f |
 | 2026-09-16 | — | Codex CLI as an alternate task runtime (Codex Light) (#466) | 31c8cce07297 |
 | 2026-09-09 | mission | per-AC test coverage view on the Tests artifact (#458) | 924331be2762 |
@@ -631,7 +622,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-09-24 | triage | sweep 2 outbox append(s) into branch | f52ee8abb5f2 |
+| 2026-09-19 | triage | sweep 5 outbox append(s) into branch | 518e204d2f9a |
 | 2026-09-08 | ci | bump pinned shipwright-compliance checkout for manifest schema v4 | 2c4ba5c0088d |
 | 2026-09-03 | external-review | route the GPT review leg through Codex CLI (#414) | 4f80757ff9e9 |
 | 2026-09-01 | release | v0.26.0 (#406) | c064c89ec0d3 |
@@ -979,7 +970,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 902 |
+| Total commits | 893 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 902 |
+| Human-authored commits | 893 |
 

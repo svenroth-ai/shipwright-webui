@@ -1,40 +1,29 @@
 # Triage Inbox
 
-> Auto-generated 2026-09-24T06:01:37.524858Z. Items waiting for triage decision.
+> Auto-generated 2026-09-17T04:39:03.560694Z. Items waiting for triage decision.
 > Promote via WebUI Triage tab (when v1b lands) or `shared/scripts/tools/triage_promote.py --id <id> --task-ref EXT:<ref>`.
 
 ## Status summary
 
-- Total: 241
-- Triage: 7 | Promoted: 1 | Dismissed: 233 | Snoozed: 0
+- Total: 231
+- Triage: 5 | Promoted: 1 | Dismissed: 225 | Snoozed: 0
 
-## Top 7 items (severity-sorted)
+## Top 5 items (severity-sorted)
 
 ### Source: compliance (1 item)
 
-<a id="trg-26ee25e5"></a>
-- **Compliance: 4 open finding\(s\)** `id=trg-26ee25e5 | severity=high | kind=compliance → P1/compliance`
-  - 4 open compliance finding\(s\): B/B7, D/D-layer, D/D-orphan, D/D1  - B/B7: Every commit since release tag has a matchin…
+<a id="trg-ac2e459b"></a>
+- **Compliance: 1 open finding\(s\)** `id=trg-ac2e459b | severity=medium | kind=compliance → P2/compliance`
+  - 1 open compliance finding\(s\): B/B7  - B/B7: Every commit since release tag has a matching event — 1 commit\(s\) since…
   - Launch payload (copy into a new Claude session):
     ```text
     /shipwright-compliance
     
-    Context: 4 open compliance finding(s): B/B7, D/D-layer, D/D-orphan, D/D1.
+    Context: 1 open compliance finding(s): B/B7.
     Dashboard: .shipwright/compliance/dashboard.md
     Each finding + hint is listed in this item's detail.
     ```
-  - Promote: `triage_promote.py --id trg-26ee25e5 --task-ref EXT:<ref>`
-
-### Source: e2e-hygiene (1 item)
-
-<a id="trg-b13d2495"></a>
-- **35-no-chat-panel.spec.ts leaves a fixture task undeleted, tripping the E2E contamination guard** `id=trg-b13d2495 | severity=low | kind=bug → P3/engineering`
-  - Running e2e/flows/35-no-chat-panel.spec.ts \(a @smoke test, unrelated to this iterate\) alone or as part of the @smoke…
-  - Launch payload (copy into a new Claude session):
-    ```text
-    /shipwright-iterate <id>
-    ```
-  - Promote: `triage_promote.py --id trg-b13d2495 --task-ref EXT:<ref>`
+  - Promote: `triage_promote.py --id trg-ac2e459b --task-ref EXT:<ref>`
 
 ### Source: iterate (1 item)
 
@@ -43,16 +32,7 @@
   - Follow-up to iterate-2026-05-18-terminal-copy-paste \(PR #38\), user-approved as a separate iterate during the copy/pas…
   - Promote: `triage_promote.py --id trg-786eab1f --task-ref EXT:<ref>`
 
-### Source: manual (2 items)
-
-<a id="trg-3fd0953a"></a>
-- **Codex More-options panel: live-catalog-backed dropdowns \(Plan review / Review / Implementation model\) instead of blin…** `id=trg-3fd0953a | severity=medium | kind=improvement → P2/engineering`
-  - Follow-up to PR #473 \(session-scoped Plan review / Review free-text fields\) and the dismissed trg-be9df375 \(Implemen…
-  - Launch payload (copy into a new Claude session):
-    ```text
-    /shipwright-iterate Codex More-options panel: live-catalog-backed dropdowns for Plan review / Review / Implementation model via codex debug models (spike done, see card detail), replacing free-text-only inputs
-    ```
-  - Promote: `triage_promote.py --id trg-3fd0953a --task-ref EXT:<ref>`
+### Source: manual (1 item)
 
 <a id="trg-8de744d4"></a>
 - **\[STILL BLOCKED — REQ3.03 ceiling open\] AC-level enumeration + minting + test re-tagging for webui is unstarted, needs…** `id=trg-8de744d4 | severity=medium | kind=compliance → P2/engineering`

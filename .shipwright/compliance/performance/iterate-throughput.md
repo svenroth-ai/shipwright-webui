@@ -6,22 +6,22 @@
 
 > **Coverage boundary:** F5b folds this report's durable data BEFORE F6 commits and F11 delivers — `discovery_diagnosis` through `review` can close by then, but `finalization`'s own duration and the entire `delivery` group (incl. `ci_wait`/`delivery_wait`/`post_ci_remediation`) structurally cannot, in every run. Coverage below is measured against the four applicable groups when one entry path is recorded; a run that explicitly records both `discovery_diagnosis` and `planning` is measured against all five — see `iterate-timings.md` for why.
 
-## Latest run: `iterate-2026-09-24-codextender-review-model-disable`
+## Latest run: `iterate-2026-09-19-fix-wizard-plan-card-white-text`
 
-- **Timing source:** producer + agent spans (mixed) · **coverage:** 1/5 applicable fold-time groups (+1 derived), 5 spans total — **DEGRADED** (a fold-time-capturable phase is missing)
-- **Wall clock (scope through F5b):** 13.8 min (measured)
-- **Instrumented:** 3.7 min of wall clock (26.8%)
-- **Unattributed:** 10.1 min (73.2%)
+- **Timing source:** producer + agent spans (mixed) · **coverage:** 1/4 applicable fold-time groups (+1 derived), 8 spans total — **DEGRADED** (a fold-time-capturable phase is missing)
+- **Wall clock (scope through F5b):** 36.9 min (measured)
+- **Instrumented:** 16.5 min of wall clock (44.6%)
+- **Unattributed:** 20.4 min (55.3%)
 - **Invalidation-driven restarts:** 0
 
 ### Top-level phases (inclusive / exclusive / % of timing envelope)
 
 | Phase | Inclusive | Exclusive | % of timing envelope |
 |---|---:|---:|---:|
-| discovery_diagnosis | *unattributed — no agent start/end marks recorded* | — | — |
-| planning | *unattributed — no agent start/end marks recorded* | — | — |
-| implementation | 3.7 min | 3.7 min | 93.3% |
-| verification | 0.0 s *(derived — reconstructed from child spans)* | 0.0 s | 0.0% |
+| discovery_diagnosis | *not applicable — planning is the recorded entry path* | — | — |
+| planning | 1.9 min *(derived — reconstructed from child spans)* | 1.4 min | 9.1% |
+| implementation | 15.7 min | 15.7 min | 100.0% |
+| verification | *unattributed — no agent start/end marks recorded* | — | — |
 | review | *incomplete* (started, not closed) | — | — |
 | finalization | *not reached before F5b fold (structural)* | — | — |
 | delivery | *not reached before F5b fold (structural)* | — | — |
@@ -30,16 +30,19 @@
 
 | Span | Parent | Duration | Outcome | Detail |
 |---|---|---:|---|---|
-| pre_f0_validation | verification | 0.0 s | completed | stage=f0 |
 | self_review | review | — | incomplete | — |
+| external_review | planning | 22.7 s | completed | provider=codex |
+| external_review | planning | 7.4 s | completed | provider=codex |
+| external_review | review | 11.2 s | completed | provider=codex |
+| external_review | review | 34.0 s | completed | provider=codex |
 
 ## Rolling comparison (last 10 instrumented runs)
 
 | Phase | Median exclusive | P90 exclusive | Samples |
 |---|---:|---:|---:|
 | discovery_diagnosis | — | — | 0 |
-| planning | 2.0 min | 2.5 min | 2 |
-| implementation | 13.4 min | 29.5 min | 6 |
+| planning | 1.7 min | 1.9 min | 2 |
+| implementation | 13.3 min | 385.0 min | 6 |
 | verification | 0.0 s | 0.0 s | 6 |
 | review | 96.4 min | 192.8 min | 2 |
 | finalization | — | — | 0 |
@@ -49,13 +52,13 @@
 
 | Run | Wall | Instrumented | Group coverage | Restarts | Status |
 |---|---:|---:|---:|---:|---|
+| `compliance-b7-1a0cbc58-20260911` | — | — | — | — | pre-instrumentation |
+| `iterate-2026-09-11-compliance-b7-g2-i5` | 12.0 min | 19.6% | 1/5 | 0 | degraded |
+| `iterate-2026-09-11-req3-03-ac-parse-adjacency` | 6.3 min | 0.0% | 0/5 | 0 | degraded |
+| `iterate-2026-09-11-list-error-state-run-mode-sentinel` | 45.8 min | 23.6% | 1/5 | 0 | degraded |
+| `iterate-2026-09-11-triage-compose-local-wins` | 36.9 min | 0.0% | 0/5 | 0 | degraded |
+| `iterate-2026-09-12-mobile-triage-form-layout` | 463.7 min | 83.9% | 1/4 | 0 | degraded |
+| `iterate-2026-09-16-codex-light-webui` | 193.6 min | 62.0% | 1/5 | 0 | degraded |
 | `iterate-2026-09-16-codex-probe-win32-shim` | 36.2 min | 2.0% | 0/5 | 0 | degraded |
 | `iterate-2026-09-16-mission-feed-render-fidelity` | 744.0 min | 45.7% | 0/5 | 0 | degraded |
 | `iterate-2026-09-19-fix-wizard-plan-card-white-text` | 36.9 min | 44.6% | 1/4 | 0 | degraded |
-| `iterate-2026-09-19-codex-reviewer-fields` | 32.5 min | 26.5% | 1/5 | 0 | degraded |
-| `iterate-2026-09-19-codex-launch-powershell-chunk` | 32.7 min | 37.2% | 1/5 | 0 | degraded |
-| `iterate-2026-09-19-codex-model-catalog` | 60.5 min | 31.5% | 1/4 | 0 | degraded |
-| `iterate-2026-09-19-codex-launch-phase-empty` | 12.0 min | 0.0% | 0/5 | 0 | degraded |
-| `iterate-2026-09-20-mission-feed-transcript-fidelity` | 153.8 min | 24.1% | 1/5 | 0 | degraded |
-| `iterate-2026-09-23-codextender-webui-integration` | 231.7 min | 0.0% | 0/5 | 0 | degraded |
-| `iterate-2026-09-24-codextender-review-model-disable` | 13.8 min | 26.8% | 1/5 | 0 | degraded |

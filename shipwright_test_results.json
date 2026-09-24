@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-09-24",
+  "last_updated": "2026-09-19",
   "iterate_latest": {
-    "run_id": "iterate-2026-09-24-codextender-review-model-disable",
-    "date": "2026-09-24",
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "date": "2026-09-19",
     "unit": {
       "status": "passed",
-      "passed": 8803,
-      "total": 8816,
+      "passed": 8603,
+      "total": 8616,
       "skipped": 13
     },
     "integration": {
@@ -21,8 +21,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 3,
-      "total": 3
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,53 +36,48 @@
     "test_completeness": {
       "status": "complete",
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 1,
-        "covered_acs": 1
+        "acs": 2,
+        "covered_acs": 2
       },
       "behaviors": [
         {
-          "behavior": "Under Codextender, the Plan review model field is disabled (not editable)",
+          "behavior": "wizard-plan-phases container carries a class the .on-photo solid-surface reset targets (--ink resets to dark instead of staying flipped white)",
           "disposition": "tested",
-          "evidence": "ModelTierOverrideFields.codextender.test.tsx::disables the review-model fields...; codextender-integration.spec.ts (Playwright, real Chromium)"
+          "evidence": "on-photo-legibility.test.ts (order-independent tag match against on-photo.css's rule-2 reset selector list)"
         },
         {
-          "behavior": "Under Codextender, the Review model field is disabled (not editable)",
+          "behavior": "wizard-plan-phases container sets no inline background/boxShadow override that could silently reintroduce an opaque-but-unreset surface while keeping the reset class",
           "disposition": "tested",
-          "evidence": "ModelTierOverrideFields.codextender.test.tsx::disables the review-model fields...; codextender-integration.spec.ts"
+          "evidence": "on-photo-legibility.test.ts (fence widened to match backgroundColor as well as background)"
         },
         {
-          "behavior": "Under Codextender, an inline note explains reviews follow the main model",
+          "behavior": "The phase description text (wizard-phase-desc-Build) renders at >= 4.5:1 WCAG AA contrast against the real rendered plan-card background in a real browser \u2014 proves the fix, not just the class fence",
           "disposition": "tested",
-          "evidence": "ModelTierOverrideFields.codextender.test.tsx (codextender-review-inherit-note text assertion); codextender-integration.spec.ts"
+          "evidence": "wizard-plan-card-legibility.spec.ts (Playwright, real Chromium, WCAG contrast math via e2e/helpers/contrast.ts); F0.5 surface_verification exit_code 0, 1/1 passed"
         },
         {
-          "behavior": "Under Codex Light, the Plan review / Review fields stay enabled and no inherit note renders",
+          "behavior": "No other .iw-card consumer in the New-Project wizard regressed (shared className, shared on-photo.css reset rule)",
           "disposition": "tested",
-          "evidence": "ModelTierOverrideFields.codextender.test.tsx::leaves the review-model fields enabled...; codextender-integration.spec.ts (Light mode test)"
-        },
-        {
-          "behavior": "Under Codextender, the Implementation model field remains enabled/editable (it IS wired through buildCodextenderCommands)",
-          "disposition": "tested",
-          "evidence": "ModelTierOverrideFields.codextender.test.tsx::disables the review-model fields... (implementation field toBeEnabled assertion)"
+          "evidence": "Full client unit suite (4273/4273) green, incl. existing IntentWizard component tests; no other .iw-card consumer's test file changed or failed"
         }
       ]
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 3,
+      "tests_run": 1,
       "exit_code": 0,
-      "justification": "UI-observable behavior change (form fields become disabled + an inline note appears) in the New Iterate modal under a real DOM/CSS pipeline. codextender-integration.spec.ts was updated (not newly authored \u2014 modified flow with simple selector changes) and executed against the real stack via client/e2e/isolated-stack.mjs (real Chromium, real Hono+Vite servers, real /api/settings + /api/codextender-models roundtrip), proving the disabled state and note render for real rather than only in jsdom."
+      "justification": "The bug (white-on-white phase-description text, Sven screenshot report) is a real-rendered-CSS defect that jsdom's class/token fence (on-photo-legibility.test.ts) cannot itself prove fixed \u2014 it only proves the container carries the reset class, not that the reset actually yields a legible color pairing at runtime. This E2E spec drives the real New-Project wizard flow in a real Chromium (client/e2e/isolated-stack.mjs) to the plan-card step and asserts the rendered contrast ratio between the description text's computed color and its container's computed background clears WCAG AA (4.5:1) \u2014 the only real-browser coverage of this wizard screen (no visual baseline in e2e/visual/05-wizard.spec.ts reaches past step 1)."
     }
   },
   "source_state": {
-    "run_id": "iterate-2026-09-24-codextender-review-model-disable",
-    "commit": "f52ee8abb5f25ddab0ac8067342f7c3ff54ade45",
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
     "dirty": true,
     "base": null,
     "release": null
