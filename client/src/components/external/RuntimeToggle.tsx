@@ -51,30 +51,21 @@ interface RuntimeToggleProps {
   /**
    * Codextender integration Part B.1 — `codexAvailability` global setting.
    * Defaults to "both" (today's behavior, unchanged): a live two-segment
-   * radiogroup. "claude_only" / "codex_only" render a single fixed,
-   * non-interactive label instead — there is no per-task choice left to
-   * make, so there is nothing to toggle. Callers are responsible for
-   * auto-assigning `runtime`/`task.runtime` to the one allowed value; this
-   * component only decides how to DISPLAY that already-resolved value.
+   * radiogroup. "claude_only" / "codex_only" render NOTHING — there is no
+   * per-task choice left to make, so there is nothing to show a badge/toggle
+   * for either (iterate-2026-09-26-runtime-badge-and-leads-gate; the prior
+   * single-fixed-pill display was itself the bug the operator reported —
+   * every task kept showing a runtime bar even with only one runtime
+   * configured). Callers are responsible for auto-assigning
+   * `runtime`/`task.runtime` to the one allowed value; this component only
+   * decides how to DISPLAY that already-resolved value, and now that is
+   * "not at all" when there is no choice.
    */
   availability?: RuntimeAvailability;
 }
 
 export function RuntimeToggle({ value, onChange, availability = "both" }: RuntimeToggleProps) {
-  if (availability !== "both") {
-    const fixedLabel = availability === "codex_only" ? "Codex" : "Claude";
-    const fixedIcon =
-      availability === "codex_only" ? <OpenAILogo size={12} /> : <ClaudeLogo size={12} />;
-    return (
-      <div
-        className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-primary,#6b5e56)] px-3 py-1.5 text-[12px] font-medium text-white"
-        data-testid="runtime-toggle-fixed"
-        aria-label={`Runtime — fixed to ${fixedLabel} in Settings`}
-      >
-        {fixedIcon} {fixedLabel}
-      </div>
-    );
-  }
+  if (availability !== "both") return null;
 
   return (
     <div

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-26-runtime-badge-and-leads-gate",
+  "date": "2026-09-26",
+  "section": "Iterate — change: runtime-badge-and-leads-gate",
+  "title": "Gate the runtime badge and the board's Claim filter on their own presence signals",
+  "context": "A runtime badge/hint rendered on every Task even when Settings' codexAvailability allowed only one runtime, leaving nothing to choose but a bar anyway; its Codex Light limitation hint repeated per-task instead of stating the posture once in Settings. Separately, the board toolbar's ClaimFilterToggle (a Leadwright-only affordance) always rendered even with no org-chart.json present, unlike its sibling lead-tag filter which was already gated by useOrgChartPresence().",
+  "decision": "RuntimeToggle now returns null when availability !== \"both\" (fixes every call site at once). The Codex Light hint moved into CodexSettingsCardFields, reworded. ClaimFilterToggle gates on useOrgChartPresence() === \"absent\", mirroring LeadTagFilterToolbarGroup. TaskBoardPage clears an already-active claimFilter on that same transition.",
+  "consequences": "Runtime UI now only appears where a real choice exists; the Codex Light note is stated once. The board's Claim affordance is invisible without Leadwright installed, consistent with its sibling filter. Per-task lead data displays remain deliberately ungated (prior decision, out of scope here). The identical stuck-filter gap on leadTagFilter is a pre-existing, explicitly out-of-scope issue flagged for a future iterate.",
+  "rationale": "Root-cause fix at the shared RuntimeToggle component (not per-call-site patches) follows CLAUDE.md rule 26's own history of per-component fixes recurring; ClaimFilterToggle reuses the exact useOrgChartPresence() shape its sibling already proved.",
+  "rejected": "Hiding RuntimeToggle only at the two current call sites via a wrapper condition — rejected because it would have missed the Settings preview call site and repeats the per-caller-patch pattern CLAUDE.md rule 26 already warns against.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-26-runtime-badge-and-leads-gate.md"
+}

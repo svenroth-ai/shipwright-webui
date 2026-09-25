@@ -53,3 +53,18 @@ describe("RuntimeToggle (Codex Light §3.5)", () => {
     expect(screen.getByRole("radiogroup", { name: "Runtime" })).toBeInTheDocument();
   });
 });
+
+describe("RuntimeToggle — availability !== 'both' renders nothing (iterate-2026-09-26-runtime-badge-and-leads-gate)", () => {
+  // @covers FR-01.01
+  it.each(["claude_only", "codex_only"] as const)(
+    "renders nothing when availability is %s — no choice left to show a bar for",
+    (availability) => {
+      const { container } = render(
+        <RuntimeToggle value="claude" onChange={() => {}} availability={availability} />,
+      );
+      expect(container).toBeEmptyDOMElement();
+      expect(screen.queryByTestId("runtime-toggle")).toBeNull();
+      expect(screen.queryByTestId("runtime-toggle-fixed")).toBeNull();
+    },
+  );
+});

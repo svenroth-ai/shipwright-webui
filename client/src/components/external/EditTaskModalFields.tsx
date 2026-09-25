@@ -72,32 +72,31 @@ export function EditTaskModalFields({
         />
       </Field>
 
-      <Field label="Runtime">
-        {editable("runtime") ? (
-          <RuntimeToggle
-            value={form.runtime}
-            onChange={form.setRuntime}
-            availability={form.runtimeAvailability}
-          />
-        ) : (
-          readonlyValue(
-            "runtime",
-            form.runtime === "codex" ? "Codex" : "Claude",
-          )
-        )}
-        {editable("runtime") &&
-          form.codexIntegrationMode === "light" &&
-          form.runtimeAvailability !== "claude_only" && (
-            <p
-              className="mt-1 text-[11px] text-[var(--body,#44403c)]"
-              data-testid="runtime-codex-light-hint"
-            >
-              Codex Light doesn't support campaign or multi-phase pipeline
-              launches yet — use Claude for those, or switch to Codextender
-              in Settings.
-            </p>
+      {/* iterate-2026-09-26-runtime-badge-and-leads-gate: with only one
+          runtime configured there's no choice left to make, so the whole
+          field (badge/toggle + label) is dropped rather than shown as a
+          static, non-interactive bar. The readonly branch (task already
+          started, runtime can no longer change) still reports the task's
+          actual runtime regardless of availability — that's a historical
+          fact about the task, not a live choice. The Codex Light limitation
+          hint moved to Settings (CodexSettingsCardFields) — it described a
+          global posture, not something that needs repeating on every task. */}
+      {(!editable("runtime") || form.runtimeAvailability === "both") && (
+        <Field label="Runtime">
+          {editable("runtime") ? (
+            <RuntimeToggle
+              value={form.runtime}
+              onChange={form.setRuntime}
+              availability={form.runtimeAvailability}
+            />
+          ) : (
+            readonlyValue(
+              "runtime",
+              form.runtime === "codex" ? "Codex" : "Claude",
+            )
           )}
-      </Field>
+        </Field>
+      )}
 
       {shows("phase") && (
         <Field label="Phase">

@@ -1,18 +1,22 @@
 /*
  * Leadwright board affordances — org-chart presence gate
- * (iterate-2026-09-09-leadwright-gate-org-presence).
+ * (iterate-2026-09-09-leadwright-gate-org-presence; extended
+ * iterate-2026-09-26-runtime-badge-and-leads-gate for the Claim filter).
  *
  * Real-browser F0.5 surface for the useOrgChartPresence() gate added to the
- * board toolbar's Bot dropdown + BellDot toggle (LeadTagFilterToolbarGroup)
- * and the New-issue dialog's LeadwrightFieldsFragment. Component-level
- * Vitest coverage (LeadTagFilter.test.tsx, LeadwrightFields.test.tsx,
- * TaskCardLeadExpander.test.tsx) proves the conditional-render logic in
- * isolation; this spec proves it against a real running stack, matching the
- * FR-01.71 precedent's own E2E coverage (org-page.spec.ts).
+ * board toolbar's Bot dropdown + BellDot toggle (LeadTagFilterToolbarGroup),
+ * the Claim filter toggle (ClaimFilterToggle), and the New-issue dialog's
+ * LeadwrightFieldsFragment. Component-level Vitest coverage
+ * (LeadTagFilter.test.tsx, ClaimFilterToggle.test.tsx,
+ * LeadwrightFields.test.tsx, TaskCardLeadExpander.test.tsx) proves the
+ * conditional-render logic in isolation; this spec proves it against a real
+ * running stack, matching the FR-01.71 precedent's own E2E coverage
+ * (org-page.spec.ts).
  *
  *   AC (a) — confirmed absent (no `~/.claude/leads/org-chart.json`): the
- *     Bot dropdown, BellDot, and the New-dialog's lead fields are all gone.
- *   AC (b) — broken (invalid org-chart.json, NOT a 404): all three still
+ *     Bot dropdown, BellDot, Claim filter toggle, and the New-dialog's lead
+ *     fields are all gone.
+ *   AC (b) — broken (invalid org-chart.json, NOT a 404): all four still
  *     render — fail visible, not fail hidden.
  *   AC (c) — a task carrying lead tags still shows its glyph/chip even
  *     while the gate above is hiding the toolbar controls.
@@ -82,6 +86,7 @@ test.describe("Leadwright board affordances — org-chart presence gate", () => 
       // AC (a): the filtering/authoring affordances are gone.
       await expect(page.getByTestId("board-lead-filter-menu-trigger")).toHaveCount(0);
       await expect(page.getByTestId("board-lead-wait-toggle")).toHaveCount(0);
+      await expect(page.getByTestId("board-claim-filter-toggle")).toHaveCount(0);
 
       // AC (c): the report-only glyph/chip still renders — a task already
       // carries this tag whether or not an org chart exists.
@@ -131,6 +136,7 @@ test.describe("Leadwright board affordances — org-chart presence gate", () => 
 
       await expect(page.getByTestId("board-lead-filter-menu-trigger")).toBeVisible();
       await expect(page.getByTestId("board-lead-wait-toggle")).toBeVisible();
+      await expect(page.getByTestId("board-claim-filter-toggle")).toBeVisible();
 
       await page.getByTestId("create-menu-primary").click();
       await expect(page.getByTestId("new-issue-modal-new-task")).toBeVisible();

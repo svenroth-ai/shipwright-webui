@@ -1,0 +1,1 @@
+The board toolbar's Claim filter toggle is now hidden when Leadwright isn't installed, matching the existing lead-tag filter's gating; an already-active Claim filter also clears itself instead of staying silently applied.

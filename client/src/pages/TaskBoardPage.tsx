@@ -75,6 +75,7 @@ import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
 import { LeadTagFilterToolbarGroup } from "../components/external/LeadTagFilter";
 import { ClaimFilterToggle } from "../components/external/ClaimFilterToggle";
 import { useBoardFilters } from "../hooks/useBoardFilters";
+import { useOrgChartPresence } from "../hooks/useOrgChartPresence";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
 import { PageHead } from "../components/common/PageHead";
 import { DensityToggle } from "../components/command/DensityToggle";
@@ -227,10 +228,26 @@ export default function TaskBoardPage() {
     leadTagTotal,
     claimFilter,
     toggleClaim,
+    clearClaimFilter,
     filteredTasks,
     noFilterMatches,
     clearAllFilters,
   } = useBoardFilters(projectFiltered);
+
+  // iterate-2026-09-26-runtime-badge-and-leads-gate (external plan review
+  // finding): ClaimFilterToggle disappears on a confirmed absent org-chart
+  // presence, but its own `claimFilter` boolean lives in useBoardFilters and
+  // would otherwise keep silently filtering the board with no visible
+  // control left to turn it off. Clearing it here — not just hiding the
+  // button — means an already-active filter genuinely stops applying the
+  // moment presence resolves to absent, rather than leaving an invisible
+  // stuck filter. useOrgChartPresence() is a shared cached query (same
+  // instance ClaimFilterToggle/LeadTagFilterToolbarGroup already call) — no
+  // extra fetch.
+  const claimFilterOrgPresence = useOrgChartPresence();
+  useEffect(() => {
+    if (claimFilterOrgPresence === "absent" && claimFilter) clearClaimFilter();
+  }, [claimFilterOrgPresence, claimFilter, clearClaimFilter]);
 
   // NewIssueModal state — singleton per page.
   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
