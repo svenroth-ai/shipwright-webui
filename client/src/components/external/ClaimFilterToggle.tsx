@@ -8,8 +8,20 @@
  * axis, ANDed into useBoardFilters' filteredTasks. Mirrors the shell +
  * pressed-state idiom of LeadWaitToggleButton (LeadTagFilter.tsx): no menu
  * needed for a single binary condition.
+ *
+ * Gated on org-chart presence (iterate-2026-09-26-runtime-badge-and-leads-gate),
+ * mirroring LeadTagFilterToolbarGroup's precedent (FR-04.11, itself
+ * iterate-2026-09-09-leadwright-gate-org-presence): `claimedBy`/`claimToken`
+ * are exclusively set by leadwright's claim-task mechanism
+ * (lead-model-spec.md §5.2/§10.9) — an install with no leads has nothing
+ * for this filter to filter by, so the control itself (not any per-task
+ * data) is chrome for a feature that doesn't exist. Hidden ONLY on a
+ * confirmed "absent" — "loading"/"broken" still render, fail visible rather
+ * than fail hidden, same as the Bot/BellDot pair.
  */
 import { UserCheck } from "lucide-react";
+
+import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
 
 interface ClaimFilterToggleProps {
   active: boolean;
@@ -17,6 +29,8 @@ interface ClaimFilterToggleProps {
 }
 
 export function ClaimFilterToggle({ active, onToggle }: ClaimFilterToggleProps) {
+  const presence = useOrgChartPresence();
+  if (presence === "absent") return null;
   return (
     <button
       type="button"

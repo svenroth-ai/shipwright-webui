@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-19T20:57:25.880238+00:00",
-  "provider": null,
-  "findings_count": 12,
+  "timestamp": "2026-09-25T22:47:37.646073+00:00",
+  "provider": "codex",
+  "findings_count": 1,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "only some provider legs could be itemized \u2014 the count (1) may understate what was found",
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "approve",
+    "glm": "unavailable",
     "openai": "revise"
   },
   "contradiction": {
     "detected": false,
-    "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 glm did not (glm=unavailable, openai=revise)"
   },
   "contradiction_resolution": null
 }

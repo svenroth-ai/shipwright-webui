@@ -144,13 +144,42 @@ describe("CodexSettingsCard", () => {
     await waitFor(() => expect(putBodies).toContainEqual({ codexAvailability: "codex_only" }));
   });
 
-  it("hides the RuntimeToggle behind the fixed pill when availability is not 'both'", async () => {
+  it("hides the RuntimeToggle entirely when availability is not 'both' — no choice, no bar (iterate-2026-09-26-runtime-badge-and-leads-gate)", async () => {
     server.use(
       http.get("/api/settings", () => HttpResponse.json({ data: { codexAvailability: "codex_only" } })),
     );
     renderCard();
-    await waitFor(() => expect(screen.getByTestId("runtime-toggle-fixed")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(
+        (screen.getByTestId("settings-codex-availability-select") as HTMLSelectElement).value,
+      ).toBe("codex_only"),
+    );
+    expect(screen.queryByTestId("runtime-toggle-fixed")).not.toBeInTheDocument();
     expect(screen.queryByTestId("runtime-toggle")).not.toBeInTheDocument();
+  });
+
+  it("shows the Codex Light limitation hint in Settings when Light is active and Codex is reachable", async () => {
+    server.use(http.get("/api/settings", () => HttpResponse.json({ data: {} })));
+    renderCard();
+    await waitFor(() =>
+      expect(screen.getByTestId("settings-codex-light-limitation-hint")).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId("settings-codex-light-limitation-hint")).toHaveTextContent(
+      "Codex Light doesn't support campaign or multi-phase pipeline launches yet. Use Claude or Codex over Codextender for those.",
+    );
+  });
+
+  it("hides the Codex Light limitation hint when availability is 'claude_only'", async () => {
+    server.use(
+      http.get("/api/settings", () => HttpResponse.json({ data: { codexAvailability: "claude_only" } })),
+    );
+    renderCard();
+    await waitFor(() =>
+      expect(
+        (screen.getByTestId("settings-codex-availability-select") as HTMLSelectElement).value,
+      ).toBe("claude_only"),
+    );
+    expect(screen.queryByTestId("settings-codex-light-limitation-hint")).not.toBeInTheDocument();
   });
 
   it("does not render the Codextender port input while integration mode is 'light'", async () => {

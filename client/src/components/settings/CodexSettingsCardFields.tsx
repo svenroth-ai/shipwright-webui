@@ -126,6 +126,21 @@ export function CodexSettingsCardFields({
           <option value="light">Codex Light</option>
           <option value="codextender">Codextender</option>
         </select>
+        {/* iterate-2026-09-26-runtime-badge-and-leads-gate: moved here from
+            every individual task's Runtime field — this is a global posture
+            of the "Codex Light" mechanism, worth stating once where the
+            mechanism is chosen, not repeated on every task. Shown whenever
+            Codex Light is active and Codex is reachable at all (Claude-only
+            makes the limitation moot). */}
+        {integrationMode === "light" && availability !== "claude_only" && (
+          <p
+            className="mt-1 text-[13px] text-[var(--color-muted)]"
+            data-testid="settings-codex-light-limitation-hint"
+          >
+            Codex Light doesn't support campaign or multi-phase pipeline
+            launches yet. Use Claude or Codex over Codextender for those.
+          </p>
+        )}
       </div>
 
       {integrationMode === "codextender" && (

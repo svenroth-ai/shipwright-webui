@@ -1,0 +1,30 @@
+{
+  "run_id": "iterate-2026-09-26-runtime-badge-and-leads-gate",
+  "date": "2026-09-25T22:56:14.242560Z",
+  "event_at": "2026-09-24T06:01:37.524858+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/runtime-badge-and-leads-gate",
+  "spec": ".shipwright/planning/iterate/2026-09-26-runtime-badge-and-leads-gate.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-26-runtime-badge-and-leads-gate",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 13,
+      "tested": 13,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 5,
+    "exit_code": 0,
+    "justification": "Real-browser E2E (isolated-stack.mjs, chromium): runtime-availability-badge-gate.spec.ts (2 tests, new) + extended leadwright-gate-org-presence.spec.ts (3 tests, absent+broken legs), all PASSED."
+  }
+}

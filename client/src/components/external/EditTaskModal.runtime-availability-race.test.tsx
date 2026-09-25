@@ -100,8 +100,12 @@ describe("EditTaskModal — runtime re-resolves when settings resolve after open
       </QueryClientProvider>,
     );
 
-    const fixed = screen.getByTestId("runtime-toggle-fixed");
-    expect(fixed).toHaveTextContent("Codex");
+    // iterate-2026-09-26-runtime-badge-and-leads-gate: a restricted
+    // availability now renders no runtime field at all (no interactive
+    // toggle, no fixed pill) — the form state still resolves and submits
+    // the forced runtime even though nothing is shown for it.
+    expect(screen.queryByTestId("runtime-toggle-fixed")).toBeNull();
+    expect(screen.queryByTestId("runtime-toggle")).toBeNull();
 
     fireEvent.submit(screen.getByTestId("edit-task-modal-form"));
     expect(mutateAsync).toHaveBeenCalledWith(

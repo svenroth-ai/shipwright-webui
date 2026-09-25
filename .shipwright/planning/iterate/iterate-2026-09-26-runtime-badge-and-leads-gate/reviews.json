@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-26-runtime-badge-and-leads-gate",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-25T22:47:25.407553+00:00",
+      "disposition": null,
+      "recorded_by": "self-review (this session, 7-point checklist: spec compliance, test coverage, no regressions, scope discipline, file size, security, docs) — 0 findings",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Hiding `ClaimFilterToggle` when the org chart becomes absent may leave an already-enabled Claim filter active with no visible way to turn it off. The proposed tests cover initial absent and broken states, but not this transition.",
+          "suggestion": "Test the sequence “enable Claim filter → org chart becomes absent.” When presence is `\"absent\"`, make the board ignore the Claim filter or clear its active state.  The runtime and Settings changes are sound. The Claim filter needs this state-transition check before the approach is ready.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-09-25T22:47:37.638070+00:00",
+      "disposition": null,
+      "recorded_by": "external-iterate-review",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] <no review returned: openai package not installed>\n\n[openai] 1. **Category:** edge-case · **Severity:** medium  \n   **Finding:** Hiding `ClaimFilterToggle` when the org chart becomes absent may leave an already-enabled Claim filter active with no visible way to turn it off. The proposed tests cover initial absent and broken states, but not this transition.  \n   **Suggestion:** Test the sequence “enable Claim filter → org chart becomes absent.” When presence is `\"absent\"`, make the board ignore the Claim filter or clear its active state.\n\nThe runtime and Settings changes are sound. The Claim filter needs this state-transition check before the approach is ready.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "unavailable",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-25T22:47:58.758492+00:00",
+      "disposition": "Agent tool structurally unavailable in this fork execution context (subagent spawning blocked, not a session policy choice) -- spec-reviewer/code-reviewer/doubt-reviewer cascade could not be spawned. Compensating control: external_review.py --mode code run instead (see external_code entry, glm leg: revise, 3 findings), plus full typecheck+lint+unit-suite re-verification and manual re-check of every external_code finding against the actual diff (all three findings verified as either already-satisfied or acceptable-as-is, see iterate spec Architecture Review reconciliation).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-25T22:47:58.913911+00:00",
+      "disposition": "Agent tool structurally unavailable in this fork execution context (subagent spawning blocked, not a session policy choice) -- spec-reviewer/code-reviewer/doubt-reviewer cascade could not be spawned. Compensating control: external_review.py --mode code run instead (see external_code entry, glm leg: revise, 3 findings), plus full typecheck+lint+unit-suite re-verification and manual re-check of every external_code finding against the actual diff (all three findings verified as either already-satisfied or acceptable-as-is, see iterate spec Architecture Review reconciliation).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/pages/TaskBoardPage.tsx (~line 238, `clearClaimFilter` destructured from `useBoardFilters`)",
+          "line": null,
+          "finding": "The diff destructures a `clearClaimFilter` export from `useBoardFilters` and lists it in the `useEffect` dependency array, but the diff contains no change to `useBoardFilters.ts` adding such an export. If it doesn't already exist (the pre-existing hook is shown exporting `claimFilter`/`toggleClaim`/`clearAllFilters`), this is a compile-time break; if it does exist, the new `useEffect` is the only consumer shown and its behavior is untested at the hook level (ledger row 13 cites only \"pre-existing, unmodified\" hook tests, which by definition cannot cover `clearClaimFilter`).",
+          "suggestion": "Verify `clearClaimFilter` is exported from `useBoardFilters` (add it if not, in this diff), and add a direct hook-level test for it rather than relying on the page test alone.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/pages/TaskBoardPage.test.tsx (~line 160, rerender-based presence flip)",
+          "line": null,
+          "finding": "The \"clears an already-active claim filter\" test flips the mocked hook return and rerenders. Because the hook is fully mocked, this validates the `useEffect` wiring but not that the real `useOrgChartPresence()` query actually transitions `present`/`loading` → `absent` in a way that re-renders the page component (mock bypasses react-query cache/refetch semantics). The real transition is only covered indirectly by the E2E's two steady-state legs, never a mid-session transition.",
+          "suggestion": "Acceptable as-is given the E2E coverage; optionally note in the test that the transition itself relies on the shared-query contract rather than proving it here.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/pages/TaskBoardPage.tsx (useEffect)",
+          "line": null,
+          "finding": "The effect only clears `claimFilter` when it fires with `claimFilter === true`. If presence resolves to `\"absent\"` and back to `\"present\"` within the same render batch, or if `clearClaimFilter` identity changes per render (if `useBoardFilters` doesn't memoize it), the effect could loop-clear or miss — behavior depends on unshown hook internals. Low risk but unverified.",
+          "suggestion": "Ensure `clearClaimFilter` is `useCallback`-stable in `useBoardFilters`.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "glm",
+      "completed_at": "2026-09-25T22:47:50.802036+00:00",
+      "disposition": null,
+      "recorded_by": "external-code-review",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: bug\n  Severity: medium\n  File: client/src/pages/TaskBoardPage.tsx (~line 238, `clearClaimFilter` destructured from `useBoardFilters`)\n  Finding: The diff destructures a `clearClaimFilter` export from `useBoardFilters` and lists it in the `useEffect` dependency array, but the diff contains no change to `useBoardFilters.ts` adding such an export. If it doesn't already exist (the pre-existing hook is shown exporting `claimFilter`/`toggleClaim`/`clearAllFilters`), this is a compile-time break; if it does exist, the new `useEffect` is the only consumer shown and its behavior is untested at the hook level (ledger row 13 cites only \"pre-existing, unmodified\" hook tests, which by definition cannot cover `clearClaimFilter`).\n  Suggestion: Verify `clearClaimFilter` is exported from `useBoardFilters` (add it if not, in this diff), and add a direct hook-level test for it rather than relying on the page test alone.\n\n- Category: test\n  Severity: low\n  File: client/src/pages/TaskBoardPage.test.tsx (~line 160, rerender-based presence flip)\n  Finding: The \"clears an already-active claim filter\" test flips the mocked hook return and rerenders. Because the hook is fully mocked, this validates the `useEffect` wiring but not that the real `useOrgChartPresence()` query actually transitions `present`/`loading` → `absent` in a way that re-renders the page component (mock bypasses react-query cache/refetch semantics). The real transition is only covered indirectly by the E2E's two steady-state legs, never a mid-session transition.\n  Suggestion: Acceptable as-is given the E2E coverage; optionally note in the test that the transition itself relies on the shared-query contract rather than proving it here.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/pages/TaskBoardPage.tsx (useEffect)\n  Finding: The effect only clears `claimFilter` when it fires with `claimFilter === true`. If presence resolves to `\"absent\"` and back to `\"present\"` within the  […truncated]\n\n[openai] <no review returned: codex exec exited 1: ERROR: unexpected status 401 Unauthorized: Incorrect API key provided: sk-svcac***********************************************************************************************************************************************************fvMA. You can find your API key at https://platform.openai.com/account/api-keys., url: https://chatgpt.com/backend-api/codex/responses, cf-ray: a40d8f643d9d0211-ZRH, request id: e32d9904-f0b0-4dc6-9249-2b4da2bd9a42>",
+      "verdicts": {
+        "openai": "unavailable",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-25T22:47:58.612633+00:00",
+      "disposition": "Agent tool structurally unavailable in this fork execution context (subagent spawning blocked, not a session policy choice) -- spec-reviewer/code-reviewer/doubt-reviewer cascade could not be spawned. Compensating control: external_review.py --mode code run instead (see external_code entry, glm leg: revise, 3 findings), plus full typecheck+lint+unit-suite re-verification and manual re-check of every external_code finding against the actual diff (all three findings verified as either already-satisfied or acceptable-as-is, see iterate spec Architecture Review reconciliation).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-25T22:48:04.884186+00:00",
+      "disposition": "opus-plan-reviewer is a subagent and the Agent tool is structurally unavailable in this fork execution context (not a session policy choice). Compensating control: external_review.py --mode architecture run against architecture_brief.md (openai leg: approve -- 'no new standing mechanism needed'), plus the external --mode iterate plan review (openai leg: revise, 1 finding, integrated -- see plan entry and iterate spec Architecture Review section).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

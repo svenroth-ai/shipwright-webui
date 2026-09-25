@@ -1,0 +1,38 @@
+warning: external review PARTIALLY degraded — glm did not return a usable reply while at least one other reviewer succeeded. The gate still reports success (one opinion is enough to proceed), but glm's review is MISSING from this pass, silently, unless this warning is read.
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 1,
+  "reviews": {
+    "glm": {
+      "status": "error",
+      "reason": "openai package not installed"
+    },
+    "openai": {
+      "feedback": "1. **Category:** edge-case \u00b7 **Severity:** medium  \n   **Finding:** Hiding `ClaimFilterToggle` when the org chart becomes absent may leave an already-enabled Claim filter active with no visible way to turn it off. The proposed tests cover initial absent and broken states, but not this transition.  \n   **Suggestion:** Test the sequence \u201cenable Claim filter \u2192 org chart becomes absent.\u201d When presence is `\"absent\"`, make the board ignore the Claim filter or clear its active state.\n\nThe runtime and Settings changes are sound. The Claim filter needs this state-transition check before the approach is ready.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "partially_degraded": true,
+  "partially_degraded_legs": [
+    "glm"
+  ],
+  "driver": "claude",
+  "verdicts": {
+    "glm": "unavailable",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "error",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": false,
+    "requires_resolution": true,
+    "reason": "only one reviewer answered \u2014 glm did not (glm=unavailable, openai=revise)"
+  }
+}
