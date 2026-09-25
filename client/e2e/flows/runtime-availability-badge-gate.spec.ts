@@ -100,7 +100,7 @@ test.describe("Runtime badge hidden when only one runtime is available", () => {
     const hint = page.getByTestId("settings-codex-light-limitation-hint");
     await expect(hint).toBeVisible();
     await expect(hint).toHaveText(
-      "Codex Light doesn't support campaign or multi-phase pipeline launches yet. Use Claude or Codex over Codextender for those.",
+      "Codex Light doesn't support campaign or multi-phase pipeline launches yet. Use Codex over Codextender for those.",
     );
 
     // The Settings card's own "default runtime" toggle preview is also

@@ -169,6 +169,23 @@ describe("CodexSettingsCard", () => {
     );
   });
 
+  it("recommends only Codex (not Claude) in the limitation hint when availability is 'codex_only' — Claude isn't an option there (local PR-review preflight finding)", async () => {
+    server.use(
+      http.get("/api/settings", () => HttpResponse.json({ data: { codexAvailability: "codex_only" } })),
+    );
+    renderCard();
+    // Assert the FINAL text directly (not presence-then-text): before the
+    // settings fetch resolves, availability defaults optimistically to
+    // "both", which would also render the hint — just with the wrong
+    // wording — and a separate toBeInTheDocument() check can pass on
+    // that transient first paint.
+    await waitFor(() =>
+      expect(screen.getByTestId("settings-codex-light-limitation-hint")).toHaveTextContent(
+        "Codex Light doesn't support campaign or multi-phase pipeline launches yet. Use Codex over Codextender for those.",
+      ),
+    );
+  });
+
   it("hides the Codex Light limitation hint when availability is 'claude_only'", async () => {
     server.use(
       http.get("/api/settings", () => HttpResponse.json({ data: { codexAvailability: "claude_only" } })),

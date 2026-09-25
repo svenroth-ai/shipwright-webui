@@ -138,7 +138,9 @@ export function CodexSettingsCardFields({
             data-testid="settings-codex-light-limitation-hint"
           >
             Codex Light doesn't support campaign or multi-phase pipeline
-            launches yet. Use Claude or Codex over Codextender for those.
+            launches yet. Use{" "}
+            {availability === "codex_only" ? "Codex" : "Claude or Codex"} over
+            Codextender for those.
           </p>
         )}
       </div>
