@@ -1,7 +1,7 @@
 {
   "run_id": "iterate-2026-09-26-runtime-badge-and-leads-gate",
-  "date": "2026-09-25T22:56:14.242560Z",
-  "event_at": "2026-09-24T06:01:37.524858+00:00",
+  "date": "2026-09-25T23:04:16.785604Z",
+  "event_at": "2026-09-25T22:56:14.533797+00:00",
   "type": "change",
   "complexity": "medium",
   "branch": "iterate/runtime-badge-and-leads-gate",
@@ -11,15 +11,87 @@
   "test_completeness": {
     "status": "complete",
     "counts": {
-      "testable": 13,
-      "tested": 13,
+      "testable": 14,
+      "tested": 14,
       "untestable": 0,
       "untested_testable": 0
     },
     "enumeration_basis": {
       "acs": 4,
       "covered_acs": 4
-    }
+    },
+    "behaviors": [
+      {
+        "behavior": "RuntimeToggle renders nothing when availability is claude_only/codex_only",
+        "disposition": "tested",
+        "evidence": "RuntimeToggle.test.tsx \"availability !== 'both' renders nothing\" (2 cases) PASSED"
+      },
+      {
+        "behavior": "RuntimeToggle still renders the interactive radiogroup when availability is both (no regression)",
+        "disposition": "tested",
+        "evidence": "RuntimeToggle.test.tsx pre-existing 6 cases PASSED"
+      },
+      {
+        "behavior": "EditTaskModalFields shows no Runtime field/hint for an editable (draft) task when availability is restricted, but form state still resolves and submits the forced runtime",
+        "disposition": "tested",
+        "evidence": "EditTaskModal.runtime-availability-race.test.tsx PASSED"
+      },
+      {
+        "behavior": "EditTaskModalFields still shows the read-only runtime label for an already-started task regardless of availability",
+        "disposition": "tested",
+        "evidence": "EditTaskModal.runtime-toggle.test.tsx (pre-existing, unmodified) PASSED"
+      },
+      {
+        "behavior": "RuntimeFieldFragment (create-form fragment) renders nothing when availability is restricted",
+        "disposition": "tested",
+        "evidence": "Covered transitively via RuntimeToggle's own null-render + real-browser proof in runtime-availability-badge-gate.spec.ts PASSED"
+      },
+      {
+        "behavior": "CodexSettingsCardFields hides its own default-runtime RuntimeToggle preview when availability is restricted",
+        "disposition": "tested",
+        "evidence": "CodexSettingsCard.test.tsx \"hides the RuntimeToggle entirely...\" PASSED"
+      },
+      {
+        "behavior": "Settings shows the reworded Codex Light limitation hint when Light is active and Codex is reachable",
+        "disposition": "tested",
+        "evidence": "CodexSettingsCard.test.tsx \"shows the Codex Light limitation hint...\" PASSED + runtime-availability-badge-gate.spec.ts real-browser leg PASSED"
+      },
+      {
+        "behavior": "Settings hides that hint when availability is claude_only",
+        "disposition": "tested",
+        "evidence": "CodexSettingsCard.test.tsx \"hides the Codex Light limitation hint...\" PASSED"
+      },
+      {
+        "behavior": "ClaimFilterToggle hidden on confirmed absent org-chart presence",
+        "disposition": "tested",
+        "evidence": "ClaimFilterToggle.test.tsx gate block PASSED + leadwright-gate-org-presence.spec.ts real-browser leg PASSED"
+      },
+      {
+        "behavior": "ClaimFilterToggle still renders on loading/broken/present (fail visible)",
+        "disposition": "tested",
+        "evidence": "ClaimFilterToggle.test.tsx it.each PASSED + leadwright-gate-org-presence.spec.ts \"broken\" leg PASSED"
+      },
+      {
+        "behavior": "Per-task lead data (TaskCardLeadExpander/LeadOriginGlyph) is explicitly untouched and keeps reporting regardless of org-chart presence (out-of-scope guard, not a regression)",
+        "disposition": "tested",
+        "evidence": "Pre-existing TaskCardLeadExpander.test.tsx \"never gated on org-chart presence\" block re-run unmodified, still PASSED"
+      },
+      {
+        "behavior": "An already-active claim filter clears itself (not just the button hiding) the moment org-chart presence resolves to absent \u2014 no invisible stuck filter",
+        "disposition": "tested",
+        "evidence": "TaskBoardPage.test.tsx \"clears an already-active claim filter...\" PASSED (added after external plan review finding)"
+      },
+      {
+        "behavior": "ClaimFilterToggle and its board-driven claimFilter state stay in lockstep on present/loading/broken (filter keeps applying wherever the button is visible)",
+        "disposition": "tested",
+        "evidence": "useBoardFilters.test.ts's pre-existing claim-filter block (unmodified) + TaskBoardPage.test.tsx new test's own pre-transition assertions PASSED"
+      },
+      {
+        "behavior": "The Settings Codex Light hint never recommends a runtime that isn't actually available (codex_only says \"Use Codex\", not \"Use Claude or Codex\")",
+        "disposition": "tested",
+        "evidence": "CodexSettingsCard.test.tsx \"recommends only Codex (not Claude)...\" PASSED + runtime-availability-badge-gate.spec.ts real-browser leg (seeds codex_only) PASSED \u2014 found by the F11 local PR-review preflight, fixed same-session"
+      }
+    ]
   },
   "surface_verification": {
     "surface": "web",

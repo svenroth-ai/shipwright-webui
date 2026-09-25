@@ -5,8 +5,8 @@
     "date": "2026-09-26",
     "unit": {
       "status": "passed",
-      "passed": 8812,
-      "total": 8825,
+      "passed": 8813,
+      "total": 8826,
       "skipped": 13
     },
     "integration": {
@@ -36,8 +36,8 @@
     "test_completeness": {
       "status": "complete",
       "counts": {
-        "testable": 13,
-        "tested": 13,
+        "testable": 14,
+        "tested": 14,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -110,6 +110,11 @@
           "behavior": "ClaimFilterToggle and its board-driven claimFilter state stay in lockstep on present/loading/broken (filter keeps applying wherever the button is visible)",
           "disposition": "tested",
           "evidence": "useBoardFilters.test.ts's pre-existing claim-filter block (unmodified) + TaskBoardPage.test.tsx new test's own pre-transition assertions PASSED"
+        },
+        {
+          "behavior": "The Settings Codex Light hint never recommends a runtime that isn't actually available (codex_only says \"Use Codex\", not \"Use Claude or Codex\")",
+          "disposition": "tested",
+          "evidence": "CodexSettingsCard.test.tsx \"recommends only Codex (not Claude)...\" PASSED + runtime-availability-badge-gate.spec.ts real-browser leg (seeds codex_only) PASSED \u2014 found by the F11 local PR-review preflight, fixed same-session"
         }
       ]
     },
@@ -122,7 +127,7 @@
   },
   "source_state": {
     "run_id": "iterate-2026-09-26-runtime-badge-and-leads-gate",
-    "commit": "b841006fab1ec3509b171226de9efc7078025f02",
+    "commit": "f1db4b01e9b5866ba7b2a7831b0999dd133b2c65",
     "dirty": true,
     "base": null,
     "release": null
