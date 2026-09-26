@@ -1,0 +1,133 @@
+{
+  "last_updated": "2026-09-26",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-26-codextender-context-window",
+    "date": "2026-09-26",
+    "unit": {
+      "status": "passed",
+      "passed": 4495,
+      "total": 4508,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 14,
+        "tested": 14,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      },
+      "behaviors": [
+        {
+          "behavior": "buildCodextenderCommands injects CLAUDE_CODE_MAX_CONTEXT_TOKENS into the env prefix on all 3 shells when maxContextTokens is given",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.max-context-tokens.test.ts::sets CLAUDE_CODE_MAX_CONTEXT_TOKENS from the probed Codex window on all 3 shells PASSED"
+        },
+        {
+          "behavior": "buildCodextenderCommands omits CLAUDE_CODE_MAX_CONTEXT_TOKENS entirely when maxContextTokens is not given",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.max-context-tokens.test.ts::omits CLAUDE_CODE_MAX_CONTEXT_TOKENS entirely when maxContextTokens is not given PASSED"
+        },
+        {
+          "behavior": "the cleanup suffix removes CLAUDE_CODE_MAX_CONTEXT_TOKENS on all 3 shells after the claude invocation, conditionally on it having been set",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.max-context-tokens.test.ts (same test, cleanup-suffix regex assertions) PASSED"
+        },
+        {
+          "behavior": "resolveCodextenderMaxContextTokens resolves the selected alias's max_input_tokens from the proxy response",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::resolves the selected alias's max_input_tokens PASSED"
+        },
+        {
+          "behavior": "resolveCodextenderMaxContextTokens defaults to DEFAULT_CODEXTENDER_MODEL_ALIAS when no model is given",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::defaults to DEFAULT_CODEXTENDER_MODEL_ALIAS when no model is given PASSED"
+        },
+        {
+          "behavior": "resolveCodextenderMaxContextTokens resolves undefined (never throws, never guesses) when the probe fails",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::resolves undefined when the probe fails PASSED"
+        },
+        {
+          "behavior": "resolveCodextenderMaxContextTokens resolves undefined when the selected alias isn't in the response",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::resolves undefined when the selected alias isn't in the response PASSED"
+        },
+        {
+          "behavior": "resolveCodextenderMaxContextTokens resolves undefined when the matching entry carries no usable max_input_tokens (older/unpatched proxy)",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::resolves undefined when the matching entry carries no usable max_input_tokens PASSED"
+        },
+        {
+          "behavior": "probeCodextenderModels carries a valid max_input_tokens through to the parsed entry",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::carries a valid max_input_tokens through to the entry PASSED"
+        },
+        {
+          "behavior": "probeCodextenderModels drops a non-positive/non-integer/non-numeric max_input_tokens rather than passing through a bogus value",
+          "disposition": "tested",
+          "evidence": "codextender-proxy-probe.test.ts::drops a non-positive/non-integer/non-numeric max_input_tokens PASSED"
+        },
+        {
+          "behavior": "the main launch chokepoint (applyRuntimeChokepoint / applyCodextenderChokepoint) passes the resolved max context tokens through to buildCodextenderCommands, keyed on the launch's own model override",
+          "disposition": "tested",
+          "evidence": "runtime-chokepoint.codextender-max-context-tokens.test.ts::passes the resolved max context tokens through PASSED"
+        },
+        {
+          "behavior": "the main launch chokepoint leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined",
+          "disposition": "tested",
+          "evidence": "runtime-chokepoint.codextender-max-context-tokens.test.ts::leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined PASSED"
+        },
+        {
+          "behavior": "the fork route sets CLAUDE_CODE_MAX_CONTEXT_TOKENS on the forked child's commands from the resolved probe value",
+          "disposition": "tested",
+          "evidence": "fork.codextender.test.ts::sets CLAUDE_CODE_MAX_CONTEXT_TOKENS on the forked child's commands PASSED"
+        },
+        {
+          "behavior": "the fork route leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined",
+          "disposition": "tested",
+          "evidence": "fork.codextender.test.ts::leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined PASSED"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "none",
+      "justification": "Server-only bug fix to the Codextender launch/fork env-var construction (no client/** file touched, no API response shape/contract change -- CopyCommandForms remains the same string-triple shape). Fully covered by the existing unit-test layer (mocked fetch against the proxy's /v1/models contract); no UI surface exists to drive with a browser, and the diff is small (no touches_io_boundary/UI risk flag), so E2E is not required at this complexity per the phase matrix."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-26-codextender-context-window",
+    "commit": "e27cb1d63eb586cce6c341e1037753a7195dfa7a",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

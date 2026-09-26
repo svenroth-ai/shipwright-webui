@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-26-codextender-context-window",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T13:09:06.196805+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T13:09:12.420408+00:00",
+      "disposition": "mini-plan is FEATURE-only at small complexity (phase matrix); this is a BUG-intent iterate, so no mini-plan/external plan review applies",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T13:02:40.808933+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": null,
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The new await on getCodextenderMaxContextTokens extends the launch/fork path's read-after-await window on a shared mutable ExternalTask object, reopening the TOCTOU hazard fork.ts's own snapshot pattern was built to close. — Grepped every route that writes cwd: creation-time only, never PATCHed afterward, so the field this window exposes is factually immutable. The two fields fork.ts DOES snapshot against concurrent mutation (runtime, codexIntegrationMode) are never re-read from the live object downstream of the new probe -- the main chokepoint's codexIntegrationMode arrives as an already-snapshotted param, not re-derived inside the probe-await window. The existing concurrent-mutation regression test (fork.codextender.test.ts) still covers the real hazard; this new await does not reopen it.",
+          "suggestion": "No fix required. A maintainer note that task.cwd/child.cwd reads rely on cwd's de-facto immutability (rather than an enforced invariant) would pre-empt a future regression if a cwd-mutating route is ever added.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "boundary & contract -- undefined propagation",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: undefined (probe failure) could be coerced into an unsafe value somewhere downstream, e.g. String(undefined) reaching a shell command string. — Traced every consumer of maxContextTokens: both the env-prefix and cleanup-suffix builders gate on an explicit !== undefined / hasMaxContextTokens boolean check before ever calling String() on the value. probeCodextenderModels additionally filters max_input_tokens to a positive integer before attaching it to a model entry, so a malformed 0/negative/fractional/string value from the proxy can't leak through either. No path reaches a shell string with an unsafe value.",
+          "suggestion": "No fix required.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract -- fork's default model alias",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: fork.ts's undefined-model default for the max-context probe could silently give a forked task the WRONG context window if the parent was launched under a non-default model alias. — ExternalTask has no persisted model field at all -- codexImplementationModel is launch-body-only, never persisted. fork.ts's own pre-existing buildCodextenderCommands call ALSO omits model and already defaults ANTHROPIC_MODEL/CODEXTENDER_MODEL to the standard alias for every fork regardless of the parent's actual launch-time alias (pre-existing behavior from an earlier iterate, not introduced by this diff). This diff's undefined-model default is consistent with, not divergent from, that existing behavior -- it resolves max_input_tokens for the same alias the fork's env-vars will actually set. No NEW correctness bug is introduced.",
+          "suggestion": "Non-blocking follow-up: persist the launch model per-task if fork-fidelity for non-default aliases matters. Out of scope for this bug fix.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "hidden coupling -- timeout/leak",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The new fetch-based probe could leak a resource or hang without a timeout, or produce an unhandled rejection on a malformed response body. — resolveCodextenderMaxContextTokens mirrors probeCodextenderLiveness's AbortController + setTimeout/clearTimeout-in-finally pattern exactly, including the .json() parse living inside the same try/catch. Grepped for other consumers of CLAUDE_CODE_MAX_CONTEXT_TOKENS -- no hidden reader/writer elsewhere in the tree. The probe is deliberately uncached per launch, consistent with the existing low-frequency/correctness-over-caching rationale already documented for isCodexCliAvailable's own uncached-by-design probe.",
+          "suggestion": "No fix required.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-26T13:08:30.814035+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T13:09:12.705614+00:00",
+      "disposition": "External LLM review is skipped at small complexity per the phase matrix (auto only at medium+)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T12:58:59.910445+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T13:09:12.825177+00:00",
+      "disposition": "Internal Plan Review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

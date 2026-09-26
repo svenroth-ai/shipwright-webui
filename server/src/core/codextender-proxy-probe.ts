@@ -28,7 +28,10 @@
  * datalist's real source.
  */
 
-import { resolveCodextenderAuthToken } from "./launcher-codextender.js";
+import {
+  DEFAULT_CODEXTENDER_MODEL_ALIAS,
+  resolveCodextenderAuthToken,
+} from "./launcher-codextender.js";
 
 /**
  * `codextenderPort` is persisted/read as arbitrary JSON (PUT /api/settings
@@ -54,6 +57,11 @@ export function isValidCodextenderPort(value: unknown): value is number {
 export interface CodextenderModelEntry {
   slug: string;
   display_name: string;
+  /** LiteLLM's declared context window for this alias (its `model_info.
+   *  max_input_tokens`), when the proxy's `/v1/models` response carries one.
+   *  Absent on an older/unpatched proxy — callers must treat that the same
+   *  as "unknown", never assume a number. */
+  max_input_tokens?: number;
 }
 
 export interface CodextenderProbeResult {
@@ -70,6 +78,26 @@ export interface CodextenderProbeDeps {
   /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
    *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
   authToken?: string;
+}
+
+/**
+ * PR-review preflight BLOCK (round 14, 2026-09-26) — `max_input_tokens`
+ * lives under each entry's `model_info` object (LiteLLM's own extension to
+ * the OpenAI-shaped `/v1/models` list; codextender's operator finding
+ * describes its config as declaring the value "in its LiteLLM
+ * `model_info`"), NOT as a flat, top-level field on the entry. A flat
+ * `entry.max_input_tokens` is checked too, purely as a forward-compatible
+ * fallback in case a future LiteLLM/codextender version flattens it — the
+ * nested form is the one actually confirmed, so it takes precedence.
+ */
+function extractMaxInputTokens(entry: Record<string, unknown>): number | undefined {
+  const modelInfo = entry.model_info;
+  const nested =
+    modelInfo && typeof modelInfo === "object"
+      ? (modelInfo as Record<string, unknown>).max_input_tokens
+      : undefined;
+  const raw = nested ?? entry.max_input_tokens;
+  return typeof raw === "number" && Number.isInteger(raw) && raw > 0 ? raw : undefined;
 }
 
 /**
@@ -109,7 +137,12 @@ export async function probeCodextenderModels(
       if (!entry || typeof entry !== "object") continue;
       const id = (entry as Record<string, unknown>).id;
       if (typeof id !== "string" || id.trim() === "") continue;
-      models.push({ slug: id, display_name: id });
+      const maxInputTokens = extractMaxInputTokens(entry as Record<string, unknown>);
+      models.push({
+        slug: id,
+        display_name: id,
+        ...(maxInputTokens !== undefined ? { max_input_tokens: maxInputTokens } : {}),
+      });
     }
     return { ok: true, models };
   } catch {
@@ -117,6 +150,39 @@ export async function probeCodextenderModels(
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Resolves the REAL context window for the Codextender alias a task is
+ * about to launch with, straight from the proxy's own `/v1/models` response
+ * (operator finding, 2026-09-26, live Codextender iterate test) — never a
+ * number hardcoded here a second time. Claude Code assumes a 200K context
+ * window for any model id it doesn't recognize (the Codex alias is one) and
+ * proactively over-compacts against that wrong, much-too-small ceiling; the
+ * fix is `launcher-codextender.ts` setting `CLAUDE_CODE_MAX_CONTEXT_TOKENS`
+ * from THIS value, so a change to codextender's own declared window (its
+ * `config.py` `model_info.max_input_tokens`) can never drift out of sync
+ * with what webui tells Claude Code — both repos read the same live number.
+ *
+ * Never throws, same contract as `probeCodextenderModels` — resolves
+ * `undefined` (not a guessed fallback) when the probe fails, the alias
+ * isn't in the response, or the response carries no usable
+ * `max_input_tokens` for it (an older/unpatched proxy). The caller's
+ * contract for `undefined` is "leave `CLAUDE_CODE_MAX_CONTEXT_TOKENS`
+ * unset", which is the conservative, safe default — Claude Code's own 200K
+ * fallback — rather than risking an inflated ceiling that starves
+ * compaction entirely.
+ */
+export async function resolveCodextenderMaxContextTokens(
+  port: number,
+  model: string | undefined,
+  deps: CodextenderProbeDeps = {},
+): Promise<number | undefined> {
+  const alias = model?.trim() || DEFAULT_CODEXTENDER_MODEL_ALIAS;
+  const result = await probeCodextenderModels(port, deps);
+  if (!result.ok) return undefined;
+  const entry = result.models.find((m) => m.slug === alias);
+  return entry?.max_input_tokens;
 }
 
 /**
