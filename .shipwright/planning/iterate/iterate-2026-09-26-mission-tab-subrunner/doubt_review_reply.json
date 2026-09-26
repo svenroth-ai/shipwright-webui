@@ -1,0 +1,48 @@
+{
+  "stage": "doubt",
+  "gating": "advisory-must-address",
+  "trigger": "async/concurrency (dispatch->ack->notification correlation)",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "a non-review Task dispatch resolves through the same ack->notification path as an Agent dispatch and eventually reaches subrunnerStatus done/failed",
+      "disproof_attempt": "The classic Claude Code Task tool is synchronous — its own tool_result IS the subagent's final answer. A non-review Task falls into the subrunner bucket, whose ack handling only recognized the Agent-style async ack shape (agentId: <id>). A synchronous Task's tool_result would essentially never contain that string, so subrunnerId would stay the provisional tool_use.id forever and no task-notification would ever arrive for a Task that already completed synchronously — the card would get stuck permanently at subrunnerStatus: running, silently discarding the real report.",
+      "file": "client/src/lib/missionActivityFeedSubrunner.ts (applySubrunnerAck / AGENT_ID_RE), client/src/lib/missionActivityFeedResolve.ts (subrunner branch)",
+      "what_would_resolve_it": "either empirically confirm a non-review Task's completion also arrives via task-notification, or handle a non-review Task's ack synchronously — read result.content directly as the finished report and mark the card done/failed on ack.",
+      "disposition": "accepted-and-fixed",
+      "resolution": "applySubrunnerAck now treats a no-agentId ack as a synchronous completion: the ack content becomes the report and the card resolves to done/failed immediately, mirroring the untouched review-bucket branch's own synchronous read. Added an end-to-end test dispatching with tool name Task and asserting resolution to done off the ack alone, with no notification."
+    },
+    {
+      "severity": "medium",
+      "lens": "concurrency & ordering",
+      "claim_under_doubt": "the ack (which overwrites subrunnerId to the real, stable agent id) always finishes processing before any task-notification for that same task is processed",
+      "disproof_attempt": "resolveSubrunnerNotification correlates strictly by event.taskId === card.subrunnerId at the moment the notification event is walked, with no retry/rescan queue. No mechanism nor test proved the ack event is guaranteed to be seen and applied before the notification event within a single derivation pass.",
+      "file": "client/src/lib/missionActivityFeedSubrunner.ts (resolveSubrunnerNotification)",
+      "what_would_resolve_it": "a written argument for why ack-before-notification ordering is structurally guaranteed within one JSONL transcript, or a fallback re-attempt mechanism.",
+      "disposition": "accepted-and-fixed",
+      "resolution": "Documented (no code change needed): an ack is that same tool_use's own tool_result, so it is structurally present in the transcript before any notification for that agent can exist at all — the agent must be dispatched-and-acknowledged before it can ever finish and be notified about. Added as a doc comment on resolveSubrunnerNotification."
+    },
+    {
+      "severity": "low",
+      "lens": "boundary & contract",
+      "claim_under_doubt": "AGENT_ID_RE only ever matches the harness's own launch-acknowledgement preamble",
+      "disproof_attempt": "The regex was an unanchored substring search over the entire ack content. Any ack content that happened to contain the literal text 'agentId: <token>' for unrelated reasons could silently overwrite subrunnerId with a garbage value, permanently breaking correlation.",
+      "file": "client/src/lib/missionActivityFeedSubrunner.ts:80",
+      "what_would_resolve_it": "anchor the regex to the known preamble so an incidental substring in unrelated prose can't be mistaken for the dispatch's own id fingerprint.",
+      "disposition": "accepted-and-fixed",
+      "resolution": "AGENT_ID_RE anchored to require the 'Async agent launched successfully' preamble earlier in the same content. Added a regression test asserting an incidental agentId: substring outside that preamble does not match."
+    },
+    {
+      "severity": "low",
+      "lens": "hidden coupling & blast radius",
+      "claim_under_doubt": "resolveSubrunnerNotification's cards.find() correctly resolves exactly the one card a notification is for",
+      "disproof_attempt": ".find() returns only the first matching open subrunner card, with no defense against two concurrently-open subrunner cards ever sharing a subrunnerId.",
+      "file": "client/src/lib/missionActivityFeedSubrunner.ts:104",
+      "what_would_resolve_it": "prefer the still-running card with that id over an already-resolved one, so a collision degrades predictably rather than picking array order.",
+      "disposition": "accepted-and-fixed",
+      "resolution": "resolveSubrunnerNotification now prefers a still-running card over an already-resolved one when two cards share a taskId. Added a regression test covering the collision case."
+    }
+  ],
+  "summary": "4 doubts (1 high, 1 medium, 2 low), all addressed by the implementer: the Task synchronous-completion path is now handled directly on ack, the ack-before-notification ordering guarantee is documented, the agentId regex is anchored to its known preamble, and a same-id collision now prefers the still-open card."
+}

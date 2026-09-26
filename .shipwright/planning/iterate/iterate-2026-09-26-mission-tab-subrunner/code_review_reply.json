@@ -1,0 +1,61 @@
+{
+  "section": "2026-09-26-mission-tab-subrunner",
+  "review": [
+    {
+      "severity": "medium",
+      "category": "readability",
+      "file": "client/src/lib/missionActivityFeedTypes.ts",
+      "line": 123,
+      "finding": "ActivityCard.subrunnerId's doc comment still described the disproven initial hand-back-message design instead of the corrected provisional-id/ack-overwrite/task-notification design.",
+      "suggestion": "Update the field doc to describe the corrected mechanism.",
+      "disposition": "accepted-and-fixed"
+    },
+    {
+      "severity": "high",
+      "category": "correctness",
+      "file": "client/src/lib/missionActivityFeedSubrunner.ts",
+      "line": 88,
+      "finding": "The corrected subrunner resolution mechanism (extractSubrunnerAgentId, applySubrunnerAck, resolveSubrunnerNotification) had essentially no direct test coverage, and no reducer-level test exercised the harness's real dispatch tool name 'Agent' at all.",
+      "suggestion": "Add unit tests directly against missionActivityFeedSubrunner.ts's exports covering dispatch -> ack -> task-notification, plus one end-to-end test using tool name 'Agent'.",
+      "disposition": "accepted-and-fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+      "line": 250,
+      "finding": "No test covered the new subrunner rendering branch (running dot, resolved report-link button, inline-fallback).",
+      "suggestion": "Add MissionActivityFeedCard.test.tsx cases for all three subrunner render states.",
+      "disposition": "accepted-and-fixed"
+    },
+    {
+      "severity": "medium",
+      "category": "correctness",
+      "file": "client/src/components/external/mission/SubrunnerPanel.tsx",
+      "line": 1,
+      "finding": "New SubrunnerPanel component had no dedicated test file, and MissionBody.test.tsx had no case for the new activeNode = subrunner:<id> wiring.",
+      "suggestion": "Add SubrunnerPanel.test.tsx and a MissionBody.test.tsx case that opens the panel from a resolved subrunner card.",
+      "disposition": "accepted-and-fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx",
+      "line": 144,
+      "finding": "The one PR-card test unknowingly exercised the new item-1 dedup-suppression path but asserted nothing about it; no companion test proved a genuinely different narrative sentence stays visible.",
+      "suggestion": "Add positive/negative assertions for the PR-title dedup suppression.",
+      "disposition": "accepted-and-fixed"
+    },
+    {
+      "severity": "low",
+      "category": "readability",
+      "file": "client/src/lib/missionActivityFeedTurn.ts",
+      "line": 180,
+      "finding": "The subrunner PendingTool.commandKey was hardcoded to the 'Agent' literal even when tool.name === 'Task', inconsistent with every other bucket in the file.",
+      "suggestion": "Use tool.name instead of the hardcoded literal.",
+      "disposition": "accepted-and-fixed"
+    }
+  ],
+  "review_type": "full-review",
+  "summary": "The extraction into missionActivityFeedSubrunner.ts (createSubrunnerDispatchCard / applySubrunnerAck) was clean: correct types, updated call sites, no dead branches, no unused imports, no circular imports. Items 1, 2, 4, 5, 6 were all implemented as specified with direct regression tests. missionActivityFeedResolve.ts (300 lines) and missionActivityFeedTurn.ts (294 lines) are back under the bloat ceiling via the extraction. All 6 findings (1 high, 3 medium, 2 low) were addressed by the implementer: stale doc comment fixed, full test coverage added for the resolution mechanism (including an Agent-named end-to-end test), subrunner UI render states tested, SubrunnerPanel + MissionBody wiring tested, PR-dedup positive/negative regression added, and the commandKey nit fixed."
+}

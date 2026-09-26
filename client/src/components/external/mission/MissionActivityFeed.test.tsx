@@ -141,13 +141,45 @@ describe("MissionActivityFeed", () => {
     });
   });
 
-  it("renders a PR-link card for delivery when a merged commit artifact is available", () => {
+  // AC1: card.text is suppressed ONLY when it exactly duplicates the PR
+  // box's own title — never blanket-suppressed.
+  it("renders a PR-link card for delivery, suppressing card.text only because it exactly duplicates the PR box's own title", () => {
     render(<MissionActivityFeed feed={{
       outcome: "Completed run",
       cards: [{ kind: "delivery", text: 'Merged as "fix(mission): real content in every card kind".', commands: [], artifact: "commit" }],
     }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
     expect(screen.getByText("#367")).toBeInTheDocument();
     expect(screen.getByText("merged")).toBeInTheDocument();
+    expect(screen.queryByText('Merged as "fix(mission): real content in every card kind".')).not.toBeInTheDocument();
+  });
+
+  it("keeps a genuinely different narrative sentence visible alongside the same PR box", () => {
+    render(<MissionActivityFeed feed={{
+      outcome: "Completed run",
+      cards: [{ kind: "delivery", text: "All required checks went green before this merged.", commands: [], artifact: "commit" }],
+    }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
+    expect(screen.getByText("All required checks went green before this merged.")).toBeInTheDocument();
+    expect(screen.getByText("#367")).toBeInTheDocument();
+  });
+
+  // Local PR-review preflight (BLOCK, 2026-09-26): card.text can strip to ""
+  // (it IS the duplicate sentence) while card.textFull has real narration
+  // beyond it — that content must stay reachable via the expand toggle.
+  it("keeps textFull's non-duplicate narration reachable via the expand toggle when card.text strips to empty", () => {
+    render(<MissionActivityFeed feed={{
+      outcome: "Completed run",
+      cards: [{
+        kind: "delivery",
+        text: 'Merged as "fix(mission): real content in every card kind".',
+        textFull: 'Merged as "fix(mission): real content in every card kind". Also cleaned up two stale branches.',
+        commands: [],
+        artifact: "commit",
+      }],
+    }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
+    expect(screen.queryByText('Merged as "fix(mission): real content in every card kind".')).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: /show more/i });
+    fireEvent.click(toggle);
+    expect(screen.getByText("Also cleaned up two stale branches.")).toBeInTheDocument();
   });
 
   it("omits the PR-link card gracefully when no commit artifact is available", () => {
@@ -219,47 +251,9 @@ describe("MissionActivityFeed", () => {
     });
   });
 
-  // iterate-2026-08-31-mission-feed-gaps.
-  describe("card.timestamp", () => {
-    it("shows a relative time next to the kind label when the card carries one", () => {
-      render(<MissionActivityFeed feed={{
-        outcome: "In progress",
-        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [], timestamp: new Date(Date.now() - 5 * 60_000).toISOString() }],
-      }} commitArtifact={null} task={TASK} />);
-      expect(screen.getByText("5m ago")).toBeInTheDocument();
-    });
-
-    // Review (openai) LOW, -08-31: the test above would still pass with
-    // FeedTime's `title` tooltip removed.
-    it("carries the full local date/time as a title tooltip on the relative-time element", () => {
-      const at = "2026-08-31T09:15:00.000Z";
-      render(<MissionActivityFeed feed={{
-        outcome: "In progress",
-        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [], timestamp: at }],
-      }} commitArtifact={null} task={TASK} />);
-      const el = document.querySelector(".mc-feed-time");
-      expect(el).not.toBeNull();
-      expect(el?.getAttribute("title")).toBe(new Date(at).toLocaleString());
-    });
-
-    it("shows no time text at all when the card carries none (older transcripts)", () => {
-      const { container } = render(<MissionActivityFeed feed={{
-        outcome: "In progress",
-        cards: [{ kind: "implement", text: "Edited the login handler.", commands: [] }],
-      }} commitArtifact={null} task={TASK} />);
-      expect(container.querySelector(".mc-feed-time")).toBeNull();
-    });
-
-    // review, openai MEDIUM: a `system` card skips the kind label + pill,
-    // and that gate used to hide its timestamp too.
-    it("still shows a relative time for a system card, which has no kind label", () => {
-      render(<MissionActivityFeed feed={{
-        outcome: "In progress",
-        cards: [{ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: new Date(Date.now() - 2 * 60_000).toISOString() }],
-      }} commitArtifact={null} task={TASK} />);
-      expect(screen.getByText("2m ago")).toBeInTheDocument();
-    });
-  });
+  // "Session started" divider coverage lives in
+  // `MissionActivityFeedSessionStart.test.tsx` (split out during the external
+  // code-review round to keep this file under the 300-line convention).
 
   // iterate-2026-08-31-mission-feed-gaps: the Mission tab opens on the LATEST
   // activity. `scrollHeight` is stubbed BEFORE mount (on the prototype) —
