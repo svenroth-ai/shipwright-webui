@@ -1414,7 +1414,22 @@ write surface; gated, path-guarded, and concurrency-safe.
   concept of a CLI-persisted preference of its own. The two model-catalog
   endpoints stay in place (still backing the Plan review / Review
   datalist under Codex Light), only the Implementation-model consumer of
-  them is gone.
+  them is gone. **(iterate-2026-09-26-codextender-context-window)** Given
+  Claude Code assumes a 200K-token context window for any model id it
+  doesn't recognize (the Codex alias) and proactively over-compacts
+  against that wrong ceiling, when a Codextender launch/fork's
+  proxy-availability preflight succeeds, then the env-var prefix
+  additionally sets `CLAUDE_CODE_MAX_CONTEXT_TOKENS` from the proxy's own
+  `GET /v1/models` response for the resolved alias
+  (`resolveCodextenderMaxContextTokens`, keyed on
+  `DEFAULT_CODEXTENDER_MODEL_ALIAS` now that no per-launch override is
+  ever sent) — reading `max_input_tokens` from each entry's nested
+  `model_info` object (LiteLLM's real shape; a flat top-level field is
+  also accepted as a forward-compat fallback) and never a number
+  hardcoded in webui — and is actively cleared (not merely left unset) on
+  all 3 shells same as the other Codextender env vars; a probe failure or
+  an unpatched/older proxy leaves the var unset, which is Claude Code's
+  own conservative 200K default, not a guessed number.
 
 ## Quality Requirements
 

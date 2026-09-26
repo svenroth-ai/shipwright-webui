@@ -17,24 +17,19 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { probeCodextenderLiveness } from "../../core/codextender-proxy-probe.js";
-import { buildCodexCommands } from "../../core/launcher-codex.js";
 import {
-  buildCodextenderCommands,
-  CodextenderCwdMismatchError,
-  resolveCodextenderAuthToken,
-} from "../../core/launcher-codextender.js";
+  probeCodextenderLiveness,
+  resolveCodextenderMaxContextTokens,
+} from "../../core/codextender-proxy-probe.js";
+import { buildCodexCommands } from "../../core/launcher-codex.js";
+import { resolveCodextenderAuthToken } from "../../core/launcher-codextender.js";
 import type { CopyCommandForms } from "../../core/launcher.js";
 import { defaultRunShim } from "../../core/readiness-probe-run.js";
 import type { ExternalTask, Runtime } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ParsedLaunchBody } from "./parse-body.js";
-import {
-  codexCliNotFoundError,
-  codextenderAuthTokenMissingError,
-  codextenderCwdMismatchError,
-  codextenderProxyUnreachableError,
-} from "./runtime-chokepoint-errors.js";
+import { applyCodextenderChokepoint } from "./runtime-chokepoint-codextender.js";
+import { codexCliNotFoundError } from "./runtime-chokepoint-errors.js";
 
 export type CodexIntegrationMode = "light" | "codextender";
 
@@ -186,6 +181,10 @@ export async function applyRuntimeChokepoint(args: {
   /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
    *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
   getCodextenderAuthToken?: () => string | undefined;
+  /** Test seam — defaults to a real probe of the proxy's `/v1/models` for
+   *  the selected alias's `max_input_tokens` (operator finding,
+   *  2026-09-26). `model` is the same value passed to `buildCodextenderCommands`. */
+  getCodextenderMaxContextTokens?: (model: string | undefined) => Promise<number | undefined>;
 }): Promise<RuntimeChokepointOk | RuntimeChokepointBlocked> {
   const { task, parsed, project, commands, taskUpdate, codexIntegrationMode } = args;
   const checkCodexCliAvailable = args.checkCodexCliAvailable ?? isCodexCliAvailable;
@@ -194,6 +193,9 @@ export async function applyRuntimeChokepoint(args: {
     args.checkCodextenderProxyAvailable ??
     (() => probeCodextenderLiveness(codextenderPort));
   const getCodextenderAuthToken = args.getCodextenderAuthToken ?? resolveCodextenderAuthToken;
+  const getCodextenderMaxContextTokens =
+    args.getCodextenderMaxContextTokens ??
+    ((model: string | undefined) => resolveCodextenderMaxContextTokens(codextenderPort, model));
 
   if (isCodexNewPipelineBlocked(task, parsed, codexIntegrationMode)) {
     return {
@@ -225,42 +227,19 @@ export async function applyRuntimeChokepoint(args: {
     return { commands, taskUpdate };
   }
 
-  // Codextender integration Part B.3/B.6 — a Codex-runtime task whose
-  // Codex Integration Mode is Codextender drives ordinary `claude`
-  // underneath (via a local LiteLLM proxy), not the `codex` CLI. It gets
-  // its own availability probe (the proxy's `/v1/models`, not `codex
-  // --version`) and reuses the already-built plain-Claude `commands` this
-  // chokepoint received, rather than `buildCodexCommands`.
+  // Codextender integration Part B.3/B.6 — split out to
+  // runtime-chokepoint-codextender.ts (bloat anti-ratchet, 2026-09-26).
   if (codexIntegrationMode === "codextender") {
-    if (!(await checkCodextenderProxyAvailable())) {
-      return { error: codextenderProxyUnreachableError(codextenderPort), status: 400 };
-    }
-    const codextenderAuthToken = getCodextenderAuthToken();
-    if (!codextenderAuthToken) {
-      return { error: codextenderAuthTokenMissingError(), status: 400 };
-    }
-    let codextenderCommands: CopyCommandForms;
-    try {
-      codextenderCommands = buildCodextenderCommands({
-        cwd: task.cwd,
-        baseUrl: `http://127.0.0.1:${codextenderPort}`,
-        model: parsed.codexImplementationModel,
-        authToken: codextenderAuthToken,
-        claudeCommands: commands,
-      });
-    } catch (err) {
-      if (!(err instanceof CodextenderCwdMismatchError)) throw err;
-      return { error: codextenderCwdMismatchError(), status: 500 };
-    }
-    return {
-      commands: codextenderCommands,
-      taskUpdate: {
-        ...taskUpdate,
-        state: "awaiting_external_start",
-        launchedAt: new Date().toISOString(),
-        codexIntegrationMode: "codextender",
-      },
-    };
+    return applyCodextenderChokepoint({
+      task,
+      parsed,
+      commands,
+      taskUpdate,
+      codextenderPort,
+      checkCodextenderProxyAvailable,
+      getCodextenderAuthToken,
+      getCodextenderMaxContextTokens,
+    });
   }
 
   // AC8 — see isCodexCliAvailable's doc comment above.

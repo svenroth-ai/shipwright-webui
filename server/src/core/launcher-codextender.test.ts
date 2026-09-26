@@ -15,7 +15,6 @@ import {
   buildCodextenderCommands,
   CodextenderCwdMismatchError,
   DEFAULT_CODEXTENDER_MODEL_ALIAS,
-  resolveCodextenderAuthToken,
 } from "./launcher-codextender.js";
 
 vi.mock("node:crypto", async (importOriginal) => {
@@ -205,7 +204,7 @@ describe("buildCodextenderCommands", () => {
     readAndDeleteTokenFile(result.posix, "posix");
   });
 
-  it("plan-review HIGH + PR-review round 8 — cleans up all 5 env vars AND deletes the temp token file after the claude invocation, on all 3 shells", () => {
+  it("plan-review HIGH + PR-review round 8 — cleans up all 6 env vars AND deletes the temp token file after the claude invocation, on all 3 shells", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
@@ -214,11 +213,14 @@ describe("buildCodextenderCommands", () => {
     });
     const tokenPath = extractTokenFilePath(result.posix, "posix");
 
+    // CLAUDE_CODE_MAX_CONTEXT_TOKENS is cleaned up unconditionally here too
+    // (round 13, 2026-09-26) — even when this launch never set it, so a
+    // value from an earlier launch in the same long-lived pty can't survive.
     expect(result.powershell.trimEnd()).toMatch(
-      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
+      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
     );
     expect(result.cmd.trimEnd()).toMatch(
-      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & del \/f \/q ".+"$/,
+      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & del \/f \/q ".+"$/,
     );
     expect(result.posix.trimEnd()).toMatch(/ ; rm -f '.+'$/);
     expect(result.posix).not.toContain("Remove-Item");
@@ -267,41 +269,5 @@ describe("buildCodextenderCommands", () => {
         claudeCommands: claude,
       }),
     ).toThrow(CodextenderCwdMismatchError);
-  });
-});
-
-describe("resolveCodextenderAuthToken", () => {
-  const ENV_KEY = "CODEXTENDER_AUTH_TOKEN";
-
-  it("PR-review BLOCK (iterate-2026-09-23, second round) — returns undefined when unset, no built-in fallback", () => {
-    const prior = process.env[ENV_KEY];
-    delete process.env[ENV_KEY];
-    try {
-      expect(resolveCodextenderAuthToken()).toBeUndefined();
-    } finally {
-      if (prior !== undefined) process.env[ENV_KEY] = prior;
-    }
-  });
-
-  it("returns a non-blank CODEXTENDER_AUTH_TOKEN env var verbatim", () => {
-    const prior = process.env[ENV_KEY];
-    process.env[ENV_KEY] = "custom-master-key";
-    try {
-      expect(resolveCodextenderAuthToken()).toBe("custom-master-key");
-    } finally {
-      if (prior === undefined) delete process.env[ENV_KEY];
-      else process.env[ENV_KEY] = prior;
-    }
-  });
-
-  it("treats a blank/whitespace env var as unset", () => {
-    const prior = process.env[ENV_KEY];
-    process.env[ENV_KEY] = "   ";
-    try {
-      expect(resolveCodextenderAuthToken()).toBeUndefined();
-    } finally {
-      if (prior === undefined) delete process.env[ENV_KEY];
-      else process.env[ENV_KEY] = prior;
-    }
   });
 });

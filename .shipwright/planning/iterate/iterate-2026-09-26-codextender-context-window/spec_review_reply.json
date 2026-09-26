@@ -1,0 +1,7 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "All 4 spec points verified: CLAUDE_CODE_MAX_CONTEXT_TOKENS set alongside existing env vars in launcher-codextender.ts, resolved dynamically from Codextender's own /v1/models max_input_tokens field via resolveCodextenderMaxContextTokens (no hardcoded number anywhere in production code), falls back to leaving the var unset on probe failure/unknown alias/missing field, and is cleaned up on all 3 shell forms via buildCodextenderEnvCleanupSuffix's shared names array. Both call sites (runtime-chokepoint.ts main launch chokepoint and fork.ts) independently probe and pass the result through to buildCodextenderCommands. Scope check confirmed no client-side changes and no files touched beyond the 4 implementation files plus their test files. One non-blocking observation: fork.ts resolves max_input_tokens for the default alias rather than the parent's launch-time model override, consistent with fork's pre-existing behavior of not carrying forward a per-launch model override.",
+  "notes": "Code-reviewer (Stage 2) may proceed."
+}
