@@ -1,0 +1,725 @@
+diff --git a/.shipwright/agent_docs/architecture.md b/.shipwright/agent_docs/architecture.md
+index 9d9179cd..601a0d48 100644
+--- a/.shipwright/agent_docs/architecture.md
++++ b/.shipwright/agent_docs/architecture.md
+@@ -195,7 +195,7 @@ Two features are pure consumers of producer-owned files under `<project>/.shipwr
+ - **Triage Tab** — read consumer + status-flip producer over `triage.jsonl` (ADR-101/106). Five `/api/triage/*` endpoints (`counts`, `:projectId` list, `promote`/`dismiss`/`snooze`). The list is a TS port of `shared/scripts/triage.py read_all_items` (last-status-wins, **record-boundary recovering**, Python-fixture-parity-gated), reading the **union tracked ∪ gitignored `triage.outbox.jsonl`** with status flips residence-derived (ADR-166) and each item annotated `pendingDelivery` (ADR-169) + `campaignSlug`/`campaignStatus`. Promote is a cross-store transaction (idempotent retry + orphan-promote guard); a 5 s mtime cache fronts reads; per-project fault isolation via `Promise.allSettled`. **Fix now** copies the producer `launchPayload` (`stripControlChars` byte-port; ADR-116) to the clipboard — never a server launch (rule 1); **Start Campaign** performs the `draft → active` write (§6). All fields render as plain text (XSS-safe). The Triage Detail modal additionally recognizes file-path-like tokens in `evidencePath` and free-text `detail` (`lib/extractFileMentions.ts`, regex-based, no I/O) and renders them as `FileLink`s; clicking one opens `TriageFilePanel` as a second column beside the existing detail column (widened `Dialog.Content`, not a second overlay), reusing the already path-guarded `SmartViewer` — read-only, no new write surface.
+ - **Compliance Grade** — read-only observer of `compliance/dashboard.md` (FR-01.43); the WebUI never writes it. `core/compliance-reader.ts` (`parseDashboard`, pure + fixture-tested) extracts the badge fields and slices the "Control Verdict" + "CI Security" markdown sections (excluding the dead-in-browser artifacts links). `GET /api/external/projects/:projectId/compliance` (`external/compliance/routes.ts`, mounted read-only; `{status: missing|invalid}` on graceful absence) feeds `lib/complianceApi.ts` + `useProjectCompliance` (30 s poll, `retry:false`). `ComplianceGradeBadge` (A→emerald / B→amber / ≤C→red) renders on the Projects table and the single-project board header; clicking opens `ComplianceDetailModal` (Radix Dialog), whose body renders the two slices via `DocumentMarkdown` (react-markdown + remark-gfm) 1:1 with the dashboard.
+ - **Ship's-Log Documents panel** — read-only observer curating four groups of a project's own docs (FR-01.60, iterate-2026-08-31-shipslog-documents-panel): Requirements (per planning-section `spec.md`, dynamically discovered), Iterate mini-specs (flat `.shipwright/planning/iterate/*.md`, search-filterable), and a fixed 5-row Agent Docs / Compliance curation each (skip-if-missing, no error row). `core/shipslog-docs-reader.ts` (pure fs reader, `pathGuard`+`realPathGuard` on every path even though none is client-supplied) backs `GET /api/external/projects/:projectId/shipslog-docs` (`external/shipslog-docs/routes.ts`); `ShipsLogDocumentsPanel.tsx` + `ShipsLogSpecsTabs.tsx` (`@radix-ui/react-tabs`) + `ShipsLogDocList.tsx` render it as the Ship's-Log page's new right column (2fr:1fr grid, `ShipsLogPage.tsx`), each row opening the existing `SmartViewerModal`. No new write surface — but it DID surface and fix a latent gap in an existing one: `SmartViewer.tsx`'s Edit-button gating (§6's `PUT /file`) was coupled to the `popOut` prop, so a modal-nested viewer (`SmartViewerModal`, `TriageFilePanel`) never showed Edit; `onSaved` is now always wired, decoupling Edit from pop-out (only the "Pop out" affordance itself stays non-recursive). `MarkdownEditorBanners.tsx` also gained a global "saved to disk only, not committed" notice across every `MarkdownEditorModal` use.
+-- **Codex model catalog** — a global (not project-scoped) read-only observer of the Codex CLI's own model catalog (iterate-2026-09-19-codex-model-catalog, follow-up to shipwright#471/#473). `core/codex-models-probe.ts` shells out to `codex debug models` via the same `defaultRunShim` win32-`.cmd`-shim pattern `readiness-probe.ts` already uses for `codex --version` (needs no auth — verified empirically), filters to `visibility==="list"` entries whose `slug` also passes the existing `CODEX_MODEL_SLUG_PATTERN` gate, and discards the large per-model payload (reasoning-level metadata, multi-KB prompt text) before it ever leaves the server. `GET /api/codex-models` (`routes/codex-models.ts`) wraps this in its own in-memory TTL cache (5 min success / 30 s failure, deliberately separate from readiness's own cache lifetime) and always returns HTTP 200 with `status: ok|stale|unavailable` — never blocking the launch form. `ModelTierOverrideFields.tsx`'s three Codex model fields (Implementation model, Plan review, Review) consume it via `useCodexModels()` (called unconditionally to satisfy the rules of hooks; the *fetch* is gated on `runtime === "codex"`) as a shared `<datalist>` combobox, free text always still accepted. No new persisted state (in-memory cache only, lost on restart) and no change to server-side launch validation.
++- **Codex model catalog** — a global (not project-scoped) read-only observer of the Codex CLI's own model catalog (iterate-2026-09-19-codex-model-catalog, follow-up to shipwright#471/#473). `core/codex-models-probe.ts` shells out to `codex debug models` via the same `defaultRunShim` win32-`.cmd`-shim pattern `readiness-probe.ts` already uses for `codex --version` (needs no auth — verified empirically), filters to `visibility==="list"` entries whose `slug` also passes the existing `CODEX_MODEL_SLUG_PATTERN` gate, and discards the large per-model payload (reasoning-level metadata, multi-KB prompt text) before it ever leaves the server. `GET /api/codex-models` (`routes/codex-models.ts`) wraps this in its own in-memory TTL cache (5 min success / 30 s failure, deliberately separate from readiness's own cache lifetime) and always returns HTTP 200 with `status: ok|stale|unavailable` — never blocking the launch form. `ModelTierOverrideFields.tsx`'s two Codex model fields (Plan review, Review — the former Implementation-model field was removed, iterate-2026-09-26-codex-model-field-removal) consume it via `useCodexModels()` (called unconditionally to satisfy the rules of hooks; the *fetch* is gated on `runtime === "codex"`) as a shared `<datalist>` combobox, free text always still accepted. No new persisted state (in-memory cache only, lost on restart) and no change to server-side launch validation.
+ 
+ ## See also
+ 
+diff --git a/.shipwright/planning/01-adopted/spec.md b/.shipwright/planning/01-adopted/spec.md
+index 04b88c00..a89658f5 100644
+--- a/.shipwright/planning/01-adopted/spec.md
++++ b/.shipwright/planning/01-adopted/spec.md
+@@ -1394,16 +1394,27 @@ write surface; gated, path-guarded, and concurrency-safe.
+   (`buildCodextenderCommands`), gated by a liveness probe (`GET
+   /health/liveliness`) instead of the `codex --version` check, and the
+   campaign/pipeline block above does not apply (a Codextender task has
+-  Claude's own resume machinery); the New Iterate modal's Implementation
+-  model field instead suggests slugs from a new `GET
+-  /api/codextender-models` catalog (falling back to static `sol`/`astra`
+-  suggestions when the proxy is unreachable), free text always still
+-  accepted. **(iterate-2026-09-24-codextender-review-model-disable)**
++  Claude's own resume machinery). **(iterate-2026-09-24-codextender-review-model-disable)**
+   `buildCodextenderCommands` never reads a plan-review/review-model
+   override — Codextender is a single-model proxy with no such concept, so
+   the Plan review and Review fields are disabled (not hidden) under
+   Codextender, with an inline note that reviews follow the main model;
+   they remain free-text/live-suggested under Codex Light.
++  **(iterate-2026-09-26-codex-model-field-removal)** The free-text
++  "Implementation model" field — previously shown for every Codex-runtime
++  launch, sourced from `GET /api/codex-models` (Codex Light) or `GET
++  /api/codextender-models` (Codextender, falling back to static
++  `sol`/`astra` suggestions) — is removed entirely; no launch dialog ever
++  renders it, for either `codexIntegrationMode`. The model that actually
++  runs is decided outside webui's launch body: a Codex Light task inherits
++  whatever model the `codex` CLI itself already has configured (its own
++  `/model` selection persists across launches — no `-c model=` flag is
++  ever sent), and a Codextender task always uses
++  `DEFAULT_CODEXTENDER_MODEL_ALIAS` ("sol") since Codextender has no
++  concept of a CLI-persisted preference of its own. The two model-catalog
++  endpoints stay in place (still backing the Plan review / Review
++  datalist under Codex Light), only the Implementation-model consumer of
++  them is gone.
+ 
+ ## Quality Requirements
+ 
+diff --git a/.shipwright/planning/iterate/external_review_state.json b/.shipwright/planning/iterate/external_review_state.json
+index 81ae56bb..0ae7c905 100644
+--- a/.shipwright/planning/iterate/external_review_state.json
++++ b/.shipwright/planning/iterate/external_review_state.json
+@@ -1,21 +1,21 @@
+ {
+   "status": "completed",
+-  "timestamp": "2026-09-25T22:47:37.646073+00:00",
+-  "provider": "codex",
+-  "findings_count": 1,
++  "timestamp": "2026-09-26T12:41:38.438232+00:00",
++  "provider": "openrouter",
++  "findings_count": 6,
+   "self_review_fallback_ran": false,
+-  "reason": "only some provider legs could be itemized \u2014 the count (1) may understate what was found",
++  "reason": null,
+   "review_mode": "iterate",
+   "marker_schema": 4,
+   "verdicts": {
+-    "glm": "unavailable",
++    "glm": "approve",
+     "openai": "revise"
+   },
+   "contradiction": {
+     "detected": false,
+-    "comparable": false,
+-    "requires_resolution": true,
+-    "reason": "only one reviewer answered \u2014 glm did not (glm=unavailable, openai=revise)"
++    "comparable": true,
++    "requires_resolution": false,
++    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+   },
+   "contradiction_resolution": null
+ }
+diff --git a/client/e2e/flows/codextender-integration.spec.ts b/client/e2e/flows/codextender-integration.spec.ts
+index 9244a632..5b88f85f 100644
+--- a/client/e2e/flows/codextender-integration.spec.ts
++++ b/client/e2e/flows/codextender-integration.spec.ts
+@@ -85,39 +85,35 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
+ 
+     await expect(page.getByTestId("codex-reviewer-identity")).toHaveCount(0);
+ 
+-    const implementationField = page.getByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
++    // iterate-2026-09-26-codex-model-field-removal — the free-text
++    // Implementation-model field is gone under Codextender too; the launch
++    // now always uses the fixed default model alias under the hood.
++    await expect(
++      page.getByTestId("model-tier-override-codex-implementation-model"),
++    ).toHaveCount(0);
++
+     const planReviewField = page.getByTestId("model-tier-override-codex-plan-review-model");
+     const reviewField = page.getByTestId("model-tier-override-codex-review-model");
+-    await expect(implementationField).toBeVisible();
+-    await expect(implementationField).toHaveAttribute("placeholder", "e.g. sol");
+     await expect(planReviewField).toHaveAttribute("placeholder", "e.g. sol");
+     await expect(reviewField).toHaveAttribute("placeholder", "e.g. sol");
+ 
+     // iterate-2026-09-24-codextender-review-model-disable — Codextender
+-    // never reads a plan-review/review model override (only the
+-    // implementation model is threaded through), so the two fields are
+-    // disabled with an explanatory note rather than silently ignoring
++    // never reads a plan-review/review model override, so the two fields
++    // are disabled with an explanatory note rather than silently ignoring
+     // whatever an operator types.
+-    await expect(implementationField).toBeEnabled();
+     await expect(planReviewField).toBeDisabled();
+     await expect(reviewField).toBeDisabled();
+     await expect(page.getByTestId("codextender-review-inherit-note")).toHaveText(
+-      "Reviews automatically follow the main model under Codextender.",
++      "Reviews automatically follow Codextender's default model (sol).",
+     );
+ 
+-    const datalistId = await implementationField.getAttribute("list");
++    const datalistId = await planReviewField.getAttribute("list");
+     expect(datalistId).toBeTruthy();
+     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
+     await expect(datalistOptions).toHaveCount(2);
+     await expect(datalistOptions.nth(0)).toHaveAttribute("value", "sol");
+     await expect(datalistOptions.nth(1)).toHaveAttribute("value", "luna");
+     await expect(page.getByTestId("codextender-model-catalog-status")).toHaveCount(0);
+-
+-    // Free text is still accepted.
+-    await implementationField.fill("a-completely-custom-slug");
+-    await expect(implementationField).toHaveValue("a-completely-custom-slug");
+   });
+ 
+   test("Codextender mode falls back to static sol/astra suggestions and an unreachable-proxy caption when the catalog is empty", async ({
+@@ -145,12 +141,14 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
+     await page.getByTestId("runtime-codex").click();
+     await page.getByTestId("new-issue-more-options-toggle").click();
+ 
+-    const implementationField = page.getByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
+-    await expect(implementationField).toBeVisible();
++    await expect(
++      page.getByTestId("model-tier-override-codex-implementation-model"),
++    ).toHaveCount(0);
+ 
+-    const datalistId = await implementationField.getAttribute("list");
++    const planReviewField = page.getByTestId("model-tier-override-codex-plan-review-model");
++    await expect(planReviewField).toBeVisible();
++
++    const datalistId = await planReviewField.getAttribute("list");
+     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
+     await expect(datalistOptions).toHaveCount(2);
+     await expect(datalistOptions.nth(0)).toHaveAttribute("value", "sol");
+@@ -159,9 +157,6 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
+     await expect(page.getByTestId("codextender-model-catalog-status")).toContainText(
+       "Codextender proxy isn't reachable",
+     );
+-
+-    await implementationField.fill("gpt-5.6-luna");
+-    await expect(implementationField).toHaveValue("gpt-5.6-luna");
+   });
+ 
+   test("Light mode (default) keeps the Codex Light placeholders — codexIntegrationMode is not stuck from a prior selection", async ({
+@@ -183,14 +178,9 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
+     await page.getByTestId("runtime-codex").click();
+     await page.getByTestId("new-issue-more-options-toggle").click();
+ 
+-    const implementationField = page.getByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
+-    await expect(implementationField).toBeVisible();
+-    await expect(implementationField).toHaveAttribute(
+-      "placeholder",
+-      "Suggested policy (AGENTS.md) — gpt-5.6-terra",
+-    );
++    await expect(
++      page.getByTestId("model-tier-override-codex-implementation-model"),
++    ).toHaveCount(0);
+     await expect(page.getByTestId("codextender-model-catalog-status")).toHaveCount(0);
+ 
+     // The review-model disable is Codextender-only — Light mode keeps both
+diff --git a/client/e2e/flows/model-tier-defaults.spec.ts b/client/e2e/flows/model-tier-defaults.spec.ts
+index e6820c34..13b96330 100644
+--- a/client/e2e/flows/model-tier-defaults.spec.ts
++++ b/client/e2e/flows/model-tier-defaults.spec.ts
+@@ -120,11 +120,15 @@ test.describe("Model-tier defaults", () => {
+ 
+   // iterate-2026-09-19-codex-reviewer-fields — Codex runtime gets its own
+   // free-text Plan review / Review overrides instead of the Claude dropdowns,
+-  // laid out the same way (left/right), plus Implementation model in its own
+-  // row. AC8 (runtime-toggle-codex.spec.ts) makes a genuine Codex /launch
+-  // 400 on any machine without the Codex CLI on PATH, so this test
+-  // intercepts the /launch POST rather than letting it hit the real route —
+-  // it is proving the request BODY and the UI, not a real Codex launch.
++  // laid out the same way (left/right). AC8 (runtime-toggle-codex.spec.ts)
++  // makes a genuine Codex /launch 400 on any machine without the Codex CLI
++  // on PATH, so this test intercepts the /launch POST rather than letting
++  // it hit the real route — it is proving the request BODY and the UI, not
++  // a real Codex launch.
++  //
++  // iterate-2026-09-26-codex-model-field-removal — the Implementation
++  // model field this test used to also check for is gone; Codex Light now
++  // always inherits whatever model the `codex` CLI has configured itself.
+   test("Runtime=Codex shows real Plan review / Review overrides (no reviewer-identity block) and threads them into the launch body", async ({
+     page,
+   }) => {
+@@ -139,14 +143,14 @@ test.describe("Model-tier defaults", () => {
+ 
+     await expect(page.getByTestId("codex-reviewer-identity")).toHaveCount(0);
+ 
+-    const implementationField = page.getByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
++    await expect(
++      page.getByTestId("model-tier-override-codex-implementation-model"),
++    ).toHaveCount(0);
++
+     const planReviewField = page.getByTestId(
+       "model-tier-override-codex-plan-review-model",
+     );
+     const reviewField = page.getByTestId("model-tier-override-codex-review-model");
+-    await expect(implementationField).toBeVisible();
+     await expect(planReviewField).toBeVisible();
+     await expect(reviewField).toBeVisible();
+ 
+@@ -206,10 +210,14 @@ test.describe("Model-tier defaults", () => {
+     await page.getByTestId("runtime-codex").click();
+     await page.getByTestId("new-issue-more-options-toggle").click();
+ 
+-    const implementationField = page.getByTestId(
+-      "model-tier-override-codex-implementation-model",
++    await expect(
++      page.getByTestId("model-tier-override-codex-implementation-model"),
++    ).toHaveCount(0);
++
++    const planReviewField = page.getByTestId(
++      "model-tier-override-codex-plan-review-model",
+     );
+-    await expect(implementationField).toBeVisible();
++    await expect(planReviewField).toBeVisible();
+ 
+     // The field is a combobox: its `list` attribute names a populated
+     // <datalist> holding the fetched catalog.
+@@ -217,7 +225,7 @@ test.describe("Model-tier defaults", () => {
+     // is not a valid CSS id-selector token unescaped — an attribute selector
+     // tolerates the raw value with no escaping needed (external code-review
+     // finding, 2026-09-19).
+-    const datalistId = await implementationField.getAttribute("list");
++    const datalistId = await planReviewField.getAttribute("list");
+     expect(datalistId).toBeTruthy();
+     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
+     await expect(datalistOptions).toHaveCount(2);
+@@ -225,8 +233,8 @@ test.describe("Model-tier defaults", () => {
+ 
+     // Free text is still accepted — a suggestion is a convenience, not a
+     // restriction.
+-    await implementationField.fill("a-completely-custom-slug");
+-    await expect(implementationField).toHaveValue("a-completely-custom-slug");
++    await planReviewField.fill("a-completely-custom-slug");
++    await expect(planReviewField).toHaveValue("a-completely-custom-slug");
+     await expect(page.getByTestId("codex-model-catalog-status")).toHaveCount(0);
+   });
+ 
+@@ -251,14 +259,17 @@ test.describe("Model-tier defaults", () => {
+     await page.getByTestId("runtime-codex").click();
+     await page.getByTestId("new-issue-more-options-toggle").click();
+ 
+-    const implementationField = page.getByTestId(
+-      "model-tier-override-codex-implementation-model",
++    await expect(
++      page.getByTestId("model-tier-override-codex-implementation-model"),
++    ).toHaveCount(0);
++    const planReviewField = page.getByTestId(
++      "model-tier-override-codex-plan-review-model",
+     );
+-    await expect(implementationField).toBeVisible();
++    await expect(planReviewField).toBeVisible();
+     await expect(page.getByTestId("codex-model-catalog-status")).toContainText(
+       "Model suggestions unavailable",
+     );
+-    await implementationField.fill("gpt-5.6-luna");
+-    await expect(implementationField).toHaveValue("gpt-5.6-luna");
++    await planReviewField.fill("gpt-5.6-luna");
++    await expect(planReviewField).toHaveValue("gpt-5.6-luna");
+   });
+ });
+diff --git a/client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx b/client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx
+index 24a3896c..24210123 100644
+--- a/client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx
++++ b/client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx
+@@ -1,30 +1,29 @@
+ /*
+  * The Codex-runtime branch of ModelTierOverrideFields — split out
+  * (Codextender integration Part B.5) once the parent crossed the 300-line
+- * guideline. Free-text Codex/Codextender model-slug inputs (Implementation
+- * model / Plan review / Review), backed by a shared `<datalist>` whose
+- * source depends on `codexIntegrationMode`.
++ * guideline. Free-text Codex/Codextender model-slug inputs (Plan review /
++ * Review), backed by a shared `<datalist>` whose source depends on
++ * `codexIntegrationMode`.
++ *
++ * iterate-2026-09-26-codex-model-field-removal — the former "Implementation
++ * model" free-text field was removed here (operator: it must never appear
++ * for Codex runtime, no exceptions). The model that actually runs is now
++ * decided outside webui's launch body entirely: Codex Light inherits
++ * whatever model the `codex` CLI itself has configured (its own `/model`
++ * selection persists across launches — `launcher-codex.ts` already emits no
++ * `-c model=` flag when no override is supplied); Codextender falls back to
++ * `DEFAULT_CODEXTENDER_MODEL_ALIAS` ("sol") in `launcher-codextender.ts`,
++ * unchanged. Neither launcher needed a code change — both already handled
++ * "no override" correctly; only the UI path that could set one is gone.
+  */
+ import type { Dispatch, SetStateAction } from "react";
+ 
+ import { FieldLabel } from "./FieldLabel";
+ 
+-/**
+- * iterate-2026-09-17-codex-model-tier-parameterization, revised 2026-09-18
+- * after shipwright#771 — the closed catalog enum was withdrawn (see
+- * `server/src/external/launch/parse-body.ts`'s `CODEX_MODEL_SLUG_PATTERN`
+- * doc comment for why). This field is now free text, validated
+- * server-side by the same syntactic allowlist. Storage key reserved in
+- * `paramValues` — see the iterate spec's client-scope "Storage decided"
+- * note for why this reuses the existing generic paramValues/setParamValues
+- * props instead of a new state slice threaded through useNewIssueForm.ts.
+- */
+-export const CODEX_IMPLEMENTATION_MODEL_PARAM_KEY = "codex-implementation-model";
+ /**
+  * iterate-2026-09-19-codex-reviewer-fields (follow-up to shipwright#471,
+  * unblocked by shipwright#772) — session-scoped Codex review-model
+- * overrides, same free-text/body-only/never-persisted posture as the
+- * implementation-model override above.
++ * overrides, free-text/body-only/never-persisted.
+  */
+ export const CODEX_PLAN_REVIEW_MODEL_PARAM_KEY = "codex-plan-review-model";
+ export const CODEX_REVIEW_MODEL_PARAM_KEY = "codex-review-model";
+@@ -78,12 +77,6 @@ export function CodexModelOverrideFields({
+           <option key={model.slug} value={model.slug} label={model.display_name} />
+         ))}
+       </datalist>
+-      <CodexModelField
+-        paramKey={CODEX_IMPLEMENTATION_MODEL_PARAM_KEY}
+-        label="Implementation model"
+-        placeholder={isCodextender ? "e.g. sol" : "Suggested policy (AGENTS.md) — gpt-5.6-terra"}
+-        {...fieldProps}
+-      />
+       <div className="grid grid-cols-2 gap-3">
+         <CodexModelField
+           paramKey={CODEX_PLAN_REVIEW_MODEL_PARAM_KEY}
+@@ -105,7 +98,7 @@ export function CodexModelOverrideFields({
+           className="text-[11px] text-[var(--body,#44403c)]"
+           data-testid="codextender-review-inherit-note"
+         >
+-          Reviews automatically follow the main model under Codextender.
++          Reviews automatically follow Codextender's default model (sol).
+         </p>
+       )}
+       {!isCodextender && (catalogStatus === "stale" || catalogStatus === "unavailable") && (
+@@ -126,8 +119,8 @@ export function CodexModelOverrideFields({
+           data-testid="codextender-model-catalog-status"
+         >
+           {catalogStatus === "stale"
+-            ? "Model list may be out of date — you can still type any slug."
+-            : "Codextender proxy isn't reachable — showing default suggestions; you can still type any slug."}
++            ? "Model list may be out of date."
++            : "Codextender proxy isn't reachable — showing default suggestions."}
+         </p>
+       )}
+     </div>
+@@ -135,9 +128,9 @@ export function CodexModelOverrideFields({
+ }
+ 
+ /**
+- * Shared free-text Codex model-slug input — backs Implementation model,
+- * Plan review and Review alike. Inline best-effort shape hint only; the
+- * server (`CODEX_MODEL_SLUG_PATTERN` in `parse-body.ts`) is the real gate.
++ * Shared free-text Codex model-slug input — backs Plan review and Review
++ * alike. Inline best-effort shape hint only; the server
++ * (`CODEX_MODEL_SLUG_PATTERN` in `parse-body.ts`) is the real gate.
+  */
+ function CodexModelField({
+   paramKey,
+diff --git a/client/src/components/external/NewIssueModal/ModelTierOverrideFields.codextender.test.tsx b/client/src/components/external/NewIssueModal/ModelTierOverrideFields.codextender.test.tsx
+index 9c7e0ccb..92f97f91 100644
+--- a/client/src/components/external/NewIssueModal/ModelTierOverrideFields.codextender.test.tsx
++++ b/client/src/components/external/NewIssueModal/ModelTierOverrideFields.codextender.test.tsx
+@@ -41,6 +41,33 @@ afterEach(() => {
+ });
+ 
+ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
++  it("never renders an Implementation model field under Codextender", async () => {
++    // iterate-2026-09-26-codex-model-field-removal — the field is gone for
++    // every Codex-runtime mode, not disabled/hidden; Codextender keeps using
++    // its fixed default model alias (`DEFAULT_CODEXTENDER_MODEL_ALIAS`)
++    // when no override is threaded through.
++    const originalFetch = global.fetch;
++    global.fetch = mockFetch({
++      "/api/settings": settingsResponse({ codexIntegrationMode: "codextender" }),
++      "/api/codextender-models": () =>
++        new Response(
++          JSON.stringify({ status: "ok", models: [{ slug: "astra", display_name: "astra" }] }),
++          { status: 200, headers: { "Content-Type": "application/json" } },
++        ),
++    });
++    try {
++      renderModal({ action: { ...ITERATE_ACTION } });
++      openMoreOptions();
++      fireEvent.click(screen.getByTestId("runtime-codex"));
++      await screen.findByTestId("model-tier-override-codex-plan-review-model");
++      expect(
++        screen.queryByTestId("model-tier-override-codex-implementation-model"),
++      ).toBeNull();
++    } finally {
++      global.fetch = originalFetch;
++    }
++  });
++
+   it("populates the shared datalist from a successful /api/codextender-models fetch", async () => {
+     const originalFetch = global.fetch;
+     global.fetch = mockFetch({
+@@ -56,7 +83,7 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+       openMoreOptions();
+       fireEvent.click(screen.getByTestId("runtime-codex"));
+       const field = await screen.findByTestId(
+-        "model-tier-override-codex-implementation-model",
++        "model-tier-override-codex-plan-review-model",
+       );
+       await waitFor(() => expect(field).toHaveAttribute("placeholder", "e.g. sol"));
+       await waitFor(() => {
+@@ -88,7 +115,7 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+       openMoreOptions();
+       fireEvent.click(screen.getByTestId("runtime-codex"));
+       const field = await screen.findByTestId(
+-        "model-tier-override-codex-implementation-model",
++        "model-tier-override-codex-plan-review-model",
+       );
+       await waitFor(() => {
+         const datalistId = field.getAttribute("list");
+@@ -104,9 +131,6 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+       expect(
+         await screen.findByTestId("codextender-model-catalog-status"),
+       ).toHaveTextContent("Codextender proxy isn't reachable");
+-      // Free text is still accepted regardless of the fallback suggestions.
+-      fireEvent.change(field, { target: { value: "my-custom-slug" } });
+-      expect(field).toHaveValue("my-custom-slug");
+     } finally {
+       global.fetch = originalFetch;
+     }
+@@ -137,14 +161,9 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+       const reviewField = screen.getByTestId("model-tier-override-codex-review-model");
+       await waitFor(() => expect(planReviewField).toBeDisabled());
+       expect(reviewField).toBeDisabled();
+-      // The implementation-model field is unaffected — it IS wired through
+-      // to Codextender (`buildCodextenderCommands`'s `model` arg).
+-      expect(
+-        screen.getByTestId("model-tier-override-codex-implementation-model"),
+-      ).toBeEnabled();
+       expect(
+         await screen.findByTestId("codextender-review-inherit-note"),
+-      ).toHaveTextContent("Reviews automatically follow the main model under Codextender.");
++      ).toHaveTextContent("Reviews automatically follow Codextender's default model (sol).");
+     } finally {
+       global.fetch = originalFetch;
+     }
+@@ -171,6 +190,9 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+       expect(planReviewField).toBeEnabled();
+       expect(reviewField).toBeEnabled();
+       expect(screen.queryByTestId("codextender-review-inherit-note")).toBeNull();
++      expect(
++        screen.queryByTestId("model-tier-override-codex-implementation-model"),
++      ).toBeNull();
+     } finally {
+       global.fetch = originalFetch;
+     }
+@@ -195,7 +217,7 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+       openMoreOptions();
+       fireEvent.click(screen.getByTestId("runtime-codex"));
+       const field = await screen.findByTestId(
+-        "model-tier-override-codex-implementation-model",
++        "model-tier-override-codex-plan-review-model",
+       );
+       await waitFor(() => {
+         const datalistId = field.getAttribute("list");
+diff --git a/client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx b/client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx
+index 0840aee8..9994b703 100644
+--- a/client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx
++++ b/client/src/components/external/NewIssueModal/ModelTierOverrideFields.tsx
+@@ -16,7 +16,6 @@ import type { RuntimeValue } from "../RuntimeToggle";
+  *  Codex-runtime branch (Codextender integration Part B.5 file split),
+  *  but this stays their import path. */
+ export {
+-  CODEX_IMPLEMENTATION_MODEL_PARAM_KEY,
+   CODEX_PLAN_REVIEW_MODEL_PARAM_KEY,
+   CODEX_REVIEW_MODEL_PARAM_KEY,
+ } from "./CodexModelOverrideFields";
+diff --git a/client/src/components/external/NewIssueModal/NewIterateModal.codex-model.test.tsx b/client/src/components/external/NewIssueModal/NewIterateModal.codex-model.test.tsx
+index 84923105..e8b2b0c2 100644
+--- a/client/src/components/external/NewIssueModal/NewIterateModal.codex-model.test.tsx
++++ b/client/src/components/external/NewIssueModal/NewIterateModal.codex-model.test.tsx
+@@ -33,36 +33,25 @@ afterEach(() => {
+ });
+ 
+ describe("NewIterateModal — Codex model override (post-#771)", () => {
+-  it("Runtime=Codex shows the Implementation-model free-text field in the same slot", async () => {
++  // iterate-2026-09-26-codex-model-field-removal — the free-text
++  // Implementation-model field is gone for every Codex-runtime mode; Codex
++  // Light now always inherits whatever model the `codex` CLI has configured
++  // via its own `/model` selection (no `-c model=` flag is ever sent).
++  it("Runtime=Codex never shows an Implementation-model field", async () => {
+     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
+     openMoreOptions();
+     fireEvent.click(screen.getByTestId("runtime-codex"));
+-    const field = await screen.findByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
+-    expect(field).toBeTruthy();
+-    expect(field.tagName).toBe("INPUT");
+-    expect(field).toHaveValue("");
+-    expect(field).toHaveAttribute(
+-      "placeholder",
+-      "Suggested policy (AGENTS.md) — gpt-5.6-terra",
+-    );
+-    expect(screen.queryByTestId("codex-implementation-model-hint")).toBeNull();
+-
+-    fireEvent.change(field, { target: { value: "has space" } });
++    await screen.findByTestId("model-tier-override-codex-plan-review-model");
+     expect(
+-      await screen.findByTestId("codex-implementation-model-hint"),
+-    ).toBeTruthy();
+-
+-    fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
+-    expect(screen.queryByTestId("codex-implementation-model-hint")).toBeNull();
++      screen.queryByTestId("model-tier-override-codex-implementation-model"),
++    ).toBeNull();
+   });
+ 
+   it("Runtime=Codex shows real free-text Plan review / Review overrides, not a read-only identity block", async () => {
+     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
+     openMoreOptions();
+     fireEvent.click(screen.getByTestId("runtime-codex"));
+-    await screen.findByTestId("model-tier-override-codex-implementation-model");
++    await screen.findByTestId("model-tier-override-codex-plan-review-model");
+ 
+     expect(screen.queryByTestId("codex-reviewer-identity")).toBeNull();
+ 
+@@ -81,7 +70,7 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
+     expect(reviewField).toHaveValue("gpt-5.6-sol");
+   });
+ 
+-  it("Plan review / Review inputs show the same invalid-shape hint as Implementation model", async () => {
++  it("Plan review / Review inputs show the invalid-shape hint", async () => {
+     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
+     openMoreOptions();
+     fireEvent.click(screen.getByTestId("runtime-codex"));
+@@ -115,7 +104,7 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
+       openMoreOptions();
+       fireEvent.click(screen.getByTestId("runtime-codex"));
+       const field = await screen.findByTestId(
+-        "model-tier-override-codex-implementation-model",
++        "model-tier-override-codex-plan-review-model",
+       );
+       await waitFor(() => {
+         const datalistId = field.getAttribute("list");
+@@ -151,7 +140,7 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
+       openMoreOptions();
+       fireEvent.click(screen.getByTestId("runtime-codex"));
+       const field = await screen.findByTestId(
+-        "model-tier-override-codex-implementation-model",
++        "model-tier-override-codex-plan-review-model",
+       );
+       expect(
+         await screen.findByTestId("codex-model-catalog-status"),
+@@ -167,13 +156,13 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
+     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
+     openMoreOptions();
+     fireEvent.click(screen.getByTestId("runtime-codex"));
+-    await screen.findByTestId("model-tier-override-codex-implementation-model");
++    await screen.findByTestId("model-tier-override-codex-plan-review-model");
+     fireEvent.click(screen.getByTestId("runtime-claude"));
+     await waitFor(() =>
+       expect(screen.getByTestId("model-tier-override-plan-review-model")).toBeTruthy(),
+     );
+     expect(
+-      screen.queryByTestId("model-tier-override-codex-implementation-model"),
++      screen.queryByTestId("model-tier-override-codex-plan-review-model"),
+     ).toBeNull();
+   });
+ });
+diff --git a/client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx b/client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx
+index f448c93a..e92cfc7e 100644
+--- a/client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx
++++ b/client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx
+@@ -31,35 +31,21 @@ afterEach(() => {
+   vi.restoreAllMocks();
+ });
+ 
+-describe("launchExternalTask POST body — codexImplementationModel", () => {
+-  it("threads a selected codexImplementationModel through to the launch body", async () => {
+-    const cap: { body?: string } = {};
+-    globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
++describe("launchExternalTask POST body — codexImplementationModel (removed field, iterate-2026-09-26)", () => {
++  it("never renders an Implementation-model field for a Codex-runtime launch", async () => {
++    globalThis.fetch = makeFetchMock({}) as unknown as typeof fetch;
+     renderModal({ action: ITERATE_ACTION, onToast: () => {} });
+-    await act(async () => {
+-      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+-        target: { value: "Launch me" },
+-      });
+-    });
+     openMoreOptions();
+     await act(async () => {
+       fireEvent.click(screen.getByTestId("runtime-codex"));
+     });
+-    const field = await screen.findByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
+-    await act(async () => {
+-      fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
+-    });
+-    await act(async () => {
+-      fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
+-    });
+-    await waitFor(() => expect(cap.body).toBeTruthy());
+-    const parsed = JSON.parse(cap.body!);
+-    expect(parsed.codexImplementationModel).toBe("gpt-5.6-luna");
++    await screen.findByTestId("model-tier-override-codex-plan-review-model");
++    expect(
++      screen.queryByTestId("model-tier-override-codex-implementation-model"),
++    ).toBeNull();
+   });
+ 
+-  it("omits codexImplementationModel from the launch body when unset", async () => {
++  it("never sends codexImplementationModel in the launch body for a Codex-runtime launch", async () => {
+     const cap: { body?: string } = {};
+     globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
+     renderModal({ action: ITERATE_ACTION, onToast: () => {} });
+@@ -79,38 +65,6 @@ describe("launchExternalTask POST body — codexImplementationModel", () => {
+     const parsed = JSON.parse(cap.body!);
+     expect("codexImplementationModel" in parsed).toBe(false);
+   });
+-
+-  it("does not send codexImplementationModel for a Claude-runtime launch even if the key exists in paramValues", async () => {
+-    const cap: { body?: string } = {};
+-    globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
+-    renderModal({ action: ITERATE_ACTION, onToast: () => {} });
+-    await act(async () => {
+-      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+-        target: { value: "Launch me" },
+-      });
+-    });
+-    openMoreOptions();
+-    // Select a Codex model, then flip back to Claude before launching — the
+-    // stale paramValues entry must never leak into a Claude launch body.
+-    await act(async () => {
+-      fireEvent.click(screen.getByTestId("runtime-codex"));
+-    });
+-    const field = await screen.findByTestId(
+-      "model-tier-override-codex-implementation-model",
+-    );
+-    await act(async () => {
+-      fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
+-    });
+-    await act(async () => {
+-      fireEvent.click(screen.getByTestId("runtime-claude"));
+-    });
+-    await act(async () => {
+-      fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
+-    });
+-    await waitFor(() => expect(cap.body).toBeTruthy());
+-    const parsed = JSON.parse(cap.body!);
+-    expect("codexImplementationModel" in parsed).toBe(false);
+-  });
+ });
+ 
+ describe("launchExternalTask POST body — codexPlanReviewModel / codexReviewModel", () => {
+diff --git a/client/src/components/external/NewIssueModal/useNewIssueFormSubmit.ts b/client/src/components/external/NewIssueModal/useNewIssueFormSubmit.ts
+index 606449ee..a52e3100 100644
+--- a/client/src/components/external/NewIssueModal/useNewIssueFormSubmit.ts
++++ b/client/src/components/external/NewIssueModal/useNewIssueFormSubmit.ts
+@@ -27,7 +27,6 @@ import type { RenderableParamSchema } from "../../../types/action-schema";
+ import type { Project } from "../../../types";
+ 
+ import {
+-  CODEX_IMPLEMENTATION_MODEL_PARAM_KEY,
+   CODEX_PLAN_REVIEW_MODEL_PARAM_KEY,
+   CODEX_REVIEW_MODEL_PARAM_KEY,
+ } from "./ModelTierOverrideFields";
+@@ -163,7 +162,6 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
+           phase?: string;
+           phaseLabel?: string;
+           parameters?: Record<string, string | boolean>;
+-          codexImplementationModel?: string;
+           codexPlanReviewModel?: string;
+           codexReviewModel?: string;
+         } = {
+@@ -186,11 +184,6 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
+         // iterates currentSchema and would never see this — it's
+         // deliberately not an action-schema parameter).
+         if (input.runtime === "codex") {
+-          const implementationModel = trimmedCodexParam(
+-            input.paramValues,
+-            CODEX_IMPLEMENTATION_MODEL_PARAM_KEY,
+-          );
+-          if (implementationModel) body.codexImplementationModel = implementationModel;
+           const planReviewModel = trimmedCodexParam(
+             input.paramValues,
+             CODEX_PLAN_REVIEW_MODEL_PARAM_KEY,
+diff --git a/client/src/lib/externalApi.ts b/client/src/lib/externalApi.ts
+index f41bd8dd..ccc15b79 100644
+--- a/client/src/lib/externalApi.ts
++++ b/client/src/lib/externalApi.ts
+@@ -352,7 +352,6 @@ export async function launchExternalTask(
+     phaseLabel?: string;
+     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
+     parameters?: Record<string, string | boolean>;
+-    codexImplementationModel?: string;
+     codexPlanReviewModel?: string;
+     codexReviewModel?: string;
+   } = {},

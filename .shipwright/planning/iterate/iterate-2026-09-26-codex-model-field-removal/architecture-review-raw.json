@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "openai": {
+      "feedback": "1. **Should this mechanism exist?** No new standing mechanism is needed; removing the field and using the existing runtime defaults is proportionate to the operator\u2019s request.\n\n2. **The smallest thing that would do:** Option 1: send no model override from the client. Codex Light uses its CLI selection; Codextender uses its existing default alias.\n\n3. **What it costs to keep:** No new ongoing obligation; the existing runtime defaults still need to be understood when model behavior changes.\n\n4. **What it forecloses:** Per-task model selection through this dialog.\n\n5. **Findings:** No findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "1. **Answer:** Yes \u2014 and it barely qualifies as one. This change removes a standing mechanism (the UI field and its wiring) and adds nothing in its place, which is exactly the shape you want.\n\n2. **Smallest thing that would do:** Option 1 as proposed \u2014 delete the field, its param key, and the client-side wiring, and let each launcher's existing \"no override\" path decide the model. No new setting, no new config surface, no server change. This is the smallest option of the three by a wide margin.\n\n3. **What it costs to keep:** Effectively nothing new. If anything, the maintenance surface shrinks: one fewer form field, one fewer request-body field, one fewer Codextender-catalog suggestion behavior to keep correct in FR-01.74. The surviving behavior (CLI-persisted `/model` for Codex Light, fixed alias for Codextender) is already tested launcher behavior, unchanged by this diff.\n\n4. **What it forecloses:** Options 2 and 3 are foreclosed only in the sense that they'd be a future iterate if the product decision reverses \u2014 and that's cheap, since the server still accepts the wire field. That residual server-side acceptance (disclosed in the brief) is actually the useful residual here: it keeps re-adding a UI for the override a client-only change, which lowers the cost of being wrong about \"no exceptions.\"\n\nOne note on the deferred server-side strip: leaving `codexImplementationModel` accepted in `parse-body.ts` is the right call for this iterate's scope, but it is now a standing, undocumented-ish capability with no UI. If the \"no exceptions\" product decision holds past the next few weeks, the follow-up iterate should remove it \u2014 not urgently, but it should actually happen rather than become permanent residue.\n\n- Category: existence\n- Severity: low\n- Finding: The change adds no standing mechanism; it removes one. The only new permanent obligation is the deferred decision about the server-side `codexImplementationModel` acceptance, which currently has no owner or trigger.\n- Suggestion: File the follow-up iterate to strip `codexImplementationModel` from `parse-body.ts` now, so the residual capability has an owner and a date rather than a disclosed gap that outlives its disclosure.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "verdicts": {
+    "openai": "approve",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

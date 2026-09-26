@@ -33,36 +33,25 @@ afterEach(() => {
 });
 
 describe("NewIterateModal — Codex model override (post-#771)", () => {
-  it("Runtime=Codex shows the Implementation-model free-text field in the same slot", async () => {
+  // iterate-2026-09-26-codex-model-field-removal — the free-text
+  // Implementation-model field is gone for every Codex-runtime mode; Codex
+  // Light now always inherits whatever model the `codex` CLI has configured
+  // via its own `/model` selection (no `-c model=` flag is ever sent).
+  it("Runtime=Codex never shows an Implementation-model field", async () => {
     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();
     fireEvent.click(screen.getByTestId("runtime-codex"));
-    const field = await screen.findByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
-    expect(field).toBeTruthy();
-    expect(field.tagName).toBe("INPUT");
-    expect(field).toHaveValue("");
-    expect(field).toHaveAttribute(
-      "placeholder",
-      "Suggested policy (AGENTS.md) — gpt-5.6-terra",
-    );
-    expect(screen.queryByTestId("codex-implementation-model-hint")).toBeNull();
-
-    fireEvent.change(field, { target: { value: "has space" } });
+    await screen.findByTestId("model-tier-override-codex-plan-review-model");
     expect(
-      await screen.findByTestId("codex-implementation-model-hint"),
-    ).toBeTruthy();
-
-    fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
-    expect(screen.queryByTestId("codex-implementation-model-hint")).toBeNull();
+      screen.queryByTestId("model-tier-override-codex-implementation-model"),
+    ).toBeNull();
   });
 
   it("Runtime=Codex shows real free-text Plan review / Review overrides, not a read-only identity block", async () => {
     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();
     fireEvent.click(screen.getByTestId("runtime-codex"));
-    await screen.findByTestId("model-tier-override-codex-implementation-model");
+    await screen.findByTestId("model-tier-override-codex-plan-review-model");
 
     expect(screen.queryByTestId("codex-reviewer-identity")).toBeNull();
 
@@ -81,7 +70,7 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
     expect(reviewField).toHaveValue("gpt-5.6-sol");
   });
 
-  it("Plan review / Review inputs show the same invalid-shape hint as Implementation model", async () => {
+  it("Plan review / Review inputs show the invalid-shape hint", async () => {
     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();
     fireEvent.click(screen.getByTestId("runtime-codex"));
@@ -115,7 +104,7 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
       openMoreOptions();
       fireEvent.click(screen.getByTestId("runtime-codex"));
       const field = await screen.findByTestId(
-        "model-tier-override-codex-implementation-model",
+        "model-tier-override-codex-plan-review-model",
       );
       await waitFor(() => {
         const datalistId = field.getAttribute("list");
@@ -151,7 +140,7 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
       openMoreOptions();
       fireEvent.click(screen.getByTestId("runtime-codex"));
       const field = await screen.findByTestId(
-        "model-tier-override-codex-implementation-model",
+        "model-tier-override-codex-plan-review-model",
       );
       expect(
         await screen.findByTestId("codex-model-catalog-status"),
@@ -167,13 +156,13 @@ describe("NewIterateModal — Codex model override (post-#771)", () => {
     renderModal({ action: { ...ITERATE_ACTION, parameters: CLAUDE_TIER_PARAMS } });
     openMoreOptions();
     fireEvent.click(screen.getByTestId("runtime-codex"));
-    await screen.findByTestId("model-tier-override-codex-implementation-model");
+    await screen.findByTestId("model-tier-override-codex-plan-review-model");
     fireEvent.click(screen.getByTestId("runtime-claude"));
     await waitFor(() =>
       expect(screen.getByTestId("model-tier-override-plan-review-model")).toBeTruthy(),
     );
     expect(
-      screen.queryByTestId("model-tier-override-codex-implementation-model"),
+      screen.queryByTestId("model-tier-override-codex-plan-review-model"),
     ).toBeNull();
   });
 });

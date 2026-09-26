@@ -27,7 +27,6 @@ import type { RenderableParamSchema } from "../../../types/action-schema";
 import type { Project } from "../../../types";
 
 import {
-  CODEX_IMPLEMENTATION_MODEL_PARAM_KEY,
   CODEX_PLAN_REVIEW_MODEL_PARAM_KEY,
   CODEX_REVIEW_MODEL_PARAM_KEY,
 } from "./ModelTierOverrideFields";
@@ -163,7 +162,6 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
           phase?: string;
           phaseLabel?: string;
           parameters?: Record<string, string | boolean>;
-          codexImplementationModel?: string;
           codexPlanReviewModel?: string;
           codexReviewModel?: string;
         } = {
@@ -186,11 +184,6 @@ export function useNewIssueFormSubmit(input: UseNewIssueFormSubmitInput) {
         // iterates currentSchema and would never see this — it's
         // deliberately not an action-schema parameter).
         if (input.runtime === "codex") {
-          const implementationModel = trimmedCodexParam(
-            input.paramValues,
-            CODEX_IMPLEMENTATION_MODEL_PARAM_KEY,
-          );
-          if (implementationModel) body.codexImplementationModel = implementationModel;
           const planReviewModel = trimmedCodexParam(
             input.paramValues,
             CODEX_PLAN_REVIEW_MODEL_PARAM_KEY,

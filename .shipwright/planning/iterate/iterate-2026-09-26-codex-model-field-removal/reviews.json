@@ -1,0 +1,212 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-26-codex-model-field-removal",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T12:37:56.202605+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "risk / security",
+          "file": null,
+          "line": null,
+          "finding": "The server-side launch endpoint (`parse-body.ts` / `runtime-chokepoint.ts`) still accepts `codexImplementationModel` in the POST body. The product decision is \"no per-task override surface at all,\" but the API surface still permits one — any direct API caller (script, curl, future client) can still supply a model override for a Codex-runtime launch, contradicting the confirmed decision. The spec acknowledges this as out of scope, but \"out of scope for an operator report\" and \"consistent with the product decision\" aren't the same thing; the removed field's whole justification was that no UI should ever supply an override, and this leaves a path open.",
+          "suggestion": "Either (a) explicitly document this as a known accepted gap with a follow-up ticket to strip `codexImplementationModel` from `parse-body.ts`, or (b) do the small server-side removal now. Since the launchers already handle \"no override\" correctly, the server change is a few lines plus test updates. At minimum, record the gap in the spec's Affected Boundaries note as a deferred decision, not merely \"out of scope.\"",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach (decision fidelity)",
+          "file": null,
+          "line": null,
+          "finding": "The confirmed product answer — \"the CLI's own `/model` preference is what gets used\" — is only true for Codex Light. For Codextender, there is no CLI, so the model is a hardcoded `DEFAULT_CODEXTENDER_MODEL_ALIAS` (\"sol\"). The spec correctly explains this, but the FR-01.74 AC rewrite should be careful not to state \"the model is the CLI-configured one\" as the universal behavior; that would be inaccurate for Codextender runs and could mislead future readers.",
+          "suggestion": "When rewriting the AC, state the two cases explicitly: Codex Light inherits the CLI's `/model` setting; Codextender runs a fixed default alias. Don't collapse them into one sentence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Stale/supplied param values. If a user previously bookmarked or can otherwise reach the modal with a pre-populated `paramValues` map (e.g., a deep link, retry of a saved draft, or state restored from a prior session) that still contains `CODEX_IMPLEMENTATION_MODEL_PARAM_KEY`, the removal of the read in `useNewIssueFormSubmit.ts` handles it (the key is simply ignored) — but confirm no other consumer of the form's param serialization (URL builders, local-storage persistence of modal state, \"duplicate task\" flows) still round-trips the removed key and could resurrect the field after a rollback/feature-flag flip.",
+          "suggestion": "One grep for the param-key string in any persistence/serialization utilities (not just components), which the spec's probe may already cover since it grepped `client/src` broadly — just confirm persistence layers were in scope, and consider adding a stripping or ignore-and-log line if stale keys can appear.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The spec updates `.shipwright/planning/01-adopted/spec.md` for FR-01.74 but doesn't mention checking whether any other spec/docs (API docs, operator runbooks referencing the Implementation-model field, help text, or the earlier PR #481's documented behavior) describe the field. Stale operator documentation saying \"set the implementation model in the New Task dialog\" would now be wrong.",
+          "suggestion": "Quick docs grep for \"Implementation model\" / \"Implementierungsmodell\" outside `client/` and update or note anything found.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The rejection of the \"disable instead of remove\" alternative is well-reasoned and the reasoning is documented. The test strategy — retargeting datalist/catalog assertions to the surviving shared-datalist field rather than deleting coverage — is the right call, and the E2E discovery of the two extra spec files the operator missed shows good grep hygiene.",
+          "suggestion": "None; keep as planned.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The proposed removal satisfies the request to hide the field, but the stated model behavior is unresolved for Codextender. Sven said the CLI’s `/model` selection should determine the model; the plan says Codextender has no Codex CLI and will always use the `sol` fallback.",
+          "suggestion": "Confirm that the fixed Codextender default is intended, then state that distinction explicitly in FR-01.74. If `/model` is meant to govern Codextender too, identify the model source before relying on the existing fallback.  The UI and payload changes are focused and well covered by the proposed tests. The Codextender model choice needs resolution before approval.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-26T12:41:38.429856+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n- **Category: risk / security**\n  **Severity: medium**\n  **Finding:** The server-side launch endpoint (`parse-body.ts` / `runtime-chokepoint.ts`) still accepts `codexImplementationModel` in the POST body. The product decision is \"no per-task override surface at all,\" but the API surface still permits one — any direct API caller (script, curl, future client) can still supply a model override for a Codex-runtime launch, contradicting the confirmed decision. The spec acknowledges this as out of scope, but \"out of scope for an operator report\" and \"consistent with the product decision\" aren't the same thing; the removed field's whole justification was that no UI should ever supply an override, and this leaves a path open.\n  **Suggestion:** Either (a) explicitly document this as a known accepted gap with a follow-up ticket to strip `codexImplementationModel` from `parse-body.ts`, or (b) do the small server-side removal now. Since the launchers already handle \"no override\" correctly, the server change is a few lines plus test updates. At minimum, record the gap in the spec's Affected Boundaries note as a *deferred decision*, not merely \"out of scope.\"\n\n- **Category: approach (decision fidelity)**\n  **Severity: medium**\n  **Finding:** The confirmed product answer — \"the CLI's own `/model` preference is what gets used\" — is only true for Codex Light. For Codextender, there is no CLI, so the model is a hardcoded `DEFAULT_CODEXTENDER_MODEL_ALIAS` (\"sol\"). The spec correctly explains this, but the FR-01.74 AC rewrite should be careful not to state \"the model is the CLI-configured one\" as the universal behavior; that would be inaccurate for Codextender runs and could mislead future readers.\n  **Suggestion:** When rewriting the AC, state the two cases explicitly: Codex Light inherits the CLI's `/model` setting; Codextender runs a fixed default alias. Don't collapse them into one sentence.\n\n- **Category: edge-case**\n  **Severity: low**\n  **Finding […truncated]\n\n[openai] 1. **Category:** approach · **Severity:** medium  \n   **Finding:** The proposed removal satisfies the request to hide the field, but the stated model behavior is unresolved for Codextender. Sven said the CLI’s `/model` selection should determine the model; the plan says Codextender has no Codex CLI and will always use the `sol` fallback.  \n   **Suggestion:** Confirm that the fixed Codextender default is intended, then state that distinction explicitly in FR-01.74. If `/model` is meant to govern Codextender too, identify the model source before relying on the existing fallback.\n\nThe UI and payload changes are focused and well covered by the proposed tests. The Codextender model choice needs resolution before approval.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx",
+          "line": 115,
+          "finding": "Under Codextender every remaining datalist consumer (Plan review/Review) is disabled, yet /api/codextender-models is still fetched, the static sol/astra fallback still populates an unusable datalist, and the caption still said 'you can still type any slug' (now false).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/NewIssueModal/CodexModelOverrideFields.tsx",
+          "line": 101,
+          "finding": "'follow the main model' pointed to a model the dialog no longer shows anywhere.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/NewIssueModal/NewIterateModal.codex-model.test.tsx",
+          "line": 73,
+          "finding": "Test title still said 'same invalid-shape hint as Implementation model', referring to the removed field.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx",
+          "line": 48,
+          "finding": "Test setup duplicates the 'omits ... when unset' test at L101; only the asserted key differs.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-26T12:51:49.177638+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T12:52:02.119951+00:00",
+      "disposition": "Stage 3 doubt-reviewer is conditional on a non-trivial surface (migrations, async/concurrency, cross-plugin imports, or irreversible ops) per iteration-reviews.md. This diff is UI-component + test-only (a JSX field removal, its re-export, one client wiring read, one request-body type field), with no migrations, no async/concurrency change, no cross-plugin import, no irreversible op. Stage 2 (code-reviewer) passed, so Stage 3 was due for consideration but its trigger condition does not apply — not_applicable, not not_run.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx (~line 34)",
+          "line": null,
+          "finding": "The renamed first test (\"never renders an Implementation-model field for a Codex-runtime launch\") only renders the modal and asserts absence — it never submits, so despite living in a file about the POST body and replacing a body-threading test, it validates nothing about the launch payload. It's also redundant with the render-absence tests in the other three files. The behavior it nominally replaced (body wiring) is only covered in Codex Light mode by the second test; no test asserts the body for a Codextender-mode launch.",
+          "suggestion": "Either delete this test (pure duplication) or make it a Codextender-mode variant of the second test that actually clicks launch and asserts `codexImplementationModel` is absent from the captured body.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx (deleted third test)",
+          "line": null,
+          "finding": "The stale-`paramValues` leak test was deleted on the theory that nothing can set the key anymore. That is true for the current component, but `useNewIssueFormSubmit` still has the generic `paramValues` → body-threading machinery (`trimmedCodexParam` for the two surviving keys), so the guard is now only enforced by component structure, not by a test. A future field reusing the old key string would silently regress with no failing test.",
+          "suggestion": "Optional: keep a single cheap assertion (in the \"never sends\" test) that a `paramValues` entry containing the literal key `\"codex-implementation-model\"` pre-seeded via the action's `parameters` still doesn't produce a `codexImplementationModel` body field — cheap insurance against the wiring creeping back.  Nothing else: server-side acceptance of `codexImplementationModel` is explicitly an accepted, disclosed gap per the spec; the compliance-artifact drift is disclosed as resolved by F5b regen.  Overall assessment: ship-as-is — the removal is complete and consistent across UI, wiring, types, spec, and docs; the two findings are optional test-hardening refinements, not defects.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-26T12:52:38.658518+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] The diff faithfully implements the operator report: the field, its constant, the re-export, the submit wiring, and the request-body type field are all removed; the spec (FR-01.74) and `architecture.md` are updated to match; negative-existence assertions were added in both unit and E2E layers across both `codexIntegrationMode` values. The M1 wording fix (inherit note naming \"sol\", dropping the now-false \"type any slug\" clause) is present. I found no correctness, security, or regression issues — the deleted \"Claude-runtime leak\" test covered a path that no longer exists (nothing can write `codexImplementationModel` into `paramValues` anymore), so its removal loses no real coverage.\n\nFindings:\n\n- Category: test\n  Severity: low\n  File: client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx (~line 34)\n  Finding: The renamed first test (\"never renders an Implementation-model field for a Codex-runtime launch\") only renders the modal and asserts absence — it never submits, so despite living in a file about the POST body and replacing a body-threading test, it validates nothing about the launch payload. It's also redundant with the render-absence tests in the other three files. The behavior it nominally replaced (body wiring) is only covered in Codex Light mode by the second test; no test asserts the body for a Codextender-mode launch.\n  Suggestion: Either delete this test (pure duplication) or make it a Codextender-mode variant of the second test that actually clicks launch and asserts `codexImplementationModel` is absent from the captured body.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/NewIssueModal/payload-launch.codex-model.test.tsx (deleted third test)\n  Finding: The stale-`paramValues` leak test was deleted on the theory that nothing can set the key anymore. That is true for the current component, but `useNewIssueFormSubmit` still has the generic `paramValues` → body-threading machinery (`trimme […truncated]\n\n[openai] No concrete defects found. The diff removes the Implementation model field and its launch-body wiring for the shared Codex dialog, while preserving the two review fields. The updated tests check that the field and request-body key are absent. The server-side API still accepts an override, as the specification explicitly allows.\n\nOverall assessment: **ship-as-is**.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T12:47:40.681320+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T12:40:58.265207+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}

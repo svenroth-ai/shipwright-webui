@@ -120,11 +120,15 @@ test.describe("Model-tier defaults", () => {
 
   // iterate-2026-09-19-codex-reviewer-fields — Codex runtime gets its own
   // free-text Plan review / Review overrides instead of the Claude dropdowns,
-  // laid out the same way (left/right), plus Implementation model in its own
-  // row. AC8 (runtime-toggle-codex.spec.ts) makes a genuine Codex /launch
-  // 400 on any machine without the Codex CLI on PATH, so this test
-  // intercepts the /launch POST rather than letting it hit the real route —
-  // it is proving the request BODY and the UI, not a real Codex launch.
+  // laid out the same way (left/right). AC8 (runtime-toggle-codex.spec.ts)
+  // makes a genuine Codex /launch 400 on any machine without the Codex CLI
+  // on PATH, so this test intercepts the /launch POST rather than letting
+  // it hit the real route — it is proving the request BODY and the UI, not
+  // a real Codex launch.
+  //
+  // iterate-2026-09-26-codex-model-field-removal — the Implementation
+  // model field this test used to also check for is gone; Codex Light now
+  // always inherits whatever model the `codex` CLI has configured itself.
   test("Runtime=Codex shows real Plan review / Review overrides (no reviewer-identity block) and threads them into the launch body", async ({
     page,
   }) => {
@@ -139,14 +143,14 @@ test.describe("Model-tier defaults", () => {
 
     await expect(page.getByTestId("codex-reviewer-identity")).toHaveCount(0);
 
-    const implementationField = page.getByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
+    await expect(
+      page.getByTestId("model-tier-override-codex-implementation-model"),
+    ).toHaveCount(0);
+
     const planReviewField = page.getByTestId(
       "model-tier-override-codex-plan-review-model",
     );
     const reviewField = page.getByTestId("model-tier-override-codex-review-model");
-    await expect(implementationField).toBeVisible();
     await expect(planReviewField).toBeVisible();
     await expect(reviewField).toBeVisible();
 
@@ -206,10 +210,14 @@ test.describe("Model-tier defaults", () => {
     await page.getByTestId("runtime-codex").click();
     await page.getByTestId("new-issue-more-options-toggle").click();
 
-    const implementationField = page.getByTestId(
-      "model-tier-override-codex-implementation-model",
+    await expect(
+      page.getByTestId("model-tier-override-codex-implementation-model"),
+    ).toHaveCount(0);
+
+    const planReviewField = page.getByTestId(
+      "model-tier-override-codex-plan-review-model",
     );
-    await expect(implementationField).toBeVisible();
+    await expect(planReviewField).toBeVisible();
 
     // The field is a combobox: its `list` attribute names a populated
     // <datalist> holding the fetched catalog.
@@ -217,7 +225,7 @@ test.describe("Model-tier defaults", () => {
     // is not a valid CSS id-selector token unescaped — an attribute selector
     // tolerates the raw value with no escaping needed (external code-review
     // finding, 2026-09-19).
-    const datalistId = await implementationField.getAttribute("list");
+    const datalistId = await planReviewField.getAttribute("list");
     expect(datalistId).toBeTruthy();
     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
     await expect(datalistOptions).toHaveCount(2);
@@ -225,8 +233,8 @@ test.describe("Model-tier defaults", () => {
 
     // Free text is still accepted — a suggestion is a convenience, not a
     // restriction.
-    await implementationField.fill("a-completely-custom-slug");
-    await expect(implementationField).toHaveValue("a-completely-custom-slug");
+    await planReviewField.fill("a-completely-custom-slug");
+    await expect(planReviewField).toHaveValue("a-completely-custom-slug");
     await expect(page.getByTestId("codex-model-catalog-status")).toHaveCount(0);
   });
 
@@ -251,14 +259,17 @@ test.describe("Model-tier defaults", () => {
     await page.getByTestId("runtime-codex").click();
     await page.getByTestId("new-issue-more-options-toggle").click();
 
-    const implementationField = page.getByTestId(
-      "model-tier-override-codex-implementation-model",
+    await expect(
+      page.getByTestId("model-tier-override-codex-implementation-model"),
+    ).toHaveCount(0);
+    const planReviewField = page.getByTestId(
+      "model-tier-override-codex-plan-review-model",
     );
-    await expect(implementationField).toBeVisible();
+    await expect(planReviewField).toBeVisible();
     await expect(page.getByTestId("codex-model-catalog-status")).toContainText(
       "Model suggestions unavailable",
     );
-    await implementationField.fill("gpt-5.6-luna");
-    await expect(implementationField).toHaveValue("gpt-5.6-luna");
+    await planReviewField.fill("gpt-5.6-luna");
+    await expect(planReviewField).toHaveValue("gpt-5.6-luna");
   });
 });

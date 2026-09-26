@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "The Implementation-model field is removed for both codexIntegrationMode values, matching the operator's 'no exceptions' requirement and the confirmed product decision; spec.md FR-01.74 AC updated to match."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "No new error paths introduced; existing launcher fallbacks (no -c model= flag / DEFAULT_CODEXTENDER_MODEL_ALIAS) were already correct for an absent override and needed no change."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No user input handling, auth, or secret paths touched; this is a pure UI-field + client wiring removal."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Updated/added tests assert observable outcomes (field absent from the DOM, key absent from the launch POST body), not internal state; every re-targeted assertion still exercises real behavior (datalist population, disabled state) via a surviving field rather than being deleted outright."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "No performance-relevant change; removes a render branch and a client-side conditional, net negative complexity."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "All touched files stay under the 300-line guideline (largest is useNewIssueFormSubmit.ts at 253 lines); no new files added."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "Producer (useNewIssueFormSubmit.ts's launch POST body) narrows by one optional field; consumer (server parse-body.ts) is unchanged and still tolerates its absence (pre-existing 'omits codexImplementationModel from the launch body when unset' behavior). Verified via payload-launch.codex-model.test.tsx's updated assertion plus the isolated-stack E2E run."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "scan_test_hygiene.py --diff reported no findings across the changed test files."
+    }
+  ]
+}

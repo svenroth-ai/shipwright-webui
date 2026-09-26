@@ -1,0 +1,1 @@
+Removed the free-text Codex 'Implementation model' override field from the task-creation dialog for both Codex Light and Codextender — the model that actually runs is now always the runtime's own default (the codex CLI's configured /model, or Codextender's fixed alias), never a webui-supplied override.
