@@ -50,6 +50,25 @@ describe("session-start divider", () => {
     expect(scroll?.querySelectorAll(".mc-feed-entry")).toHaveLength(3);
   });
 
+  // Local PR-review preflight (comment, 2026-09-26): the first card's
+  // timestamp is malformed, but a later card's is genuinely valid — the
+  // divider must still render from that later one, not disappear entirely.
+  it("skips a malformed first timestamp and derives the divider from the next valid one", () => {
+    const { container } = render(<MissionActivityFeed feed={{
+      outcome: "In progress",
+      cards: [
+        { kind: "implement", text: "Edited the login handler.", commands: [], timestamp: "not-a-real-date" },
+        { kind: "test", text: "Ran the suite.", commands: [], timestamp: "2026-08-31T09:16:00.000Z" },
+      ],
+    }} commitArtifact={null} task={TASK} />);
+    const dividers = screen.getAllByTestId("mission-feed-session-start");
+    expect(dividers).toHaveLength(1);
+    const expectedTime = new Date("2026-08-31T09:16:00.000Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    expect(dividers[0]).toHaveTextContent(`Session started · Today, ${expectedTime}`);
+    const scroll = container.querySelector(".mc-feed-scroll");
+    expect(scroll?.firstElementChild).toBe(dividers[0]);
+  });
+
   it("renders nothing when no card carries a timestamp (older transcripts)", () => {
     const { queryByTestId } = render(<MissionActivityFeed feed={{
       outcome: "In progress",

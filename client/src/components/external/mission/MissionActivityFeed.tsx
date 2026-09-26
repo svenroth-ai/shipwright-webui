@@ -33,10 +33,18 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // One-time "Session started · <date>, <time>" divider (iterate-2026-09-26-
   // mission-tab-subrunner) — replaces the removed per-card timestamps.
-  // Derived from the FIRST card carrying a timestamp, never recomputed per
-  // card and never repeated in the list below.
-  const sessionStart = feed.cards.find((c) => c.timestamp)?.timestamp;
-  const sessionStartLabel = sessionStart ? formatSessionStart(sessionStart) : null;
+  // Derived from the FIRST card carrying a PARSEABLE timestamp, never
+  // recomputed per card and never repeated in the list below. Local
+  // PR-review preflight (comment, 2026-09-26): the first card carrying ANY
+  // timestamp string could be malformed/unparseable, hiding the divider even
+  // when a later card has a genuinely valid one — keep scanning instead of
+  // stopping at the first truthy value.
+  let sessionStartLabel: string | null = null;
+  for (const c of feed.cards) {
+    if (!c.timestamp) continue;
+    sessionStartLabel = formatSessionStart(c.timestamp);
+    if (sessionStartLabel) break;
+  }
   // Opens on the LATEST activity, not the oldest, and keeps following new
   // cards as they arrive (iterate-2026-08-31-mission-feed-gaps) — this
   // container had NO scroll management at all, so a freshly mounted
