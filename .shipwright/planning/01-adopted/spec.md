@@ -1420,14 +1420,16 @@ write surface; gated, path-guarded, and concurrency-safe.
   against that wrong ceiling, when a Codextender launch/fork's
   proxy-availability preflight succeeds, then the env-var prefix
   additionally sets `CLAUDE_CODE_MAX_CONTEXT_TOKENS` from the proxy's own
-  `GET /v1/models` `max_input_tokens` field for the resolved alias
+  `GET /v1/models` response for the resolved alias
   (`resolveCodextenderMaxContextTokens`, keyed on
   `DEFAULT_CODEXTENDER_MODEL_ALIAS` now that no per-launch override is
-  ever sent) — never a number hardcoded in webui — and is actively
-  cleared (not merely left unset) on all 3 shells same as the other
-  Codextender env vars; a probe failure or an unpatched/older proxy
-  leaves the var unset, which is Claude Code's own conservative 200K
-  default, not a guessed number.
+  ever sent) — reading `max_input_tokens` from each entry's nested
+  `model_info` object (LiteLLM's real shape; a flat top-level field is
+  also accepted as a forward-compat fallback) and never a number
+  hardcoded in webui — and is actively cleared (not merely left unset) on
+  all 3 shells same as the other Codextender env vars; a probe failure or
+  an unpatched/older proxy leaves the var unset, which is Claude Code's
+  own conservative 200K default, not a guessed number.
 
 ## Quality Requirements
 

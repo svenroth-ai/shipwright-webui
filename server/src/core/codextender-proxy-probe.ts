@@ -81,6 +81,26 @@ export interface CodextenderProbeDeps {
 }
 
 /**
+ * PR-review preflight BLOCK (round 14, 2026-09-26) — `max_input_tokens`
+ * lives under each entry's `model_info` object (LiteLLM's own extension to
+ * the OpenAI-shaped `/v1/models` list; codextender's operator finding
+ * describes its config as declaring the value "in its LiteLLM
+ * `model_info`"), NOT as a flat, top-level field on the entry. A flat
+ * `entry.max_input_tokens` is checked too, purely as a forward-compatible
+ * fallback in case a future LiteLLM/codextender version flattens it — the
+ * nested form is the one actually confirmed, so it takes precedence.
+ */
+function extractMaxInputTokens(entry: Record<string, unknown>): number | undefined {
+  const modelInfo = entry.model_info;
+  const nested =
+    modelInfo && typeof modelInfo === "object"
+      ? (modelInfo as Record<string, unknown>).max_input_tokens
+      : undefined;
+  const raw = nested ?? entry.max_input_tokens;
+  return typeof raw === "number" && Number.isInteger(raw) && raw > 0 ? raw : undefined;
+}
+
+/**
  * `GET http://127.0.0.1:<port>/v1/models` with the configured Codextender
  * master-key bearer token (`deps.authToken` or `resolveCodextenderAuthToken()`).
  * Never throws — an unconfigured token, any network error, non-2xx status,
@@ -117,13 +137,7 @@ export async function probeCodextenderModels(
       if (!entry || typeof entry !== "object") continue;
       const id = (entry as Record<string, unknown>).id;
       if (typeof id !== "string" || id.trim() === "") continue;
-      const rawMaxInputTokens = (entry as Record<string, unknown>).max_input_tokens;
-      const maxInputTokens =
-        typeof rawMaxInputTokens === "number" &&
-        Number.isInteger(rawMaxInputTokens) &&
-        rawMaxInputTokens > 0
-          ? rawMaxInputTokens
-          : undefined;
+      const maxInputTokens = extractMaxInputTokens(entry as Record<string, unknown>);
       models.push({
         slug: id,
         display_name: id,
