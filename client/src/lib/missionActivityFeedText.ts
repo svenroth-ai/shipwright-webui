@@ -223,35 +223,78 @@ export function resolveQuestionAnswer(rawContent: string, options: string[]): { 
 }
 
 /**
+ * Sentence-boundary check for `stripDuplicateSentence`: `text[at]` starts a
+ * sentence when it's the very first character, or immediately preceded by a
+ * ".", "!" or "?" followed by exactly one whitespace character.
+ */
+function isSentenceStart(text: string, at: number): boolean {
+  return at === 0 || (/[.!?]/.test(text[at - 2] ?? "") && /\s/.test(text[at - 1] ?? ""));
+}
+
+/**
+ * Tries to match `tokens` in sequence starting at `text[start]`, tolerating
+ * any run of one-or-more whitespace characters between tokens (the
+ * "near-exact" tolerance for trailing-whitespace/line-break variants).
+ * Returns the index just past the match, or -1 if `tokens` doesn't match
+ * literally at `start`.
+ */
+function matchTokensAt(text: string, start: number, tokens: readonly string[]): number {
+  let pos = start;
+  for (let i = 0; i < tokens.length; i++) {
+    if (text.startsWith(tokens[i], pos)) {
+      pos += tokens[i].length;
+    } else {
+      return -1;
+    }
+    if (i < tokens.length - 1) {
+      const gapStart = pos;
+      while (pos < text.length && /\s/.test(text[pos])) pos++;
+      if (pos === gapStart) return -1;
+    }
+  }
+  return pos;
+}
+
+/**
  * Strips ONLY a duplicate sentence from `text` — AC1's "a sentence that is
  * an exact/near-exact auto-generated duplicate", not the whole-text equality
  * this shipped with first (external code review, both providers, medium: a
  * duplicate sentence embedded in a longer narrative, e.g. "Investigated the
  * flaky test. Merged as \"X\".", rendered unstripped). Matches `duplicate` as
- * a whitespace-tolerant sequence of its own tokens (the "near-exact"
- * tolerance the AC also asks for — trailing-whitespace/line-break variants),
- * removes only that span, and stitches the remaining narration back together
- * with a single space. Returns `text` unchanged when no `duplicate` is given
- * or none is found.
+ * a whitespace-tolerant sequence of its own tokens, removes only that span,
+ * and stitches the remaining narration back together with a single space.
+ * Returns `text` unchanged when no `duplicate` is given or none is found.
  *
  * Sentence-boundary-anchored (local PR-review preflight BLOCK, 2026-09-26):
  * the bare substring match this shipped with second matched the duplicate's
  * words anywhere, so real prose that merely MENTIONS them mid-sentence
  * (e.g. "The commit message reads: Merged as \"X\".") lost the words around
- * the match. The pattern now only fires when the duplicate sits at an actual
+ * the match. The match now only fires when the duplicate sits at an actual
  * sentence boundary — string start, or right after a ". "/"! "/"? " break —
  * and ends at string end or right before whitespace, never mid-clause.
+ *
+ * Plain string scanning, not `new RegExp(duplicate-derived-pattern)` (Sven,
+ * 2026-09-26, after a Semgrep `detect-non-literal-regexp`/ReDoS flag on the
+ * CI PR reviewer for the prior version — not exploitable, since no quantifier
+ * nested inside another over the same characters, but the rule flags any
+ * dynamically-built RegExp on shape alone and would keep re-flagging every
+ * future touch here). `matchTokensAt` does the same token walk, static `/\s/`
+ * literals only.
  */
 export function stripDuplicateSentence(text: string, duplicate: string | null | undefined): string {
   if (!duplicate) return text;
   const trimmedDuplicate = duplicate.trim();
   if (!trimmedDuplicate) return text;
   if (text.trim() === trimmedDuplicate) return "";
-  const tokenPattern = trimmedDuplicate.split(/\s+/).map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
-  const pattern = new RegExp(`(?:^|(?<=[.!?]\\s))${tokenPattern}(?=$|\\s)`);
-  const match = pattern.exec(text);
-  if (!match) return text;
-  const before = text.slice(0, match.index).trimEnd();
-  const after = text.slice(match.index + match[0].length).trimStart();
-  return before && after ? `${before} ${after}` : before || after;
+  const tokens = trimmedDuplicate.split(/\s+/);
+  for (let start = 0; start < text.length; start++) {
+    if (!isSentenceStart(text, start)) continue;
+    const end = matchTokensAt(text, start, tokens);
+    if (end === -1) continue;
+    if (end < text.length && !/\s/.test(text[end])) continue;
+    const before = text.slice(0, start).trimEnd();
+    const after = text.slice(end).trimStart();
+    return before && after ? `${before} ${after}` : before || after;
+  }
+  return text;
 }
