@@ -130,6 +130,7 @@ describe("resolveSubrunnerNotification", () => {
     expect(card.subrunnerStatus).toBe("running");
   });
 
+  // @covers FR-01.66
   it("resolves a matching card to done and attaches the report", () => {
     const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "agent-42", subrunnerStatus: "running" };
     resolveSubrunnerNotification([card], notification({ taskId: "agent-42", status: "completed", result: "PR #482 merged." }));
