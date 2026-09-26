@@ -233,14 +233,23 @@ export function resolveQuestionAnswer(rawContent: string, options: string[]): { 
  * removes only that span, and stitches the remaining narration back together
  * with a single space. Returns `text` unchanged when no `duplicate` is given
  * or none is found.
+ *
+ * Sentence-boundary-anchored (local PR-review preflight BLOCK, 2026-09-26):
+ * the bare substring match this shipped with second matched the duplicate's
+ * words anywhere, so real prose that merely MENTIONS them mid-sentence
+ * (e.g. "The commit message reads: Merged as \"X\".") lost the words around
+ * the match. The pattern now only fires when the duplicate sits at an actual
+ * sentence boundary — string start, or right after a ". "/"! "/"? " break —
+ * and ends at string end or right before whitespace, never mid-clause.
  */
 export function stripDuplicateSentence(text: string, duplicate: string | null | undefined): string {
   if (!duplicate) return text;
   const trimmedDuplicate = duplicate.trim();
   if (!trimmedDuplicate) return text;
   if (text.trim() === trimmedDuplicate) return "";
-  const pattern = trimmedDuplicate.split(/\s+/).map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
-  const match = new RegExp(pattern).exec(text);
+  const tokenPattern = trimmedDuplicate.split(/\s+/).map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+  const pattern = new RegExp(`(?:^|(?<=[.!?]\\s))${tokenPattern}(?=$|\\s)`);
+  const match = pattern.exec(text);
   if (!match) return text;
   const before = text.slice(0, match.index).trimEnd();
   const after = text.slice(match.index + match[0].length).trimStart();
