@@ -275,7 +275,7 @@ export function resolveToolResults(
         unresolvedBlockers.delete(pending.commandKey);
       }
     } else if (pending.bucket === "subrunner") {
-      applySubrunnerAck(pending.card, result.content, result.is_error);
+      applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (pending.bucket === "review") {
       // A successful review tool_result carries the actual verdict/findings
       // text — previously discarded entirely (no branch matched it), so the

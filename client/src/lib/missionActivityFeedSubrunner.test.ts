@@ -91,7 +91,7 @@ describe("extractSubrunnerAgentId", () => {
 describe("applySubrunnerAck", () => {
   it("overwrites the card's provisional subrunnerId with the real agent id, leaving status running", () => {
     const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "t1", subrunnerStatus: "running" };
-    applySubrunnerAck(card, "Async agent launched successfully. agentId: agent-42", false);
+    applySubrunnerAck(card, "Async agent launched successfully. agentId: agent-42", false, "Agent\u0000t1");
     expect(card.subrunnerId).toBe("agent-42");
     expect(card.subrunnerStatus).toBe("running");
   });
@@ -102,18 +102,37 @@ describe("applySubrunnerAck", () => {
   // finished answer and must resolve the card directly, or it would get
   // stuck on "running" forever (no notification is ever generated for a
   // subagent with no async background lifecycle).
-  it("treats an ack with no agentId as a SYNCHRONOUS completion: resolves to done and attaches the ack content as the report", () => {
+  it("treats a Task ack with no agentId as a SYNCHRONOUS completion: resolves to done and attaches the ack content as the report", () => {
     const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "t1", subrunnerStatus: "running" };
-    applySubrunnerAck(card, "The auth bug was a missing null-check in login.ts.", false);
+    applySubrunnerAck(card, "The auth bug was a missing null-check in login.ts.", false, "Task\u0000t1");
     expect(card.subrunnerId).toBe("t1");
     expect(card.subrunnerStatus).toBe("done");
     expect(card.subrunnerReport).toBe("The auth bug was a missing null-check in login.ts.");
   });
 
+  // Local PR-review preflight (BLOCK, 2026-09-26): the opposite case. An
+  // `Agent` dispatch is always async in this harness, so an ack with no
+  // agentId is not evidence of completion — marking it "done" here would
+  // invent a false result and bury the real eventual task-notification.
+  it("leaves an Agent ack with no agentId running instead of inventing a false completion", () => {
+    const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "t1", subrunnerStatus: "running" };
+    applySubrunnerAck(card, "Some unexpected ack shape with no agentId in it.", false, "Agent\u0000t1");
+    expect(card.subrunnerId).toBe("t1");
+    expect(card.subrunnerStatus).toBe("running");
+    expect(card.subrunnerReport).toBeUndefined();
+  });
+
   it("resolves a synchronous completion to failed when the ack tool_result is itself an error", () => {
     const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "t1", subrunnerStatus: "running" };
-    applySubrunnerAck(card, "The subagent could not complete the task.", true);
+    applySubrunnerAck(card, "The subagent could not complete the task.", true, "Task\u0000t1");
     expect(card.subrunnerStatus).toBe("failed");
+  });
+
+  it("fails closed even for an Agent dispatch when the ack tool_result is itself an error", () => {
+    const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "t1", subrunnerStatus: "running" };
+    applySubrunnerAck(card, "The agent launch failed outright.", true, "Agent\u0000t1");
+    expect(card.subrunnerStatus).toBe("failed");
+    expect(card.subrunnerReport).toBe("The agent launch failed outright.");
   });
 });
 

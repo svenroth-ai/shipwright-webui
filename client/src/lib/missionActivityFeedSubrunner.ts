@@ -71,16 +71,36 @@ export function createSubrunnerDispatchCard(
  *  genuine synchronous `Task` dispatch got stuck on "running" forever with
  *  its real report silently discarded, since no `task-notification` is ever
  *  generated for a subagent that has no async background lifecycle at all).
+ *
+ *  An `Agent` ack with no `agentId:` fingerprint is the OPPOSITE case (local
+ *  PR-review preflight BLOCK, 2026-09-26): `Agent` dispatches are always
+ *  asynchronous in this harness, so a malformed/unexpected ack shape is not
+ *  evidence the work already finished — marking it "done" with the raw ack
+ *  text as its report would both invent a false completion and permanently
+ *  bury the real eventual `task-notification` report. Left running instead
+ *  (the same accepted outcome `resolveSubrunnerNotification`'s own doc
+ *  comment already describes for an agent id that never resolves). An
+ *  `isError` ack still fails closed regardless of dispatch kind — a
+ *  dispatch that failed to launch at all never gets an async completion to
+ *  wait for.
+ *
  *  Kept here alongside `extractSubrunnerAgentId` rather than inlined at
  *  `missionActivityFeedResolve.ts`'s call site (same bloat-ceiling reason as
  *  `createSubrunnerDispatchCard` above). */
-export function applySubrunnerAck(card: ActivityCard, ackContent: string, isError: boolean): void {
+export function applySubrunnerAck(card: ActivityCard, ackContent: string, isError: boolean, commandKey: string): void {
   const agentId = extractSubrunnerAgentId(ackContent);
   if (agentId) {
     card.subrunnerId = agentId;
     return;
   }
-  card.subrunnerStatus = isError ? "failed" : "done";
+  if (isError) {
+    card.subrunnerStatus = "failed";
+    attachSubrunnerReport(card, ackContent);
+    return;
+  }
+  const dispatchToolName = commandKey.split("\u0000", 1)[0];
+  if (dispatchToolName === "Agent") return;
+  card.subrunnerStatus = "done";
   attachSubrunnerReport(card, ackContent);
 }
 
