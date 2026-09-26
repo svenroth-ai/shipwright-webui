@@ -1,14 +1,14 @@
 import { toolResults, type UserEvent } from "../external/session-parser";
 import { attachCommand, excerpt, resolveQuestionAnswer, summarizeBlockerError } from "./missionActivityFeedText";
 import { rollbackFailedWrite } from "./missionActivityFeedAuthoringRollback";
+import { applySubrunnerAck } from "./missionActivityFeedSubrunner";
 import type { ActivityCard, ResolveState } from "./missionActivityFeedTypes";
 
 export type { PendingTool, ResolveState } from "./missionActivityFeedTypes";
 
 /** Attaches `detail`/`detailFull` from a bounded excerpt of raw tool-result
- *  content, the same "set `xFull` only when truncation actually happened"
- *  contract as every other `xFull` field (iterate-2026-09-05-mission-feed-
- *  ux-gaps — "nie croppen"). */
+ *  content — the same "set `xFull` only when truncation actually happened"
+ *  contract as every other `xFull` field ("nie croppen"). */
 function attachDetail(card: ActivityCard, content: string): void {
   card.detail = excerpt(content);
   const full = excerpt(content, Infinity, Infinity);
@@ -23,9 +23,8 @@ function attachDetail(card: ActivityCard, content: string): void {
  *  bloat-ceiling split) — pure state mutation + reassignment, no behavior
  *  change. Returns the new `unresolvedTest` (the one field the caller must
  *  reassign; everything else mutates `state`'s own maps/arrays in place).
- *  No longer takes a `MissionContext` (iterate-2026-09-05-mission-feed-ux-
- *  gaps): its sole prior use was picking test-recovery sentence wording,
- *  now removed along with every other invented sentence in this bucket. */
+ *  No longer takes a `MissionContext` — its sole prior use (test-recovery
+ *  sentence wording) was removed along with every other invented sentence. */
 export function resolveToolResults(
   event: UserEvent,
   state: ResolveState,
@@ -275,6 +274,8 @@ export function resolveToolResults(
         cards.splice(cards.indexOf(pending.card), 1);
         unresolvedBlockers.delete(pending.commandKey);
       }
+    } else if (pending.bucket === "subrunner") {
+      applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (pending.bucket === "review") {
       // A successful review tool_result carries the actual verdict/findings
       // text — previously discarded entirely (no branch matched it), so the

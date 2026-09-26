@@ -117,8 +117,21 @@ export interface TaskNotificationEvent extends BaseEvent {
   status: string;
   /** Verbatim from `<summary>`. May be empty for malformed envelopes. */
   summary: string;
-  /** From `<task-id>`. Empty when absent. */
+  /** From `<task-id>`. Empty when absent. For an `Agent` dispatch this is the
+   *  agent's own stable id (survives a `SendMessage` continuation, which
+   *  reissues a NEW `<tool-use-id>` each time — confirmed empirically on a
+   *  real 200-turn-limit-then-continued fork transcript,
+   *  iterate-2026-09-26-mission-tab-subrunner), so subrunner correlation
+   *  keys on THIS field, never `<tool-use-id>`. */
   taskId: string;
+  /**
+   * 2026-09-26 — iterate-2026-09-26-mission-tab-subrunner. Verbatim from
+   * `<result>` — the delegated subagent's own final report text, present on
+   * a real `Agent`-dispatch completion notification (absent for a plain
+   * background-Bash-command notification, which carries no `<result>` tag
+   * at all). Empty string when absent, never undefined-vs-empty ambiguity.
+   */
+  result: string;
 }
 
 export interface AssistantEvent extends BaseEvent {
@@ -690,22 +703,35 @@ export function extractSkillBody(
  *   - `<summary>` → summary; defaults to "" when absent.
  *   - `<task-id>` → taskId; defaults to "" when absent.
  *
- * Length cap (4 KB) prevents pathological inputs from running the regex
- * over megabyte-scale strings; real envelopes observed in the wild are
- * a few hundred bytes.
+ * Overall size gate (2 MB) rejects only truly pathological input — every
+ * extraction below is a plain `indexOf` scan (`readSingleTag`), safe and
+ * linear at any realistic size, so nothing here needs a tight cap to stay
+ * cheap. `RESULT_CAP` bounds the extracted `<result>` value ITSELF instead
+ * (external code review, both providers, medium): the previous design
+ * rejected the WHOLE envelope past a 64 KB content length, so a real
+ * Agent-dispatch completion with a multi-KB-to-MB final report silently
+ * failed to parse at all and its subrunner card stayed stuck on "running"
+ * forever — exactly the bug this field was added to fix, just moved to a
+ * bigger threshold. `status`/`summary`/`task-id` always resolve regardless
+ * of `<result>`'s size; only `result` itself is truncated.
  */
+const OVERSIZE_REJECT = 2_000_000;
+const RESULT_CAP = 65_536;
+
 export function extractTaskNotification(
   content: unknown,
-): { status: string; summary: string; taskId: string } | null {
+): { status: string; summary: string; taskId: string; result: string } | null {
   if (typeof content !== "string") return null;
-  if (content.length > 4096) return null;
+  if (content.length > OVERSIZE_REJECT) return null;
   const trimmed = content.trim();
   if (!trimmed.startsWith("<task-notification>")) return null;
   if (!trimmed.endsWith("</task-notification>")) return null;
   const status = readSingleTag(trimmed, "status") ?? "unknown";
   const summary = readSingleTag(trimmed, "summary") ?? "";
   const taskId = readSingleTag(trimmed, "task-id") ?? "";
-  return { status, summary, taskId };
+  const rawResult = readSingleTag(trimmed, "result") ?? "";
+  const result = rawResult.length > RESULT_CAP ? `${rawResult.slice(0, RESULT_CAP)}…` : rawResult;
+  return { status, summary, taskId, result };
 }
 
 function readSingleTag(source: string, tag: string): string | null {

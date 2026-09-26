@@ -20,8 +20,8 @@ vi.mock("../../../hooks/useLaunchTask", () => ({
 
 const TASK = { taskId: "task-mission-feed", projectId: "p1" } as unknown as ExternalTask;
 
-function renderCard(card: ActivityCard) {
-  return render(<FeedCard card={card} commitArtifact={null} task={TASK} />);
+function renderCard(card: ActivityCard, onSubrunnerClick?: (subrunnerId: string) => void) {
+  return render(<FeedCard card={card} commitArtifact={null} task={TASK} onSubrunnerClick={onSubrunnerClick} />);
 }
 
 // 24th-round catch (openai, medium): the collapsed summary used
@@ -173,5 +173,29 @@ describe("FeedCard — card.explanation renders as markdown (reported: a turn's 
     expect(container.querySelector(".mc-feed-explanation table")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Wave 1" })).toBeInTheDocument();
     expect(screen.queryByText(/\|---\|---\|/)).not.toBeInTheDocument();
+  });
+});
+
+// iterate-2026-09-26-mission-tab-subrunner — item 3's primary UI surface.
+describe("FeedCard — subrunner card rendering", () => {
+  it("running: shows the pulsing-dot indicator, no report link", () => {
+    renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "t1", subrunnerStatus: "running" });
+    expect(screen.getByText("Running…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View subrunner report" })).not.toBeInTheDocument();
+  });
+
+  it("resolved with a click handler: renders the report-link button and calls back with the card's subrunnerId", async () => {
+    const user = userEvent.setup();
+    const onSubrunnerClick = vi.fn();
+    renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." }, onSubrunnerClick);
+    const link = screen.getByRole("button", { name: "View subrunner report" });
+    await user.click(link);
+    expect(onSubrunnerClick).toHaveBeenCalledWith("agent-42");
+  });
+
+  it("resolved with no click handler wired: falls back to rendering the report inline", () => {
+    renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." });
+    expect(screen.queryByRole("button", { name: "View subrunner report" })).not.toBeInTheDocument();
+    expect(screen.getByText("Fixed it.")).toBeInTheDocument();
   });
 });

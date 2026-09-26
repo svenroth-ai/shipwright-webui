@@ -39,6 +39,7 @@ import { OperationCard } from "./OperationCard";
 import { MissionActivityFeed } from "./MissionActivityFeed";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { MissionArtifactPanel } from "./MissionArtifactPanel";
+import { SubrunnerPanel } from "./SubrunnerPanel";
 import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
 import {
   MissionCompactTabs,
@@ -117,7 +118,15 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     activeNode && !artifacts
       ? model.nodes.find((n) => n.key === activeNode) ?? null
       : null;
-  const detailAvailable = activeArtifact !== null || activeRecordNode !== null;
+  // A resolved subrunner card's right-panel key is `subrunner:<id>`
+  // (iterate-2026-09-26-mission-tab-subrunner) — namespaced so it can never
+  // collide with a plain artifact/record-node key. Third consumer of this
+  // same `activeNode` mechanic, additive alongside `ArtifactPanel`/
+  // `MissionArtifactPanel`.
+  const activeSubrunnerCard = activeNode?.startsWith("subrunner:")
+    ? model.feed.cards.find((c) => c.kind === "subrunner" && `subrunner:${c.subrunnerId}` === activeNode) ?? null
+    : null;
+  const detailAvailable = activeArtifact !== null || activeRecordNode !== null || activeSubrunnerCard !== null;
 
   const focusPanelTab = useCallback((panel: "overview" | "activity") => {
     if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
@@ -250,7 +259,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           {isDesignGate ? (
             <OperationCard task={task} context={context} />
           ) : (
-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} onSubrunnerClick={(subrunnerId) => handleNodeClick(`subrunner:${subrunnerId}`)} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
           )}
         </div>
         <div
@@ -273,6 +282,8 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
               onClose={handleClose}
               onOpenDocument={handleOpenDocument}
             />
+          ) : activeSubrunnerCard ? (
+            <SubrunnerPanel card={activeSubrunnerCard} onClose={handleClose} />
           ) : null}
         </div>
       </div>

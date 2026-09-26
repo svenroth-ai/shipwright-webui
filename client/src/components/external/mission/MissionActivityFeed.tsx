@@ -5,10 +5,14 @@ import type { CommitArtifact } from "../../../lib/missionContextApi";
 import type { ExternalTask } from "../../../lib/externalApi";
 import { FeedIcon } from "./MissionFeedIcons";
 import { FeedCard, kindAccent } from "./MissionActivityFeedCard";
+import { formatSessionStart } from "./MissionActivityFeedCardParts";
 
 interface Props {
   feed: ActivityFeed;
   onArtifactClick?: (artifact: string) => void;
+  /** Opens the right-side panel for a resolved subrunner card
+   *  (iterate-2026-09-26-mission-tab-subrunner). */
+  onSubrunnerClick?: (subrunnerId: string) => void;
   commitArtifact: CommitArtifact | null;
   task: ExternalTask;
   /**
@@ -25,8 +29,22 @@ interface Props {
   visible?: boolean;
 }
 
-export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, task, visible = true }: Props) {
+export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, commitArtifact, task, visible = true }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // One-time "Session started · <date>, <time>" divider (iterate-2026-09-26-
+  // mission-tab-subrunner) — replaces the removed per-card timestamps.
+  // Derived from the FIRST card carrying a PARSEABLE timestamp, never
+  // recomputed per card and never repeated in the list below. Local
+  // PR-review preflight (comment, 2026-09-26): the first card carrying ANY
+  // timestamp string could be malformed/unparseable, hiding the divider even
+  // when a later card has a genuinely valid one — keep scanning instead of
+  // stopping at the first truthy value.
+  let sessionStartLabel: string | null = null;
+  for (const c of feed.cards) {
+    if (!c.timestamp) continue;
+    sessionStartLabel = formatSessionStart(c.timestamp);
+    if (sessionStartLabel) break;
+  }
   // Opens on the LATEST activity, not the oldest, and keeps following new
   // cards as they arrive (iterate-2026-08-31-mission-feed-gaps) — this
   // container had NO scroll management at all, so a freshly mounted
@@ -49,10 +67,16 @@ export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, tas
       <span data-testid="mission-feed-outcome">{feed.outcome}</span>
     </header>
     <div ref={scrollRef} className="mc-feed-scroll" role="log" aria-label="Activity feed" tabIndex={0} data-testid="mission-activity-feed">
+      {sessionStartLabel && (
+        <div className="mc-feed-session-start" data-testid="mission-feed-session-start">
+          Session started · {sessionStartLabel}
+        </div>
+      )}
       {feed.cards.length === 0 ? (
         <div className="mc-hero-empty">Waiting — nothing reliable has appeared yet.</div>
       ) : feed.cards.map((card, index) => {
         const isSystem = card.kind === "system";
+        const isRunningSubrunner = card.kind === "subrunner" && card.subrunnerStatus === "running";
         const accent = kindAccent(card);
         // Not just `${kind}-${index}` (doubt-review catch, iterate-2026-09-
         // 05-mission-feed-ux-gaps): a retry/recovery resolution can splice a
@@ -77,12 +101,12 @@ export function MissionActivityFeed({ feed, onArtifactClick, commitArtifact, tas
           <div className="mc-feed-entry" key={key}>
             <div
               className="mc-feed-node"
-              data-dashed={isSystem ? "true" : undefined}
+              data-dashed={isSystem || isRunningSubrunner ? "true" : undefined}
               style={{ "--kind": accent.color, "--kind-line": accent.line } as CSSProperties}
             >
               <FeedIcon kind={card.kind} />
             </div>
-            <FeedCard card={card} onArtifactClick={onArtifactClick} commitArtifact={commitArtifact} task={task} />
+            <FeedCard card={card} onArtifactClick={onArtifactClick} onSubrunnerClick={onSubrunnerClick} commitArtifact={commitArtifact} task={task} />
           </div>
         );
       })}

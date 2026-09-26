@@ -144,7 +144,7 @@ describe("deriveActivityFeed bucket classification (reducer-level)", () => {
     expect(feed.cards.some((card) => card.kind === "test")).toBe(false);
   });
 
-  it("does not misclassify a general-purpose Task spawn as review", () => {
+  it("does not misclassify a general-purpose Task spawn as review — classifies it as a delegated subrunner instead (iterate-2026-09-26-mission-tab-subrunner)", () => {
     // Narrated (unlike this file's other bare `tool()` fixtures) so the
     // resulting card survives the empty-tool-only-card filter
     // (iterate-2026-09-20-mission-feed-transcript-fidelity) — this test is
@@ -154,7 +154,11 @@ describe("deriveActivityFeed bucket classification (reducer-level)", () => {
       { type: "tool_use", id: "a", name: "Task", input: { subagent_type: "general-purpose", description: "Investigate the auth bug" } },
     ] } })).events;
     const feed = deriveActivityFeed(events, context());
-    expect(feed.cards.find((c) => c.commands.length)?.kind).toBe("implement");
+    const subrunner = feed.cards.find((c) => c.kind === "subrunner");
+    expect(subrunner).toBeDefined();
+    expect(subrunner?.kind).not.toBe("review");
+    expect(subrunner?.text).toBe("Investigate the auth bug");
+    expect(subrunner?.subrunnerStatus).toBe("running");
   });
 
   it("still classifies a code-reviewer Task spawn as review", () => {
