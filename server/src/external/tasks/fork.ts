@@ -15,7 +15,10 @@ import type { Hono } from "hono";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { probeCodextenderLiveness } from "../../core/codextender-proxy-probe.js";
+import {
+  probeCodextenderLiveness,
+  resolveCodextenderMaxContextTokens,
+} from "../../core/codextender-proxy-probe.js";
 import { buildCopyCommands } from "../../core/launcher.js";
 import { buildCodexCommands } from "../../core/launcher-codex.js";
 import {
@@ -51,6 +54,11 @@ export function registerTasksFork(
     /** Test seam — defaults to `resolveCodextenderAuthToken()` (reads
      *  `process.env.CODEXTENDER_AUTH_TOKEN`, no built-in fallback). */
     getCodextenderAuthToken?: () => string | undefined;
+    /** Test seam — defaults to a real probe of the proxy's `/v1/models` for
+     *  the default alias's `max_input_tokens` (operator finding,
+     *  2026-09-26) — a fork never has a per-launch model override to pass,
+     *  same as `buildCodextenderCommands`'s own default resolution. */
+    getCodextenderMaxContextTokens?: (port: number) => Promise<number | undefined>;
   },
 ): void {
   const {
@@ -60,6 +68,8 @@ export function registerTasksFork(
     checkCodexCliAvailable = isCodexCliAvailable,
     checkCodextenderProxyAvailable,
     getCodextenderPort,
+    getCodextenderMaxContextTokens = (port: number) =>
+      resolveCodextenderMaxContextTokens(port, undefined),
     getCodextenderAuthToken = resolveCodextenderAuthToken,
   } = deps;
 
@@ -102,6 +112,7 @@ export function registerTasksFork(
     // pays for a settings read whose result it would discard.
     let codextenderPort: number | undefined;
     let codextenderAuthToken: string | undefined;
+    let codextenderMaxContextTokens: number | undefined;
     if (parentRuntime === "codex" && parentCodexIntegrationMode === "codextender") {
       codextenderPort = (await getCodextenderPort?.()) ?? 4000;
       const proxyOk = checkCodextenderProxyAvailable
@@ -114,6 +125,7 @@ export function registerTasksFork(
       if (!codextenderAuthToken) {
         return c.json(codextenderAuthTokenMissingError(), 400);
       }
+      codextenderMaxContextTokens = await getCodextenderMaxContextTokens(codextenderPort);
     } else if (parentRuntime === "codex" && !(await checkCodexCliAvailable())) {
       return c.json(codexCliNotFoundError(), 400);
     }
@@ -157,6 +169,7 @@ export function registerTasksFork(
         baseUrl: `http://127.0.0.1:${codextenderPort ?? 4000}`,
         authToken: codextenderAuthToken!,
         claudeCommands: plainForkCommands,
+        maxContextTokens: codextenderMaxContextTokens,
       });
     } else if (runtimeForTask(child) === "codex") {
       const hasAgentsMd = Boolean(

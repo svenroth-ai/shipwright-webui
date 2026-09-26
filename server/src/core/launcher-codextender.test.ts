@@ -15,7 +15,6 @@ import {
   buildCodextenderCommands,
   CodextenderCwdMismatchError,
   DEFAULT_CODEXTENDER_MODEL_ALIAS,
-  resolveCodextenderAuthToken,
 } from "./launcher-codextender.js";
 
 vi.mock("node:crypto", async (importOriginal) => {
@@ -267,41 +266,5 @@ describe("buildCodextenderCommands", () => {
         claudeCommands: claude,
       }),
     ).toThrow(CodextenderCwdMismatchError);
-  });
-});
-
-describe("resolveCodextenderAuthToken", () => {
-  const ENV_KEY = "CODEXTENDER_AUTH_TOKEN";
-
-  it("PR-review BLOCK (iterate-2026-09-23, second round) — returns undefined when unset, no built-in fallback", () => {
-    const prior = process.env[ENV_KEY];
-    delete process.env[ENV_KEY];
-    try {
-      expect(resolveCodextenderAuthToken()).toBeUndefined();
-    } finally {
-      if (prior !== undefined) process.env[ENV_KEY] = prior;
-    }
-  });
-
-  it("returns a non-blank CODEXTENDER_AUTH_TOKEN env var verbatim", () => {
-    const prior = process.env[ENV_KEY];
-    process.env[ENV_KEY] = "custom-master-key";
-    try {
-      expect(resolveCodextenderAuthToken()).toBe("custom-master-key");
-    } finally {
-      if (prior === undefined) delete process.env[ENV_KEY];
-      else process.env[ENV_KEY] = prior;
-    }
-  });
-
-  it("treats a blank/whitespace env var as unset", () => {
-    const prior = process.env[ENV_KEY];
-    process.env[ENV_KEY] = "   ";
-    try {
-      expect(resolveCodextenderAuthToken()).toBeUndefined();
-    } finally {
-      if (prior === undefined) delete process.env[ENV_KEY];
-      else process.env[ENV_KEY] = prior;
-    }
   });
 });

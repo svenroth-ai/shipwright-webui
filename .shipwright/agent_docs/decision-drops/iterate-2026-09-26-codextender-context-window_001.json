@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-26-codextender-context-window",
+  "date": "2026-09-26",
+  "section": "Iterate — bug: Codextender context-window default too small",
+  "title": "Codextender launches set CLAUDE_CODE_MAX_CONTEXT_TOKENS from the proxy's declared window",
+  "context": "Codextender-routed tasks compacted almost immediately because Claude Code assumes a 200K context window for any model id it doesn't recognize (the Codex alias), regardless of the real ~1.05M-token window.",
+  "decision": "launcher-codextender.ts now sets CLAUDE_CODE_MAX_CONTEXT_TOKENS from Codextender's own /v1/models max_input_tokens field for the selected alias, resolved fresh at every launch/fork rather than hardcoded.",
+  "consequences": "Codextender tasks get the real context budget instead of a silent 200K ceiling; a probe failure leaves the var unset (safe 200K default), never a guessed number.",
+  "rationale": "Reading the value dynamically keeps webui and Codextender's own declared window from ever drifting apart, and reuses the existing fail-closed probe pattern already used for liveness.",
+  "rejected": "Hardcoding ~1,050,000 in webui was rejected -- it would drift silently if Codextender's declared window ever changes.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

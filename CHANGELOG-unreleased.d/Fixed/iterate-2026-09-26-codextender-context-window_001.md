@@ -1,0 +1,1 @@
+Codextender-routed tasks no longer over-compact almost immediately -- launch/fork now sets CLAUDE_CODE_MAX_CONTEXT_TOKENS from the proxy's own declared context window instead of leaving Claude Code to assume a 200K default

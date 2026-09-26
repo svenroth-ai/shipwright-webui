@@ -1404,6 +1404,17 @@ write surface; gated, path-guarded, and concurrency-safe.
   the Plan review and Review fields are disabled (not hidden) under
   Codextender, with an inline note that reviews follow the main model;
   they remain free-text/live-suggested under Codex Light.
+  **(iterate-2026-09-26-codextender-context-window)** Given Claude Code
+  assumes a 200K-token context window for any model id it doesn't
+  recognize (the Codex alias) and proactively over-compacts against that
+  wrong ceiling, when a Codextender launch/fork's proxy-availability
+  preflight succeeds, then the env-var prefix additionally sets
+  `CLAUDE_CODE_MAX_CONTEXT_TOKENS` from the proxy's own `GET /v1/models`
+  `max_input_tokens` field for the selected alias (`resolveCodextenderMaxContextTokens`)
+  — never a number hardcoded in webui — and is cleaned up on all 3 shells
+  same as the other Codextender env vars; a probe failure or an
+  unpatched/older proxy leaves the var unset, which is Claude Code's own
+  conservative 200K default, not a guessed number.
 
 ## Quality Requirements
 

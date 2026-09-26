@@ -1,0 +1,35 @@
+{
+  "stage": "doubt-review",
+  "verdict": "no_blocking_doubts",
+  "doubts": [
+    {
+      "lens": "concurrency & ordering",
+      "claim_under_doubt": "The new await on getCodextenderMaxContextTokens extends the launch/fork path's read-after-await window on a shared mutable ExternalTask object, reopening the TOCTOU hazard fork.ts's own snapshot pattern was built to close.",
+      "disproof_attempt": "Grepped every route that writes cwd: creation-time only, never PATCHed afterward, so the field this window exposes is factually immutable. The two fields fork.ts DOES snapshot against concurrent mutation (runtime, codexIntegrationMode) are never re-read from the live object downstream of the new probe -- the main chokepoint's codexIntegrationMode arrives as an already-snapshotted param, not re-derived inside the probe-await window. The existing concurrent-mutation regression test (fork.codextender.test.ts) still covers the real hazard; this new await does not reopen it.",
+      "severity": "info",
+      "what_would_resolve_it": "No fix required. A maintainer note that task.cwd/child.cwd reads rely on cwd's de-facto immutability (rather than an enforced invariant) would pre-empt a future regression if a cwd-mutating route is ever added."
+    },
+    {
+      "lens": "boundary & contract -- undefined propagation",
+      "claim_under_doubt": "undefined (probe failure) could be coerced into an unsafe value somewhere downstream, e.g. String(undefined) reaching a shell command string.",
+      "disproof_attempt": "Traced every consumer of maxContextTokens: both the env-prefix and cleanup-suffix builders gate on an explicit !== undefined / hasMaxContextTokens boolean check before ever calling String() on the value. probeCodextenderModels additionally filters max_input_tokens to a positive integer before attaching it to a model entry, so a malformed 0/negative/fractional/string value from the proxy can't leak through either. No path reaches a shell string with an unsafe value.",
+      "severity": "info",
+      "what_would_resolve_it": "No fix required."
+    },
+    {
+      "lens": "boundary & contract -- fork's default model alias",
+      "claim_under_doubt": "fork.ts's undefined-model default for the max-context probe could silently give a forked task the WRONG context window if the parent was launched under a non-default model alias.",
+      "disproof_attempt": "ExternalTask has no persisted model field at all -- codexImplementationModel is launch-body-only, never persisted. fork.ts's own pre-existing buildCodextenderCommands call ALSO omits model and already defaults ANTHROPIC_MODEL/CODEXTENDER_MODEL to the standard alias for every fork regardless of the parent's actual launch-time alias (pre-existing behavior from an earlier iterate, not introduced by this diff). This diff's undefined-model default is consistent with, not divergent from, that existing behavior -- it resolves max_input_tokens for the same alias the fork's env-vars will actually set. No NEW correctness bug is introduced.",
+      "severity": "low",
+      "what_would_resolve_it": "Non-blocking follow-up: persist the launch model per-task if fork-fidelity for non-default aliases matters. Out of scope for this bug fix."
+    },
+    {
+      "lens": "hidden coupling -- timeout/leak",
+      "claim_under_doubt": "The new fetch-based probe could leak a resource or hang without a timeout, or produce an unhandled rejection on a malformed response body.",
+      "disproof_attempt": "resolveCodextenderMaxContextTokens mirrors probeCodextenderLiveness's AbortController + setTimeout/clearTimeout-in-finally pattern exactly, including the .json() parse living inside the same try/catch. Grepped for other consumers of CLAUDE_CODE_MAX_CONTEXT_TOKENS -- no hidden reader/writer elsewhere in the tree. The probe is deliberately uncached per launch, consistent with the existing low-frequency/correctness-over-caching rationale already documented for isCodexCliAvailable's own uncached-by-design probe.",
+      "severity": "info",
+      "what_would_resolve_it": "No fix required."
+    }
+  ],
+  "summary": "No blocking doubts found across concurrency/ordering, boundary/contract, and hidden-coupling lenses. One non-blocking follow-up noted (fork does not persist per-task launch model for non-default-alias fidelity) -- pre-existing gap, not introduced by this diff, does not need to hold up this commit."
+}

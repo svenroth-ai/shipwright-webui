@@ -38,6 +38,7 @@ async function buildApp(overrides: {
   checkCodextenderProxyAvailable?: () => Promise<boolean>;
   getCodextenderPort?: () => Promise<number | undefined>;
   getCodextenderAuthToken?: () => string | undefined;
+  getCodextenderMaxContextTokens?: (port: number) => Promise<number | undefined>;
 } = {}) {
   const store = new SdkSessionsStore("/store/sdk-sessions.json", inMemoryDeps());
   await store.load();
@@ -160,6 +161,36 @@ describe("POST /tasks/:id/fork — Codextender inheritance", () => {
       body: JSON.stringify({}),
     });
     expect(codexCliProbed).toBe(false);
+  });
+
+  it("operator finding (2026-09-26) — sets CLAUDE_CODE_MAX_CONTEXT_TOKENS on the forked child's commands from the resolved probe value", async () => {
+    const { app, store } = await buildApp({
+      checkCodextenderProxyAvailable: async () => true,
+      getCodextenderMaxContextTokens: async () => 1_050_000,
+    });
+    const parent = await makeCodextenderParent(store);
+    const res = await app.request(`/api/external/tasks/${parent.taskId}/fork`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const body = (await res.json()) as { commands: { posix: string } };
+    expect(body.commands.posix).toContain("CLAUDE_CODE_MAX_CONTEXT_TOKENS='1050000'");
+  });
+
+  it("operator finding (2026-09-26) — leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined", async () => {
+    const { app, store } = await buildApp({
+      checkCodextenderProxyAvailable: async () => true,
+      getCodextenderMaxContextTokens: async () => undefined,
+    });
+    const parent = await makeCodextenderParent(store);
+    const res = await app.request(`/api/external/tasks/${parent.taskId}/fork`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const body = (await res.json()) as { commands: { posix: string } };
+    expect(body.commands.posix).not.toContain("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
   });
 
   it("doubt-review HIGH — a concurrent mutation of the parent's codexIntegrationMode mid-request does not desync the preflight from the command-building branch", async () => {

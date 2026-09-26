@@ -63,6 +63,18 @@ export interface CodextenderLaunchArgs {
    */
   authToken: string;
   /**
+   * The Codextender model's real context window in tokens, resolved by the
+   * caller from the proxy's own `/v1/models` `max_input_tokens` field
+   * (`resolveCodextenderMaxContextTokens` in `codextender-proxy-probe.ts`) —
+   * operator finding, 2026-09-26: Claude Code assumes a 200K window for any
+   * model id it doesn't recognize and over-compacts against that wrong
+   * ceiling long before the real ~1.05M-token Codex window is anywhere near
+   * full. `undefined` (probe failed, alias unknown, or field absent) leaves
+   * `CLAUDE_CODE_MAX_CONTEXT_TOKENS` unset — the safe fallback is Claude
+   * Code's own 200K default, never a number guessed here.
+   */
+  maxContextTokens?: number;
+  /**
    * The already-built plain-Claude commands for THIS task (same
    * session-id/resume/name/plugin-dir/slash-command shape an ordinary
    * Claude-runtime launch of this task would produce) — the chokepoint's
@@ -181,7 +193,7 @@ function injectEnvPrefix(
     cdPrefix +
     buildCodextenderEnvPrefix(args, q, shellForm, tokenFilePath) +
     rest +
-    buildCodextenderEnvCleanupSuffix(shellForm, q, tokenFilePath)
+    buildCodextenderEnvCleanupSuffix(shellForm, q, tokenFilePath, args.maxContextTokens !== undefined)
   );
 }
 
@@ -204,6 +216,7 @@ function buildCodextenderEnvCleanupSuffix(
   shellForm: "powershell" | "cmd" | "posix",
   q: (v: string) => string,
   tokenFilePath: string,
+  hasMaxContextTokens: boolean,
 ): string {
   const names = [
     "ANTHROPIC_BASE_URL",
@@ -211,6 +224,7 @@ function buildCodextenderEnvCleanupSuffix(
     "ANTHROPIC_MODEL",
     "CODEXTENDER_ACTIVE",
     "CODEXTENDER_MODEL",
+    ...(hasMaxContextTokens ? ["CLAUDE_CODE_MAX_CONTEXT_TOKENS"] : []),
   ];
   if (shellForm === "powershell") {
     return (
@@ -246,6 +260,11 @@ function buildCodextenderEnvPrefix(
     ["ANTHROPIC_MODEL", model],
     ["CODEXTENDER_ACTIVE", "1"],
     ["CODEXTENDER_MODEL", model],
+    ...(args.maxContextTokens !== undefined
+      ? ([["CLAUDE_CODE_MAX_CONTEXT_TOKENS", String(args.maxContextTokens)]] as Array<
+          [string, string]
+        >)
+      : []),
   ];
 
   if (shellForm === "powershell") {
