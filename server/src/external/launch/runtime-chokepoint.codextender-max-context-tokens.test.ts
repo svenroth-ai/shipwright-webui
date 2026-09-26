@@ -87,7 +87,7 @@ describe("applyRuntimeChokepoint — Codextender max-context-tokens plumbing (op
     }
   });
 
-  it("leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined (Claude Code's own 200K default), never a hardcoded guess", async () => {
+  it("actively unsets CLAUDE_CODE_MAX_CONTEXT_TOKENS (never merely omits it) when the probe resolves undefined (Claude Code's own 200K default), never a hardcoded guess", async () => {
     const task = makeTask();
     const result = await applyRuntimeChokepoint({
       task,
@@ -103,7 +103,10 @@ describe("applyRuntimeChokepoint — Codextender max-context-tokens plumbing (op
     });
     expect("commands" in result).toBe(true);
     if ("commands" in result) {
-      expect(result.commands.posix).not.toContain("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
+      // PR-review preflight BLOCK (round 13, 2026-09-26): an inherited value
+      // must be actively dropped (a leading `unset` on posix), never left un-assigned.
+      expect(result.commands.posix).toContain("unset CLAUDE_CODE_MAX_CONTEXT_TOKENS; ");
+      expect(result.commands.posix).not.toMatch(/CLAUDE_CODE_MAX_CONTEXT_TOKENS='/);
     }
   });
 });

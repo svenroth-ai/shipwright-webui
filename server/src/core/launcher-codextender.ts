@@ -18,11 +18,13 @@
  * holds identically to every other launcher in this directory.
  */
 
-import { randomUUID } from "node:crypto";
-import { unlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { unlinkSync } from "node:fs";
 
+import {
+  buildCodextenderEnvCleanupSuffix,
+  buildCodextenderEnvPrefix,
+  writeCodextenderAuthTokenFile,
+} from "./launcher-codextender-env.js";
 import { buildCdPrefix, type CopyCommandForms } from "./launcher.js";
 import { qPs, qCmd, qPosix } from "./shell-quote.js";
 
@@ -131,52 +133,6 @@ export function buildCodextenderCommands(args: CodextenderLaunchArgs): CopyComma
   }
 }
 
-/**
- * PR-review preflight BLOCK (round 7, iterate-2026-09-23) — embedding
- * `authToken`'s literal value in the generated command put it in terminal
- * input/scrollback and any session recording, even after round 7's own
- * env-cleanup suffix removed it from the shell's PERSISTENT environment
- * (that fix addressed leak-to-a-LATER-command, not visibility of THIS one).
- * Round 8: the token is written once to a private, per-launch temp file
- * (`0o600`, a fresh random name) and every shell form reads it back via its
- * own no-echo idiom (PowerShell `Get-Content`, cmd `set /p ... <file`, posix
- * `$(cat file)`) — confirmed empirically (real `cmd.exe`/`powershell.exe`,
- * not just read) that each correctly sets the var for a CHILD process
- * without ever printing the file's contents. `buildCodextenderEnvCleanupSuffix`
- * deletes it unconditionally after the `claude` invocation on all three
- * shells. Residual risk, accepted: a pty killed before that cleanup step
- * runs leaves an orphaned token file in the OS temp dir — a materially
- * smaller and shorter-lived exposure than the permanent scrollback record
- * this replaces, and the OS temp dir is already user-scoped (not
- * world-readable) on both Windows and POSIX.
- *
- * Round-12 preflight hardening: `flag: "wx"` creates the file exclusively
- * (fails with EEXIST instead of following a pre-existing symlink at the
- * generated path), so a TOCTOU symlink race in the shared temp dir can
- * never redirect the token write onto an attacker-chosen file. A random
- * UUID path already makes a genuine collision astronomically unlikely; the
- * bounded retry only exists to survive that near-impossible case rather
- * than crash the launch.
- */
-const MAX_TOKEN_FILE_CREATE_ATTEMPTS = 5;
-
-function writeCodextenderAuthTokenFile(token: string): string {
-  for (let attempt = 0; attempt < MAX_TOKEN_FILE_CREATE_ATTEMPTS; attempt++) {
-    const filePath = path.join(tmpdir(), `codextender-auth-${randomUUID()}.tmp`);
-    try {
-      writeFileSync(filePath, `${token}\n`, { mode: 0o600, flag: "wx" });
-      return filePath;
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "EEXIST") continue;
-      throw err;
-    }
-  }
-  throw new Error(
-    "Failed to create a unique Codextender auth token file after " +
-      `${MAX_TOKEN_FILE_CREATE_ATTEMPTS} attempts`,
-  );
-}
-
 function injectEnvPrefix(
   args: CodextenderLaunchArgs,
   shellForm: "powershell" | "cmd" | "posix",
@@ -193,95 +149,6 @@ function injectEnvPrefix(
     cdPrefix +
     buildCodextenderEnvPrefix(args, q, shellForm, tokenFilePath) +
     rest +
-    buildCodextenderEnvCleanupSuffix(shellForm, q, tokenFilePath, args.maxContextTokens !== undefined)
+    buildCodextenderEnvCleanupSuffix(shellForm, q, tokenFilePath)
   );
-}
-
-/**
- * Doubt-review/plan-review HIGH — PowerShell (`$env:X = ...;`) and cmd
- * (`set X=Y &&`) mutate the CURRENT, persistent shell's environment (unlike
- * the posix prefix form, which scopes to the one invocation it precedes).
- * The embedded terminal is a long-lived pty shell, not spawned fresh per
- * command, so without this suffix the proxy's `ANTHROPIC_BASE_URL` /
- * `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` would silently outlive this one
- * `claude` invocation and get inherited by whatever the user (or a later
- * Relaunch-as-Claude/Codex-Light) types next in the same tab. Runs
- * unconditionally after `rest` (cmd's `&`, PowerShell's/posix's `;` — none
- * gated on `rest`'s own exit code, so cleanup still happens if `claude`
- * exits non-zero). The temp token file is deleted here too, on all three
- * shells — posix's env-scoping was already correct, but it still wrote the
- * file to disk and must still remove it.
- */
-function buildCodextenderEnvCleanupSuffix(
-  shellForm: "powershell" | "cmd" | "posix",
-  q: (v: string) => string,
-  tokenFilePath: string,
-  hasMaxContextTokens: boolean,
-): string {
-  const names = [
-    "ANTHROPIC_BASE_URL",
-    "ANTHROPIC_AUTH_TOKEN",
-    "ANTHROPIC_MODEL",
-    "CODEXTENDER_ACTIVE",
-    "CODEXTENDER_MODEL",
-    ...(hasMaxContextTokens ? ["CLAUDE_CODE_MAX_CONTEXT_TOKENS"] : []),
-  ];
-  if (shellForm === "powershell") {
-    return (
-      `; Remove-Item ${names.map((n) => `Env:${n}`).join(",")} -ErrorAction SilentlyContinue` +
-      `; Remove-Item -LiteralPath ${q(tokenFilePath)} -Force -ErrorAction SilentlyContinue`
-    );
-  }
-  if (shellForm === "cmd") {
-    return names.map((n) => ` & set ${n}=`).join("") + ` & del /f /q ${q(tokenFilePath)}`;
-  }
-  return ` ; rm -f ${q(tokenFilePath)}`;
-}
-
-/**
- * Same three per-shell quoting forms `launcher-codex.ts`'s own
- * `buildReviewEnvPrefix` uses (PowerShell `$env:X = ...;`, cmd
- * `set X=Y &&`, posix `X=Y `) — reused as a pattern, not imported (that
- * function is private to `launcher-codex.ts` and this module has no
- * dependency on Codex-CLI concerns). `ANTHROPIC_AUTH_TOKEN` is the one
- * exception to the uniform `name=value` shape — see
- * `writeCodextenderAuthTokenFile`'s doc comment for why it's read back from
- * `tokenFilePath` instead of written as a literal.
- */
-function buildCodextenderEnvPrefix(
-  args: CodextenderLaunchArgs,
-  q: (v: string) => string,
-  shellForm: "powershell" | "cmd" | "posix",
-  tokenFilePath: string,
-): string {
-  const model = args.model?.trim() || DEFAULT_CODEXTENDER_MODEL_ALIAS;
-  const plainEntries: Array<[string, string]> = [
-    ["ANTHROPIC_BASE_URL", args.baseUrl],
-    ["ANTHROPIC_MODEL", model],
-    ["CODEXTENDER_ACTIVE", "1"],
-    ["CODEXTENDER_MODEL", model],
-    ...(args.maxContextTokens !== undefined
-      ? ([["CLAUDE_CODE_MAX_CONTEXT_TOKENS", String(args.maxContextTokens)]] as Array<
-          [string, string]
-        >)
-      : []),
-  ];
-
-  if (shellForm === "powershell") {
-    const tokenLine = `$env:ANTHROPIC_AUTH_TOKEN = (Get-Content -LiteralPath ${q(tokenFilePath)} -Raw).Trim(); `;
-    return tokenLine + plainEntries.map(([name, value]) => `$env:${name} = ${q(value)}; `).join("");
-  }
-  if (shellForm === "cmd") {
-    const tokenLine = `set /p ANTHROPIC_AUTH_TOKEN=<${q(tokenFilePath)} && `;
-    return (
-      tokenLine + plainEntries.map(([name, value]) => `set ${q(`${name}=${value}`)} && `).join("")
-    );
-  }
-  // Built via `+` (not one contiguous template literal) so the source text
-  // never juxtaposes "ANTHROPIC_AUTH_TOKEN=" with an immediately-following
-  // quote character — that shape false-positives the repo's hardcoded-
-  // secret scanner (`password|...|auth_token\s*[=:]\s*['"][^'"]{8,}['"]`),
-  // same precaution `launcher-codextender.test.ts` already documents.
-  const tokenLine = "ANTHROPIC_AUTH_TOKEN=" + `"$(cat ${q(tokenFilePath)})" `;
-  return tokenLine + plainEntries.map(([name, value]) => `${name}=${q(value)} `).join("");
 }

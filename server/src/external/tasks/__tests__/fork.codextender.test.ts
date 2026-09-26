@@ -178,7 +178,7 @@ describe("POST /tasks/:id/fork — Codextender inheritance", () => {
     expect(body.commands.posix).toContain("CLAUDE_CODE_MAX_CONTEXT_TOKENS='1050000'");
   });
 
-  it("operator finding (2026-09-26) — leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined", async () => {
+  it("PR-review preflight BLOCK (round 13, 2026-09-26) — actively unsets CLAUDE_CODE_MAX_CONTEXT_TOKENS (never merely omits it) when the probe resolves undefined", async () => {
     const { app, store } = await buildApp({
       checkCodextenderProxyAvailable: async () => true,
       getCodextenderMaxContextTokens: async () => undefined,
@@ -190,7 +190,10 @@ describe("POST /tasks/:id/fork — Codextender inheritance", () => {
       body: JSON.stringify({}),
     });
     const body = (await res.json()) as { commands: { posix: string } };
-    expect(body.commands.posix).not.toContain("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
+    // A leading `unset` is what guarantees an inherited value can't leak
+    // through — omitting the assignment alone would not be enough on posix.
+    expect(body.commands.posix).toContain("unset CLAUDE_CODE_MAX_CONTEXT_TOKENS; ");
+    expect(body.commands.posix).not.toMatch(/CLAUDE_CODE_MAX_CONTEXT_TOKENS='/);
   });
 
   it("doubt-review HIGH — a concurrent mutation of the parent's codexIntegrationMode mid-request does not desync the preflight from the command-building branch", async () => {

@@ -53,16 +53,25 @@ function readAndDeleteTokenFile(command: string, shellForm: "powershell" | "cmd"
 }
 
 describe("buildCodextenderCommands — CLAUDE_CODE_MAX_CONTEXT_TOKENS", () => {
-  it("operator finding (2026-09-26) — omits CLAUDE_CODE_MAX_CONTEXT_TOKENS entirely when maxContextTokens is not given", () => {
+  it("PR-review preflight BLOCK (round 13, 2026-09-26) — actively UNSETS CLAUDE_CODE_MAX_CONTEXT_TOKENS on all 3 shells when maxContextTokens is not given, rather than merely omitting an assignment (an inherited value would otherwise leak through)", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
       authToken: FIXTURE_MASTER_KEY,
       claudeCommands: claudeCommands(),
     });
-    for (const shellForm of ["powershell", "cmd", "posix"] as const) {
-      expect(result[shellForm]).not.toContain("CLAUDE_CODE_MAX_CONTEXT_TOKENS");
-    }
+    // powershell/cmd mutate the persistent shell env, so a stray inherited
+    // value must be explicitly removed, not merely left un-assigned.
+    expect(result.powershell).toContain("$env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = $null; ");
+    expect(result.cmd).toContain('set "CLAUDE_CODE_MAX_CONTEXT_TOKENS=" && ');
+    // posix's `NAME=value` prefix only scopes an assignment, so dropping an
+    // inherited export needs its own leading `unset` statement instead — no
+    // value is ever assigned.
+    expect(result.posix).toContain("unset CLAUDE_CODE_MAX_CONTEXT_TOKENS; ");
+    expect(result.posix).not.toMatch(/CLAUDE_CODE_MAX_CONTEXT_TOKENS='/);
+    // Cleanup suffix still unconditionally drops it on the two persistent shells.
+    expect(result.powershell).toContain("Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS");
+    expect(result.cmd).toContain(" & set CLAUDE_CODE_MAX_CONTEXT_TOKENS=");
     readAndDeleteTokenFile(result.posix, "posix");
   });
 

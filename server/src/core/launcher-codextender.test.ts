@@ -204,7 +204,7 @@ describe("buildCodextenderCommands", () => {
     readAndDeleteTokenFile(result.posix, "posix");
   });
 
-  it("plan-review HIGH + PR-review round 8 — cleans up all 5 env vars AND deletes the temp token file after the claude invocation, on all 3 shells", () => {
+  it("plan-review HIGH + PR-review round 8 — cleans up all 6 env vars AND deletes the temp token file after the claude invocation, on all 3 shells", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
@@ -213,11 +213,14 @@ describe("buildCodextenderCommands", () => {
     });
     const tokenPath = extractTokenFilePath(result.posix, "posix");
 
+    // CLAUDE_CODE_MAX_CONTEXT_TOKENS is cleaned up unconditionally here too
+    // (round 13, 2026-09-26) — even when this launch never set it, so a
+    // value from an earlier launch in the same long-lived pty can't survive.
     expect(result.powershell.trimEnd()).toMatch(
-      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
+      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
     );
     expect(result.cmd.trimEnd()).toMatch(
-      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & del \/f \/q ".+"$/,
+      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & del \/f \/q ".+"$/,
     );
     expect(result.posix.trimEnd()).toMatch(/ ; rm -f '.+'$/);
     expect(result.posix).not.toContain("Remove-Item");
