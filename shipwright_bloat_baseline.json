@@ -263,7 +263,7 @@
       "current": 842,
       "state": "grandfathered",
       "adr": "iterate-2026-05-27-transcript-renderer-scroll",
-      "note": "iterate-2026-09-26-mission-tab-subrunner added a `result` field to TaskNotificationEvent (a delegated subagent's completion report, verbatim from `<result>`) plus its correlation-safety doc comments; extractTaskNotification's size gate was then corrected (external code review, both providers, medium) from a 64KB whole-envelope drop to a 2MB sanity ceiling plus a 64KB cap on only the extracted `result` field, so an oversized notification is bounded rather than silently discarded — a genuinely unavoidable field addition and bugfix to the shared transcript-event contract, not drift."
+      "note": "Pre-bump ahead of iterate-2026-09-26-mission-tab-subrunner: that iterate adds a `result` field to TaskNotificationEvent (a delegated subagent's completion report, verbatim from `<result>`) plus its correlation-safety doc comments, and corrects extractTaskNotification's size gate (external code review, both providers, medium) from a 64KB whole-envelope drop to a 2MB sanity ceiling plus a 64KB cap on only the extracted `result` field, so an oversized notification is bounded rather than silently discarded. Split into its own PR (this one) because the feature PR's Tier-3 sensitive-path reviewer treats any touch of this file as a repo-policy change needing separate maintainer sign-off, and the maintainer cannot self-approve their own PR on GitHub."
     },
     {
       "path": "client/src/hooks/useAutoScroll.test.ts",
