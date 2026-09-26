@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-26-mission-tab-subrunner",
+  "date": "2026-09-26",
+  "section": "Iterate — change: mission tab feed polish + subrunner visibility",
+  "title": "Mission feed subrunner card + polish items",
+  "context": "The Mission tab under-reported delegated subagent work (no card, no completion signal) and had six other reported UX gaps (dedup, You-card styling, needs-attention pill, toggle color, per-card labels/timestamps).",
+  "decision": "Add a subrunner card kind correlated by Agent/Task dispatch -> ack agentId -> task-notification, opening a right-side report panel; fix the other 5 items alongside it.",
+  "consequences": "New SubrunnerPanel.tsx component; session-parser.ts's task-notification parse cap widened and bounded rather than dropping oversized reports; a one-time session-start divider replaces per-card timestamps/labels.",
+  "rationale": "A single cohesive iterate keeps all 6 Mission-feed reports (from real screenshots + design review) fixed together instead of six one-line PRs.",
+  "rejected": "A stacked/tabbed multi-panel layout for concurrent subrunners was declined for v1 (real layout redesign, no real concurrent transcript to design against).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-26-mission-tab-subrunner.md"
+}

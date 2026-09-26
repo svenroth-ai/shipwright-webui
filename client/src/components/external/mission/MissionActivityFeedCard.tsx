@@ -2,26 +2,34 @@
  * Single-card rendering for `MissionActivityFeed.tsx`, split out at the 300-line
  * convention. EVERY `*Full` field gets a click-to-expand toggle ("Nie croppen",
  * iterate-2026-09-05) — text, explanation, detail, answer and command. */
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
 import { AnswerInTerminalButton } from "../BubbleTranscript/AnswerInTerminalButton";
 import type { ActivityCard } from "../../../lib/missionActivityFeed";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
 import type { ExternalTask } from "../../../lib/externalApi";
-import { CheckIcon, FeedIcon, XIcon } from "./MissionFeedIcons";
+import { CheckIcon, XIcon } from "./MissionFeedIcons";
 import { FeedCommands } from "./MissionActivityFeedCommands";
-import { ExpandToggle, FeedTime, KIND_LABEL, kindAccent, mergeStateLabel, pillLabel } from "./MissionActivityFeedCardParts";
+import { ExpandToggle, mergeStateLabel, pillLabel } from "./MissionActivityFeedCardParts";
+import { stripDuplicateSentence } from "../../../lib/missionActivityFeedText";
 
 export { kindAccent } from "./MissionActivityFeedCardParts";
 
 export function FeedCard({
   card,
   onArtifactClick,
+  onSubrunnerClick,
   commitArtifact,
   task,
 }: {
   card: ActivityCard;
   onArtifactClick?: (artifact: string) => void;
+  /** Opens the right-side panel for a resolved subrunner card
+   *  (iterate-2026-09-26-mission-tab-subrunner). Every subrunner card always
+   *  carries a `subrunnerId` (set at dispatch, in `createSubrunnerDispatchCard`);
+   *  a caller that omits this prop entirely still sees the report, rendered
+   *  inline instead since there is then nothing a click could open. */
+  onSubrunnerClick?: (subrunnerId: string) => void;
   commitArtifact: CommitArtifact | null;
   task: ExternalTask;
 }) {
@@ -35,12 +43,25 @@ export function FeedCard({
   // 26th (glm, medium): one state dumped the traceback on every open.
   const [blockerDetailFullyExpanded, setBlockerDetailFullyExpanded] = useState(false);
 
-  const isSystem = card.kind === "system";
-  const accent = kindAccent(card);
   const pill = pillLabel(card);
   // Gate on artifact === "commit", not just kind === "delivery" (code review
   // catch): a `artifact: "phase"` delivery would surface an unrelated PR.
   const prDetail = card.kind === "delivery" && card.artifact === "commit" ? commitArtifact?.detail : null;
+  // The ONLY suppressed sentence (iterate-2026-09-26-mission-tab-subrunner,
+  // Sven's correction — "nicht alles was geprintet ist hidden wird"): a
+  // sentence-level, whitespace-tolerant match against the synthesized
+  // "Merged as ...\"." sentence `missionActivityFeedReconcile.ts` writes
+  // whenever a commit message is available, which says nothing the PR box's
+  // own title (same text) doesn't already say — stripped even when it's
+  // embedded in a longer narrative, not only when it's the card's WHOLE text
+  // (external code review, both providers, medium: the first cut required
+  // whole-text equality and left an embedded duplicate sentence unstripped).
+  // Any other real narrative — including a DIFFERENT sentence on the same
+  // card — stays fully visible.
+  const prDuplicateText = prDetail?.message ? `Merged as "${prDetail.message}".` : null;
+  const displayText = stripDuplicateSentence(card.text, prDuplicateText);
+  const displayTextFull = card.textFull ? stripDuplicateSentence(card.textFull, prDuplicateText) : card.textFull;
+  const showText = displayText.length > 0;
   // Clamped on `commands.length` (73rd, glm, low) — what `FeedCommands` gates
   // on, so a `commandCount > 0` card with an EMPTY `commands` can no longer
   // promise "N commands" and expand to no chips. Rounds 47/57/72 declined it as
@@ -50,28 +71,18 @@ export function FeedCard({
 
   return (
     <article className="mc-feed-card" data-kind={card.kind}>
-      {/* Absent only when the JSONL event carried no timestamp — never a
-          client-side "now" (iterate-2026-08-31-mission-feed-gaps). A `system`
-          card skips the kind label + pill, keeps its timestamp row. */}
-      {!isSystem ? (
+      {/* Kind label + per-card timestamp both removed site-wide
+          (iterate-2026-09-26-mission-tab-subrunner) — the timeline node's
+          icon + color already convey kind, and a one-time "Session started"
+          divider (`MissionActivityFeed.tsx`) replaces per-card time. The
+          header row now renders only the status pill, when one exists. */}
+      {pill && (
         <div className="mc-feed-head">
-          <span className="mc-feed-kind-row">
-            <span className="mc-feed-kind" style={{ "--kind": accent.color } as CSSProperties}>{KIND_LABEL[card.kind]}</span>
-            {card.timestamp && <FeedTime at={card.timestamp} />}
+          <span className="mc-feed-pill" data-status={card.status}>
+            {card.status === "ok" ? <CheckIcon /> : card.status === "err" ? <XIcon /> : null}
+            {pill}
           </span>
-          {pill && (
-            <span className="mc-feed-pill" data-status={card.status}>
-              {card.status === "ok" ? <CheckIcon /> : card.status === "err" ? <XIcon /> : null}
-              {pill}
-            </span>
-          )}
         </div>
-      ) : (
-        card.timestamp && (
-          <div className="mc-feed-head mc-feed-head-system">
-            <FeedTime at={card.timestamp} />
-          </div>
-        )
       )}
       {/* card.text can be empty (a turn wrote no narration of its own) — then
           only commands / detail render below. When present it takes the same
@@ -86,16 +97,18 @@ export function FeedCard({
           The reducer deletes `textFull` at both mutation sites, so no
           production render changes — the renderer stops depending on that.
           Expanding, not glm's "drop `textFull`", is what "nie croppen" asks,
-          and the text stays a React text child, so still inert. */}
-      {card.text && (
+          and the text stays a React text child, so still inert.
+          `showText` (not bare `card.text`) additionally suppresses only the
+          EXACT PR-title-duplicate sentence — see `prDuplicateText` above. */}
+      {showText && (
         card.textLiteral ? (
           <>
-            <p>{textExpanded && card.textFull ? card.textFull : card.text}</p>
+            <p>{textExpanded && displayTextFull ? displayTextFull : displayText}</p>
             {card.textFull && <ExpandToggle expanded={textExpanded} onToggle={() => setTextExpanded((v) => !v)} />}
           </>
         ) : (
           <>
-            <MarkdownChunk content={textExpanded && card.textFull ? card.textFull : card.text} />
+            <MarkdownChunk content={textExpanded && displayTextFull ? displayTextFull : displayText} />
             {card.textFull && <ExpandToggle expanded={textExpanded} onToggle={() => setTextExpanded((v) => !v)} />}
           </>
         )
@@ -220,15 +233,42 @@ export function FeedCard({
 
       {prDetail && (prDetail.prNumber != null || prDetail.prUrl) && (
         <div className="mc-feed-pr">
-          <span className="mc-feed-pr-icon"><FeedIcon kind="delivery" /></span>
+          {/* Green checkmark, not the two-circle "delivery" glyph (Sven:
+              "Icon könnte ein grüner Haken sein"). */}
+          <span className="mc-feed-pr-icon"><CheckIcon /></span>
           <span className="mc-feed-pr-body">
             <span className="mc-feed-pr-title">{prDetail.message ?? "Merged"}</span>
             <span className="mc-feed-pr-meta">
-              {prDetail.prNumber != null && <span>#{prDetail.prNumber}</span>}
+              {prDetail.prNumber != null && <span className="mc-feed-pr-number">#{prDetail.prNumber}</span>}
               <span data-merged={prDetail.merge === "merged" ? "true" : undefined}>{mergeStateLabel(prDetail.merge)}</span>
             </span>
           </span>
         </div>
+      )}
+
+      {/* A delegated subagent's own status/report affordance
+          (iterate-2026-09-26-mission-tab-subrunner). Running renders a
+          pulsing dot — motion tokens, no magic numbers (CLAUDE.md A20) —
+          that the global reduced-motion floor (`motion.css`) settles to its
+          final visible frame, never hidden content. Done/failed open the
+          right-side panel via `onSubrunnerClick`, worded distinctly (external
+          code review, openai, medium: "the same button whether they
+          succeeded or failed" made the done/failed distinction invisible) —
+          a caller that never wires that prop up renders the report inline
+          instead, since there is then nothing a click could open. */}
+      {card.kind === "subrunner" && (
+        card.subrunnerStatus === "running" ? (
+          <p className="mc-feed-subrunner-status" data-status="running">
+            <span className="mc-feed-subrunner-dot" aria-hidden="true" />Running…
+          </p>
+        ) : card.subrunnerId && onSubrunnerClick ? (
+          <button type="button" className="mc-story-link" onClick={() => onSubrunnerClick(card.subrunnerId!)}>
+            {card.subrunnerStatus === "failed" ? <XIcon /> : <CheckIcon />}
+            {card.subrunnerStatus === "failed" ? "View failure details" : "View subrunner report"}
+          </button>
+        ) : card.subrunnerReport ? (
+          <MarkdownChunk content={card.subrunnerReport} />
+        ) : null
       )}
 
       {card.artifact && onArtifactClick ? <button type="button" className="mc-story-link" onClick={() => onArtifactClick(card.artifact!)}>Open {card.artifact}</button> : null}

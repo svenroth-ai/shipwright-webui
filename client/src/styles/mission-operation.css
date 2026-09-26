@@ -104,11 +104,13 @@
 .mc-feed-card b, .mc-feed-card strong { color: var(--ink); font-weight: 600; }
 .mc-feed-card code { font-family: var(--mono); font-size: .92em; background: rgba(255, 255, 255, .06); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--accent); }
 .mc-feed-card[data-kind="system"] { border-style: dashed; background: transparent; color: var(--faint); font-size: 12px; }
-.mc-feed-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
-.mc-feed-head-system { justify-content: flex-end; margin-bottom: 3px; }
-.mc-feed-kind-row { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
-.mc-feed-kind { font-family: var(--mono); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--kind, var(--muted)); }
-.mc-feed-time { font-family: var(--mono); font-size: 10.5px; color: var(--faint); white-space: nowrap; }
+/* Kind labels + per-card timestamps removed site-wide
+   (iterate-2026-09-26-mission-tab-subrunner) — the timeline node's icon +
+   color already convey kind, and a one-time session-start divider (below)
+   replaces per-card time. The header row now carries only the status pill,
+   so it is always a single child — right-aligned unconditionally, the same
+   treatment the old system-only variant used. */
+.mc-feed-head { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 4px; }
 .mc-feed-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
 .mc-feed-pill[data-status="ok"] { background: var(--ok-tint); border: 1px solid var(--ok-line); color: var(--ok); }
 .mc-feed-pill[data-status="err"] { background: var(--err-tint); border: 1px solid var(--err-line); color: var(--err); }
@@ -150,11 +152,24 @@
 .mc-feed-pr-icon svg { width: 14px; height: 14px; }
 .mc-feed-pr-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .mc-feed-pr-title { color: var(--ink); font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mc-feed-pr-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; gap: 8px; }
+/* `min-width: 0` lets this flex item actually shrink inside `.mc-feed-pr-body`
+   instead of forcing the row wider (the right-edge clipping Sven reported);
+   the merge-state span wraps onto a second line rather than ellipsizing
+   mid-word, while the PR-number span keeps `flex-shrink: 0` so a short,
+   important number is never itself the thing that compresses. */
+.mc-feed-pr-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+/* Dedicated class, not `:first-child` (external code review, low: the
+   PR-number span is conditionally rendered — when it's absent the merge-
+   state span would become `:first-child` and wrongly inherit the no-shrink
+   rule meant only for the number). */
+.mc-feed-pr-number { flex-shrink: 0; }
 /* iterate-2026-09-05-mission-feed-ux-gaps — "nie croppen": a click-to-expand
    affordance for every bounded field that now carries an untruncated `xFull`
    counterpart, modeled on StopHookCard.tsx's collapsed-by-default pattern. */
-.mc-feed-expand-btn { display: block; margin-top: 4px; padding: 0; border: none; background: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--accent); cursor: pointer; }
+/* Muted, not the saturated `--accent` teal (Sven: a routine disclosure like
+   "N commands" shouldn't read as urgent/important, matching the reference
+   desktop app) — still visible + clickable via the hover underline below. */
+.mc-feed-expand-btn { display: block; margin-top: 4px; padding: 0; border: none; background: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; }
 .mc-feed-expand-btn:hover { text-decoration: underline; }
 .mc-feed-qa-answer-label { font-weight: 600; color: var(--ink); }
 .mc-feed-chip-wrap { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
@@ -172,6 +187,24 @@
    iterate-2026-09-20-mission-feed-transcript-fidelity) — same 9px rhythm
    `.mc-feed-pr`/`.mc-feed-code`/`.mc-feed-qa-question` already use above. */
 .mc-feed-pr + .mc-story-link { margin-top: 9px; }
+
+/* ── "You" card (item 2, iterate-2026-09-26-mission-tab-subrunner) ────────
+   Greenish tint (final decision after comparing a gray option) + a light
+   icon fill, distinct from every other generic `.mc-feed-card`. */
+.mc-feed-card[data-kind="user"] { background: color-mix(in srgb, var(--ok) 10%, var(--card) 88%); border-color: var(--ok-line); }
+.mc-feed-entry:has(.mc-feed-card[data-kind="user"]) .mc-feed-node { background: var(--ok-tint); }
+.mc-feed-entry:has(.mc-feed-card[data-kind="user"]) .mc-feed-node svg { fill: currentColor; fill-opacity: .18; }
+
+/* ── Subrunner card (item 3, iterate-2026-09-26-mission-tab-subrunner) ──── */
+.mc-feed-subrunner-status { display: inline-flex; align-items: center; gap: 7px; margin: 0; color: var(--warn); font-size: 12.5px; font-weight: 600; }
+/* The "live-dot" pulse token family already exists for exactly this shape
+   (`motion.css`'s own comment: "ambient LOOP (live-dot / active Record
+   node)"); the global reduced-motion floor settles it at its resting
+   opacity:1 frame, never hiding the "Running…" text it sits beside. */
+.mc-feed-subrunner-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: motion-pulse var(--motion-pulse) ease-in-out infinite; }
+
+/* ── One-time session-start divider (item 6) — replaces per-card time ──── */
+.mc-feed-session-start { text-align: center; font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; color: var(--faint); margin-bottom: 10px; }
 .mc-hero .t { color: #5fc9b4; }
 .mc-hero .p { color: #3fbf9a; }
 .mc-hero .r { color: #f08772; }

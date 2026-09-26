@@ -1,6 +1,7 @@
 import { toolUses, type ParsedEvent } from "../external/session-parser";
 import type { MissionContext } from "./missionContextApi";
 import { isCompactionMarker } from "./missionActivityFeedText";
+import { resolveSubrunnerNotification } from "./missionActivityFeedSubrunner";
 import { buildUserReplyCard, extractTurnProse, flushPendingNarration, processTurnTools, type PendingNarration, type TurnToolsState } from "./missionActivityFeedTurn";
 import { type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
@@ -87,6 +88,17 @@ export function deriveActivityFeed(
       const resolveState = { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };
       unresolvedTest = resolveToolResults(event, resolveState);
       writtenTestFiles = resolveState.writtenTestFiles;
+      continue;
+    }
+    if (event.kind === "task-notification") {
+      // A delegated subagent's completion notification — resolves the
+      // matching `subrunner` card (dispatched earlier in this same reducer
+      // pass) by its stable agent id; a no-op for any other notification
+      // kind (e.g. a background Bash command's) since its `taskId` never
+      // matches a subrunner card's id (iterate-2026-09-26-mission-tab-
+      // subrunner — see `missionActivityFeedSubrunner.ts`'s doc comment for
+      // why this, not a hand-back wrapper message, is the real mechanism).
+      resolveSubrunnerNotification(cards, event);
       continue;
     }
     if (event.kind !== "assistant") continue;

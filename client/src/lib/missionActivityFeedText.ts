@@ -221,3 +221,28 @@ export function resolveQuestionAnswer(rawContent: string, options: string[]): { 
   const full = excerpt(source, Infinity, Infinity);
   return full.length > excerpted.length ? { answer: excerpted, answerFull: full } : { answer: excerpted };
 }
+
+/**
+ * Strips ONLY a duplicate sentence from `text` — AC1's "a sentence that is
+ * an exact/near-exact auto-generated duplicate", not the whole-text equality
+ * this shipped with first (external code review, both providers, medium: a
+ * duplicate sentence embedded in a longer narrative, e.g. "Investigated the
+ * flaky test. Merged as \"X\".", rendered unstripped). Matches `duplicate` as
+ * a whitespace-tolerant sequence of its own tokens (the "near-exact"
+ * tolerance the AC also asks for — trailing-whitespace/line-break variants),
+ * removes only that span, and stitches the remaining narration back together
+ * with a single space. Returns `text` unchanged when no `duplicate` is given
+ * or none is found.
+ */
+export function stripDuplicateSentence(text: string, duplicate: string | null | undefined): string {
+  if (!duplicate) return text;
+  const trimmedDuplicate = duplicate.trim();
+  if (!trimmedDuplicate) return text;
+  if (text.trim() === trimmedDuplicate) return "";
+  const pattern = trimmedDuplicate.split(/\s+/).map((token) => token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+  const match = new RegExp(pattern).exec(text);
+  if (!match) return text;
+  const before = text.slice(0, match.index).trimEnd();
+  const after = text.slice(match.index + match[0].length).trimStart();
+  return before && after ? `${before} ${after}` : before || after;
+}

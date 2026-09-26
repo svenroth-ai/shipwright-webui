@@ -1,0 +1,7 @@
+{
+  "intent": "change",
+  "description": "Mission tab: subrunner visibility (new feature) + 5 UX polish items (dedup, You-card styling, needs-attention pill removal, muted toggle color, session-start divider)",
+  "summary": "The Mission tab now shows a delegated subagent's work as its own card with a running/done/failed status and a report you can open, plus several smaller readability fixes reported by Sven.",
+  "spec_impact": "modify",
+  "affected_frs": ["FR-01.66"]
+}

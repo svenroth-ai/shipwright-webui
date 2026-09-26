@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "All 6 acceptance criteria implemented and confirmed by spec-reviewer PASS; no extra scope beyond the spec."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "pass",
+      "note": "No API routes touched. The one untrusted boundary (Claude's own JSONL transcript text) is handled defensively: regex extraction returns null on no match, notification correlation no-ops when no card matches, and the task-notification parse cap prevents a pathological input from running unbounded regex work."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "pass",
+      "note": "No SQL, no auth routes, no secrets. Report text renders through the existing MarkdownChunk/react-markdown sanitized path, same as every other transcript-derived field in this feed."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "New/extended tests assert on real outcomes — rendered DOM text, callback arguments, resolved card fields — not internal state. Every new branch has a happy-path and at least one failure/edge-path test (failed status, unmatched taskId, ack with no agentId, a same-id collision)."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "pass",
+      "note": "No DB calls, no unbounded lists. The reducer still runs once per transcript poll, same cost shape as before; the widened task-notification parse cap (4KB->64KB) bounds a single regex pass, not a loop."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "Every touched/created file is at or under the 300-line convention ceiling (verified via the anti-ratchet bloat gate, exit 0); the one grandfathered exception's growth (session-parser.ts) is documented with a note field. New files follow existing sibling patterns (missionActivityFeedSubrunner.ts alongside missionActivityFeedClassify.ts/missionActivityFeedTurn.ts; SubrunnerPanel.tsx alongside ArtifactPanel.tsx/MissionArtifactPanel.tsx)."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "One changed serialized format: Claude Code CLI's own <task-notification> transcript envelope (producer) is read by session-parser.ts's extractTaskNotification + missionActivityFeedSubrunner.ts (consumer) — read-only per CLAUDE.md rule 1 (webui never writes into Claude's JSONL). Not a round-trip in the write-then-read sense since webui never authors this format; tests instead parse real-shaped JSONL fixtures (dispatch -> ack -> notification) end-to-end through the real parser and reducer, confirmed against an actual captured transcript during build."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "uv run shared/scripts/tools/scan_test_hygiene.py --diff reports no findings."
+    }
+  ]
+}

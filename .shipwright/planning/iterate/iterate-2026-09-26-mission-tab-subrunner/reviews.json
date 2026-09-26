@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-26-mission-tab-subrunner",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T09:54:39.560684+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T09:55:40.147131+00:00",
+      "disposition": "mid-flight small-to-medium escalation (references/mid-flight-escalation.md): the backfill checklist requires only external LLM review before further code changes, not a separate Branch A plan/architecture review — that gate belongs to the fresh medium-complexity flow this run bypassed by escalating after Build had already started",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedTypes.ts",
+          "line": 123,
+          "finding": "ActivityCard.subrunnerId's doc comment still described the disproven initial hand-back-message design instead of the corrected provisional-id/ack-overwrite/task-notification design.",
+          "suggestion": "Update the field doc to describe the corrected mechanism.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedSubrunner.ts",
+          "line": 88,
+          "finding": "The corrected subrunner resolution mechanism (extractSubrunnerAgentId, applySubrunnerAck, resolveSubrunnerNotification) had essentially no direct test coverage, and no reducer-level test exercised the harness's real dispatch tool name 'Agent' at all.",
+          "suggestion": "Add unit tests directly against missionActivityFeedSubrunner.ts's exports covering dispatch -> ack -> task-notification, plus one end-to-end test using tool name 'Agent'.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+          "line": 250,
+          "finding": "No test covered the new subrunner rendering branch (running dot, resolved report-link button, inline-fallback).",
+          "suggestion": "Add MissionActivityFeedCard.test.tsx cases for all three subrunner render states.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/SubrunnerPanel.tsx",
+          "line": 1,
+          "finding": "New SubrunnerPanel component had no dedicated test file, and MissionBody.test.tsx had no case for the new activeNode = subrunner:<id> wiring.",
+          "suggestion": "Add SubrunnerPanel.test.tsx and a MissionBody.test.tsx case that opens the panel from a resolved subrunner card.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx",
+          "line": 144,
+          "finding": "The one PR-card test unknowingly exercised the new item-1 dedup-suppression path but asserted nothing about it; no companion test proved a genuinely different narrative sentence stays visible.",
+          "suggestion": "Add positive/negative assertions for the PR-title dedup suppression.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedTurn.ts",
+          "line": 180,
+          "finding": "The subrunner PendingTool.commandKey was hardcoded to the 'Agent' literal even when tool.name === 'Task', inconsistent with every other bucket in the file.",
+          "suggestion": "Use tool.name instead of the hardcoded literal.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-26T09:54:48.432224+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "client/src/lib/missionActivityFeedSubrunner.ts (applySubrunnerAck / AGENT_ID_RE), client/src/lib/missionActivityFeedResolve.ts (subrunner branch)",
+          "line": null,
+          "finding": "Claim under doubt: a non-review Task dispatch resolves through the same ack->notification path as an Agent dispatch and eventually reaches subrunnerStatus done/failed — The classic Claude Code Task tool is synchronous — its own tool_result IS the subagent's final answer. A non-review Task falls into the subrunner bucket, whose ack handling only recognized the Agent-style async ack shape (agentId: <id>). A synchronous Task's tool_result would essentially never contain that string, so subrunnerId would stay the provisional tool_use.id forever and no task-notification would ever arrive for a Task that already completed synchronously — the card would get stuck permanently at subrunnerStatus: running, silently discarding the real report.",
+          "suggestion": "either empirically confirm a non-review Task's completion also arrives via task-notification, or handle a non-review Task's ack synchronously — read result.content directly as the finished report and mark the card done/failed on ack.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": "client/src/lib/missionActivityFeedSubrunner.ts (resolveSubrunnerNotification)",
+          "line": null,
+          "finding": "Claim under doubt: the ack (which overwrites subrunnerId to the real, stable agent id) always finishes processing before any task-notification for that same task is processed — resolveSubrunnerNotification correlates strictly by event.taskId === card.subrunnerId at the moment the notification event is walked, with no retry/rescan queue. No mechanism nor test proved the ack event is guaranteed to be seen and applied before the notification event within a single derivation pass.",
+          "suggestion": "a written argument for why ack-before-notification ordering is structurally guaranteed within one JSONL transcript, or a fallback re-attempt mechanism.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "client/src/lib/missionActivityFeedSubrunner.ts:80",
+          "line": null,
+          "finding": "Claim under doubt: AGENT_ID_RE only ever matches the harness's own launch-acknowledgement preamble — The regex was an unanchored substring search over the entire ack content. Any ack content that happened to contain the literal text 'agentId: <token>' for unrelated reasons could silently overwrite subrunnerId with a garbage value, permanently breaking correlation.",
+          "suggestion": "anchor the regex to the known preamble so an incidental substring in unrelated prose can't be mistaken for the dispatch's own id fingerprint.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/lib/missionActivityFeedSubrunner.ts:104",
+          "line": null,
+          "finding": "Claim under doubt: resolveSubrunnerNotification's cards.find() correctly resolves exactly the one card a notification is for — .find() returns only the first matching open subrunner card, with no defense against two concurrently-open subrunner cards ever sharing a subrunnerId.",
+          "suggestion": "prefer the still-running card with that id over an already-resolved one, so a collision degrades predictably rather than picking array order.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-26T09:54:53.544388+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec |",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx` (the `prDuplicateText` / `showText` block)",
+          "line": null,
+          "finding": "Item 1 specifies suppressing a sentence that duplicates the PR box title — implying sentence-level stripping. The implementation only suppresses when the entire `card.text` equals the synthesized `Merged as \"X\".` string. If the narrative text is `\"Investigated the flaky test. Merged as \\\"X\\\".\"` (duplicate sentence plus other real content), the duplicate sentence still renders. Conversely, the \"near-exact\" tolerance from the AC (e.g. trailing-whitespace or period variants) is also unimplemented.",
+          "suggestion": "Split `card.text` into sentences (or match the duplicate as a substring with a regex tolerant of punctuation/whitespace) and strip only the matching sentence, rendering the remainder.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": "client/src/external/session-parser.ts` (`extractTaskNotification`, cap widened 4096→65_536)",
+          "line": null,
+          "finding": "The original failure mode (a multi-KB report silently failing the `endsWith` check, leaving the subrunner card stuck on \"running\" forever) was not fixed, only moved: any notification whose envelope exceeds 64 KB now returns `null` at the very first line, so the event is dropped entirely and the card is permanently stuck on `\"running\"` with no report. The Confidence Calibration section itself documents reports that \"ran several KB,\" so this is a realistic input class, not hypothetical.",
+          "suggestion": "On oversized content, don't bail before parsing — at minimum still extract `status`/`task-id`/`summary` (truncating `result`) so the card resolves; the `startsWith`/`endsWith` envelope check can also be relaxed (e.g. `lastIndexOf(\"</task-notification>\")`) so a trailing newline or truncated tail doesn't kill the whole event.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "client/src/styles/mission-operation.css` (`.mc-feed-pr-meta > span:first-child { flex-shrink: 0; }`)",
+          "line": null,
+          "finding": "The spec says \"the PR-number span gets `flex-shrink: 0`\". The implementation pins whichever span happens to be the first child of `.mc-feed-pr-meta`. This is positional and fragile — a JSX reorder of the merge-state/PR-number spans (or insertion of a new leading span) silently pins the wrong element, reintroducing exactly the clipping this item fixes. Add a test or a dedicated class.",
+          "suggestion": "Give the PR-number span its own class (e.g. `.mc-feed-pr-num`) and target that instead of `:first-child`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/src/components/external/mission/MissionActivityFeed.test.tsx` (session-start divider test)",
+          "line": null,
+          "finding": "The divider test only asserts the time portion (`toLocaleTimeString`) is present, and never checks the date/\"Today\" segment, the \"Session started ·\" prefix, or that the divider appears above the first card. A broken `formatSessionStart` that returns only a time string, or a divider rendered at the bottom, still passes.",
+          "suggestion": "Assert the full rendered text (e.g. via a fixed fake-timers date so \"Today, 09:15\" is deterministic) and assert the divider precedes the first card entry.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": "client/src/components/external/mission/SubrunnerPanel.tsx` (`useEffect` with `[card.subrunnerId]` dep capturing `document.activeElement`)",
+          "line": null,
+          "finding": "If `card.subrunnerId` changes while the panel is open (the reducer can overwrite it mid-lifecycle), the capture effect re-runs and overwrites `returnToRef` with the panel's own close button, so focus is restored to a dead element on unmount rather than the original trigger. Minor a11y regression path, not a crash.",
+          "suggestion": "Only capture on mount (empty dep array), or guard against capturing an element inside the panel.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-09-26T09:54:58.852410+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ### Findings\n\n- **Category: spec | Severity: medium**\n  **File:** `client/src/components/external/mission/MissionActivityFeedCard.tsx` (the `prDuplicateText` / `showText` block)\n  **Finding:** Item 1 specifies suppressing *a sentence* that duplicates the PR box title — implying sentence-level stripping. The implementation only suppresses when the **entire** `card.text` equals the synthesized `Merged as \"X\".` string. If the narrative text is `\"Investigated the flaky test. Merged as \\\"X\\\".\"` (duplicate sentence plus other real content), the duplicate sentence still renders. Conversely, the \"near-exact\" tolerance from the AC (e.g. trailing-whitespace or period variants) is also unimplemented.\n  **Suggestion:** Split `card.text` into sentences (or match the duplicate as a substring with a regex tolerant of punctuation/whitespace) and strip only the matching sentence, rendering the remainder.\n\n- **Category: edge-case | Severity: medium**\n  **File:** `client/src/external/session-parser.ts` (`extractTaskNotification`, cap widened 4096→65_536)\n  **Finding:** The original failure mode (a multi-KB report silently failing the `endsWith` check, leaving the subrunner card stuck on \"running\" forever) was not fixed, only moved: any notification whose envelope exceeds 64 KB now returns `null` at the very first line, so the event is dropped entirely and the card is permanently stuck on `\"running\"` with no report. The Confidence Calibration section itself documents reports that \"ran several KB,\" so this is a realistic input class, not hypothetical.\n  **Suggestion:** On oversized content, don't bail before parsing — at minimum still extract `status`/`task-id`/`summary` (truncating `result`) so the card resolves; the `startsWith`/`endsWith` envelope check can also be relaxed (e.g. `lastIndexOf(\"</task-notification>\")`) so a trailing newline or truncated tail doesn't kill the whole event.\n\n- **Category: bug | Severity: low**\n  **File:** `client/src/styles/mission-operation. […truncated]\n\n[openai] - Category: spec | Severity: medium | File: `client/src/components/external/mission/MissionActivityFeedCard.tsx:252` — Finding: Resolved subrunner cards show the same “View subrunner report” button whether they succeeded or failed. The required done/failed status is invisible. Suggestion: Render distinct done and failed labels or indicators, and test both states.\n\n- Category: spec | Severity: medium | File: `client/src/components/external/mission/MissionActivityFeedCard.tsx:58` — Finding: PR dedup works only when the entire `card.text` exactly equals the generated sentence. A near-exact variant, or that sentence within a longer narrative, remains duplicated despite the acceptance criterion. Suggestion: Remove only the matching sentence from rendered text while preserving every other sentence and any `textFull` content.\n\n- Category: bug | Severity: medium | File: `client/src/lib/missionActivityFeedSubrunner.ts:146` — Finding: Every notification status except `\"failed\"` becomes `\"done\"`. The parser supplies `\"unknown\"` when `<status>` is absent, so a malformed notification can falsely mark a running agent complete. Suggestion: Resolve only recognized terminal statuses; leave unknown or nonterminal statuses running.\n\n- Category: edge-case | Severity: low | File: `client/src/external/session-parser.ts:716` — Finding: A valid final report that makes the notification exceed 65,536 characters is discarded wholesale, leaving its subrunner card running indefinitely. Suggestion: Parse the envelope and retain the full report through a size-aware path, or surface an explicit oversized-report failure.\n\nThe feature’s main path is implemented and tested, but the status display and completion handling need fixes before shipping. **Ship with fixes.**\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T09:54:44.047559+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-26T09:55:40.256535+00:00",
+      "disposition": "mid-flight small-to-medium escalation (references/mid-flight-escalation.md): same backfill rule as the plan row — the internal opus-plan-reviewer arm gates the fresh medium-complexity flow before Build, which this run bypassed by escalating after Build had already started",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
