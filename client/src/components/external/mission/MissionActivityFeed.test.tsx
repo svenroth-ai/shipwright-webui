@@ -162,6 +162,26 @@ describe("MissionActivityFeed", () => {
     expect(screen.getByText("#367")).toBeInTheDocument();
   });
 
+  // Local PR-review preflight (BLOCK, 2026-09-26): card.text can strip to ""
+  // (it IS the duplicate sentence) while card.textFull has real narration
+  // beyond it — that content must stay reachable via the expand toggle.
+  it("keeps textFull's non-duplicate narration reachable via the expand toggle when card.text strips to empty", () => {
+    render(<MissionActivityFeed feed={{
+      outcome: "Completed run",
+      cards: [{
+        kind: "delivery",
+        text: 'Merged as "fix(mission): real content in every card kind".',
+        textFull: 'Merged as "fix(mission): real content in every card kind". Also cleaned up two stale branches.',
+        commands: [],
+        artifact: "commit",
+      }],
+    }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
+    expect(screen.queryByText('Merged as "fix(mission): real content in every card kind".')).not.toBeInTheDocument();
+    const toggle = screen.getByRole("button", { name: /show more/i });
+    fireEvent.click(toggle);
+    expect(screen.getByText("Also cleaned up two stale branches.")).toBeInTheDocument();
+  });
+
   it("omits the PR-link card gracefully when no commit artifact is available", () => {
     render(<MissionActivityFeed feed={{
       outcome: "Completed run",

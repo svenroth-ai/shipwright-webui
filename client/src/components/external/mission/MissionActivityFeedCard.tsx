@@ -61,7 +61,12 @@ export function FeedCard({
   const prDuplicateText = prDetail?.message ? `Merged as "${prDetail.message}".` : null;
   const displayText = stripDuplicateSentence(card.text, prDuplicateText);
   const displayTextFull = card.textFull ? stripDuplicateSentence(card.textFull, prDuplicateText) : card.textFull;
-  const showText = displayText.length > 0;
+  // Local PR-review preflight (BLOCK, 2026-09-26): `displayText` alone misses
+  // the case where card.text IS the whole duplicate sentence (strips to "")
+  // but card.textFull carries real narration beyond it — that content must
+  // stay reachable via the expand toggle rather than disappearing along with
+  // the duplicate-only short text.
+  const showText = displayText.length > 0 || Boolean(displayTextFull && displayTextFull.length > 0);
   // Clamped on `commands.length` (73rd, glm, low) — what `FeedCommands` gates
   // on, so a `commandCount > 0` card with an EMPTY `commands` can no longer
   // promise "N commands" and expand to no chips. Rounds 47/57/72 declined it as
