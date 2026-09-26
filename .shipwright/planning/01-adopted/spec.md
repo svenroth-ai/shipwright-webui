@@ -1394,16 +1394,27 @@ write surface; gated, path-guarded, and concurrency-safe.
   (`buildCodextenderCommands`), gated by a liveness probe (`GET
   /health/liveliness`) instead of the `codex --version` check, and the
   campaign/pipeline block above does not apply (a Codextender task has
-  Claude's own resume machinery); the New Iterate modal's Implementation
-  model field instead suggests slugs from a new `GET
-  /api/codextender-models` catalog (falling back to static `sol`/`astra`
-  suggestions when the proxy is unreachable), free text always still
-  accepted. **(iterate-2026-09-24-codextender-review-model-disable)**
+  Claude's own resume machinery). **(iterate-2026-09-24-codextender-review-model-disable)**
   `buildCodextenderCommands` never reads a plan-review/review-model
   override — Codextender is a single-model proxy with no such concept, so
   the Plan review and Review fields are disabled (not hidden) under
   Codextender, with an inline note that reviews follow the main model;
   they remain free-text/live-suggested under Codex Light.
+  **(iterate-2026-09-26-codex-model-field-removal)** The free-text
+  "Implementation model" field — previously shown for every Codex-runtime
+  launch, sourced from `GET /api/codex-models` (Codex Light) or `GET
+  /api/codextender-models` (Codextender, falling back to static
+  `sol`/`astra` suggestions) — is removed entirely; no launch dialog ever
+  renders it, for either `codexIntegrationMode`. The model that actually
+  runs is decided outside webui's launch body: a Codex Light task inherits
+  whatever model the `codex` CLI itself already has configured (its own
+  `/model` selection persists across launches — no `-c model=` flag is
+  ever sent), and a Codextender task always uses
+  `DEFAULT_CODEXTENDER_MODEL_ALIAS` ("sol") since Codextender has no
+  concept of a CLI-persisted preference of its own. The two model-catalog
+  endpoints stay in place (still backing the Plan review / Review
+  datalist under Codex Light), only the Implementation-model consumer of
+  them is gone.
 
 ## Quality Requirements
 

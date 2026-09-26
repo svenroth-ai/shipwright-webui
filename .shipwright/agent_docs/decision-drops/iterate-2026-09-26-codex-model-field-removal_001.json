@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-26-codex-model-field-removal",
+  "date": "2026-09-26",
+  "section": "Iterate — change: Codex Implementation-model field removal",
+  "title": "Remove the Codex Implementation-model override field",
+  "context": "Operator report (2026-09-26): the free-text Implementation-model field must be gone for Codex runtime, no exceptions, reversing PR #481's deliberate keep.",
+  "decision": "Remove the field, its param key, and its client-to-server body wiring entirely for both codexIntegrationMode values; send no override from webui.",
+  "consequences": "Codex Light inherits the CLI's own /model selection; Codextender falls back to DEFAULT_CODEXTENDER_MODEL_ALIAS (sol) — both launchers unchanged. Server still accepts the field on the wire (disclosed gap).",
+  "rationale": "Confirmed with the operator before implementing: the CLI's own configured model is what should be used; both reviewers and internal review converged on no-override as proportionate.",
+  "rejected": "Disabling instead of removing (would misrepresent Codex Light's real CLI-level adjustability); a new project-level Codex-model setting (product decision explicitly rejected a new webui-owned override).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-09-26-codex-model-field-removal.md"
+}

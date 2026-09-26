@@ -1,30 +1,29 @@
 /*
  * The Codex-runtime branch of ModelTierOverrideFields — split out
  * (Codextender integration Part B.5) once the parent crossed the 300-line
- * guideline. Free-text Codex/Codextender model-slug inputs (Implementation
- * model / Plan review / Review), backed by a shared `<datalist>` whose
- * source depends on `codexIntegrationMode`.
+ * guideline. Free-text Codex/Codextender model-slug inputs (Plan review /
+ * Review), backed by a shared `<datalist>` whose source depends on
+ * `codexIntegrationMode`.
+ *
+ * iterate-2026-09-26-codex-model-field-removal — the former "Implementation
+ * model" free-text field was removed here (operator: it must never appear
+ * for Codex runtime, no exceptions). The model that actually runs is now
+ * decided outside webui's launch body entirely: Codex Light inherits
+ * whatever model the `codex` CLI itself has configured (its own `/model`
+ * selection persists across launches — `launcher-codex.ts` already emits no
+ * `-c model=` flag when no override is supplied); Codextender falls back to
+ * `DEFAULT_CODEXTENDER_MODEL_ALIAS` ("sol") in `launcher-codextender.ts`,
+ * unchanged. Neither launcher needed a code change — both already handled
+ * "no override" correctly; only the UI path that could set one is gone.
  */
 import type { Dispatch, SetStateAction } from "react";
 
 import { FieldLabel } from "./FieldLabel";
 
 /**
- * iterate-2026-09-17-codex-model-tier-parameterization, revised 2026-09-18
- * after shipwright#771 — the closed catalog enum was withdrawn (see
- * `server/src/external/launch/parse-body.ts`'s `CODEX_MODEL_SLUG_PATTERN`
- * doc comment for why). This field is now free text, validated
- * server-side by the same syntactic allowlist. Storage key reserved in
- * `paramValues` — see the iterate spec's client-scope "Storage decided"
- * note for why this reuses the existing generic paramValues/setParamValues
- * props instead of a new state slice threaded through useNewIssueForm.ts.
- */
-export const CODEX_IMPLEMENTATION_MODEL_PARAM_KEY = "codex-implementation-model";
-/**
  * iterate-2026-09-19-codex-reviewer-fields (follow-up to shipwright#471,
  * unblocked by shipwright#772) — session-scoped Codex review-model
- * overrides, same free-text/body-only/never-persisted posture as the
- * implementation-model override above.
+ * overrides, free-text/body-only/never-persisted.
  */
 export const CODEX_PLAN_REVIEW_MODEL_PARAM_KEY = "codex-plan-review-model";
 export const CODEX_REVIEW_MODEL_PARAM_KEY = "codex-review-model";
@@ -78,12 +77,6 @@ export function CodexModelOverrideFields({
           <option key={model.slug} value={model.slug} label={model.display_name} />
         ))}
       </datalist>
-      <CodexModelField
-        paramKey={CODEX_IMPLEMENTATION_MODEL_PARAM_KEY}
-        label="Implementation model"
-        placeholder={isCodextender ? "e.g. sol" : "Suggested policy (AGENTS.md) — gpt-5.6-terra"}
-        {...fieldProps}
-      />
       <div className="grid grid-cols-2 gap-3">
         <CodexModelField
           paramKey={CODEX_PLAN_REVIEW_MODEL_PARAM_KEY}
@@ -105,7 +98,7 @@ export function CodexModelOverrideFields({
           className="text-[11px] text-[var(--body,#44403c)]"
           data-testid="codextender-review-inherit-note"
         >
-          Reviews automatically follow the main model under Codextender.
+          Reviews automatically follow Codextender's default model (sol).
         </p>
       )}
       {!isCodextender && (catalogStatus === "stale" || catalogStatus === "unavailable") && (
@@ -126,8 +119,8 @@ export function CodexModelOverrideFields({
           data-testid="codextender-model-catalog-status"
         >
           {catalogStatus === "stale"
-            ? "Model list may be out of date — you can still type any slug."
-            : "Codextender proxy isn't reachable — showing default suggestions; you can still type any slug."}
+            ? "Model list may be out of date."
+            : "Codextender proxy isn't reachable — showing default suggestions."}
         </p>
       )}
     </div>
@@ -135,9 +128,9 @@ export function CodexModelOverrideFields({
 }
 
 /**
- * Shared free-text Codex model-slug input — backs Implementation model,
- * Plan review and Review alike. Inline best-effort shape hint only; the
- * server (`CODEX_MODEL_SLUG_PATTERN` in `parse-body.ts`) is the real gate.
+ * Shared free-text Codex model-slug input — backs Plan review and Review
+ * alike. Inline best-effort shape hint only; the server
+ * (`CODEX_MODEL_SLUG_PATTERN` in `parse-body.ts`) is the real gate.
  */
 function CodexModelField({
   paramKey,

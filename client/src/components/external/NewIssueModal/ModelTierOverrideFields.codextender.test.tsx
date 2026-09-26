@@ -41,6 +41,33 @@ afterEach(() => {
 });
 
 describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
+  it("never renders an Implementation model field under Codextender", async () => {
+    // iterate-2026-09-26-codex-model-field-removal — the field is gone for
+    // every Codex-runtime mode, not disabled/hidden; Codextender keeps using
+    // its fixed default model alias (`DEFAULT_CODEXTENDER_MODEL_ALIAS`)
+    // when no override is threaded through.
+    const originalFetch = global.fetch;
+    global.fetch = mockFetch({
+      "/api/settings": settingsResponse({ codexIntegrationMode: "codextender" }),
+      "/api/codextender-models": () =>
+        new Response(
+          JSON.stringify({ status: "ok", models: [{ slug: "astra", display_name: "astra" }] }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+    });
+    try {
+      renderModal({ action: { ...ITERATE_ACTION } });
+      openMoreOptions();
+      fireEvent.click(screen.getByTestId("runtime-codex"));
+      await screen.findByTestId("model-tier-override-codex-plan-review-model");
+      expect(
+        screen.queryByTestId("model-tier-override-codex-implementation-model"),
+      ).toBeNull();
+    } finally {
+      global.fetch = originalFetch;
+    }
+  });
+
   it("populates the shared datalist from a successful /api/codextender-models fetch", async () => {
     const originalFetch = global.fetch;
     global.fetch = mockFetch({
@@ -56,7 +83,7 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
       openMoreOptions();
       fireEvent.click(screen.getByTestId("runtime-codex"));
       const field = await screen.findByTestId(
-        "model-tier-override-codex-implementation-model",
+        "model-tier-override-codex-plan-review-model",
       );
       await waitFor(() => expect(field).toHaveAttribute("placeholder", "e.g. sol"));
       await waitFor(() => {
@@ -88,7 +115,7 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
       openMoreOptions();
       fireEvent.click(screen.getByTestId("runtime-codex"));
       const field = await screen.findByTestId(
-        "model-tier-override-codex-implementation-model",
+        "model-tier-override-codex-plan-review-model",
       );
       await waitFor(() => {
         const datalistId = field.getAttribute("list");
@@ -104,9 +131,6 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
       expect(
         await screen.findByTestId("codextender-model-catalog-status"),
       ).toHaveTextContent("Codextender proxy isn't reachable");
-      // Free text is still accepted regardless of the fallback suggestions.
-      fireEvent.change(field, { target: { value: "my-custom-slug" } });
-      expect(field).toHaveValue("my-custom-slug");
     } finally {
       global.fetch = originalFetch;
     }
@@ -137,14 +161,9 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
       const reviewField = screen.getByTestId("model-tier-override-codex-review-model");
       await waitFor(() => expect(planReviewField).toBeDisabled());
       expect(reviewField).toBeDisabled();
-      // The implementation-model field is unaffected — it IS wired through
-      // to Codextender (`buildCodextenderCommands`'s `model` arg).
-      expect(
-        screen.getByTestId("model-tier-override-codex-implementation-model"),
-      ).toBeEnabled();
       expect(
         await screen.findByTestId("codextender-review-inherit-note"),
-      ).toHaveTextContent("Reviews automatically follow the main model under Codextender.");
+      ).toHaveTextContent("Reviews automatically follow Codextender's default model (sol).");
     } finally {
       global.fetch = originalFetch;
     }
@@ -171,6 +190,9 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
       expect(planReviewField).toBeEnabled();
       expect(reviewField).toBeEnabled();
       expect(screen.queryByTestId("codextender-review-inherit-note")).toBeNull();
+      expect(
+        screen.queryByTestId("model-tier-override-codex-implementation-model"),
+      ).toBeNull();
     } finally {
       global.fetch = originalFetch;
     }
@@ -195,7 +217,7 @@ describe("ModelTierOverrideFields — Codextender mode (Part B.5)", () => {
       openMoreOptions();
       fireEvent.click(screen.getByTestId("runtime-codex"));
       const field = await screen.findByTestId(
-        "model-tier-override-codex-implementation-model",
+        "model-tier-override-codex-plan-review-model",
       );
       await waitFor(() => {
         const datalistId = field.getAttribute("list");

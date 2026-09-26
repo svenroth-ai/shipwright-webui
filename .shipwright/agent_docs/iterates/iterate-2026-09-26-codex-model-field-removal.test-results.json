@@ -1,0 +1,100 @@
+{
+  "last_updated": "2026-09-26",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-26-codex-model-field-removal",
+    "date": "2026-09-26",
+    "unit": {
+      "status": "passed",
+      "passed": 8813,
+      "total": 8826,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 7,
+      "total": 7
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      },
+      "behaviors": [
+        {
+          "behavior": "Implementation-model field never renders under Codex Light",
+          "disposition": "tested",
+          "evidence": "NewIterateModal.codex-model.test.tsx, model-tier-defaults.spec.ts (E2E)"
+        },
+        {
+          "behavior": "Implementation-model field never renders under Codextender",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx, codextender-integration.spec.ts (E2E)"
+        },
+        {
+          "behavior": "codexImplementationModel is never sent in the launch POST body for a Codex-runtime launch",
+          "disposition": "tested",
+          "evidence": "payload-launch.codex-model.test.tsx"
+        },
+        {
+          "behavior": "Plan review / Review fields (and their Codextender-disabled state) are unaffected by the removal",
+          "disposition": "tested",
+          "evidence": "all 4 retargeted files, existing assertions retained/re-targeted onto the shared datalist"
+        },
+        {
+          "behavior": "Codex Light launch emits no -c model= flag when unset (pre-existing launcher behavior, unchanged)",
+          "disposition": "tested",
+          "evidence": "server/src/core/launcher-codex.test.ts (\"implementationModel unset, fresh launch \u2014 emits no -c model= flag\")"
+        },
+        {
+          "behavior": "Codextender launch falls back to the sol alias when unset (pre-existing launcher behavior, unchanged)",
+          "disposition": "tested",
+          "evidence": "server/src/core/launcher-codextender.test.ts (defaults the model alias to DEFAULT_CODEXTENDER_MODEL_ALIAS)"
+        },
+        {
+          "behavior": "Codextender catalog caption and review-inherit note no longer claim a typing capability that no longer exists, once the field's last enabled consumer was removed (code-review Stage 2 finding M1, fixed)",
+          "disposition": "tested",
+          "evidence": "ModelTierOverrideFields.codextender.test.tsx, codextender-integration.spec.ts (E2E) \u2014 exact-text assertions updated and re-run green after the fix"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 7,
+      "exit_code": 0,
+      "justification": "The removal (and its M1 caption fix) is a real-rendered-DOM/text defect class that a jsdom unit test can assert but not fully trust for real-browser attribute/text rendering; this E2E run drives the real New-Issue/Iterate dialog in a real Chromium (client/e2e/isolated-stack.mjs) across both codexIntegrationMode values and asserts the field's absence, the datalist's real attribute wiring, and the corrected caption/inherit-note text."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-26-codex-model-field-removal",
+    "commit": "88b4a937d1d59bf8affa6b1c492cbfc93cd25a0b",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -352,7 +352,6 @@ export async function launchExternalTask(
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
     parameters?: Record<string, string | boolean>;
-    codexImplementationModel?: string;
     codexPlanReviewModel?: string;
     codexReviewModel?: string;
   } = {},
