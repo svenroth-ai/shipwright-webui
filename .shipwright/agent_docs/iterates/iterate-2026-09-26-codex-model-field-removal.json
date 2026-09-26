@@ -1,0 +1,67 @@
+{
+  "run_id": "iterate-2026-09-26-codex-model-field-removal",
+  "date": "2026-09-26T13:00:36.575088Z",
+  "event_at": "2026-09-26T13:00:03.149341+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/codex-model-field-removal",
+  "spec": ".shipwright/planning/iterate/iterate-2026-09-26-codex-model-field-removal/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-26-codex-model-field-removal",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    },
+    "behaviors": [
+      {
+        "behavior": "Implementation-model field never renders under Codex Light",
+        "disposition": "tested",
+        "evidence": "NewIterateModal.codex-model.test.tsx, model-tier-defaults.spec.ts (E2E)"
+      },
+      {
+        "behavior": "Implementation-model field never renders under Codextender",
+        "disposition": "tested",
+        "evidence": "ModelTierOverrideFields.codextender.test.tsx, codextender-integration.spec.ts (E2E)"
+      },
+      {
+        "behavior": "codexImplementationModel is never sent in the launch POST body for a Codex-runtime launch",
+        "disposition": "tested",
+        "evidence": "payload-launch.codex-model.test.tsx"
+      },
+      {
+        "behavior": "Plan review / Review fields (and their Codextender-disabled state) are unaffected by the removal",
+        "disposition": "tested",
+        "evidence": "all 4 retargeted files, existing assertions retained/re-targeted onto the shared datalist"
+      },
+      {
+        "behavior": "Codex Light launch emits no -c model= flag when unset (pre-existing launcher behavior, unchanged)",
+        "disposition": "tested",
+        "evidence": "server/src/core/launcher-codex.test.ts"
+      },
+      {
+        "behavior": "Codextender launch falls back to the sol alias when unset (pre-existing launcher behavior, unchanged)",
+        "disposition": "tested",
+        "evidence": "server/src/core/launcher-codextender.test.ts"
+      },
+      {
+        "behavior": "Codextender catalog caption and review-inherit note no longer claim a typing capability that no longer exists, once the field's last enabled consumer was removed (code-review Stage 2 finding M1, fixed)",
+        "disposition": "tested",
+        "evidence": "ModelTierOverrideFields.codextender.test.tsx, codextender-integration.spec.ts (E2E)"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 7,
+    "exit_code": 0,
+    "justification": "Real-Chromium run of the two affected Playwright spec files across both codexIntegrationMode values, via client/e2e/isolated-stack.mjs."
+  }
+}

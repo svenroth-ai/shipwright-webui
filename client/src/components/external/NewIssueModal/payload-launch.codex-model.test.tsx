@@ -31,35 +31,21 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("launchExternalTask POST body — codexImplementationModel", () => {
-  it("threads a selected codexImplementationModel through to the launch body", async () => {
-    const cap: { body?: string } = {};
-    globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
+describe("launchExternalTask POST body — codexImplementationModel (removed field, iterate-2026-09-26)", () => {
+  it("never renders an Implementation-model field for a Codex-runtime launch", async () => {
+    globalThis.fetch = makeFetchMock({}) as unknown as typeof fetch;
     renderModal({ action: ITERATE_ACTION, onToast: () => {} });
-    await act(async () => {
-      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
-        target: { value: "Launch me" },
-      });
-    });
     openMoreOptions();
     await act(async () => {
       fireEvent.click(screen.getByTestId("runtime-codex"));
     });
-    const field = await screen.findByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
-    await act(async () => {
-      fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
-    });
-    await waitFor(() => expect(cap.body).toBeTruthy());
-    const parsed = JSON.parse(cap.body!);
-    expect(parsed.codexImplementationModel).toBe("gpt-5.6-luna");
+    await screen.findByTestId("model-tier-override-codex-plan-review-model");
+    expect(
+      screen.queryByTestId("model-tier-override-codex-implementation-model"),
+    ).toBeNull();
   });
 
-  it("omits codexImplementationModel from the launch body when unset", async () => {
+  it("never sends codexImplementationModel in the launch body for a Codex-runtime launch", async () => {
     const cap: { body?: string } = {};
     globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
     renderModal({ action: ITERATE_ACTION, onToast: () => {} });
@@ -71,38 +57,6 @@ describe("launchExternalTask POST body — codexImplementationModel", () => {
     openMoreOptions();
     await act(async () => {
       fireEvent.click(screen.getByTestId("runtime-codex"));
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
-    });
-    await waitFor(() => expect(cap.body).toBeTruthy());
-    const parsed = JSON.parse(cap.body!);
-    expect("codexImplementationModel" in parsed).toBe(false);
-  });
-
-  it("does not send codexImplementationModel for a Claude-runtime launch even if the key exists in paramValues", async () => {
-    const cap: { body?: string } = {};
-    globalThis.fetch = makeFetchMock({ captureLaunch: cap }) as unknown as typeof fetch;
-    renderModal({ action: ITERATE_ACTION, onToast: () => {} });
-    await act(async () => {
-      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
-        target: { value: "Launch me" },
-      });
-    });
-    openMoreOptions();
-    // Select a Codex model, then flip back to Claude before launching — the
-    // stale paramValues entry must never leak into a Claude launch body.
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("runtime-codex"));
-    });
-    const field = await screen.findByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
-    await act(async () => {
-      fireEvent.change(field, { target: { value: "gpt-5.6-luna" } });
-    });
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("runtime-claude"));
     });
     await act(async () => {
       fireEvent.click(screen.getByTestId("new-issue-launch-btn"));

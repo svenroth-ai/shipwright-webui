@@ -62,3 +62,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Live Codex model catalog for the New Iterate launch form](iterate-2026-09-19-codex-model-catalog.md)
 - [Mission activity feed: transcript fidelity fixes](iterate-2026-09-20-mission-feed-transcript-fidelity.md)
 - [Codextender integration mode for Codex-runtime tasks](iterate-2026-09-23-codextender-webui-integration-codextender-integration.md)
+- [Remove the Codex "Implementation model" override field](iterate-2026-09-26-codex-model-field-removal.md)

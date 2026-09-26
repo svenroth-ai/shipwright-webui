@@ -85,39 +85,35 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
 
     await expect(page.getByTestId("codex-reviewer-identity")).toHaveCount(0);
 
-    const implementationField = page.getByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
+    // iterate-2026-09-26-codex-model-field-removal — the free-text
+    // Implementation-model field is gone under Codextender too; the launch
+    // now always uses the fixed default model alias under the hood.
+    await expect(
+      page.getByTestId("model-tier-override-codex-implementation-model"),
+    ).toHaveCount(0);
+
     const planReviewField = page.getByTestId("model-tier-override-codex-plan-review-model");
     const reviewField = page.getByTestId("model-tier-override-codex-review-model");
-    await expect(implementationField).toBeVisible();
-    await expect(implementationField).toHaveAttribute("placeholder", "e.g. sol");
     await expect(planReviewField).toHaveAttribute("placeholder", "e.g. sol");
     await expect(reviewField).toHaveAttribute("placeholder", "e.g. sol");
 
     // iterate-2026-09-24-codextender-review-model-disable — Codextender
-    // never reads a plan-review/review model override (only the
-    // implementation model is threaded through), so the two fields are
-    // disabled with an explanatory note rather than silently ignoring
+    // never reads a plan-review/review model override, so the two fields
+    // are disabled with an explanatory note rather than silently ignoring
     // whatever an operator types.
-    await expect(implementationField).toBeEnabled();
     await expect(planReviewField).toBeDisabled();
     await expect(reviewField).toBeDisabled();
     await expect(page.getByTestId("codextender-review-inherit-note")).toHaveText(
-      "Reviews automatically follow the main model under Codextender.",
+      "Reviews automatically follow Codextender's default model (sol).",
     );
 
-    const datalistId = await implementationField.getAttribute("list");
+    const datalistId = await planReviewField.getAttribute("list");
     expect(datalistId).toBeTruthy();
     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
     await expect(datalistOptions).toHaveCount(2);
     await expect(datalistOptions.nth(0)).toHaveAttribute("value", "sol");
     await expect(datalistOptions.nth(1)).toHaveAttribute("value", "luna");
     await expect(page.getByTestId("codextender-model-catalog-status")).toHaveCount(0);
-
-    // Free text is still accepted.
-    await implementationField.fill("a-completely-custom-slug");
-    await expect(implementationField).toHaveValue("a-completely-custom-slug");
   });
 
   test("Codextender mode falls back to static sol/astra suggestions and an unreachable-proxy caption when the catalog is empty", async ({
@@ -145,12 +141,14 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
     await page.getByTestId("runtime-codex").click();
     await page.getByTestId("new-issue-more-options-toggle").click();
 
-    const implementationField = page.getByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
-    await expect(implementationField).toBeVisible();
+    await expect(
+      page.getByTestId("model-tier-override-codex-implementation-model"),
+    ).toHaveCount(0);
 
-    const datalistId = await implementationField.getAttribute("list");
+    const planReviewField = page.getByTestId("model-tier-override-codex-plan-review-model");
+    await expect(planReviewField).toBeVisible();
+
+    const datalistId = await planReviewField.getAttribute("list");
     const datalistOptions = page.locator(`[id="${datalistId}"] option`);
     await expect(datalistOptions).toHaveCount(2);
     await expect(datalistOptions.nth(0)).toHaveAttribute("value", "sol");
@@ -159,9 +157,6 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
     await expect(page.getByTestId("codextender-model-catalog-status")).toContainText(
       "Codextender proxy isn't reachable",
     );
-
-    await implementationField.fill("gpt-5.6-luna");
-    await expect(implementationField).toHaveValue("gpt-5.6-luna");
   });
 
   test("Light mode (default) keeps the Codex Light placeholders — codexIntegrationMode is not stuck from a prior selection", async ({
@@ -183,14 +178,9 @@ test.describe("Codextender integration mode — New Iterate modal", () => {
     await page.getByTestId("runtime-codex").click();
     await page.getByTestId("new-issue-more-options-toggle").click();
 
-    const implementationField = page.getByTestId(
-      "model-tier-override-codex-implementation-model",
-    );
-    await expect(implementationField).toBeVisible();
-    await expect(implementationField).toHaveAttribute(
-      "placeholder",
-      "Suggested policy (AGENTS.md) — gpt-5.6-terra",
-    );
+    await expect(
+      page.getByTestId("model-tier-override-codex-implementation-model"),
+    ).toHaveCount(0);
     await expect(page.getByTestId("codextender-model-catalog-status")).toHaveCount(0);
 
     // The review-model disable is Codextender-only — Light mode keeps both

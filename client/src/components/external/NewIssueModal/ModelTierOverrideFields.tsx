@@ -16,7 +16,6 @@ import type { RuntimeValue } from "../RuntimeToggle";
  *  Codex-runtime branch (Codextender integration Part B.5 file split),
  *  but this stays their import path. */
 export {
-  CODEX_IMPLEMENTATION_MODEL_PARAM_KEY,
   CODEX_PLAN_REVIEW_MODEL_PARAM_KEY,
   CODEX_REVIEW_MODEL_PARAM_KEY,
 } from "./CodexModelOverrideFields";
