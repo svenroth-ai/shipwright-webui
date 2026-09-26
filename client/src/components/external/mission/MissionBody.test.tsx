@@ -232,4 +232,21 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     expect(onOpenDocument).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
   });
+
+  // iterate-2026-09-26-mission-tab-subrunner — the third `activeNode`
+  // consumer (`SubrunnerPanel`), end-to-end: dispatch -> ack -> resolving
+  // `task-notification`, then the click-to-open/close wiring itself.
+  it("clicking a resolved subrunner card's report link opens SubrunnerPanel with its report; the scrim closes it", () => {
+    missionStateMock.mockReturnValue("live");
+    runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
+    const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "t1", name: "Agent", input: { description: "Run the migration script" } }] } });
+    const ack = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", content: "Async agent launched successfully. agentId: agent-42" }] } });
+    const notification = JSON.stringify({ type: "user", message: { role: "user", content: "<task-notification>\n<task-id>agent-42</task-id>\n<status>completed</status>\n<summary>Done</summary>\n<result>Full migration report.</result>\n</task-notification>" }, origin: { kind: "task-notification" } });
+    setup([dispatch, ack, notification].join("\n"));
+    fireEvent.click(screen.getByRole("button", { name: "View subrunner report" }));
+    expect(screen.getByTestId("subrunner-panel")).toHaveTextContent("Run the migration script");
+    expect(screen.getByTestId("subrunner-report")).toHaveTextContent("Full migration report.");
+    fireEvent.click(screen.getByTestId("artifact-scrim"));
+    expect(screen.queryByTestId("subrunner-panel")).not.toBeInTheDocument();
+  });
 });

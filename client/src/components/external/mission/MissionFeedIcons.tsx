@@ -77,6 +77,20 @@ const PATHS: Record<ActivityKind, ReactElement> = {
       <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
     </>
   ),
+  // A delegated-subagent's own timeline node (iterate-2026-09-26-mission-
+  // tab-subrunner, Sven's explicit request — "subrunner braucht noch ein
+  // icon (robot?)"): antenna, rounded head, side ticks, two dot eyes, mouth.
+  subrunner: (
+    <>
+      <circle cx="12" cy="3.5" r="1" />
+      <path d="M12 5v3" />
+      <rect x="5" y="8" width="14" height="10" rx="2" />
+      <path d="M2 12h3M19 12h3" />
+      <circle cx="9" cy="13" r="1.1" />
+      <circle cx="15" cy="13" r="1.1" />
+      <path d="M9 16.5h6" />
+    </>
+  ),
 };
 
 export function FeedIcon({ kind }: { kind: ActivityKind }) {

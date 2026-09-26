@@ -10,7 +10,8 @@
  * once this file re-crossed the limit on its own) and are re-exported below
  * so existing importers of this file are unaffected. */
 import { askUserQuestionSummary, assistantText, type AssistantEvent } from "../external/session-parser";
-import { classifyToolBucket, containsIterateBanner, reviewerDisplayName, stripIterateBanner } from "./missionActivityFeedClassify";
+import { classifyToolBucket, containsIterateBanner, isReviewTask, reviewerDisplayName, stripIterateBanner } from "./missionActivityFeedClassify";
+import { createSubrunnerDispatchCard, isSubrunnerDispatch } from "./missionActivityFeedSubrunner";
 import { attachCommand, commandDetail, commandLabel, commandLabelFull, proseFromLines } from "./missionActivityFeedText";
 import type { ActivityCard, PendingTool } from "./missionActivityFeedTypes";
 import type { CardAdder } from "./missionActivityFeedCardFactory";
@@ -168,6 +169,19 @@ export function processTurnTools(
     const input = tool.input as Record<string, unknown> | undefined;
     const shell = typeof input?.command === "string" ? input.command : "";
     const background = input?.run_in_background === true || input?.background === true;
+    // A delegated-subagent dispatch gets its own card kind, never the plain
+    // implement/investigate bucket below — EXCEPT a review-flavored `Task`
+    // spawn (spec-reviewer/code-reviewer/doubt-reviewer/…), which keeps its
+    // existing, unrelated `review`-bucket rendering untouched
+    // (iterate-2026-09-26-mission-tab-subrunner).
+    if (isSubrunnerDispatch(tool.name) && !isReviewTask(tool.name, input)) {
+      const card = createSubrunnerDispatchCard(tool.id, input, timestamp);
+      cards.push(card);
+      pendingTools.set(tool.id, { bucket: "subrunner", card, commandKey: `${tool.name}\u0000${tool.id}`, label: "", full: "", background: false });
+      writtenTestFiles = trackWrittenTestFile(writtenTestFiles, tool.name, input, tool.id);
+      toolCallIndex += 1;
+      continue;
+    }
     const bucket = classifyToolBucket(tool.name, input, shell);
     const label = commandLabel(tool.name, tool.input);
     const labelFull = commandLabelFull(tool.name, tool.input);

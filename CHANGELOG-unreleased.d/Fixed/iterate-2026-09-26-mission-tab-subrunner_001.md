@@ -1,0 +1,1 @@
+Mission tab: delivered-card text no longer gets blanket-hidden by PR dedup, the 'Needs attention' pill is removed, kind labels and per-card timestamps are replaced by a single session-start divider, and the commands toggle is no longer alarm-colored

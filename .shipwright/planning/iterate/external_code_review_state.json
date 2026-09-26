@@ -4,7 +4,7 @@
   "provider": null,
   "findings_count": 2,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (2) may understate what was found",
+  "reason": "only some provider legs could be itemized — the count (2) may understate what was found",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {

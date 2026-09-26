@@ -1,7 +1,7 @@
 import type { ArtifactKind } from "./missionContextApi";
 import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 
-export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery";
+export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery" | "subrunner";
 
 export interface ActivityQuestion {
   text: string;
@@ -120,6 +120,27 @@ export interface ActivityCard {
    * Never set on a non-`blocker` card today; cleared when a blocker
    * recovers back to its original kind. */
   textLiteral?: boolean;
+  /** Set only on a `kind: "subrunner"` card — PROVISIONALLY the dispatching
+   * tool_use's own id until `applySubrunnerAck` overwrites it with the
+   * dispatch's real, stable agent id (parsed from its ack tool_result); this
+   * is the value a later `task-notification` event's `taskId` is correlated
+   * against (iterate-2026-09-26-mission-tab-subrunner — see
+   * `missionActivityFeedSubrunner.ts`'s doc comment for why the dispatch's
+   * own id alone isn't stable enough across a `SendMessage` continuation). */
+  subrunnerId?: string;
+  /** Set only on a `kind: "subrunner"` card. `"running"` from dispatch until
+   * a matching `task-notification` event resolves it — `"done"` for a clean
+   * completion, `"failed"` for a notification whose own `<status>` says so
+   * (external-review finding: a terminal/failed state is needed, not just
+   * running/done). A `SendMessage`-continued agent can notify MORE than
+   * once for the same `subrunnerId` (a partial "stopped at its turn limit"
+   * notification, then a later final one) — each arrival overwrites the
+   * previous status/report, last one wins. */
+  subrunnerStatus?: "running" | "done" | "failed";
+  /** The delegated subagent's own final report, once resolved — same bounded
+   * excerpt / untruncated-counterpart contract as every other `xFull` field. */
+  subrunnerReport?: string;
+  subrunnerReportFull?: string;
 }
 
 export interface ActivityFeed {
