@@ -50,6 +50,18 @@ describe("isTransientClassifierError", () => {
     const sharesOnlyThePrefix = "The server-side auto mode classifier gave no verdict (error), so auto mode cannot determine the safety of Bash: some genuinely different, unrelated failure occurred here.";
     expect(isTransientClassifierError(sharesOnlyThePrefix)).toBe(false);
   });
+
+  // Second, independent external-review catch (F11 local PR-review
+  // preflight): the fix above still matched ANY content trailing the
+  // template's "...about the action: " lead-in with no end anchor — a
+  // genuine error whose output starts with the full known template and then
+  // continues with real failure detail would still be discarded as
+  // transient. Same known template verbatim, plus unrelated content where
+  // the real message would already have ended.
+  it("does not match the exact known template followed by unrelated failure output appended after it", () => {
+    const templateThenRealFailure = `${TRANSIENT_TEXT} Also: connection reset by peer while retrying.`;
+    expect(isTransientClassifierError(templateThenRealFailure)).toBe(false);
+  });
 });
 
 describe("deriveActivityFeed — AC3: a non-test tool call rejected by the transient classifier", () => {

@@ -136,13 +136,21 @@ function stripUserTypeLines(text: string, dropLeadingPartialLine: boolean): stri
  * Pure — no I/O, no corroboration. `recoverRunIdFromTranscript` is the entry
  * point that adds evidence.
  *
- * `startedMidFile` (iterate-2026-09-28-mission-feed-completeness, AC2): true
- * when the CALLER's own read already began after byte 0 of the real file — the
+ * `startedMidFile` (iterate-2026-09-28-mission-feed-completeness, AC2): PROVEN
+ * true, not merely assumed, whenever the caller's own read began after byte 0
+ * of the real file — `wire.ts`'s `readTranscriptTail` peeks the one byte
+ * immediately before its intended start and only reports `true` when that
+ * byte is not a `\n` (external code review, openai, raised across two
+ * independent review passes: an earlier version of this signal assumed
+ * partial whenever the read didn't start at byte 0, which is provably safe
+ * — see `stripUserTypeLines`'s doc comment — but not provably necessary; the
+ * peek settles it for real instead of arguing probability a third time). The
  * caller always reads a bounded tail no larger than `MAX_SCAN_CHARS`, so
  * `transcript.length > MAX_SCAN_CHARS` below can never observe that on its
  * own in production, only in a test that hands this function an oversized
- * string directly. Either condition means the leading line may be a
- * byte-cut fragment (see `stripUserTypeLines`'s doc comment).
+ * string directly — THAT path stays a conservative assumption, since a bare
+ * string slice has no byte to peek. Either condition means the leading line
+ * may be a byte-cut fragment (see `stripUserTypeLines`'s doc comment).
  */
 export function findRunIdFooter(transcript: string, startedMidFile = false): string | null {
   if (typeof transcript !== "string" || transcript.length === 0) return null;

@@ -276,30 +276,35 @@ convergent/duplicate framings of the same 2 underlying issues.
    it; full client suite (483 files / 4400 tests) still green.
 
 3. **openai, medium / glm, low (both pointing at the same mechanism) —
-   REJECTED, with reason.** Both reviewers questioned whether
-   `run-id-recovery.ts`'s `startedMidFile`-driven unconditional drop of the
-   tail read's leading line could discard a genuinely COMPLETE line (and,
-   worst case, the very `Run-ID:` footer line) whenever the read happened to
-   start exactly on a `\n` boundary. Investigated directly against
-   `session-jsonl-io.ts`'s `readTailFromDisk` (the real positional-read
-   primitive `wire.ts` calls through `SessionWatcher.readChunk`): it performs
-   a RAW byte-offset read (`start = Math.min(Math.max(fromByte, 0), size)`,
-   then a straight positional read loop) with NO `\n`-boundary snapping
-   anywhere — CLAUDE.md Architecture rule 5 ("cut on `\n` boundaries only")
-   describes the ordinary streaming transcript reader, not this bounded tail
-   read. `wire.ts` computes `fromByte = loc.sizeBytes - budget`, an arbitrary
-   byte-count subtraction with no relationship to line boundaries, so it
-   essentially never lands exactly after a `\n` in a real transcript (odds on
-   the order of 1-in-hundreds-to-thousands, gated by an already-rare
-   degraded/reach-back path). The current unconditional drop is therefore the
-   correct, deliberately conservative default given the reader gives no
-   boundary signal either way — `run-id-recovery.ts`'s own doc comment
-   explains the alternative (assuming a byte-cut fragment is complete) is the
-   ORIGINAL high-severity bug this exact code was written to close. Plumbing
-   a boundary-peek signal through 4 layers (`wire.ts` -> `routes.ts` ->
-   `resolver-parts.ts` -> `run-id-recovery.ts`) to close a near-zero-
-   probability theoretical gap was judged not worth the complexity; recorded
-   here so it is not re-investigated as a live gap later.
+   initially REJECTED with reason, later FIXED FOR REAL after a third,
+   independent review pass raised it again (see the F11 local preflight note
+   below — superseding this entry's original disposition).** Both reviewers
+   questioned whether `run-id-recovery.ts`'s `startedMidFile`-driven
+   unconditional drop of the tail read's leading line could discard a
+   genuinely COMPLETE line (and, worst case, the very `Run-ID:` footer line)
+   whenever the read happened to start exactly on a `\n` boundary.
+   Investigated directly against `session-jsonl-io.ts`'s `readTailFromDisk`
+   (the real positional-read primitive `wire.ts` calls through
+   `SessionWatcher.readChunk`): it performs a RAW byte-offset read
+   (`start = Math.min(Math.max(fromByte, 0), size)`, then a straight
+   positional read loop) with NO `\n`-boundary snapping anywhere — CLAUDE.md
+   Architecture rule 5 ("cut on `\n` boundaries only") describes the ordinary
+   streaming transcript reader, not this bounded tail read. `wire.ts`
+   computes `fromByte = loc.sizeBytes - budget`, an arbitrary byte-count
+   subtraction with no relationship to line boundaries, so it essentially
+   never lands exactly after a `\n` in a real transcript (odds on the order
+   of 1-in-hundreds-to-thousands, gated by an already-rare degraded/
+   reach-back path). At the time this was judged a correct, deliberately
+   conservative default given the reader gave no boundary signal either way,
+   and plumbing a boundary-peek signal through 4 layers to close a
+   near-zero-probability theoretical gap was judged not worth the
+   complexity. **That judgment changed** once the SAME concern was raised a
+   third time, independently, by the local PR-review preflight (a different
+   review instance with no memory of this reasoning) — converging findings
+   across independent reviewers are worth fixing rather than re-arguing.
+   `wire.ts` now peeks the one byte before its intended tail start instead of
+   assuming; see the F11 preflight note below for the actual fix and its
+   verification.
 
 4. **glm, medium (test) / openai, medium (test) — both ADDRESSED, one
    pre-existed and one was a genuine gap, now closed.**
@@ -330,17 +335,38 @@ completed, 6 findings, disposition summarized above); raw replies preserved
 at `.shipwright/planning/iterate/iterate-2026-09-28-mission-feed-completeness/external-code-review-raw.json`.
 
 **F11 local PR-review preflight (`pr_review.py`, separate gate, advisory-only
-— never satisfies the required CI check) caught one more real gap, FIXED:**
-`missionActivityFeedTransientError.ts`'s `isTransientClassifierError` matched
-on the fixed PREFIX alone via `startsWith`, so any content beginning with
-that exact sentence would classify as transient regardless of what followed
-— including, in principle, a genuinely different failure whose own output
-happened to open with it. Tightened to a regex anchoring both the prefix AND
-the fixed suffix that follows the tool name, so only content matching the
-harness's whole known template qualifies. Verified via revert-run-restore: a
-new negative-control test ("shares only the fixed prefix, not the fixed
-suffix") fails without the fix and passes with it; full client suite
-(483 files / 4401 tests) green afterward.
+— never satisfies the required CI check) caught two more real gaps across two
+runs, both FIXED:**
+
+- **Run 1**: `missionActivityFeedTransientError.ts`'s `isTransientClassifierError`
+  matched on the fixed PREFIX alone via `startsWith`, so any content beginning
+  with that exact sentence would classify as transient regardless of what
+  followed — including, in principle, a genuinely different failure whose own
+  output happened to open with it. Tightened to a regex anchoring both the
+  prefix AND the fixed suffix that follows the tool name, so only content
+  matching the harness's whole known template qualifies. Verified via
+  revert-run-restore: a new negative-control test ("shares only the fixed
+  prefix, not the fixed suffix") fails without the fix and passes with it;
+  full client suite (483 files / 4401 tests) green afterward.
+- **Run 2**: this SAME preflight independently re-raised the `startedMidFile`
+  boundary concern already investigated and rejected-with-reason above (a
+  fresh review pass, with no memory of that reasoning). Raised across two
+  independent review instances now, on reflection the theoretical gap was
+  worth closing for real rather than re-arguing probability a third time:
+  `wire.ts`'s `readTranscriptTail` now reads ONE BYTE BEFORE its intended
+  tail start (when that start is not byte 0) and peeks it — `\n` proves the
+  intended start is itself a genuine line boundary (`startedMidFile: false`),
+  anything else proves a genuine byte cut (`startedMidFile: true`); the
+  peeked byte is stripped either way so the returned text keeps its exact
+  prior `[target, EOF)` contract. This replaces an assumption with a proof,
+  at the cost of one extra byte per recovery-window read. Verified via
+  revert-run-restore with a `fromByte`-aware mock (returning different
+  content depending on which byte offset was actually requested, so the test
+  can tell "peeked" apart from "never looked" — a fixed-content mock cannot):
+  the real-line-boundary case fails without the fix (loses a genuinely
+  complete footer line) and passes with it; the genuine-byte-cut case is
+  unaffected either way (both correctly drop). Full server suite
+  (422 files / 4526 tests) green afterward.
 
 ## Investigation Notes (Repo Scout findings, for the record)
 
