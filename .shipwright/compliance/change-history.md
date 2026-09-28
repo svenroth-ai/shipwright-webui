@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-09-19T16:57:49.524769+00:00
-Source-State: run=iterate-2026-09-19-fix-wizard-plan-card-white-text
-Consistency-audit: last full run 2026-08-31 (19 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
-Total commits: 893
+Generated: 2026-09-28T06:43:14.369756+00:00
+Source-State: run=iterate-2026-09-28-codex-model-catalog-dropdown
+Consistency-audit: last full run 2026-08-31 (28 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
+Total commits: 909
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 357
-    "feat" : 228
-    "chore" : 145
-    "docs" : 75
+    "fix" : 368
+    "feat" : 231
+    "chore" : 146
+    "docs" : 76
     "refactor" : 35
     "test" : 30
     "other" : 9
@@ -23,10 +23,21 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 357 commits
+### Fixes (fix) — 368 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-26 | webui | set CLAUDE_CODE_MAX_CONTEXT_TOKENS for Codextender launches (#486) | 1b95183b2e72 |
+| 2026-09-26 | webui | remove Codex Implementation-model override field (#485) | 20af8d18ef4b |
+| 2026-09-26 | webui | gate runtime badge on availability, and Claim filter on Leadwright presence (#482) | 35e4e620a8cc |
+| 2026-09-24 | webui | disable unwired Codextender review-model fields (#481) | a98e218a2be4 |
+| 2026-09-20 | webui | generalize Codex-runtime liveness flip to every actionId (#478) | 5213ab3b6363 |
+| 2026-09-20 | webui | Mission activity feed transcript fidelity (#479) | d17fc9977ac3 |
+| 2026-09-20 | webui | Codex-runtime launch missing phase + unprefixed SKILL.md path (#476) | 7f60f952e253 |
+| 2026-09-19 | webui | Codex-runtime terminal flicker during a turn (-c tui.animations=false) (#475) | c4048ecfd91e |
+| 2026-09-19 | webui | Codex launch fails on Windows PowerShell 7 (PSReadLine multi-line buffer corruption) (#474) | 371f9a36ddbe |
+| 2026-09-19 | webui | Codex model-tier panel — real Plan review / Review overrides, drop reviewer-identity display (#473) | d6da40b028cf |
+| 2026-09-19 | webui | restore visible phase description text in New-Project wizard plan card (#472) | 11603cf29cf9 |
 | 2026-09-17 | webui | hide model-tier override dropdowns for Codex-driven tasks (#470) | e4654b24c8f4 |
 | 2026-09-17 | webui | Mission activity feed render fidelity (#469) | 847bdf3651fc |
 | 2026-09-16 | server | resolve Codex CLI's Windows .cmd PATH shim in the probe (#468) | eb93734c708d |
@@ -385,10 +396,13 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 228 commits
+### Features (feat) — 231 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-26 | webui | Mission tab subrunner visibility + feed polish (#483) | b03817a85783 |
+| 2026-09-23 | webui | Codextender integration mode for Codex-runtime tasks (#480) | 36168d56152e |
+| 2026-09-20 | webui | live Codex model catalog for the New Iterate launch form (#477) | 19ddf6a49119 |
 | 2026-09-19 | webui | Codex model-tier override — free-text implementation model + read-only reviewer identity (shipwright#771) (#471) | e589b8668e2f |
 | 2026-09-16 | — | Codex CLI as an alternate task runtime (Codex Light) (#466) | 31c8cce07297 |
 | 2026-09-09 | mission | per-AC test coverage view on the Tests artifact (#458) | 924331be2762 |
@@ -618,11 +632,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 145 commits
+### Chores (chore) — 146 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-09-19 | triage | sweep 5 outbox append(s) into branch | 518e204d2f9a |
+| 2026-09-28 | triage | sweep 4 outbox append(s) into branch | 93e1e9a11de6 |
+| 2026-09-26 | webui | pre-bump session-parser.ts bloat-baseline ceiling to 842 (#484) | be02273f9e5f |
 | 2026-09-08 | ci | bump pinned shipwright-compliance checkout for manifest schema v4 | 2c4ba5c0088d |
 | 2026-09-03 | external-review | route the GPT review leg through Codex CLI (#414) | 4f80757ff9e9 |
 | 2026-09-01 | release | v0.26.0 (#406) | c064c89ec0d3 |
@@ -768,10 +783,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 75 commits
+### Documentation (docs) — 76 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-26 | webui | re-sync AGENTS.md with monorepo Codex operating contract (#487) | dbc153107c7b |
 | 2026-09-10 | — | document --plugins-only and --webui-only flags in README + guide (#460) | 80b827cd0a6f |
 | 2026-09-01 | terminal | document root cause of residual table-only smear (ADR-288) (#405) | fa86f26bd1b9 |
 | 2026-08-30 | readme | fix broken triage-inbox link to guide.md §4.11 (#398) | 11e5a612fb43 |
@@ -970,7 +986,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 893 |
+| Total commits | 909 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 893 |
+| Human-authored commits | 909 |
 
