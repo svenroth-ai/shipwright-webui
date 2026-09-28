@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "1. Spec Compliance", "verdict": "pass", "note": "The 3 requested Tier-1 fixes (design C1, design D1, iterate W3) are each closed; no extra scope added."},
+    {"name": "2. Error Handling", "verdict": "n/a", "note": "No runtime code touched (docs + compliance-tool invocations only)."},
+    {"name": "3. Security Basics", "verdict": "pass", "note": "No user input, no secrets, no code paths added."},
+    {"name": "4. Test Quality", "verdict": "n/a", "note": "No product code changed; full suite re-run green as regression guard (server 4497/4510, client 4377/4377)."},
+    {"name": "5. Performance Basics", "verdict": "n/a", "note": "No code path added."},
+    {"name": "6. Naming & Structure", "verdict": "pass", "note": "Files placed per convention (.shipwright/agent_docs/screens.md, user-flow.md; CHANGELOG-unreleased.d/Added/)."},
+    {"name": "7. Affected Boundaries", "verdict": "n/a", "note": "No serialized-format producer/consumer changed; shipwright_events.jsonl and test-evidence.md were written by their existing, unmodified tooling (record_event.py, finalize_iterate.py)."},
+    {"name": "8. Test Hygiene Probe", "verdict": "pass", "note": "scan_test_hygiene.py --diff reported no findings."}
+  ]
+}
