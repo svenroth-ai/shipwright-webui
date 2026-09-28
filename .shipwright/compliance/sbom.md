@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-19T16:57:49.524769+00:00
-Source-State: run=iterate-2026-09-19-fix-wizard-plan-card-white-text
-Consistency-audit: last full run 2026-08-31 (19 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
+Generated: 2026-09-28T06:41:40.114337+00:00
+Source-State: run=iterate-2026-09-28-codextender-auto-mode-server
+Consistency-audit: last full run 2026-08-31 (28 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
 
 ## Summary
 

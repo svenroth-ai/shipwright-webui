@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-09-28-codextender-auto-mode-server",
+  "date": "2026-09-28T06:41:39.949432Z",
+  "event_at": "2026-09-26T14:25:32.075835+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/codextender-context-window",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-28-codextender-auto-mode-server"
+}

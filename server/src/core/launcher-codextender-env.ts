@@ -93,6 +93,7 @@ export function buildCodextenderEnvCleanupSuffix(
     "CODEXTENDER_ACTIVE",
     "CODEXTENDER_MODEL",
     "CLAUDE_CODE_MAX_CONTEXT_TOKENS",
+    "CLAUDE_CODE_AUTO_MODE_SERVER",
   ];
   if (shellForm === "powershell") {
     return (
@@ -142,6 +143,28 @@ export function buildCodextenderEnvPrefix(
     ["ANTHROPIC_MODEL", model],
     ["CODEXTENDER_ACTIVE", "1"],
     ["CODEXTENDER_MODEL", model],
+    // Operator finding (2026-09-27): every gateway-routed session (which a
+    // Codextender launch always is) shows a recurring "auto mode isn't
+    // eligible for classifier billing changes" notice, because the local
+    // proxy is an LLM gateway sitting between Claude Code and the API.
+    // Doubt-review HIGH (this session) asked for a source proving `"0"` is
+    // a value-based suppress flag rather than a presence-checked one (where
+    // the literal string `"0"` would be truthy and could no-op or backfire)
+    // — confirmed against Claude Code's own docs
+    // (https://code.claude.com/docs/en/auto-mode-classifier-billing,
+    // "Make the session eligible"): setting `CLAUDE_CODE_AUTO_MODE_SERVER`
+    // to `0` is the documented way to tell Claude Code not to ask a gateway
+    // for the server-side checks, classifier requests are billed exactly as
+    // before either way, and the notice stops appearing. The docs flag it as
+    // a "temporary setting [that] may be removed in a later release" — if a
+    // future Claude Code drops it, this line becomes an inert env var, not a
+    // behavior change, so no expiry guard is needed here. Cosmetic only, but
+    // it re-fires on every classifier-gated action for the life of the
+    // session. Unlike `CLAUDE_CODE_MAX_CONTEXT_TOKENS` this needs no dynamic
+    // probe result — it's a fixed constant, always "0" for this runtime — so
+    // unlike that sibling var it belongs in the uniform loop, not its own
+    // conditional branch.
+    ["CLAUDE_CODE_AUTO_MODE_SERVER", "0"],
   ];
 
   if (shellForm === "powershell") {

@@ -68,7 +68,7 @@ function readAndDeleteTokenFile(command: string, shellForm: "powershell" | "cmd"
 }
 
 describe("buildCodextenderCommands", () => {
-  it("prepends the 5 env vars right after the cd-prefix, before the claude invocation, on all 3 shells", () => {
+  it("prepends the plain env vars (ANTHROPIC_*/CODEXTENDER_*/CLAUDE_CODE_AUTO_MODE_SERVER) right after the cd-prefix, before the claude invocation, on all 3 shells", () => {
     const claude = claudeCommands();
     const result = buildCodextenderCommands({
       cwd: CWD,
@@ -89,14 +89,17 @@ describe("buildCodextenderCommands", () => {
     expect(result.powershell).toContain(`$env:ANTHROPIC_MODEL = '${DEFAULT_CODEXTENDER_MODEL_ALIAS}'; `);
     expect(result.powershell).toContain("$env:CODEXTENDER_ACTIVE = '1'; ");
     expect(result.powershell).toContain(`$env:CODEXTENDER_MODEL = '${DEFAULT_CODEXTENDER_MODEL_ALIAS}'; `);
+    expect(result.powershell).toContain("$env:CLAUDE_CODE_AUTO_MODE_SERVER = '0'; ");
 
     expect(result.cmd).toContain('set "ANTHROPIC_BASE_URL=http://127.0.0.1:4000" && ');
     expect(result.cmd).toContain("ANTHROPIC_AUTH_TOKEN");
     expect(result.cmd).toContain("set \"CODEXTENDER_ACTIVE=1\" && ");
+    expect(result.cmd).toContain('set "CLAUDE_CODE_AUTO_MODE_SERVER=0" && ');
 
     expect(result.posix).toContain("ANTHROPIC_BASE_URL='http://127.0.0.1:4000' ");
     expect(result.posix).toContain("ANTHROPIC_AUTH_TOKEN");
     expect(result.posix).toContain("CODEXTENDER_ACTIVE='1' ");
+    expect(result.posix).toContain("CLAUDE_CODE_AUTO_MODE_SERVER='0' ");
 
     // PR-review round 8 — none of the 3 shells ever contain the literal
     // token value; only its temp-file path does.
@@ -204,7 +207,7 @@ describe("buildCodextenderCommands", () => {
     readAndDeleteTokenFile(result.posix, "posix");
   });
 
-  it("plan-review HIGH + PR-review round 8 — cleans up all 6 env vars AND deletes the temp token file after the claude invocation, on all 3 shells", () => {
+  it("plan-review HIGH + PR-review round 8 — cleans up all 7 env vars AND deletes the temp token file after the claude invocation, on all 3 shells", () => {
     const result = buildCodextenderCommands({
       cwd: CWD,
       baseUrl: "http://127.0.0.1:4000",
@@ -216,11 +219,15 @@ describe("buildCodextenderCommands", () => {
     // CLAUDE_CODE_MAX_CONTEXT_TOKENS is cleaned up unconditionally here too
     // (round 13, 2026-09-26) — even when this launch never set it, so a
     // value from an earlier launch in the same long-lived pty can't survive.
+    // CLAUDE_CODE_AUTO_MODE_SERVER (2026-09-27) is unconditional too, same
+    // reasoning as CODEXTENDER_ACTIVE/CODEXTENDER_MODEL: it must not outlive
+    // this one `claude` invocation and leak into a later Relaunch-as-Claude
+    // in the same long-lived pty tab.
     expect(result.powershell.trimEnd()).toMatch(
-      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
+      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS,Env:CLAUDE_CODE_AUTO_MODE_SERVER -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
     );
     expect(result.cmd.trimEnd()).toMatch(
-      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & del \/f \/q ".+"$/,
+      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & set CLAUDE_CODE_AUTO_MODE_SERVER= & del \/f \/q ".+"$/,
     );
     expect(result.posix.trimEnd()).toMatch(/ ; rm -f '.+'$/);
     expect(result.posix).not.toContain("Remove-Item");
