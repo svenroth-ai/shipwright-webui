@@ -31,12 +31,32 @@ export function resolveToolResults(
     // The harness's own transient auto-mode-classifier preflight rejection —
     // the tool never ran, so it's never a real command failure (AC3).
     // Classified once, here (external plan review, low: avoid a second
-    // text-match in reconcile.ts). Non-`test` buckets leave the card
-    // unmutated (it may be coalesced, shared with other tool_use ids);
+    // text-match in reconcile.ts). Non-`test`/`subrunner` buckets leave the
+    // card unmutated (it may be coalesced, shared with other tool_use ids);
     // `test` cards are never coalesced, so they're removed outright (AC4).
+    // `subrunner` is exempted too (external code review, glm, low): unlike a
+    // Bash/Write call, an Agent/Task dispatch has no later merge/coalesce
+    // path to reconcile a retry into, so skipping it here would leave the
+    // card stuck "Running…" forever with no way to ever resolve — the exact
+    // stuck/unclickable-card symptom this iterate exists to fix (AC6), just
+    // via a different trigger. `applySubrunnerAck`'s existing `isError` path
+    // already fails the card closed to "failed" for exactly this case ("a
+    // dispatch that failed to launch at all" — see its own doc comment), so
+    // letting it reach that branch is reusing established behavior, not new
+    // behavior: the auto-mode rejection means the subagent genuinely never
+    // launched, so "failed" is the correct, honest outcome, and its report
+    // is the classifier's own message explaining why.
     const transientClassifierError = result.is_error && isTransientClassifierError(result.content);
-    if (transientClassifierError && pending.bucket !== "test") continue;
     if (pending.writtenTestFile && result.is_error) {
+      // Runs BEFORE the transient/non-test `continue` below (external code
+      // review, openai, medium): this optimistic-tracker rollback is
+      // bookkeeping about the Write call itself, not about what happens to
+      // the card, so a transiently-rejected Write of a test file (bucket
+      // "implement"/"review"/"spec"/"investigate" — the tool never ran) must
+      // still have its `writtenTestFiles` entry rolled back, or a later real
+      // test command can be misclassified as an authoring run against a
+      // write that never landed.
+      //
       // Sync the local `unresolvedTest` copy through `state` around the
       // call: rollback can retroactively OPEN the recovery slot (24th-round
       // external review catch, openai, medium — see `unstampAuthoringRun`'s
@@ -56,6 +76,7 @@ export function resolveToolResults(
       rollbackFailedWrite(pending, result.tool_use_id, state);
       unresolvedTest = state.unresolvedTest;
     }
+    if (transientClassifierError && pending.bucket !== "test" && pending.bucket !== "subrunner") continue;
     if (pending.bucket === "user-input") {
       // Only a non-error resolution counts as an actual answer (mini-plan,
       // code review catch): an errored/cancelled prompt sets `resolved`
@@ -170,6 +191,18 @@ export function resolveToolResults(
       } else {
         awaitingTestResult.delete(pending.card);
       }
+    } else if (pending.bucket === "subrunner") {
+      // MUST be checked before the generic `result.is_error` blocker branch
+      // below (external code review, glm, low — found via the transient-
+      // rejection trigger, but the actual gap was this ordering: the generic
+      // branch matches ANY error for ANY not-yet-excluded bucket, so it was
+      // silently swallowing a genuinely-failed — not just transiently-
+      // rejected — Agent/Task dispatch too, turning it into a `blocker` card
+      // and leaving `applySubrunnerAck`'s existing `isError`->"failed"
+      // fail-closed path, already covered by direct unit tests in
+      // `missionActivityFeedSubrunner.test.ts`, UNREACHABLE from the real
+      // reducer for every kind of dispatch error, not only a transient one).
+      applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (result.is_error) {
       // Split out to `missionActivityFeedBlockerError.ts` (300-line
       // convention) — the generic "a plain command failed" branch, the one
@@ -208,8 +241,6 @@ export function resolveToolResults(
         cards.splice(cards.indexOf(pending.card), 1);
         unresolvedBlockers.delete(pending.commandKey);
       }
-    } else if (pending.bucket === "subrunner") {
-      applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (pending.bucket === "review") {
       // A successful review tool_result carries the actual verdict/findings
       // text — previously discarded entirely (no branch matched it), so the

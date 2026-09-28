@@ -156,3 +156,60 @@ describe("deriveActivityFeed — AC3+AC4: a transient-rejected authoring run mus
     expect(testCards[0].status).toBe("err");
   });
 });
+
+// External code review catch (openai, medium): the transient/non-test
+// `continue` used to run BEFORE the `writtenTestFile` rollback, so a
+// transiently-rejected Write of a test file — bucket "implement", since a
+// Write is never bucket "test" — left its optimistic `writtenTestFiles`
+// tracker entry in place even though the write never actually landed.
+describe("deriveActivityFeed — a transiently-rejected Write of a test file rolls back its tracker entry", () => {
+  it("a later genuine test run for the same path is not misclassified as continuing that authoring run", () => {
+    const events = parseSessionJsonl([
+      tool("w1", "Write", { file_path: "src/lib/foo.test.ts" }),
+      result("w1", TRANSIENT_TEXT, true),
+      tool("t1", "Bash", { command: "vitest run src/lib/foo.test.ts" }),
+      result("t1", "1 passed", false),
+    ].join("\n")).events;
+    const feed = deriveActivityFeed(events, context("pass", false));
+    const testCards = feed.cards.filter((card) => card.kind === "test");
+    expect(testCards).toHaveLength(1);
+    expect(testCards[0].authoringRun).toBeUndefined();
+  });
+});
+
+// External code review catch (glm, low): the same non-test `continue` also
+// intercepted a transiently-rejected Agent/Task dispatch before it ever
+// reached `applySubrunnerAck`'s existing isError->"failed" fail-closed path,
+// leaving the subrunner card stuck "Running…" forever with no way to
+// resolve — the same stuck/unclickable symptom class AC6 fixes for a
+// different trigger.
+describe("deriveActivityFeed — a transiently-rejected subrunner dispatch resolves instead of sticking on Running", () => {
+  it("an Agent dispatch rejected by the transient classifier resolves to failed, not stuck running", () => {
+    const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "a1", name: "Agent", input: { subagent_type: "general-purpose", description: "Investigate the failure" } }] } });
+    const events = parseSessionJsonl([dispatch, result("a1", TRANSIENT_TEXT, true)].join("\n")).events;
+    const feed = deriveActivityFeed(events, null);
+    const subrunnerCards = feed.cards.filter((card) => card.kind === "subrunner");
+    expect(subrunnerCards).toHaveLength(1);
+    expect(subrunnerCards[0].subrunnerStatus).toBe("failed");
+  });
+
+  // The actual root cause was one level deeper than the trigger that
+  // surfaced it: the generic `else if (result.is_error)` blocker branch in
+  // `resolveToolResults` matched ANY error for any not-yet-excluded bucket,
+  // so it also swallowed a GENUINE (non-transient) dispatch failure before
+  // `applySubrunnerAck`'s own `isError`->"failed" fail-closed path — already
+  // covered by direct unit tests in `missionActivityFeedSubrunner.test.ts` —
+  // was ever reached. This proves that path is now actually reachable from
+  // the real reducer, for every kind of dispatch error, not only a
+  // transiently-rejected one.
+  it("a genuinely failed (non-transient) Agent dispatch still resolves to a failed subrunner card, never a blocker card (negative control)", () => {
+    const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "a1", name: "Agent", input: { subagent_type: "general-purpose", description: "Investigate the failure" } }] } });
+    const events = parseSessionJsonl([dispatch, result("a1", "The agent launch failed outright.", true)].join("\n")).events;
+    const feed = deriveActivityFeed(events, null);
+    expect(feed.cards.some((card) => card.kind === "blocker")).toBe(false);
+    const subrunnerCards = feed.cards.filter((card) => card.kind === "subrunner");
+    expect(subrunnerCards).toHaveLength(1);
+    expect(subrunnerCards[0].subrunnerStatus).toBe("failed");
+    expect(subrunnerCards[0].subrunnerReport).toBe("The agent launch failed outright.");
+  });
+});

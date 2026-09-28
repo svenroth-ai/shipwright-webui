@@ -128,11 +128,11 @@ regex-based footer recovery) — Boundary Probe required in Build.
 | AC | Test file(s) | Category | Proves |
 |---|---|---|---|
 | AC1 | `missionActivityFeedSessionStart.test.ts`, `MissionActivityFeedSessionStart.test.tsx` | unit + component | divider anchors to `feed.sessionStartTimestamp`, computed from raw events, independent of surviving cards; malformed/absent timestamp renders nothing |
-| AC2 | `run-id-recovery.test.ts`, `run-id-recovery-user-lines.test.ts`, `run-id-recovery.corroboration.test.ts`, `routes.recovery.midfile.test.ts` | unit + integration | 8 MiB cap recovers the measured real-world footer distance; `startedMidFile` passthrough at the pure-function, corroboration, AND full route→resolver→recovery-thunk levels; real-transcript check (AC7, same evidence) |
-| AC3 | `missionActivityFeedTransientClassifierError.test.ts` | unit | transient classifier error never promotes/stays a blocker; a genuine command failure still does (negative control) |
-| AC4 | `missionActivityFeedTransientClassifierError.test.ts` | unit | a wordless test-bucket card from a spliced transient rejection does not survive into the merged/reconciled feed; a legitimate recovered failure-then-pass card is NOT wrongly dropped (the regression the reconcile-filter approach broke); a spliced authoring-run card cannot be resurrected via `authoringConsumedBy` by a later out-of-order Write rollback to falsely "recover" an unrelated genuine failure (code-review catch, high — both result orderings); nor via the second, deferred `restoreValidationPending` path populated by a same-turn second Write to the same path (doubt-review catch, high — three-tool_use W0/W1/authoring reproduction, confirmed to fail without the second purge loop and pass with it) |
+| AC2 | `run-id-recovery.test.ts`, `run-id-recovery-user-lines.test.ts`, `run-id-recovery.corroboration.test.ts`, `routes.recovery.midfile.test.ts`, `wire.test.ts` | unit + integration | 8 MiB cap recovers the measured real-world footer distance; `startedMidFile` passthrough at the pure-function, corroboration, AND full route→resolver→recovery-thunk levels; real-transcript check (AC7, same evidence); external-review catch (openai, medium) — `wire.ts`'s own `fromByte`/`startedMidFile` arithmetic, previously untested at any level, now proven directly against a mocked `SessionWatcher` for both a small file and one exceeding `RECOVERY_TAIL_BYTES` |
+| AC3 | `missionActivityFeedTransientClassifierError.test.ts` | unit | transient classifier error never promotes/stays a blocker; a genuine command failure still does (negative control); external-review catch (openai, medium) — a transiently-rejected `Write` of a test file rolls back its optimistic tracker entry (previously skipped for any non-test bucket), so a later genuine test run is not misclassified as continuing that write |
+| AC4 | `missionActivityFeedTransientClassifierError.test.ts` | unit | a wordless test-bucket card from a spliced transient rejection does not survive into the merged/reconciled feed; a legitimate recovered failure-then-pass card is NOT wrongly dropped (the regression the reconcile-filter approach broke — coverage pre-dates this iterate, `missionActivityFeed.test.ts`'s "requires a verified retry before a failed test episode can recover"); a spliced authoring-run card cannot be resurrected via `authoringConsumedBy` by a later out-of-order Write rollback to falsely "recover" an unrelated genuine failure (code-review catch, high — both result orderings); nor via the second, deferred `restoreValidationPending` path populated by a same-turn second Write to the same path (doubt-review catch, high — three-tool_use W0/W1/authoring reproduction, confirmed to fail without the second purge loop and pass with it) |
 | AC5 | `missionActivityFeed.splitTurn.test.ts`, `MissionActivityFeedSessionStart.test.tsx` | unit + component | trailing narration gets `kind:"note"`, not `"system"`; only `isCompactionMarker` cards get the dashed/gear treatment |
-| AC6 | `missionActivityFeedSubrunnerAttachment.test.ts` | unit | an `Agent`-dispatched reviewer's `queued_command` attachment notification resolves the subrunner card to done/failed |
+| AC6 | `missionActivityFeedSubrunnerAttachment.test.ts`, `missionActivityFeedTransientClassifierError.test.ts` | unit | an `Agent`-dispatched reviewer's `queued_command` attachment notification resolves the subrunner card to done/failed; external-review catch (glm, low — investigation surfaced a deeper bug than reported) — a subrunner dispatch's error ack, transient OR genuine, now actually reaches `applySubrunnerAck`'s existing fail-closed path instead of being pre-empted into a plain `blocker` card by the generic error branch (negative control proves a genuine dispatch failure resolves to `"failed"`, never `"blocker"`) |
 | AC7 | `routes.recovery.midfile.test.ts` + manual real-transcript verification (Investigation Notes / AC7 note above) | integration + manual | artifact rail is a pure downstream consequence of AC2's fix, no separate code path needed |
 
 No E2E/Playwright additions — none of the six fixes changes a user
@@ -230,6 +230,104 @@ tests across the 4 specs pass; `surface_verification.py` recorded
   5. *process, informational* — a mini-plan cross-reference to "Internal Plan
      Review" predates this actual first formal pass; noted as a harmless
      forward-reference, no action needed.
+
+## External Code Review (external_review.py --mode code)
+
+Run against the actual committed diff (`git diff HEAD~1 HEAD` off commit
+`76efd4e0`), driver `claude` (the real harness; `CODEXTENDER_ACTIVE` was not
+set this session). glm verdict **approve**, openai verdict **revise** — not a
+contradiction requiring resolution (`external_review.py`'s own check:
+adjacent verdicts, comparable). 6 findings total, 3 substantive, 3
+convergent/duplicate framings of the same 2 underlying issues.
+
+1. **openai, medium (bug) — FIXED.** `missionActivityFeedResolve.ts`'s
+   transient/non-test `continue` ran BEFORE the `writtenTestFile`+`is_error`
+   rollback, so a transiently-rejected `Write`/`Edit` of a test file (bucket
+   `implement`/`review`/`spec`/`investigate` — a `Write` is never bucket
+   `test`) left its optimistic `writtenTestFiles` tracker entry in place even
+   though the write never landed, risking a later real test run being
+   misclassified as continuing that authoring run. Fixed by moving the
+   rollback block before the `continue`. Verified via revert-run-restore: a
+   new regression test in `missionActivityFeedTransientClassifierError.test.ts`
+   fails without the fix (2 test cards instead of 1) and passes with it.
+
+2. **glm, low (edge-case) — FIXED, and the investigation surfaced a DEEPER,
+   more severe bug than the one glm actually described.** glm's stated
+   finding was narrow: a transiently-rejected non-test-bucket dispatch (e.g.
+   a subrunner `Agent`/`Task` call) is skipped entirely by the same
+   `continue`, leaving its card stuck "Running…" forever — the same
+   stuck/unclickable symptom class AC6 exists to fix, via a different
+   trigger. Exempting the `subrunner` bucket from the `continue` (mirroring
+   `test`) was the intended fix, but writing the regression test proved that
+   alone did nothing: `resolveToolResults`'s generic `else if
+   (result.is_error)` blocker branch matched ANY error for ANY
+   not-yet-excluded bucket and ran BEFORE the `subrunner`-bucket branch ever
+   got reached, converting even a genuine (non-transient) dispatch failure
+   into a plain `blocker` card. This meant `applySubrunnerAck`'s existing
+   `isError`->`"failed"` fail-closed path — already covered by direct unit
+   tests in `missionActivityFeedSubrunner.test.ts`, and explicitly documented
+   as the handler for "a dispatch that failed to launch at all" — was
+   UNREACHABLE from the real reducer for every kind of dispatch error, not
+   only a transiently-rejected one. Fixed by reordering the `subrunner`
+   branch to run before the generic blocker branch (removing the now-dead
+   duplicate branch further down). Verified via revert-run-restore with two
+   regression tests: a transient-rejection case and a negative-control
+   genuine-failure case, both failing without the reorder and passing with
+   it; full client suite (483 files / 4400 tests) still green.
+
+3. **openai, medium / glm, low (both pointing at the same mechanism) —
+   REJECTED, with reason.** Both reviewers questioned whether
+   `run-id-recovery.ts`'s `startedMidFile`-driven unconditional drop of the
+   tail read's leading line could discard a genuinely COMPLETE line (and,
+   worst case, the very `Run-ID:` footer line) whenever the read happened to
+   start exactly on a `\n` boundary. Investigated directly against
+   `session-jsonl-io.ts`'s `readTailFromDisk` (the real positional-read
+   primitive `wire.ts` calls through `SessionWatcher.readChunk`): it performs
+   a RAW byte-offset read (`start = Math.min(Math.max(fromByte, 0), size)`,
+   then a straight positional read loop) with NO `\n`-boundary snapping
+   anywhere — CLAUDE.md Architecture rule 5 ("cut on `\n` boundaries only")
+   describes the ordinary streaming transcript reader, not this bounded tail
+   read. `wire.ts` computes `fromByte = loc.sizeBytes - budget`, an arbitrary
+   byte-count subtraction with no relationship to line boundaries, so it
+   essentially never lands exactly after a `\n` in a real transcript (odds on
+   the order of 1-in-hundreds-to-thousands, gated by an already-rare
+   degraded/reach-back path). The current unconditional drop is therefore the
+   correct, deliberately conservative default given the reader gives no
+   boundary signal either way — `run-id-recovery.ts`'s own doc comment
+   explains the alternative (assuming a byte-cut fragment is complete) is the
+   ORIGINAL high-severity bug this exact code was written to close. Plumbing
+   a boundary-peek signal through 4 layers (`wire.ts` -> `routes.ts` ->
+   `resolver-parts.ts` -> `run-id-recovery.ts`) to close a near-zero-
+   probability theoretical gap was judged not worth the complexity; recorded
+   here so it is not re-investigated as a live gap later.
+
+4. **glm, medium (test) / openai, medium (test) — both ADDRESSED, one
+   pre-existed and one was a genuine gap, now closed.**
+   - glm: the AC4 ledger's evidence citation didn't include a case where a
+     test invocation genuinely fails (real red) then genuinely retries and
+     passes, and glm couldn't find one in the file it reviewed
+     (`missionActivityFeedTransientClassifierError.test.ts`, this iterate's
+     new file). **Not a real gap** — that coverage already exists, pre-dating
+     this iterate and outside the diff glm was scoped to:
+     `missionActivityFeed.test.ts`'s `"requires a verified retry before a
+     failed test episode can recover"` (confirmed still passing).
+   - openai: `routes.recovery.midfile.test.ts` proves the `startedMidFile`
+     signal threads correctly through route -> resolver -> recovery (its own
+     stated purpose), but injects the flag directly through the test
+     harness's `reads:` seam rather than exercising `wire.ts`'s own
+     `fromByte`/`startedMidFile` arithmetic against a real `SessionWatcher`.
+     Checked: `wire.ts` had ZERO test coverage of any kind before this
+     iterate. **Fixed** — new `server/src/external/mission-context/wire.test.ts`
+     directly exercises `createWiredMissionContextRouter`'s
+     `readTranscriptTail` closure against a mocked `SessionWatcher`, proving
+     the `fromByte = size - budget` arithmetic and the `startedMidFile`
+     signal for both a small file (byte 0, `false`) and one larger than
+     `RECOVERY_TAIL_BYTES` (positive offset, budget clamped into
+     `[TRANSCRIPT_TAIL_BYTES, RECOVERY_TAIL_BYTES]`, `true`).
+
+External review pass recorded via `record_review_pass.py` (`external_code`,
+completed, 6 findings, disposition summarized above); raw replies preserved
+at `.shipwright/planning/iterate/iterate-2026-09-28-mission-feed-completeness/external-code-review-raw.json`.
 
 ## Investigation Notes (Repo Scout findings, for the record)
 

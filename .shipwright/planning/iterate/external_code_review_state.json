@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-26T12:52:38.667533+00:00",
+  "timestamp": "2026-09-28T11:33:41.384120+00:00",
   "provider": null,
-  "findings_count": 2,
+  "findings_count": 6,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized — the count (2) may understate what was found",
+  "reason": "openai finding 1 (rollbackFailedWrite skip) fixed; deeper root cause found during triage of openai finding 1's sibling (glm subrunner stuck-card finding): generic is_error branch pre-empted the subrunner bucket entirely, fixed by reordering; openai finding 2/glm finding 3 (startedMidFile double-drop) rejected with reason (readTailFromDisk is a raw byte read, no boundary snap, so dropping the leading line is the correct conservative default); glm finding 1/openai finding 3 (test rigor) addressed: genuine fail-then-retry coverage already exists pre-iterate (missionActivityFeed.test.ts), and wire.ts's own fromByte/startedMidFile arithmetic (previously untested at any level) now has direct coverage in the new wire.test.ts",
   "review_mode": "code",
   "marker_schema": 4,
   "verdicts": {
-    "openai": "approve",
-    "glm": "approve"
+    "glm": "approve",
+    "openai": "revise"
   },
   "contradiction": {
     "detected": false,
     "comparable": true,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
   },
   "contradiction_resolution": null
 }
