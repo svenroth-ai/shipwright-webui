@@ -43,7 +43,7 @@ import { isSafeRunId } from "./pointer.js";
  * Hard cap on how much text is scanned, independent of what the caller passes.
  * The caller already reads a bounded tail; this is the belt to that braces.
  */
-export const MAX_SCAN_CHARS = 1024 * 1024;
+export const MAX_SCAN_CHARS = 8 * 1024 * 1024;
 
 /**
  * The F6 footer marker.
@@ -135,12 +135,20 @@ function stripUserTypeLines(text: string, dropLeadingPartialLine: boolean): stri
  *
  * Pure — no I/O, no corroboration. `recoverRunIdFromTranscript` is the entry
  * point that adds evidence.
+ *
+ * `startedMidFile` (iterate-2026-09-28-mission-feed-completeness, AC2): true
+ * when the CALLER's own read already began after byte 0 of the real file — the
+ * caller always reads a bounded tail no larger than `MAX_SCAN_CHARS`, so
+ * `transcript.length > MAX_SCAN_CHARS` below can never observe that on its
+ * own in production, only in a test that hands this function an oversized
+ * string directly. Either condition means the leading line may be a
+ * byte-cut fragment (see `stripUserTypeLines`'s doc comment).
  */
-export function findRunIdFooter(transcript: string): string | null {
+export function findRunIdFooter(transcript: string, startedMidFile = false): string | null {
   if (typeof transcript !== "string" || transcript.length === 0) return null;
-  const truncated = transcript.length > MAX_SCAN_CHARS;
-  const tail = truncated ? transcript.slice(-MAX_SCAN_CHARS) : transcript;
-  const text = stripUserTypeLines(tail, truncated);
+  const droppedLeadingPartial = startedMidFile || transcript.length > MAX_SCAN_CHARS;
+  const tail = transcript.length > MAX_SCAN_CHARS ? transcript.slice(-MAX_SCAN_CHARS) : transcript;
+  const text = stripUserTypeLines(tail, droppedLeadingPartial);
 
   let last: string | null = null;
   RUN_ID_FOOTER.lastIndex = 0;
@@ -254,13 +262,14 @@ export function recoverRunIdFromTranscript(
   projectRoot: string,
   transcript: string,
   sessionUuid?: string,
+  startedMidFile = false,
 ): string | null {
   const memoKey = sessionUuid ? `${projectRoot}::${sessionUuid}` : null;
   const fingerprint = memoKey ? tailFingerprint(transcript) : null;
   if (memoKey && negativeScans.get(memoKey) === fingerprint) return null;
 
   scanCount++;
-  const candidate = findRunIdFooter(transcript);
+  const candidate = findRunIdFooter(transcript, startedMidFile);
 
   // Memoize ONLY "this text contains no marker" — a purely TEXTUAL fact, which
   // cannot change while the text does not. A candidate that failed

@@ -269,7 +269,10 @@ test.describe("Mission activity feed — transcript fidelity (Sven's 2026-09-20 
     await expect(feed).toBeVisible({ timeout: 15_000 });
 
     await expect(feed).toContainText("All seven reported gaps are fixed. Wrapping up here.");
-    const closing = feed.locator('[data-kind="system"]', { hasText: "Wrapping up here." });
+    // AC5 (iterate-2026-09-28-mission-feed-completeness): trailing narration no
+    // longer renders with the dashed/gear "system" treatment reserved for a
+    // real compaction marker — it now carries kind "note" instead.
+    const closing = feed.locator('[data-kind="note"]', { hasText: "Wrapping up here." });
     await expect(closing).toBeVisible();
   });
 });

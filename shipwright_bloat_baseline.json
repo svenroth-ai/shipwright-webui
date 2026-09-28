@@ -753,9 +753,10 @@
     {
       "path": "server/src/core/mission-context/resolver.ts",
       "limit": 300,
-      "current": 111,
+      "current": 112,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-09-28-mission-feed-completeness",
+      "note": "iterate-2026-09-28-mission-feed-completeness: +1 line -- threads the new transcriptStartedMidFile flag into buildRecoveryThunk (AC2)."
     },
     {
       "path": "server/src/core/mission-context/types.ts",
@@ -767,9 +768,10 @@
     {
       "path": "server/src/external/mission-context/routes.ts",
       "limit": 300,
-      "current": 294,
+      "current": 300,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-09-28-mission-feed-completeness",
+      "note": "iterate-2026-09-28-mission-feed-completeness: +6 lines -- raises RECOVERY_TAIL_BYTES to 8 MiB and threads transcriptStartedMidFile through the route handler + HarnessOptions (AC2); trimmed comments three rounds to land exactly at the 300-line ceiling."
     },
     {
       "path": "server/src/terminal/replay-snapshot.test.ts",

@@ -140,7 +140,7 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
     expect(card).toBeUndefined();
   });
 
-  it("trailing narration with no following tool call is flushed as its own system card, not dropped or crashed on (iterate-2026-09-20-mission-feed-transcript-fidelity)", () => {
+  it("trailing narration with no following tool call is flushed as its own note card, not dropped or crashed on (iterate-2026-09-20-mission-feed-transcript-fidelity)", () => {
     const events = parseSessionJsonl([
       turn(null, { id: "r1", name: "Read", input: { file_path: "auth.ts" } }),
       turn("Wrapping up — no further action needed."),
@@ -149,9 +149,14 @@ describe("deriveActivityFeed — split narration/tool turns (real-world session 
     // The wordless investigate card is dropped by the empty-tool-only-card
     // filter; the trailing narration that used to vanish silently (reported:
     // "Schluss auch nicht [geprintet]. Die Prints scheinen zu verschwinden.")
-    // now flushes to its own system card instead of being lost.
+    // now flushes to its own card instead of being lost. `note`, not
+    // `system` (iterate-2026-09-28-mission-feed-completeness, AC5): this is
+    // an ordinary last message, not a real system/infra event, and sharing
+    // `system`'s kind wrongly rendered it with the dashed border + gear icon
+    // reserved for a genuine `isCompactionMarker` card (reported: "Warum ist
+    // das gestrichelt? Ist doch eine normale Message").
     expect(feed.cards).toHaveLength(1);
-    expect(feed.cards[0].kind).toBe("system");
+    expect(feed.cards[0].kind).toBe("note");
     expect(feed.cards[0].text).toBe("Wrapping up — no further action needed.");
   });
 

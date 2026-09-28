@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-28-mission-feed-completeness",
+  "date": "2026-09-28",
+  "section": "Iterate — change: mission feed completeness",
+  "title": "Mission-tab completeness fixes (6 defects, real-session-driven)",
+  "context": "Sven found 6 Mission-tab completeness/correctness defects in a real finished session; the feed must accurately narrate what a session did.",
+  "decision": "Fix each at its true root cause: session-start anchor, 8 MiB recovery window plus a startedMidFile signal, transient-classifier-error handling, dashed-styling scope, and attachment-based subrunner resolution.",
+  "consequences": "Mission feed now narrates a real session's timeline and outcomes accurately; no new standing mechanism. Review cascade found and fixed two dangling-reference bugs in existing rollback state.",
+  "rationale": "Every defect was root-caused against real transcript data, not guessed, and each fix is pinned by a test that fails pre-fix and passes post-fix; AC2 was additionally verified against the actual reported session JSONL.",
+  "rejected": "Reading the whole transcript for recovery instead of a larger fixed cap — rejected as unbounded, against CLAUDE.md rule 6; see iterate spec Alternative approach section.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/iterate/2026-09-28-mission-feed-completeness.md"
+}

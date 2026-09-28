@@ -1,0 +1,15 @@
+{
+  "review_schema": 2,
+  "review_mode": "iterate",
+  "reviews": {
+    "openai": {
+      "status": "completed",
+      "verdict": "revise",
+      "feedback": "Finding 1 (edge-case, medium): AC1's \"first parseable timestamp\" must validate the timestamp is actually parseable, not just present, before treating it as the session start. Recommend guarding with a real parse check (e.g. !Number.isNaN(Date.parse(...))), tested with an invalid-then-valid timestamp pair.\n\nFinding 2 (dependency, medium): AC2's test must prove the FULL path (resolver scenario -> artifact rail), not just the footer-scanner unit in isolation, since readTranscriptTail's own clamp is an equally necessary part of the fix. Add a resolver/route-level regression test alongside the run-id-recovery.ts unit test.\n\nFinding 3 (approach, low): Don't duplicate the transient-error text-match in both missionActivityFeedResolve.ts and missionActivityFeedReconcile.ts; classify once at the tool-result boundary.\n\nOverall verdict: revise. All three findings should be folded into the mini-plan before build."
+    },
+    "glm": {
+      "status": "unavailable",
+      "reason": "openai python package not installed on this machine"
+    }
+  }
+}

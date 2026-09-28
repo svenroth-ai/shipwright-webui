@@ -1,0 +1,7 @@
+{
+  "intent": "change",
+  "description": "Fix 6 Mission-tab activity feed defects found in a real finished session: wrong session-start time, stale textless blocker/test cards, stuck subrunner cards, and an ordinary message wrongly styled as a system event",
+  "summary": "The Mission tab now correctly shows when a session started, drops stale placeholder cards instead of showing them as failed, resolves reviewer-subagent cards instead of leaving them stuck, and no longer mis-styles an ordinary closing message as a system event.",
+  "spec_impact": "modify",
+  "affected_frs": ["FR-01.66"]
+}

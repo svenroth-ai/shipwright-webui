@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-28-mission-feed-completeness",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-28T10:50:50.105082+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openai",
+      "completed_at": "2026-09-28T10:51:28.845291+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] <no review returned: openai python package not installed on this machine>\n\n[openai] Finding 1 (edge-case, medium): AC1's \"first parseable timestamp\" must validate the timestamp is actually parseable, not just present, before treating it as the session start. Recommend guarding with a real parse check (e.g. !Number.isNaN(Date.parse(...))), tested with an invalid-then-valid timestamp pair.\n\nFinding 2 (dependency, medium): AC2's test must prove the FULL path (resolver scenario -> artifact rail), not just the footer-scanner unit in isolation, since readTranscriptTail's own clamp is an equally necessary part of the fix. Add a resolver/route-level regression test alongside the run-id-recovery.ts unit test.\n\nFinding 3 (approach, low): Don't duplicate the transient-error text-match in both missionActivityFeedResolve.ts and missionActivityFeedReconcile.ts; classify once at the tool-result boundary.\n\nOverall verdict: revise. All three findings should be folded into the mini-plan before build.",
+      "verdicts": {
+        "openai": "unavailable",
+        "glm": "unavailable"
+      },
+      "contradiction_resolution": "Only one reviewer (openai/codex) responded; glm errored locally (openai python package not installed on this machine, unrelated to the change). Per external_review.py's own degraded-mode contract, one opinion is enough to proceed. All 3 openai findings were triaged as fix and folded into the spec/mini-plan before build."
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": null,
+          "finding": "Splicing a transient-rejected test card out of cards/testCards/awaitingTestResult in missionActivityFeedResolve.ts left it still reachable as a value in the pre-existing state.authoringConsumedBy map whenever the dropped card was also a TDD authoring run. A later, out-of-order rollback of its backing Write (rollbackFailedWrite/unstampAuthoringRun in missionActivityFeedAuthoringRollback.ts) could look the detached card up and misread its \"neither failed nor pending\" shape as a SUCCESSFUL recovery, wrongly clearing an unrelated, still-open genuine test failure's red status.",
+          "suggestion": "Purge the matching authoringConsumedBy entry (and clear card.authoringRun) at splice time, so a later rollback behaves as if this run had never consumed the tracker slot.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "bloat",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": null,
+          "finding": "The AC3/AC4 work pushed missionActivityFeedResolve.ts from its already-at-ceiling 300 lines to 332+, violating the project's file-size convention.",
+          "suggestion": "Split into cohesive files (the splice+purge helper, and the pre-existing untouched generic blocker branch) rather than trimming comments.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-28T10:52:45.117133+00:00",
+      "disposition": "both findings (high authoringConsumedBy dangling-ref, medium bloat) fixed before commit; see mini-plan step 6",
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "state-management",
+          "file": "client/src/lib/missionActivityFeedTransientTestDrop.ts",
+          "line": null,
+          "finding": "Claim under doubt: Purging state.authoringConsumedBy at drop time (the code-review fix) is sufficient to prevent a spliced transient-rejected card from being resurrected by a later out-of-order Write rollback. — authoringConsumedBy is not the only path into unstampAuthoringRun — state.restoreValidationPending is a second, deferred one, populated when a same-turn SECOND Write/Edit to the same path fails while its own EARLIER write's fate is still unknown (missionActivityFeedAuthoringRollback.ts's else branch, keyed by the earlier write's tool_use id rather than the later one authoringConsumedBy uses). A card can remain a value there even after its authoringConsumedBy entry was already purged, since the two maps are keyed by different tool_use ids belonging to different writes. Reproduced with a three-tool_use fixture (w0, w1 both targeting the same path, then an authoring run) with results delivered in the order w1-error, authoring-transient-reject, w0-error: without a second purge of restoreValidationPending, the dropped card's command wrongly resurfaces merged into an unrelated genuine npm test failure.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-28T10:52:52.214527+00:00",
+      "disposition": "restoreValidationPending second-path finding fixed before commit, verified via revert-run-restore regression test",
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-28T10:52:37.348115+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "sonnet"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-28T10:53:43.879116+00:00",
+      "disposition": "approve, 5 low/informational findings, none blocking; see spec.md Internal Plan Review section",
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

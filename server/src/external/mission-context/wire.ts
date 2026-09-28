@@ -48,6 +48,10 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
           RECOVERY_TAIL_BYTES,
         );
         const fromByte = Math.max(0, loc.sizeBytes - budget);
+        // A leading partial line was dropped whenever the read did not start
+        // at byte 0 of the real file (AC2) — independent of `run-id-recovery`'s
+        // own MAX_SCAN_CHARS cap, which this budget is normally already below.
+        const startedMidFile = fromByte > 0;
         // `loc` is handed to the reader so it does not repeat the walk we just
         // did (iterate-2026-07-22-…-single-walk). Safe HERE specifically
         // because this caller passes `expectFingerprint: null` — a caller that
@@ -65,7 +69,11 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
         // `path` catches a transcript REPLACED under the same session uuid,
         // `sizeBytes` the ordinary append, `mtimeMs` an in-place rewrite that
         // happens to preserve the length.
-        return { text: r.chunk.content, revision: `${loc.path}:${loc.sizeBytes}:${loc.mtimeMs}` };
+        return {
+          text: r.chunk.content,
+          revision: `${loc.path}:${loc.sizeBytes}:${loc.mtimeMs}`,
+          startedMidFile,
+        };
       } catch {
         // A transcript fault degrades the PR marker (merge → "unknown"), and
         // must never fail the context read itself. No revision, so the reach-back

@@ -61,6 +61,7 @@ export async function resolveMissionContext(
       sessionUuid,
       req.transcript,
       req.association?.runId ?? null,
+      req.transcriptStartedMidFile,
     ),
     actions: req.actions,
     runConfigStatus: req.runConfigStatus,

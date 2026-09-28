@@ -26,13 +26,17 @@ import { getContext, harness, makeProject, makeTask, RUN_ID, UUID } from "./test
 /** The F6 footer exactly as it appears inside a JSONL record. */
 const FOOTER = `{"text":"feat: something\\n\\nRun-ID: ${RUN_ID}\\nCo-Authored-By: Claude <noreply@anthropic.com>"}`;
 
-/** Drop the pointer — this is what `prune_stale_run_pointers` does at Finalize. */
-function prunePointer(root: string): void {
+/**
+ * Drop the pointer — this is what `prune_stale_run_pointers` does at Finalize.
+ * Exported for `routes.recovery.midfile.test.ts` (CLAUDE.md 300-line rule),
+ * same reuse pattern as `run-id-recovery.test.ts`'s `footerLine`/`RUN`.
+ */
+export function prunePointer(root: string): void {
   unlinkSync(join(root, ".shipwright", "iterate_active", `${UUID}.json`));
 }
 
 /** The project's own record of the run — the corroboration the recovery needs. */
-function recordRun(root: string, runId = RUN_ID): void {
+export function recordRun(root: string, runId = RUN_ID): void {
   writeFileSync(
     join(root, "shipwright_events.jsonl"),
     `${JSON.stringify({

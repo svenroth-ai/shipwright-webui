@@ -1,21 +1,21 @@
 {
   "status": "completed",
-  "timestamp": "2026-09-26T12:41:38.438232+00:00",
-  "provider": "openrouter",
-  "findings_count": 6,
+  "timestamp": "2026-09-28T10:51:28.855356+00:00",
+  "provider": "openai",
+  "findings_count": 0,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "findings could not be itemized from the reviewer's prose \u2014 the count (0) is NOT a clean-review result",
   "review_mode": "iterate",
   "marker_schema": 4,
   "verdicts": {
-    "glm": "approve",
-    "openai": "revise"
+    "openai": "unavailable",
+    "glm": "unavailable"
   },
   "contradiction": {
     "detected": false,
-    "comparable": true,
+    "comparable": false,
     "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+    "reason": "neither reviewer answered: glm=unavailable, openai=unavailable"
   },
-  "contradiction_resolution": null
+  "contradiction_resolution": "Only one reviewer (openai/codex) responded; glm errored locally (openai python package not installed on this machine, unrelated to the change). Per external_review.py's own degraded-mode contract, one opinion is enough to proceed. All 3 openai findings were triaged as fix and folded into the spec/mini-plan before build."
 }

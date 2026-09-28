@@ -198,6 +198,7 @@ export function buildRecoveryThunk(
   sessionUuid: string,
   transcript: string,
   associationRunId: string | null,
+  startedMidFile = false,
 ): () => string | null {
   const memoHit =
     associationRunId !== null ? supersessionMemoHit(sessionUuid, associationRunId, transcript) : undefined;
@@ -207,7 +208,7 @@ export function buildRecoveryThunk(
     // memo's own doc comment): an unconfirmed result always re-scans, since
     // corroboration can succeed later even when the text has not changed.
     if (associationRunId !== null && memoHit !== undefined) return memoHit;
-    const recovered = recoverRunIdFromTranscript(projectRoot, transcript, sessionUuid);
+    const recovered = recoverRunIdFromTranscript(projectRoot, transcript, sessionUuid, startedMidFile);
     if (associationRunId !== null && recovered !== null) {
       markSupersessionResult(sessionUuid, associationRunId, transcript, recovered);
     }

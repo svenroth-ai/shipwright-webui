@@ -1,0 +1,12 @@
+{
+  "stage": "doubt-review",
+  "doubts": [
+    {
+      "claim_under_doubt": "Purging state.authoringConsumedBy at drop time (the code-review fix) is sufficient to prevent a spliced transient-rejected card from being resurrected by a later out-of-order Write rollback.",
+      "disproof_attempt": "authoringConsumedBy is not the only path into unstampAuthoringRun — state.restoreValidationPending is a second, deferred one, populated when a same-turn SECOND Write/Edit to the same path fails while its own EARLIER write's fate is still unknown (missionActivityFeedAuthoringRollback.ts's else branch, keyed by the earlier write's tool_use id rather than the later one authoringConsumedBy uses). A card can remain a value there even after its authoringConsumedBy entry was already purged, since the two maps are keyed by different tool_use ids belonging to different writes. Reproduced with a three-tool_use fixture (w0, w1 both targeting the same path, then an authoring run) with results delivered in the order w1-error, authoring-transient-reject, w0-error: without a second purge of restoreValidationPending, the dropped card's command wrongly resurfaces merged into an unrelated genuine npm test failure.",
+      "severity": "high",
+      "lens": "state-management",
+      "file": "client/src/lib/missionActivityFeedTransientTestDrop.ts"
+    }
+  ]
+}

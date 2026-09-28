@@ -17,7 +17,10 @@ export function kindAccent(card: ActivityCard): { color: string; line: string } 
       : card.status === "warn" ? { color: "var(--warn)", line: "var(--warn-line)" }
       : { color: "var(--muted)", line: "var(--line-strong)" };
   }
-  if (card.kind === "investigate" || card.kind === "system") return { color: "var(--muted)", line: "var(--line-strong)" };
+  // `note` (a plain trailing message, AC5) shares `investigate`/`system`'s
+  // muted accent — never the vivid default accent a real work-kind card
+  // gets, since it isn't narrating a step, just carrying leftover words.
+  if (card.kind === "investigate" || card.kind === "system" || card.kind === "note") return { color: "var(--muted)", line: "var(--line-strong)" };
   if (card.kind === "subrunner") {
     // "done" and "failed" were visually identical (external code review,
     // openai, medium: "the required done/failed status is invisible") — a

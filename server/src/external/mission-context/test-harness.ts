@@ -95,8 +95,12 @@ export interface HarnessOptions {
    * no difference. Setting it models the case the wide window exists for: a
    * footer sitting further back than `TRANSCRIPT_TAIL_BYTES`, which only the
    * reach-back can read.
+   *
+   * `startedMidFile` models the real reader's own signal (wire.ts) that this
+   * read began after byte 0 — a route-level seam for AC2's end-to-end test,
+   * since the unit tests already cover `findRunIdFooter` itself directly.
    */
-  reads?: { text: string; revision: string; narrowText?: string }[];
+  reads?: { text: string; revision: string; narrowText?: string; startedMidFile?: boolean }[];
 }
 
 export function harness(
@@ -136,7 +140,11 @@ export function harness(
   const readTranscriptTail = vi.fn(async (_uuid: string, maxBytes?: number) => {
     const r = reads[Math.min(poll++, reads.length - 1)];
     const narrow = (maxBytes ?? TRANSCRIPT_TAIL_BYTES) < RECOVERY_TAIL_BYTES;
-    return { text: narrow ? (r.narrowText ?? r.text) : r.text, revision: r.revision };
+    return {
+      text: narrow ? (r.narrowText ?? r.text) : r.text,
+      revision: r.revision,
+      startedMidFile: r.startedMidFile,
+    };
   });
 
   const app = createMissionContextRouter({

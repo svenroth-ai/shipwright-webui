@@ -41,38 +41,40 @@ export const TRANSCRIPT_TAIL_BYTES = 512 * 1024;
  * The larger bounded tail used ONLY while a task is still unidentified, so the
  * `Run-ID` footer recovery can reach it (run-id-recovery.ts).
  *
- * 1 MB is measured, not guessed: across this project's 65 real transcripts a
- * 512 KB tail recovers 42 sessions and MISSES 4 whose pointer proves the run
- * (the closest sits 526 KB from the end); 1 MB recovers 50 and misses none;
- * 2, 4 and 8 MB add nothing at all.
+ * RAISED from 1 MiB to 8 MiB (iterate-2026-09-28-mission-feed-completeness,
+ * AC2): a real, finished session's commit footer sat ~2.8 MB before EOF in a
+ * 4.9 MB transcript — outside the old 1 MB window — leaving its whole
+ * Mission artifact rail permanently empty. Re-measured fresh across this
+ * project's 91 real transcripts (supersedes the 65/203-transcript figures
+ * below, which this project's growing transcript population had already
+ * outgrown): of 71 carrying any footer, 512 KB recovers 38, 1 MB 53, 2 MB 63,
+ * 4 MB 67, **8 MB 70**, 16 MB no more than 8 MB. The one transcript 8 MB
+ * still misses has its footer ~28 MB before EOF — an extreme outlier no
+ * fixed cap short of "unbounded" reaches (see the mini-plan's "Alternative
+ * approach considered" for why unbounded was rejected). 8 MB recovers 70/71
+ * (98.6%) and is the practical ceiling.
  *
- * It is a REACH-BACK, not a standing subscription. The window exists to see
- * history; anything written later is appended at the END, inside
- * `TRANSCRIPT_TAIL_BYTES`. So it is requested once per task and then only when
- * the transcript has actually changed — see `wideWindows`. The earlier
- * "unidentified ⇒ always wide" rule was permanent for a genuinely plain session,
- * and MEASURED on this machine that is the common case: 412 of 419 tasks, over
- * transcripts of which 78 % exceed 1 MB (internal code review of PR #309, PERF).
+ * It is a REACH-BACK, not a standing subscription — requested once per task
+ * and again only once the transcript has moved (`wideWindows`). Raising this
+ * constant makes that existing, already-accepted per-poll cost larger (up to
+ * ~7.5 MB more decode+scan for a task that stays unidentified and keeps
+ * growing) rather than introducing a new one — accepted at this iterate's
+ * review against a session whose whole artifact rail was otherwise
+ * permanently wrong; a bounded incremental/backward-chunked rescan was
+ * considered and deferred as a separate, larger change.
  *
- * WHAT THIS SAVES: ~425 KB per poll of UTF-8 DECODE, string allocation and
- * downstream scanning — and, since
- * iterate-2026-07-21-transcript-positional-tail-read, of I/O as well. An earlier
- * revision of this comment recorded the opposite ("the tail budget bounds the
- * SLICE, not the read"), which was true then: `readChunk` loaded the whole file
- * before slicing. It now issues a POSITIONAL read, so the budget bounds the read
- * itself. Measured over this project's 203 real transcripts, a full sweep fell
- * from 919 MB / 253 ms to 102 MB / 44 ms; one poll of the largest (137.9 MB)
- * went from ~31 ms to 2.2 ms.
+ * Superseded (provenance only): 65 transcripts, 512 KB recovered 42/missed 4
+ * (closest miss 526 KB), 1 MB recovered all 50, 2/4/8 MB added nothing — that
+ * last claim did not survive this iterate's counter-example. Separately, 203
+ * transcripts showed the POSITIONAL-read I/O saving (919 MB/253 ms → 102
+ * MB/44 ms, iterate-2026-07-21-transcript-positional-tail-read) — orthogonal
+ * to the cap's size, unaffected here.
  *
  * The invariant is "a narrower window cannot lose a recovery", and it holds
- * UNLESS the transcript outruns the ordinary tail within one poll interval:
- * ~512 KB appended between two polls could carry a footer past the narrow window
- * before the next reach-back is earned. Such a session is in flight and so
- * pointer-identified in practice, which is why it never reaches this path — but
- * the invariant is CONDITIONAL, and claiming otherwise would be the same kind of
- * overstatement this run exists to correct.
+ * UNLESS the transcript outruns the ordinary tail within one poll interval —
+ * CONDITIONAL, not absolute.
  */
-export const RECOVERY_TAIL_BYTES = 1024 * 1024;
+export const RECOVERY_TAIL_BYTES = 8 * 1024 * 1024;
 
 /**
  * How many tasks' reach-back state is remembered. Cleared wholesale at the cap —
@@ -96,11 +98,14 @@ export interface MissionContextRouterDeps {
    * cannot supply one: an empty revision is never recorded, so a fault can never
    * suppress a recovery. Deliberately metadata and not a content digest — the
    * cache would otherwise retain transcript text well past the read.
-   */
+   *
+   * `startedMidFile`: true when this read began after byte 0 (a leading
+   * partial line was dropped) — lets the resolver avoid keeping a byte-cut
+   * record as unparseable-therefore-safe (AC2). */
   readTranscriptTail: (
     sessionUuid: string,
     maxBytes?: number,
-  ) => Promise<{ text: string; revision: string }>;
+  ) => Promise<{ text: string; revision: string; startedMidFile?: boolean }>;
   /** Scenario inputs the resolver cannot derive itself. */
   getScenarioFacts: (
     project: ExternalRouteProjectView,
@@ -209,6 +214,7 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
       projectId: task.projectId,
       projectRoot: project.path,
       transcript,
+      transcriptStartedMidFile: read.startedMidFile ?? false,
       phaseTaskId: task.phaseTaskId ?? null,
       taskRunId: task.runId ?? null,
       taskTerminal: task.state === "done" || task.state === "launch_failed",

@@ -1,7 +1,7 @@
 import type { ArtifactKind } from "./missionContextApi";
 import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 
-export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery" | "subrunner";
+export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery" | "subrunner" | "note";
 
 export interface ActivityQuestion {
   text: string;
@@ -146,6 +146,16 @@ export interface ActivityCard {
 export interface ActivityFeed {
   outcome: string;
   cards: ActivityCard[];
+  /** The transcript's own true first parseable event timestamp — computed
+   *  once in `deriveActivityFeed` from the raw `events` array, independent
+   *  of which cards actually survived derivation/filtering. Absent only when
+   *  no event in the whole transcript carries a valid timestamp at all.
+   *  Before this field existed, the "Session started" divider derived its
+   *  time from `cards[0].timestamp`, so a session whose early turns produced
+   *  no surviving card silently reported a later, wrong start time
+   *  (iterate-2026-09-28-mission-feed-completeness, AC1 — reported: "Start
+   *  ist abgeschnitten"). */
+  sessionStartTimestamp?: string;
 }
 
 /** A tool_use id awaiting its matching `tool_result` — set when the card is
@@ -229,9 +239,12 @@ export interface ResolveState {
   writtenTestFiles: readonly WrittenTestFileTracker[];
   /** Which test CARD (if any) a Write/Edit's tracker entry was consumed
    *  into, keyed by that Write/Edit's own tool_use id — see
-   *  `WrittenTestFileTracker.sourceToolId`'s doc comment. Read-only in
-   *  `resolveToolResults` (mutated by `deriveActivityFeed`'s own reducer
-   *  loop) — only consulted to un-stamp a card on rollback. */
+   *  `WrittenTestFileTracker.sourceToolId`'s doc comment. Mutated by
+   *  `deriveActivityFeed`'s own reducer loop; consulted to un-stamp a card
+   *  on rollback, and also PURGED in `resolveToolResults` (via
+   *  `dropTransientTestCard`) when a transient-rejected authoring-run card
+   *  is spliced out, so a later rollback cannot resurrect a detached card
+   *  (iterate-2026-09-28-mission-feed-completeness, AC3/AC4). */
   authoringConsumedBy: Map<string, ActivityCard>;
   /** Every Write/Edit tool_use id whose own result has already come back as
    *  an error — lets a rollback tell "the earlier write this one's restore

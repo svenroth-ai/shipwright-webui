@@ -44,10 +44,16 @@ export interface PendingNarration {
 /** A still-waiting `pendingNarration` with no later tool-bearing turn left to
  * consume it would otherwise vanish with no card at all — the exact shape of
  * a closing summary (SKILL.md's F12 prints its own text, then the run simply
- * ends). Flushed as its own `system`-kind card (a plain note, no kind
- * label/pill to imply a category it doesn't have) rather than dropped
- * silently (reported: "Schluss ... wird nicht geprintet",
- * iterate-2026-09-20-mission-feed-transcript-fidelity). The caller must push
+ * ends), but really just the transcript's own LAST message, ordinary in
+ * every other way. Flushed as its own `note`-kind card (a plain, neutral
+ * note — no kind label/pill to imply a category it doesn't have) rather than
+ * dropped silently (reported: "Schluss ... wird nicht geprintet",
+ * iterate-2026-09-20-mission-feed-transcript-fidelity). `note` is a DISTINCT
+ * kind from `system` (iterate-2026-09-28-mission-feed-completeness, AC5) —
+ * this is an ordinary message, not a real system/infra event, and sharing
+ * `system`'s kind meant it rendered with the same dashed border + gear icon
+ * reserved for a genuine `isCompactionMarker` event (reported: "Warum ist
+ * das gestrichelt? Ist doch eine normale Message"). The caller must push
  * this AFTER `clearMultiTurnExplanations`, not before — that pass would
  * otherwise strip the returned card's `explanation` right back off, since it
  * never ran through `cardTurnCounts` at all. */
@@ -55,7 +61,7 @@ export function flushPendingNarration(pendingNarration: PendingNarration | null)
   if (!pendingNarration) return null;
   const { prose, proseFull, proseRest, proseRestFull, timestamp } = pendingNarration;
   return {
-    kind: "system",
+    kind: "note",
     text: prose,
     textFull: proseFull.length > prose.length ? proseFull : undefined,
     explanation: proseRest || undefined,
