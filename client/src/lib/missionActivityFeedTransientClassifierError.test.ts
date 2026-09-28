@@ -41,6 +41,15 @@ describe("isTransientClassifierError", () => {
   it("does not match an ordinary command failure", () => {
     expect(isTransientClassifierError("npm ERR! Test failed. See above for more details.")).toBe(false);
   });
+
+  // External code review catch (openai, blocking): `startsWith` on the
+  // prefix alone would classify ANY content beginning with that exact
+  // sentence as transient, regardless of what follows — including a genuine
+  // failure whose own output happens to open with it for unrelated reasons.
+  it("does not match a genuine failure that shares only the fixed prefix, not the fixed suffix after the tool name", () => {
+    const sharesOnlyThePrefix = "The server-side auto mode classifier gave no verdict (error), so auto mode cannot determine the safety of Bash: some genuinely different, unrelated failure occurred here.";
+    expect(isTransientClassifierError(sharesOnlyThePrefix)).toBe(false);
+  });
 });
 
 describe("deriveActivityFeed — AC3: a non-test tool call rejected by the transient classifier", () => {

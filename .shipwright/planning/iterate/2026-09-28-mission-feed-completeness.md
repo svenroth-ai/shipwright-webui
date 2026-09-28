@@ -329,6 +329,19 @@ External review pass recorded via `record_review_pass.py` (`external_code`,
 completed, 6 findings, disposition summarized above); raw replies preserved
 at `.shipwright/planning/iterate/iterate-2026-09-28-mission-feed-completeness/external-code-review-raw.json`.
 
+**F11 local PR-review preflight (`pr_review.py`, separate gate, advisory-only
+— never satisfies the required CI check) caught one more real gap, FIXED:**
+`missionActivityFeedTransientError.ts`'s `isTransientClassifierError` matched
+on the fixed PREFIX alone via `startsWith`, so any content beginning with
+that exact sentence would classify as transient regardless of what followed
+— including, in principle, a genuinely different failure whose own output
+happened to open with it. Tightened to a regex anchoring both the prefix AND
+the fixed suffix that follows the tool name, so only content matching the
+harness's whole known template qualifies. Verified via revert-run-restore: a
+new negative-control test ("shares only the fixed prefix, not the fixed
+suffix") fails without the fix and passes with it; full client suite
+(483 files / 4401 tests) green afterward.
+
 ## Investigation Notes (Repo Scout findings, for the record)
 
 Root causes were confirmed by three parallel read-only investigations plus

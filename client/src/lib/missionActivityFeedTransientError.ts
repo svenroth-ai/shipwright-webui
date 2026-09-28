@@ -10,18 +10,24 @@
  * mode classifier gave no verdict (error), so auto mode cannot determine the
  * safety of <ToolName>. This is a transient failure of the check, not a
  * judgment about the action: …". The tool name varies (`Bash`, others);
- * everything up to it is fixed and unique to this one system-generated
- * message, so it anchors the whole check.
+ * everything else — both the lead-in and the sentence right after the tool
+ * name — is fixed and unique to this one system-generated message.
  *
- * Anchored with `startsWith` on the TRIMMED content, not a bare substring
- * search: a genuinely different failure whose own output happens to QUOTE
- * this phrase somewhere in the middle (e.g. a pasted log excerpt) does not
- * start with it, so it is correctly still treated as a real failure — only
- * the harness's own literal, whole tool_result content matches.
+ * Anchored on BOTH the prefix and the fixed suffix that follows the tool
+ * name (external code review, openai, blocking): matching the prefix alone
+ * via `startsWith` would also classify a genuinely different failure whose
+ * own output happens to begin with this exact sentence for unrelated
+ * reasons, as transient. Requiring the fixed suffix too means only content
+ * matching the harness's whole known template — prefix, then a short
+ * tool-name-shaped run of non-period text, then the suffix — qualifies. A
+ * genuinely different failure whose own output merely QUOTES the prefix
+ * somewhere in the middle (e.g. a pasted log excerpt) still fails to match:
+ * `test()` is anchored at the START of the trimmed content, not a bare
+ * substring search.
  */
-const TRANSIENT_CLASSIFIER_ERROR_PREFIX =
-  "The server-side auto mode classifier gave no verdict (error), so auto mode cannot determine the safety of ";
+const TRANSIENT_CLASSIFIER_ERROR_PATTERN =
+  /^The server-side auto mode classifier gave no verdict \(error\), so auto mode cannot determine the safety of [^.]+\. This is a transient failure of the check, not a judgment about the action: /;
 
 export function isTransientClassifierError(content: string): boolean {
-  return content.trim().startsWith(TRANSIENT_CLASSIFIER_ERROR_PREFIX);
+  return TRANSIENT_CLASSIFIER_ERROR_PATTERN.test(content.trim());
 }
