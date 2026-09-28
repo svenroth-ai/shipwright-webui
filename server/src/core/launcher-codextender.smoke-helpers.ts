@@ -34,11 +34,14 @@ export function extractTokenFilePath(command: string, shellForm: "powershell" | 
     if (!m) throw new Error("token file path not found in powershell command");
     return m[1];
   }
+  /* v8 ignore start -- cmd.exe branch only reached via runCmd(), which
+   * findCmd()'s win32 guard skips entirely on the Linux CI runner. */
   if (shellForm === "cmd") {
     const m = command.match(/set \/p ANTHROPIC_AUTH_TOKEN=<"([^"]+)"/);
     if (!m) throw new Error("token file path not found in cmd command");
     return m[1];
   }
+  /* v8 ignore stop */
   const m = command.match(/\$\(cat '([^']+)'\)/);
   if (!m) throw new Error("token file path not found in posix command");
   return m[1];
@@ -62,8 +65,10 @@ export function findBash(): string | null {
 
 export function findCmd(): string | null {
   if (process.platform !== "win32") return null; // cmd.exe is Windows-only.
+  /* v8 ignore start -- unreachable on the Linux CI runner (platform check above). */
   const result = spawnSync("cmd", ["/c", "exit", "0"], { stdio: "pipe", timeout: SPAWN_TIMEOUT_MS });
   return result.status === 0 ? "cmd" : null;
+  /* v8 ignore stop */
 }
 
 const scratchDirs: string[] = [];
@@ -166,6 +171,8 @@ export function runBash(exitCode: number): SmokeResult {
   };
 }
 
+/* v8 ignore start -- only invoked by the cmd.exe smoke test, which
+ * it.skipIf(!findCmd()) skips entirely on the Linux CI runner. */
 export function runCmd(exitCode: number): SmokeResult {
   const { command, tokenFilePath } = generatedCommandFor("cmd");
   const dir = scratchDir();
@@ -228,3 +235,4 @@ export function runCmd(exitCode: number): SmokeResult {
     tokenFileExists: /SMOKE_TOKEN_FILE_EXISTS=true/i.test(stdout),
   };
 }
+/* v8 ignore stop */
