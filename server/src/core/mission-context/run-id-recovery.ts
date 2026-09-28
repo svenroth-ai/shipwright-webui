@@ -111,17 +111,17 @@ function isUserTypeLine(line: string): boolean {
  * before the cut, so the surviving fragment fails to parse as JSON and
  * `isUserTypeLine` — correctly "never guessing" on genuinely malformed
  * content — keeps it, defeating the exclusion for precisely the record
- * this fix exists to exclude. The one line that can be a byte-cut
- * fragment is always the FIRST line of an actually-truncated tail (every
- * later line is bounded by two real `\n`s from the original file), so
- * that line alone is dropped outright rather than classified — accepting
- * a narrow "declines to identify" cost in exchange for closing the
- * wrong-identity path, consistent with this module's "no half answer, no
- * guess" posture elsewhere (e.g. a marker itself cut by the window).
+ * this fix exists to exclude. The FIRST line of an actually-truncated tail
+ * is always the one that can be a byte-cut fragment (every later line is
+ * bounded by two real `\n`s from the original file), so that line alone is
+ * dropped outright rather than classified — accepting a narrow "declines to
+ * identify" cost in exchange for closing the wrong-identity path.
  */
 function stripUserTypeLines(text: string, dropLeadingPartialLine: boolean): string {
   const lines = text.split(/\r?\n/);
-  if (dropLeadingPartialLine && lines.length > 1) lines.shift();
+  // No `lines.length > 1` guard (external review, openai): a single
+  // unterminated line IS a byte-cut fragment too when proven mid-file.
+  if (dropLeadingPartialLine) lines.shift();
   return lines.filter((line) => !isUserTypeLine(line)).join("\n");
 }
 

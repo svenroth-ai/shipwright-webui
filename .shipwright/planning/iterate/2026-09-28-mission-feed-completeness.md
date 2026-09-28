@@ -335,8 +335,9 @@ completed, 6 findings, disposition summarized above); raw replies preserved
 at `.shipwright/planning/iterate/iterate-2026-09-28-mission-feed-completeness/external-code-review-raw.json`.
 
 **F11 local PR-review preflight (`pr_review.py`, separate gate, advisory-only
-— never satisfies the required CI check) caught three more real gaps across
-three runs, all FIXED:**
+— never satisfies the required CI check) caught four more findings across
+four runs — three real gaps, all FIXED, plus one investigated and REJECTED
+with direct empirical evidence rather than argument:**
 
 - **Run 1**: `missionActivityFeedTransientError.ts`'s `isTransientClassifierError`
   matched on the fixed PREFIX alone via `startsWith`, so any content beginning
@@ -388,6 +389,35 @@ three runs, all FIXED:**
   it. Full server suite (422 files / 4527 tests) green afterward; the file
   briefly crossed 300 lines and was trimmed back to 299 by condensing the
   new doc comment rather than the pre-existing ones.
+- **Run 4**: raised TWO findings against the Run 2 fix.
+  (a) REJECTED, with direct evidence: claimed the byte-peek read requests
+  only `budget` bytes from `fromByte = target - 1`, so it could omit the
+  transcript's true final byte. Traced the real call chain
+  (`SessionWatcher.readChunk` -> `readTailFromDisk`): the read always goes
+  through to the file's ACTUAL current EOF regardless of `fromByte`
+  (`length = size - start`, no length cap ever passed), and `readChunk`
+  then trims to the last `\n` found in whatever it read — a boundary fixed
+  by the file's own content up to true EOF, not by where the read started.
+  Starting one byte earlier can only add to the FRONT of what's read; it
+  cannot move that trailing boundary. Proved this empirically rather than
+  by argument alone (this reviewer's own template, applied to itself): a
+  throwaway script against the real `readTailFromDisk` confirmed
+  byte-peeked and non-peeked reads of the same file produce identical
+  trailing content, including a genuine final complete line; a permanent
+  regression test was then added directly to `session-watcher.test.ts`
+  (real disk I/O, no mocks) proving the same thing against the actual
+  `SessionWatcher.readChunk` the production code calls, so a future change
+  to the trimming logic that broke this would be caught.
+  (b) FIXED, real gap: `stripUserTypeLines`'s `lines.length > 1` guard meant
+  a proven mid-file read whose ENTIRE window is a single unterminated line
+  (one JSONL record bigger than the read budget — an edge case, but not an
+  impossible one for a huge tool_result) never had its leading fragment
+  dropped at all, even though `startedMidFile` proved it was a byte-cut
+  fragment — the exact class the multi-line case already closes. Removed
+  the guard; `lines.shift()` on a single-element array correctly yields no
+  candidate. Verified via revert-run-restore with a no-newline-at-all
+  fixture: fails without the fix, passes with it. Full server suite
+  (422 files / 4528 tests) green afterward.
 
 ## Investigation Notes (Repo Scout findings, for the record)
 

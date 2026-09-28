@@ -157,4 +157,20 @@ describe("findRunIdFooter — startedMidFile reports a truncation the string's o
     expect(findRunIdFooter(transcript, true)).toBe(NEW);
     expect(findRunIdFooter(transcript, false)).toBe(NEW);
   });
+
+  /*
+   * External code review catch (openai, fourth preflight pass):
+   * `stripUserTypeLines` used to guard its drop on `lines.length > 1`, so a
+   * proven mid-file read whose ENTIRE window is a single unterminated line
+   * (one JSONL record bigger than the read budget) never had its leading
+   * fragment dropped at all — the exact class the multi-line case above
+   * already closes. No newline anywhere in this transcript, so a footer
+   * terminated by end-of-input still parses, but a proven byte cut must
+   * still yield no candidate.
+   */
+  it("drops a proven mid-file fragment even when it is the transcript's ONLY line (no newline at all)", () => {
+    const onlyLine = `,"content":"padding Run-ID: ${OLD}`;
+    expect(findRunIdFooter(onlyLine, false)).toBe(OLD);
+    expect(findRunIdFooter(onlyLine, true)).toBeNull();
+  });
 });
