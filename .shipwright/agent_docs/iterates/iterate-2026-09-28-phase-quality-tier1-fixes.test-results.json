@@ -1,0 +1,57 @@
+{
+  "last_updated": "2026-09-28",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-28-phase-quality-tier1-fixes",
+    "date": "2026-09-28",
+    "unit": {
+      "status": "passed",
+      "passed": 8874,
+      "total": 8887,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "justification": "Small, docs/compliance-only change: two new retrospective design docs (screens.md, user-flow.md) and compliance-tool invocations (record_event.py, write_decision_drop.py, finalize_iterate.py). No product code, route, or FR behavior changed, so there is no runtime behavior to enumerate \u2014 the full unit suite (8874/8887) serves as the regression guard that nothing else moved."
+    },
+    "surface_verification": {
+      "surface": "none",
+      "runner": "",
+      "exit_code": 0,
+      "tests_run": 0,
+      "evidence_path": "",
+      "timestamp": "2026-09-28T06:35:48.074Z",
+      "justification": "Docs + compliance-tool-invocation only (screens.md, user-flow.md, record_event.py, write_decision_drop.py, finalize_iterate.py) \u2014 no route, API, or UI code changed, so there is no startable surface to drive through a running stack."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-28-phase-quality-tier1-fixes",
+    "commit": "247aa830f2d912248bec54cf3032cb37833a8feb",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

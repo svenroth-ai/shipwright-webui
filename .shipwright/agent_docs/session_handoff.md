@@ -1,38 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-09-19-fix-wizard-plan-card-white-text"
+run_id: "iterate-2026-09-28-codex-model-catalog-dropdown"
 phase: "iterate"
-reason: "iterate: fix invisible phase description text in the New-Project wizard plan card"
-timestamp: "2026-09-19T16:57:49.524769+00:00"
+reason: "iterate: verified codex-model-catalog dropdown already shipped; dismissed stale triage card"
+timestamp: "2026-09-28T06:43:14.369756+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-09-19 16:57:49 UTC
+> Auto-generated 2026-09-28 06:43:14 UTC
 
 ## Session Info
 
-- **Session ID**: 432839b2-c187-477b-952e-efa95f867618
-- **Timestamp**: 2026-09-19 16:57:49 UTC
-- **Reason**: iterate: fix invisible phase description text in the New-Project wizard plan card
+- **Session ID**: 5843ac45-1042-4a67-bcda-245e0e4874f9
+- **Timestamp**: 2026-09-28 06:43:14 UTC
+- **Reason**: iterate: verified codex-model-catalog dropdown already shipped; dismissed stale triage card
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-09-19-fix-wizard-plan-card-white-text
-- **Date**: 2026-09-19T16:57:49.364103Z
-- **Type**: bug
-- **Complexity**: medium
-- **Branch**: fix-wizard-plan-card-white-text
-- **ADR**: iterate-2026-09-19-fix-wizard-plan-card-white-text
+- **Run ID**: iterate-2026-09-26-agents-md-codex-sync
+- **Date**: 2026-09-26T14:25:16.740122Z
+- **Type**: change
+- **Complexity**: small
+- **Branch**: iterate/agents-md-codex-sync
+- **ADR**: iterate-2026-09-26-agents-md-codex-sync
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-wizard-plan-card-white-text
-- **Spec**: .shipwright/planning/iterate/2026-09-19-fix-wizard-plan-card-white-text.md
-- **Complexity**: medium (classifier: keyword match, confidence 0.7, no risk flags, cross_split: false)
-- **External Review Marker**: stale (predates spec (2026-09-19T16:30:53))
+- **Branch**: iterate/codex-model-catalog-dropdown
+- **External Review Marker**: completed (external_review_state.json @ 2026-09-26T12:41:38)
 - **Review Cascade**: no run_id resolved
 
 ### Mandatory replay on Resume
@@ -68,8 +65,8 @@ Authoritative per-phase status from `shipwright_run_config.json` → `phase_task
 
 ## Git State
 
-- **Branch**: iterate/fix-wizard-plan-card-white-text
-- **Last Commit**: 518e204d chore(triage): sweep 5 outbox append(s) into branch
+- **Branch**: iterate/codex-model-catalog-dropdown
+- **Last Commit**: 93e1e9a1 chore(triage): sweep 4 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -85,23 +82,23 @@ Authoritative per-phase status from `shipwright_run_config.json` → `phase_task
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-4093d449 | work_completed | iterate (The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card.) | 2026-09-19 |
-| evt-1b7e75e7 | grade_snapshot | — | 2026-09-16 |
-| evt-6aea52af | work_completed | iterate (codex_cli_not_found on Windows: probe via win32-spawn's shim resolver instead of defaultRun) | 2026-09-16 |
-| evt-ee12f56f | grade_snapshot | — | 2026-09-17 |
-| evt-b3721bff | work_completed | iterate (Mission activity feed render-fidelity fixes: header strip removed, command chips collapse by default, markdown rendering, blocker plain-language explanation, TDD authoring runs excluded from the gate stamp) | 2026-09-17 |
+| evt-e487b665 | work_completed | iterate (Verified the codex-model-catalog-dropdown triage card (trg-3fd0953a) is already fully shipped via PR #477/#481/#485/#486; dismissed the card with citations, no source change needed.) | 2026-09-28 |
+| evt-617184ef | work_completed | iterate (Re-synced webui's root AGENTS.md to be byte-identical to the monorepo's current AGENTS.md (post PR #771/#772/#798 Codex model-axis rework), per the file's own shared-verbatim contract.) | 2026-09-26 |
+| evt-79668ae2 | work_completed | iterate (Mission tab: subrunner visibility (new feature) + 5 UX polish items (dedup, You-card styling, needs-attention pill removal, muted toggle color, session-start divider)) | 2026-09-26 |
+| evt-05f3dd7a | work_completed | iterate (Removed the free-text Codex Implementation-model override field from the task-creation dialog for both codexIntegrationMode values; the model that runs is now always each runtime own default, never a webui-supplied override.) | 2026-09-26 |
+| evt-9b1cbf8a | grade_snapshot | — | 2026-09-26 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 490
-- **Last iterate**: bug — The New-Project wizard's plan-card phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) rendered white-on-white and were fully invisible, screenshot-reported by Sven. Root cause: the phase-list container was a bare inline-styled div outside on-photo.css's reset whitelist, so the --ink token stayed flipped white (the bare-photo rule) instead of resetting to dark for this opaque solid-surface card. (2026-09-19)
+- **Total work events**: 503
+- **Last iterate**: change — Verified the codex-model-catalog-dropdown triage card (trg-3fd0953a) is already fully shipped via PR #477/#481/#485/#486; dismissed the card with citations, no source change needed. (2026-09-28)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-308: Chunk pty.write() to stop the macOS large-command hang
-- **Date:** 2026-09-05
-- **Section:** Iterate — bug: embedded-terminal-large-command-hang
-- **Run-ID:** iterate-2026-09-05-terminal-large-command-chunked-pty-write
-- **Context:** Prod incident (macOS): a first launch with a ~5.8KB prompt baked into the command froze the server. PtyManager.write() forwarded the whole burst in one call; macOS's ~1KB canonical-mode tty queue can't drain until the trailing newline arrives, which was stuck a
+### ADR-309: Generalize the awaiting_external_start → active liveness flip to every Codex-runtime actionId
+- **Date:** 2026-09-20
+- **Section:** Iterate — bug: codex-liveness-transition
+- **Run-ID:** iterate-2026-09-20-codex-liveness-transition
+- **Context:** A Codex-runtime task launched under any `actionId` other than `new-plain` (i.e. `new-iterate`, `resume`, `fork`, `triage-promote` — the actual production usage) never left `awaiting_external_start`: the JSONL-transcript-poll transition path (`trans

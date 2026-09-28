@@ -17,6 +17,8 @@
 
 import { test, expect } from "@playwright/test";
 
+import { cleanupTask } from "../helpers/task-fixture";
+
 test.describe("@smoke No chat panel (architecture guard)", () => {
   test("task detail has no chat-* testids and no message textbox", async ({ page, request }) => {
     const create = await request.post("/api/external/tasks", {
@@ -24,17 +26,21 @@ test.describe("@smoke No chat panel (architecture guard)", () => {
     });
     const { task } = (await create.json()) as { task: { taskId: string } };
 
-    await page.goto(`/tasks/${task.taskId}`);
-    await expect(page.getByTestId("task-detail-page")).toBeVisible();
+    try {
+      await page.goto(`/tasks/${task.taskId}`);
+      await expect(page.getByTestId("task-detail-page")).toBeVisible();
 
-    // No chat-*-prefixed testids anywhere.
-    const chatNodes = page.locator('[data-testid^="chat-"]');
-    await expect(chatNodes).toHaveCount(0);
+      // No chat-*-prefixed testids anywhere.
+      const chatNodes = page.locator('[data-testid^="chat-"]');
+      await expect(chatNodes).toHaveCount(0);
 
-    // No `<input role="textbox">` or `<textarea>` used for sending messages.
-    // ADR-067 carve-out: xterm's accessibility helper textarea is excluded
-    // (see header comment).
-    const textareas = page.locator("textarea:not(.xterm-helper-textarea)");
-    await expect(textareas).toHaveCount(0);
+      // No `<input role="textbox">` or `<textarea>` used for sending messages.
+      // ADR-067 carve-out: xterm's accessibility helper textarea is excluded
+      // (see header comment).
+      const textareas = page.locator("textarea:not(.xterm-helper-textarea)");
+      await expect(textareas).toHaveCount(0);
+    } finally {
+      await cleanupTask(request, task.taskId);
+    }
   });
 });
