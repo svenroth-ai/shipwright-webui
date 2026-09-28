@@ -1,21 +1,13 @@
 {
-  "status": "completed",
-  "timestamp": "2026-09-28T11:33:41.384120+00:00",
+  "status": "skipped_config_disabled",
+  "timestamp": "2026-09-28T22:17:37.700992+00:00",
   "provider": null,
-  "findings_count": 6,
+  "findings_count": 0,
   "self_review_fallback_ran": false,
-  "reason": "openai finding 1 (rollbackFailedWrite skip) fixed; deeper root cause found during triage of openai finding 1's sibling (glm subrunner stuck-card finding): generic is_error branch pre-empted the subrunner bucket entirely, fixed by reordering; openai finding 2/glm finding 3 (startedMidFile double-drop) rejected with reason (readTailFromDisk is a raw byte read, no boundary snap, so dropping the leading line is the correct conservative default); glm finding 1/openai finding 3 (test rigor) addressed: genuine fail-then-retry coverage already exists pre-iterate (missionActivityFeed.test.ts), and wire.ts's own fromByte/startedMidFile arithmetic (previously untested at any level) now has direct coverage in the new wire.test.ts",
+  "reason": "external LLM review is skipped at small per the phase matrix",
   "review_mode": "code",
   "marker_schema": 4,
-  "verdicts": {
-    "glm": "approve",
-    "openai": "revise"
-  },
-  "contradiction": {
-    "detected": false,
-    "comparable": true,
-    "requires_resolution": false,
-    "reason": "verdicts agree within one step: glm=approve, openai=revise"
-  },
+  "verdicts": null,
+  "contradiction": null,
   "contradiction_resolution": null
 }

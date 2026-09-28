@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"APPROVE","spec_citations":[],"summary":"Round 2 APPROVE: all spec items present and faithful (env prefix plainEntries x3, cleanup names x3, smoke ENV_NAMES, updated regexes, new tier-aliases test). Round 1 REJECT (cwd literal in new test) fixed."}

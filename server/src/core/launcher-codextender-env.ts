@@ -94,6 +94,9 @@ export function buildCodextenderEnvCleanupSuffix(
     "CODEXTENDER_MODEL",
     "CLAUDE_CODE_MAX_CONTEXT_TOKENS",
     "CLAUDE_CODE_AUTO_MODE_SERVER",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL",
   ];
   if (shellForm === "powershell") {
     return (
@@ -165,6 +168,17 @@ export function buildCodextenderEnvPrefix(
     // unlike that sibling var it belongs in the uniform loop, not its own
     // conditional branch.
     ["CLAUDE_CODE_AUTO_MODE_SERVER", "0"],
+    // Tier aliases (2026-09-29): Claude Code resolves `opus`/`sonnet`/`haiku`
+    // (subagent `model:` frontmatter, `--model`, the Agent tool param, the
+    // auto-mode classifier) to `claude-*` names and sends those to
+    // ANTHROPIC_BASE_URL. The proxy serves ONLY the Codex aliases it was
+    // started with (no claude-* wildcards, codextender 78c9401), so an
+    // unmapped tier 400s ("no healthy deployments"). Pin all three tiers to
+    // the launch alias client-side. NOT CLAUDE_CODE_SUBAGENT_MODEL: since
+    // Claude Code v2.1.251 a subagent's frontmatter model outranks it.
+    ["ANTHROPIC_DEFAULT_OPUS_MODEL", model],
+    ["ANTHROPIC_DEFAULT_SONNET_MODEL", model],
+    ["ANTHROPIC_DEFAULT_HAIKU_MODEL", model],
   ];
 
   if (shellForm === "powershell") {

@@ -1,0 +1,97 @@
+{
+  "last_updated": "2026-09-29",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-29-codextender-tier-aliases",
+    "date": "2026-09-29",
+    "unit": {
+      "status": "passed",
+      "passed": 29,
+      "total": 29,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "buildCodextenderEnvPrefix pins ANTHROPIC_DEFAULT_OPUS/SONNET/HAIKU_MODEL to the default alias on powershell, cmd and posix",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.tier-aliases.test.ts::pins all three tier vars to the launch alias 'sol' PASSED"
+        },
+        {
+          "behavior": "a non-default launch alias (astra) sets all three tier vars on all 3 shells",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.tier-aliases.test.ts::pins all three tier vars to the launch alias 'astra' PASSED"
+        },
+        {
+          "behavior": "a padded model alias is trimmed before pinning the tier vars",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.tier-aliases.test.ts::trims a padded model alias PASSED"
+        },
+        {
+          "behavior": "the cleanup suffix removes the three tier vars on powershell and cmd (and the real-shell smoke tests see no leak)",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.test.ts + max-context-tokens.test.ts cleanup regexes + smoke test PASSED"
+        },
+        {
+          "behavior": "CLAUDE_CODE_SUBAGENT_MODEL is never set",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.tier-aliases.test.ts::never sets CLAUDE_CODE_SUBAGENT_MODEL PASSED"
+        },
+        {
+          "behavior": "existing max-context and auto-mode-server behaviour unchanged",
+          "disposition": "tested",
+          "evidence": "launcher-codextender.max-context-tokens.test.ts + auto-mode-server.test.ts PASSED (29/29 in launcher-codextender*)"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "cli",
+      "runner": "npx.cmd vitest run --root server src/core/launcher-codextender",
+      "exit_code": 0,
+      "tests_run": 29,
+      "evidence_path": ".shipwright/runs/iterate-2026-09-29-codextender-tier-aliases/surface_verification.log",
+      "timestamp": "2026-09-29T00:20:00Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

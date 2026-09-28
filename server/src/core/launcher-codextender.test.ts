@@ -224,10 +224,10 @@ describe("buildCodextenderCommands", () => {
     // this one `claude` invocation and leak into a later Relaunch-as-Claude
     // in the same long-lived pty tab.
     expect(result.powershell.trimEnd()).toMatch(
-      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS,Env:CLAUDE_CODE_AUTO_MODE_SERVER -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
+      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS,Env:CLAUDE_CODE_AUTO_MODE_SERVER,Env:ANTHROPIC_DEFAULT_OPUS_MODEL,Env:ANTHROPIC_DEFAULT_SONNET_MODEL,Env:ANTHROPIC_DEFAULT_HAIKU_MODEL -ErrorAction SilentlyContinue; Remove-Item -LiteralPath '.+' -Force -ErrorAction SilentlyContinue$/,
     );
     expect(result.cmd.trimEnd()).toMatch(
-      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & set CLAUDE_CODE_AUTO_MODE_SERVER= & del \/f \/q ".+"$/,
+      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & set CLAUDE_CODE_AUTO_MODE_SERVER= & set ANTHROPIC_DEFAULT_OPUS_MODEL= & set ANTHROPIC_DEFAULT_SONNET_MODEL= & set ANTHROPIC_DEFAULT_HAIKU_MODEL= & del \/f \/q ".+"$/,
     );
     expect(result.posix.trimEnd()).toMatch(/ ; rm -f '.+'$/);
     expect(result.posix).not.toContain("Remove-Item");
