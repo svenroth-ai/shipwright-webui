@@ -1,0 +1,42 @@
+{
+  "run_id": "iterate-2026-09-28-e2e-no-chat-fixture-cleanup",
+  "date": "2026-09-28T07:09:13.194707Z",
+  "event_at": "2026-09-28T06:34:17.762743+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/e2e-no-chat-fixture-cleanup",
+  "spec": "n/a (small complexity, no iterate spec file)",
+  "tests_passed": true,
+  "adr": "iterate-2026-09-28-e2e-no-chat-fixture-cleanup",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 2,
+      "tested": 2,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    },
+    "behaviors": [
+      {
+        "behavior": "35-no-chat-panel.spec.ts deletes its own fixture task (DELETE /api/external/tasks/:id) in a finally block, so isolated-stack.mjs's removeUnassignedFixtureTasks teardown guard no longer finds it as a leaked unassigned task",
+        "disposition": "tested",
+        "evidence": "node client/e2e/isolated-stack.mjs --grep @smoke (real isolated stack, real browser, same 34-test file order as CI) exits 0 with no contamination-guard failure; F0.5 surface_verification exit_code 0, tests_run 34"
+      },
+      {
+        "behavior": "title-bar-full-bleed.spec.ts's '.page-head' assertions no longer depend on another spec's leaked task to avoid RootRoute.tsx's empty-registry '/first-contact' redirect \u2014 it seeds and cleans up its own fixture task",
+        "disposition": "tested",
+        "evidence": "Same full local @smoke run (34/34 passed) reproduces CI's exact file order (35-no-chat-panel.spec.ts before title-bar-full-bleed.spec.ts); previously reproduced the CI failure twice (PR #488 runs 36387602179 and its rerun) with the '/first-contact' hero in the captured page snapshot, confirming root cause before this fix"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 34,
+    "exit_code": 0,
+    "justification": "The reported defect, and the second defect it surfaced, only reproduce through the real isolated-stack run order across the whole @smoke set (removeUnassignedFixtureTasks teardown + RootRoute's empty-registry redirect), which unit tests cannot exercise; ran the full @smoke suite end-to-end via client/e2e/isolated-stack.mjs against a real Chromium + isolated server/client pair, in the same file order as CI, and confirmed a clean 34/34 pass."
+  }
+}

@@ -31,6 +31,7 @@
  * and nowhere else.
  */
 import { test, expect } from '@playwright/test';
+import { cleanupCwd, cleanupTask, createTask, makeTaskCwd } from '../helpers/task-fixture';
 
 /**
  * Every route that renders the shared `.page-head` title bar.
@@ -70,6 +71,31 @@ async function measure(page: import('@playwright/test').Page) {
 // and the ledger rows claiming these behaviours are "tested" would rest on a
 // one-off local run. Seven page loads is cheap next to the existing smoke set.
 test.describe('title bar reaches the right edge @smoke', () => {
+  // ROOT-ROUTE FIXTURE (2026-09-28). `/` redirects to `/first-contact` (no
+  // `.page-head` at all) when RootRoute.tsx's isFreshInstall check finds
+  // BOTH zero registered projects AND zero tasks anywhere — see
+  // client/src/pages/RootRoute.tsx. This spec's own `measure()` assumes
+  // `.page-head` exists on every route, so it silently depended on some
+  // OTHER spec's leaked/lingering task to keep the registry non-empty.
+  // Fixing 35-no-chat-panel.spec.ts's own fixture leak (it now deletes its
+  // task in a `finally`) surfaced this: once nothing leaks, `/` and
+  // `/?view=list` can land on a genuinely empty registry and redirect,
+  // timing out `.page-head`. Seed one fixture task for the lifetime of this
+  // describe block so these assertions never depend on another spec's
+  // incidental state or run order.
+  let fixtureCwd: string;
+  let fixtureTaskId: string;
+
+  test.beforeAll(async ({ request }) => {
+    fixtureCwd = await makeTaskCwd('title-bar-fixture-');
+    fixtureTaskId = await createTask(request, fixtureCwd, `title-bar-fixture-${Date.now()}`);
+  });
+
+  test.afterAll(async ({ request }) => {
+    await cleanupTask(request, fixtureTaskId);
+    await cleanupCwd(fixtureCwd);
+  });
+
   for (const route of ROUTES) {
     test(`no strip is carved out of the title bar on ${route}`, async ({ page }) => {
       await page.goto(route);

@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "name": "Spec Compliance",
+      "verdict": "pass",
+      "note": "No iterate spec at small complexity; fix matches the user's reported requirement exactly — delete the fixture task in the spec's own cleanup, matching the pattern other specs use."
+    },
+    {
+      "name": "Error Handling",
+      "verdict": "n/a",
+      "note": "cleanupTask already swallows delete errors and no-ops on an empty taskId; no new error handling needed."
+    },
+    {
+      "name": "Security Basics",
+      "verdict": "n/a",
+      "note": "E2E test-only change, no production code or auth surface touched."
+    },
+    {
+      "name": "Test Quality",
+      "verdict": "pass",
+      "note": "Reused the shared createTask/cleanupTask helper (client/e2e/helpers/task-fixture.ts) with try/finally, the same pattern C5-embedded-terminal-split-smoke.spec.ts uses. Fixing the leak surfaced a second, previously-masked bug: title-bar-full-bleed.spec.ts's '.page-head' assertions implicitly depended on 35-no-chat-panel.spec.ts's leaked task to keep the registry non-empty (RootRoute.tsx redirects '/' to '/first-contact', no page-head, on a genuinely empty registry). Confirmed via two real CI failures (PR #488, runs 36387602179 and its rerun) with the First Contact hero visible in the captured page snapshot. Fixed by giving title-bar-full-bleed.spec.ts its own beforeAll/afterAll fixture task via the same shared helpers. Re-ran the FULL @smoke set locally (`node client/e2e/isolated-stack.mjs --grep @smoke`, same 34-test file order as CI): 34/34 passed, no contamination-guard failure."
+    },
+    {
+      "name": "Performance Basics",
+      "verdict": "n/a",
+      "note": "One extra DELETE call in test teardown; negligible."
+    },
+    {
+      "name": "Naming & Structure",
+      "verdict": "pass",
+      "note": "Follows existing naming/structure conventions in the E2E suite exactly."
+    },
+    {
+      "name": "Affected Boundaries",
+      "verdict": "pass",
+      "note": "client/e2e/flows/35-no-chat-panel.spec.ts and client/e2e/flows/title-bar-full-bleed.spec.ts (the second file touched as a direct, mechanically-verified consequence of fixing the first — not unrelated scope creep). No production code touched by either."
+    },
+    {
+      "name": "Test Hygiene Probe",
+      "verdict": "pass",
+      "note": "Root cause confirmed: this spec was the one outlier among fixture-creating specs that never called cleanupTask, which is exactly what the contamination guard was designed to catch."
+    }
+  ]
+}
