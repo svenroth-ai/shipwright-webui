@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-29-codextender-tier-aliases",
+  "date": "2026-09-29",
+  "section": "Iterate — bug: pin Claude tier aliases to the Codextender launch alias",
+  "title": "Codextender launches pin ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL to the launch alias",
+  "context": "Claude Code resolves opus/sonnet/haiku (subagent model frontmatter, --model, Agent tool param, auto-mode classifier) to claude-* names and sends them to ANTHROPIC_BASE_URL. The Codextender proxy no longer has claude-* wildcards (codextender 78c9401), so those requests failed with HTTP 400 no healthy deployments.",
+  "decision": "buildCodextenderEnvPrefix adds the three ANTHROPIC_DEFAULT_*_MODEL vars to plainEntries with the launch model alias; buildCodextenderEnvCleanupSuffix removes them. All three shell forms are covered by the uniform loop.",
+  "consequences": "Every tier alias resolves to the launch alias on the proxy; the vars do not leak into later commands in the long-lived pty. A separate opus alias would need an extra launch arg and is out of scope.",
+  "rationale": "Client-side mapping keeps the proxy free of claude-* routes, as decided upstream.",
+  "rejected": "CLAUDE_CODE_SUBAGENT_MODEL (a subagent frontmatter model outranks it since Claude Code v2.1.251); re-adding claude-* proxy routes (the removed quick fix).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

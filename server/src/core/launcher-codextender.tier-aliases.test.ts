@@ -60,6 +60,14 @@ describe("buildCodextenderCommands — tier aliases", () => {
     });
   }
 
+  it("trims a padded model alias before pinning the tier vars", () => {
+    const result = build("  astra  ");
+    for (const name of TIER_VARS) {
+      expect(result.posix).toContain(`${name}='astra' `);
+      expect(result.powershell).toContain(`$env:${name} = 'astra'; `);
+    }
+  });
+
   it("never sets CLAUDE_CODE_SUBAGENT_MODEL (subagent frontmatter outranks it)", () => {
     const result = build();
     for (const shell of ["powershell", "cmd", "posix"] as const) {

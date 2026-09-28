@@ -1,0 +1,8 @@
+{"items":[
+{"name":"1 correctness","verdict":"pass","note":"three tier vars = launch alias in plainEntries; same three in cleanup names"},
+{"name":"2 tests","verdict":"pass","note":"new tier-aliases test (default + astra, 3 shells, cleanup, no SUBAGENT_MODEL); cleanup regexes + smoke ENV_NAMES updated; 28 launcher tests green"},
+{"name":"3 scope","verdict":"pass","note":"no separate opus alias, no proxy change, no codextender repo change"},
+{"name":"4 security","verdict":"pass","note":"no secrets added; values are the public alias"},
+{"name":"5 conventions","verdict":"pass","note":"files under 300 lines; comment explains why not SUBAGENT_MODEL"},
+{"name":"6 wiring","verdict":"pass","note":"posix path emitted via plainEntries loops in both maxContext branches"},
+{"name":"7 affected boundaries","verdict":"pass","note":"env-var strings only; smoke test exercises real shells"}]}
