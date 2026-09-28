@@ -14,6 +14,8 @@ import { describe, it, expect } from "vitest";
 import { buildCopyCommands } from "./launcher.js";
 import { DEFAULT_CODEXTENDER_MODEL_ALIAS, buildCodextenderCommands } from "./launcher-codextender.js";
 
+const CWD = "C:/demo";
+
 const TIER_VARS = [
   "ANTHROPIC_DEFAULT_OPUS_MODEL",
   "ANTHROPIC_DEFAULT_SONNET_MODEL",
@@ -22,13 +24,13 @@ const TIER_VARS = [
 
 function build(model?: string) {
   const result = buildCodextenderCommands({
-    cwd: "C:\01_Development\demo",
+    cwd: CWD,
     baseUrl: "http://127.0.0.1:4000",
     model,
     authToken: "test-master-key",
     claudeCommands: buildCopyCommands({
       sessionUuid: "00000000-0000-0000-0000-000000000001",
-      cwd: "C:\01_Development\demo",
+      cwd: CWD,
       resume: false,
       fork: false,
       pluginDirs: [],
