@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-28-phase-quality-tier1-fixes",
+  "date": "2026-09-28",
+  "section": "compliance",
+  "title": "Close 3 open Tier-1 phase-quality FAILs (design C1/D1, iterate W3)",
+  "context": "Dashboard showed 3 Tier-1 FAILs: design had no phase_completed event and no design artifact (this project was adopted, so design never ran); iterate's test-evidence.md had gone stale (last regenerated 2026-09-19) so W3 could not verify the latest work_completed run.",
+  "decision": "Write retrospective screens.md + user-flow.md documenting the existing screens/flows (D1/D2), record a phase_completed[design] event (C1), and run this iterate through the normal F0-F11 finalization so F5b regenerates test-evidence.md against this run's own work_completed event (W3).",
+  "consequences": "The three gates go green; screens.md/user-flow.md become the durable reference for future UI work instead of the app having no design record at all. No product code changed.",
+  "rationale": "",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
