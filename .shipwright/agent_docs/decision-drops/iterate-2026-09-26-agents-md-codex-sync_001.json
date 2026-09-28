@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-26-agents-md-codex-sync",
+  "date": "2026-09-26",
+  "section": "AGENTS.md",
+  "title": "Re-sync webui AGENTS.md with monorepo Codex operating contract",
+  "context": "Root AGENTS.md documents itself as shared verbatim with the monorepo's AGENTS.md. The monorepo (PRs #771/#772/#798) replaced hardcoded Codex model names with configurable codex_review/codex_plan_review keys, added an F11 verify_local mention, and referenced Spec/codex-light-webui.md; webui's copy had drifted (last synced 2026-08-09).",
+  "decision": "Replace webui's AGENTS.md content with the monorepo's current AGENTS.md verbatim, matching the file's own shared-verbatim contract.",
+  "consequences": "webui's Codex operating contract stays byte-identical to the monorepo source of truth; no code or runtime behavior changed.",
+  "rationale": "",
+  "rejected": "",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

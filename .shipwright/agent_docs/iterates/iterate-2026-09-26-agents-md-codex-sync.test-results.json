@@ -1,0 +1,65 @@
+{
+  "last_updated": "2026-09-26",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-26-agents-md-codex-sync",
+    "date": "2026-09-26",
+    "unit": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [
+      "No automated test layer applies: this run only re-synced AGENTS.md (a Codex operating-contract markdown file) to its canonical monorepo source. No code, route, component, or config was touched."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 1,
+        "tested": 1,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      },
+      "behaviors": [
+        {
+          "behavior": "webui's root AGENTS.md is byte-identical to the monorepo's current root AGENTS.md (its own documented \"shared verbatim\" contract)",
+          "disposition": "tested",
+          "evidence": "diff -u C:/01_Development/shipwright-webui/AGENTS.md C:/01_Development/shipwright/AGENTS.md \u2192 no output (IDENTICAL); independently re-verified line-by-line by the code-reviewer subagent"
+        }
+      ]
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-26-agents-md-codex-sync",
+    "commit": "9f881602041cbf3dc7a4c058b435f76d6dd1050b",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
