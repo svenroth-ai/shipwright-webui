@@ -335,8 +335,8 @@ completed, 6 findings, disposition summarized above); raw replies preserved
 at `.shipwright/planning/iterate/iterate-2026-09-28-mission-feed-completeness/external-code-review-raw.json`.
 
 **F11 local PR-review preflight (`pr_review.py`, separate gate, advisory-only
-— never satisfies the required CI check) caught two more real gaps across two
-runs, both FIXED:**
+— never satisfies the required CI check) caught three more real gaps across
+three runs, all FIXED:**
 
 - **Run 1**: `missionActivityFeedTransientError.ts`'s `isTransientClassifierError`
   matched on the fixed PREFIX alone via `startsWith`, so any content beginning
@@ -367,6 +367,27 @@ runs, both FIXED:**
   complete footer line) and passes with it; the genuine-byte-cut case is
   unaffected either way (both correctly drop). Full server suite
   (422 files / 4526 tests) green afterward.
+- **Run 3**: also flagged the Run 2 fix's own OTHER half from a different
+  angle — `run-id-recovery.ts`'s negative-scan memo (`negativeScans`)
+  fingerprinted only the transcript TEXT, not the `startedMidFile` flag also
+  passed alongside it, even though that flag changes what `findRunIdFooter`
+  does with the SAME text. Analysis found this is not reachable through
+  today's only real call path (`wire.ts` always threads one read's text and
+  its own `startedMidFile` together, one pair per poll, so the two never
+  actually diverge for identical content in production) — but the memo
+  itself does not encode that invariant, so it would silently break for any
+  future caller that reads the same content under a different boundary
+  assumption. Fixed defensively rather than re-argued a third time, matching
+  the Run 2 disposition: `tailFingerprint` now folds `startedMidFile` into
+  the cached key. Verified via revert-run-restore with a same-session,
+  same-text, opposite-`startedMidFile` regression test (a corroborated
+  byte-cut fragment scanned first with `startedMidFile: true`, finding
+  nothing and caching that null, then the identical text and session scanned
+  again with `startedMidFile: false`, which must now find the footer instead
+  of replaying the stale cached null): fails without the fix, passes with
+  it. Full server suite (422 files / 4527 tests) green afterward; the file
+  briefly crossed 300 lines and was trimmed back to 299 by condensing the
+  new doc comment rather than the pre-existing ones.
 
 ## Investigation Notes (Repo Scout findings, for the record)
 

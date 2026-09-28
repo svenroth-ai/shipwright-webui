@@ -223,14 +223,18 @@ export function hasRunRecord(projectRoot: string, runId: string): boolean {
  *
  * Deliberately NOT a persisted "no run" association: that would add a second
  * meaning to `task.missionContext` and a second write surface, to cache a regex.
+ *
+ * `startedMidFile` is PART OF THE FINGERPRINT (external code review, openai
+ * MEDIUM, third preflight pass): it changes whether `findRunIdFooter` drops
+ * the leading line, so the same raw text can parse two different ways.
  */
 const negativeScans = new Map<string, string>();
 const NEGATIVE_CAP = 512;
 /** How much of the tail END feeds the fingerprint. */
 const FINGERPRINT_CHARS = 256;
 
-function tailFingerprint(text: string): string {
-  return `${text.length}:${text.slice(-FINGERPRINT_CHARS)}`;
+function tailFingerprint(text: string, startedMidFile: boolean): string {
+  return `${startedMidFile ? "1" : "0"}:${text.length}:${text.slice(-FINGERPRINT_CHARS)}`;
 }
 
 /**
@@ -273,7 +277,7 @@ export function recoverRunIdFromTranscript(
   startedMidFile = false,
 ): string | null {
   const memoKey = sessionUuid ? `${projectRoot}::${sessionUuid}` : null;
-  const fingerprint = memoKey ? tailFingerprint(transcript) : null;
+  const fingerprint = memoKey ? tailFingerprint(transcript, startedMidFile) : null;
   if (memoKey && negativeScans.get(memoKey) === fingerprint) return null;
 
   scanCount++;

@@ -188,4 +188,21 @@ describe("hasRunRecord / recoverRunIdFromTranscript — corroboration", () => {
     _clearRecoveryMemo();
     expect(recoverRunIdFromTranscript(r, fragment, "session-mid2", true)).toBeNull();
   });
+
+  /*
+   * External code review catch (openai, third preflight pass): the negative
+   * memo used to fingerprint on content alone, so a `startedMidFile: true`
+   * scan that found nothing (and cached that null) could wrongly suppress a
+   * later `startedMidFile: false` scan of the SAME text and SAME session —
+   * even though that second scan keeps the leading line and would actually
+   * find the footer there. Same session id both times, unlike the pair
+   * above, is what exercises the memo rather than just the passthrough.
+   */
+  it("does not let a startedMidFile: true negative scan poison a later startedMidFile: false scan of the same text and session", () => {
+    const r = project(workCompleted(RUN));
+    _clearRecoveryMemo();
+    const fragment = `,"content":"padding\\n\\nRun-ID: ${RUN}\\n"}]}}\n`;
+    expect(recoverRunIdFromTranscript(r, fragment, "session-mid-cache", true)).toBeNull();
+    expect(recoverRunIdFromTranscript(r, fragment, "session-mid-cache", false)).toBe(RUN);
+  });
 });
