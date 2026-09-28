@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-09-28",
+  "last_updated": "2026-09-19",
   "iterate_latest": {
-    "run_id": "iterate-2026-09-28-codextender-auto-mode-server",
-    "date": "2026-09-28",
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "date": "2026-09-19",
     "unit": {
       "status": "passed",
-      "passed": 4500,
-      "total": 4513,
+      "passed": 8603,
+      "total": 8616,
       "skipped": 13
     },
     "integration": {
@@ -20,9 +20,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,8 +36,8 @@
     "test_completeness": {
       "status": "complete",
       "counts": {
-        "testable": 17,
-        "tested": 17,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -47,110 +47,37 @@
       },
       "behaviors": [
         {
-          "behavior": "buildCodextenderCommands injects CLAUDE_CODE_MAX_CONTEXT_TOKENS into the env prefix on all 3 shells when maxContextTokens is given",
+          "behavior": "wizard-plan-phases container carries a class the .on-photo solid-surface reset targets (--ink resets to dark instead of staying flipped white)",
           "disposition": "tested",
-          "evidence": "launcher-codextender.max-context-tokens.test.ts::sets CLAUDE_CODE_MAX_CONTEXT_TOKENS from the probed Codex window on all 3 shells PASSED"
+          "evidence": "on-photo-legibility.test.ts (order-independent tag match against on-photo.css's rule-2 reset selector list)"
         },
         {
-          "behavior": "buildCodextenderCommands omits CLAUDE_CODE_MAX_CONTEXT_TOKENS entirely when maxContextTokens is not given",
+          "behavior": "wizard-plan-phases container sets no inline background/boxShadow override that could silently reintroduce an opaque-but-unreset surface while keeping the reset class",
           "disposition": "tested",
-          "evidence": "launcher-codextender.max-context-tokens.test.ts::omits CLAUDE_CODE_MAX_CONTEXT_TOKENS entirely when maxContextTokens is not given PASSED"
+          "evidence": "on-photo-legibility.test.ts (fence widened to match backgroundColor as well as background)"
         },
         {
-          "behavior": "the cleanup suffix removes CLAUDE_CODE_MAX_CONTEXT_TOKENS on all 3 shells after the claude invocation, conditionally on it having been set",
+          "behavior": "The phase description text (wizard-phase-desc-Build) renders at >= 4.5:1 WCAG AA contrast against the real rendered plan-card background in a real browser \u2014 proves the fix, not just the class fence",
           "disposition": "tested",
-          "evidence": "launcher-codextender.max-context-tokens.test.ts (same test, cleanup-suffix regex assertions) PASSED"
+          "evidence": "wizard-plan-card-legibility.spec.ts (Playwright, real Chromium, WCAG contrast math via e2e/helpers/contrast.ts); F0.5 surface_verification exit_code 0, 1/1 passed"
         },
         {
-          "behavior": "resolveCodextenderMaxContextTokens resolves the selected alias's max_input_tokens from the proxy response",
+          "behavior": "No other .iw-card consumer in the New-Project wizard regressed (shared className, shared on-photo.css reset rule)",
           "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::resolves the selected alias's max_input_tokens PASSED"
-        },
-        {
-          "behavior": "resolveCodextenderMaxContextTokens defaults to DEFAULT_CODEXTENDER_MODEL_ALIAS when no model is given",
-          "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::defaults to DEFAULT_CODEXTENDER_MODEL_ALIAS when no model is given PASSED"
-        },
-        {
-          "behavior": "resolveCodextenderMaxContextTokens resolves undefined (never throws, never guesses) when the probe fails",
-          "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::resolves undefined when the probe fails PASSED"
-        },
-        {
-          "behavior": "resolveCodextenderMaxContextTokens resolves undefined when the selected alias isn't in the response",
-          "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::resolves undefined when the selected alias isn't in the response PASSED"
-        },
-        {
-          "behavior": "resolveCodextenderMaxContextTokens resolves undefined when the matching entry carries no usable max_input_tokens (older/unpatched proxy)",
-          "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::resolves undefined when the matching entry carries no usable max_input_tokens PASSED"
-        },
-        {
-          "behavior": "probeCodextenderModels carries a valid max_input_tokens through to the parsed entry",
-          "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::carries a valid max_input_tokens through to the entry PASSED"
-        },
-        {
-          "behavior": "probeCodextenderModels drops a non-positive/non-integer/non-numeric max_input_tokens rather than passing through a bogus value",
-          "disposition": "tested",
-          "evidence": "codextender-proxy-probe.test.ts::drops a non-positive/non-integer/non-numeric max_input_tokens PASSED"
-        },
-        {
-          "behavior": "the main launch chokepoint (applyRuntimeChokepoint / applyCodextenderChokepoint) passes the resolved max context tokens through to buildCodextenderCommands, keyed on the launch's own model override",
-          "disposition": "tested",
-          "evidence": "runtime-chokepoint.codextender-max-context-tokens.test.ts::passes the resolved max context tokens through PASSED"
-        },
-        {
-          "behavior": "the main launch chokepoint leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined",
-          "disposition": "tested",
-          "evidence": "runtime-chokepoint.codextender-max-context-tokens.test.ts::leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined PASSED"
-        },
-        {
-          "behavior": "the fork route sets CLAUDE_CODE_MAX_CONTEXT_TOKENS on the forked child's commands from the resolved probe value",
-          "disposition": "tested",
-          "evidence": "fork.codextender.test.ts::sets CLAUDE_CODE_MAX_CONTEXT_TOKENS on the forked child's commands PASSED"
-        },
-        {
-          "behavior": "the fork route leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined",
-          "disposition": "tested",
-          "evidence": "fork.codextender.test.ts::leaves CLAUDE_CODE_MAX_CONTEXT_TOKENS unset when the probe resolves undefined PASSED"
-        },
-        {
-          "behavior": "buildCodextenderCommands unconditionally sets CLAUDE_CODE_AUTO_MODE_SERVER=0 in the env prefix on all 3 shells, regardless of maxContextTokens",
-          "disposition": "tested",
-          "evidence": "launcher-codextender.auto-mode-server.test.ts::unconditionally sets CLAUDE_CODE_AUTO_MODE_SERVER=0 on all 3 shells PASSED; launcher-codextender.test.ts::prepends the plain env vars PASSED"
-        },
-        {
-          "behavior": "the cleanup suffix removes CLAUDE_CODE_AUTO_MODE_SERVER on all 3 shells after the claude invocation, unconditionally (same treatment as CODEXTENDER_ACTIVE/CODEXTENDER_MODEL)",
-          "disposition": "tested",
-          "evidence": "launcher-codextender.auto-mode-server.test.ts::cleans up both vars after PASSED; launcher-codextender.test.ts::cleans up all 7 env vars PASSED; launcher-codextender.max-context-tokens.test.ts (exact cleanup regex includes CLAUDE_CODE_AUTO_MODE_SERVER) PASSED"
-        },
-        {
-          "behavior": "CLAUDE_CODE_AUTO_MODE_SERVER never carries the literal auth-token value (no adjacency/quoting leak), and a real shell actually drops it after cleanup",
-          "disposition": "tested",
-          "evidence": "launcher-codextender.auto-mode-server.test.ts::never emits the literal auth-token value alongside CLAUDE_CODE_AUTO_MODE_SERVER PASSED; launcher-codextender.smoke.test.ts (ENV_NAMES real-shell check, all 3 shells) PASSED"
+          "evidence": "Full client unit suite (4273/4273) green, incl. existing IntentWizard component tests; no other .iw-card consumer's test file changed or failed"
         }
       ]
     },
     "surface_verification": {
-      "surface": "none",
-      "justification": "Server-only bug fix to the Codextender launch env-var construction (no client/** file touched, no API response shape/contract change -- CopyCommandForms remains the same string-triple shape). Fully covered by the existing unit-test layer plus a real-shell smoke test exercising all 3 shells; no UI surface exists to drive with a browser, and the diff is small (no touches_io_boundary/UI risk flag), so E2E is not required at this complexity per the phase matrix."
-    },
-    "declared_removals": [
-      {
-        "path": "server/src/core/launcher-codextender.max-context-tokens.test.ts",
-        "reason": "Not a revert -- the cleanup-suffix exact-match regex line present on origin/main (ending '...CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS -ErrorAction SilentlyContinue/') was extended in place to also require 'Env:CLAUDE_CODE_AUTO_MODE_SERVER' before the same suffix, so the old exact string no longer appears verbatim. The mechanical line-diff reads this as lost content; the superseding line still asserts everything the old one did, plus the new var."
-      },
-      {
-        "path": "server/src/core/launcher-codextender.test.ts",
-        "reason": "Same supersession as the sibling file above, in both the cmd.exe and PowerShell exact-match cleanup regexes (the assertion literal that ended at CLAUDE_CODE_MAX_CONTEXT_TOKENS/CLAUDE_CODE_MAX_CONTEXT_TOKENS= now also requires CLAUDE_CODE_AUTO_MODE_SERVER before the same tail) -- not a revert of independent work, an in-place extension of this iterate's own prior commit on this branch."
-      }
-    ]
+      "surface": "web",
+      "tests_run": 1,
+      "exit_code": 0,
+      "justification": "The bug (white-on-white phase-description text, Sven screenshot report) is a real-rendered-CSS defect that jsdom's class/token fence (on-photo-legibility.test.ts) cannot itself prove fixed \u2014 it only proves the container carries the reset class, not that the reset actually yields a legible color pairing at runtime. This E2E spec drives the real New-Project wizard flow in a real Chromium (client/e2e/isolated-stack.mjs) to the plan-card step and asserts the rendered contrast ratio between the description text's computed color and its container's computed background clears WCAG AA (4.5:1) \u2014 the only real-browser coverage of this wizard screen (no visual baseline in e2e/visual/05-wizard.spec.ts reaches past step 1)."
+    }
   },
   "source_state": {
-    "run_id": "iterate-2026-09-28-codextender-auto-mode-server",
-    "commit": "680c6436a8af41084df90e02d1b0301ea9d0bfd7",
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
     "dirty": true,
     "base": null,
     "release": null
