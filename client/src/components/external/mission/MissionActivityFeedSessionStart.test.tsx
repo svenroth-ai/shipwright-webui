@@ -13,11 +13,22 @@ const TASK = { taskId: "task-mission-feed", projectId: "p1" } as unknown as Exte
 
 // iterate-2026-09-26-mission-tab-subrunner: per-card timestamps and kind
 // labels were removed site-wide (item 6) — replaced by a single one-time
-// "Session started" divider derived from the first timestamped card.
-// Supersedes the per-card `FeedTime` coverage this suite held under
-// iterate-2026-08-31-mission-feed-gaps. Split out of `MissionActivityFeed.
-// test.tsx` (external code review round) so that file's line count stays
-// under the 300-line convention — a cohesive extraction, not line-merging.
+// "Session started" divider. Supersedes the per-card `FeedTime` coverage
+// this suite held under iterate-2026-08-31-mission-feed-gaps. Split out of
+// `MissionActivityFeed.test.tsx` (external code review round) so that file's
+// line count stays under the 300-line convention — a cohesive extraction,
+// not line-merging.
+//
+// iterate-2026-09-28-mission-feed-completeness, AC1: the divider is now
+// derived from `feed.sessionStartTimestamp` (computed by `deriveActivityFeed`
+// from the RAW transcript events, independent of which cards survive) rather
+// than scanned from `feed.cards[0]` here in the component — a session whose
+// early turns produced no surviving card used to report a misleadingly-late
+// start time (reported: "Start ist abgeschnitten"). The "skip a malformed
+// leading timestamp" behavior moved with it — see
+// `missionActivityFeedSessionStart.test.ts` for that derivation-level
+// coverage; this file only tests the COMPONENT'S rendering of whatever
+// `sessionStartTimestamp` it was given.
 describe("session-start divider", () => {
   // external code review, low: was asserting only that a time string
   // appeared somewhere — also passed for a divider in the wrong position
@@ -31,13 +42,14 @@ describe("session-start divider", () => {
     vi.useRealTimers();
   });
 
-  it("renders once, derived from the first card that carries a timestamp, above the first card entry", () => {
+  it("renders once, derived from feed.sessionStartTimestamp, above the first card entry", () => {
     const at = "2026-08-31T09:15:00.000Z";
     const { container } = render(<MissionActivityFeed feed={{
       outcome: "In progress",
+      sessionStartTimestamp: at,
       cards: [
         { kind: "goal", text: "Started a run.", commands: [] },
-        { kind: "implement", text: "Edited the login handler.", commands: [], timestamp: at },
+        { kind: "implement", text: "Edited the login handler.", commands: [], timestamp: "2026-08-31T09:15:30.000Z" },
         { kind: "test", text: "Ran the suite.", commands: [], timestamp: "2026-08-31T09:16:00.000Z" },
       ],
     }} commitArtifact={null} task={TASK} />);
@@ -50,26 +62,21 @@ describe("session-start divider", () => {
     expect(scroll?.querySelectorAll(".mc-feed-entry")).toHaveLength(3);
   });
 
-  // Local PR-review preflight (comment, 2026-09-26): the first card's
-  // timestamp is malformed, but a later card's is genuinely valid — the
-  // divider must still render from that later one, not disappear entirely.
-  it("skips a malformed first timestamp and derives the divider from the next valid one", () => {
-    const { container } = render(<MissionActivityFeed feed={{
+  // `deriveActivityFeed` itself is responsible for never handing the
+  // component a malformed `sessionStartTimestamp` (see
+  // `missionActivityFeedSessionStart.test.ts`'s "skips a malformed leading
+  // timestamp" coverage) — this is defense in depth at the render layer,
+  // mirroring `formatSessionStart`'s own null-return guard.
+  it("renders nothing when sessionStartTimestamp itself is malformed", () => {
+    const { queryByTestId } = render(<MissionActivityFeed feed={{
       outcome: "In progress",
-      cards: [
-        { kind: "implement", text: "Edited the login handler.", commands: [], timestamp: "not-a-real-date" },
-        { kind: "test", text: "Ran the suite.", commands: [], timestamp: "2026-08-31T09:16:00.000Z" },
-      ],
+      sessionStartTimestamp: "not-a-real-date",
+      cards: [{ kind: "implement", text: "Edited the login handler.", commands: [] }],
     }} commitArtifact={null} task={TASK} />);
-    const dividers = screen.getAllByTestId("mission-feed-session-start");
-    expect(dividers).toHaveLength(1);
-    const expectedTime = new Date("2026-08-31T09:16:00.000Z").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    expect(dividers[0]).toHaveTextContent(`Session started · Today, ${expectedTime}`);
-    const scroll = container.querySelector(".mc-feed-scroll");
-    expect(scroll?.firstElementChild).toBe(dividers[0]);
+    expect(queryByTestId("mission-feed-session-start")).toBeNull();
   });
 
-  it("renders nothing when no card carries a timestamp (older transcripts)", () => {
+  it("renders nothing when the feed carries no sessionStartTimestamp at all (older transcripts)", () => {
     const { queryByTestId } = render(<MissionActivityFeed feed={{
       outcome: "In progress",
       cards: [{ kind: "implement", text: "Edited the login handler.", commands: [] }],

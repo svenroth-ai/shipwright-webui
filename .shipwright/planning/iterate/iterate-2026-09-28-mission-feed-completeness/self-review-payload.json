@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "All 6 reported defects (AC1-AC6) implemented exactly as scoped; AC7 verified with no new code. No extra features added beyond the spec."},
+    {"name": "Error Handling", "verdict": "pass", "note": "No new API routes or external calls added. All new Map lookups guard against absence (indexOf -1 checks, Map.get undefined checks) before acting."},
+    {"name": "Security Basics", "verdict": "pass", "note": "No user input handling, SQL, or HTML-output changes. Purely feed-derivation logic and a server-side read-window constant."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Every AC has a happy-path and negative-control test; the two authoringConsumedBy/restoreValidationPending regression tests were each confirmed to FAIL without their fix and PASS with it (revert-run-restore verification), not just asserted."},
+    {"name": "Performance Basics", "verdict": "pass", "note": "RECOVERY_TAIL_BYTES/MAX_SCAN_CHARS raised from 1 MiB to 8 MiB but remains a fixed, bounded cap (an unbounded-read alternative was explicitly considered and rejected in the mini-plan). No new loops over unbounded collections."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "missionActivityFeedResolve.ts was split into missionActivityFeedTransientTestDrop.ts and missionActivityFeedBlockerError.ts (cohesive, real extractions) to stay under the 300-line convention; routes.ts trimmed to exactly 300 lines."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "touches_io_boundary applies to wire.ts's bounded tail-read -> run-id-recovery.ts's regex scan. Round-trip probe: routes.recovery.midfile.test.ts drives a real HTTP-shaped call through the full route->resolver->recovery-thunk chain with a byte-cut tool_result fragment, both startedMidFile=true/false, plus a direct check against the actual real-world transcript that triggered the report (AC7)."},
+    {"name": "Test Hygiene Probe", "verdict": "pass", "note": "uv run scripts/tools/scan_test_hygiene.py --diff reported no findings."}
+  ]
+}

@@ -43,7 +43,7 @@ import { isSafeRunId } from "./pointer.js";
  * Hard cap on how much text is scanned, independent of what the caller passes.
  * The caller already reads a bounded tail; this is the belt to that braces.
  */
-export const MAX_SCAN_CHARS = 1024 * 1024;
+export const MAX_SCAN_CHARS = 8 * 1024 * 1024;
 
 /**
  * The F6 footer marker.
@@ -111,17 +111,17 @@ function isUserTypeLine(line: string): boolean {
  * before the cut, so the surviving fragment fails to parse as JSON and
  * `isUserTypeLine` — correctly "never guessing" on genuinely malformed
  * content — keeps it, defeating the exclusion for precisely the record
- * this fix exists to exclude. The one line that can be a byte-cut
- * fragment is always the FIRST line of an actually-truncated tail (every
- * later line is bounded by two real `\n`s from the original file), so
- * that line alone is dropped outright rather than classified — accepting
- * a narrow "declines to identify" cost in exchange for closing the
- * wrong-identity path, consistent with this module's "no half answer, no
- * guess" posture elsewhere (e.g. a marker itself cut by the window).
+ * this fix exists to exclude. The FIRST line of an actually-truncated tail
+ * is always the one that can be a byte-cut fragment (every later line is
+ * bounded by two real `\n`s from the original file), so that line alone is
+ * dropped outright rather than classified — accepting a narrow "declines to
+ * identify" cost in exchange for closing the wrong-identity path.
  */
 function stripUserTypeLines(text: string, dropLeadingPartialLine: boolean): string {
   const lines = text.split(/\r?\n/);
-  if (dropLeadingPartialLine && lines.length > 1) lines.shift();
+  // No `lines.length > 1` guard (external review, openai): a single
+  // unterminated line IS a byte-cut fragment too when proven mid-file.
+  if (dropLeadingPartialLine) lines.shift();
   return lines.filter((line) => !isUserTypeLine(line)).join("\n");
 }
 
@@ -135,12 +135,28 @@ function stripUserTypeLines(text: string, dropLeadingPartialLine: boolean): stri
  *
  * Pure — no I/O, no corroboration. `recoverRunIdFromTranscript` is the entry
  * point that adds evidence.
+ *
+ * `startedMidFile` (iterate-2026-09-28-mission-feed-completeness, AC2): PROVEN
+ * true, not merely assumed, whenever the caller's own read began after byte 0
+ * of the real file — `wire.ts`'s `readTranscriptTail` peeks the one byte
+ * immediately before its intended start and only reports `true` when that
+ * byte is not a `\n` (external code review, openai, raised across two
+ * independent review passes: an earlier version of this signal assumed
+ * partial whenever the read didn't start at byte 0, which is provably safe
+ * — see `stripUserTypeLines`'s doc comment — but not provably necessary; the
+ * peek settles it for real instead of arguing probability a third time). The
+ * caller always reads a bounded tail no larger than `MAX_SCAN_CHARS`, so
+ * `transcript.length > MAX_SCAN_CHARS` below can never observe that on its
+ * own in production, only in a test that hands this function an oversized
+ * string directly — THAT path stays a conservative assumption, since a bare
+ * string slice has no byte to peek. Either condition means the leading line
+ * may be a byte-cut fragment (see `stripUserTypeLines`'s doc comment).
  */
-export function findRunIdFooter(transcript: string): string | null {
+export function findRunIdFooter(transcript: string, startedMidFile = false): string | null {
   if (typeof transcript !== "string" || transcript.length === 0) return null;
-  const truncated = transcript.length > MAX_SCAN_CHARS;
-  const tail = truncated ? transcript.slice(-MAX_SCAN_CHARS) : transcript;
-  const text = stripUserTypeLines(tail, truncated);
+  const droppedLeadingPartial = startedMidFile || transcript.length > MAX_SCAN_CHARS;
+  const tail = transcript.length > MAX_SCAN_CHARS ? transcript.slice(-MAX_SCAN_CHARS) : transcript;
+  const text = stripUserTypeLines(tail, droppedLeadingPartial);
 
   let last: string | null = null;
   RUN_ID_FOOTER.lastIndex = 0;
@@ -207,14 +223,18 @@ export function hasRunRecord(projectRoot: string, runId: string): boolean {
  *
  * Deliberately NOT a persisted "no run" association: that would add a second
  * meaning to `task.missionContext` and a second write surface, to cache a regex.
+ *
+ * `startedMidFile` is PART OF THE FINGERPRINT (external code review, openai
+ * MEDIUM, third preflight pass): it changes whether `findRunIdFooter` drops
+ * the leading line, so the same raw text can parse two different ways.
  */
 const negativeScans = new Map<string, string>();
 const NEGATIVE_CAP = 512;
 /** How much of the tail END feeds the fingerprint. */
 const FINGERPRINT_CHARS = 256;
 
-function tailFingerprint(text: string): string {
-  return `${text.length}:${text.slice(-FINGERPRINT_CHARS)}`;
+function tailFingerprint(text: string, startedMidFile: boolean): string {
+  return `${startedMidFile ? "1" : "0"}:${text.length}:${text.slice(-FINGERPRINT_CHARS)}`;
 }
 
 /**
@@ -254,13 +274,14 @@ export function recoverRunIdFromTranscript(
   projectRoot: string,
   transcript: string,
   sessionUuid?: string,
+  startedMidFile = false,
 ): string | null {
   const memoKey = sessionUuid ? `${projectRoot}::${sessionUuid}` : null;
-  const fingerprint = memoKey ? tailFingerprint(transcript) : null;
+  const fingerprint = memoKey ? tailFingerprint(transcript, startedMidFile) : null;
   if (memoKey && negativeScans.get(memoKey) === fingerprint) return null;
 
   scanCount++;
-  const candidate = findRunIdFooter(transcript);
+  const candidate = findRunIdFooter(transcript, startedMidFile);
 
   // Memoize ONLY "this text contains no marker" — a purely TEXTUAL fact, which
   // cannot change while the text does not. A candidate that failed

@@ -171,4 +171,38 @@ describe("hasRunRecord / recoverRunIdFromTranscript — corroboration", () => {
     expect(recoverRunIdFromTranscript(r, plain, "session-b")).toBeNull();
     expect(_recoveryScanCount()).toBe(2); // a second SESSION is scanned, not memoized
   });
+
+  /*
+   * iterate-2026-09-28-mission-feed-completeness, AC2 — `startedMidFile` is a
+   * plain passthrough to `findRunIdFooter`, verified end-to-end through
+   * corroboration rather than re-testing the parsing rule itself (covered in
+   * `run-id-recovery-user-lines.test.ts`).
+   */
+  it("threads startedMidFile through to findRunIdFooter, changing whether a corroborated fragment is adopted", () => {
+    const r = project(workCompleted(RUN));
+    _clearRecoveryMemo();
+    // A byte-cut tool_result fragment (no real footer follows) — corroborated
+    // if it survives, since the fixture's event log knows RUN.
+    const fragment = `,"content":"padding\\n\\nRun-ID: ${RUN}\\n"}]}}\n`;
+    expect(recoverRunIdFromTranscript(r, fragment, "session-mid", false)).toBe(RUN);
+    _clearRecoveryMemo();
+    expect(recoverRunIdFromTranscript(r, fragment, "session-mid2", true)).toBeNull();
+  });
+
+  /*
+   * External code review catch (openai, third preflight pass): the negative
+   * memo used to fingerprint on content alone, so a `startedMidFile: true`
+   * scan that found nothing (and cached that null) could wrongly suppress a
+   * later `startedMidFile: false` scan of the SAME text and SAME session —
+   * even though that second scan keeps the leading line and would actually
+   * find the footer there. Same session id both times, unlike the pair
+   * above, is what exercises the memo rather than just the passthrough.
+   */
+  it("does not let a startedMidFile: true negative scan poison a later startedMidFile: false scan of the same text and session", () => {
+    const r = project(workCompleted(RUN));
+    _clearRecoveryMemo();
+    const fragment = `,"content":"padding\\n\\nRun-ID: ${RUN}\\n"}]}}\n`;
+    expect(recoverRunIdFromTranscript(r, fragment, "session-mid-cache", true)).toBeNull();
+    expect(recoverRunIdFromTranscript(r, fragment, "session-mid-cache", false)).toBe(RUN);
+  });
 });

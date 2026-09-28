@@ -1,0 +1,19 @@
+{
+  "section": "iterate-2026-09-28-mission-feed-completeness (AC3/AC4 transient-test-card drop)",
+  "review": [
+    {
+      "finding": "Splicing a transient-rejected test card out of cards/testCards/awaitingTestResult in missionActivityFeedResolve.ts left it still reachable as a value in the pre-existing state.authoringConsumedBy map whenever the dropped card was also a TDD authoring run. A later, out-of-order rollback of its backing Write (rollbackFailedWrite/unstampAuthoringRun in missionActivityFeedAuthoringRollback.ts) could look the detached card up and misread its \"neither failed nor pending\" shape as a SUCCESSFUL recovery, wrongly clearing an unrelated, still-open genuine test failure's red status.",
+      "severity": "high",
+      "category": "correctness",
+      "file": "client/src/lib/missionActivityFeedResolve.ts",
+      "suggestion": "Purge the matching authoringConsumedBy entry (and clear card.authoringRun) at splice time, so a later rollback behaves as if this run had never consumed the tracker slot."
+    },
+    {
+      "finding": "The AC3/AC4 work pushed missionActivityFeedResolve.ts from its already-at-ceiling 300 lines to 332+, violating the project's file-size convention.",
+      "severity": "medium",
+      "category": "bloat",
+      "file": "client/src/lib/missionActivityFeedResolve.ts",
+      "suggestion": "Split into cohesive files (the splice+purge helper, and the pre-existing untouched generic blocker branch) rather than trimming comments."
+    }
+  ]
+}

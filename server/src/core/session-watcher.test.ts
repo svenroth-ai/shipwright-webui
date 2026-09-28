@@ -144,6 +144,36 @@ describe("SessionWatcher.readChunk", () => {
     });
     expect(r.status).toBe("rotated");
   });
+
+  /*
+   * External code review catch (openai, fourth preflight pass, on
+   * mission-context/wire.ts's boundary-proof peek): the claim was that
+   * reading from ONE BYTE EARLIER than an intended tail start, then
+   * stripping that one peeked byte, could lose the transcript's final
+   * complete line. Investigated against this real (non-mocked) reader: it
+   * cannot, because `readChunk` always reads through to the file's true
+   * current EOF regardless of `fromByte`, and trims to the LAST `\n` found
+   * in whatever it read — a boundary determined purely by the file's own
+   * content up to true EOF, not by where the read started. Starting one
+   * byte earlier can only ADD to the front of what's read; it cannot move
+   * that trailing boundary. Proven here directly, byte-for-byte, rather
+   * than left as an unverified rebuttal in the iterate spec.
+   */
+  it("reading from one byte earlier and stripping it reproduces the exact same trailing content, including the final complete line", async () => {
+    const lines = Array.from({ length: 200 }, (_, i) => `{"n":${i}}`);
+    const content = `${lines.join("\n")}\n`;
+    seed(content);
+    const watcher = new SessionWatcher({ projectsDir });
+    const target = 400; // mid-file, not a line boundary in general
+    const withoutPeek = await watcher.readChunk({ sessionUuid: UUID, fromByte: target, expectFingerprint: null });
+    const withPeek = await watcher.readChunk({ sessionUuid: UUID, fromByte: target - 1, expectFingerprint: null });
+    expect(withoutPeek.status).toBe("ok");
+    expect(withPeek.status).toBe("ok");
+    if (withoutPeek.status === "ok" && withPeek.status === "ok") {
+      expect(withPeek.chunk.content.slice(1)).toBe(withoutPeek.chunk.content);
+      expect(withoutPeek.chunk.content.endsWith(`{"n":199}\n`)).toBe(true);
+    }
+  });
 });
 
 // `readWithRetry` moved to session-jsonl-io.ts with the rest of the disk

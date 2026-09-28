@@ -1,0 +1,100 @@
+{
+  "last_updated": "2026-09-28",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-28-mission-feed-completeness",
+    "date": "2026-09-28",
+    "unit": {
+      "status": "passed",
+      "passed": 8911,
+      "total": 8924,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 12,
+      "total": 12
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      },
+      "behaviors": [
+        {
+          "behavior": "AC1: the 'Session started' divider anchors to the transcript's true first parseable event timestamp, independent of which cards survive",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedSessionStart.test.ts, MissionActivityFeedSessionStart.test.tsx"
+        },
+        {
+          "behavior": "AC2: a session whose Run-ID footer falls outside the old 1 MB recovery window (incl. a read that starts mid-file, shorter than the cap) still resolves to scenario iterate and renders its full artifact rail",
+          "disposition": "tested",
+          "evidence": "run-id-recovery.test.ts, run-id-recovery-user-lines.test.ts, run-id-recovery.corroboration.test.ts, routes.recovery.midfile.test.ts (full route-level)"
+        },
+        {
+          "behavior": "AC3: the harness's transient 'auto mode classifier gave no verdict' tool-call error is never rendered as a permanent failed/blocker card",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedTransientClassifierError.test.ts"
+        },
+        {
+          "behavior": "AC4: a wordless test-bucket card from a spliced transient rejection is dropped, and cannot be resurrected via authoringConsumedBy or restoreValidationPending by a later out-of-order Write rollback to falsely recover an unrelated genuine failure",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedTransientClassifierError.test.ts (code-review + doubt-review regression cases, each confirmed to fail without its fix)"
+        },
+        {
+          "behavior": "AC5: an ordinary trailing narration turn no longer renders with the dashed border + gear icon reserved for a real compaction-marker event",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.splitTurn.test.ts, MissionActivityFeedSessionStart.test.tsx, mission-feed-transcript-fidelity.spec.ts (real-browser, data-kind=note)"
+        },
+        {
+          "behavior": "AC6: an Agent-dispatched review subagent's queued_command attachment notification resolves its subrunner card out of Running into done/failed and makes it clickable",
+          "disposition": "tested",
+          "evidence": "missionActivityFeedSubrunnerAttachment.test.ts"
+        },
+        {
+          "behavior": "AC7: once AC2 lands, the same real task's Review and Decisions artifact chips render normally, confirming the downstream symptom had no separate root cause",
+          "disposition": "tested",
+          "evidence": "routes.recovery.midfile.test.ts (integration) + direct verification against the real reported session JSONL"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 12,
+      "exit_code": 0,
+      "justification": "None of the six fixes adds a new user-interaction flow, so no new Playwright spec was needed; instead the full existing set of Mission-tab specs relevant to the touched behavior (session-start divider, recovery/artifact-rail, transcript narration styling, subrunner resolution) was run against a real Chromium. This caught a real regression a pure-unit run could not: a pre-existing spec asserted the OLD data-kind=\"system\" value AC5 intentionally removed from trailing narration; fixed to assert data-kind=\"note\"."
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-28-mission-feed-completeness",
+    "commit": "",
+    "dirty": true,
+    "base": "b4c2b853f92bb508b1653adf3d4e7270d61b09e5",
+    "release": null
+  }
+}

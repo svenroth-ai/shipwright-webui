@@ -147,37 +147,45 @@ const SUPERSESSION_CAP = 512;
  * instead of re-scanning. Hashing costs one pass over a string already read
  * into memory for the scan this memo exists to skip — cheap relative to what
  * it replaces.
+ *
+ * `startedMidFile` folded in (external code review, openai, fifth preflight
+ * pass — the same fix as `run-id-recovery.ts`'s negative-scan memo, and for
+ * the identical reason): it changes what `recoverRunIdFromTranscript` does
+ * with the SAME transcript text, so it belongs in the key, not just the text.
  */
-function supersessionFingerprint(transcript: string): string {
-  return createHash("sha256").update(transcript).digest("hex");
+function supersessionFingerprint(transcript: string, startedMidFile: boolean): string {
+  return `${startedMidFile ? "1" : "0"}:${createHash("sha256").update(transcript).digest("hex")}`;
 }
 
 /**
  * The memoized, CONFIRMED supersession for this (session, association,
- * transcript-content) triple — `undefined` when none is cached (either this
- * content was never checked, or it was checked and found nothing, which is
- * deliberately never memoized here; a scan is owed either way).
+ * transcript-content, startedMidFile) tuple — `undefined` when none is
+ * cached (either this content was never checked, or it was checked and
+ * found nothing, which is deliberately never memoized here; a scan is owed
+ * either way).
  */
 export function supersessionMemoHit(
   sessionUuid: string,
   associationRunId: string,
   transcript: string,
+  startedMidFile: boolean,
 ): string | undefined {
   const entry = supersessionResult.get(`${sessionUuid}::${associationRunId}`);
-  if (!entry || entry.fingerprint !== supersessionFingerprint(transcript)) return undefined;
+  if (!entry || entry.fingerprint !== supersessionFingerprint(transcript, startedMidFile)) return undefined;
   return entry.recovered;
 }
 
-/** Record this triple's CONFIRMED recovery, so the next unchanged poll reuses it instead of re-scanning. */
+/** Record this tuple's CONFIRMED recovery, so the next unchanged poll reuses it instead of re-scanning. */
 export function markSupersessionResult(
   sessionUuid: string,
   associationRunId: string,
   transcript: string,
+  startedMidFile: boolean,
   recovered: string,
 ): void {
   const key = `${sessionUuid}::${associationRunId}`;
   if (supersessionResult.size >= SUPERSESSION_CAP) supersessionResult.clear();
-  supersessionResult.set(key, { fingerprint: supersessionFingerprint(transcript), recovered });
+  supersessionResult.set(key, { fingerprint: supersessionFingerprint(transcript, startedMidFile), recovered });
 }
 
 /** Test-only: drop the supersession-check memo between cases. */
@@ -198,18 +206,21 @@ export function buildRecoveryThunk(
   sessionUuid: string,
   transcript: string,
   associationRunId: string | null,
+  startedMidFile = false,
 ): () => string | null {
   const memoHit =
-    associationRunId !== null ? supersessionMemoHit(sessionUuid, associationRunId, transcript) : undefined;
+    associationRunId !== null
+      ? supersessionMemoHit(sessionUuid, associationRunId, transcript, startedMidFile)
+      : undefined;
   return () => {
     // A cache HIT is a CONFIRMED prior supersession for this exact content —
     // returned as-is, never re-scanned. There is no cached-null case (see the
     // memo's own doc comment): an unconfirmed result always re-scans, since
     // corroboration can succeed later even when the text has not changed.
     if (associationRunId !== null && memoHit !== undefined) return memoHit;
-    const recovered = recoverRunIdFromTranscript(projectRoot, transcript, sessionUuid);
+    const recovered = recoverRunIdFromTranscript(projectRoot, transcript, sessionUuid, startedMidFile);
     if (associationRunId !== null && recovered !== null) {
-      markSupersessionResult(sessionUuid, associationRunId, transcript, recovered);
+      markSupersessionResult(sessionUuid, associationRunId, transcript, startedMidFile, recovered);
     }
     return recovered;
   };

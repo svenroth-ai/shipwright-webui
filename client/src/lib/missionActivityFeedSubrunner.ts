@@ -26,7 +26,7 @@
  * NEW id on every resume (confirmed: the same agent's SECOND notification
  * carried a different `<tool-use-id>` than its first).
  */
-import type { TaskNotificationEvent } from "../external/session-parser";
+import { extractTaskNotification, type TaskNotificationEvent } from "../external/session-parser";
 import type { ActivityCard } from "./missionActivityFeedTypes";
 import { explanationExcerpt } from "./missionActivityFeedText";
 
@@ -163,6 +163,35 @@ function attachSubrunnerReport(card: ActivityCard, raw: string): void {
  *  review, openai, medium: "every notification status except `failed`
  *  becomes `done`... a malformed notification can falsely mark a running
  *  agent complete"). */
+/** Bridges a `"attachment"` event carrying a `queued_command` payload into
+ *  the same `TaskNotificationEvent` shape a `"user"`-kind record already
+ *  produces via `session-parser.ts`'s `extractTaskNotification` — a real
+ *  `code-reviewer`/`doubt-reviewer` `Task` dispatch's completion arrives
+ *  this way (measured directly against a real transcript: `{"type":
+ *  "attachment","attachment":{"type":"queued_command","prompt":
+ *  "<task-notification>…</task-notification>"}}`), never as a `"user"`
+ *  record, so `deriveActivityFeed`'s reducer never ran `extractTaskNotification`
+ *  against it at all and the card stayed on `"running"` forever.
+ *
+ *  Deliberately NOT added to `session-parser.ts` itself (Internal Plan
+ *  Review): that file's `"attachment"` case also feeds
+ *  `BubbleTranscript`/`narrator-transcript.ts`, screens with no subrunner
+ *  concept — reclassifying there would leak Mission-only behavior into them.
+ *  `extractTaskNotification` is reused as-is, unmodified, from here instead.
+ *
+ *  Returns null for anything that isn't this exact shape (a malformed
+ *  attachment, a non-string `prompt`, or a `queued_command` whose `prompt`
+ *  isn't a task-notification envelope at all) — `deriveActivityFeed` treats
+ *  null as "not a notification", same as any other unrecognized event. */
+export function deriveSubrunnerNotificationFromAttachment(attachment: unknown): TaskNotificationEvent | null {
+  if (!attachment || typeof attachment !== "object") return null;
+  const record = attachment as Record<string, unknown>;
+  if (record.type !== "queued_command") return null;
+  const notification = extractTaskNotification(record.prompt);
+  if (!notification) return null;
+  return { kind: "task-notification", ...notification };
+}
+
 export function resolveSubrunnerNotification(cards: ActivityCard[], event: TaskNotificationEvent): void {
   if (event.status !== "completed" && event.status !== "failed") return;
   if (!event.taskId) return;

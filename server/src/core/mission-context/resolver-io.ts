@@ -22,6 +22,16 @@ export interface ResolveRequest {
   projectRoot: string;
   /** Server-read transcript (bounded tail) — never client-supplied (§5.1). */
   transcript: string;
+  /**
+   * True when the tail read above started after byte 0 (the file is larger than
+   * the read budget) — a leading partial line was dropped before `transcript`
+   * even reached here. `findRunIdFooter`'s own `transcript.length > MAX_SCAN_CHARS`
+   * check can never observe this on its own: the caller already truncated to at
+   * most the read budget, so that in-function check never fires in production
+   * (iterate-2026-09-28-mission-feed-completeness, AC2). Optional — absent
+   * behaves as `false`, so existing callers/tests compile unchanged.
+   */
+  transcriptStartedMidFile?: boolean;
   /** Task facts the server owns (from its own store, not the client). */
   phaseTaskId: string | null;
   taskRunId: string | null;

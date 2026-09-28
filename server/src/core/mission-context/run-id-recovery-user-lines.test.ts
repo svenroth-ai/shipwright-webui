@@ -110,3 +110,67 @@ describe("findRunIdFooter — the truncation boundary cannot smuggle a tool_resu
     expect(findRunIdFooter(`${line}\n${real}`)).toBe(NEW);
   });
 });
+
+/*
+ * iterate-2026-09-28-mission-feed-completeness, AC2 — the `startedMidFile`
+ * flag closes the gap the two describe blocks above could not: in production
+ * the CALLER (wire.ts) always hands a string whose length is already at most
+ * its own read budget, which is at most `MAX_SCAN_CHARS`, so
+ * `transcript.length > MAX_SCAN_CHARS` never fires for a real bounded-tail
+ * read — only for a test handing this function an oversized string directly,
+ * as above. A real truncated-at-the-source read is SHORT (well under
+ * `MAX_SCAN_CHARS`) but still began mid-file, so its own leading line can
+ * still be the same kind of byte-cut fragment; `startedMidFile` is how the
+ * caller reports that fact since the string's own length cannot.
+ */
+describe("findRunIdFooter — startedMidFile reports a truncation the string's own length cannot", () => {
+  const OLD = "iterate-2026-07-01-some-older-run";
+  const NEW = "iterate-2026-08-20-mission-feed-content";
+
+  it("drops a byte-cut leading tool_result fragment even though the string itself is short", () => {
+    // No huge padding here — this string is nowhere near MAX_SCAN_CHARS, but
+    // the caller is reporting that the READ that produced it began mid-file,
+    // so this leading line may still be a fragment of a larger record.
+    const userLineTail = `,"content":"padding\\n\\nRun-ID: ${OLD}\\n"}]}}`;
+    const real = footerLine(NEW).replace('{"text"', '{"type":"assistant","text"');
+    const transcript = `${userLineTail}\n${real}`;
+    expect(findRunIdFooter(transcript, true)).toBe(NEW);
+  });
+
+  it("keeps the leading fragment's marker when startedMidFile is false (default) — same short string, opposite answer", () => {
+    // Same fragment as above but with NO real footer following it, so the
+    // outcome turns entirely on whether the fragment itself survives: kept
+    // (not dropped) it is the only marker in the text and wins; dropped, none
+    // remain.
+    const userLineTail = `,"content":"padding\\n\\nRun-ID: ${OLD}\\n"}]}}`;
+    const transcript = `${userLineTail}\n`;
+    expect(findRunIdFooter(transcript)).toBe(OLD);
+    expect(findRunIdFooter(transcript, false)).toBe(OLD);
+    expect(findRunIdFooter(transcript, true)).toBeNull();
+  });
+
+  it("startedMidFile has no effect once the string itself also exceeds MAX_SCAN_CHARS — both paths already drop the leading line", () => {
+    const hugeUserPrefix = "x".repeat(MAX_SCAN_CHARS);
+    const userLineTail = `,"content":"padding\\n\\nRun-ID: ${OLD}\\n"}]}}`;
+    const real = footerLine(NEW).replace('{"text"', '{"type":"assistant","text"');
+    const transcript = `${hugeUserPrefix}${userLineTail}\n${real}`;
+    expect(findRunIdFooter(transcript, true)).toBe(NEW);
+    expect(findRunIdFooter(transcript, false)).toBe(NEW);
+  });
+
+  /*
+   * External code review catch (openai, fourth preflight pass):
+   * `stripUserTypeLines` used to guard its drop on `lines.length > 1`, so a
+   * proven mid-file read whose ENTIRE window is a single unterminated line
+   * (one JSONL record bigger than the read budget) never had its leading
+   * fragment dropped at all — the exact class the multi-line case above
+   * already closes. No newline anywhere in this transcript, so a footer
+   * terminated by end-of-input still parses, but a proven byte cut must
+   * still yield no candidate.
+   */
+  it("drops a proven mid-file fragment even when it is the transcript's ONLY line (no newline at all)", () => {
+    const onlyLine = `,"content":"padding Run-ID: ${OLD}`;
+    expect(findRunIdFooter(onlyLine, false)).toBe(OLD);
+    expect(findRunIdFooter(onlyLine, true)).toBeNull();
+  });
+});

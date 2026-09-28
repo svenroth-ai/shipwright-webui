@@ -1,7 +1,7 @@
 import { toolUses, type ParsedEvent } from "../external/session-parser";
 import type { MissionContext } from "./missionContextApi";
 import { isCompactionMarker } from "./missionActivityFeedText";
-import { resolveSubrunnerNotification } from "./missionActivityFeedSubrunner";
+import { deriveSubrunnerNotificationFromAttachment, resolveSubrunnerNotification } from "./missionActivityFeedSubrunner";
 import { buildUserReplyCard, extractTurnProse, flushPendingNarration, processTurnTools, type PendingNarration, type TurnToolsState } from "./missionActivityFeedTurn";
 import { type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
@@ -78,6 +78,18 @@ export function deriveActivityFeed(
   // catch); `staleness` bounds it via `MAX_PENDING_NARRATION_CARRY` above.
   let pendingNarration: PendingNarration | null = null;
   const add = createCardAdder(cards, cardEventCounts);
+  // The transcript's own true first parseable event timestamp — computed
+  // from the RAW events, independent of which cards survive derivation, so a
+  // session whose early turns produced no surviving card no longer reports a
+  // misleadingly-late start time (iterate-2026-09-28-mission-feed-
+  // completeness, AC1 — reported: "Start ist abgeschnitten"). Validated the
+  // same way `formatSessionStart` already validates before rendering
+  // (`Number.isFinite(new Date(at).getTime())`), so an event carrying a
+  // malformed timestamp is skipped in favor of a later, genuinely valid one
+  // rather than becoming the reported start (external plan review, medium).
+  const sessionStartTimestamp = events.find(
+    (event) => typeof event.timestamp === "string" && Number.isFinite(new Date(event.timestamp).getTime()),
+  )?.timestamp;
   for (const event of events) {
     if (isCompactionMarker(event)) {
       cards.push({ kind: "system", text: "Context automatically compacted.", commands: [], timestamp: event.timestamp });
@@ -99,6 +111,18 @@ export function deriveActivityFeed(
       // subrunner — see `missionActivityFeedSubrunner.ts`'s doc comment for
       // why this, not a hand-back wrapper message, is the real mechanism).
       resolveSubrunnerNotification(cards, event);
+      continue;
+    }
+    if (event.kind === "attachment") {
+      // A `Task`/`Agent` dispatch's completion can arrive as a
+      // `queued_command` attachment instead of a `"user"`-kind
+      // `task-notification` record (iterate-2026-09-28-mission-feed-
+      // completeness — see `missionActivityFeedSubrunner.ts`'s doc comment).
+      // `"queue-operation"` bookkeeping events are a SEPARATE event kind and
+      // are never routed through here, so an agent dispatch is never
+      // resolved early at enqueue time.
+      const notification = deriveSubrunnerNotificationFromAttachment(event.attachment);
+      if (notification) resolveSubrunnerNotification(cards, notification);
       continue;
     }
     if (event.kind !== "assistant") continue;
@@ -188,5 +212,6 @@ export function deriveActivityFeed(
   const flushed = context?.runLive === true ? null : flushPendingNarration(pendingNarration);
   if (flushed) cards.push(flushed);
 
-  return reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
+  const feed = reconcileArtifactCards(cards, context, testCards, unresolvedTest, awaitingTestResult);
+  return sessionStartTimestamp ? { ...feed, sessionStartTimestamp } : feed;
 }

@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "glm": {
+      "feedback": "**Findings**\n\n- Category: test\n  Severity: medium\n  File: `client/src/lib/missionActivityFeedTransientClassifierError.test.ts` (AC4 section, whole file)\n  Finding: The spec's Test Completeness Ledger for AC4 claims a test proving \"a legitimate recovered failure-then-pass card is NOT wrongly dropped (the regression the reconcile-filter approach broke).\" The shown test file contains no such case \u2014 it has the transient-drop test, the genuine-failure negative control, and the two authoring-resurrection probes, but no fixture where a test invocation genuinely fails and then genuinely recovers on retry. The closest test (transient-reject \u2192 real retry passes) does not exercise the merged recovery-card shape that motivated reverting the reconcile-filter approach.\n  Suggestion: Add a fixture: `npm test` fails (is_error), then a retry succeeds, asserting the merged/recovered card survives with a resolved pill. Without it, a regression reintroducing over-aggressive dropping of wordless recovered cards would pass this suite.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/lib/missionActivityFeedResolve.ts` (new `if (transientClassifierError && pending.bucket !== \"test\") continue;`)\n  Finding: For a non-test bucket (e.g. a subrunner `Agent` dispatch) rejected by the transient classifier, the result is skipped entirely \u2014 the pending card stays `running` forever once the run ends, which is the same \"stuck Running\u2026 / unclickable\" symptom AC6 fixes, just via a different trigger. The spec only requires the blocker case, so this is consistent with AC3's letter, but it leaves a reachable stuck state.\n  Suggestion: Consider demoting a transient-rejected subrunner card (or dropping it) the way the test bucket is handled; at minimum document the known gap.\n\n- Category: edge-case\n  Severity: low\n  File: `server/src/external/mission-context/wire.ts` (`startedMidFile = fromByte > 0`)\n  Finding: The comment says \"a leading partial line was dropped whenever the read did not start at byte 0\" \u2014 if the positional-read primitive (`readChunk`) already strips the byte-cut partial line before returning `r.chunk.content`, then `findRunIdFooter` dropping its first line again on `startedMidFile` discards one additional *complete* line per wide read, which could be the very line carrying the `Run-ID:` footer at the window boundary. The route-level test can't distinguish this because the harness returns raw text with no stripping.\n  Suggestion: Confirm readChunk does not strip partial lines (if it doesn't, this is moot); if it does, drop the scanner-side line-drop when the reader reports it already stripped, or key the flag off \"fragment still present.\"\n\n**Spec compliance check (no defect):** AC1\u2013AC6 are each visibly implemented and pinned by tests that exercise the reported shape (real transcript-measured texts, byte-cut fragments, `Agent` dispatch, `queued_command` attachment); AC7 is verification-only as specified. The `note` kind is fully wired (`ActivityKind`, icon map, accent map, E2E assertion updated). The `startedMidFile` threading is additive with default `false`, so unshown callers compile and behave unchanged. No security concerns \u2014 the new attachment bridge validates shape and returns `null` on anything unrecognized, and the recovery scan stays bounded.\n\n**Overall assessment:** Ship-with-fixes \u2014 the implementation matches the spec and the review cascade caught genuinely deep state bugs, but the AC4 \"legitimate recovery kept\" test claimed in the ledger is missing from the shipped test file and should be added, and the two low edge cases deserve a confirmation or a documented gap.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: bug  \n  Severity: medium  \n  File: `client/src/lib/missionActivityFeedResolve.ts:37`  \n  Finding: The early `continue` for a transient error in a non-test bucket skips `rollbackFailedWrite`. If auto mode rejects a `Write` or `Edit` of a test file, its tracker remains even though the write never ran; a later test command can then be misclassified as an authoring run.  \n  Suggestion: Run the existing write rollback for transiently rejected writes before skipping card resolution.\n\n- Category: edge-case  \n  Severity: medium  \n  File: `server/src/core/mission-context/run-id-recovery.ts:148`  \n  Finding: `startedMidFile` always drops the first line. A bounded read can start after byte 0 *exactly at a JSONL line boundary*; if that complete first line contains the only footer, recovery loses it.  \n  Suggestion: Have the reader report whether the first line is actually partial, or inspect the byte preceding the read offset before dropping it.\n\n- Category: test  \n  Severity: medium  \n  File: `server/src/external/mission-context/routes.recovery.midfile.test.ts:35`  \n  Finding: The route tests inject a short transcript through the harness and assert only `scenario` and `runId`. They would pass with the old 1 MiB reader cap and do not check the artifact rail or AC7\u2019s Review and Decisions chips. The main reported failure is therefore not protected by these tests.  \n  Suggestion: Add a test using the real bounded reader with a footer beyond 1 MiB, then assert the required artifacts in the response.\n\nThe change addresses the reported paths, but these cases need fixes before shipping. **Ship with fixes.**\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

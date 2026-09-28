@@ -47,7 +47,18 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
           Math.max(maxBytes ?? TRANSCRIPT_TAIL_BYTES, TRANSCRIPT_TAIL_BYTES),
           RECOVERY_TAIL_BYTES,
         );
-        const fromByte = Math.max(0, loc.sizeBytes - budget);
+        const target = Math.max(0, loc.sizeBytes - budget);
+        // Read from ONE BYTE BEFORE `target` (when `target > 0`) and peek it,
+        // rather than assuming the leading line is partial whenever the read
+        // didn't start at byte 0 (external code review, openai, raised twice
+        // across two independent review passes — settled here with one extra
+        // byte instead of arguing probability a third time). The byte
+        // immediately before `target` PROVES the answer: `\n` means `target`
+        // is itself the first character of a real line (the read landed on
+        // an exact line boundary, however unlikely), anything else means it
+        // genuinely lands mid-line (a real byte cut). `peeked` is false only
+        // when `target` was already 0 — nothing precedes it to peek.
+        const fromByte = target > 0 ? target - 1 : 0;
         // `loc` is handed to the reader so it does not repeat the walk we just
         // did (iterate-2026-07-22-…-single-walk). Safe HERE specifically
         // because this caller passes `expectFingerprint: null` — a caller that
@@ -60,12 +71,23 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
           location: loc,
         });
         if (r.status !== "ok") return { text: "", revision: "" };
+        const raw = r.chunk.content;
+        const peeked = fromByte < target;
+        // Strip the peeked byte either way, so `text` always represents
+        // exactly `[target, EOF)` — the same contract this returned before
+        // the peek byte was added, independent of what it turned out to be.
+        const text = peeked ? raw.slice(1) : raw;
+        const startedMidFile = peeked && raw[0] !== "\n";
         // Already in hand from the SAME `findByUuid` walk, so scheduling the
         // wide reach-back costs no extra I/O. All three parts earn their place:
         // `path` catches a transcript REPLACED under the same session uuid,
         // `sizeBytes` the ordinary append, `mtimeMs` an in-place rewrite that
         // happens to preserve the length.
-        return { text: r.chunk.content, revision: `${loc.path}:${loc.sizeBytes}:${loc.mtimeMs}` };
+        return {
+          text,
+          revision: `${loc.path}:${loc.sizeBytes}:${loc.mtimeMs}`,
+          startedMidFile,
+        };
       } catch {
         // A transcript fault degrades the PR marker (merge → "unknown"), and
         // must never fail the context read itself. No revision, so the reach-back
