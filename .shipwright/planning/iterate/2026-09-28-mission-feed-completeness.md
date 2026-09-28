@@ -335,8 +335,8 @@ completed, 6 findings, disposition summarized above); raw replies preserved
 at `.shipwright/planning/iterate/iterate-2026-09-28-mission-feed-completeness/external-code-review-raw.json`.
 
 **F11 local PR-review preflight (`pr_review.py`, separate gate, advisory-only
-— never satisfies the required CI check) caught four more findings across
-four runs — three real gaps, all FIXED, plus one investigated and REJECTED
+— never satisfies the required CI check) caught five more findings across
+five runs — four real gaps, all FIXED, plus one investigated and REJECTED
 with direct empirical evidence rather than argument:**
 
 - **Run 1**: `missionActivityFeedTransientError.ts`'s `isTransientClassifierError`
@@ -418,6 +418,21 @@ with direct empirical evidence rather than argument:**
   candidate. Verified via revert-run-restore with a no-newline-at-all
   fixture: fails without the fix, passes with it. Full server suite
   (422 files / 4528 tests) green afterward.
+- **Run 5**: the SAME class as Run 3's fix, in the OTHER recovery memo —
+  `resolver-parts.ts`'s `supersessionResult` (rule 2b's confirmed-
+  supersession cache) fingerprinted the transcript content (a full SHA-256,
+  already collision-hardened against an earlier finding) but not
+  `startedMidFile`, so a confirmed recovery cached for one flag value could
+  in principle be replayed for the same text under the other. Same
+  disposition as Run 3 for the same reason: fixed defensively by folding
+  `startedMidFile` into this fingerprint too, rather than treating the two
+  memos inconsistently. `supersessionMemoHit`/`markSupersessionResult`
+  gained the parameter; the pre-existing
+  `resolver-parts.supersession-fingerprint.test.ts` suite updated for the
+  new signature plus one new case ("misses when only startedMidFile
+  differs..."). Verified via revert-run-restore: fails without the fix,
+  passes with it. Full server suite (422 files / 4530 tests) green
+  afterward.
 
 ## Investigation Notes (Repo Scout findings, for the record)
 

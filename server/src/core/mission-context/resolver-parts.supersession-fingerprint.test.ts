@@ -36,10 +36,10 @@ describe("supersession memo — content fingerprint collision resistance", () =>
       expect(transcriptA.slice(-256)).toBe(transcriptB.slice(-256));
       expect(transcriptA).not.toBe(transcriptB);
 
-      markSupersessionResult(UUID, ASSOCIATION_RUN_ID, transcriptA, "iterate-2026-07-20-recovered-a");
+      markSupersessionResult(UUID, ASSOCIATION_RUN_ID, transcriptA, false, "iterate-2026-07-20-recovered-a");
 
       // The memo answers for the EXACT content it was recorded against...
-      expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcriptA)).toBe(
+      expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcriptA, false)).toBe(
         "iterate-2026-07-20-recovered-a",
       );
       // ...and must NOT answer for the different content that happens to
@@ -47,15 +47,15 @@ describe("supersession memo — content fingerprint collision resistance", () =>
       // would incorrectly return "iterate-2026-07-20-recovered-a" here too —
       // replaying a stale answer for genuinely different transcript content
       // instead of triggering a fresh scan.
-      expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcriptB)).toBeUndefined();
+      expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcriptB, false)).toBeUndefined();
     },
   );
 
   it("still hits for byte-for-byte identical content (the memo's actual purpose)", () => {
     _clearSupersessionMemo();
     const transcript = `Run-ID: iterate-2026-07-20-recovered\n${"x".repeat(500)}`;
-    markSupersessionResult(UUID, ASSOCIATION_RUN_ID, transcript, "iterate-2026-07-20-recovered");
-    expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcript)).toBe(
+    markSupersessionResult(UUID, ASSOCIATION_RUN_ID, transcript, false, "iterate-2026-07-20-recovered");
+    expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcript, false)).toBe(
       "iterate-2026-07-20-recovered",
     );
   });
@@ -63,7 +63,21 @@ describe("supersession memo — content fingerprint collision resistance", () =>
   it("misses when only the association key differs, even for identical transcript content", () => {
     _clearSupersessionMemo();
     const transcript = `Run-ID: iterate-2026-07-20-recovered\n${"x".repeat(500)}`;
-    markSupersessionResult(UUID, "iterate-2026-06-01-one-stale-run", transcript, "iterate-2026-07-20-recovered");
-    expect(supersessionMemoHit(UUID, "iterate-2026-06-15-a-different-stale-run", transcript)).toBeUndefined();
+    markSupersessionResult(UUID, "iterate-2026-06-01-one-stale-run", transcript, false, "iterate-2026-07-20-recovered");
+    expect(supersessionMemoHit(UUID, "iterate-2026-06-15-a-different-stale-run", transcript, false)).toBeUndefined();
+  });
+
+  /*
+   * External code review catch (openai, fifth preflight pass): the memo used
+   * to fingerprint on transcript content + association alone, not on
+   * `startedMidFile` — even though that flag changes what
+   * `recoverRunIdFromTranscript` does with the SAME text. A result cached
+   * for one flag value could be wrongly replayed for the other.
+   */
+  it("misses when only startedMidFile differs, even for identical transcript content and association", () => {
+    _clearSupersessionMemo();
+    const transcript = `Run-ID: iterate-2026-07-20-recovered\n${"x".repeat(500)}`;
+    markSupersessionResult(UUID, ASSOCIATION_RUN_ID, transcript, false, "iterate-2026-07-20-recovered");
+    expect(supersessionMemoHit(UUID, ASSOCIATION_RUN_ID, transcript, true)).toBeUndefined();
   });
 });
