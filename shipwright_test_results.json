@@ -119,7 +119,7 @@
         {
           "behavior": "buildCodextenderCommands unconditionally sets CLAUDE_CODE_AUTO_MODE_SERVER=0 in the env prefix on all 3 shells, regardless of maxContextTokens",
           "disposition": "tested",
-          "evidence": "launcher-codextender.auto-mode-server.test.ts::unconditionally sets CLAUDE_CODE_AUTO_MODE_SERVER=0 on all 3 shells PASSED; launcher-codextender.test.ts::prepends the 6 env vars PASSED"
+          "evidence": "launcher-codextender.auto-mode-server.test.ts::unconditionally sets CLAUDE_CODE_AUTO_MODE_SERVER=0 on all 3 shells PASSED; launcher-codextender.test.ts::prepends the plain env vars PASSED"
         },
         {
           "behavior": "the cleanup suffix removes CLAUDE_CODE_AUTO_MODE_SERVER on all 3 shells after the claude invocation, unconditionally (same treatment as CODEXTENDER_ACTIVE/CODEXTENDER_MODEL)",
@@ -136,11 +136,21 @@
     "surface_verification": {
       "surface": "none",
       "justification": "Server-only bug fix to the Codextender launch env-var construction (no client/** file touched, no API response shape/contract change -- CopyCommandForms remains the same string-triple shape). Fully covered by the existing unit-test layer plus a real-shell smoke test exercising all 3 shells; no UI surface exists to drive with a browser, and the diff is small (no touches_io_boundary/UI risk flag), so E2E is not required at this complexity per the phase matrix."
-    }
+    },
+    "declared_removals": [
+      {
+        "path": "server/src/core/launcher-codextender.max-context-tokens.test.ts",
+        "reason": "Not a revert -- the cleanup-suffix exact-match regex line present on origin/main (ending '...CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS -ErrorAction SilentlyContinue/') was extended in place to also require 'Env:CLAUDE_CODE_AUTO_MODE_SERVER' before the same suffix, so the old exact string no longer appears verbatim. The mechanical line-diff reads this as lost content; the superseding line still asserts everything the old one did, plus the new var."
+      },
+      {
+        "path": "server/src/core/launcher-codextender.test.ts",
+        "reason": "Same supersession as the sibling file above, in both the cmd.exe and PowerShell exact-match cleanup regexes (the assertion literal that ended at CLAUDE_CODE_MAX_CONTEXT_TOKENS/CLAUDE_CODE_MAX_CONTEXT_TOKENS= now also requires CLAUDE_CODE_AUTO_MODE_SERVER before the same tail) -- not a revert of independent work, an in-place extension of this iterate's own prior commit on this branch."
+      }
+    ]
   },
   "source_state": {
     "run_id": "iterate-2026-09-28-codextender-auto-mode-server",
-    "commit": "3c36ebd30b789ff39939337f36bbbe80da7c5857",
+    "commit": "680c6436a8af41084df90e02d1b0301ea9d0bfd7",
     "dirty": true,
     "base": null,
     "release": null
