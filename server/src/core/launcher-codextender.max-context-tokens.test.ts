@@ -91,10 +91,10 @@ describe("buildCodextenderCommands — CLAUDE_CODE_MAX_CONTEXT_TOKENS", () => {
     // Cleanup suffix drops the var on all 3 shells too — it must not
     // outlive this one `claude` invocation in the long-lived pty shell.
     expect(result.powershell.trimEnd()).toMatch(
-      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS -ErrorAction SilentlyContinue/,
+      /; Remove-Item Env:ANTHROPIC_BASE_URL,Env:ANTHROPIC_AUTH_TOKEN,Env:ANTHROPIC_MODEL,Env:CODEXTENDER_ACTIVE,Env:CODEXTENDER_MODEL,Env:CLAUDE_CODE_MAX_CONTEXT_TOKENS,Env:CLAUDE_CODE_AUTO_MODE_SERVER -ErrorAction SilentlyContinue/,
     );
     expect(result.cmd.trimEnd()).toMatch(
-      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & del/,
+      / & set ANTHROPIC_BASE_URL= & set ANTHROPIC_AUTH_TOKEN= & set ANTHROPIC_MODEL= & set CODEXTENDER_ACTIVE= & set CODEXTENDER_MODEL= & set CLAUDE_CODE_MAX_CONTEXT_TOKENS= & set CLAUDE_CODE_AUTO_MODE_SERVER= & del/,
     );
     readAndDeleteTokenFile(result.posix, "posix");
   });
