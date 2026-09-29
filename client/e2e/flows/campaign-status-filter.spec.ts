@@ -54,6 +54,15 @@ test.describe("Campaigns lane status filter", () => {
   test("board shows active, draft, and legacy campaigns; complete states are hidden", async ({
     page,
   }) => {
+    const browserErrors: string[] = [];
+    page.on("pageerror", (error) => browserErrors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() !== "error") return;
+      const url = message.location().url;
+      // This isolated campaign fixture has no leadwright org chart by design.
+      if (url.endsWith("/api/org/org-chart") && message.text().includes("404")) return;
+      browserErrors.push(`${message.text()} (${url})`);
+    });
     await page.goto("/");
     await expect(page.getByTestId("task-board-page")).toBeVisible();
     await expect(page.getByTestId("task-board-campaigns-lane")).toBeVisible({ timeout: 15000 });
@@ -67,5 +76,7 @@ test.describe("Campaigns lane status filter", () => {
     await expect(page.getByTestId("campaign-lane-card-2026-06-03-active-done")).toHaveCount(0);
 
     await expect(page.getByTestId(/^campaign-lane-card-/)).toHaveCount(3);
+    await page.screenshot({ path: test.info().outputPath("campaign-filter.png") });
+    expect(browserErrors).toEqual([]);
   });
 });

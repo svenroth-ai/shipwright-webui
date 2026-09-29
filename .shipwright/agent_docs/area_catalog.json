@@ -52,6 +52,8 @@
         "client/src/components/external/ModelTierSummary.tsx",
         "client/src/components/external/TaskCard.tsx",
         "client/src/hooks/useModelTierConfig.ts",
+        "client/src/lib/campaignSelectors.ts",
+        "client/src/lib/campaignsApi.ts",
         "client/src/lib/externalApi.ts"
       ],
       "requirements": [],
@@ -174,8 +176,8 @@
       "status": "active"
     }
   ],
-  "catalogue_version": 2,
-  "path_fingerprint": "719bb926b97514bf28f91b9358afd8daf40459935456e4cd4964a0929677061e",
+  "catalogue_version": 3,
+  "path_fingerprint": "cbd1442a362ce5e1ccc81cee59a5ec6cbff4b2fa90512b2af5c279de909f9892",
   "producer": "shared/scripts/tools/area_catalog.py",
   "schema_version": 1,
   "sources": [
