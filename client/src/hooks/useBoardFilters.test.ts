@@ -110,7 +110,7 @@ describe("useBoardFilters — lead-tag filter", () => {
 });
 
 describe("useBoardFilters — claim filter (FR-04.22)", () => {
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("starts inactive and filteredTasks is unaffected", () => {
     const tasks = [task({ claimedBy: "po" }), task({})];
     const { result } = renderHook(() => useBoardFilters(tasks));
@@ -118,7 +118,7 @@ describe("useBoardFilters — claim filter (FR-04.22)", () => {
     expect(result.current.filteredTasks).toHaveLength(2);
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("toggleClaim narrows to tasks carrying claimedBy, keyed off claimedBy not state", () => {
     const tasks = [
       task({ state: "done", claimedBy: "po" }), // claimed while state is "done"
@@ -132,7 +132,7 @@ describe("useBoardFilters — claim filter (FR-04.22)", () => {
     expect(result.current.filteredTasks).toHaveLength(2);
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("clearClaimFilter resets to inactive", () => {
     const { result } = renderHook(() => useBoardFilters([]));
     act(() => result.current.toggleClaim());
@@ -140,7 +140,7 @@ describe("useBoardFilters — claim filter (FR-04.22)", () => {
     expect(result.current.claimFilter).toBe(false);
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("is its own axis: does not change statusFilter's behaviour", () => {
     const tasks = [
       task({ state: "draft", claimedBy: "po" }),
@@ -155,7 +155,7 @@ describe("useBoardFilters — claim filter (FR-04.22)", () => {
     expect(result.current.filteredTasks[0].claimedBy).toBe("po");
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("clearAllFilters also resets the claim axis", () => {
     const { result } = renderHook(() => useBoardFilters([]));
     act(() => result.current.toggleClaim());

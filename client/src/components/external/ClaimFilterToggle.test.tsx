@@ -17,7 +17,7 @@ describe("ClaimFilterToggle (FR-04.22)", () => {
     vi.resetAllMocks();
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("reflects the active flag via aria-pressed and data-active", () => {
     mockedPresence.mockReturnValue("present");
     render(<ClaimFilterToggle active={false} onToggle={() => {}} />);
@@ -26,7 +26,7 @@ describe("ClaimFilterToggle (FR-04.22)", () => {
     expect(btn.dataset.active).toBeUndefined();
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("shows pressed state when active", () => {
     mockedPresence.mockReturnValue("present");
     render(<ClaimFilterToggle active={true} onToggle={() => {}} />);
@@ -35,7 +35,7 @@ describe("ClaimFilterToggle (FR-04.22)", () => {
     expect(btn.dataset.active).toBe("true");
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("calls onToggle on click", async () => {
     mockedPresence.mockReturnValue("present");
     const onToggle = vi.fn();
@@ -45,7 +45,7 @@ describe("ClaimFilterToggle (FR-04.22)", () => {
   });
 });
 
-// @covers FR-04.11
+// @covers FR-01.01
 describe("ClaimFilterToggle — org-chart presence gate (iterate-2026-09-26-runtime-badge-and-leads-gate)", () => {
   afterEach(() => {
     vi.resetAllMocks();

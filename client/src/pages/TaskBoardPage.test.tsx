@@ -88,7 +88,7 @@ describe("TaskBoardPage", () => {
     expect(await screen.findByTestId("task-board-empty")).toBeInTheDocument();
   });
 
-  // @covers FR-04.22 — external plan review finding
+  // @covers FR-01.01 — external plan review finding
   // (iterate-2026-09-26-runtime-badge-and-leads-gate): the Claim filter
   // toggle disappears on a confirmed absent org-chart presence, but its own
   // filter state must not silently keep applying with no visible control

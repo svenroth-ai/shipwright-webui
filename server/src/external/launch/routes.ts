@@ -4,6 +4,7 @@
  * The launch handler dispatches across branches in precedence order.
  * Each branch lives in its own file to keep this shell ≤ 300 LOC:
  *
+ *   (dispatch chain lives in ./branch-dispatch.ts)
  *   1. ./phase-task-branch.ts        — body.phaseTaskRef present
  *   2. ./campaign-branch.ts          — body.campaignSlug + fresh-start (FR-01.34)
  *   2.5 ./campaign-step-branch.ts    — body.campaignStep + fresh-start (FR-01.36)
@@ -20,23 +21,12 @@
 
 import { Hono } from "hono";
 
-import {
-  SdkSessionsStore,
-  type ExternalTask,
-} from "../../core/sdk-sessions-store.js";
+import { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 import type { RunConfigReadResult } from "../../core/run-config-reader.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import { withLiveSession } from "../_shared/helpers.js";
-import {
-  parseLaunchBody,
-  applyPhaseTaskBranch,
-  applyCampaignBranch,
-  applyCampaignStepBranch,
-  applyMasterRunBranch,
-  applyActionSubstitutionBranch,
-  applyLegacyFallbackBranch,
-  type LaunchBranchResult,
-} from "./_helpers.js";
+import { parseLaunchBody } from "./_helpers.js";
+import { dispatchLaunchBranches } from "./branch-dispatch.js";
 import { checkClaimHolderGate } from "./claim-holder-gate.js";
 import { commandsCarryPermissionPerimeter } from "./claim-permission-perimeter-assert.js";
 import { checkMixedLaunchIntents } from "./mixed-intents-guard.js";
@@ -148,95 +138,20 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       return c.json(mixedIntents.error, mixedIntents.status);
     }
 
-    // iterate-2026-05-18-fix-resume-description — a Resume click on a
-    // task whose Claude conversation was never established (no
-    // <uuid>.jsonl ever observed on disk → there is nothing to resume)
-    // is semantically a FRESH start. Route it through the substitution
-    // branch so the brief + slash command are injected exactly like a
-    // direct Launch. A genuine resume (JSONL on disk) stays on the
-    // description-free `--resume` shape.
-    const jsonlObserved = Boolean(task.firstJsonlObservedAt);
-    const effectivelyFreshStart =
-      !parsed.resume || (!jsonlObserved && !parsed.dryRun);
-
-    // Branch 1 — phaseTaskRef (load-bearing security path).
-    const phaseResult = await applyPhaseTaskBranch({
+    const branchResult = await dispatchLaunchBranches({
       task,
       parsed,
       getProjectById,
       runConfigReader,
       jsonlExistsOnDisk,
+      listTasks: () => store.list(),
+      claimAuthorized,
     });
-    let branchResult: LaunchBranchResult | null = phaseResult;
-
-    // Branch 2 — campaign autonomous launch (FR-01.34). Command built
-    // server-side from a validated slug; null when no campaignSlug / a resume.
-    if (!branchResult) {
-      branchResult = applyCampaignBranch({
-        task,
-        parsed,
-        effectivelyFreshStart,
-        getProjectById,
-      });
-    }
-
-    // Branch 2.5 — single-sub-iterate launch (FR-01.36). Command built
-    // server-side from a validated { slug, stepId }; null when no campaignStep
-    // / a resume.
-    if (!branchResult) {
-      branchResult = applyCampaignStepBranch({
-        task,
-        parsed,
-        effectivelyFreshStart,
-        getProjectById,
-      });
-    }
-
-    // Branch 2.6 — single-session master launch (campaign
-    // webui-pipeline-convergence W2). Command built server-side (`/shipwright-run`)
-    // gated on a readable single_session run_config; null when no masterRun / a
-    // resume (→ legacy `--resume <masterUuid>`).
-    if (!branchResult) {
-      branchResult = await applyMasterRunBranch({
-        task,
-        parsed,
-        effectivelyFreshStart,
-        getProjectById,
-        runConfigReader,
-        listTasks: () => store.list(),
-        jsonlExistsOnDisk,
-      });
-    }
-
-    // Branch 3 — action substitution.
-    if (!branchResult) {
-      branchResult = applyActionSubstitutionBranch({
-        task,
-        parsed,
-        effectivelyFreshStart,
-        getProjectById,
-        claimAuthorized,
-      });
-    }
-
-    // If a branch produced an error envelope, terminate.
-    if (branchResult && "error" in branchResult) {
+    // A branch that produced an error envelope terminates the handler.
+    if ("error" in branchResult) {
       return c.json(branchResult.error, branchResult.status);
     }
-
-    // Branch 4 — legacy fallback. Always populates.
-    let commands;
-    let taskUpdate: Partial<ExternalTask>;
-    if (branchResult) {
-      ({ commands, taskUpdate } = branchResult);
-    } else {
-      ({ commands, taskUpdate } = applyLegacyFallbackBranch({
-        task,
-        parsed,
-        jsonlObserved,
-        claimAuthorized,
-      }));
-    }
+    let { commands, taskUpdate } = branchResult;
 
     // Codex Light (Spec/codex-light-webui.md §2.1) — the ONE chokepoint for
     // all six launch branches above: overrides `commands`/`taskUpdate` with

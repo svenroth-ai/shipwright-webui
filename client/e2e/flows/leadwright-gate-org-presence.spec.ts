@@ -65,7 +65,7 @@ test.describe("Leadwright board affordances — org-chart presence gate", () => 
   test.describe("absent — no org chart installed (AC a, c)", () => {
     test.beforeEach(() => removeChart());
 
-    // @covers FR-04.11
+    // @covers FR-01.01
     test("Bot dropdown and BellDot are hidden from the board toolbar; a lead-tagged task's chip still renders", async ({
       page,
       request,
@@ -95,7 +95,7 @@ test.describe("Leadwright board affordances — org-chart presence gate", () => 
       await expect(page.getByTestId(`task-card-lead-wait-${leadTask.taskId}`)).toBeVisible();
     });
 
-    // @covers FR-04.11
+    // @covers FR-01.01
     test("the New Task dialog's lead fields are hidden, but the dialog itself still works", async ({
       page,
       request,
@@ -124,7 +124,7 @@ test.describe("Leadwright board affordances — org-chart presence gate", () => 
   test.describe("broken — invalid org-chart.json, not absent (AC b)", () => {
     test.beforeEach(() => writeInvalidChart());
 
-    // @covers FR-04.11
+    // @covers FR-01.01
     test("Bot dropdown, BellDot, and the New dialog's lead fields still render", async ({
       page,
       request,

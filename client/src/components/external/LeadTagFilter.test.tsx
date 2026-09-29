@@ -171,7 +171,7 @@ describe("LeadWaitToggleButton (BellDot)", () => {
   });
 });
 
-// @covers FR-04.11
+// @covers FR-01.01
 describe("LeadTagFilterToolbarGroup — org-chart presence gate (iterate-2026-09-09-leadwright-gate-org-presence)", () => {
   afterEach(() => {
     // resetAllMocks (not clearAllMocks) so a stray mockReturnValue from one
