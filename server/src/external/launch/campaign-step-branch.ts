@@ -175,8 +175,11 @@ export async function applyCampaignStepBranch(args: {
         const freshUnit = fresh.report.units.find((u) => u.id === unit.id);
         if (!freshUnit) {
           readinessChecked = false;
-        } else if (freshUnit.state === "pending" && !freshUnit.ready && freshUnit.blocked_by.some((x) => x.id !== null)) {
-          return { error: { error: "campaign_step_not_ready", detail: step.stepId, blocked_by: freshUnit.blocked_by }, status: 409 };
+        } else if (freshUnit.state === "pending" && !freshUnit.ready) {
+          if (freshUnit.blocked_by.some((x) => x.id !== null)) {
+            return { error: { error: "campaign_step_not_ready", detail: step.stepId, blocked_by: freshUnit.blocked_by }, status: 409 };
+          }
+          readinessChecked = false; // only a campaign-level gate remains
         }
       } else if (fresh?.status !== "no-loop") {
         readinessChecked = false;
