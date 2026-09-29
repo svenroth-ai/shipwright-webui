@@ -86,6 +86,7 @@ describe("campaign-parse: parseSubIteratesTable", () => {
       slug: "phase-resolver-contract",
       title: "Fail-open phase resolver",
       status: "pending",
+      dependsOn: [],
     });
     expect(rows[1].id).toBe("B1");
     expect(rows[1].status).toBe("complete");
@@ -158,6 +159,7 @@ describe("campaign-parse: parseSubIteratesTable", () => {
       slug: "zeta",
       title: "Zeta",
       status: "done",
+      dependsOn: [],
     });
   });
 
@@ -175,6 +177,7 @@ describe("campaign-parse: parseSubIteratesTable", () => {
       slug: "stop-dispatcher",
       title: "Stop dispatcher",
       status: "complete",
+      dependsOn: ["B0"],
     });
   });
 });

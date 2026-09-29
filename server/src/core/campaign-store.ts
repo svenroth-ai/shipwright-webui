@@ -31,7 +31,7 @@ import {
   parseSubIteratesTable,
   parseSpecFrontmatter,
 } from "./campaign-parse.js";
-import { readStatusJsonRead, pickLifecycle } from "./campaign-status-json.js";
+import { readStatusJsonRead, pickLifecycle, resolveDependsOn } from "./campaign-status-json.js";
 import type {
   CampaignLifecycleStatus,
   StatusSubIterate,
@@ -112,6 +112,7 @@ interface StepBase {
   slug: string;
   title: string;
   tableStatus: string;
+  tableDependsOn: string[];
 }
 
 /** Build a single Campaign from its dir, or null when nothing parseable. */
@@ -161,6 +162,7 @@ function buildCampaign(
           slug: r.slug,
           title: r.title,
           tableStatus: r.status,
+          tableDependsOn: r.dependsOn,
         }))
       : statusSubs
           .filter((si) => si && typeof si.id === "string")
@@ -169,6 +171,7 @@ function buildCampaign(
             slug: typeof si.slug === "string" ? si.slug : "",
             title: typeof si.slug === "string" ? si.slug : (si.id as string),
             tableStatus: "",
+            tableDependsOn: [],
           }));
 
   const steps: CampaignStep[] = bases.map((b) => {
@@ -200,6 +203,7 @@ function buildCampaign(
       statusSource,
       specPath: specMeta.specPath,
       planFirst: specMeta.planFirst,
+      dependsOn: resolveDependsOn(sj, b.tableDependsOn),
       commit: sj && typeof sj.commit === "string" ? sj.commit : null,
       branch: sj && typeof sj.branch === "string" ? sj.branch : null,
     };

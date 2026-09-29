@@ -28,9 +28,20 @@ import { LaunchFailureNotice } from "./LaunchFailureNotice";
 export function CampaignStepLaunchButton({
   campaign,
   project,
+  stepId,
+  compact = false,
+  notice = null,
 }: {
   campaign: Campaign;
   project: Project | null | undefined;
+  /** Launch THIS step instead of the campaign's next-pending one (the DAG view's
+   *  per-unit control — only rendered for a unit the scheduler reports ready). */
+  stepId?: string;
+  /** Small in-list variant (label "Launch"; the step id is already on the row). */
+  compact?: boolean;
+  /** Shown in the confirm dialog when the launch is not verified against the
+   *  scheduler's dependency graph (fail-open must never be silent). */
+  notice?: string | null;
 }) {
   const navigate = useNavigate();
   const launchStep = useLaunchCampaignStep();
@@ -41,7 +52,15 @@ export function CampaignStepLaunchButton({
   const inFlight = useRef(false);
 
   const slug = campaign.slug;
-  const next = campaign.nextPending;
+  // Default = the campaign's next-pending step, taken from `nextPending` itself
+  // (id + specPath) even if it is absent from `steps`; `stepId` = the DAG view's
+  // per-unit control, resolved from the step list.
+  const explicit = stepId ? campaign.steps.find((s) => s.id === stepId) : undefined;
+  const next = stepId
+    ? explicit
+      ? { id: explicit.id, specPath: explicit.specPath }
+      : null
+    : campaign.nextPending;
   const nextStep = next ? campaign.steps.find((s) => s.id === next.id) : undefined;
   const attached = Boolean(campaign.attachedRun);
   const launchable = Boolean(next && next.specPath) && Boolean(project) && !attached;
@@ -86,8 +105,8 @@ export function CampaignStepLaunchButton({
         type="button"
         onClick={() => launchable && setOpen(true)}
         disabled={!launchable || submitting}
-        data-testid={`campaign-step-launch-${slug}`}
-        className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-text,#111827)] transition-colors enabled:hover:bg-[var(--color-muted-bg)] disabled:cursor-not-allowed disabled:opacity-50"
+        data-testid={stepId ? `campaign-step-launch-${slug}-${stepId}` : `campaign-step-launch-${slug}`}
+        className={(compact ? "px-2 py-0.5 text-[11px] " : "px-2.5 py-1 text-[12px] ") + "inline-flex shrink-0 items-center gap-1.5 rounded-[6px] border border-[var(--color-border)] font-medium text-[var(--color-text,#111827)] transition-colors enabled:hover:bg-[var(--color-muted-bg)] disabled:cursor-not-allowed disabled:opacity-50"}
         title={
           attached
             ? "A run is already attached to this campaign — launching again would spawn a second orchestrator."
@@ -97,7 +116,7 @@ export function CampaignStepLaunchButton({
         }
       >
         <Play size={12} />
-        {attached ? "Run attached" : next ? `Launch (${next.id})` : "Launch"}
+        {attached ? "Run attached" : compact ? "Launch" : next ? `Launch (${next.id})` : "Launch"}
       </button>
 
       <CampaignLaunchDialog
@@ -112,6 +131,7 @@ export function CampaignStepLaunchButton({
         where={{ projectName, cwd: project?.path ?? "" }}
         submitting={submitting}
         confirmLabel="Launch"
+        notice={notice}
         failure={failure}
         onConfirm={() => void doLaunch()}
         onRetry={() => void doLaunch()}

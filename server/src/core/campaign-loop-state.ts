@@ -22,7 +22,8 @@
  */
 
 import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
+
+import { listCampaignWorktrees, loopStatePathFor } from "./campaign-worktree-root.js";
 
 /**
  * A unit `in_progress` for longer than this is a DEAD orchestrator (crashed
@@ -45,7 +46,25 @@ interface LoopUnit {
   status?: unknown;
   spec_path?: unknown;
   started_at?: unknown;
+  claimed_at?: unknown;
 }
+
+/**
+ * Unit statuses that mean an orchestrator/runner currently owns the unit.
+ * `in_progress` is the pre-R4 legacy status; the rest are the monorepo's
+ * unit state machine (`loop_state.py` — ACTIVE `claimed|running|merging`, plus
+ * `built|reviewed`, which sit between a finished build and its merge with the
+ * orchestrator still attached). A wave run never writes `in_progress`, so a
+ * detector that knew only that status was blind to it.
+ */
+const LIVE_STATUSES: ReadonlySet<string> = new Set([
+  "in_progress",
+  "claimed",
+  "running",
+  "built",
+  "reviewed",
+  "merging",
+]);
 
 interface LoopState {
   kind?: unknown;
@@ -106,43 +125,65 @@ export function readLoopRunState(
   // One wrapper over two mutable collections: every early return yields the
   // still-empty snapshot; the final return yields the populated one.
   const snapshot: LoopRunState = { attachedSlugs, runningStepIdsBySlug };
+  const windowMs = staleWindowMs();
 
-  const p = path.join(projectRoot, ".shipwright", "loop_state.json");
-  if (!existsSync(p)) return snapshot;
+  // A campaign with its own worktree keeps its state THERE (the slug is the
+  // directory name); the main root's file serves legacy campaigns, whose slug
+  // comes from each unit's spec_path.
+  const worktreeSlugs = new Set<string>();
+  for (const wt of listCampaignWorktrees(projectRoot)) {
+    worktreeSlugs.add(wt.slug);
+    collectLive(loopStatePathFor(wt.root), wt.slug, snapshot, nowMs, windowMs);
+  }
+  // The main root's file is never a worktree campaign's state: units of a slug
+  // that owns a worktree are ignored there (a stale root file must not attach it).
+  collectLive(loopStatePathFor(projectRoot), null, snapshot, nowMs, windowMs, worktreeSlugs);
+  return snapshot;
+}
 
+/** Fold one loop-state file's live units into `snapshot`. Tolerant: a missing /
+ *  torn / wrong-kind file contributes nothing. `fixedSlug` = the worktree's
+ *  campaign; null = derive from each unit's spec_path. */
+function collectLive(
+  file: string,
+  fixedSlug: string | null,
+  snapshot: LoopRunState,
+  nowMs: number,
+  windowMs: number,
+  skipSlugs?: ReadonlySet<string>,
+): void {
+  if (!existsSync(file)) return;
   let state: LoopState;
   try {
-    const parsed = JSON.parse(readFileSync(p, "utf-8"));
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return snapshot;
-    }
+    const parsed = JSON.parse(readFileSync(file, "utf-8"));
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return;
     state = parsed as LoopState;
   } catch {
-    return snapshot; // torn / malformed read
+    return; // torn / malformed read
   }
-
   // Only campaign loops (`sub_iterate`) map to the Campaigns lane; a `section`
   // loop is a /shipwright-build run, never a campaign.
-  if (state.kind !== "sub_iterate" || !Array.isArray(state.units)) return snapshot;
+  if (state.kind !== "sub_iterate" || !Array.isArray(state.units)) return;
 
-  const windowMs = staleWindowMs();
   for (const u of state.units as LoopUnit[]) {
-    if (!u || u.status !== "in_progress") continue;
-    if (typeof u.spec_path !== "string") continue;
-    if (!isLive(u.started_at, nowMs, windowMs)) continue;
-    const slug = campaignSlugFromSpecPath(u.spec_path);
-    if (!slug) continue;
-    attachedSlugs.add(slug);
+    if (!u || typeof u.status !== "string" || !LIVE_STATUSES.has(u.status)) continue;
+    let slug = fixedSlug;
+    if (!slug) {
+      if (typeof u.spec_path !== "string") continue;
+      slug = campaignSlugFromSpecPath(u.spec_path);
+    }
+    if (!slug || skipSlugs?.has(slug)) continue;
+    if (!isLive(u.started_at ?? u.claimed_at, nowMs, windowMs)) continue;
+    snapshot.attachedSlugs.add(slug);
     if (typeof u.id === "string" && u.id) {
-      let ids = runningStepIdsBySlug.get(slug);
+      let ids = snapshot.runningStepIdsBySlug.get(slug);
       if (!ids) {
         ids = new Set<string>();
-        runningStepIdsBySlug.set(slug, ids);
+        snapshot.runningStepIdsBySlug.set(slug, ids);
       }
       ids.add(u.id);
     }
   }
-  return snapshot;
 }
 
 /**

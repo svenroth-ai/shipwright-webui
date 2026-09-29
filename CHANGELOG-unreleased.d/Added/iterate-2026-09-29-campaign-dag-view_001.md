@@ -1,0 +1,1 @@
+Campaign cards show each step's dependencies and the scheduler's verdict (ready, or waiting for which step), with a guided Launch on ready steps; the launch route refuses dependency-blocked steps and says so when readiness could not be checked.

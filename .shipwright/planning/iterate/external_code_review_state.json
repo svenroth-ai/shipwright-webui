@@ -1,13 +1,21 @@
 {
-  "status": "skipped_config_disabled",
-  "timestamp": "2026-09-28T22:17:37.700992+00:00",
-  "provider": null,
-  "findings_count": 0,
+  "status": "completed",
+  "timestamp": "2026-09-29T10:20:00.359563+00:00",
+  "provider": "openai+glm",
+  "findings_count": 6,
   "self_review_fallback_ran": false,
-  "reason": "external LLM review is skipped at small per the phase matrix",
+  "reason": "only some provider legs could be itemized \u2014 the count (6) may understate what was found",
   "review_mode": "code",
   "marker_schema": 4,
-  "verdicts": null,
-  "contradiction": null,
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  },
   "contradiction_resolution": null
 }

@@ -152,6 +152,8 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       return c.json(branchResult.error, branchResult.status);
     }
     let { commands, taskUpdate } = branchResult;
+    // Fail-open notice from the single-sub-iterate branch (see _helpers.ts).
+    const readinessNotice = branchResult.readinessChecked === false ? { readinessChecked: false } : {};
 
     // Codex Light (Spec/codex-light-webui.md §2.1) — the ONE chokepoint for
     // all six launch branches above: overrides `commands`/`taskUpdate` with
@@ -202,13 +204,14 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
 
     if (parsed.dryRun) {
       // Pure command-string build — no state mutation, no persist.
-      return c.json({ task: withLiveSession(task, ptyManager), commands });
+      return c.json({ task: withLiveSession(task, ptyManager), commands, ...readinessNotice });
     }
     const updated = store.patch(task.taskId, taskUpdate);
     await store.persist();
     return c.json({
       task: withLiveSession(updated, ptyManager),
       commands,
+      ...readinessNotice,
     });
   });
 

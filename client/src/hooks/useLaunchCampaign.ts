@@ -27,7 +27,14 @@ export interface LaunchCampaignArgs {
 }
 
 export type LaunchCampaignResult =
-  | { ok: true; taskId: string; commands: CopyCommandForms }
+  | {
+      ok: true;
+      taskId: string;
+      commands: CopyCommandForms;
+      /** false = the server launched without checking the scheduler's dependency
+       *  graph (readiness unavailable / timed out) — fail-open, reported not hidden. */
+      readinessChecked?: false;
+    }
   | { ok: false; reason: "create_failed" | "launch_failed"; detail?: string };
 
 export interface LaunchCampaignDeps {
@@ -70,7 +77,7 @@ function writePendingAutoLaunch(taskId: string, commands: CopyCommandForms): voi
 export interface CampaignTaskLaunchArgs {
   project: { id: string; path: string };
   title: string;
-  performLaunch: (taskId: string) => Promise<{ commands: CopyCommandForms }>;
+  performLaunch: (taskId: string) => Promise<{ commands: CopyCommandForms; readinessChecked?: false }>;
 }
 export interface CampaignTaskLaunchDeps {
   create: LaunchCampaignDeps["create"];
@@ -99,9 +106,11 @@ export async function launchCampaignTask(
   }
 
   let commands: CopyCommandForms;
+  let readinessChecked: false | undefined;
   try {
     const result = await args.performLaunch(taskId);
     commands = result.commands;
+    readinessChecked = result.readinessChecked;
   } catch (err) {
     return {
       ok: false,
@@ -111,7 +120,9 @@ export async function launchCampaignTask(
   }
 
   (deps.handoff ?? writePendingAutoLaunch)(taskId, commands);
-  return { ok: true, taskId, commands };
+  return readinessChecked === false
+    ? { ok: true, taskId, commands, readinessChecked }
+    : { ok: true, taskId, commands };
 }
 
 export async function launchCampaign(

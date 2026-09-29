@@ -48,6 +48,14 @@ export interface CampaignStep {
    *  guardrail surfaces it the day a producer emits one. See
    *  `campaign-parse.ts parseSpecFrontmatter`. */
   planFirst: boolean;
+  /**
+   * Ids of the sub-iterates this step waits on (the monorepo `depends_on`
+   * graph). DISPLAY ONLY: whether a step is launchable is the scheduler's
+   * verdict (`core/campaign-readiness.ts`), never derived from these edges.
+   * `status.json` (live skeleton) wins over the `campaign.md` "Depends on"
+   * column; empty for a campaign without a graph.
+   */
+  dependsOn: string[];
 }
 
 /**

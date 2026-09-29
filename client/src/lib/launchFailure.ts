@@ -125,6 +125,14 @@ const SERVER_CODES: Record<string, LaunchFailure> = {
       "This project is no longer registered. Re-add it, or fix its path in project settings.",
     actions: ["open-project-settings"],
   },
+  campaign_step_not_ready: {
+    code: "campaign_step_not_ready",
+    tone: "error",
+    title: "Not ready yet",
+    sentence:
+      "The scheduler says this step is still waiting on another step to merge, so launching it now would start it too early. Refresh to see what it is waiting for.",
+    actions: ["refresh"],
+  },
   campaign_already_complete: {
     code: "campaign_already_complete",
     tone: "error",

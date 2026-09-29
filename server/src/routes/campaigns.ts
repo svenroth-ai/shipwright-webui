@@ -41,6 +41,7 @@ import {
   lockUnavailable,
   releaseQuietly,
 } from "../core/campaign-route-helpers.js";
+import { createCampaignReadinessRoutes } from "./campaigns-readiness.js";
 import {
   getDefaultDismissedStore,
   type DismissedCampaignsApi,
@@ -87,6 +88,8 @@ function readCurrentStatus(campaignDir: string): CampaignLifecycleStatus | null 
 
 export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
   const app = new Hono();
+  // On-demand readiness verdict for the DAG view (its own file: 300-LOC rule).
+  app.route("/", createCampaignReadinessRoutes({ getProjectById: deps.getProjectById }));
   // Lazy default keeps index.ts (grandfathered bloat baseline) untouched.
   const dismissedStore: DismissedCampaignsApi =
     deps.dismissedStore ?? getDefaultDismissedStore();

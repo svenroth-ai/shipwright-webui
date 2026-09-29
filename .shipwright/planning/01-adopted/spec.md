@@ -697,6 +697,11 @@ events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
   counterpart (a producer-emitted terminal `campaign_completed` event) is tracked
   as monorepo triage `trg-7580f4fe` and will feed the same gate.
 
+- (E) **(iterate-2026-09-29-campaign-dag-view)** Given an expanded campaign card whose steps depend on other steps, when the Shipwright scheduler reports one step ready and another still waiting on an earlier step, then the card shows each step's "after A, B" dependencies, a "ready" badge and a guided Launch button on the ready step only, and a sentence such as "waiting for B to merge" on the waiting one.
+- (E) Given the scheduler cannot be reached, or it reports that it cannot schedule the whole campaign, when the operator opens the card, then the card says so in plain words and keeps the single "Launch next" button, so the campaign can still be started by hand.
+- (E) Given a step the scheduler reports as waiting on another step, when a launch of that step is requested, then the server refuses it (`409 campaign_step_not_ready`, naming what it waits for) after re-checking once with a fresh answer; and given the readiness check times out or fails, then the launch goes ahead, the response carries `readinessChecked:false` and the confirm dialog says "readiness not checked".
+- (E) Given a campaign runs in its own working copy (`.worktrees/campaign-<slug>`), when readiness or "Run attached" is computed, then that working copy's loop state is used, never the project root's, and a step that a wave run has claimed, is running, built, reviewed or is merging counts as attached.
+
 Added by `iterate-2026-06-02-campaigns-board-lane` (read path). As of
 `iterate-2026-06-03-start-campaign-action` (ADR-148) the WebUI performs exactly
 ONE campaign-state write — the Triage "Start Campaign" `draft → active` flip;

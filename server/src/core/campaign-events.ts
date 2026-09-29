@@ -146,6 +146,7 @@ function synthesizeCampaign(
       // Reconstructed from the event log, which records only COMPLETED units.
       statusSource: "events",
       specPath: null, // no skeleton file on a clone → launch CTAs disable
+      dependsOn: [], // no skeleton → no graph
       commit: p.commit || null,
       branch: null,
       planFirst: false,

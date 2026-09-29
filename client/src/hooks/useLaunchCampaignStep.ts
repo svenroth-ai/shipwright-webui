@@ -35,7 +35,7 @@ export interface LaunchCampaignStepDeps {
     taskId: string,
     slug: string,
     stepId: string,
-  ) => Promise<{ task: { taskId: string }; commands: CopyCommandForms }>;
+  ) => Promise<{ task: { taskId: string }; commands: CopyCommandForms; readinessChecked?: false }>;
   handoff?: Parameters<typeof launchCampaignTask>[1]["handoff"];
 }
 
