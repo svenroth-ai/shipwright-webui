@@ -159,6 +159,13 @@ describe("CampaignLaneCard — dependency graph", () => {
     expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeInTheDocument();
   });
 
+  it("while the readiness answer is still loading, the fallback launch dialog says it is not verified yet", async () => {
+    readinessMock.mockReturnValue(new Promise(() => {}));
+    renderExpanded();
+    fireEvent.click(await screen.findByTestId(`campaign-step-launch-${SLUG}`));
+    expect(await screen.findByTestId(`campaign-step-notice-${SLUG}`)).toHaveTextContent("still loading");
+  });
+
   it("a next-pending step the scheduler has no row for keeps the card-level 'Launch next', and its dialog says readiness was not checked", async () => {
     readinessMock.mockResolvedValue(report([unit("Z", "pending", true)]));
     renderExpanded();

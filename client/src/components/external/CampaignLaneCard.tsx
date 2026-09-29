@@ -103,7 +103,9 @@ export function CampaignLaneCard({
   const fallbackNotice = verdict
     ? (nextUnreported ? "Readiness not checked — the scheduler doesn't know this step yet, so this launch is not verified against the dependency graph."
       : campaignGated ? "Readiness not checked — the scheduler can't schedule this campaign, so this launch is not verified against the dependency graph." : null)
-    : uncheckedLaunchNotice(readiness, stale);
+    : readinessQ.isLoading
+      ? "Readiness not checked yet — the scheduler's answer is still loading, so this launch is not verified against the dependency graph."
+      : uncheckedLaunchNotice(readiness, stale);
   const banner = readinessBanner(readiness, stale);
 
   return (

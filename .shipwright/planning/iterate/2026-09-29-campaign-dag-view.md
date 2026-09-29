@@ -32,6 +32,11 @@ readiness.
 - AC-8 "Run attached" recognises wave-run states in the campaign's worktree.
 - AC-9 A different contract major → `unsupported-version`; additive minor tolerated; vendored contract has a drift guard.
 
+## Accepted risks
+
+- The readiness command may `git fetch origin` in the campaign's worktree (the monorepo command's own behaviour). It only ever runs against projects the operator registered in this local-only app, throttled by the 15 s cache and in-flight coalescing; the WebUI adds no remote of its own.
+- A stale cached verdict can be up to 15 s old; the launch guard re-checks uncached before ever refusing.
+
 ## Out of scope
 
 Per-unit autonomous toggle; writing any scheduler state; re-implementing ancestry/strategy checks; `index.ts` changes.
