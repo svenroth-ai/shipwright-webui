@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 
+import * as campaignsApi from "./campaignsApi";
+import * as selectors from "./campaignSelectors";
 import {
   selectActiveCampaigns,
   selectVisibleCampaigns,
@@ -38,6 +40,23 @@ function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
     ...overrides,
   };
 }
+
+describe("campaignsApi selector exports", () => {
+  it("keeps the public campaign API entry point wired to the extracted selectors", () => {
+    const names = [
+      "isCampaignDone",
+      "selectActiveCampaigns",
+      "selectVisibleCampaigns",
+      "selectDismissedCampaigns",
+      "selectDraftCampaigns",
+      "campaignLifecycleLabel",
+      "selectRiskyPendingSteps",
+    ] as const;
+    for (const name of names) {
+      expect(campaignsApi[name]).toBe(selectors[name]);
+    }
+  });
+});
 
 describe("campaignsApi: selectActiveCampaigns", () => {
   it("status is authoritative: only `active` is shown; draft + complete hidden", () => {

@@ -1,0 +1,12 @@
+{
+  "items": [
+    {"name":"Spec Compliance","verdict":"pass","note":"Behavior-preserving extraction of all seven campaign selectors; the existing public import path and FR-01.33 campaign-lane semantics remain unchanged."},
+    {"name":"Error Handling","verdict":"pass","note":"All fetch wrappers and their error branches remain in campaignsApi.ts unchanged; selectors have no I/O."},
+    {"name":"Security Basics","verdict":"pass","note":"No new input boundary, write surface, secret, or executable command was introduced."},
+    {"name":"Test Quality","verdict":"pass","note":"Existing 37 selector/API tests remain; a new re-export identity assertion pins the module boundary. The isolated Chromium spec asserts campaign display and checks unexpected console errors."},
+    {"name":"Performance Basics","verdict":"pass","note":"The pure selector bodies are byte-equivalent and still run through the same public entry point; no additional fetch or computation was introduced."},
+    {"name":"Naming & Structure","verdict":"pass","note":"campaignSelectors.ts holds the cohesive pure-selection block, campaignsApi.ts retains types and HTTP wrappers; both are under 300 lines."},
+    {"name":"Affected Boundaries","verdict":"n/a","note":"The extraction changes only a TypeScript module boundary, not a serialized format or its producer/consumer pair."},
+    {"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff reported no findings."}
+  ]
+}

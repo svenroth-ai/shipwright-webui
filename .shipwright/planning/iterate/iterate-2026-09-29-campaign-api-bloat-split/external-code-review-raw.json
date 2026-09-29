@@ -1,0 +1,34 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "claude_cli",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviews": {
+    "opus": {
+      "feedback": "**Review: moving the campaign selectors out of `campaignsApi.ts`**\n\nThis change moves seven campaign filter functions (`isCampaignDone`, `selectActiveCampaigns`, `selectVisibleCampaigns`, `selectDismissedCampaigns`, `selectDraftCampaigns`, `campaignLifecycleLabel`, `selectRiskyPendingSteps`) from `campaignsApi.ts` into a new file, `campaignSelectors.ts`. `campaignsApi.ts` still exports them, so the public API doesn't change. The moved code matches the removed code exactly, including the `derivedFromEvents` exception, the dismissed layering and the draft filter. The FR-01.33 behaviour is unchanged.\n\nI checked the following and found no defects:\n\n- **Circular import:** `campaignSelectors.ts` imports only types from `./campaignsApi` (`import type`). TypeScript removes type-only imports when it compiles, so the two files don't depend on each other at runtime. No module-initialization ordering problem.\n- **Existing callers:** anything importing these names from `./campaignsApi` still resolves, because of the re-export. One small risk: an `export { \u2026 } from` statement does not make the names usable inside `campaignsApi.ts` itself. If the rest of that file (for example the autonomous-launch code) still calls one of these functions by name, it won't compile. The diff doesn't show any such call, and the typecheck gate (QR-02) would catch it anyway.\n- **New unit test:** it checks with `toBe` that each re-export is the same function object as the one in `campaignSelectors`. That's a real test: it fails if the re-export is dropped or someone adds a duplicate copy. The existing behaviour tests still run against the `campaignsApi` import path.\n- **E2E change (`campaign-status-filter.spec.ts`):** the listeners are registered before `page.goto`, so errors during load are caught. The only error it ignores is a 404 on `/api/org/org-chart`. For a \"Failed to load resource\" console message, Playwright's `location().url` is the URL of the failed resource, so `endsWith(\"/api/org/org-chart\")` matches as intended. One weakness, not a bug: if the app ever logs its own `console.error` about that missing org chart (for example from a query error handler), that message would carry a different URL and fail this test. At the moment the test only depends on the app not doing that.\n- **`area_catalog.json`:** it adds both files to the area and bumps the version and fingerprint, which is consistent.\n\n**Assessment:** ship as-is. This is a clean refactor that keeps behaviour identical, keeps the old import path working, and adds a test that meaningfully guards the re-exports.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "claude_cli",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "This diff is a mechanical extraction: the seven campaign selector functions move verbatim from `campaignsApi.ts` into a new `campaignSelectors.ts`, with `campaignsApi.ts` re-exporting them under the same names. Nothing behavioral changes.\n\nWhat I checked:\n\n- **Spec compliance / behavior**: selector logic is byte-identical between the removed and added copies (same filters, same `derivedFromEvents` exception, same `isCampaignDone` guard against `total === 0`, same dismissed-layering). No AC is touched \u2014 this is a pure refactor of FR-01.33's read path.\n- **Regression risk**: all existing import sites (`import { selectActiveCampaigns } from \"./campaignsApi\"`) keep working via the re-export block. The new unit test asserting `campaignsApi[name] === selectors[name]` pins the re-export identity, which is exactly the right fence for this kind of move \u2014 a broken/missing re-export would fail it.\n- **Circularity**: `campaignSelectors.ts` uses `import type` from `campaignsApi.ts`, which is erased at runtime, so the re-export cycle is type-only and safe.\n- **E2E change**: adding a `pageerror`/console-error assertion and a screenshot to `campaign-status-filter.spec.ts` strengthens the test. The 404 filter for `/api/org/org-chart` is scoped to this fixture by design and reasonable \u2014 Playwright's network-error console messages do carry the resource URL in `message.location()`.\n\nOne minor observation, not a defect: the new identity test relies on the two modules' exports being the *same function objects*; if someone later \"fixes\" the cycle by duplicating a selector instead of re-exporting, the test catches it \u2014 good. The `campaignsApi[name]` indexed access over a union of differently-typed functions is a test-only pattern and typechecks fine here.\n\nNo spec gaps, no correctness bugs, no security surface change (read-only client selectors, no new routes or writes), no broken callers.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "codex",
+  "verdicts": {
+    "opus": "approve",
+    "glm": "approve"
+  },
+  "statuses": {
+    "opus": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, opus=approve"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "last_updated": "2026-09-29",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-29-campaign-api-bloat-split",
+    "date": "2026-09-29",
+    "unit": {
+      "status": "passed",
+      "passed": 9055,
+      "total": 9068,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      },
+      "behaviors": [
+        {
+          "behavior": "All seven campaign selectors retain their previous results for active, done, draft, legacy, events-only and risky-step inputs",
+          "disposition": "tested",
+          "evidence": "37 pre/post campaign selector and API tests; behavior_snapshot.py before/after verification passed"
+        },
+        {
+          "behavior": "The established campaignsApi import path re-exports the exact seven extracted selector functions",
+          "disposition": "tested",
+          "evidence": "campaignsApi.selectors.test.ts: campaignsApi selector exports asserts function identity for all seven exports"
+        },
+        {
+          "behavior": "Campaign board cards still include active, legacy and startable draft campaigns while excluding complete and stale active-done campaigns",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/campaign-status-filter.spec.ts: isolated Chromium stack, 1/1 passed, screenshot inspected"
+        },
+        {
+          "behavior": "The isolated campaign-board load introduces no unexpected page or console errors",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/campaign-status-filter.spec.ts: pageerror and console-error assertions, 1/1 passed; fixture-only org-chart 404 excluded"
+        },
+        {
+          "behavior": "Type-only selector imports and public re-exports remain valid across all client and server consumers",
+          "disposition": "tested",
+          "evidence": "Client typecheck, build, lint and full Vitest suite (4424 passed); server typecheck and full Vitest suite (4631 passed, 13 skipped)"
+        },
+        {
+          "behavior": "Both campaign modules satisfy the 300-line limit without a bloat-baseline exception",
+          "disposition": "tested",
+          "evidence": "Group H1 audit passed; campaignsApi.ts 215 lines and campaignSelectors.ts 97 lines"
+        }
+      ]
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs client/e2e/flows/campaign-status-filter.spec.ts --project=chromium",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "C:/01_Development/shipwright-webui/.worktrees/campaign-api-bloat-split/.shipwright/runs/iterate-2026-09-29-campaign-api-bloat-split/surface_verification.log",
+      "timestamp": "2026-09-29T19:02:53.401Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-29-campaign-api-bloat-split",
+    "commit": "54f85d87d23b98e68152116320f38be5892b57bb",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

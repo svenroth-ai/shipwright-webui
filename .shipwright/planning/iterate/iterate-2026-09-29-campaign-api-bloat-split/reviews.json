@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-29-campaign-api-bloat-split",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:04:57.678355+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:05:30.689443+00:00",
+      "disposition": "external plan review runs at medium+ only; this behavior-preserving split is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:22:23.424598+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:25:15.278972+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-09-29T19:13:35.190364+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[glm] This diff is a mechanical extraction: the seven campaign selector functions move verbatim from `campaignsApi.ts` into a new `campaignSelectors.ts`, with `campaignsApi.ts` re-exporting them under the same names. Nothing behavioral changes.\n\nWhat I checked:\n\n- **Spec compliance / behavior**: selector logic is byte-identical between the removed and added copies (same filters, same `derivedFromEvents` exception, same `isCampaignDone` guard against `total === 0`, same dismissed-layering). No AC is touched — this is a pure refactor of FR-01.33's read path.\n- **Regression risk**: all existing import sites (`import { selectActiveCampaigns } from \"./campaignsApi\"`) keep working via the re-export block. The new unit test asserting `campaignsApi[name] === selectors[name]` pins the re-export identity, which is exactly the right fence for this kind of move — a broken/missing re-export would fail it.\n- **Circularity**: `campaignSelectors.ts` uses `import type` from `campaignsApi.ts`, which is erased at runtime, so the re-export cycle is type-only and safe.\n- **E2E change**: adding a `pageerror`/console-error assertion and a screenshot to `campaign-status-filter.spec.ts` strengthens the test. The 404 filter for `/api/org/org-chart` is scoped to this fixture by design and reasonable — Playwright's network-error console messages do carry the resource URL in `message.location()`.\n\nOne minor observation, not a defect: the new identity test relies on the two modules' exports being the *same function objects*; if someone later \"fixes\" the cycle by duplicating a selector instead of re-exporting, the test catches it — good. The `campaignsApi[name]` indexed access over a union of differently-typed functions is a test-only pattern and typechecks fine here.\n\nNo spec gaps, no correctness bugs, no security surface change (read-only client selectors, no new routes or writes), no broken callers.\n\nSHIPWRIGHT_VERDICT: approve\n\n[opus] **Review: moving the campaign selectors out of `campaignsApi.ts`**\n\nThis change moves seven campaign filter functions (`isCampaignDone`, `selectActiveCampaigns`, `selectVisibleCampaigns`, `selectDismissedCampaigns`, `selectDraftCampaigns`, `campaignLifecycleLabel`, `selectRiskyPendingSteps`) from `campaignsApi.ts` into a new file, `campaignSelectors.ts`. `campaignsApi.ts` still exports them, so the public API doesn't change. The moved code matches the removed code exactly, including the `derivedFromEvents` exception, the dismissed layering and the draft filter. The FR-01.33 behaviour is unchanged.\n\nI checked the following and found no defects:\n\n- **Circular import:** `campaignSelectors.ts` imports only types from `./campaignsApi` (`import type`). TypeScript removes type-only imports when it compiles, so the two files don't depend on each other at runtime. No module-initialization ordering problem.\n- **Existing callers:** anything importing these names from `./campaignsApi` still resolves, because of the re-export. One small risk: an `export { … } from` statement does not make the names usable inside `campaignsApi.ts` itself. If the rest of that file (for example the autonomous-launch code) still calls one of these functions by name, it won't compile. The diff doesn't show any such call, and the typecheck gate (QR-02) would catch it anyway.\n- **New unit test:** it checks with `toBe` that each re-export is the same function object as the one in `campaignSelectors`. That's a real test: it fails if the re-export is dropped or someone adds a duplicate copy. The existing behaviour tests still run against the `campaignsApi` import path.\n- **E2E change (`campaign-status-filter.spec.ts`):** the listeners are registered before `page.goto`, so errors during load are caught. The only error it ignores is a 404 on `/api/org/org-chart`. For a \"Failed to load resource\" console message, Playwright's `location().url` is the URL of the failed resource, so `endsWith(\"/api/ […truncated]",
+      "verdicts": {
+        "opus": "approve",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:20:20.951617+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:05:30.982036+00:00",
+      "disposition": "internal plan review is medium+ only; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T19:05:31.088761+00:00",
+      "disposition": "internal architecture review is medium+ only; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

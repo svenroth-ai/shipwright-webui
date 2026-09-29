@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-09-29-campaign-api-bloat-split",
+  "date": "2026-09-29",
+  "section": "Iterate — change: campaign API selector split",
+  "title": "Cohesive campaign selector module",
+  "context": "Compliance H1 found campaignsApi.ts at 301 lines, one beyond the 300-line cap; a baseline exemption would hide avoidable coupling.",
+  "decision": "Extract seven pure campaign selectors to campaignSelectors.ts and re-export them from campaignsApi.ts. Keep types and network wrappers in the established entry point.",
+  "consequences": "Existing imports and FR-01.33 behavior stay unchanged; both modules are under 300 lines. An identity test guards the re-exports.",
+  "rationale": "A cohesive selector module separates read-only derivation from transport without seven tiny files or caller churn.",
+  "rejected": "A bloat-baseline entry accepts avoidable drift; per-selector files fragment cohesive logic.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
