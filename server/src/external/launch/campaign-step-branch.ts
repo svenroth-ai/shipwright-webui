@@ -168,12 +168,18 @@ export async function applyCampaignStepBranch(args: {
     } else if (dependencyBlocked) {
       // Never refuse on a cached "waiting": a dependency may have merged in
       // the last few seconds. Recompute once, uncached, before saying no.
+      // Refuse ONLY on a fresh report that confirms the dependency blocker. No
+      // fresh answer (timeout / down / unit gone) fails open like everywhere else.
       const fresh = await freshVerdict();
-      const freshUnit = fresh?.status === "report" ? fresh.report.units.find((u) => u.id === unit.id) : undefined;
-      const stillBlocked = fresh?.status !== "no-loop" && (!freshUnit || (freshUnit.state === "pending" && !freshUnit.ready && freshUnit.blocked_by.some((x) => x.id !== null)));
-      if (stillBlocked) {
-        const blockers = (freshUnit ?? unit).blocked_by;
-        return { error: { error: "campaign_step_not_ready", detail: step.stepId, blocked_by: blockers }, status: 409 };
+      if (fresh?.status === "report") {
+        const freshUnit = fresh.report.units.find((u) => u.id === unit.id);
+        if (!freshUnit) {
+          readinessChecked = false;
+        } else if (freshUnit.state === "pending" && !freshUnit.ready && freshUnit.blocked_by.some((x) => x.id !== null)) {
+          return { error: { error: "campaign_step_not_ready", detail: step.stepId, blocked_by: freshUnit.blocked_by }, status: 409 };
+        }
+      } else if (fresh?.status !== "no-loop") {
+        readinessChecked = false;
       }
     } else if (unit.state === "pending" && !unit.ready) {
       readinessChecked = false; // campaign-level gate only

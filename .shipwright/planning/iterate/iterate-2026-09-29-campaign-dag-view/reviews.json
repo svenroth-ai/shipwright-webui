@@ -17,13 +17,13 @@
     },
     "plan": {
       "review_type": "plan",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-09-29T10:19:53.419061+00:00",
+      "disposition": "plan/plan_internal/architecture_internal: not run - the design was fixed by the operator's explicit decisions in the interview (readiness command, guided-only launch, worktree path, bounded fail-open guard) before any plan existed, so a post-hoc plan review adds nothing; the built change went through the spec, code, doubt and external code reviews instead",
+      "recorded_by": "close-missing",
       "parse_status": null,
       "raw_excerpt": null
     },
@@ -176,15 +176,75 @@
     },
     "external_code": {
       "review_type": "external_code",
-      "status": "pending",
-      "findings_count": 0,
-      "findings": [],
-      "provider": null,
-      "completed_at": null,
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/external/launch/campaign-step-branch.ts (~line 165, `stillBlocked` computation)",
+          "line": null,
+          "finding": "When the uncached re-check before refusing fails to produce a verdict (fresh spawn times out at 10 s, throws, or returns an unavailable/failed outcome), `fresh` is `undefined` and the code evaluates `stillBlocked = fresh?.status !== \"no-loop\" && (!freshUnit || …)` → `true`, so the launch is refused 409 based solely on the stale cached \"blocked\" verdict. Decision 3 and AC-5 explicitly say fail open on timeout/unavailable; here the guard fails closed on exactly that condition. A slow `git fetch` on the re-check turns a launchable step into a hard 409.",
+          "suggestion": "Treat \"no fresh verdict\" as not-still-blocked (fail open, set `readinessChecked = false` instead of returning 409), e.g. `const stillBlocked = fresh?.status === \"report\" && freshUnit != null && freshUnit.state === \"pending\" && !freshUnit.ready && freshUnit.blocked_by.some(x => x.id !== null);",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/external/launch/campaign-step-branch.ts (freshVerdict)",
+          "line": null,
+          "finding": "freshVerdict` filters only for `status === \"report\"`, silently converting an `unsupported-version` fresh result into `undefined` — again feeding the fail-closed path above rather than failing open with a notice.",
+          "suggestion": "Once the `stillBlocked` logic is inverted per the previous finding, this collapses into \"no fresh verdict → launch, flag unchecked\", which is the spec-correct behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/campaign-loop-state.ts (`isLive(u.started_at ?? u.claimed_at, …)`)",
+          "line": null,
+          "finding": "If a worktree wave unit carries neither `started_at` nor `claimed_at` (e.g. a hand-edited or older-format `loop_state.json`), `isLive(undefined, …)` is called; depending on its implementation this likely treats a genuinely live run as dead, re-enabling the hand-launch race the change is meant to close. No test covers a live-status unit with neither timestamp.",
+          "suggestion": "Decide explicitly (and test) the \"live status, no timestamp\" case — e.g. treat missing timestamps as live, or document why not.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/CampaignDagSteps.test.tsx (\"a fail-open launch is never silent\")",
+          "line": null,
+          "finding": "The AC-5 UI-notice path for a fail-open per-unit launch is never exercised through the rendered dialog — the test only calls `uncheckedLaunchNotice` directly and asserts strings. A regression that stops passing `notice` into `CampaignLaunchDialog` (or renders it conditionally on the wrong state) would still pass. The component test acknowledges this in a comment rather than fixing it.",
+          "suggestion": "Add one component test: mock readiness to a report where a unit is ready, then flip the refetch to fail (stale path) or use an `unsupported-version` outcome, click Launch, and assert `campaign-step-notice-<slug>` is rendered in the dialog.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/campaign-dag-view.spec.ts (both real-pipeline tests)",
+          "line": null,
+          "finding": "The two E2E tests that validate AC-1/AC-2/AC-4/AC-8 against the real scheduler are `test.skip` without `SHIPWRIGHT_LOOP_CLAIM_SCRIPT`, so CI never runs them (the ledger acknowledges this). The always-running third test only covers the stubbed degraded path. The 409 enforcement (AC-4) therefore has no always-on end-to-end coverage — only unit/router tests with injected verdicts.",
+          "suggestion": "Consider a CI-runnable variant with a tiny fake `loop_claim.py` fixture (a shell/python stub emitting a canned contract-shaped report) so the full route→guard→409 path runs in CI.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "server/src/external/launch/campaign-step-branch.ts / branch-dispatch.ts",
+          "line": null,
+          "finding": "applyCampaignStepBranch` changed from sync to async. The diff updates `branch-dispatch.ts`, and `routes.ts` already awaits dispatch, so visible callers are covered — but any other callers of this exported function outside the diff (it's exported) would now silently receive a Promise and treat it as non-null truthy. Worth confirming there are none; the diff gives no evidence either way.",
+          "suggestion": "Grep for other importers; if any exist, they need `await`.  Checked and clean: slug/worktree path traversal is well guarded (`SLUG_PATTERN`, realpath + `isWithin`, route-level `isValidCampaignSlug`); the launch guard is server-side and bounded; AC-6 (never read root state for a worktree campaign) is implemented and tested; AC-7 cache/coalescing (15 s / 5 s error TTL, in-flight coalescing, no 3 s-poll fetch — hook polls 20 s and is `enabled`-gated) is correct; contract drift guard with the sibling monorepo is present; `dispatchLaunchBranches` correctly adds the missing `await`.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openai+glm",
+      "completed_at": "2026-09-29T10:20:00.351006+00:00",
       "disposition": null,
-      "recorded_by": null,
-      "parse_status": null,
-      "raw_excerpt": null
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ### Findings\n\n- Category: bug\n  Severity: medium\n  File: server/src/external/launch/campaign-step-branch.ts (~line 165, `stillBlocked` computation)\n  Finding: When the uncached re-check before refusing fails to produce a verdict (fresh spawn times out at 10 s, throws, or returns an unavailable/failed outcome), `fresh` is `undefined` and the code evaluates `stillBlocked = fresh?.status !== \"no-loop\" && (!freshUnit || …)` → `true`, so the launch is **refused 409 based solely on the stale cached \"blocked\" verdict**. Decision 3 and AC-5 explicitly say fail **open** on timeout/unavailable; here the guard fails closed on exactly that condition. A slow `git fetch` on the re-check turns a launchable step into a hard 409.\n  Suggestion: Treat \"no fresh verdict\" as not-still-blocked (fail open, set `readinessChecked = false` instead of returning 409), e.g. `const stillBlocked = fresh?.status === \"report\" && freshUnit != null && freshUnit.state === \"pending\" && !freshUnit.ready && freshUnit.blocked_by.some(x => x.id !== null);`\n\n- Category: bug\n  Severity: low\n  File: server/src/external/launch/campaign-step-branch.ts (freshVerdict)\n  Finding: `freshVerdict` filters only for `status === \"report\"`, silently converting an `unsupported-version` fresh result into `undefined` — again feeding the fail-closed path above rather than failing open with a notice.\n  Suggestion: Once the `stillBlocked` logic is inverted per the previous finding, this collapses into \"no fresh verdict → launch, flag unchecked\", which is the spec-correct behavior.\n\n- Category: edge-case\n  Severity: low\n  File: server/src/core/campaign-loop-state.ts (`isLive(u.started_at ?? u.claimed_at, …)`)\n  Finding: If a worktree wave unit carries neither `started_at` nor `claimed_at` (e.g. a hand-edited or older-format `loop_state.json`), `isLive(undefined, …)` is called; depending on its implementation this likely treats a genuinely live run as dead, re-enabling the hand-launch race the change is meant to clo […truncated]\n\n[openai] - Category: spec | Severity: high | File: `server/src/external/launch/campaign-step-branch.ts:174` — Finding: If a cached blocked verdict triggers a fresh check that times out, fails, or omits the unit, `stillBlocked` becomes true and returns 409. AC-5 requires these cases to proceed with `readinessChecked:false`. Suggestion: Return 409 only when the fresh report contains the pending unit and confirms a dependency blocker; otherwise launch with the unchecked flag.\n\n- Category: spec | Severity: medium | File: `client/src/components/external/CampaignLaneCard.tsx:242` — Finding: The unavailable-scheduler fallback renders `CampaignStepLaunchButton` without `notice`, so its confirm dialog does not warn that readiness was not checked. Suggestion: Pass `uncheckedLaunchNotice(readiness, stale)` to the fallback button.\n\n- Category: spec | Severity: medium | File: `client/src/components/external/CampaignDagSteps.tsx:127` — Finding: A step missing from a report can receive a per-unit Launch button merely because it is `nextPending`. That step has not been reported ready, and the dialog gets no unchecked notice because a report exists. Suggestion: Show per-unit Launch only for `unit.ready`; handle a missing row through an explicitly warned fallback.\n\n- Category: regression | Severity: medium | File: `server/src/core/campaign-loop-state.ts:133` — Finding: A worktree directory without `loop_state.json` is absent from `worktreeSlugs`, so a stale root state can mark that worktree campaign as attached. This conflicts with the specified rule that the root state is never read for a worktree campaign and can disable hand-launch. Suggestion: Exclude every existing campaign worktree slug from root-state attachment detection, even when its state file is missing.\n\nOverall assessment: **ship-with-fixes**. The bounded guard and UI degradation paths need correction before the launch behavior matches the specification.\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      },
+      "model_tier": "inherit"
     },
     "spec": {
       "review_type": "spec",
@@ -202,25 +262,25 @@
     },
     "plan_internal": {
       "review_type": "plan_internal",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-09-29T10:19:53.419061+00:00",
+      "disposition": "plan/plan_internal/architecture_internal: not run - the design was fixed by the operator's explicit decisions in the interview (readiness command, guided-only launch, worktree path, bounded fail-open guard) before any plan existed, so a post-hoc plan review adds nothing; the built change went through the spec, code, doubt and external code reviews instead",
+      "recorded_by": "close-missing",
       "parse_status": null,
       "raw_excerpt": null
     },
     "architecture_internal": {
       "review_type": "architecture_internal",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-09-29T10:19:53.419061+00:00",
+      "disposition": "plan/plan_internal/architecture_internal: not run - the design was fixed by the operator's explicit decisions in the interview (readiness command, guided-only launch, worktree path, bounded fail-open guard) before any plan existed, so a post-hoc plan review adds nothing; the built change went through the spec, code, doubt and external code reviews instead",
+      "recorded_by": "close-missing",
       "parse_status": null,
       "raw_excerpt": null
     }

@@ -29,7 +29,7 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
 import { useCampaignReadiness } from "../../hooks/useCampaignReadiness";
-import type { CampaignReadiness } from "../../lib/campaignReadinessApi";
+import { unitFor, type CampaignReadiness } from "../../lib/campaignReadinessApi";
 import { hasVerdict, readinessBanner, uncheckedLaunchNotice } from "../../lib/campaignReadinessCopy";
 import { CampaignDagSteps } from "./CampaignDagSteps";
 import { CampaignStartButton } from "./CampaignStartButton";
@@ -97,6 +97,13 @@ export function CampaignLaneCard({
   // all be absent, so keep the card-level hand-launch (the server does not refuse
   // on such a gate either).
   const campaignGated = verdict && (!readiness.report.supported || readiness.report.finalized);
+  // The step "Launch next" would start has no row in the scheduler's report (added
+  // after the loop began): no per-unit button can exist for it either.
+  const nextUnreported = verdict && !!campaign.nextPending && !unitFor(readiness.report, campaign.nextPending.id);
+  const fallbackNotice = verdict
+    ? (nextUnreported ? "Readiness not checked — the scheduler doesn't know this step yet, so this launch is not verified against the dependency graph."
+      : campaignGated ? "Readiness not checked — the scheduler can't schedule this campaign, so this launch is not verified against the dependency graph." : null)
+    : uncheckedLaunchNotice(readiness, stale);
   const banner = readinessBanner(readiness, stale);
 
   return (
@@ -240,7 +247,9 @@ export function CampaignLaneCard({
                 {/* With a scheduler verdict each ready unit carries its own Launch
                     (CampaignDagSteps); the card-level "next" launch is the
                     no-verdict fallback only. */}
-                {(!verdict || campaignGated) && <CampaignStepLaunchButton campaign={campaign} project={project} />}
+                {(!verdict || campaignGated || nextUnreported) && (
+                  <CampaignStepLaunchButton campaign={campaign} project={project} notice={fallbackNotice} />
+                )}
                 <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
               </>
             )}

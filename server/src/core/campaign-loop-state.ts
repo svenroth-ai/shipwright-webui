@@ -132,7 +132,7 @@ export function readLoopRunState(
   // comes from each unit's spec_path.
   const worktreeSlugs = new Set<string>();
   for (const wt of listCampaignWorktrees(projectRoot)) {
-    if (existsSync(loopStatePathFor(wt.root))) worktreeSlugs.add(wt.slug);
+    worktreeSlugs.add(wt.slug);
     collectLive(loopStatePathFor(wt.root), wt.slug, snapshot, nowMs, windowMs);
   }
   // The main root's file is never a worktree campaign's state: units of a slug

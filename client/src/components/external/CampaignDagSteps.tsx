@@ -121,7 +121,7 @@ export function CampaignDagSteps({
                   ready
                 </span>
               )}
-              {(kind === "ready" || (kind === "next" && report !== null)) && (
+              {kind === "ready" && (
                 <span className="ml-auto">
                   <CampaignStepLaunchButton campaign={campaign} project={project} stepId={s.id} compact notice={uncheckedNotice} />
                 </span>

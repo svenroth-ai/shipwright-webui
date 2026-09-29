@@ -142,6 +142,18 @@ describe("applyCampaignStepBranch — scheduler readiness guard", () => {
     expect(calls[1].maxAgeMs).toBe(0);
   });
 
+  it("a cached 'waiting' whose uncached re-check produces NO verdict fails open (flagged), never a stale 409", async () => {
+    let n = 0;
+    const res = await applyCampaignStepBranch({
+      task: { taskId: "t1", projectId: "p1", sessionUuid: "11111111-1111-4111-8111-111111111111", cwd: projectRoot, pluginDirs: [], title: "T" } as never,
+      parsed: { campaignStep: { slug: SLUG, stepId: "B" } } as never,
+      effectivelyFreshStart: true,
+      getProjectById: () => ({ id: "p1", path: projectRoot }) as never,
+      getReadinessFn: (async () => (++n === 1 ? report([readyA, blockedB]) : "timeout")) as never,
+    });
+    expect(res).toMatchObject({ commands: expect.anything(), readinessChecked: false });
+  });
+
   it("a THROWING readiness check fails open, flagged unchecked (never a 500)", async () => {
     const res = await launch("B", () => {
       throw new Error("spawn exploded");

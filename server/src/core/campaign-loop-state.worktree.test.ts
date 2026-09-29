@@ -89,10 +89,10 @@ describe("readLoopRunState — stale root file", () => {
     expect(readLoopAttachments(root, NOW).size).toBe(0);
   });
 
-  it("but a worktree DIRECTORY without its own loop does not blind the guard to a live root-based run", () => {
-    mkdirSync(wt("demo"), { recursive: true }); // leftover dir, no loop_state.json
+  it("a worktree directory owns its slug even without a loop_state.json — the root state is never read for it", () => {
+    mkdirSync(wt("demo"), { recursive: true });
     seed(root, [{ id: "A", status: "running", spec_path: specFor("demo"), claimed_at: ago(1000) }]);
-    expect([...readLoopAttachments(root, NOW)]).toEqual(["demo"]);
+    expect(readLoopAttachments(root, NOW).size).toBe(0);
   });
 });
 

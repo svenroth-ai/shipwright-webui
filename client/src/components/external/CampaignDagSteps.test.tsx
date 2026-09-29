@@ -159,10 +159,13 @@ describe("CampaignLaneCard — dependency graph", () => {
     expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeInTheDocument();
   });
 
-  it("a next-pending step the scheduler has no row for is still launchable per-unit", async () => {
+  it("a next-pending step the scheduler has no row for keeps the card-level 'Launch next', and its dialog says readiness was not checked", async () => {
     readinessMock.mockResolvedValue(report([unit("Z", "pending", true)]));
     renderExpanded();
-    expect(await screen.findByTestId(`campaign-step-launch-${SLUG}-A`)).toBeInTheDocument();
+    const btn = await screen.findByTestId(`campaign-step-launch-${SLUG}`);
+    expect(screen.queryByTestId(`campaign-step-launch-${SLUG}-A`)).toBeNull();
+    fireEvent.click(btn);
+    expect(await screen.findByTestId(`campaign-step-notice-${SLUG}`)).toHaveTextContent("Readiness not checked");
   });
 });
 
