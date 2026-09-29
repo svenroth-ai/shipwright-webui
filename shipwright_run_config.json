@@ -21,6 +21,9 @@
   "scope": "full_app",
   "autonomy": "supervised",
   "standalone": false,
+  "required_checks_advisory": [
+    "Prepare review request"
+  ],
   "adoption": {
     "adopted_at": "2026-04-30T19:43:37.090192+00:00",
     "commit_at_adoption": "1c772e3991d0518cdd5ce4a2a8edd6dd24f64d41",
