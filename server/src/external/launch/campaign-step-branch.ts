@@ -28,6 +28,7 @@ import { buildCopyCommands } from "../../core/launcher.js";
 import { resolveCampaignsDir, isWithin } from "../../core/campaign-paths.js";
 import { readCampaigns } from "../../core/campaign-store.js";
 import { readLoopAttachments } from "../../core/campaign-loop-state.js";
+import { getReadiness } from "../../core/campaign-readiness.js";
 import {
   type ExternalTask,
   type ExternalTaskState,
@@ -48,15 +49,22 @@ export function isValidCampaignStepId(id: string): boolean {
   return CAMPAIGN_STEP_ID_PATTERN.test(id) && !id.includes("..");
 }
 
-export function applyCampaignStepBranch(args: {
+/** Serve a cached verdict up to this old; else wait (bounded) for a fresh one. */
+export const STEP_READINESS_MAX_AGE_MS = 15_000;
+export const STEP_READINESS_MAX_WAIT_MS = 10_000;
+
+export async function applyCampaignStepBranch(args: {
   task: ExternalTask;
   parsed: ParsedLaunchBody;
   effectivelyFreshStart: boolean;
   getProjectById:
     | ((id: string) => ExternalRouteProjectView | undefined)
     | undefined;
-}): LaunchBranchResult | null {
+  /** Test seam; production uses the real cached scheduler bridge. */
+  getReadinessFn?: typeof getReadiness;
+}): Promise<LaunchBranchResult | null> {
   const { task, parsed, effectivelyFreshStart, getProjectById } = args;
+  const readiness = args.getReadinessFn ?? getReadiness;
   const step = parsed.campaignStep;
   if (!step) return null; // not a campaign-step launch
   // A resume injects no slash command — fall through to the legacy --resume shape.
@@ -116,6 +124,62 @@ export function applyCampaignStepBranch(args: {
     return { error: { error: "campaign_step_spec_missing", detail: step.stepId }, status: 400 };
   }
 
+  // Scheduler readiness (DAG view, card trg-e542ce03): refuse a hand-launch of
+  // a unit the monorepo scheduler reports BLOCKED. Bounded, and fail-OPEN when
+  // no verdict can be had (timeout / engine down / unrecognised) — but loudly:
+  // the response carries `readinessChecked:false`, never a silent skip. "No
+  // loop running" is not a failure: there is nothing to check against.
+  let readinessChecked: false | undefined;
+  let verdict: Awaited<ReturnType<typeof readiness>>;
+  try {
+    verdict = await readiness(
+      { projectRoot: resolved.projectRoot, slug: step.slug },
+      undefined,
+      { maxAgeMs: STEP_READINESS_MAX_AGE_MS, maxWaitMs: STEP_READINESS_MAX_WAIT_MS },
+    );
+  } catch {
+    verdict = "timeout"; // a throwing check is "no verdict" — fail open, flagged
+  }
+  const freshVerdict = async () => {
+    try {
+      const v = await readiness(
+        { projectRoot: resolved.projectRoot, slug: step.slug },
+        undefined,
+        { maxAgeMs: 0, maxWaitMs: STEP_READINESS_MAX_WAIT_MS },
+      );
+      return v === "timeout" ? undefined : v;
+    } catch {
+      return undefined;
+    }
+  };
+  if (verdict === "timeout" || (verdict.status !== "report" && verdict.status !== "no-loop")) {
+    readinessChecked = false;
+  } else if (verdict.status === "report") {
+    const units = verdict.report.units;
+    const lower = step.stepId.toLowerCase();
+    const unit = units.find((u) => u.id === step.stepId) ?? units.find((u) => u.id.toLowerCase() === lower);
+    // Only a real DEPENDENCY gate (a blocker naming another unit) refuses. A
+    // campaign-level gate (id:null — unsupported strategy, finalized loop) says
+    // the batch scheduler cannot run this campaign, not that this step must not
+    // be hand-run: launch, flagged unchecked.
+    const dependencyBlocked = unit?.state === "pending" && !unit.ready && unit.blocked_by.some((x) => x.id !== null);
+    if (!unit) {
+      readinessChecked = false;
+    } else if (dependencyBlocked) {
+      // Never refuse on a cached "waiting": a dependency may have merged in
+      // the last few seconds. Recompute once, uncached, before saying no.
+      const fresh = await freshVerdict();
+      const freshUnit = fresh?.status === "report" ? fresh.report.units.find((u) => u.id === unit.id) : undefined;
+      const stillBlocked = fresh?.status !== "no-loop" && (!freshUnit || (freshUnit.state === "pending" && !freshUnit.ready && freshUnit.blocked_by.some((x) => x.id !== null)));
+      if (stillBlocked) {
+        const blockers = (freshUnit ?? unit).blocked_by;
+        return { error: { error: "campaign_step_not_ready", detail: step.stepId, blocked_by: blockers }, status: 409 };
+      }
+    } else if (unit.state === "pending" && !unit.ready) {
+      readinessChecked = false; // campaign-level gate only
+    }
+  }
+
   const commands = buildCopyCommands({
     sessionUuid: task.sessionUuid,
     cwd: task.cwd,
@@ -127,5 +191,5 @@ export function applyCampaignStepBranch(args: {
     state: "awaiting_external_start" as ExternalTaskState,
     launchedAt: new Date().toISOString(),
   };
-  return { commands, taskUpdate };
+  return readinessChecked === false ? { commands, taskUpdate, readinessChecked } : { commands, taskUpdate };
 }

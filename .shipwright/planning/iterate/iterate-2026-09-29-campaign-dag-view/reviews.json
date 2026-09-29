@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-29-campaign-dag-view",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T10:10:45.255648+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/launch/campaign-step-branch.ts",
+          "line": 133,
+          "finding": "readiness await had no try/catch; a throwing check would 500 instead of failing open. FIXED: caught, treated as no verdict (readinessChecked:false); test added.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/routes/campaigns-readiness.ts",
+          "line": 52,
+          "finding": "route unbounded (up to 90s) and a rejection became a 500. FIXED: maxWaitMs 30s + try/catch returning status failed; test added.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/campaign-readiness.ts",
+          "line": 164,
+          "finding": "resetReadinessCache leaves an old in-flight promise able to write the cache; test-only. Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/campaign-readiness.ts",
+          "line": 134,
+          "finding": "no-loop detection matches English stderr text; failure mode benign (fails open). Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/launch/campaign-step-branch.ts",
+          "line": 163,
+          "finding": "roundabout readinessChecked flag. Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/CampaignDagSteps.tsx",
+          "line": 45,
+          "finding": "failed/escalated step the scheduler reports ready gets a Launch button (retry). Intended.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/hooks/useCampaignReadiness.ts",
+          "line": 29,
+          "finding": "20s poll per expanded card; server cache+coalescing bound cost. Accepted.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-29T10:01:47.889847+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "transport": "agent"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "server/src/external/launch/campaign-step-branch.ts",
+          "line": 149,
+          "finding": "Claim under doubt: guard only refuses when a launch is illegitimate — campaign-level gates (id:null blockers: unsupported strategy / finalized) made every pending unit !ready, so the guard 409'd and the UI hid every launch path.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling",
+          "file": "server/src/core/campaign-loop-state.ts",
+          "line": 138,
+          "finding": "Claim under doubt: stale root state cannot mis-attach, guard unaffected — skipping root units for any slug with a worktree DIR blinds the double-launch guard to a live root-based run when the dir has no loop.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency",
+          "file": "server/src/core/campaign-readiness.ts",
+          "line": 192,
+          "finding": "Claim under doubt: 15s cached verdict is safe for the guard — a cached 'waiting' refuses a launch for up to 15s after the dependency merged.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/components/external/CampaignDagSteps.tsx",
+          "line": 116,
+          "finding": "Claim under doubt: step lookup / missing unit degrade gracefully — case-only-different ids matched first hit; a step absent from the report had no launch control while the card fallback was hidden.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/campaign-readiness-schema.ts",
+          "line": 93,
+          "finding": "Claim under doubt: mirror equals contract — loop_id nullability widened vs vendored skeleton; supported vs unit.ready two sources.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": "server/src/core/campaign-worktree-root.ts",
+          "line": 39,
+          "finding": "Claim under doubt: symlink/slug escape-safe — no escape constructed.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-29T10:08:34.302901+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "transport": "agent"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-29T09:59:52.759591+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "transport": "agent"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "pending",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": null,
+      "disposition": null,
+      "recorded_by": null,
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

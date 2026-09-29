@@ -1,0 +1,117 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-09-29-campaign-dag-view",
+    "date": "2026-09-29",
+    "unit": {
+      "status": "passed",
+      "passed": 9049,
+      "total": 9062,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 8,
+      "total": 8
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Worktree-vs-legacy state resolution (own worktree = --state base and --campaign-worktree; root never read for a worktree campaign; legacy only if it holds the slug's units)",
+          "disposition": "tested",
+          "evidence": "server/src/core/campaign-readiness.test.ts + campaign-loop-state.worktree.test.ts"
+        },
+        {
+          "behavior": "Scheduler outcome mapping: report / no-loop / engine-unavailable / failed / timeout / major-mismatch->unsupported-version / additive minor tolerated",
+          "disposition": "tested",
+          "evidence": "server/src/core/campaign-readiness.test.ts + campaign-readiness-schema.test.ts (incl. contract drift guard)"
+        },
+        {
+          "behavior": "Cache 15s, error TTL 5s, in-flight coalescing, bounded wait returns timeout while the call completes into the cache",
+          "disposition": "tested",
+          "evidence": "server/src/core/campaign-readiness.test.ts getReadiness block"
+        },
+        {
+          "behavior": "GET readiness route: 200 states incl. throwing bridge -> failed; 404 unknown/synthesized project; 400 bad slug",
+          "disposition": "tested",
+          "evidence": "server/src/routes/campaigns-readiness.test.ts"
+        },
+        {
+          "behavior": "Launch guard refuses a dependency-blocked pending step with 409 + blocked_by; ready launches unflagged; case-insensitive/exact-first id match; non-pending never refused",
+          "disposition": "tested",
+          "evidence": "server/src/external/launch/__tests__/campaign-step-branch.readiness.test.ts"
+        },
+        {
+          "behavior": "Launch guard fails open flagged readinessChecked:false on timeout/unavailable/throw/missing unit/campaign-level gate; no-loop not flagged; cached 'waiting' is re-checked uncached before refusing",
+          "disposition": "tested",
+          "evidence": "campaign-step-branch.readiness.test.ts + campaign-step-branch.failopen.test.ts (real launch router)"
+        },
+        {
+          "behavior": "Attached-run detection covers claimed/running/built/reviewed/merging in the campaign's own worktree; stale root state does not attach a worktree campaign but a worktree dir without a loop does not blind the guard",
+          "disposition": "tested",
+          "evidence": "server/src/core/campaign-loop-state.worktree.test.ts"
+        },
+        {
+          "behavior": "depends_on flows table/status.json -> CampaignStep.dependsOn (status.json wins)",
+          "disposition": "tested",
+          "evidence": "server/src/core/campaign-store.depends-on.test.ts + campaign-parse.test.ts"
+        },
+        {
+          "behavior": "DAG rendering: edges, ready badge, waiting-for sentence, in-flight/failed state, Launch only on ready, fallback on no verdict / campaign-level gate, stale + unreachable banners, unchecked notice in dialog",
+          "disposition": "tested",
+          "evidence": "client/src/components/external/CampaignDagSteps.test.tsx + hooks/useLaunchCampaignStep.test.ts"
+        },
+        {
+          "behavior": "Real pipeline: real loop_claim.py verdict rendered, blocked step refused 409, wave run shows Run attached, degraded fallback",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/campaign-dag-view.spec.ts (8 campaign E2E passed)"
+        }
+      ],
+      "counts": {
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/campaign-dag-view.spec.ts",
+      "exit_code": 0,
+      "tests_run": 3,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-dag-view\\.shipwright\\runs\\iterate-2026-09-29-campaign-dag-view\\surface_verification.log",
+      "timestamp": "2026-09-29T10:10:31.029Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-29-campaign-dag-view",
+    "commit": "8cb1563128d8a496d5b6422209fd57ad2197b897",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

@@ -20,14 +20,18 @@
  */
 
 import { Link } from "react-router-dom";
-import { Check, ChevronDown, ChevronRight, Circle, Play, Loader2, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 
-import type { Campaign, CampaignStep, CampaignLifecycleStatus } from "../../lib/campaignsApi";
+import type { Campaign, CampaignLifecycleStatus } from "../../lib/campaignsApi";
 import { campaignLifecycleLabel } from "../../lib/campaignsApi";
 import type { Project } from "../../types";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
+import { useCampaignReadiness } from "../../hooks/useCampaignReadiness";
+import type { CampaignReadiness } from "../../lib/campaignReadinessApi";
+import { hasVerdict, readinessBanner, uncheckedLaunchNotice } from "../../lib/campaignReadinessCopy";
+import { CampaignDagSteps } from "./CampaignDagSteps";
 import { CampaignStartButton } from "./CampaignStartButton";
 import { CampaignDismissButton } from "./CampaignDismissButton";
 
@@ -52,25 +56,6 @@ function LifecycleBadge({ slug, status }: { slug: string; status: CampaignLifecy
   );
 }
 
-function StepIcon({ kind }: { kind: "complete" | "in_progress" | "next" | "other" }) {
-  if (kind === "complete") {
-    return <Check size={14} className="text-[var(--color-success-text,#16a34a)]" aria-label="complete" />;
-  }
-  if (kind === "in_progress") {
-    return (
-      <Loader2
-        size={13}
-        className="animate-spin text-[var(--color-warning-text,#b45309)]"
-        aria-label="in progress"
-      />
-    );
-  }
-  if (kind === "next") {
-    return <Play size={13} className="text-[var(--color-primary)]" aria-label="next pending" />;
-  }
-  return <Circle size={12} className="text-[var(--color-muted)]" aria-label="pending" />;
-}
-
 export function CampaignLaneCard({
   campaign,
   project,
@@ -91,18 +76,28 @@ export function CampaignLaneCard({
   );
 
   const pct = campaign.total > 0 ? Math.round((campaign.done / campaign.total) * 100) : 0;
-  const next = campaign.nextPending;
   const lifecycle = campaignLifecycleLabel(campaign);
   const isDraft = lifecycle === "draft";
 
-  const stepKind = (s: CampaignStep): "complete" | "in_progress" | "next" | "other" => {
-    if (s.status === "complete") return "complete";
-    // A live (loop_state-derived) in_progress step beats the next-marker: it is
-    // actively running, not merely 'about to start'. See routes/campaigns.ts.
-    if (s.status === "in_progress") return "in_progress";
-    if (next && s.id === next.id) return "next";
-    return "other";
-  };
+  // The scheduler's ready/blocked verdict — fetched only while the card is
+  // expanded and the campaign is running (the server may `git fetch`).
+  const readinessQ = useCampaignReadiness(project?.id, campaign.slug, {
+    enabled: !collapsed && !isDraft && !campaign.derivedFromEvents,
+  });
+  // A failed refetch keeps the previous answer on screen (`data` survives an
+  // error); say so instead of presenting it as current. No answer at all after an
+  // error is an unavailable scheduler, not silence.
+  const stale = readinessQ.isError && readinessQ.data !== undefined;
+  const readiness: CampaignReadiness | undefined =
+    readinessQ.data ??
+    (readinessQ.isError ? { status: "failed", reason: "the readiness check couldn't be reached" } : undefined);
+  const verdict = hasVerdict(readiness);
+  // A campaign-level gate (unsupported strategy / finalized) makes EVERY unit
+  // not-ready without any dependency being at fault — the per-unit buttons would
+  // all be absent, so keep the card-level hand-launch (the server does not refuse
+  // on such a gate either).
+  const campaignGated = verdict && (!readiness.report.supported || readiness.report.finalized);
+  const banner = readinessBanner(readiness, stale);
 
   return (
     <div
@@ -211,40 +206,22 @@ export function CampaignLaneCard({
             />
           </div>
 
-          {/* Ordered steps */}
-          <ol className="flex flex-col gap-1">
-            {campaign.steps.map((s) => {
-              const kind = stepKind(s);
-              const showStatusText =
-                s.status === "failed" || s.status === "escalated" || s.status === "in_progress";
-              return (
-                <li
-                  key={s.id}
-                  className="flex min-w-0 items-center gap-2 text-[12px]"
-                  data-testid={`campaign-step-${s.id}`}
-                  data-step-status={s.status}
-                  data-next={kind === "next" || undefined}
-                >
-                  <StepIcon kind={kind} />
-                  <span className="font-mono text-[11px] text-[var(--color-muted)]">{s.id}</span>
-                  <span className={"min-w-0 truncate " + (kind === "complete" ? "text-[var(--color-muted)] line-through" : "text-[var(--color-text,#111827)]")}>
-                    {s.title}
-                  </span>
-                  {showStatusText && (
-                    <span
-                      className={
-                        s.status === "in_progress"
-                          ? "text-[10px] text-[var(--color-warning-text,#b45309)]"
-                          : "text-[10px] text-[var(--color-error,#dc2626)]"
-                      }
-                    >
-                      {s.status}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+          {/* Dependency-graph steps (edges, scheduler verdict, per-unit guided launch) */}
+          {banner && (
+            <div
+              data-testid={`campaign-readiness-banner-${campaign.slug}`}
+              data-tone={banner.tone}
+              className={"text-[11px] " + (banner.tone === "warn" ? "text-[var(--color-warning-text,#b45309)]" : "text-[var(--color-muted)]")}
+            >
+              {banner.text}
+            </div>
+          )}
+          <CampaignDagSteps
+            campaign={campaign}
+            project={project}
+            readiness={readiness}
+            uncheckedNotice={uncheckedLaunchNotice(readiness, stale)}
+          />
 
           {/* Launch affordances. Left: one-click launch of the next-pending
               sub-iterate (FR-01.36) — opens a terminal running
@@ -260,7 +237,10 @@ export function CampaignLaneCard({
               <CampaignStartButton campaign={campaign} project={project} />
             ) : (
               <>
-                <CampaignStepLaunchButton campaign={campaign} project={project} />
+                {/* With a scheduler verdict each ready unit carries its own Launch
+                    (CampaignDagSteps); the card-level "next" launch is the
+                    no-verdict fallback only. */}
+                {(!verdict || campaignGated) && <CampaignStepLaunchButton campaign={campaign} project={project} />}
                 <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
               </>
             )}

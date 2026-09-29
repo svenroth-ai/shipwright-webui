@@ -20,7 +20,14 @@ import type { CopyCommandForms } from "../../core/launcher.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
 
 export type LaunchBranchResult =
-  | { commands: CopyCommandForms; taskUpdate: Partial<ExternalTask> }
+  | {
+      commands: CopyCommandForms;
+      taskUpdate: Partial<ExternalTask>;
+      /** Set (false) when a scheduler-readiness check was applicable but could
+       *  not be made (timeout / engine unavailable): the launch went ahead
+       *  fail-open and the response says so — never a silent skip. */
+      readinessChecked?: false;
+    }
   | { error: Record<string, unknown>; status: 400 | 404 | 409 };
 
 export { parseLaunchBody, type ParsedLaunchBody } from "./parse-body.js";

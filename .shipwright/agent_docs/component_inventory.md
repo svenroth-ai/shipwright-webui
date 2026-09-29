@@ -103,7 +103,8 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `MasterRunLaunchButton` | `external/MasterRunLaunchButton.tsx` | 118 | 1 |
 | `DesignGatePanel` (paused-design affordance, FR-01.45, iterate-2026-07-10-design-gate-review-host) | `external/DesignGatePanel.tsx` | 65 | 1 |
 | `MockupReviewOverlay` (full-bleed sandboxed viewer host, FR-01.45) | `external/MockupReviewOverlay.tsx` | 185 | 1 |
-| `CampaignLaneCard` | `external/CampaignLaneCard.tsx` | 239 | 3 |
+| `CampaignLaneCard` | `external/CampaignLaneCard.tsx` | 252 | 3 |
+| `CampaignDagSteps` (dependency edges + scheduler verdict + per-unit guided Launch, iterate-2026-09-29-campaign-dag-view) | `external/CampaignDagSteps.tsx` | 149 | 1 |
 | `CampaignAutonomousLaunchButton` | `external/CampaignAutonomousLaunchButton.tsx` | 228 | 1 |
 | `SkillCard` | `external/SkillCard.tsx` | 118 | 7 |
 | `AttachmentCard` | `external/AttachmentCard.tsx` | 105 | 6 |

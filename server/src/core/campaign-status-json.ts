@@ -33,6 +33,15 @@ export interface StatusSubIterate {
   status?: unknown;
   commit?: unknown;
   branch?: unknown;
+  depends_on?: unknown;
+}
+
+/** status.json's live `depends_on` (array of ids) wins; else the campaign.md column. */
+export function resolveDependsOn(sj: StatusSubIterate | undefined, fromTable: string[]): string[] {
+  if (sj && Array.isArray(sj.depends_on)) {
+    return sj.depends_on.filter((d): d is string => typeof d === "string" && d.length > 0);
+  }
+  return fromTable;
 }
 
 export interface StatusJson {

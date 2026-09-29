@@ -34,6 +34,17 @@ describe("launchCampaignStep", () => {
     expect(d.handoff).toHaveBeenCalledWith("t-1", COMMANDS);
   });
 
+  it("carries the server's fail-open notice (readinessChecked:false) through to the result", async () => {
+    const d = deps({ launch: vi.fn(async () => ({ task: { taskId: "t-1" }, commands: COMMANDS, readinessChecked: false as const })) });
+    const res = await launchCampaignStep({ project: { id: "p1", path: "/proj" }, slug: "s", stepId: "C1" }, d);
+    expect(res).toEqual({ ok: true, taskId: "t-1", commands: COMMANDS, readinessChecked: false });
+  });
+
+  it("a normal launch carries no readinessChecked key at all", async () => {
+    const res = await launchCampaignStep({ project: { id: "p1", path: "/proj" }, slug: "s", stepId: "C1" }, deps());
+    expect(res).not.toHaveProperty("readinessChecked");
+  });
+
   // @covers FR-01.33
   it("default handoff writes the pending-auto-launch sessionStorage key (resume:false)", async () => {
     const d = deps({ handoff: undefined });

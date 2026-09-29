@@ -73,7 +73,7 @@ export async function dispatchLaunchBranches(
   });
 
   // Branch 2.5 — single-sub-iterate launch (FR-01.36).
-  result ??= applyCampaignStepBranch({
+  result ??= await applyCampaignStepBranch({
     task,
     parsed,
     effectivelyFreshStart,

@@ -43,6 +43,8 @@ export interface CampaignLaunchDialogProps {
   confirmDisabled?: boolean;
   confirmLabel: string;
   failure?: LaunchFailure | null;
+  /** A plain-language caveat shown above the actions (e.g. "readiness not checked"). */
+  notice?: string | null;
   onConfirm: () => void;
   onRetry?: () => void;
   onCopyCommand?: () => void;
@@ -60,7 +62,7 @@ export function CampaignLaunchDialog(props: CampaignLaunchDialogProps) {
   const {
     open, onOpenChange, slug, testIdPrefix, variant, title, command, what, where,
     remaining = [], risky = [], ack = false, onAckChange, submitting, confirmDisabled,
-    confirmLabel, failure, onConfirm, onRetry, onCopyCommand, onOpenTerminal,
+    confirmLabel, failure, notice, onConfirm, onRetry, onCopyCommand, onOpenTerminal,
   } = props;
   const tid = (s: string) => `${testIdPrefix}-${s}-${slug}`;
   const Head = variant === "autonomous" ? Bot : Play;
@@ -147,6 +149,13 @@ export function CampaignLaunchDialog(props: CampaignLaunchDialogProps) {
                   <input type="checkbox" data-testid={tid("ack")} checked={ack} onChange={(e) => onAckChange?.(e.target.checked)} className="mt-0.5" />
                   <span>I understand — run these unattended anyway.</span>
                 </label>
+              </div>
+            )}
+
+            {notice && (
+              <div data-testid={tid("notice")} className="flex items-start gap-1.5 rounded-[var(--radius-button,8px)] border border-[var(--warn-line)] bg-warn-tint px-3 py-2 text-warn">
+                <TriangleAlert size={13} className="mt-0.5 shrink-0" />
+                <span>{notice}</span>
               </div>
             )}
 

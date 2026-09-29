@@ -697,6 +697,21 @@ events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
   counterpart (a producer-emitted terminal `campaign_completed` event) is tracked
   as monorepo triage `trg-7580f4fe` and will feed the same gate.
 
+- (F) **Dependency view and guided per-step launch** (`iterate-2026-09-29-campaign-dag-view`).
+  An opened campaign card shows, for every step, which steps it waits for ("after A, B"),
+  a **ready** badge when it can be started now, and — when it cannot — a plain sentence naming
+  what it is still waiting for ("waiting for B to merge"). Only ready steps get a **Launch**
+  button; it starts that one step by hand (guided). Running a whole campaign on its own stays
+  a per-campaign action, not per step. The answer comes from the Shipwright scheduler's own
+  read-only readiness check, run inside the campaign's own working copy
+  (`.worktrees/campaign-<slug>`); the Command Center never works readiness out itself. If the
+  scheduler cannot be reached, the card says so and falls back to the old **Launch next**
+  button. The server also refuses to start a step the scheduler says is not ready
+  (`409 campaign_step_not_ready`, naming the blocker); if the check times out or is
+  unavailable the launch still goes ahead and the answer is flagged `readinessChecked:false`,
+  with a visible "readiness not checked" notice. "Run attached" now also covers steps a wave
+  run has claimed, is running, built, reviewed or is merging.
+
 Added by `iterate-2026-06-02-campaigns-board-lane` (read path). As of
 `iterate-2026-06-03-start-campaign-action` (ADR-148) the WebUI performs exactly
 ONE campaign-state write — the Triage "Start Campaign" `draft → active` flip;

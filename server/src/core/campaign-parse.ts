@@ -56,6 +56,16 @@ export interface CampaignTableRow {
   slug: string;
   title: string;
   status: string;
+  /** The "Depends on" column: comma-separated bare ids (monorepo grammar); [] when absent/empty. */
+  dependsOn: string[];
+}
+
+/** Split a "Depends on" cell — comma-separated ids, emphasis already stripped. */
+export function parseDependsOnCell(cell: string): string[] {
+  return cell
+    .split(",")
+    .map((t) => stripInlineEmphasis(t.trim()))
+    .filter(Boolean);
 }
 
 /**
@@ -156,6 +166,7 @@ export function parseSubIteratesTable(md: string): CampaignTableRow[] {
   const titleCol = hasHeader ? colOf("title", 2) : 2;
   // status is conventionally the last column; default to the final cell.
   const statusCol = hasHeader ? colOf("status", header.length - 1) : 3;
+  const dependsCol = hasHeader ? header.indexOf("depends on") : -1;
   const dataStart = hasHeader ? 1 : 0;
 
   const rows: CampaignTableRow[] = [];
@@ -168,6 +179,7 @@ export function parseSubIteratesTable(md: string): CampaignTableRow[] {
       slug: cells[slugCol] ?? "",
       title: cells[titleCol] ?? "",
       status: (cells[statusCol] ?? "").toLowerCase(),
+      dependsOn: dependsCol >= 0 ? parseDependsOnCell(cells[dependsCol] ?? "") : [],
     });
   }
   return rows;

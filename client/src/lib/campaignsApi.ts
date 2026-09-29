@@ -40,6 +40,10 @@ export interface CampaignStep {
    *  (mirror of the server type). False for every campaign today; surfaces in the
    *  autonomous-launch risky-step warning the day a producer emits one. */
   planFirst: boolean;
+  /** Ids this step waits on (monorepo `depends_on` graph). DISPLAY ONLY —
+   *  launchability is the scheduler's verdict (`campaignReadinessApi.ts`), never
+   *  derived from these edges. Optional for deploy-skew safety. */
+  dependsOn?: string[];
 }
 
 export interface Campaign {
@@ -285,8 +289,8 @@ export async function launchCampaignStepRun(
   taskId: string,
   campaignSlug: string,
   stepId: string,
-): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
-  return await httpJson<{ task: ExternalTask; commands: CopyCommandForms }>(
+): Promise<{ task: ExternalTask; commands: CopyCommandForms; readinessChecked?: false }> {
+  return await httpJson<{ task: ExternalTask; commands: CopyCommandForms; readinessChecked?: false }>(
     `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/launch`,
     {
       method: "POST",
