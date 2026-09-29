@@ -39,6 +39,8 @@ export function loopStatePathFor(root: string): string {
 function safeWorktreeDir(projectRoot: string, name: string): string | null {
   try {
     const parent = realpathSync(path.join(projectRoot, ".worktrees"));
+    // `.worktrees` itself may be a symlink out of the project: it must resolve inside.
+    if (!isWithin(realpathSync(projectRoot), parent)) return null;
     const candidate = path.join(parent, name);
     if (!statSync(candidate).isDirectory()) return null;
     const real = realpathSync(candidate);

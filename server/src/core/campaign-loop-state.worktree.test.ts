@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -117,6 +117,19 @@ describe("campaign-worktree-root", () => {
     mkdirSync(path.join(root, ".worktrees", "campaign-"), { recursive: true });
     writeFileSync(path.join(root, ".worktrees", "campaign-file"), "not a dir");
     expect(listCampaignWorktrees(root)).toEqual([{ slug: "one", root: wt("one") }]);
+  });
+
+  it("a .worktrees directory that is a symlink OUT of the project is not trusted", () => {
+    const outside = mkdtempSync(path.join(tmpdir(), "outside-"));
+    mkdirSync(path.join(outside, "campaign-evil"), { recursive: true });
+    try {
+      symlinkSync(outside, path.join(root, ".worktrees"), "junction");
+    } catch {
+      return; // symlinks unavailable in this environment
+    }
+    expect(resolveCampaignStateRoot(root, "evil").worktree).toBe(false);
+    expect(listCampaignWorktrees(root)).toEqual([]);
+    rmSync(outside, { recursive: true, force: true });
   });
 
   it("no .worktrees directory at all is an empty list, never a throw", () => {
