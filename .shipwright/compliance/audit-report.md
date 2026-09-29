@@ -1,6 +1,6 @@
 # Shipwright Detective Audit
 
-Generated: 2026-09-29 06:52:14 UTC
+Generated: 2026-09-29 06:52:38 UTC
 Project: `C:/01_Development/shipwright-webui/.worktrees/compliance-findings`
 
 > Cross-artifact consistency scan (plan v7). Surfaces drift classes that
@@ -15,7 +15,7 @@ Project: `C:/01_Development/shipwright-webui/.worktrees/compliance-findings`
 | B | 0 | 4 | 3 |
 | C | 0 | 1 | 3 |
 | D | 0 | 0 | 7 |
-| E | 5 | 0 | 4 |
+| E | 0 | 0 | 9 |
 | F | 0 | 0 | 7 |
 | G | 0 | 0 | 2 |
 | H | 0 | 0 | 7 |
@@ -46,21 +46,6 @@ Project: `C:/01_Development/shipwright-webui/.worktrees/compliance-findings`
 
 ### Detective-only checks (drift classes Phase-Quality can't see)
 
-- ❌ **E1** (E, MEDIUM): RTM stale (regen vs snapshot)
-  - first diff at line 3; line delta +11; snapshot 6c30df65e616
-  - _Suggested:_ `/shipwright-compliance --fix  # re-renders rtm if a hand-edit drifted it (Group E); if the COMMITTED snapshot is behind instead, commit or stash unrelated work, then /shipwright-compliance --refresh-pr`
-- ❌ **E2** (E, MEDIUM): Test-evidence stale
-  - first diff at line 3; line delta +11; snapshot 6c30df65e616
-  - _Suggested:_ `/shipwright-compliance --fix  # re-renders test_evidence if a hand-edit drifted it (Group E); if the COMMITTED snapshot is behind instead, commit or stash unrelated work, then /shipwright-compliance --refresh-pr`
-- ❌ **E3** (E, MEDIUM): Change-history stale
-  - first diff at line 3; line delta +7; snapshot 6c30df65e616
-  - _Suggested:_ `/shipwright-compliance --fix  # re-renders change_history if a hand-edit drifted it (Group E); if the COMMITTED snapshot is behind instead, commit or stash unrelated work, then /shipwright-compliance --refresh-pr`
-- ❌ **E4** (E, MEDIUM): SBOM stale
-  - first diff at line 3; snapshot 6c30df65e616
-  - _Suggested:_ `/shipwright-compliance --fix  # re-renders sbom if a hand-edit drifted it (Group E); if the COMMITTED snapshot is behind instead, commit or stash unrelated work, then /shipwright-compliance --refresh-pr`
-- ❌ **E5** (E, MEDIUM): Dashboard stale
-  - first diff at line 3; line delta -2; snapshot 6c30df65e616
-  - _Suggested:_ `/shipwright-compliance --fix  # re-renders dashboard if a hand-edit drifted it (Group E); if the COMMITTED snapshot is behind instead, commit or stash unrelated work, then /shipwright-compliance --refresh-pr`
 - ⏭ **A4** (A, HIGH): Config path-fields integrity
   - no shipwright_*_config.json with declared path-fields
 - ⏭ **A3** (A, MEDIUM): [project.scripts] entry-points resolvable
@@ -90,7 +75,7 @@ Project: `C:/01_Development/shipwright-webui/.worktrees/compliance-findings`
 - ✅ **A5.7** (A, MEDIUM): Fork-PR guard wired on SARIF upload
   - canonical fork-PR guard pair present in `if:`
 - ✅ **B7** (B, MEDIUM): Every commit since release tag has a matching event
-  - 69 commit(s) since v0.27.0 (15 excluded by Rules A/B/C, 54 matched events)
+  - 70 commit(s) since v0.27.0 (16 excluded by Rules A/B/C, 54 matched events)
 - ✅ **D-orphan** (D, MEDIUM): Tests tagged with a removed/absent FR
   - no test is tagged with a removed/absent FR
 - ✅ **D2** (D, MEDIUM): Event FR-refs exist in spec
@@ -105,14 +90,24 @@ Project: `C:/01_Development/shipwright-webui/.worktrees/compliance-findings`
   - every spec FR has a covering event
 - ✅ **D4** (D, LOW): Latest covering event passed tests
   - every covered FR's latest event passed its tests
+- ✅ **E1** (E, MEDIUM): RTM stale (regen vs snapshot)
+  - on-disk matches snapshot 78eb08320346 (.shipwright/compliance/traceability-matrix.md)
+- ✅ **E2** (E, MEDIUM): Test-evidence stale
+  - on-disk matches snapshot 78eb08320346 (.shipwright/compliance/test-evidence.md)
+- ✅ **E3** (E, MEDIUM): Change-history stale
+  - on-disk matches snapshot 78eb08320346 (.shipwright/compliance/change-history.md)
+- ✅ **E4** (E, MEDIUM): SBOM stale
+  - on-disk matches snapshot 78eb08320346 (.shipwright/compliance/sbom.md)
+- ✅ **E5** (E, MEDIUM): Dashboard stale
+  - on-disk matches snapshot 78eb08320346 (.shipwright/compliance/dashboard.md)
 - ✅ **E?** (E, MEDIUM): session_handoff
-  - on-disk matches snapshot 6c30df65e616 (.shipwright/agent_docs/session_handoff.md)
+  - on-disk matches snapshot 78eb08320346 (.shipwright/agent_docs/session_handoff.md)
 - ✅ **E?** (E, MEDIUM): build_dashboard
-  - on-disk matches snapshot 6c30df65e616 (.shipwright/agent_docs/build_dashboard.md)
+  - on-disk matches snapshot 78eb08320346 (.shipwright/agent_docs/build_dashboard.md)
 - ✅ **E?** (E, MEDIUM): triage_inbox
-  - on-disk matches snapshot 6c30df65e616 (.shipwright/agent_docs/triage_inbox.md)
+  - on-disk matches snapshot 78eb08320346 (.shipwright/agent_docs/triage_inbox.md)
 - ✅ **E0** (E, LOW): Snapshot baseline
-  - baseline snapshot 6c30df65e616
+  - baseline snapshot 78eb08320346
 - ✅ **F4** (F, MEDIUM): ADR bloat (> 60 lines without spec_ref)
   - no bloated ADRs without spec_ref
 - ✅ **F5** (F, MEDIUM): Arch-impact drops vs architecture.md text
@@ -122,7 +117,7 @@ Project: `C:/01_Development/shipwright-webui/.worktrees/compliance-findings`
 - ✅ **F7** (F, MEDIUM): CLAUDE.md inline iterate-annotation leak
   - 0 inline iterate references (≤ 5)
 - ✅ **G2** (G, MEDIUM): Conventional-commit scope matches alias-map / split / stoplist
-  - every conventional scope in 67 commit(s) resolves against alias-map / split / stoplist
+  - every conventional scope in 68 commit(s) resolves against alias-map / split / stoplist
 - ✅ **G3** (G, MEDIUM): Commit-body ADR refs exist in decision_log.md
   - every ADR ref in 8 body-mention(s) is declared
 - ✅ **H1** (H, HIGH): Bloat drift (oversize file not in baseline)

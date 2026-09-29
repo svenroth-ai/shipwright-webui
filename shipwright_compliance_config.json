@@ -25,24 +25,24 @@
     ]
   },
   "last_audit": {
-    "ran_at": "2026-09-29T06:52:14.513650+00:00",
-    "verdict": "fail",
+    "ran_at": "2026-09-29T06:52:38.969010+00:00",
+    "verdict": "pass",
     "scope": "full",
     "checks": {
       "total": 62,
-      "pass": 50,
-      "fail": 5,
+      "pass": 55,
+      "fail": 0,
       "skip": 7
     }
   },
   "last_full_audit": {
-    "ran_at": "2026-09-29T06:52:14.513650+00:00",
-    "verdict": "fail",
+    "ran_at": "2026-09-29T06:52:38.969010+00:00",
+    "verdict": "pass",
     "scope": "full",
     "checks": {
       "total": 62,
-      "pass": 50,
-      "fail": 5,
+      "pass": 55,
+      "fail": 0,
       "skip": 7
     }
   }
