@@ -56,7 +56,7 @@ afterEach(() => {
   vi.resetAllMocks();
 });
 
-// @covers FR-04.11
+// @covers FR-01.01
 describe("LeadwrightFieldsFragment — org-chart presence gate", () => {
   it("hides the fields on a confirmed absent org chart (no leads installed)", () => {
     mockedPresence.mockReturnValue("absent");

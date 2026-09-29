@@ -27,13 +27,13 @@ function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
 }
 
 describe("ClaimChip (FR-04.22)", () => {
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("renders nothing when the task is unclaimed", () => {
     render(<ClaimChip task={baseTask()} />);
     expect(screen.queryByTestId("task-card-claim-task-1")).toBeNull();
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("shows who holds the card and since when once claimed", () => {
     render(
       <ClaimChip
@@ -45,7 +45,7 @@ describe("ClaimChip (FR-04.22)", () => {
     expect(screen.getByTestId("task-card-claim-since-task-1").textContent).toContain("m ago");
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("keys off claimedBy, NOT state — renders while state is 'done'", () => {
     // Proves acceptance (b): the display reads claimedBy/claimedAt, never
     // `state`. leadwright's claimTask still sets state="active" today, but
@@ -55,7 +55,7 @@ describe("ClaimChip (FR-04.22)", () => {
     expect(screen.getByTestId("task-card-claim-task-1")).toBeTruthy();
   });
 
-  // @covers FR-04.22
+  // @covers FR-01.01
   it("renders without the 'since' span when claimedAt is missing", () => {
     render(<ClaimChip task={baseTask({ claimedBy: "po-agent" })} />);
     expect(screen.getByTestId("task-card-claim-task-1")).toBeTruthy();

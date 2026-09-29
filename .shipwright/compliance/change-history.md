@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-09-28T06:43:14.369756+00:00
-Source-State: run=iterate-2026-09-28-codex-model-catalog-dropdown
-Consistency-audit: last full run 2026-08-31 (28 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
-Total commits: 909
+Generated: 2026-09-29T06:30:07.241905+00:00
+Source-State: run=compliance-b7-d027462b-20260929
+Consistency-audit: last run 2026-09-29 (same day) — FAIL
+Total commits: 916
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 368
+    "fix" : 372
     "feat" : 231
-    "chore" : 146
+    "chore" : 149
     "docs" : 76
     "refactor" : 35
     "test" : 30
@@ -23,10 +23,14 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 368 commits
+### Fixes (fix) — 372 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-09-29 | webui | pin Claude tier aliases to the Codextender launch alias (#493) | b567a15e1f89 |
+| 2026-09-28 | webui | Mission activity feed completeness (session-start anchor, mid-file Run-ID recovery, transient-error/note styling) (#492) | f179c230af5a |
+| 2026-09-28 | webui | unset CLAUDE_CODE_MAX_CONTEXT_TOKENS on probe-miss + suppress auto-mode notice (#490) | b4c2b853f92b |
+| 2026-09-28 | e2e | delete fixture task in 35-no-chat-panel.spec.ts cleanup (#488) | a3d4ef99ac13 |
 | 2026-09-26 | webui | set CLAUDE_CODE_MAX_CONTEXT_TOKENS for Codextender launches (#486) | 1b95183b2e72 |
 | 2026-09-26 | webui | remove Codex Implementation-model override field (#485) | 20af8d18ef4b |
 | 2026-09-26 | webui | gate runtime badge on availability, and Claim filter on Leadwright presence (#482) | 35e4e620a8cc |
@@ -632,11 +636,14 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 146 commits
+### Chores (chore) — 149 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-09-28 | triage | sweep 4 outbox append(s) into branch | 93e1e9a11de6 |
+| 2026-09-29 | compliance | reconcile B7, F5, F6, H1 and retag D-orphan tests | 6c30df65e616 |
+| 2026-09-29 | triage | sweep 5 outbox append(s) into branch | 60869d5a0c13 |
+| 2026-09-28 | webui | dismiss stale codex-model-catalog-dropdown triage card (#491) | a8c8b1a633e9 |
+| 2026-09-28 | webui | close 3 phase-quality Tier-1 gates (design C1/D1, iterate W3) (#489) | cb0e2375af8e |
 | 2026-09-26 | webui | pre-bump session-parser.ts bloat-baseline ceiling to 842 (#484) | be02273f9e5f |
 | 2026-09-08 | ci | bump pinned shipwright-compliance checkout for manifest schema v4 | 2c4ba5c0088d |
 | 2026-09-03 | external-review | route the GPT review leg through Codex CLI (#414) | 4f80757ff9e9 |
@@ -986,7 +993,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 909 |
+| Total commits | 916 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 909 |
+| Human-authored commits | 916 |
 

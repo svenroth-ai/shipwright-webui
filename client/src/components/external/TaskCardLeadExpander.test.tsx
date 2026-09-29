@@ -188,7 +188,7 @@ describe("TaskCardLeadExpander", () => {
   });
 });
 
-// @covers FR-04.11
+// @covers FR-01.01
 describe("Lead chips REPORT existing data — never gated on org-chart presence (iterate-2026-09-09-leadwright-gate-org-presence)", () => {
   it.each(["absent", "loading", "broken", "present"] as const)(
     "LeadOriginGlyph still renders when presence is %s — a task already carries this tag whether or not an org chart exists",

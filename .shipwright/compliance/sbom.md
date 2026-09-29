@@ -1,8 +1,8 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-09-28T06:43:14.369756+00:00
-Source-State: run=iterate-2026-09-28-codex-model-catalog-dropdown
-Consistency-audit: last full run 2026-08-31 (28 days earlier) — PASS; latest 2026-09-10 partial (groups B,G,I)
+Generated: 2026-09-29T06:30:07.241905+00:00
+Source-State: run=compliance-b7-d027462b-20260929
+Consistency-audit: last run 2026-09-29 (same day) — FAIL
 
 ## Summary
 
