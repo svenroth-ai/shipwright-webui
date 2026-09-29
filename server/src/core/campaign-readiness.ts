@@ -192,7 +192,7 @@ export async function getReadiness(
   const hit = cache.get(key);
   if (hit) {
     const ttl = hit.outcome.status === "report" || hit.outcome.status === "no-loop" ? maxAge : Math.min(maxAge, READINESS_ERROR_TTL_MS);
-    if (now() - hit.at <= ttl) return hit.outcome;
+    if (now() - hit.at < ttl) return hit.outcome; // strict: maxAgeMs 0 must ALWAYS recompute
   }
 
   let pending = inflight.get(key);

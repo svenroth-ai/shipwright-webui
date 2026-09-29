@@ -196,6 +196,14 @@ describe("getReadiness — cache + coalescing + bounded wait", () => {
     expect(spawns).toBe(2);
   });
 
+  it("maxAgeMs:0 ALWAYS recomputes, even within the same millisecond", async () => {
+    let spawns = 0;
+    const d = deps({ now: () => 1_000, spawn: async () => (spawns++, ok()) });
+    await getReadiness(input(), d);
+    await getReadiness(input(), d, { maxAgeMs: 0 });
+    expect(spawns).toBe(2);
+  });
+
   it("an error outcome is retried after 5 s, not held for the full TTL", async () => {
     let spawns = 0;
     let t = 1_000;
