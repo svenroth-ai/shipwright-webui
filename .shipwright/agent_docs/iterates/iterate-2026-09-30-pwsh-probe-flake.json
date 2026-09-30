@@ -1,0 +1,61 @@
+{
+  "run_id": "iterate-2026-09-30-pwsh-probe-flake",
+  "date": "2026-09-30T07:40:15.429351Z",
+  "event_at": "2026-09-29T19:25:37.206143+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/pwsh-probe-flake",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-09-30-pwsh-probe-flake",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Missing PowerShell fails loud in CI (clear diagnostics) instead of skipping or passing null to spawn",
+        "disposition": "tested",
+        "evidence": "powershell-probe.test.ts 'missing PowerShell: skips locally, but FAILS in CI with diagnostics' PASSED"
+      },
+      {
+        "behavior": "A transient probe failure is retried and pwsh resolves",
+        "disposition": "tested",
+        "evidence": "powershell-probe.test.ts 'retries a transient failure and resolves pwsh' PASSED"
+      },
+      {
+        "behavior": "The probe runs once per module instance so skipIf and run-time paths cannot disagree",
+        "disposition": "tested",
+        "evidence": "powershell-probe.test.ts 'probes once per process: repeated calls do not respawn' PASSED"
+      },
+      {
+        "behavior": "A not-installed binary (ENOENT) is reported and not retried",
+        "disposition": "tested",
+        "evidence": "powershell-probe.test.ts 'a binary that is simply not installed (ENOENT) is not retried' PASSED"
+      },
+      {
+        "behavior": "launcher and launcher-codextender smoke suites still pass through the shared probe",
+        "disposition": "tested",
+        "evidence": "launcher.smoke.test.ts + launcher-codextender.smoke.test.ts PASSED (F0.5 cli runner, 14 tests)"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 2,
+      "covered_acs": 2
+    }
+  },
+  "surface_verification": {
+    "surface": "cli",
+    "runner": "node server/node_modules/vitest/vitest.mjs run --root server src/core/powershell-probe.test.ts src/core/launcher.smoke.test.ts src/core/launcher-codextender.smoke.test.ts",
+    "exit_code": 0,
+    "tests_run": 14,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\pwsh-probe-flake\\.shipwright\\runs\\iterate-2026-09-30-pwsh-probe-flake\\surface_verification.log",
+    "timestamp": "2026-09-30T07:39:38.046Z",
+    "attempts": 1
+  }
+}

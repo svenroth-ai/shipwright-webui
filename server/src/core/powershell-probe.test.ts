@@ -4,7 +4,7 @@
  * "found after a transient failure" and "never found" paths run on any host.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const spawnSync = vi.fn();
 vi.mock("node:child_process", () => ({ spawnSync }));
@@ -21,6 +21,8 @@ beforeEach(() => {
   spawnSync.mockReset();
   vi.unstubAllEnvs();
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("powershell probe", () => {
   it("retries a transient failure and resolves pwsh", async () => {
@@ -54,5 +56,12 @@ describe("powershell probe", () => {
     spawnSync.mockReturnValue({ status: null, error: Object.assign(new Error("spawn pwsh ENOENT"), { name: "Error" }) });
     const m = await load();
     expect(() => m.requirePowerShell()).toThrow(/spawn pwsh ENOENT/);
+  });
+
+  it("a binary that is simply not installed (ENOENT) is not retried", async () => {
+    spawnSync.mockReturnValue({ status: null, error: Object.assign(new Error("spawn ENOENT"), { code: "ENOENT" }) });
+    const m = await load();
+    expect(() => m.requirePowerShell()).toThrow(/pwsh: not installed \(ENOENT\)/);
+    expect(spawnSync).toHaveBeenCalledTimes(2); // pwsh + powershell, once each
   });
 });

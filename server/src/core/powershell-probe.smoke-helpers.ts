@@ -8,7 +8,7 @@
  * one could succeed while the other failed — the test then RAN but held
  * `null` and died with "No PowerShell available" / a null passed to spawn
  * (PR #496, Diff coverage job). pwsh was on the image the whole time. The
- * fix is to probe ONCE per process, retry a transient failure, and keep the
+ * fix is to probe ONCE per test file (module instance), retry a transient failure, and keep the
  * failure diagnosable.
  *
  * Contract: `powershellSkip()` is the skipIf predicate — false in CI, so a
@@ -44,6 +44,7 @@ function sleepSync(ms: number): void {
 function probeOnce(): PowerShellProbe {
   const diagnostics: string[] = [];
   for (let attempt = 1; attempt <= PROBE_ATTEMPTS; attempt++) {
+    let transient = false;
     for (const candidate of ["pwsh", "powershell"]) {
       const r = spawnSync(candidate, ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], {
         stdio: "pipe",
@@ -51,11 +52,17 @@ function probeOnce(): PowerShellProbe {
         env: { ...process.env, ...POWERSHELL_QUIET_ENV },
       });
       if (r.status === 0) return { bin: candidate, diagnostics };
+      if ((r.error as NodeJS.ErrnoException | undefined)?.code === "ENOENT") {
+        diagnostics.push(`${candidate}: not installed (ENOENT)`);
+        continue; // deterministic — never worth a retry
+      }
+      transient = true;
       const why = r.error
         ? `${r.error.name}: ${r.error.message}`
         : `status=${r.status} signal=${r.signal ?? "none"} stderr=${r.stderr?.toString().trim().slice(0, 200) ?? ""}`;
       diagnostics.push(`attempt ${attempt} ${candidate}: ${why}`);
     }
+    if (!transient) break; // every candidate is simply not installed — retrying cannot help
     if (attempt < PROBE_ATTEMPTS) sleepSync(PROBE_BACKOFF_MS * attempt);
   }
   return { bin: null, diagnostics };
