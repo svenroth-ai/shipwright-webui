@@ -36,34 +36,29 @@
  * CLAUDE_CODE_AUTO_MODE_SERVER coverage was added).
  */
 
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 import {
   MARKER_VALUE,
   cleanupScratchDirs,
   findBash,
   findCmd,
-  findPowerShell,
   runBash,
   runCmd,
   runPowershell,
   SPAWN_TIMEOUT_MS,
 } from "./launcher-codextender.smoke-helpers.js";
-
-let powershellBin: string | null = null;
-beforeAll(() => {
-  powershellBin = findPowerShell();
-});
+import { powershellSkip, requirePowerShell } from "./powershell-probe.smoke-helpers.js";
 
 afterEach(() => {
   cleanupScratchDirs();
 });
 
 describe("launcher-codextender smoke — generated commands actually run in real shells", () => {
-  it.skipIf(!findPowerShell())(
+  it.skipIf(powershellSkip())(
     "PowerShell: token reaches the child, never printed, cleanup runs on a SUCCESSFUL exit",
     () => {
-      const r = runPowershell(0, powershellBin as string);
+      const r = runPowershell(0, requirePowerShell());
       expect(r.stderr).toBe("");
       expect(r.tokenSeenByChild).toBe(MARKER_VALUE);
       expect(r.stdout).not.toContain(MARKER_VALUE);
@@ -74,10 +69,10 @@ describe("launcher-codextender smoke — generated commands actually run in real
     SPAWN_TIMEOUT_MS,
   );
 
-  it.skipIf(!findPowerShell())(
+  it.skipIf(powershellSkip())(
     "PowerShell: cleanup still runs after the child exits NON-ZERO",
     () => {
-      const r = runPowershell(1, powershellBin as string);
+      const r = runPowershell(1, requirePowerShell());
       expect(r.tokenSeenByChild).toBe(MARKER_VALUE);
       expect(r.stdout).not.toContain(MARKER_VALUE);
       expect(r.remainingEnv).toBe("");

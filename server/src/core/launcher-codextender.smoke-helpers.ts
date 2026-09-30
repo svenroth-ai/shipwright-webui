@@ -15,6 +15,7 @@ import path from "node:path";
 
 import { buildCopyCommands } from "./launcher.js";
 import { buildCodextenderCommands } from "./launcher-codextender.js";
+import { POWERSHELL_QUIET_ENV } from "./powershell-probe.smoke-helpers.js";
 
 export const SAMPLE_UUID = "00000000-1111-2222-3333-444444444444";
 export const MARKER_VALUE = "smoke-test-secret-9f3a2b7c-do-not-leak";
@@ -48,17 +49,6 @@ export function extractTokenFilePath(command: string, shellForm: "powershell" | 
   const m = command.match(/\$\(cat '([^']+)'\)/);
   if (!m) throw new Error("token file path not found in posix command");
   return m[1];
-}
-
-export function findPowerShell(): string | null {
-  for (const candidate of ["pwsh", "powershell"]) {
-    const result = spawnSync(candidate, ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], {
-      stdio: "pipe",
-      timeout: SPAWN_TIMEOUT_MS,
-    });
-    if (result.status === 0) return candidate;
-  }
-  return null;
 }
 
 export function findBash(): string | null {
@@ -127,7 +117,7 @@ export function runPowershell(exitCode: number, powershellBin: string): SmokeRes
   const result = spawnSync(powershellBin, ["-NoProfile", "-Command", wrapper], {
     stdio: "pipe",
     timeout: SPAWN_TIMEOUT_MS,
-    env: { ...process.env, SMOKE_CAPTURE_FILE: captureFile, SMOKE_EXIT_CODE: String(exitCode) },
+    env: { ...process.env, ...POWERSHELL_QUIET_ENV, SMOKE_CAPTURE_FILE: captureFile, SMOKE_EXIT_CODE: String(exitCode) },
   });
   const stdout = result.stdout?.toString() ?? "";
   return {

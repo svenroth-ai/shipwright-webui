@@ -7,32 +7,19 @@
  * shell exits 0 and stdout reflects the expected --session-id, --name,
  * and --add-dir tokens after the shell has parsed them.
  *
- * Skipped when no PowerShell is available (Linux CI without `pwsh`).
+ * Skipped when no PowerShell is available locally; in CI a missing PowerShell
+ * FAILS with diagnostics (powershell-probe.smoke-helpers.ts).
  * The PowerShell escape spec lives in launcher.ts; this test is the
  * end-to-end check that the emitted PS literal survives a real parse.
  */
 
-import { describe, it, expect, beforeAll } from "vitest";
-import { spawn, spawnSync } from "node:child_process";
+import { describe, it, expect } from "vitest";
+import { spawn } from "node:child_process";
 
 import { buildCopyCommands } from "./launcher.js";
+import { POWERSHELL_QUIET_ENV, powershellSkip, requirePowerShell } from "./powershell-probe.smoke-helpers.js";
 
 const SAMPLE_UUID = "00000000-1111-2222-3333-444444444444";
-
-function findPowerShell(): string | null {
-  for (const candidate of ["pwsh", "powershell"]) {
-    const result = spawnSync(candidate, ["-NoProfile", "-Command", "$PSVersionTable.PSVersion.Major"], {
-      stdio: "pipe",
-    });
-    if (result.status === 0) return candidate;
-  }
-  return null;
-}
-
-let powershell: string | null = null;
-beforeAll(() => {
-  powershell = findPowerShell();
-});
 
 function runInPowerShell(generatedCommand: string): Promise<{ exit: number; stdout: string; stderr: string }> {
   // Wrap the generated command in a script that defines a stub `claude`
@@ -53,11 +40,17 @@ function runInPowerShell(generatedCommand: string): Promise<{ exit: number; stdo
     '}\n' +
     generatedCommand + '\n';
   return new Promise((resolve, reject) => {
-    if (!powershell) {
-      reject(new Error("No PowerShell available"));
+    let powershell: string;
+    try {
+      powershell = requirePowerShell();
+    } catch (err) {
+      reject(err);
       return;
     }
-    const child = spawn(powershell, ["-NoProfile", "-Command", wrapper], { stdio: "pipe" });
+    const child = spawn(powershell, ["-NoProfile", "-Command", wrapper], {
+      stdio: "pipe",
+      env: { ...process.env, ...POWERSHELL_QUIET_ENV },
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (b) => (stdout += b.toString()));
@@ -68,7 +61,7 @@ function runInPowerShell(generatedCommand: string): Promise<{ exit: number; stdo
 }
 
 describe("launcher smoke — generated PS command actually parses + runs", () => {
-  it.skipIf(!findPowerShell())(
+  it.skipIf(powershellSkip())(
     "tricky-char title (single quote, $, backtick, semicolon, &) parses cleanly",
     async () => {
       const trickyTitle = `Test's $tring \`with semicolons; & pipes |`;
@@ -96,7 +89,7 @@ describe("launcher smoke — generated PS command actually parses + runs", () =>
     20_000,
   );
 
-  it.skipIf(!findPowerShell())(
+  it.skipIf(powershellSkip())(
     "Unicode title (umlauts, emoji, CJK) survives the round-trip",
     async () => {
       const t = "Test ä ö ü 日本語 🚀";
@@ -116,7 +109,7 @@ describe("launcher smoke — generated PS command actually parses + runs", () =>
     20_000,
   );
 
-  it.skipIf(!findPowerShell())(
+  it.skipIf(powershellSkip())(
     "command without --name (empty title) still parses",
     async () => {
       const cmd = buildCopyCommands({
