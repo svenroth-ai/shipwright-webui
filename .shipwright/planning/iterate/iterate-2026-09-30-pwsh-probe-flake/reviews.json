@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-09-30-pwsh-probe-flake",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:45.421099+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:45.658691+00:00",
+      "disposition": "no mini-plan or external plan review: small run, plan review is medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/powershell-probe.smoke-helpers.ts",
+          "line": 1,
+          "finding": "Cache is per module instance (per test file), not per process; header wording inexact. Flake fixed within each file.",
+          "suggestion": "Reword to once per test file.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "server/src/core/powershell-probe.smoke-helpers.ts",
+          "line": 1,
+          "finding": "ENOENT is deterministic and needs no retry; hung pwsh could block up to ~3 min at collection.",
+          "suggestion": "Skip retry on ENOENT.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/powershell-probe.smoke-helpers.ts",
+          "line": 1,
+          "finding": "Null cached after retries then every CI test fails with same diagnostics - intended fail-loud.",
+          "suggestion": "No change required.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/powershell-probe.smoke-helpers.ts",
+          "line": 1,
+          "finding": "isCi env param / exported resolvePowerShell minor surface.",
+          "suggestion": "cosmetic",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/powershell-probe.test.ts",
+          "line": 1,
+          "finding": "Mock isolation correct; stubbed CI env lingers after last test (harmless).",
+          "suggestion": "Add afterEach unstubAllEnvs.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:02.433614+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:46.408786+00:00",
+      "disposition": "doubt-reviewer is conditional on migrations/async/cross-plugin/irreversible ops; test-helper diff touches none",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:46.640499+00:00",
+      "disposition": "external LLM review is advisory and auto only at medium+; this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:35:16.940493+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:45.917649+00:00",
+      "disposition": "internal plan review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-09-30T07:36:46.172271+00:00",
+      "disposition": "internal architecture review is medium+ only, this run is small",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
