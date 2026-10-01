@@ -1,0 +1,54 @@
+{
+ "review": [
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "scripts/tailscale-https.mjs",
+   "finding": "HONO_HOST=0.0.0.0 proxied as-is",
+   "resolution": "fixed: mapped to loopback",
+   "text": "HONO_HOST=0.0.0.0 proxied as-is",
+   "description": "HONO_HOST=0.0.0.0 proxied as-is",
+   "message": "HONO_HOST=0.0.0.0 proxied as-is"
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "scripts/tailscale-https.mjs",
+   "finding": "non-IPv4 HONO_HOST literal mapped to loopback",
+   "resolution": "accepted, unlikely config",
+   "text": "non-IPv4 HONO_HOST literal mapped to loopback",
+   "description": "non-IPv4 HONO_HOST literal mapped to loopback",
+   "message": "non-IPv4 HONO_HOST literal mapped to loopback"
+  },
+  {
+   "severity": "low",
+   "category": "robustness",
+   "file": "scripts/tailscale-https.mjs",
+   "finding": "parseEnvFile has no inline comments",
+   "resolution": "fixed: noted in .env.example",
+   "text": "parseEnvFile has no inline comments",
+   "description": "parseEnvFile has no inline comments",
+   "message": "parseEnvFile has no inline comments"
+  },
+  {
+   "severity": "low",
+   "category": "robustness",
+   "file": "scripts/start-server-production.ps1",
+   "finding": "LASTEXITCODE not reset",
+   "resolution": "fixed",
+   "text": "LASTEXITCODE not reset",
+   "description": "LASTEXITCODE not reset",
+   "message": "LASTEXITCODE not reset"
+  },
+  {
+   "severity": "low",
+   "category": "ux",
+   "file": "docs/guide.md",
+   "finding": "serve replaces existing config on that port",
+   "resolution": "fixed: doc note",
+   "text": "serve replaces existing config on that port",
+   "description": "serve replaces existing config on that port",
+   "message": "serve replaces existing config on that port"
+  }
+ ]
+}
