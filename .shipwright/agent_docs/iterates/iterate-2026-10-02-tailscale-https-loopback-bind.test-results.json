@@ -1,0 +1,86 @@
+{
+  "last_updated": "2026-10-02",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-02-tailscale-https-loopback-bind",
+    "date": "2026-10-02",
+    "unit": {
+      "status": "passed",
+      "passed": 108,
+      "total": 108
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "profile=tailscale + HTTPS flag binds 127.0.0.1",
+          "disposition": "tested",
+          "evidence": "server resolveHonoHost.test.ts (3 new cases)"
+        },
+        {
+          "behavior": "without flag / other profiles / explicit HONO_HOST unchanged",
+          "disposition": "tested",
+          "evidence": "server resolveHonoHost.test.ts"
+        },
+        {
+          "behavior": "helper proxies loopback (or explicit IPv4, [::1])",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs backend host"
+        },
+        {
+          "behavior": "truthy set identical in server and helper",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs drift guard"
+        },
+        {
+          "behavior": "real https URL reachable over tailnet after redeploy",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "needs live tailscaled + cert + second device; empirically diagnosed 2026-10-01, operator verifies after deploy"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "cli",
+      "runner": "node --test scripts/tailscale-https.test.mjs",
+      "exit_code": 0,
+      "tests_run": 6,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\tailscale-https-loopback-bind\\.shipwright\\runs\\iterate-2026-10-02-tailscale-https-loopback-bind\\surface_verification.log",
+      "timestamp": "2026-10-01T22:03:01.922Z",
+      "attempts": 1
+    }
+  }
+}

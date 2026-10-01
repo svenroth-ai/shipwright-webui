@@ -1,0 +1,5 @@
+{"review":[
+{"severity":"medium","finding":"helper/server disagree for HONO_HOST=::1 (refused on 127.0.0.1)","text":"helper/server disagree for HONO_HOST=::1","description":"IPv6-only loopback","resolution":"fixed: maps to [::1] + test"},
+{"severity":"low","finding":"truthy set duplicated server/helper","text":"truthy set duplicated","description":"drift risk","resolution":"fixed: drift test"},
+{"severity":"low","finding":"failure message omits that direct tailnet-IP access is off","text":"failure message","description":"UX","resolution":"fixed"},
+{"severity":"low","finding":"HONO_HOST set to tailnet IP + HTTPS hangs","text":"HONO_HOST tailnet IP","description":"explicit override","resolution":"accepted, explicit operator override"}]}

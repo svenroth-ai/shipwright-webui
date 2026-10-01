@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"Code and docs match the spec. The reviewer's single REJECT finding (changelog drop not found) was refuted: CHANGELOG-unreleased.d/Fixed/iterate-2026-10-02-tailscale-https-loopback-bind_001.md is tracked at HEAD; the reviewer had no shell access."}
