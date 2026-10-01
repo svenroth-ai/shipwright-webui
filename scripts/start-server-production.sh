@@ -176,6 +176,8 @@ if [ "$up" = true ]; then
   say "$C_GREEN" '  OK - Hono runs in the background, no window.'
   say "$C_GREEN" '  Restart: run this again.  Stop: bash scripts/stop-server.sh'
   say "$C_GREEN" "  Log: $LOG"
+  # Opt-in HTTPS front (SHIPWRIGHT_TAILSCALE_HTTPS=1): best-effort, never fails the deploy.
+  node "$SCRIPT_DIR/tailscale-https.mjs" --port "$PORT" || true
   echo
 else
   say "$C_RED" "  Server did NOT come up on port $PORT."

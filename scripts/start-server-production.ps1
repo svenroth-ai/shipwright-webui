@@ -176,6 +176,8 @@ if ($null -ne $verdict -and $verdict.ok) {
   Write-Host "  OK - Hono runs in the background, no window (pid $($verdict.pid), port $($verdict.port))." -ForegroundColor Green
   Write-Host '  Restart: run this again.  Stop: stop-server.ps1' -ForegroundColor Green
   Write-Host "  Log: $(Join-Path $logDir 'server-manual.log')" -ForegroundColor Green
+  # Opt-in HTTPS front (SHIPWRIGHT_TAILSCALE_HTTPS=1): best-effort, never fails the deploy.
+  & node (Join-Path $PSScriptRoot 'tailscale-https.mjs') --port $Port
   Write-Host ''
   Write-Host '  This window closes itself in 4s...' -ForegroundColor DarkGray
   Start-Sleep -Seconds 4
