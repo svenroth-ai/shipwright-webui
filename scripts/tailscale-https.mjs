@@ -69,6 +69,7 @@ export function resolveHttpsPort(env) {
 export function resolveBackendHost(env) {
   const honoHost = String(env.HONO_HOST ?? '').trim();
   if (honoHost && isIPv4(honoHost) && honoHost !== '0.0.0.0') return honoHost;
+  if (honoHost === '::1') return '[::1]'; // bound to IPv6 loopback ONLY — 127.0.0.1 would be refused
   return '127.0.0.1';
 }
 
@@ -101,6 +102,7 @@ function main() {
     const out = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
     if (r.error || r.status !== 0) {
       console.log(`  HTTPS (tailscale serve) NOT enabled: ${r.error ? r.error.message : out}`);
+      console.log('  NOTE: with SHIPWRIGHT_TAILSCALE_HTTPS=1 the server binds loopback, so http://<tailscale-ip>:PORT is NOT reachable either until this works (or the flag is removed).');
       console.log('  Tailnet HTTPS certificates must be switched on once in the Tailscale admin console (DNS -> HTTPS Certificates).');
       return 1;
     }
