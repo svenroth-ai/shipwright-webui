@@ -1,0 +1,96 @@
+{
+  "last_updated": "2026-10-01",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-01-tailscale-https-serve",
+    "date": "2026-10-01",
+    "unit": {
+      "status": "passed",
+      "passed": 123,
+      "total": 123
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "opt-in flag strictly gates the helper (unset/0 = no-op)",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs isEnabled"
+        },
+        {
+          "behavior": "https port defaults to 443, rejects junk",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs resolveHttpsPort"
+        },
+        {
+          "behavior": "backend host follows real bind (HONO_HOST, 0.0.0.0, profiles, tailscale ip)",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs backend host"
+        },
+        {
+          "behavior": "serve args are tailnet-only, background-persistent, never funnel",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs serve args"
+        },
+        {
+          "behavior": ".env.local parsing (comments, quotes, CRLF, =)",
+          "disposition": "tested",
+          "evidence": "scripts/tailscale-https.test.mjs parseEnvFile"
+        },
+        {
+          "behavior": "start-server-production ps1/sh structural contracts still hold",
+          "disposition": "tested",
+          "evidence": "scripts/start-server-production*.test.mjs 31/31"
+        },
+        {
+          "behavior": "real tailscale serve against the user's tailnet + browser paste over https",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "needs tailnet HTTPS certs enabled in the admin console and a real browser on another device; operator verifies after deploy"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "cli",
+      "runner": "node --test scripts/tailscale-https.test.mjs",
+      "exit_code": 0,
+      "tests_run": 5,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\tailscale-https-serve\\.shipwright\\runs\\iterate-2026-10-01-tailscale-https-serve\\surface_verification.log",
+      "timestamp": "2026-10-01T13:23:02.876Z",
+      "attempts": 1
+    }
+  }
+}

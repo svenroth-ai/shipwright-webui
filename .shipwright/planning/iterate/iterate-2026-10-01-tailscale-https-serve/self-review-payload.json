@@ -1,0 +1,9 @@
+{"items":[
+{"name":"AC coverage","verdict":"pass","note":"opt-in flag runs tailscale serve after deploy; helper unit-tested"},
+{"name":"Tests","verdict":"pass","note":"scripts/*.test.mjs 123/123 incl. new tailscale-https tests"},
+{"name":"Scope/YAGNI","verdict":"pass","note":"no server/client change; one helper + 2-line hooks"},
+{"name":"Error handling","verdict":"pass","note":"best-effort, 15s timeout, never fails deploy"},
+{"name":"Security","verdict":"pass","note":"no shell, validated args, tailnet-only (no funnel)"},
+{"name":"Docs","verdict":"pass","note":".env.example, guide.md, conventions.md, changelog drop"},
+{"name":"Affected boundaries","verdict":"pass","note":".env.local parse + tailscale CLI; covered by unit tests; real tailnet check left to operator"}
+]}

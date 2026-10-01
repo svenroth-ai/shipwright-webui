@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"Change fulfils the brief (opt-in tailscale serve HTTPS front, real bind host, no funnel, best-effort hooks in ps1/sh, docs updated); no scope creep; no server/client change needed."}
