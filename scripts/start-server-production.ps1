@@ -178,6 +178,7 @@ if ($null -ne $verdict -and $verdict.ok) {
   Write-Host "  Log: $(Join-Path $logDir 'server-manual.log')" -ForegroundColor Green
   # Opt-in HTTPS front (SHIPWRIGHT_TAILSCALE_HTTPS=1): best-effort, never fails the deploy.
   & node (Join-Path $PSScriptRoot 'tailscale-https.mjs') --port $Port
+  $global:LASTEXITCODE = 0
   Write-Host ''
   Write-Host '  This window closes itself in 4s...' -ForegroundColor DarkGray
   Start-Sleep -Seconds 4

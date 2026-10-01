@@ -67,8 +67,8 @@ export function resolveHttpsPort(env) {
  */
 export function resolveBackendHost(env, getTailscaleIp) {
   const honoHost = String(env.HONO_HOST ?? '').trim();
-  if (honoHost && isIPv4(honoHost)) return honoHost;
-  if (honoHost) return '127.0.0.1'; // `true` / `::` wildcard — loopback is reachable
+  if (honoHost && isIPv4(honoHost) && honoHost !== '0.0.0.0') return honoHost;
+  if (honoHost) return '127.0.0.1'; // `true` / `::` / `0.0.0.0` wildcard — loopback is reachable
   const profile = String(env.SHIPWRIGHT_NETWORK_PROFILE ?? '').trim();
   if (profile === 'tailscale') {
     const override = String(env.SHIPWRIGHT_TAILSCALE_IP ?? '').trim();

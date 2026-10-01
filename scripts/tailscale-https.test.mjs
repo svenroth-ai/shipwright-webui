@@ -31,6 +31,7 @@ test('backend host follows the real bind, not blind loopback', () => {
   assert.equal(resolveBackendHost({ SHIPWRIGHT_NETWORK_PROFILE: 'local' }, noIp), '127.0.0.1');
   assert.equal(resolveBackendHost({ SHIPWRIGHT_NETWORK_PROFILE: 'open' }, noIp), '127.0.0.1');
   assert.equal(resolveBackendHost({ HONO_HOST: 'true' }, noIp), '127.0.0.1');
+  assert.equal(resolveBackendHost({ HONO_HOST: '0.0.0.0' }, noIp), '127.0.0.1');
   assert.equal(resolveBackendHost({ HONO_HOST: '192.168.1.5' }, noIp), '192.168.1.5');
   assert.equal(resolveBackendHost({ SHIPWRIGHT_NETWORK_PROFILE: 'tailscale', SHIPWRIGHT_TAILSCALE_IP: '100.1.2.3' }, noIp), '100.1.2.3');
   assert.equal(resolveBackendHost({ SHIPWRIGHT_NETWORK_PROFILE: 'tailscale' }, () => '100.9.9.9'), '100.9.9.9');
