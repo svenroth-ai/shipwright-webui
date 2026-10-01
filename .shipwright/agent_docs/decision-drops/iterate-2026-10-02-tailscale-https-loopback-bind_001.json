@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-02-tailscale-https-loopback-bind",
+  "date": "2026-10-02",
+  "section": "Iterate — bug: tailscale HTTPS front needs a loopback bind",
+  "title": "Bind loopback when the tailscale HTTPS front is on",
+  "context": "PR #500's tailscale serve proxied to the server's Tailscale-IP bind; tailscaled cannot dial this machine's own tailnet IP, so the HTTPS URL hung (ERR_SSL_PROTOCOL_ERROR).",
+  "decision": "With profile=tailscale and SHIPWRIGHT_TAILSCALE_HTTPS=1, resolveHonoHost returns 127.0.0.1 and the serve helper proxies to loopback; explicit HONO_HOST still wins.",
+  "consequences": "Server reachable only via the tailnet-only HTTPS URL while the flag is on; http://<tailscale-ip>:PORT stops working. Origin policy and probes unchanged.",
+  "rationale": "Verified empirically: loopback backend via serve returns 200, own tailnet IP hangs.",
+  "rejected": "Requiring users to set HONO_HOST=127.0.0.1 (loosens Origin gate to any); a loopback forwarder process.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

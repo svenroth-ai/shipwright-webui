@@ -40,6 +40,44 @@ describe("resolveHonoHost", () => {
     expect(resolveHonoHost({ HONO_HOST: "  127.0.0.1  " })).toBe("127.0.0.1");
   });
 
+  // === Tailscale HTTPS front: tailscaled cannot dial the machine's own tailnet IP ===
+
+  it("profile=tailscale + SHIPWRIGHT_TAILSCALE_HTTPS=1 binds loopback, not the tailnet IP", () => {
+    const exec = fakeTailscaleExec("100.64.0.9");
+    expect(
+      resolveHonoHost(
+        { SHIPWRIGHT_NETWORK_PROFILE: "tailscale", SHIPWRIGHT_TAILSCALE_HTTPS: "1" },
+        exec,
+      ),
+    ).toBe("127.0.0.1");
+  });
+
+  it("profile=tailscale without the HTTPS flag still binds the tailnet IP", () => {
+    for (const flag of [undefined, "0", "off", ""]) {
+      expect(
+        resolveHonoHost(
+          { SHIPWRIGHT_NETWORK_PROFILE: "tailscale", SHIPWRIGHT_TAILSCALE_HTTPS: flag },
+          fakeTailscaleExec("100.64.0.9"),
+        ),
+      ).toBe("100.64.0.9");
+    }
+  });
+
+  it("the HTTPS flag does not touch other profiles or an explicit HONO_HOST", () => {
+    expect(
+      resolveHonoHost(
+        { SHIPWRIGHT_NETWORK_PROFILE: "open", SHIPWRIGHT_TAILSCALE_HTTPS: "1" },
+        fakeTailscaleExec(),
+      ),
+    ).toBe("0.0.0.0");
+    expect(
+      resolveHonoHost(
+        { HONO_HOST: "100.64.0.1", SHIPWRIGHT_NETWORK_PROFILE: "tailscale", SHIPWRIGHT_TAILSCALE_HTTPS: "1" },
+        fakeTailscaleExec(),
+      ),
+    ).toBe("100.64.0.1");
+  });
+
   // === Network profile fallback (ADR-08X) ===
 
   it("whitespace-only HONO_HOST treated as unset (falls through to profile/default)", () => {
