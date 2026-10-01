@@ -111,15 +111,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-01T13:22:41.527597+00:00",
-      "disposition": "small docs/scripts-only diff; Stage-1/3 reviewers not spawned, single code-reviewer ran",
-      "recorded_by": "none",
+      "completed_at": "2026-10-01T13:24:45.419311+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "model_tier": "inherit"
     },
     "plan_internal": {
       "review_type": "plan_internal",
