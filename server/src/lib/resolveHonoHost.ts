@@ -16,6 +16,13 @@
 //   2. Else SHIPWRIGHT_NETWORK_PROFILE drives the bind via
 //      resolveNetworkProfile (local / tailscale / open).
 //   3. Else 127.0.0.1 (existing default).
+//
+// HTTPS front (SHIPWRIGHT_TAILSCALE_HTTPS=1, scripts/tailscale-https.mjs): under
+// profile=tailscale the bind drops from the Tailscale IP to loopback. `tailscale
+// serve` terminates TLS and proxies to the backend, but tailscaled cannot dial
+// THIS machine's own tailnet IP (the request hangs; verified 2026-10-01) — it can
+// reach loopback. The server is then only reachable through the tailnet-only
+// HTTPS front, which is the point. The truthy set is mirrored in the helper.
 
 import { execSync } from "node:child_process";
 import { resolveNetworkProfile } from "./resolveNetworkProfile.js";
@@ -23,6 +30,14 @@ import type { TailscaleIpExec } from "./resolveTailscaleIp.js";
 
 const defaultExec: TailscaleIpExec = (cmd, opts) =>
   String(execSync(cmd, opts as Parameters<typeof execSync>[1]));
+
+const HTTPS_TRUE_VALUES = new Set(["1", "true", "on", "yes"]);
+
+function isTailscaleHttpsFront(env: Record<string, string | undefined>): boolean {
+  return HTTPS_TRUE_VALUES.has(
+    (env.SHIPWRIGHT_TAILSCALE_HTTPS ?? "").trim().toLowerCase(),
+  );
+}
 
 export function resolveHonoHost(
   env: Record<string, string | undefined>,
@@ -35,7 +50,12 @@ export function resolveHonoHost(
   }
 
   const profile = resolveNetworkProfile(env, exec);
-  if (profile) return profile.host;
+  if (profile) {
+    if (profile.profile === "tailscale" && isTailscaleHttpsFront(env)) {
+      return "127.0.0.1";
+    }
+    return profile.host;
+  }
 
   return "127.0.0.1";
 }

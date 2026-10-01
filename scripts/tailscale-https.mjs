@@ -57,27 +57,19 @@ export function resolveHttpsPort(env) {
 }
 
 /**
- * The address the Hono server really listens on — `tailscale serve` must proxy to
- * THAT, not blindly to 127.0.0.1 (the tailscale profile binds the Tailscale IP only,
- * so loopback would be refused). Mirrors the bind decision in resolveHonoHost.ts:
- * HONO_HOST literal > profile (tailscale -> its IP) > loopback.
+ * The address `tailscale serve` must proxy to — the Hono server's real bind, as far
+ * as tailscaled can reach it. Mirrors resolveHonoHost.ts: an explicit HONO_HOST
+ * literal wins; otherwise the server binds LOOPBACK whenever this front is on
+ * (profile=tailscale + SHIPWRIGHT_TAILSCALE_HTTPS=1), because tailscaled cannot dial
+ * this machine's own tailnet IP (the request hangs — verified 2026-10-01). The
+ * wildcard binds (`true` / `::` / `0.0.0.0`) are reachable via loopback too.
  *
  * @param {Record<string,string|undefined>} env
- * @param {() => string} getTailscaleIp lazy `tailscale ip -4` lookup
  */
-export function resolveBackendHost(env, getTailscaleIp) {
+export function resolveBackendHost(env) {
   const honoHost = String(env.HONO_HOST ?? '').trim();
   if (honoHost && isIPv4(honoHost) && honoHost !== '0.0.0.0') return honoHost;
-  if (honoHost) return '127.0.0.1'; // `true` / `::` / `0.0.0.0` wildcard — loopback is reachable
-  const profile = String(env.SHIPWRIGHT_NETWORK_PROFILE ?? '').trim();
-  if (profile === 'tailscale') {
-    const override = String(env.SHIPWRIGHT_TAILSCALE_IP ?? '').trim();
-    if (override && isIPv4(override)) return override;
-    const ip = getTailscaleIp();
-    if (!isIPv4(ip)) throw new Error('could not resolve the Tailscale IPv4 (is Tailscale connected?)');
-    return ip;
-  }
-  return '127.0.0.1'; // local / open (0.0.0.0 is not a routable target) / unset
+  return '127.0.0.1';
 }
 
 export function buildServeArgs({ host, port, httpsPort }) {
@@ -104,10 +96,7 @@ function main() {
     : Number(/^\d{1,5}$/.test(env.PORT ?? '') ? env.PORT : 3847);
 
   try {
-    const host = resolveBackendHost(env, () => {
-      const r = tailscale(['ip', '-4']);
-      return String(r.stdout ?? '').split(/\r?\n/).map((s) => s.trim()).find(isIPv4) ?? '';
-    });
+    const host = resolveBackendHost(env);
     const r = tailscale(buildServeArgs({ host, port, httpsPort: resolveHttpsPort(env) }));
     const out = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
     if (r.error || r.status !== 0) {
