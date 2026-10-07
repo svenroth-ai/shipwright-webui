@@ -75,6 +75,7 @@ describe("DeferredTriageSection", () => {
    * iterate-2026-09-12-mobile-triage-form-layout — CI fence, same
    * rationale as PerProjectTriageSection.test.tsx's phone-margin test.
    */
+  // @covers FR-01.38
   it("wrapper margin is tightened on phone, unchanged above it", () => {
     render(<DeferredTriageSection items={[item({ id: "trg-a" })]} hiddenCount={0} onClick={vi.fn()} />);
     const wrapper = screen.getByTestId("triage-deferred-section");
