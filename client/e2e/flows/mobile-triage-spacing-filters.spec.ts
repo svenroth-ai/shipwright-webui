@@ -91,6 +91,7 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
       ]);
     });
 
+    // @covers FR-01.38
     test("all four action buttons are fully within the dialog/viewport at 375px", async ({ page }) => {
       await page.setViewportSize(PHONE_VIEWPORT);
       await page.goto("/triage");
@@ -150,6 +151,7 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
       ]);
     });
 
+    // @covers FR-01.38
     test("phone (<768px): section/heading/list margins resolve to the tightened max-md values", async ({ page }) => {
       await page.setViewportSize(PHONE_VIEWPORT);
       await page.goto("/triage");
@@ -187,6 +189,7 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
       expect(secondBox!.y - (firstBox!.y + firstBox!.height)).toBeCloseTo(4, 0);
     });
 
+    // @covers FR-01.38
     test("desktop (>=768px): section margin stays at the original 32px value", async ({ page }) => {
       await page.setViewportSize(DESKTOP_VIEWPORT);
       await page.goto("/triage");
@@ -199,6 +202,7 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
 
   // --- AC4 — Filter/sort bar collapse on phone -----------------------------
   test.describe("AC4 — Filter bar collapse", () => {
+    // @covers FR-01.38
     test("phone (<768px): collapsed on first paint, expands on tap", async ({ page }) => {
       await page.setViewportSize(PHONE_VIEWPORT);
       await page.goto("/triage");
@@ -216,6 +220,7 @@ test.describe("Mobile Triage / detail panel & spacing", () => {
       await expect(page.getByTestId("triage-filter-priority-group")).toBeVisible();
     });
 
+    // @covers FR-01.38
     test("desktop (>=768px): no toggle, filters always visible", async ({ page }) => {
       await page.setViewportSize(DESKTOP_VIEWPORT);
       await page.goto("/triage");

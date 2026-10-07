@@ -90,6 +90,7 @@ test.describe("Mobile Triage / task-form layout", () => {
     // two-line footer is the tallest-body case this fix exists for.
     test.use({ hasTouch: true, isMobile: true });
 
+    // @covers FR-01.38
     test("plain New Task form: Launch button is fully within the phone viewport", async ({ page }) => {
       await page.setViewportSize(DESKTOP_VIEWPORT);
       await page.goto("/");
@@ -111,6 +112,7 @@ test.describe("Mobile Triage / task-form layout", () => {
       expect(box!.y, "Launch button top edge must be within the viewport").toBeGreaterThanOrEqual(0);
     });
 
+    // @covers FR-01.38
     test("New Task form with More options expanded (the historically fragile path): Launch button stays visible", async ({
       page,
     }) => {
@@ -160,6 +162,7 @@ test.describe("Mobile Triage / task-form layout", () => {
     // the chain (ModalShell.tsx, also fenced by ModalShell.layout.test.tsx)
     // stops constraining real overflow content, independent of the
     // unreproducible vh-vs-dvh mechanism the other two cases document.
+    // @covers FR-01.38
     test("flex allocation holds when the form body genuinely overflows (forced-overflow stress case)", async ({
       page,
     }) => {

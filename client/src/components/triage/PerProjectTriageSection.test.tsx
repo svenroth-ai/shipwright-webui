@@ -199,6 +199,7 @@ describe("PerProjectTriageSection", () => {
    * `space-y-1` to the card-to-card gap fence — AC3 asks for less
    * scrolling, not just tighter section boundaries.
    */
+  // @covers FR-01.38
   it("section + heading + open-items-list margins are tightened on phone, unchanged above it", () => {
     renderSection({ items: [item({ id: "trg-a" })] });
     const section = screen.getByTestId("triage-project-proj-a");

@@ -130,6 +130,7 @@ describe("TriageFilterSortBar", () => {
   });
 
   describe("phone collapse (iterate-2026-09-12-mobile-triage-form-layout, AC4)", () => {
+    // @covers FR-01.38
     it("desktop/tablet (>=768px): no toggle renders, content always visible", () => {
       setPhone(false);
       render(<TriageFilterSortBar view={makeView()} availableDomains={[]} />);
@@ -138,6 +139,7 @@ describe("TriageFilterSortBar", () => {
       expect(screen.getByTestId("triage-sort-primary-group")).toBeInTheDocument();
     });
 
+    // @covers FR-01.38
     it("phone (<768px): toggle renders, content collapsed on first render", () => {
       setPhone(true);
       render(<TriageFilterSortBar view={makeView()} availableDomains={[]} />);
@@ -147,6 +149,7 @@ describe("TriageFilterSortBar", () => {
       expect(screen.queryByTestId("triage-sort-primary-group")).not.toBeInTheDocument();
     });
 
+    // @covers FR-01.38
     it("phone: clicking the toggle expands the filter/sort content", () => {
       setPhone(true);
       render(<TriageFilterSortBar view={makeView()} availableDomains={[]} />);
