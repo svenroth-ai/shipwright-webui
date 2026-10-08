@@ -79,7 +79,7 @@ jobs:
       # credential helper: `gh` authenticates from GH_TOKEN and the reviewer
       # shells out to `gh`. This job holds an LLM key and a writable token, so
       # the checkout has no business leaving a third credential in .git/config.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 

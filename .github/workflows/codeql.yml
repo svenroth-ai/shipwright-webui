@@ -33,7 +33,7 @@ jobs:
         language: [javascript-typescript]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Initialize CodeQL
         # build-mode: none — a pure JS/TS repo needs no compilation for

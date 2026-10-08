@@ -64,7 +64,7 @@ jobs:
     # and uncomment the next line. Then every publish waits for your approval.
     # environment: npm-publish
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node (OIDC-capable toolchain)
         uses: actions/setup-node@v6
