@@ -68,7 +68,7 @@ jobs:
             echo '_(none — no baseline changed; the screen may already match)_' >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: visual-baselines
           path: |
