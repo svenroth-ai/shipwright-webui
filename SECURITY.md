@@ -62,7 +62,7 @@ The Preview Button spawns the user-configured `dev_server.command` from each pro
 
 ### 5. Dependency hygiene
 
-- Dependency CVEs are surfaced by the **Trivy SCA scan** in CI (`trivy fs --scanners vuln`) on every PR. There is no Dependabot config in this repo; GitHub Dependabot **alerts** may be enabled separately in repository settings.
+- Dependency CVEs are surfaced by the **Trivy SCA scan** in CI (`trivy fs --scanners vuln`) on every PR. Dependabot **alerts** and **security updates** are enabled in repository settings, and `.github/dependabot.yml` runs version updates for the `github-actions` ecosystem only (npm is covered by Trivy / `npm audit`). The published package ships no updater config.
 - xterm.js + addons are **exact-pinned** (server + client; matched paired-set per ADR-097). DO NOT switch to caret ranges — version drift between client and server would break the snapshot-replay envelope contract.
 
 ## Known Limitations

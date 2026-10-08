@@ -231,9 +231,11 @@ jobs:
           # pushed the commits, so anyone with push access to a maintainer's
           # branch inherits it. Sound here (one maintainer, no other writers);
           # an adopter with several committers must key on the commit authors.
-          # The dependabot clause comes from the upstream template and is INERT
-          # here by DO-NOT #25 (no hosted updater); it is also unforgeable,
-          # since `[` and `]` are illegal in a GitHub username.
+          # The dependabot clause comes from the upstream template and is LIVE
+          # since 2026-10-08 (Dependabot runs for github-actions only, DO-NOT
+          # #25). Its PRs change workflow files, so they hit "sensitive path
+          # touched" above first; the clause is unforgeable, since `[` and `]`
+          # are illegal in a GitHub username.
           if [ "$author" != "svroch" ] && [ "$author" != "dependabot[bot]" ]; then
             decide true "external contributor"; exit 0
           fi

@@ -4,22 +4,25 @@
  *
  * The posture is deliberately ASYMMETRIC, and that asymmetry is the whole point:
  *
- *   - GitHub's OWN actions (`actions/*`, `github/*`) use MUTABLE version tags.
- *     Pinning them to a SHA is only coherent alongside an updater that keeps the
- *     pins patched, and the project takes no GitHub-hosted proprietary service
- *     (portability: adopters must not inherit one). Without an updater a pin
- *     rots silently, which is worse than the mutable tag. We already trust this
- *     vendor to execute the entire CI run.
+ *   - GitHub's OWN actions (`actions/*`, `github/*`) use MUTABLE version tags, by
+ *     choice. Pinning them to a SHA is only coherent alongside an updater that
+ *     keeps the pins patched; without one a pin rots silently, which is worse
+ *     than the mutable tag. We already trust this vendor to execute the entire
+ *     CI run. (Since 2026-10-08 this repo DOES run Dependabot for the
+ *     `github-actions` ecosystem, so the tags are kept by choice, no longer out
+ *     of necessity — the adopter-facing posture is unchanged: the published
+ *     package and the shipwright templates ship no updater config.)
  *   - THIRD-PARTY actions stay SHA-PINNED. That is where the real supply-chain
  *     risk sits: a compromised account can silently re-point a tag. The Semgrep
  *     tailoring webui opted into (#208) is owner-scoped for exactly this reason —
  *     `actions/*` + `github/*` are accepted, everything else stays flagged.
  *
- * PR #285 collapsed that asymmetry (pinned everything + added Dependabot) and was
- * reverted. This file exists so the next well-meaning "harden the CI" sweep fails
- * loudly instead of silently re-introducing a hosted dependency. Both directions
- * are asserted: a too-greedy re-pin fails, and a too-greedy UNPIN of the
- * third-party actions fails just as hard.
+ * PR #285 collapsed that asymmetry (pinned everything + added Dependabot for
+ * every ecosystem) and was reverted. The updater is now allowed for
+ * `github-actions` ONLY (iterate-2026-10-08-webui-dependabot-actions-only);
+ * this file still fails loudly if a "harden the CI" sweep re-pins the
+ * GitHub-owned actions, un-pins the third-party ones, or widens the updater to
+ * application dependencies. Both pinning directions are asserted.
  *
  * Text assertions only — no YAML parser is a dependency of either workspace, and
  * one is not worth adding: GitHub refuses to run an invalid workflow, so the
@@ -143,14 +146,38 @@ describe("third-party actions stay SHA-pinned (the real supply-chain risk)", () 
   });
 });
 
-describe("no GitHub-hosted updater service is configured", () => {
-  it("has no .github/dependabot.yml", () => {
-    // Reverted with #285. Re-adding it re-introduces the hosted dependency the
-    // ADR rules out — and, without it, the pins above would rot.
-    const present = ["dependabot.yml", "dependabot.yaml"].filter((f) =>
-      fs.existsSync(path.join(repoRoot, ".github", f)),
-    );
-    expect(present).toEqual([]);
+describe("the dependency updater is scoped to github-actions only", () => {
+  // Both spellings are valid to GitHub; a stray `.yaml` would escape a one-file check.
+  const body = ["dependabot.yml", "dependabot.yaml"]
+    .map((n) => path.join(repoRoot, ".github", n))
+    .filter((f) => fs.existsSync(f))
+    .map((f) => fs.readFileSync(f, "utf8"))
+    .join("\n");
+  // Text assertions, no YAML parser (see header). Comment lines are dropped so a
+  // sentence in a comment cannot satisfy or break a check.
+  const code = body
+    .split(/\r?\n/)
+    .filter((l) => !/^\s*#/.test(l))
+    .join("\n");
+  const ecosystems = [...code.matchAll(/["']?package-ecosystem["']?:\s*["']?([\w-]+)/g)].map((m) => m[1]);
+
+  it("has a dependabot.yml with at least one entry (empty-set pass guard)", () => {
+    expect(ecosystems.length).toBeGreaterThan(0);
+  });
+
+  it("updates github-actions only — never npm or another application ecosystem", () => {
+    // PR #285 added Dependabot for everything and was reverted: application
+    // dependencies are covered by Trivy / npm audit, not by version-update PRs.
+    expect(ecosystems.filter((e) => e !== "github-actions")).toEqual([]);
+  });
+
+  it("keeps the hand-pinned sibling-repo action out of the updater", () => {
+    expect(code).toMatch(/dependency-name:\s*["']?svenroth-ai\/shipwright["']?\s*$/m);
+  });
+
+  it("gives every entry a cooldown (keeps the Semgrep dependabot-missing-cooldown rule satisfied)", () => {
+    const cooldowns = [...code.matchAll(/^\s*["']?cooldown["']?:/gm)].length;
+    expect(cooldowns).toBe(ecosystems.length);
   });
 });
 
@@ -167,9 +194,11 @@ describe("github/codeql-action stays on the current major version", () => {
     expect(codeqlUses.length).toBeGreaterThan(0);
   });
 
-  it("pins every github/codeql-action/* step to @v4, none left on @v3", () => {
+  it("keeps every github/codeql-action/* step on v4 or newer, none left on @v3", () => {
+    // v4 OR NEWER: Dependabot bumps the major; only a fall back below v4 is a regression.
+    const major = (ref: string) => Number(/@v(\d+)/.exec(ref)?.[1] ?? 0);
     const stale = codeqlUses
-      .filter((u) => !u.ref.endsWith("@v4"))
+      .filter((u) => major(u.ref) < 4)
       .map((u) => `${u.file}: ${u.ref}`);
     expect(stale).toEqual([]);
   });

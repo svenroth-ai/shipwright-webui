@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-08-webui-dependabot-actions-only",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:52.117301+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "transport": "agent"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-08T20:50:47.587453+00:00",
+      "disposition": "CI/docs-only config change (Dependabot github-actions scope); no plan/spec/doubt/external cascade needed: small complexity, single opus code review x2 recorded",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

@@ -124,17 +124,22 @@ acceptances:
     rationale_ref: iterate-2026-07-18-unpin-actions-no-dependabot
     statement: >-
       GitHub-owned actions (actions/*, github/*) deliberately use mutable version
-      tags. SHA-pinning them is only coherent alongside an updater that keeps the
-      pins patched, and this project takes no GitHub-hosted proprietary service
-      (portability — adopters must not inherit one). An unmaintained pin rots
-      silently, which is worse than the mutable tag; and this vendor already
-      executes the entire CI run. THIRD-PARTY actions stay SHA-pinned — that is
+      tags. This vendor already executes the entire CI run, so a SHA pin buys
+      little; and adopters must not inherit a hosted service (portability).
+      UPDATE 2026-10-08
+      (iterate-2026-10-08-webui-dependabot-actions-only): THIS repo now runs
+      Dependabot for the github-actions ecosystem only, so the tags are kept by
+      choice, not by necessity; the adopter-facing posture is unchanged (the
+      published package and the shipwright templates ship no updater config).
+      Pre-2026-10-08 reason: an unmaintained pin rots silently, worse than the mutable tag.
+      THIRD-PARTY actions stay SHA-pinned — that is
       where the real supply-chain risk sits, and the Semgrep tailoring is
       owner-scoped so they remain flagged. Enforced by
       server/src/test/ci-action-pinning-posture.test.ts; see DO-NOT #25 in
       CLAUDE.md and reverted PR #285 for the history. RE-REVIEW TRIGGER: revisit
-      if an open-source, self-hostable updater makes SHA-pinning viable without a
-      hosted dependency.
+      if dependabot.yml gains a non-github-actions ecosystem, if GitHub-owned
+      actions get SHA-pinned, or if GitHub changes tag-mutability for first-party
+      actions.
 
       FILING NOTE (settled 2026-07-29, iterate-2026-07-29-accepted-risk-ci-gate).
       The id is synthetic and inert to Trivy, and `target: trivy-ignore` records

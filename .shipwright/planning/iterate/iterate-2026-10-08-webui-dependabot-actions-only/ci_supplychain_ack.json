@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-08-webui-dependabot-actions-only",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-10-08-webui-dependabot-actions-only",
+    "paths_fingerprint": "d0f2c126f5553f762944ddf879341aa7b32cd5318d4413d9eefc77398b6a12f6",
+    "consistent_with": "iterate-2026-10-08-webui-dependabot-actions-only",
+    "statement": "Operator decision 2026-10-08 (supersedes DO-NOT #25 no-updater rule): Dependabot version updates for github-actions ONLY in this repo (weekly, minor/patch grouped, 7-day cooldown, svenroth-ai/shipwright ignored); npm stays out; GitHub-owned actions keep mutable tags, third-party stay SHA-pinned; nothing shipped to adopters. ci.yml and pr-review-run.yml: comment-only changes.",
+    "ci_paths": [
+      ".github/dependabot.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/pr-review-run.yml"
+    ],
+    "provenance": "worktree",
+    "provenance_ref": null
+  }
+}
