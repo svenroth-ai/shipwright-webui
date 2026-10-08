@@ -1,0 +1,30 @@
+/* ============================================================================
+   Soft-keyboard fit (iterate-2026-10-08-tablet-mobile-layout-polish)
+   Driven by hooks/useKeyboardViewportFit.ts, which sets --app-vh / --app-top and
+   the data-kbd-* flags on <html> ONLY while a soft keyboard is up. With the
+   flags absent nothing here matches, so desktop and keyboard-down touch are
+   byte-identical to before.
+   ============================================================================ */
+
+/* Shrink the shell to the visible viewport and follow the browser's pan, so the
+   keyboard never covers the bottom of the app and the page is never dragged up
+   with its title bar. `transform` is applied only here (a transform makes the
+   element a containing block for fixed descendants — the Radix dialogs are
+   portalled to <body>, so none live inside the shell). */
+html[data-kbd-open] .app-shell {
+  height: var(--app-vh, 100dvh);
+}
+html[data-kbd-pan] .app-shell {
+  transform: translateY(var(--app-top, 0px));
+}
+
+/* Typing in the terminal on a touch device: fold the page chrome away so the
+   terminal gets every remaining pixel (Sven: "damit man möglichst viel Terminal
+   sieht und auch was man schreibt"). Chrome returns the moment focus leaves. */
+@media (max-width: 1023px) {
+  html[data-kbd-terminal] [data-testid="mobile-topbar"],
+  html[data-kbd-terminal] .mc-top,
+  html[data-kbd-terminal] .mc-tabrow {
+    display: none;
+  }
+}

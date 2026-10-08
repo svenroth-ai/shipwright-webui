@@ -115,7 +115,7 @@ export function TaskList({ tasks }: Props) {
     >
       <div
         className={
-          "overflow-x-auto rounded-[var(--radius-card)] " +
+          "overflow-clip rounded-[var(--radius-card)] " +
           "border border-[var(--color-border)] bg-[var(--color-surface)]"
         }
       >
@@ -123,7 +123,7 @@ export function TaskList({ tasks }: Props) {
           data-testid="task-list-table"
           className="w-full border-collapse text-left text-[13px]"
         >
-          <thead>
+          <thead className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-[var(--color-muted-bg)]">
             <tr
               className={
                 "border-b border-[var(--color-border)] bg-[var(--color-muted-bg)] " +

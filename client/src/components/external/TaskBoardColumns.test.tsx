@@ -214,3 +214,18 @@ describe("TaskBoardColumns — grouping", () => {
     expect(handle.getAttribute("aria-roledescription")).toBe("draggable");
   });
 });
+
+describe("TaskBoardColumns — lane width contract (tablet, iterate-2026-10-08-tablet-mobile-layout-polish)", () => {
+  // @covers FR-01.38
+  it("lanes share the width from md up — no fixed 360px at lg that scrolls sideways on iPad landscape", () => {
+    renderBoard([]);
+    for (const id of ["column-draft", "column-in-progress", "column-done"]) {
+      const cls = screen.getByTestId(id).className;
+      expect(cls).toContain("md:grow");
+      expect(cls).toContain("md:basis-0");
+      expect(cls).toContain("md:max-w-[360px]");
+      expect(cls).not.toMatch(/lg:(w|min-w)-\[360px\]/);
+      expect(cls).not.toContain("lg:shrink-0");
+    }
+  });
+});

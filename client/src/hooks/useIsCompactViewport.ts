@@ -29,6 +29,18 @@ export const PHONE_MEDIA_QUERY = '(max-width: 767px)';
  */
 export const COARSE_POINTER_QUERY = '(pointer: coarse)';
 
+/**
+ * TABLET band — a touch-primary device at desktop-layout width (iPad landscape,
+ * 1024–1399px). It is NOT compact (the 3-pane shell is on), but the middle
+ * terminal pane gets too narrow once the Smart Viewer (480px) AND the folder
+ * tree sit beside it, so the task-detail shell starts with the viewer hidden
+ * and summons it on demand (iterate-2026-10-08-tablet-mobile-layout-polish).
+ * Gated on `(pointer: coarse)` so a narrow desktop window keeps the full
+ * 3-pane layout and its persisted collapse preference.
+ */
+export const TABLET_MEDIA_QUERY =
+  '(pointer: coarse) and (min-width: 1024px) and (max-width: 1399px)';
+
 function hasMatchMedia(): boolean {
   return typeof window !== 'undefined' && typeof window.matchMedia === 'function';
 }
@@ -69,4 +81,9 @@ export function useIsPhoneViewport(): boolean {
 /** `true` on a coarse (touch) primary pointer — see COARSE_POINTER_QUERY. */
 export function useCoarsePointer(): boolean {
   return useMediaQuery(COARSE_POINTER_QUERY);
+}
+
+/** `true` on a touch tablet at desktop-layout width — see TABLET_MEDIA_QUERY. */
+export function useIsTabletViewport(): boolean {
+  return useMediaQuery(TABLET_MEDIA_QUERY);
 }

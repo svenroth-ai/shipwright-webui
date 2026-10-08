@@ -1,0 +1,8 @@
+{"stage":"doubt","doubts":[
+{"severity":"high","lens":"boundary & contract","claim_under_doubt":"height shrink means keyboard","disproof_attempt":"Pinch zoom shrinks visualViewport.height; shell would be cropped. RESOLVED with a scale guard and test.","file":"client/src/hooks/useKeyboardViewportFit.ts"},
+{"severity":"medium","lens":"concurrency & ordering","claim_under_doubt":"chrome-hide always restored","disproof_attempt":"No stated exit with chrome hidden. REBUTTED: dismissing the keyboard grows the visual viewport back and clears the flags; real-device check remains.","file":"client/src/styles/keyboard-fit.css"},
+{"severity":"medium","lens":"hidden coupling","claim_under_doubt":"transform is safe","disproof_attempt":"Fixed descendants re-anchor to the shell. RESOLVED: transform only while panned.","file":"client/src/styles/keyboard-fit.css"},
+{"severity":"low","lens":"reversibility","claim_under_doubt":"tablet state tidy","disproof_attempt":"State survives rotation. ACCEPTED, harmless.","file":"client/src/components/external/TaskDetailThreePane.tsx"},
+{"severity":"low","lens":"boundary & contract","claim_under_doubt":"overflow-clip robust","disproof_attempt":"iOS<16 ignores clip. ACCEPTED, visual only.","file":"client/src/components/external/TaskList.tsx"},
+{"severity":"low","lens":"hidden coupling","claim_under_doubt":"wide desktop unchanged","disproof_attempt":"At 1280 lanes now shrink to ~330px instead of scrolling. ACKNOWLEDGED; baselines regen if the gate flags it.","file":"client/src/components/external/TaskBoardColumns.tsx"}
+]}

@@ -18,12 +18,25 @@
 
 import { createContext, useContext } from "react";
 
-export interface FocusModeApi {
-  maximized: boolean;
+/** On-demand Smart Viewer (tablet band only) — `available` is false everywhere
+ *  else, so the toggle button simply does not render. */
+export interface ViewerToggleApi {
+  available: boolean;
+  open: boolean;
   toggle: () => void;
 }
 
-const NOOP: FocusModeApi = { maximized: false, toggle: () => {} };
+export interface FocusModeApi {
+  maximized: boolean;
+  toggle: () => void;
+  viewer: ViewerToggleApi;
+}
+
+const NOOP: FocusModeApi = {
+  maximized: false,
+  toggle: () => {},
+  viewer: { available: false, open: false, toggle: () => {} },
+};
 
 export const FocusModeContext = createContext<FocusModeApi>(NOOP);
 

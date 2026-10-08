@@ -1,0 +1,77 @@
+{
+  "run_id": "iterate-2026-10-08-tablet-mobile-layout-polish",
+  "date": "2026-10-08T11:52:48.043311Z",
+  "event_at": "2026-10-01T22:03:13.892425+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/tablet-mobile-layout-polish",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-08-tablet-mobile-layout-polish",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "board lanes fit 1024/1180px without horizontal scroll",
+        "disposition": "tested",
+        "evidence": "tablet-mobile-polish.spec.ts board x2 PASSED + TaskBoardColumns lane contract unit"
+      },
+      {
+        "behavior": "list view has one bounded scroller and pinned column header",
+        "disposition": "tested",
+        "evidence": "tablet-mobile-polish.spec.ts list view PASSED"
+      },
+      {
+        "behavior": "tablet Smart Viewer hidden, summoned by toggle or file open, never persisted",
+        "disposition": "tested",
+        "evidence": "TaskDetailThreePane.tablet.test.tsx (4) + e2e tablet task detail PASSED"
+      },
+      {
+        "behavior": "keyboard fit decision (threshold, pinch-zoom, terminal flag) and hook attrs/cleanup",
+        "disposition": "tested",
+        "evidence": "useKeyboardViewportFit.test.ts (7) PASSED"
+      },
+      {
+        "behavior": "real soft keyboard shifts shell and folds chrome",
+        "disposition": "untestable",
+        "reason_code": "requires-physical-device",
+        "reason": "needs an on-screen keyboard on a real iOS/Android device"
+      },
+      {
+        "behavior": "phone: no maximize icon, inline description, 44px tree rows",
+        "disposition": "tested",
+        "evidence": "tablet-mobile-polish.spec.ts phone + mobile-work-mode.spec.ts PASSED + TaskDescriptionDisclosure unit"
+      },
+      {
+        "behavior": "triage meta row clusters below 1500px",
+        "disposition": "tested",
+        "evidence": "tablet-mobile-polish.spec.ts triage x2 PASSED"
+      },
+      {
+        "behavior": "phone markdown table sizing",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "readability of table columns is a visual judgement; CSS-only"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 2,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 9,
+      "covered_acs": 9
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/tablet-mobile-polish.spec.ts (+ mobile-chromium mobile-work-mode/A20/90)",
+    "exit_code": 0,
+    "tests_run": 7,
+    "evidence_path": "client/e2e/flows/tablet-mobile-polish.spec.ts",
+    "timestamp": "2026-10-08T11:30:00Z"
+  }
+}
