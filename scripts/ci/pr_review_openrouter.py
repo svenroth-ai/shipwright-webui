@@ -23,6 +23,8 @@ under whatever environment the CI runner's Python resolves.
 #   + iterate-2026-09-03-pr-review-sonnet-default (DEFAULT_MODEL swap to
 #     GPT-5.6 Luna after GLM 5.3 was found to silently hang on the shared ZDR
 #     provider pool; GLM kept as the named operator-override constant)
+#   + iterate-2026-10-08-pr-review-haiku-5-5 (DEFAULT_MODEL swap to Claude
+#     Haiku 5.5; Luna kept as the named operator-override constant)
 # adaptation: NOT byte-identical, so no canonical-source-hash line is claimed
 #   (spelled without the leading marker on purpose; `tests/test_accepted_risks_vendored.py`
 #   scans for that literal string). Divergences from any single upstream blob:
@@ -38,7 +40,7 @@ import urllib.error
 import urllib.request
 
 __all__ = [
-    "DEEPSEEK_MODEL", "GLM_MODEL", "LUNA_MODEL", "DEFAULT_MODEL",
+    "DEEPSEEK_MODEL", "GLM_MODEL", "LUNA_MODEL", "HAIKU_MODEL", "DEFAULT_MODEL",
     "DEFAULT_TIMEOUT", "OPENROUTER_URL", "call_openrouter",
 ]
 
@@ -53,10 +55,16 @@ __all__ = [
 # monorepo's iterate-2026-09-03-pr-review-sonnet-default (run-id kept for
 # history — the swap landed on Luna, not Sonnet, after an empirical
 # benchmark/price check mid-run; same run-id, same reasoning, both repos).
+# Then Luna -> Claude Haiku 5.5 (iterate-2026-10-08-pr-review-haiku-5-5, both
+# repos): judged better than Luna; slug live-verified on OpenRouter. Luna stays
+# a named operator override.
 DEEPSEEK_MODEL = "deepseek/deepseek-v4-pro"
 GLM_MODEL = "z-ai/glm-5.3"
+# Webui keeps the older Luna slug on purpose (still live on OpenRouter); the
+# monorepo override is openai/gpt-6-luna.
 LUNA_MODEL = "openai/gpt-5.6-luna"
-DEFAULT_MODEL = LUNA_MODEL
+HAIKU_MODEL = "anthropic/claude-haiku-5.5"
+DEFAULT_MODEL = HAIKU_MODEL
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # ONE default for the whole tool — the CLI flag and the direct call share it.

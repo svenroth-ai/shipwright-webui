@@ -108,12 +108,12 @@ class TestMainOrchestration:
         assert FAKE_KEY not in captured.out
         assert FAKE_KEY not in captured.err
 
-    def test_the_default_luna_model_never_touches_zdr_routing(self, monkeypatch):
-        # The positive case for the CURRENT default (GPT-5.6 Luna,
-        # iterate-2026-09-03-pr-review-sonnet-default, after GLM 5.3 was found
-        # to silently hang mid-review on the shared ZDR provider pool — see
+    def test_the_default_haiku_model_never_touches_zdr_routing(self, monkeypatch):
+        # The positive case for the CURRENT default (Claude Haiku 5.5,
+        # iterate-2026-10-08-pr-review-haiku-5-5; GLM 5.3 earlier silently hung
+        # mid-review on the shared ZDR provider pool — see
         # pr_review_openrouter.py's DEFAULT_MODEL comment): with no override,
-        # main() must thread an EMPTY extra_body through — Luna is outside the
+        # main() must thread an EMPTY extra_body through — Haiku is outside the
         # deepseek/z-ai namespaces, so resolve_extra_body's short-circuit
         # applies and no ZDR provider pin (with its `allow_fallbacks: false`)
         # is ever added.
