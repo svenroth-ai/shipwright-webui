@@ -47,8 +47,8 @@ class TestFileContract:
             "script must not reference ANTHROPIC_API_KEY — OpenRouter is the single provider"
         )
 
-    def test_default_model_is_luna(self):
-        assert pr_review.DEFAULT_MODEL == pr_review.LUNA_MODEL == "openai/gpt-5.6-luna"
+    def test_default_model_is_haiku(self):
+        assert pr_review.DEFAULT_MODEL == pr_review.HAIKU_MODEL == "anthropic/claude-haiku-5.5"
 
     def test_deepseek_model_constant_still_exists_for_the_operator_override(self):
         assert pr_review.DEEPSEEK_MODEL == "deepseek/deepseek-v4-pro"
