@@ -129,8 +129,8 @@ jobs:
       # commit SHA (supply-chain hardening): a bumped SHA is how an upstream gate
       # fix reaches us, and the pin clears the `github-actions-mutable-action-tag`
       # Semgrep finding. NOTE: a version tag (…@v1) would NOT clear that rule — a
-      # tag is still mutable; only a full 40-char SHA does. Re-pin (or add
-      # Dependabot) to pick up upstream action changes. diff-cover resolves
+      # tag is still mutable; only a full 40-char SHA does. Re-pin by hand
+      # (Dependabot ignores this action, see .github/dependabot.yml). diff-cover resolves
       # client/ + server/ paths natively via each cobertura's <source> root (no
       # combine). The action installs uv itself.
       - name: Diff coverage (gate)

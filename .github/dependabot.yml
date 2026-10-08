@@ -1,0 +1,35 @@
+# Dependabot configuration — GitHub Actions ONLY.
+#
+# Version updates run for the `github-actions` ecosystem alone (weekly; minor and
+# patch bumps grouped into one PR, majors as separate PRs; 7-day cooldown so a
+# freshly published tag is not adopted the day it ships). Application
+# dependencies (npm) get NO version-update entry here: Trivy / npm audit cover
+# their CVEs, and Dependabot *security updates* (a repo setting, independent of
+# this file) open a fix PR for a vulnerable npm dependency anyway.
+#
+# This file lives in THIS repo only. It is not part of the published package
+# (`bootstrapper/package.json` `files` ships no `.github/`), and adopters of the project inherit nothing from it. See DO-NOT #25
+# in CLAUDE.md and server/src/test/ci-action-pinning-posture.test.ts.
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # The sibling repo's composite action (diff-coverage-gate) is re-pinned by
+    # hand on purpose: gate changes are reviewed upstream. Dependabot names a
+    # github-actions dependency owner/repo only (sub-path dropped).
+    ignore:
+      - dependency-name: "svenroth-ai/shipwright"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    # `prefix` without `include: scope`: with it Dependabot appends "(deps)" and
+    # the title stops being a valid Conventional Commit.
+    commit-message:
+      prefix: "chore(ci)"
