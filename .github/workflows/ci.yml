@@ -60,7 +60,7 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -99,7 +99,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Diff base: compare the PR against origin/main — needs full history.
           fetch-depth: 0
@@ -161,7 +161,7 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -198,7 +198,7 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.59.1-noble
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: |
@@ -243,7 +243,7 @@ jobs:
       run:
         working-directory: server
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -317,7 +317,7 @@ jobs:
       # `bootstrapper/` would fail that test with a confusing ENOENT. Found
       # empirically at F0.5 by running these steps against a bootstrapper-only
       # tree; ratcheted by test_bootstrapper_ci_job.py.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Node
         uses: actions/setup-node@v6

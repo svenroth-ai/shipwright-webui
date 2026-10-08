@@ -81,7 +81,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -139,7 +139,7 @@ jobs:
     name: Shipwright Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Working-tree checkout only. No scanner in this workflow reads git
           # history: Gitleaks runs `--no-git` (filesystem), Semgrep scans `.`
