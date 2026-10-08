@@ -172,7 +172,7 @@ describe("the dependency updater is scoped to github-actions only", () => {
   });
 
   it("keeps the hand-pinned sibling-repo action out of the updater", () => {
-    expect(code).toMatch(/dependency-name:\s*["']?svenroth-ai\/shipwright["']?\s*$/m);
+    expect(code).toMatch(/dependency-name:\s*["']?svenroth-ai\/shipwright\/\*["']?\s*$/m);
   });
 
   it("gives every entry a cooldown (keeps the Semgrep dependabot-missing-cooldown rule satisfied)", () => {

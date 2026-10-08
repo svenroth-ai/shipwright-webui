@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-08-webui-dependabot-ignore-fix",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-10-08-webui-dependabot-ignore-fix",
+    "paths_fingerprint": "ea4dccc349ce716396e4169eb3269e2eb5a334d18be5e41cdc02f50817ababee",
+    "consistent_with": "iterate-2026-10-08-webui-dependabot-actions-only",
+    "statement": "Follow-up fix: the dependabot.yml ignore for the hand-pinned sibling action must be the glob svenroth-ai/shipwright/* because Dependabot names it with the full path (verified live, PR #511). No change to scope or posture.",
+    "ci_paths": [
+      ".github/dependabot.yml"
+    ],
+    "provenance": "worktree",
+    "provenance_ref": null
+  }
+}

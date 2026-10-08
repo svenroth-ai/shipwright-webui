@@ -19,10 +19,10 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 5
     # The sibling repo's composite action (diff-coverage-gate) is re-pinned by
-    # hand on purpose: gate changes are reviewed upstream. Dependabot names a
-    # github-actions dependency owner/repo only (sub-path dropped).
+    # hand on purpose: gate changes are reviewed upstream. Verified live: Dependabot
+    # names this dependency with its FULL path (PR #511), so the glob is required.
     ignore:
-      - dependency-name: "svenroth-ai/shipwright"
+      - dependency-name: "svenroth-ai/shipwright/*"
     cooldown:
       default-days: 7
     groups:
