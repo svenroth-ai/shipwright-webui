@@ -134,7 +134,7 @@ jobs:
       # client/ + server/ paths natively via each cobertura's <source> root (no
       # combine). The action installs uv itself.
       - name: Diff coverage (gate)
-        uses: svenroth-ai/shipwright/.github/actions/diff-coverage-gate@f36a656208b512e3260c6e95dbad84bb1650f223  # main
+        uses: svenroth-ai/shipwright/.github/actions/diff-coverage-gate@5eb4fe2d20acd5d60a673ce5730c6aced2fc0052  # main
         with:
           coverage-files: client/coverage/cobertura-coverage.xml server/coverage/cobertura-coverage.xml
 
