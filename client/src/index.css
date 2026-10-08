@@ -9,6 +9,7 @@
 @import "./styles/files-terminal.css"; /* Files & Terminal three-card row — glass · beige · glass (A18) */
 @import "./styles/command-center.css"; /* command palette (glass) + keyboard nav ring + density (A21) */
 @import "./styles/buttons.css";        /* the ONE canonical .btn-primary standard (2026-07-17) */
+@import "./styles/keyboard-fit.css";   /* soft-keyboard fit — shell follows the visual viewport (touch only) */
 @import "./styles/org.css";            /* Org page — chart + lead card, ported from the approved mockup */
 
 /* Markdown body — GitHub-style rendering conventions (iterate-20260423-chat-livetest-2
@@ -161,6 +162,22 @@
 }
 .markdown-body table tr:nth-child(2n) {
   background-color: rgba(175, 184, 193, 0.08);
+}
+/* Phones: a `display:block` table sizes its columns to the widest cell and hands
+ * the rest to a horizontal scroll, which rendered as a squeezed, wrapped mess at
+ * 375px. Compact cells + `max-content` width keep the columns readable and let
+ * the table (not the page) scroll sideways. */
+@media (max-width: 767px) {
+  .markdown-body table {
+    width: max-content;
+    font-size: 12px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .markdown-body table th,
+  .markdown-body table td {
+    padding: 4px 8px;
+    min-width: 64px;
+  }
 }
 
 /* SmartViewer document pane (iterate-2026-05-30-smartviewer-render-ux, AC5):

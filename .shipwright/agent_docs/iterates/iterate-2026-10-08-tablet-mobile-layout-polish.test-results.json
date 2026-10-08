@@ -1,0 +1,108 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-08-tablet-mobile-layout-polish",
+    "date": "2026-10-08",
+    "unit": {
+      "status": "passed",
+      "passed": 4436,
+      "total": 4436
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 7,
+      "total": 7
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "board lanes fit 1024/1180px without horizontal scroll",
+          "disposition": "tested",
+          "evidence": "tablet-mobile-polish.spec.ts board x2 PASSED + TaskBoardColumns lane contract unit"
+        },
+        {
+          "behavior": "list view has one bounded scroller and pinned column header",
+          "disposition": "tested",
+          "evidence": "tablet-mobile-polish.spec.ts list view PASSED"
+        },
+        {
+          "behavior": "tablet Smart Viewer hidden, summoned by toggle or file open, never persisted",
+          "disposition": "tested",
+          "evidence": "TaskDetailThreePane.tablet.test.tsx (4) + e2e tablet task detail PASSED"
+        },
+        {
+          "behavior": "keyboard fit decision (threshold, pinch-zoom, terminal flag) and hook attrs/cleanup",
+          "disposition": "tested",
+          "evidence": "useKeyboardViewportFit.test.ts (7) PASSED"
+        },
+        {
+          "behavior": "real soft keyboard shifts shell and folds chrome",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "needs an on-screen keyboard on a real iOS/Android device"
+        },
+        {
+          "behavior": "phone: no maximize icon, inline description, 44px tree rows",
+          "disposition": "tested",
+          "evidence": "tablet-mobile-polish.spec.ts phone + mobile-work-mode.spec.ts PASSED + TaskDescriptionDisclosure unit"
+        },
+        {
+          "behavior": "triage meta row clusters below 1500px",
+          "disposition": "tested",
+          "evidence": "tablet-mobile-polish.spec.ts triage x2 PASSED"
+        },
+        {
+          "behavior": "phone markdown table sizing",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "readability of table columns is a visual judgement; CSS-only"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 2,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/tablet-mobile-polish.spec.ts (+ mobile-chromium mobile-work-mode/A20/90)",
+      "exit_code": 0,
+      "tests_run": 7,
+      "evidence_path": "client/e2e/flows/tablet-mobile-polish.spec.ts",
+      "timestamp": "2026-10-08T11:30:00Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

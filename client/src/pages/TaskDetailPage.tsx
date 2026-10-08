@@ -17,6 +17,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { TaskDetailHeader } from "../components/external/TaskDetailHeader";
 import { TaskDetailThreePane } from "../components/external/TaskDetailThreePane";
 import { FocusModeToggle } from "../components/external/FocusModeToggle";
+import { ViewerToggle } from "../components/external/ViewerToggle";
 import { FolderTree } from "../components/external/FolderTree";
 import { SmartViewer } from "../components/external/SmartViewer";
 import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
@@ -70,6 +71,7 @@ function TaskDetailPageBody() {
   const transcript = useTaskTranscript(taskId ?? null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
+  const [viewerRequestKey, setViewerRequestKey] = useState(0);
   const coord = useLaunchCoordinator();
   const compact = useIsCompactViewport();
   const [activeCompactPane, setActiveCompactPane] = useState<PaneId>("center");
@@ -338,7 +340,7 @@ function TaskDetailPageBody() {
     (!compact || activeCompactPane === "center");
   const handleSelect = useCallback((path: string) => {
     setSelectedPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
-    setActivePath(path);
+    setActivePath(path); setViewerRequestKey((k) => k + 1);
     setActiveCompactPane("right");
     if (compact) {
       requestAnimationFrame(() =>
@@ -401,6 +403,7 @@ function TaskDetailPageBody() {
         <TaskDetailThreePane
           activePane={activeCompactPane}
           onActivePaneChange={setActiveCompactPane}
+          viewerRequestKey={viewerRequestKey}
           left={
             <FolderTree
               projectId={task.projectId}
@@ -424,16 +427,13 @@ function TaskDetailPageBody() {
               >
                 {/* Maximize terminal (A18): collapses both side cards via the
                     existing useThreePaneLayout collapse→resize path. */}
-                <FocusModeToggle />
+                <ViewerToggle /><FocusModeToggle />
               </div>}
               <div
                 id="task-center-panel-terminal"
                 className="relative min-h-0 flex-1"
                 data-testid="task-detail-terminal"
               >
-                {compact && <div className="absolute right-2 top-2 z-20 rounded-lg bg-[var(--g100)] shadow-md">
-                  <FocusModeToggle />
-                </div>}
                 <Suspense
                   fallback={
                     <div className="p-4 text-xs text-[var(--color-muted,#6b7280)]">

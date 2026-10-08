@@ -109,17 +109,26 @@ describe("TaskDescriptionDisclosure", () => {
   });
 });
 
-describe("TaskDescriptionDisclosure — phone overlay", () => {
-  it("opens escaped long content in a portalled, internally scrollable overlay", async () => {
+describe("TaskDescriptionDisclosure — phone", () => {
+  it("unfolds IN PLACE like desktop: no pill border, no popover, 44px target", async () => {
     setPhone(true);
     const user = userEvent.setup();
-    const evil = "<script>alert(1)</script>\n" + "Long brief. ".repeat(80);
+    const evil = "<script>alert(1)</script>" + String.fromCharCode(10) + "Long brief. ".repeat(80);
     render(<TaskDescriptionDisclosure task={baseTask({ description: evil })} />);
-    await user.click(screen.getByTestId("task-description-toggle"));
-    const body = await screen.findByTestId("task-description-body");
+    const toggle = screen.getByTestId("task-description-toggle");
+    // A pill reads as a status tag — the trigger must be plain text + chevron.
+    expect(toggle.className).not.toContain("rounded-full");
+    expect(toggle.className).not.toContain("border");
+    expect(toggle.className).toContain("min-h-11");
+    await user.click(toggle);
+    const body = screen.getByTestId("task-description-body");
     expect(body).toHaveTextContent("<script>alert(1)</script>");
     expect(body.querySelector("script")).toBeNull();
     expect(body.className).toContain("overflow-y-auto");
-    expect(screen.getByTestId("task-description-disclosure")).toHaveClass("inline-flex");
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    // In place = a descendant of the disclosure, not a body-level portal.
+    expect(screen.getByTestId("task-description-disclosure")).toContainElement(body);
+    await user.click(toggle);
+    expect(screen.queryByTestId("task-description-body")).toBeNull();
   });
 });

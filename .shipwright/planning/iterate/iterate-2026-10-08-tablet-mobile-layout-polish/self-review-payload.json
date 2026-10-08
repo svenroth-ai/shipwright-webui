@@ -1,0 +1,10 @@
+{"items":[
+{"name":"spec_compliance","verdict":"pass","note":"All 9 user items implemented (board lanes flex, list single scroller+sticky th, tablet viewer on demand, keyboard viewport fit, table CSS, maximize removed in compact, description inline, tree sizing, triage meta row); spec.md FR-01.38 gained (G)-(J)."},
+{"name":"error_handling","verdict":"n/a","note":"Client-only layout work; the hook no-ops without visualViewport/matchMedia."},
+{"name":"security_basics","verdict":"n/a","note":"No new inputs, routes or trust boundaries; description still rendered as an escaped text node."},
+{"name":"test_quality","verdict":"pass","note":"Unit: tablet viewer shell (4), keyboard fit pure fn + hook (7), lane class contract, inline description. Real-browser spec tablet-mobile-polish.spec.ts (7) measures geometry; mobile-work-mode spec updated."},
+{"name":"performance_basics","verdict":"pass","note":"Hook handlers are O(1) attribute writes on vv resize/scroll/focus events; cleaned up on unmount."},
+{"name":"naming_structure","verdict":"pass","note":"ViewerToggle, useKeyboardViewportFit and keyboard-fit.css follow existing grouping; all files under 300 lines."},
+{"name":"affected_boundaries","verdict":"n/a","note":"No serialized format touched; tablet viewer state is transient React state, desktop rightCollapsed localStorage untouched (unit-proved)."},
+{"name":"test_hygiene_probe","verdict":"pass","note":"No skips or weakened assertions; two obsolete assertions (maximize in compact, description popover) were rewritten to the new contract."}
+]}

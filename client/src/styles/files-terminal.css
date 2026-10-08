@@ -56,6 +56,13 @@
 }
 .ft-maximize:hover { color: var(--ink); background: rgba(0, 0, 0, .05); }
 .ft-maximize:focus-visible { outline: none; box-shadow: var(--focus); }
+/* Two controls can share the head (tablet: viewer toggle + maximize) — only the
+   first pushes right; the second sits flush beside it. */
+.ft-maximize + .ft-maximize { margin-left: 0; }
+/* Touch tablets at desktop width (iPad landscape) still need a 44px target. */
+@media (pointer: coarse) {
+  .ft-maximize { width: 44px; height: 44px; }
+}
 
 @media (max-width: 1023px) {
   .ft-maximize {
@@ -95,4 +102,19 @@
 @supports not (backdrop-filter: blur(1px)) {
   .on-photo .ft-card { background: rgba(255, 255, 255, .92); }
   .on-photo .ft-term { background: var(--surface-reading); }
+}
+
+/* ── Files tree on touch-first widths (phone + tablet portrait, ≤1023px) ───────
+   The tree is the WHOLE screen there, yet rendered at desktop density (12px text,
+   14px icons, ~20px rows). Bigger type, icons and a 44px row (the repo's touch
+   floor) — sizes via CSS so the lucide `size` attributes stay the desktop
+   defaults and the ≥1024px tree is byte-identical.
+   (iterate-2026-10-08-tablet-mobile-layout-polish) */
+@media (max-width: 1023px) {
+  .ft-files .ft-tree-row {
+    min-height: 44px; font-size: 15px; gap: 8px;
+  }
+  .ft-files .ft-tree-row svg { width: 20px; height: 20px; }
+  .ft-files .ft-tree-row .ft-tree-chev { width: 20px; }
+  .ft-files .ft-tree-row .ft-tree-chev svg { width: 16px; height: 16px; }
 }

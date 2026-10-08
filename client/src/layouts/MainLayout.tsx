@@ -11,6 +11,7 @@ import { useTriageCounts } from '../hooks/useTriage';
 import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
 import { useDensity } from '../hooks/useDensity';
 import { useListKeyboardNav } from '../hooks/useListKeyboardNav';
+import { useKeyboardViewportFit } from '../hooks/useKeyboardViewportFit';
 import {
   MobileTopBarSlotProvider,
   MobileTopBarSlotTarget,
@@ -20,6 +21,8 @@ export function MainLayout() {
   const { data: inbox = [] } = useExternalInbox();
   const { data: triageCounts } = useTriageCounts();
   const isPhone = useIsPhoneViewport();
+  // Soft keyboard (touch): size the shell to the visible viewport — see the hook.
+  useKeyboardViewportFit();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
   // A21 (FR-01.65): density applies app-wide (data-density) — the list
@@ -45,7 +48,7 @@ export function MainLayout() {
         `?` cheat-sheet, mounted ONCE. Renders only portalled dialogs (invisible
         when closed) so it moves no existing route's visual baseline. */}
     <CommandCenter />
-    <div className="flex h-[100dvh] overflow-hidden">
+    <div className="app-shell flex h-[100dvh] overflow-hidden">
       {isPhone ? (
         <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
           <Dialog.Portal>

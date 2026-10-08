@@ -37,7 +37,12 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
       data-nav-item
       data-testid={`triage-item-${item.id}`}
     >
-      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+      {/* Below 1500px the timestamp FOLLOWS the badge cluster (`ml-auto` only
+          right-aligns it on a wide desktop): on a phone, tablet or ordinary
+          laptop the card spans ~900px+, and `ml-auto` flung the time to the far
+          edge, leaving a wide dead gap between a card's id/priority and its time
+          (Sven, twice: "cards too far apart horizontally"). */}
+      <div className="flex items-center gap-x-2 gap-y-1 mb-1.5 flex-wrap">
         <SourceBadge source={item.source} />
         <SeverityBadge severity={item.severity} />
         {item.pendingDelivery && <PendingDeliveryBadge />}
@@ -47,7 +52,7 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
           → {item.suggestedPriority} / {item.suggestedDomain}
         </span>
         <span
-          className="text-[11px] text-[var(--color-muted)] ml-auto"
+          className="text-[11px] text-[var(--color-muted)] min-[1500px]:ml-auto"
           title={item.originalTs}
           data-testid={`triage-item-${item.id}-relative-ts`}
         >

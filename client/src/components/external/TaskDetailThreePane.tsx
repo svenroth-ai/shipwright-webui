@@ -12,7 +12,10 @@ import {
   COLLAPSED_LEFT_PX,
   STEP_PX,
 } from "../../hooks/useThreePaneLayout";
-import { useIsCompactViewport } from "../../hooks/useIsCompactViewport";
+import {
+  useIsCompactViewport,
+  useIsTabletViewport,
+} from "../../hooks/useIsCompactViewport";
 import { PaneTabBar, type PaneId } from "./PaneTabBar";
 import { PaneSplitter } from "./PaneSplitter";
 import { FocusModeContext } from "./focus-mode-context";
@@ -29,6 +32,9 @@ interface Props {
   containerWidth?: number;
   activePane?: PaneId;
   onActivePaneChange?: (pane: PaneId) => void;
+  /** Bumped by the page whenever the user opens a file; on the tablet band that
+   *  summons the (otherwise hidden) Smart Viewer. Ignored elsewhere. */
+  viewerRequestKey?: number;
 }
 
 export function TaskDetailThreePane({
@@ -38,9 +44,20 @@ export function TaskDetailThreePane({
   containerWidth,
   activePane,
   onActivePaneChange,
+  viewerRequestKey = 0,
 }: Props) {
   const layout = useThreePaneLayout();
   const compact = useIsCompactViewport();
+  // Tablet band: the Smart Viewer is hidden until asked for (transient — never
+  // written to the persisted `rightCollapsed` desktop preference).
+  const tablet = useIsTabletViewport() && !compact;
+  const [tabletViewerOpen, setTabletViewerOpen] = useState(false);
+  const lastViewerRequest = useRef(viewerRequestKey);
+  useEffect(() => {
+    if (viewerRequestKey === lastViewerRequest.current) return;
+    lastViewerRequest.current = viewerRequestKey;
+    if (tablet) setTabletViewerOpen(true);
+  }, [viewerRequestKey, tablet]);
   const { resolvedPane, selectPane } =
     useCompactPaneSelection({ activePane, onActivePaneChange });
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +90,8 @@ export function TaskDetailThreePane({
   const total = Math.max(measuredWidth, 600);
   const maxed = layout.maximized;
   const effLeftCollapsed = maxed || layout.leftCollapsed;
-  const effRightCollapsed = maxed || layout.rightCollapsed;
+  const effRightCollapsed =
+    maxed || (tablet ? !tabletViewerOpen : layout.rightCollapsed);
   const leftPx = maxed
     ? 0
     : layout.leftCollapsed
@@ -138,7 +156,7 @@ export function TaskDetailThreePane({
     layout.setLeftWidth((sizePct / 100) * total);
   };
   const handleRightDrag = (sizePct: number) => {
-    if (compact || layout.rightCollapsed || maxed) return;
+    if (compact || tablet || layout.rightCollapsed || maxed) return;
     layout.setRightWidth((sizePct / 100) * total);
   };
 
@@ -172,6 +190,14 @@ export function TaskDetailThreePane({
     () =>
       (e: React.KeyboardEvent) => {
         if (layout.maximized) return; // see leftSplitterKeydown
+        if (tablet) {
+          // Tablet viewer is transient local state — never the persisted prefs.
+          if (e.key === "Enter") {
+            e.preventDefault();
+            setTabletViewerOpen((v) => !v);
+          }
+          return;
+        }
         if (layout.rightCollapsed) {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -190,13 +216,21 @@ export function TaskDetailThreePane({
           layout.toggleRightCollapsed();
         }
       },
-    [layout],
+    [layout, tablet],
   );
 
   // Bridge maximize to the middle head's control (rendered here as a descendant).
   const focus = useMemo(
-    () => ({ maximized: maxed, toggle: layout.toggleMaximized }),
-    [maxed, layout.toggleMaximized],
+    () => ({
+      maximized: maxed,
+      toggle: layout.toggleMaximized,
+      viewer: {
+        available: tablet && !maxed,
+        open: tabletViewerOpen,
+        toggle: () => setTabletViewerOpen((v) => !v),
+      },
+    }),
+    [maxed, layout.toggleMaximized, tablet, tabletViewerOpen],
   );
 
   return (

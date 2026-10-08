@@ -69,7 +69,7 @@ export function TaskBoardBody({
     // The scroller is OUTSIDE .page-container so the scrollbar rides the
     // window edge, not the centred 1280 box — same shape as Diagnostics.
     return (
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto [overscroll-behavior-y:contain]" data-testid="task-list-scroller">
         <div className="page-container w-full pt-6 pb-8">
           <TaskList tasks={filteredTasks} />
         </div>

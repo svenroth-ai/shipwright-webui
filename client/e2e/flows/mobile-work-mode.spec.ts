@@ -154,15 +154,13 @@ test.describe("Mobile work mode", () => {
       "aria-selected",
       "true",
     );
-    await expect(page.getByTestId("terminal-maximize")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    // iterate-2026-10-08-tablet-mobile-layout-polish: no "maximize terminal"
+    // control in the compact tab layout — the tab already owns the full width.
+    await expect(page.getByTestId("terminal-maximize")).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => {
       const terminal = document.querySelector('[data-testid="embedded-terminal"]');
       return terminal?.contains(document.activeElement) ?? false;
     })).toBe(true);
-    await page.getByTestId("terminal-maximize").click();
 
     const title = page.getByTestId("task-title-display");
     await expectOneLineEllipsis(title);
@@ -190,9 +188,12 @@ test.describe("Mobile work mode", () => {
     expect(descriptionBox?.x).toBeGreaterThanOrEqual(0);
     expect((descriptionBox?.x ?? 0) + (descriptionBox?.width ?? 0))
       .toBeLessThanOrEqual(page.viewportSize()!.width);
-    expect(Math.abs((await headerHeight()) - headerHeightBefore)).toBeLessThanOrEqual(1);
-    await page.keyboard.press("Escape");
-    await expect(descriptionToggle).toBeFocused();
+    // Unfolds in place, so the header grows by the (capped) body height.
+    expect(await headerHeight()).toBeGreaterThan(headerHeightBefore);
+    // The brief unfolds IN PLACE (no pill/popover): the same toggle folds it.
+    await expect(descriptionToggle).toHaveAttribute("aria-expanded", "true");
+    await descriptionToggle.click();
+    await expect(page.getByTestId("task-description-body")).toHaveCount(0);
     const topbarBox = await page.getByTestId("mobile-topbar").boundingBox();
     expect(topbarBox?.y).toBeGreaterThanOrEqual(0);
     await expectMinTouchTargets([
@@ -200,11 +201,7 @@ test.describe("Mobile work mode", () => {
       page.getByTestId("task-detail-menu-trigger"),
     ]);
 
-    const expand = page.getByTestId("terminal-maximize");
-    await expect(expand).toBeVisible();
-    const expandBox = await expand.boundingBox();
-    expect(expandBox?.width).toBeGreaterThanOrEqual(44);
-    expect(expandBox?.height).toBeGreaterThanOrEqual(44);
+    await expect(page.getByTestId("terminal-maximize")).toHaveCount(0);
 
     const keybarPadding = await page.getByTestId("terminal-key-bar").evaluate((element) => {
       const style = getComputedStyle(element);

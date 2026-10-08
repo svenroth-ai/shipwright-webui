@@ -188,8 +188,14 @@ export function MissionTopRow({ task, modelName }: Props) {
                 Awaiting approval
               </span>
             )}
-            <TaskDescriptionDisclosure task={task} />
           </div>
+          {/* Own row: the brief unfolds IN PLACE, so it needs the full width the
+              status row's flex siblings would otherwise steal. */}
+          {task.description?.trim() ? (
+            <div className="pl-[52px]">
+              <TaskDescriptionDisclosure task={task} />
+            </div>
+          ) : null}
         </>
       ) : (
         <>

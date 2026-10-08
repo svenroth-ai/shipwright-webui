@@ -304,7 +304,7 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
                 data-kind={row.kind}
                 data-selected={isSelected || undefined}
                 tabIndex={row.path === (focusedPath ?? visibleRows[0]?.path) ? 0 : -1}
-                className={`flex w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-left text-[12px] transition ${
+                className={`ft-tree-row flex w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-left text-[12px] transition ${
                   row.ignored ? "italic opacity-60" : ""
                 } ${
                   isSelected
@@ -313,7 +313,7 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
                 }`}
                 style={{ paddingLeft: `${8 + row.depth * 14}px` }}
               >
-                <span className="flex w-3 shrink-0 items-center justify-center">
+                <span className="ft-tree-chev flex w-3 shrink-0 items-center justify-center">
                   {row.kind === "dir" ? (
                     <ChevronRight
                       size={12}

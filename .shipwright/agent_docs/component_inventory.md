@@ -110,6 +110,7 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `AttachmentCard` | `external/AttachmentCard.tsx` | 105 | 6 |
 | `ConfirmDeleteDialog` | `external/ConfirmDeleteDialog.tsx` | 76 | 6 |
 | `TaskDetailThreePane` | `external/TaskDetailThreePane.tsx` | 245 | 5 |
+| `ViewerToggle` | `external/ViewerToggle.tsx` | 36 | 1 |
 | `CreateMenuSplitButton` | `external/CreateMenuSplitButton.tsx` | 209 | 5 |
 | `CreateControls` | `external/CreateControls.tsx` | 90 | 1 |
 | `ProjectCreateCascade` (ProjectCreateMenu / ProjectPlainPicker / ProjectActionsLoader) | `external/ProjectCreateCascade.tsx` | 279 | 1 |

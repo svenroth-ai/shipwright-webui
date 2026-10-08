@@ -170,7 +170,13 @@ function DroppableColumn({ meta, items }: DroppableColumnProps) {
   return (
     <div
       ref={setNodeRef}
-      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)] md:w-auto md:min-w-[200px] md:shrink md:grow md:basis-0 lg:w-[360px] lg:min-w-[360px] lg:shrink-0 lg:grow-0 lg:basis-auto"
+      // md+ (tablet AND desktop): the three lanes SHARE the width (basis-0 grow,
+      // min 200, capped at the 360px design width) so they never need a
+      // horizontal scroll — iPad landscape (1024–1366px) used to hit the old
+      // fixed `lg:w-[360px]` x3 and scroll sideways. Wide desktops still cap
+      // at 360 and `lg:justify-between` spreads them exactly as before. Only
+      // phones (<768px) keep the 360px swipe carousel.
+      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)] md:w-auto md:min-w-[200px] md:max-w-[360px] md:shrink md:grow md:basis-0"
       style={{
         // Colored-GLASS lane panel (Sven feedback 2026-07-17): a translucent
         // dark tint in the column's own colour + a backdrop blur, so the deck

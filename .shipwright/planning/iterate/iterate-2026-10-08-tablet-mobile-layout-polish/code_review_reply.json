@@ -1,0 +1,6 @@
+{"section":"iterate-2026-10-08-tablet-mobile-layout-polish","review":[
+{"severity":"medium","file":"client/src/hooks/useKeyboardViewportFit.ts","finding":"Pinch-zoom shrinks visualViewport.height and was read as an open keyboard. RESOLVED: scale<=1.01 guard + unit test."},
+{"severity":"medium","file":"client/src/components/external/TaskList.tsx","finding":"overflow-clip removes the horizontal escape hatch on very narrow phones. ACCEPTED: 390px list screenshot fits; Phase/Commit columns are hidden below md/lg."},
+{"severity":"low","file":"client/src/components/external/TaskDetailThreePane.tsx","finding":"Right splitter keydown wrote persisted prefs on tablet. RESOLVED: Enter toggles the transient viewer, nudges no-op."},
+{"severity":"low","file":"client/src/styles/keyboard-fit.css","finding":"transform creates a containing block for fixed descendants even at 0. RESOLVED: transform only under data-kbd-pan."}
+]}
