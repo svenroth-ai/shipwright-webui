@@ -90,7 +90,7 @@ jobs:
         # action. Upstream needs `astral-sh/setup-uv` because its copy runs
         # under `uv run`; adding that here would introduce a SHA pin to
         # maintain for nothing.
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
