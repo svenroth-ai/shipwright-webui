@@ -28,6 +28,7 @@ test.describe("Flow B — Create-menu dropdown and mode switching", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.16
   test("caret dropdown lists all three actions and opens the right mode", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("task-board-page")).toBeVisible();
@@ -49,7 +50,7 @@ test.describe("Flow B — Create-menu dropdown and mode switching", () => {
     await expect(modal).toBeVisible();
     await expect(modal).toContainText("New Pipeline");
     // AutonomyToggle is visible (guided + autonomous radios).
-    const autonomyGroup = modal.getByRole("radiogroup");
+    const autonomyGroup = modal.getByRole("radiogroup", { name: "Autonomy" });
     await expect.soft(autonomyGroup).toBeVisible();
     // Phase select is absent in pipeline mode (FR-03.72).
     await expect(page.getByTestId("new-issue-phase-select")).toHaveCount(0);

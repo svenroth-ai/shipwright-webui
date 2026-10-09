@@ -34,6 +34,7 @@ interface CliSnapshot {
 }
 
 test.describe('Diagnostics — real Claude CLI probe through the extracted resolver', () => {
+  // @covers FR-01.05
   test('the live API reports a parsed, supported CLI and the page renders it', async ({
     page,
     request,
@@ -96,6 +97,9 @@ test.describe('Diagnostics — real Claude CLI probe through the extracted resol
     });
 
     expect(pageErrors).toEqual([]);
-    expect(failedRequests.filter((u) => !u.includes('/@fs/'))).toEqual([]);
+    // `/api/org/org-chart` answers 404 BY DESIGN when no org chart is installed:
+    // useOrgChartPresence() reads that 404 as "absent" and hides the lead UI.
+    const expected = (u: string) => u.includes('/@fs/') || (u.startsWith('404 ') && u.includes('/api/org/org-chart'));
+    expect(failedRequests.filter((u) => !expected(u))).toEqual([]);
   });
 });

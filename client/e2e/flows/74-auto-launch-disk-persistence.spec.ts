@@ -61,6 +61,7 @@ async function createTask(
 }
 
 test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
+  // @covers FR-01.02
   test("Launch CTA flips to Terminal tab without writing to clipboard (auto-execute UX)", async ({
     page,
     request,
@@ -90,7 +91,9 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       // Tab must flip to Terminal — coord.pendingLaunch fires the
       // useEffect in TaskDetailPage that sets centerTab="terminal".
       const terminalPane = page.getByTestId("task-detail-terminal");
-      await expect(terminalPane).toHaveAttribute("data-state", "active");
+      // The pane carries no `data-state` since #366 — visibility is the contract.
+      await expect(terminalPane).toBeVisible();
+      await expect(page.getByTestId("embedded-terminal")).toBeVisible();
 
       // Clipboard MUST NOT have been written for the auto-launch path
       // (Decision #19 — auto-execute via WS data-frame, not clipboard).

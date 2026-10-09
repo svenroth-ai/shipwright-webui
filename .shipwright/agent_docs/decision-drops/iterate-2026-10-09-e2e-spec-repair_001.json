@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-09-e2e-spec-repair",
+  "date": "2026-10-09",
+  "section": "Iterate - change: repair the 25 stale E2E specs",
+  "title": "E2E specs follow the current product surface; the full isolated run is green",
+  "context": "25 Playwright specs failed on main for deterministic reasons: they targeted retired or renamed surfaces (mission narrator, terminal data-state, project select), drifted semantics (ptyReused, mouse frame type, org-chart gate), leaked fixture tasks, or ran a mobile-only spec in the desktop project.",
+  "decision": "Re-point each assertion to the surface the product has now, keep its intent, and make the specs seed and tear down their own tasks; retire mission-narrative-prose.spec.ts because OperationLive is no longer mounted; exclude the mobile-only 90b spec from the desktop project.",
+  "consequences": "node client/e2e/isolated-stack.mjs with chromium, mobile-chromium and schema-isolated now exits 0 (509 passed, 10 skipped) with no leaked fixture tasks. The narrator's prose assertions (outcome wording, inline artifact link) are retired with it, not ported.",
+  "rationale": "A suite that always fails hides new regressions; the failures were stale specs, not product defects, so no product code changed.",
+  "rejected": "Skipping or quarantining the failing specs: that keeps the red count honest-looking but leaves the surfaces untested.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

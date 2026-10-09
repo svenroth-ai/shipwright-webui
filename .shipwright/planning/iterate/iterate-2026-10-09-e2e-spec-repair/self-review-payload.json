@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"All 25 failures from the diagnosis addressed; full chromium+mobile+schema run via isolated-stack: 509 passed, 0 failed, 10 skipped, exit 0, no contamination."},
+{"name":"Error Handling","verdict":"pass","note":"Specs that create tasks tear them down in finally via cleanupTaskCwd; transcript dirs removed."},
+{"name":"Security Basics","verdict":"n/a","note":"Test-only; one playwright.config.ts testIgnore entry."},
+{"name":"Test Quality","verdict":"pass","note":"Assertions moved to the current surfaces (activity feed, context strip, mouse frame type, hadDataWritten semantics), not weakened; narrator-only spec retired because OperationLive is unmounted; resume-guard gains a negative passive-attach test."},
+{"name":"Performance Basics","verdict":"n/a","note":"No runtime code."},
+{"name":"Naming & Structure","verdict":"pass","note":"All touched files stay under 300 lines."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No IO boundary touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"No hardcoded C:/tmp cwds remain in touched specs."}
+]}

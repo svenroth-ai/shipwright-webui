@@ -112,7 +112,7 @@ test.describe("A21 command palette + keyboard map", () => {
     });
 
     await page.goto(`/tasks/${t.taskId}`);
-    await page.getByTestId("task-detail-tab-terminal").click();
+    // Files & Terminal is the mount-default, so the terminal is already shown.
     const canvas = page.getByTestId("embedded-terminal-canvas");
     await expect(canvas).toBeVisible({ timeout: 25_000 });
 

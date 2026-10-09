@@ -9,39 +9,20 @@
  * frames carry the LEFT-button report but NOT the right-button one. Left/middle/
  * wheel stay forwarded so Claude's selection / clicks / scroll are unaffected.
  */
-import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
-import os from "node:os";
-import path from "node:path";
-import fs from "node:fs/promises";
+import { test, expect, type Page } from "@playwright/test";
+import { cleanupTaskCwd, seedTask } from "../helpers/fixtures";
 
-async function makeTaskCwd(): Promise<string> {
-  return await fs.mkdtemp(path.join(os.tmpdir(), "terminal-rclick-e2e-"));
-}
-async function cleanupCwd(dir: string): Promise<void> {
-  for (let i = 0; i < 5; i++) {
-    try {
-      await fs.rm(dir, { recursive: true, force: true });
-      return;
-    } catch {
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  }
-}
-async function createTask(request: APIRequestContext, cwd: string): Promise<string> {
-  const res = await request.post("/api/external/tasks", {
-    data: { title: "terminal-rightclick-e2e", cwd },
-  });
-  if (!res.ok()) throw new Error(`create task: HTTP ${res.status()}`);
-  const body = (await res.json()) as { task: { taskId: string } };
-  return body.task.taskId;
-}
-function collectSentDataFrames(page: Page): string[] {
+function collectSentPtyFrames(page: Page): string[] {
   const frames: string[] = [];
   page.on("websocket", (ws) => {
     if (!ws.url().includes("/api/terminal/")) return;
     ws.on("framesent", (f) => {
       const payload = typeof f.payload === "string" ? f.payload : "";
-      if (payload.includes('"type":"data"')) frames.push(payload);
+      // Mouse reports ride their own `mouse` frame type (keystrokes stay `data`);
+      // both reach the pty, so both count as "forwarded".
+      if (payload.includes('"type":"data"') || payload.includes('"type":"mouse"')) {
+        frames.push(payload);
+      }
     });
   });
   return frames;
@@ -55,15 +36,15 @@ async function openTerminal(page: Page, taskId: string): Promise<void> {
 }
 
 test.describe("iterate-2026-07-07 — right-click not forwarded to the pty", () => {
+  // @covers FR-01.28
   test("a right-click in mouse mode is NOT sent to the pty; a left-click is", async ({
     page,
     request,
   }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd);
-    const sent = collectSentDataFrames(page);
+    const task = await seedTask(request, { title: "terminal-rightclick-e2e" });
+    const sent = collectSentPtyFrames(page);
     try {
-      await openTerminal(page, taskId);
+      await openTerminal(page, task.taskId);
       // Put xterm into SGR mouse-reporting mode (mode 1000 press/release + 1006
       // SGR encoding) — the same thing Claude Code's TUI enables.
       await page.evaluate(() => {
@@ -88,7 +69,7 @@ test.describe("iterate-2026-07-07 — right-click not forwarded to the pty", () 
       // … but NO right-button report did (that was the double-paste trigger).
       expect(all, "right-click must NOT reach the pty").not.toMatch(/<2;\d+;\d+/);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, task);
     }
   });
 });
