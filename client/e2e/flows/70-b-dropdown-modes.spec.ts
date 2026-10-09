@@ -28,7 +28,7 @@ test.describe("Flow B — Create-menu dropdown and mode switching", () => {
     await cleanupProject(request, project);
   });
 
-  // @covers FR-03.72
+  // @covers FR-01.16
   test("caret dropdown lists all three actions and opens the right mode", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("task-board-page")).toBeVisible();
