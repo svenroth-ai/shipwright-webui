@@ -1,6 +1,6 @@
 /* Resizable three-pane layout shell. Compact mode keeps every pane mounted and
  * exposes the four direct work surfaces through PaneTabBar. */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Panel, PanelGroup, type ImperativePanelHandle } from "react-resizable-panels";
 
 import {
@@ -10,7 +10,6 @@ import {
   RIGHT_MIN,
   RIGHT_MAX,
   COLLAPSED_LEFT_PX,
-  STEP_PX,
 } from "../../hooks/useThreePaneLayout";
 import {
   useIsCompactViewport,
@@ -18,6 +17,7 @@ import {
 } from "../../hooks/useIsCompactViewport";
 import { PaneTabBar, type PaneId } from "./PaneTabBar";
 import { PaneSplitter } from "./PaneSplitter";
+import { useSplitterKeydown } from "./useSplitterKeydown";
 import { FocusModeContext } from "./focus-mode-context";
 import {
   compactPaneA11y,
@@ -160,64 +160,12 @@ export function TaskDetailThreePane({
     layout.setRightWidth((sizePct / 100) * total);
   };
 
-  const leftSplitterKeydown = useMemo(
-    () =>
-      (e: React.KeyboardEvent) => {
-        // Focus mode owns the widths transiently — never mutate/persist them.
-        if (layout.maximized) return;
-        if (layout.leftCollapsed) {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            layout.toggleLeftCollapsed();
-          }
-          return;
-        }
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          layout.nudgeLeft(-STEP_PX);
-        } else if (e.key === "ArrowRight") {
-          e.preventDefault();
-          layout.nudgeLeft(STEP_PX);
-        } else if (e.key === "Enter") {
-          e.preventDefault();
-          layout.toggleLeftCollapsed();
-        }
-      },
-    [layout],
-  );
-
-  const rightSplitterKeydown = useMemo(
-    () =>
-      (e: React.KeyboardEvent) => {
-        if (layout.maximized) return; // see leftSplitterKeydown
-        if (tablet) {
-          // Tablet viewer is transient local state — never the persisted prefs.
-          if (e.key === "Enter") {
-            e.preventDefault();
-            setTabletViewerOpen((v) => !v);
-          }
-          return;
-        }
-        if (layout.rightCollapsed) {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            layout.toggleRightCollapsed();
-          }
-          return;
-        }
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          layout.nudgeRight(STEP_PX);
-        } else if (e.key === "ArrowRight") {
-          e.preventDefault();
-          layout.nudgeRight(-STEP_PX);
-        } else if (e.key === "Enter") {
-          e.preventDefault();
-          layout.toggleRightCollapsed();
-        }
-      },
-    [layout, tablet],
-  );
+  const toggleTabletViewer = useCallback(() => setTabletViewerOpen((v) => !v), []);
+  const { leftSplitterKeydown, rightSplitterKeydown } = useSplitterKeydown({
+    layout,
+    tablet,
+    toggleTabletViewer,
+  });
 
   // Bridge maximize to the middle head's control (rendered here as a descendant).
   const focus = useMemo(
