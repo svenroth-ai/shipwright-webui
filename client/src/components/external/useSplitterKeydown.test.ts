@@ -49,7 +49,7 @@ describe("useSplitterKeydown — left splitter", () => {
     expect(layout.toggleLeftCollapsed).toHaveBeenCalledTimes(1);
   });
 
-  it("only Enter/Space re-open a collapsed pane; arrows do nothing", () => {
+  it("left: Enter/Space re-open a collapsed pane, arrows do nothing", () => {
     const layout = makeLayout({ leftCollapsed: true });
     const { leftSplitterKeydown } = setup(layout);
     leftSplitterKeydown(key("ArrowLeft").event);
@@ -83,7 +83,7 @@ describe("useSplitterKeydown — right splitter", () => {
     expect(layout.toggleRightCollapsed).toHaveBeenCalledTimes(1);
   });
 
-  it("only Enter/Space re-open a collapsed pane; arrows do nothing", () => {
+  it("right: Enter/Space re-open a collapsed pane, arrows do nothing", () => {
     const layout = makeLayout({ rightCollapsed: true });
     const { rightSplitterKeydown } = setup(layout);
     rightSplitterKeydown(key("ArrowRight").event);
