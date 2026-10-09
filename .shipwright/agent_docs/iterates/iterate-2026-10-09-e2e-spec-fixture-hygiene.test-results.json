@@ -1,0 +1,83 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-09-e2e-spec-fixture-hygiene",
+    "date": "2026-10-09",
+    "unit": {
+      "status": "passed",
+      "passed": 4442,
+      "total": 4442
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 39,
+      "total": 39
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [
+      "Full chromium suite not re-run: 25 other specs (terminal/mission/triage) fail on origin/main for unrelated, un-diagnosed reasons and still trip the isolated-stack contamination guard."
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Spec 55 leaves no unassigned fixture tasks (real temp cwd, task+project deleted in afterEach); isolated-stack exits 0",
+          "disposition": "tested",
+          "evidence": "isolated-stack run of 55 alone: 2 passed, exit 0 (was: contamination guard failure); part of the 39/39 surface run"
+        },
+        {
+          "behavior": "Specs 80 and 80b board/list assertions pass standalone by seeding their own project+task",
+          "disposition": "tested",
+          "evidence": "80b alone 7 passed exit 0 (was 3 failed); 80 alone 17 passed exit 0 (was 4 failed)"
+        },
+        {
+          "behavior": "seedBoard deletes the already-created project when task seeding fails, and keeps it on success",
+          "disposition": "tested",
+          "evidence": "e2e/flows/board-fixture-partial-failure.spec.ts: 2 passed"
+        }
+      ],
+      "counts": {
+        "testable": 3,
+        "tested": 3,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium --reporter=json e2e/flows/55-three-pane-layout.spec.ts e2e/flows/80-tablet-responsive.spec.ts e2e/flows/80b-tablet-responsive-desktop.spec.ts e2e/flows/board-fixture-partial-failure.spec.ts e2e/flows/board-dnd-status-decouple.spec.ts e2e/smoke/00-core-surfaces.spec.ts",
+      "exit_code": 0,
+      "tests_run": 39,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\e2e-spec-fixture-hygiene\\.shipwright\\runs\\iterate-2026-10-09-e2e-spec-fixture-hygiene\\surface_verification.log",
+      "timestamp": "2026-10-09T13:55:55.345Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-10-09-e2e-spec-fixture-hygiene",
+    "commit": "6315016974fd635e522263a5b754a7458cab3c3a",
+    "dirty": false,
+    "base": null,
+    "release": null
+  }
+}

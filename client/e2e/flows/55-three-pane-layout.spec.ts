@@ -12,13 +12,25 @@
  * round-trip.
  */
 
-import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import {
+  cleanupProject,
+  cleanupTaskCwd,
+  seedProject,
+  seedTask,
+  setActiveProject,
+  type SeededProject,
+  type SeededTask,
+} from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 test.describe("TaskDetail 3-pane layout", () => {
   // A00 — this spec assumed a project already existed on the machine.
   // Without one the board renders no create-menu, no columns, no chip.
   let project: SeededProject;
+  // Tasks need a REAL temp cwd and must be deleted again: a hardcoded `C:/tmp/...`
+  // cwd is a dead path on Windows and leaks an unassigned fixture task that the
+  // isolated-stack contamination guard then reports after an otherwise green run.
+  let task: SeededTask | undefined;
 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "55-three-pane-layout" });
@@ -26,17 +38,17 @@ test.describe("TaskDetail 3-pane layout", () => {
   });
 
   test.afterEach(async ({ request }) => {
+    await cleanupTaskCwd(request, task);
+    task = undefined;
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.02
   test("header + folder tree + terminal + smart viewer render; splitters are separators", async ({
     page,
     request,
   }) => {
-    const create = await request.post("/api/external/tasks", {
-      data: { title: "three-pane-smoke", cwd: "C:/tmp/three-pane" },
-    });
-    const { task } = (await create.json()) as { task: { taskId: string } };
+    task = await seedTask(request, { title: "three-pane-smoke", projectId: project.projectId });
 
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
@@ -49,14 +61,12 @@ test.describe("TaskDetail 3-pane layout", () => {
     await expect(splitters).toHaveCount(2);
   });
 
+  // @covers FR-01.02
   test("keyboard ArrowRight on left splitter persists leftWidth in localStorage", async ({
     page,
     request,
   }) => {
-    const create = await request.post("/api/external/tasks", {
-      data: { title: "three-pane-persist", cwd: "C:/tmp/three-pane-persist" },
-    });
-    const { task } = (await create.json()) as { task: { taskId: string } };
+    task = await seedTask(request, { title: "three-pane-persist", projectId: project.projectId });
 
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("splitter-left")).toBeVisible();

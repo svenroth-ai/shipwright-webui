@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-09-e2e-spec-fixture-hygiene",
+  "date": "2026-10-09",
+  "section": "Iterate — change: E2E specs seed and clean up their own fixtures",
+  "title": "Specs 55/80/80b stop depending on, and leaking, shared E2E state",
+  "context": "Spec 55 created tasks on hardcoded C:/tmp cwds and never deleted them, so the isolated-stack contamination guard failed otherwise green runs; specs 80/80b assumed an earlier spec had left a project with a task, and failed when run alone.",
+  "decision": "Add helpers/board-fixture.ts (seedBoard/cleanupBoard: project plus one task, torn down task-first); spec 55 uses seedTask with a real temp cwd and deletes it; 80/80b seed a board per test. seedBoard removes its project if task seeding fails.",
+  "consequences": "55, 80 and 80b pass standalone with exit 0 and no leaked tasks. The full suite still ends non-zero because 25 unrelated specs fail on main and leak their own fixtures; that is a separate follow-up.",
+  "rationale": "Each spec owns the state it asserts on; the board renders columns only for a project with at least one task, so the fixture seeds exactly that.",
+  "rejected": "Relaxing the contamination guard or ordering specs so a seeding spec runs first: both hide the missing fixture instead of providing it.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

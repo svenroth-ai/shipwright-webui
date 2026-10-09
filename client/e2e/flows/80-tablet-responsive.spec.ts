@@ -26,6 +26,7 @@
 
 import { test, expect, type Page } from "@playwright/test";
 import { createTask, cleanupTask, makeTaskCwd, cleanupCwd } from "../helpers/task-fixture";
+import { cleanupBoard, seedBoard, type BoardFixture } from "../helpers/board-fixture";
 
 const TABLET = { width: 820, height: 1180 }; // iPad portrait — compact band
 const DESKTOP = { width: 1280, height: 800 }; // full desktop
@@ -51,6 +52,17 @@ async function pageOverflowPx(page: Page): Promise<number> {
 
 test.describe("Tablet responsive — compact (≤1023px)", () => {
   test.use({ viewport: TABLET });
+
+  // A00 — board/list assertions need a project WITH a task; they used to pass
+  // only when an earlier spec happened to leave one behind.
+  let board: BoardFixture | undefined;
+  test.beforeEach(async ({ page, request }) => {
+    board = await seedBoard(page, request, "80-tablet-responsive");
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupBoard(request, board);
+    board = undefined;
+  });
 
   for (const path of ["/", "/projects", "/inbox", "/triage", "/settings", "/diagnostics"]) {
     test(`no horizontal page overflow at ${path}`, async ({ page }) => {

@@ -19,6 +19,7 @@
 
 import { test, expect } from "@playwright/test";
 import { createTask, cleanupTask, makeTaskCwd, cleanupCwd } from "../helpers/task-fixture";
+import { cleanupBoard, seedBoard, type BoardFixture } from "../helpers/board-fixture";
 
 const DESKTOP = { width: 1280, height: 800 }; // full desktop
 const LG_BOUNDARY = { width: 1024, height: 768 }; // exactly lg → desktop
@@ -37,6 +38,17 @@ const SINGLE_LINE_HEIGHT_CEILING = 60;
 
 test.describe("Desktop non-regression (≥1024px)", () => {
   test.use({ viewport: DESKTOP });
+
+  // A00 — board/list assertions need a project WITH a task; they used to pass
+  // only when an earlier spec happened to leave one behind.
+  let board: BoardFixture | undefined;
+  test.beforeEach(async ({ page, request }) => {
+    board = await seedBoard(page, request, "80b-desktop");
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupBoard(request, board);
+    board = undefined;
+  });
 
   test("sidebar is expanded (brand logo visible)", async ({ page }) => {
     await page.goto("/");
@@ -106,6 +118,17 @@ test.describe("Desktop non-regression (≥1024px)", () => {
 
 test.describe("Breakpoint boundary — 1024px is desktop", () => {
   test.use({ viewport: LG_BOUNDARY });
+
+  // A00 — board/list assertions need a project WITH a task; they used to pass
+  // only when an earlier spec happened to leave one behind.
+  let board: BoardFixture | undefined;
+  test.beforeEach(async ({ page, request }) => {
+    board = await seedBoard(page, request, "80b-boundary");
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupBoard(request, board);
+    board = undefined;
+  });
 
   test("at exactly 1024px the board uses the desktop layout (justify-between)", async ({ page }) => {
     await page.goto("/");
