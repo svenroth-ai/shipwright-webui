@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Request items 1+2: spec 55 no longer leaks tasks on dead C:/tmp cwds; 80/80b board+list tests seed their own project+task. Each spec verified standalone: 55 exit 0, 80 17/17, 80b 7/7."},
+{"name":"Error Handling","verdict":"pass","note":"Cleanup is best-effort and ordered (task+cwd before project) via existing cleanupTaskCwd/cleanupProject."},
+{"name":"Security Basics","verdict":"n/a","note":"Test-only change; no product code touched."},
+{"name":"Test Quality","verdict":"pass","note":"Root cause confirmed from page snapshots: no project -> first-contact hero; project with 0 tasks -> 'No tasks yet' empty state. Fix seeds both."},
+{"name":"Performance Basics","verdict":"n/a","note":"Adds two API calls per test in 80/80b; negligible."},
+{"name":"Naming & Structure","verdict":"pass","note":"New helpers/board-fixture.ts (seedBoard/cleanupBoard) shared by 80 and 80b; all files <300 lines (288/162/80/48)."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No IO boundary or product API touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff: no findings."}
+]}

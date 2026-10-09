@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-09-e2e-spec-fixture-hygiene",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:49:21.009275+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:53:25.442304+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/e2e/helpers/board-fixture.ts",
+          "line": 30,
+          "finding": "Partial-failure leak in seedBoard: seedProject succeeds, then seedTask throws; the caller's board is never assigned, so the project and its temp dir are orphaned.",
+          "suggestion": "Wrap seedTask/setActiveProject in try/catch and cleanupProject before rethrowing.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/80-tablet-responsive.spec.ts",
+          "line": 56,
+          "finding": "Module-level let board carries over between tests; when beforeEach fails, afterEach re-cleans the previous test's fixture. Harmless today (cleanup is idempotent) but hides which fixture leaked.",
+          "suggestion": "Reset board to undefined after cleanup, as spec 55 does for task.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/e2e/flows/80b-tablet-responsive-desktop.spec.ts",
+          "line": 42,
+          "finding": "The same five-line board fixture block is repeated three times.",
+          "suggestion": "Optional: extract a registerBoardFixture helper. Not blocking.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/e2e/flows/55-three-pane-layout.spec.ts",
+          "line": 30,
+          "finding": "Cleanup ordering is correct (task, cwd, project); no assertions weakened; files well under 300 lines; types fine.",
+          "suggestion": "No action.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-09T13:51:45.478205+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "a96548edc351e3464e320c7be57520262771eaf2"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:53:25.296234+00:00",
+      "disposition": "test-only fixture changes; no migrations/async/irreversible ops; stage 3 conditional",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:53:25.442304+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:51:02.198813+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "a96548edc351e3464e320c7be57520262771eaf2"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:53:25.442304+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-09T13:53:25.442304+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
