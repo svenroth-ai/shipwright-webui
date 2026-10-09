@@ -1,0 +1,26 @@
+{
+  "run_id": "iterate-2026-10-09-g2-stoplist-pr-review-scope",
+  "date": "2026-10-09T21:41:06.588704Z",
+  "event_at": "2026-10-09T15:49:55.718376+00:00",
+  "type": "change",
+  "complexity": "trivial",
+  "prior_source": "default",
+  "branch": "iterate/g2-stoplist-pr-review-scope",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-09-g2-stoplist-pr-review-scope",
+  "test_completeness": {
+    "status": "n/a",
+    "reason_code": "trivial-auto"
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "run_audit.py --only G",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-10-09T21:50:00+00:00",
+    "justification": "Config-only change to audit_config.json (g2_stoplist); no startable surface. Re-ran the compliance G audit: G2 reports 0 failures.",
+    "reason_code": "no-startable-surface"
+  }
+}

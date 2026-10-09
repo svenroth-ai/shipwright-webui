@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-09-g2-stoplist-pr-review-scope",
+  "date": "2026-10-09",
+  "section": "Iterate — change: allow pr-review commit scope in G2",
+  "title": "Add pr-review to g2_stoplist",
+  "context": "5c09c234 used feat(pr-review): and the G2 audit flagged the scope as unknown. B7 was stale: both flagged commits fall before the v0.28.0 tag.",
+  "decision": "Add pr-review to g2_stoplist in audit_config.json, as #498 did for config.",
+  "consequences": "G2 reports 0 failures. No product behavior changed.",
+  "rationale": "pr-review names a real component (the PR-review gate); a stoplist entry is the established fix.",
+  "rejected": "Rewriting the commit message; the commit is already merged on main.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
