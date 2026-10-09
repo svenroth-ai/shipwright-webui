@@ -98,7 +98,7 @@ test.describe('Diagnostics — real Claude CLI probe through the extracted resol
     expect(pageErrors).toEqual([]);
     // `/api/org/org-chart` answers 404 BY DESIGN when no org chart is installed:
     // useOrgChartPresence() reads that 404 as "absent" and hides the lead UI.
-    const expected = (u: string) => u.includes('/@fs/') || u.includes('/api/org/org-chart');
+    const expected = (u: string) => u.includes('/@fs/') || (u.startsWith('404 ') && u.includes('/api/org/org-chart'));
     expect(failedRequests.filter((u) => !expected(u))).toEqual([]);
   });
 });

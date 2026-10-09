@@ -55,6 +55,7 @@ async function seedClaim(
 // The Claim toggle is hidden while no org chart is installed (useOrgChartPresence),
 // so the filter axis needs a chart under the isolated stack's temporary HOME.
 const LEADS_ROOT = path.join(homedir(), ".claude", "leads");
+const CHART_PATH = path.join(LEADS_ROOT, "org-chart.json");
 
 test.describe("Claim chip + filter (FR-04.22)", () => {
   let project: SeededProject;
@@ -64,14 +65,14 @@ test.describe("Claim chip + filter (FR-04.22)", () => {
     project = await seedProject(request, { name: "claim-chip-filter" });
     mkdirSync(LEADS_ROOT, { recursive: true });
     writeFileSync(
-      path.join(LEADS_ROOT, "org-chart.json"),
+      CHART_PATH,
       JSON.stringify({ version: 1, po: "sven", leads: {} }),
       "utf8",
     );
   });
 
   test.afterEach(async ({ request }) => {
-    rmSync(LEADS_ROOT, { recursive: true, force: true });
+    rmSync(CHART_PATH, { force: true });
     for (const id of taskIds) await cleanupTask(request, id);
     taskIds.length = 0;
     await cleanupProject(request, project);

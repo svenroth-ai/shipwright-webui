@@ -70,12 +70,23 @@ async function probeReadyEnvelope(
             ) as { type?: string; ptyReused?: unknown };
             if (parsed && parsed.type === "ready") {
               clearTimeout(timeout);
-              if (type) ws.send(JSON.stringify({ type: "data", payload: "\r" }));
-              // Give the server a beat to process the frame before the detach.
-              setTimeout(() => {
+              const finish = () => {
                 ws.close();
                 resolve({ status: "open", ptyReused: parsed.ptyReused });
-              }, type ? 400 : 0);
+              };
+              if (!type) return finish();
+              // Detach only once the pty has answered the keystroke (its echo proves
+              // the frame was processed server-side), with a cap.
+              const cap = setTimeout(finish, 3000);
+              ws.addEventListener(
+                "message",
+                () => {
+                  clearTimeout(cap);
+                  finish();
+                },
+                { once: true },
+              );
+              ws.send(JSON.stringify({ type: "data", payload: "\r" }));
             }
           } catch {
             /* ignore non-JSON payloads */
@@ -91,6 +102,7 @@ async function probeReadyEnvelope(
 }
 
 test.describe("fix-resume-guard-survives-reload — reused-pty ready signal", () => {
+  // @covers FR-01.02
   test("ready envelope: ptyReused=false on the first attach, true on re-attach to a pty that was typed into", async ({
     page,
     request,
@@ -120,6 +132,7 @@ test.describe("fix-resume-guard-survives-reload — reused-pty ready signal", ()
     }
   });
 
+  // @covers FR-01.02
   test("a passive first attach (nothing typed) does not mark the pty as reused", async ({
     page,
     request,

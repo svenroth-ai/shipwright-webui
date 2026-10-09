@@ -92,6 +92,7 @@ test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
       const terminalPane = page.getByTestId("task-detail-terminal");
       // The pane carries no `data-state` since #366 — visibility is the contract.
       await expect(terminalPane).toBeVisible();
+      await expect(page.getByTestId("embedded-terminal")).toBeVisible();
 
       // Clipboard MUST NOT have been written for the auto-launch path
       // (Decision #19 — auto-execute via WS data-frame, not clipboard).

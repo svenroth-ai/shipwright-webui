@@ -91,7 +91,10 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
 
     // The middle is the Activity feed (MIS-2, #363 replaced the prose narrator) —
     // NOT the old "No run data yet — nothing to prove".
-    await expect(page.getByTestId("mission-activity-feed")).toBeVisible({ timeout: 15_000 });
+    const liveFeed = page.getByTestId("mission-activity-feed");
+    await expect(liveFeed).toBeVisible({ timeout: 15_000 });
+    // Carries the seeded JSONL, i.e. is not the empty "Waiting" state.
+    await expect(liveFeed).not.toContainText(/waiting/i, { timeout: 15_000 });
     await expect(page.getByText("No run data yet")).toHaveCount(0);
 
     // The left panel shows the business summary. The STAGE is deliberately NOT

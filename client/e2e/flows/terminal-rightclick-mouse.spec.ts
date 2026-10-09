@@ -12,7 +12,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { cleanupTaskCwd, seedTask } from "../helpers/fixtures";
 
-function collectSentDataFrames(page: Page): string[] {
+function collectSentPtyFrames(page: Page): string[] {
   const frames: string[] = [];
   page.on("websocket", (ws) => {
     if (!ws.url().includes("/api/terminal/")) return;
@@ -20,7 +20,9 @@ function collectSentDataFrames(page: Page): string[] {
       const payload = typeof f.payload === "string" ? f.payload : "";
       // Mouse reports ride their own `mouse` frame type (keystrokes stay `data`);
       // both reach the pty, so both count as "forwarded".
-      if (payload.includes('"type":"data"') || payload.includes('"type":"mouse"')) frames.push(payload);
+      if (payload.includes('"type":"data"') || payload.includes('"type":"mouse"')) {
+        frames.push(payload);
+      }
     });
   });
   return frames;
@@ -39,7 +41,7 @@ test.describe("iterate-2026-07-07 — right-click not forwarded to the pty", () 
     request,
   }) => {
     const task = await seedTask(request, { title: "terminal-rightclick-e2e" });
-    const sent = collectSentDataFrames(page);
+    const sent = collectSentPtyFrames(page);
     try {
       await openTerminal(page, task.taskId);
       // Put xterm into SGR mouse-reporting mode (mode 1000 press/release + 1006
