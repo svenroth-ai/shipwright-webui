@@ -17,6 +17,7 @@ import { test, expect } from "@playwright/test";
 import { cleanupCwd, makeTaskCwd } from "../helpers/task-fixture";
 
 test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
+  // @covers FR-01.01
   test("cascade scopes New + Plain to the chosen project, in board and list views", async ({
     page,
     request,

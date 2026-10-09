@@ -15,6 +15,7 @@ import { cleanupTaskCwd, seedTask } from "../helpers/fixtures";
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
 test.describe("Rename mid-polling", () => {
+  // @covers FR-01.02
   test("title updates everywhere, polling does not error, no stale cache resurrects old title", async ({
     page,
     request,

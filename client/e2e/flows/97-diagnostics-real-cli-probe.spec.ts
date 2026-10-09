@@ -34,6 +34,7 @@ interface CliSnapshot {
 }
 
 test.describe('Diagnostics — real Claude CLI probe through the extracted resolver', () => {
+  // @covers FR-01.05
   test('the live API reports a parsed, supported CLI and the page renders it', async ({
     page,
     request,

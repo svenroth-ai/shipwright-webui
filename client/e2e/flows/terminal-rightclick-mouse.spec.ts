@@ -36,6 +36,7 @@ async function openTerminal(page: Page, taskId: string): Promise<void> {
 }
 
 test.describe("iterate-2026-07-07 — right-click not forwarded to the pty", () => {
+  // @covers FR-01.28
   test("a right-click in mouse mode is NOT sent to the pty; a left-click is", async ({
     page,
     request,

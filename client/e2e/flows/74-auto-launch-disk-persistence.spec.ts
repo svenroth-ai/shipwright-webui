@@ -61,6 +61,7 @@ async function createTask(
 }
 
 test.describe("ADR-068-A1 — Auto-launch + scrollback", () => {
+  // @covers FR-01.02
   test("Launch CTA flips to Terminal tab without writing to clipboard (auto-execute UX)", async ({
     page,
     request,
