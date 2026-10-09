@@ -24,7 +24,7 @@
     "create-dialog", "transcript", "gitignore", "spawn", "repo",
     "mermaid", "first-contact",
     "main", "org", "tablet", "w2", "w4",
-    "leadwright", "a11y", "config"
+    "leadwright", "a11y", "config", "pr-review"
   ],
   "_b7_exclusions_comment": "2026-09-08 (iterate-2026-09-08-compliance-b7-g2-h1): audit_config.json merges SHALLOWLY over the plugin defaults (audit_detector.py _DEFAULT_CONFIG, dict.update — not a deep merge), so overriding 'b7_exclusions' here must restate every default sub-key or they're silently dropped. This block = the plugin defaults (exclude_merge_commits, exclude_authors, last_release_tag_pattern, exclude_nonfunctional_types, nonfunctional_types) verbatim, PLUS one new exclude_path_prefixes entry: '.shipwright/compliance/test-traceability.json' — the CI escape-hatch's regen-only auto-commits (see g2_stoplist 'main' comment above) touch only that one derived file, so Rule C (diff fully under path_prefixes) now excludes them from B7 the same way 'Spec/'/'docs/'/'CHANGELOG-unreleased.d/' already do.",
   "b7_exclusions": {
