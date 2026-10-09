@@ -28,9 +28,15 @@ export async function seedBoard(
   name: string,
 ): Promise<BoardFixture> {
   const project = await seedProject(request, { name });
-  const task = await seedTask(request, { title: `${name} task`, projectId: project.projectId });
-  await setActiveProject(page, project.projectId);
-  return { project, task };
+  try {
+    const task = await seedTask(request, { title: `${name} task`, projectId: project.projectId });
+    await setActiveProject(page, project.projectId);
+    return { project, task };
+  } catch (err) {
+    // The caller never receives a fixture to clean up, so don't orphan the project.
+    await cleanupProject(request, project);
+    throw err;
+  }
 }
 
 /** Task first (kills its pty before the cwd goes), then the project. Never throws. */

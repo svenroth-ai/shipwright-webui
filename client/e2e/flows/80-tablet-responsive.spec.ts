@@ -55,12 +55,13 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
 
   // A00 — board/list assertions need a project WITH a task; they used to pass
   // only when an earlier spec happened to leave one behind.
-  let board: BoardFixture;
+  let board: BoardFixture | undefined;
   test.beforeEach(async ({ page, request }) => {
     board = await seedBoard(page, request, "80-tablet-responsive");
   });
   test.afterEach(async ({ request }) => {
     await cleanupBoard(request, board);
+    board = undefined;
   });
 
   for (const path of ["/", "/projects", "/inbox", "/triage", "/settings", "/diagnostics"]) {

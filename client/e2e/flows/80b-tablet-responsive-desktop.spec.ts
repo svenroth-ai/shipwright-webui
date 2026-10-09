@@ -41,12 +41,13 @@ test.describe("Desktop non-regression (≥1024px)", () => {
 
   // A00 — board/list assertions need a project WITH a task; they used to pass
   // only when an earlier spec happened to leave one behind.
-  let board: BoardFixture;
+  let board: BoardFixture | undefined;
   test.beforeEach(async ({ page, request }) => {
     board = await seedBoard(page, request, "80b-desktop");
   });
   test.afterEach(async ({ request }) => {
     await cleanupBoard(request, board);
+    board = undefined;
   });
 
   test("sidebar is expanded (brand logo visible)", async ({ page }) => {
@@ -120,12 +121,13 @@ test.describe("Breakpoint boundary — 1024px is desktop", () => {
 
   // A00 — board/list assertions need a project WITH a task; they used to pass
   // only when an earlier spec happened to leave one behind.
-  let board: BoardFixture;
+  let board: BoardFixture | undefined;
   test.beforeEach(async ({ page, request }) => {
     board = await seedBoard(page, request, "80b-boundary");
   });
   test.afterEach(async ({ request }) => {
     await cleanupBoard(request, board);
+    board = undefined;
   });
 
   test("at exactly 1024px the board uses the desktop layout (justify-between)", async ({ page }) => {
