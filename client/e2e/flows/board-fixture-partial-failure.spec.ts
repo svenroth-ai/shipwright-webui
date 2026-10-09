@@ -48,12 +48,25 @@ test.describe("seedBoard partial failure", () => {
   });
 
   // @covers FR-01.01
+  test("deletes task and project when activating the project fails after both were seeded", async () => {
+    const { request, calls } = scriptedRequest(true);
+    const failingPage = {
+      addInitScript: async () => {
+        throw new Error("init-script-boom");
+      },
+    } as unknown as Page;
+    await expect(seedBoard(failingPage, request, "late")).rejects.toThrow(/init-script-boom/);
+    expect(calls.some((c) => c.startsWith("DELETE") && c.includes("t-scripted"))).toBe(true);
+    expect(calls.some((c) => c.startsWith("DELETE") && c.includes("p-scripted"))).toBe(true);
+  });
+
+  // @covers FR-01.01
   test("keeps the project when both seeds succeed", async () => {
     const { request, calls } = scriptedRequest(true);
     const board = await seedBoard(page, request, "ok");
     expect(board.project.projectId).toBe("p-scripted");
     expect(board.task.taskId).toBe("t-scripted");
     expect(calls.some((c) => c.startsWith("DELETE"))).toBe(false);
-    await cleanupBoard(request, board); // removes the temp dirs the real seeders created
+    await cleanupBoard(request, board); // also removes the temp dirs the real seeders made
   });
 });

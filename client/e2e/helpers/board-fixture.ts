@@ -28,12 +28,14 @@ export async function seedBoard(
   name: string,
 ): Promise<BoardFixture> {
   const project = await seedProject(request, { name });
+  let task: SeededTask | undefined;
   try {
-    const task = await seedTask(request, { title: `${name} task`, projectId: project.projectId });
+    task = await seedTask(request, { title: `${name} task`, projectId: project.projectId });
     await setActiveProject(page, project.projectId);
     return { project, task };
   } catch (err) {
-    // The caller never receives a fixture to clean up, so don't orphan the project.
+    // The caller never receives a fixture to clean up, so don't orphan either half.
+    await cleanupTaskCwd(request, task);
     await cleanupProject(request, project);
     throw err;
   }
