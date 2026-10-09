@@ -1,0 +1,87 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-09-e2e-spec-repair",
+    "date": "2026-10-09",
+    "unit": {
+      "status": "passed",
+      "passed": 4442,
+      "total": 4442
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 509,
+      "total": 509,
+      "skipped": 10
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "The 25 previously failing specs pass against the current product surface (activity feed, context strip, mouse frames, hadDataWritten semantics, org-chart gate)",
+          "disposition": "tested",
+          "evidence": "full run chromium+mobile-chromium+schema-isolated via isolated-stack: 509 passed, 0 failed, 10 skipped, exit 0 (was 25 failed, exit 1)"
+        },
+        {
+          "behavior": "The full isolated-stack run leaves no unassigned fixture tasks (contamination guard) - inbox-terminal-prompts, 46, resume-guard, rightclick now tear down their tasks",
+          "disposition": "tested",
+          "evidence": "same full run exits 0; the contamination guard throws when any fixture task remains"
+        },
+        {
+          "behavior": "Resume-guard: a typed first attach yields ptyReused=true on re-attach, a passive first attach stays false",
+          "disposition": "tested",
+          "evidence": "iterate-2026-05-17-resume-guard-survives-reload.spec.ts: 2 passed"
+        },
+        {
+          "behavior": "The mobile-only 90b touch spec no longer runs in the desktop chromium project",
+          "disposition": "tested",
+          "evidence": "playwright.config.ts testIgnore; full run has 90b passing only under mobile-chromium"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium --project=mobile-chromium --project=schema-isolated --reporter=dot",
+      "exit_code": 0,
+      "tests_run": 509,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\e2e-spec-repair\\.shipwright\\runs\\iterate-2026-10-09-e2e-spec-repair\\surface_verification.log",
+      "timestamp": "2026-10-09T15:36:47.419Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-10-09-e2e-spec-repair",
+    "commit": "afbe0d1c25028074a97d48dbb44adcf4037e604a",
+    "dirty": false,
+    "base": null,
+    "release": null
+  }
+}
