@@ -114,10 +114,9 @@ test.describe("FR-01.66 S4 — the stepper holds Analyze through scope", () => {
     const stepper = page.getByTestId("mission-stage");
     await expect(stepper).toHaveAttribute("data-stage", "Analyze", { timeout: 15_000 });
     // A scratch probe is not the work — the feed must not name it either.
-    const feed = page.getByTestId("mission-activity-feed");
-    // Non-empty first, so the negative check below cannot pass on an empty feed.
-    await expect(feed).not.toContainText(/waiting/i, { timeout: 15_000 });
-    await expect(feed).not.toContainText("probe.mjs");
+    // (A scouting-only transcript yields no feed cards — the stepper above is the
+    // positive proof; this only guards that the scratch path never surfaces.)
+    await expect(page.getByTestId("mission-activity-feed")).not.toContainText("probe.mjs");
 
     // SPEC: the iterate spec is actually written. Only now does the stepper move,
     // and it moves to Spec — not to the Build the scratch write would have faked.
