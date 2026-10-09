@@ -43,6 +43,7 @@ test.describe("TaskDetail 3-pane layout", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.02
   test("header + folder tree + terminal + smart viewer render; splitters are separators", async ({
     page,
     request,
@@ -60,6 +61,7 @@ test.describe("TaskDetail 3-pane layout", () => {
     await expect(splitters).toHaveCount(2);
   });
 
+  // @covers FR-01.02
   test("keyboard ArrowRight on left splitter persists leftWidth in localStorage", async ({
     page,
     request,
