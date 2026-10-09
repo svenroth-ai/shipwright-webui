@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-09-bloat-split-taskboard-threepane",
+  "date": "2026-10-09",
+  "section": "Iterate — change: split two oversize board/detail components (H1 bloat)",
+  "title": "Extract lane palette and splitter key handlers to clear H1 bloat drift",
+  "context": "TaskBoardColumns.tsx (302) and TaskDetailThreePane.tsx (317) crossed the 300-line limit without a baseline entry, raising compliance finding H/H1.",
+  "decision": "Move the static lane metadata and glass palette to external/boardColumnStyles.ts and the left/right splitter keydown handlers to external/useSplitterKeydown.ts; no baseline entry added.",
+  "consequences": "TaskBoardColumns is 229 lines and TaskDetailThreePane 264; both new files are under 300. Behavior unchanged; toggleTabletViewer became a useCallback so memo deps stay stable.",
+  "rationale": "A cohesive file-level extraction of pure data and a self-contained hook retires the finding at the root instead of grandfathering the files into the baseline.",
+  "rejected": "Adding both files to shipwright_bloat_baseline.json: it would ratchet the limit instead of fixing the drift.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

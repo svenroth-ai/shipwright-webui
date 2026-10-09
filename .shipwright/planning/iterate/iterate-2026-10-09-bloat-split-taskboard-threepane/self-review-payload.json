@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Request: bring TaskBoardColumns.tsx (302) and TaskDetailThreePane.tsx (317) under 300 lines. Now 229 and 264; behavior-preserving extraction only."},
+{"name":"Error Handling","verdict":"n/a","note":"Pure move of existing code; no new error paths."},
+{"name":"Security Basics","verdict":"n/a","note":"No input handling, auth, or IO touched."},
+{"name":"Test Quality","verdict":"pass","note":"Existing TaskBoardColumns/TaskDetailThreePane/doc-sync suites unchanged and green; full client vitest 4436 passed; tsc clean."},
+{"name":"Performance Basics","verdict":"pass","note":"Splitter handlers stay memoized; toggleTabletViewer wrapped in useCallback so the useMemo deps stay stable."},
+{"name":"Naming & Structure","verdict":"pass","note":"boardColumnStyles.ts (pure data) and useSplitterKeydown.ts (hook) match sibling conventions; all files under 300 lines."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No IO boundary, config, or API surface touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff: no findings."}
+]}
