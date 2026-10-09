@@ -1,1 +1,0 @@
-Dependabot now keeps this repo's GitHub Actions current (version updates for the `github-actions` ecosystem only; weekly, minor/patch grouped, 7-day cooldown). npm and other ecosystems stay out, and the published package ships no updater config.

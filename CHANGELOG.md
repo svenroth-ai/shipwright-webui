@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.28.0] - 2026-10-09
+
+### Added
+
+- Vendored copy of leadwright's FR-04.28 claim-record lock contract plus a shared core/claim-record-lock.ts helper, with a pinned test asserting both shared-file lock sites against it
+- Org page: a fifth shared-docs tile for decisions-proposed.md lets the PO see waiting AI-lead decision proposals and countersign one from the browser, without the shared secret.
+- Org page gains an "Activity" view merging every lead's audit log into one time-sorted, filterable timeline (by lead, event type, and time window — a "Last night" preset or a manual date/time range) — no more opening a raw-JSON modal per lead
+- CI regenerates and diffs the requirement-test traceability manifest on every push to main, failing the build on FR-test topology drift
+- Guided 7-step lead-setup wizard for creating new leadwright leads, gated on a real verdict from leadwright's own preflight checker instead of hand-writing three agreeing config files
+- compliance: autonomously promote FR `Layers` cells from `(inferred)` to explicit wherever every bound test is confirmed green in fresh CI evidence (w5); undecidable cases escalate by name via a checked-only ack file, never a batch sweep
+- Lead Inventory page (`/org/inventory`) showing each AI lead's last-night beats with authority-band step chips, its declared authority ladder from its charter, open needs-you questions, and a visible warning on any beat whose effect went unclaimed
+- New roster-wide `GET /api/org/inventory` composite endpoint
+- Lead-question inbox card: 'Discuss in terminal' opens a real terminal session on the task (no ping-pong with the slow daemon round-trip), and 'Take the outcome as the answer' brings you back to send the one answer.
+- a drift check comparing webui's vendored leadwright JSON schemas against a real leadwright checkout (opt-in `SHIPWRIGHT_LEADWRIGHT_CHECKOUT`, skipped in CI); also vendors `org-chart.schema.json` as a drift pin
+- Mission Control's Tests artifact now shows per-acceptance-criterion test coverage — grouped by (requirement, AC) when the traceability manifest tags an ac_id, or an explicit 'not yet tagged' note otherwise, never a misleading empty table
+- Triage filter/sort bar collapses by default on phone and expands on tap, freeing up vertical space.
+- Codex CLI as an alternate task runtime — per-task/global RuntimeToggle, Codex launch/resume, and a completion-oracle-driven watcher (Codex Light).
+- New Iterate's Codex Implementation model / Plan review / Review fields now suggest slugs from a live, self-refreshing catalog (codex debug models) while still accepting any custom slug as free text
+- Codex tasks can now run through Codextender (a local proxy pointing an ordinary Claude session at your Codex-plan subscription) instead of the real Codex CLI, toggled per-machine in Settings, with its own model-catalog suggestions and campaign/pipeline support.
+- Mission tab now shows delegated subagent work as its own card with running/done/failed status and a right-side report panel
+- Added retrospective design documentation (screens.md, user-flow.md) cataloging the app's existing screens and flows, and closed the compliance dashboard's stale design/iterate Tier-1 gates.
+- Campaign cards show each step's dependencies and the scheduler's verdict (ready, or waiting for which step), with a guided Launch on ready steps; the launch route refuses dependency-blocked steps and says so when readiness could not be checked.
+- Opt-in HTTPS over the tailnet: set SHIPWRIGHT_TAILSCALE_HTTPS=1 and the production start scripts front the server with `tailscale serve`, so the WebUI opens at https://<machine>.<tailnet>.ts.net and Ctrl+V / Shift+Insert paste works in the embedded terminal
+
+### Changed
+
+- Bump pinned CI checkout of shipwright-compliance plugin to a commit supporting test-traceability manifest schema v4 (AC-scoped @covers); regenerate the manifest (schema_version 3->4, no behavior change yet)
+- spec(fr-table): retrofit the requirements table onto the monorepo's converged shape - Origin renamed Basis, a Layers column added (every cell inferred); the campaign's 29-vs-35 discrepancy traced, re-measured, and recorded (docs-only, no code change)
+- Test-traceability reader now accepts manifest schema_version 4 (AC-scoped @covers tag grammar) without a false contract_version_ahead warning, while still accepting v3-shaped bare FR tags
+- test(compliance): backfill @covers traceability tags on 1196 existing tests, raising bound-test coverage from 15.75% to 31.97% and closing all 7 zero-coverage FRs (32/32 now bound) — comment-only, no tests added/removed/weakened
+- Compliance H1: split 5 oversize files (orgApi.ts fetchers, PR-review orchestration tests, mission-context merge-check/run-id-recovery tests, event-test-counts fixtures) back under the 300-line ceiling, cohesively by concern.
+- Task Board's lead-tag filter menu/toggle and the New-issue dialog's leadwright fields now hide when no org chart is installed, instead of showing dead controls (FR-04.11).
+- The phone "+ New" create-menu trigger is now icon-only (a bare, square "+") in both the All-Projects and single-project presentations, reversing the previous labeled-pill floor, with the accessible name preserved on aria-label.
+- Codex-driven tasks' More-options panel now shows real, session-only Plan review / Review model overrides (left/right, matching the Claude layout) instead of a read-only Reviewer-identity display; Implementation model moved to its own row.
+- Re-synced AGENTS.md with the monorepo's updated Codex operating contract (configurable Codex reviewer model axis, F11 verify_local mention, webui launch-path reference)
+- Split pure campaign selectors from the campaign API module while preserving existing imports and board behavior.
+- On a touch tablet the Smart Viewer starts hidden in Task Detail; a toggle in the terminal header (or opening a file) brings it in.
+- Phones: Description unfolds in place instead of a pill popover, the maximize-terminal icon is gone, Files tree rows have larger text and icons, markdown tables are more readable.
+- Dependabot now keeps this repo's GitHub Actions current (version updates for the `github-actions` ecosystem only; weekly, minor/patch grouped, 7-day cooldown). npm and other ecosystems stay out, and the published package ships no updater config.
+- Split TaskBoardColumns and TaskDetailThreePane below the 300-line limit (lane palette and splitter key handlers moved to their own modules); behavior unchanged
+
+### Removed
+
+- Removed the traceability-manifest CI gate and its auto-regen-PR job, the pinned shipwright-compliance checkout, and the CI write-permission carve-out they required — the gate hard-failed on a committed derived-snapshot file iterate PRs cannot update
+- Removed the free-text Codex 'Implementation model' override field from the task-creation dialog for both Codex Light and Codextender — the model that actually runs is now always the runtime's own default (the codex CLI's configured /model, or Codextender's fixed alias), never a webui-supplied override.
+
+### Fixed
+
+- Server's sdk-sessions.json lock now states FR-04.28's stale/realpath values explicitly (vendored contract) instead of relying on proper-lockfile's defaults coincidentally matching leadwright's published contract
+- Org page lead cards now show real staleness (Overdue / cadence-unresolved reason, never fabricated) and an open beat-register finding, with a working Release button (FR-04.06, FR-04.41)
+- SmartViewer markdown tables with a long free-text column no longer crush that column into many wrapped lines — column widths auto-fit and the pane scrolls horizontally instead.
+- SmartViewer accessibility: table headers now carry scope=col, the scrollable preview pane is keyboard-focusable and labelled, and the per-tab close control is a real, keyboard-reachable button instead of a nested unreachable span.
+- File preview pane (SmartViewer) table cells now top-align instead of vertically centering, so a row mixing short and wrapped multi-line cells no longer looks visually broken.
+- Tablet/iPad: the embedded terminal now shows a "reconnecting" banner the instant it starts probing a socket that may have gone silently half-open, instead of leaving a stale frame on screen with no indication anything is happening; task titles truncate to one line with tap-to-expand (tablet) or a tooltip (desktop) instead of wrapping across several lines; and Ship's Log's Documents panel now scrolls independently of the Log column at every viewport width.
+- Compliance B7: traceability-regen auto-commits are now excluded from commit-event coverage via a path-prefix exclusion, matching the plugin's own exemption mechanism.
+- Compliance G2: added the 5 legitimate conventional-commit scopes (main, org, tablet, w2, w4) to the scope stoplist.
+- Compliance H2: corrected 10 stale bloat-baseline current-line-count entries to match the actual files on disk.
+- Traceability manifest CI gate no longer hard-fails main on every PR that adds a test: it becomes advisory and auto-opens a bot PR carrying the regenerated manifest instead
+- Production deploy's tsx-watch kill sweep is now scoped to the deploying repo — it no longer kills an unrelated project's or a sibling worktree's tsx watch dev server
+- re-vendored `preflight-input.schema.json`, which had drifted from leadwright's real schema (`triggers.on` closed enum to open pattern), and updated the one fidelity-test assertion this required
+- Bumped every phone (393px) touch target found below the 44px AAA/HIG floor across the Task Board toolbar, Inbox, Settings, and Triage to meet it, using the repo's existing pointer-coarse touch-target idiom.
+- Mission Tests panel now shows 'not yet in the requirement manifest' instead of a bare dash for a newly added test file the manifest hasn't indexed yet, so it reads as unknown coverage rather than zero coverage
+- Compliance B7: backfilled the missing commit event for the bloat-baseline repair commit (PR #456).
+- Compliance G2: added the leadwright and a11y conventional-commit scopes to the scope stoplist.
+- Compliance I5: normalized all 33 malformed FR Basis values in the adopted spec to the closed vocabulary.
+- List pages (Task Board, Ship's Log, Triage, Projects) now show a distinct "couldn't load, retry" state instead of the onboarding empty state when a fetch fails
+- The pipeline run-mode default sentinel now resolves to standalone (was the retired multi_session literal), matching the framework's own INERT_MODE design
+- Repaired three FR entries in the adopted spec (network access profile, campaigns lane, in-app Markdown editing) whose acceptance criteria existed but weren't recognized by the spec-compliance parser due to a provenance-note formatting quirk.
+- Triage board: an origin status event can no longer reopen an item this tree has already decided locally, even with a later timestamp (ported from the triage.py local-wins fix).
+- New Task / Fix-now form: the Launch button no longer gets pushed off-screen on phone — the modal now caps its height and lets the form body scroll internally.
+- Triage detail panel: action buttons (Fix now / Dismiss / Snooze / Promote) no longer clip past the dialog's left edge on phone — they wrap instead of overflowing.
+- Triage list: reduced per-project section and card spacing on phone, cutting down the scrolling needed to review open items.
+- Codex CLI launch/readiness detection on Windows: the probe now resolves codex's .cmd PATH shim (previously reported not found even when genuinely installed)
+- Mission tab activity feed: removed the redundant completed-run header strip
+- Mission tab activity feed: tool-call commands now collapse behind an "N commands" toggle by default instead of always rendering expanded
+- Mission tab activity feed: card text/explanation now render through the safe markdown pipeline instead of showing raw markdown source
+- Mission tab activity feed: blocker cards show a plain-language explanation up front, with the raw command/output behind a collapsible detail disclosure
+- Mission tab activity feed: a freshly-written test's own first (TDD authoring) run no longer inherits the run-wide Passing/Failing gate stamp
+- Codex-runtime tasks promoted from triage now receive their SKILL.md launch instruction (missing `phase` field); the pointer's path also gained the required `plugins/` prefix
+- Codex task launch (guided and autonomous) no longer fails on Windows PowerShell 7 with a `done:false: ... is not recognized` error -- the multi-paragraph launch prompt is now delivered without any literal newline reaching PSReadLine's pty-injected input buffer.
+- Codex-runtime embedded terminal no longer flickers repeatedly while Codex is "thinking" during a turn
+- Invisible (white-on-white) phase description text in the New-Project wizard's plan-card summary.
+- Mission activity feed now shows transcript fidelity: your own typed replies appear as their own cards, wordless tool cards are dropped instead of cluttering the feed, blocker cards explain what happened and whether they need your input, the run's start is shown, trailing narration with no follow-up is no longer lost, empty spec cards are omitted, reviewer subagent spawns get their own note, and the Delivered box has proper spacing above the commit link.
+- Disabled the Codextender Plan review and Review model fields (with an inline note) since Codextender's single-model proxy never read them — previously, a value typed into either field was silently dropped at launch.
+- Codextender-routed tasks no longer over-compact almost immediately -- launch/fork now sets CLAUDE_CODE_MAX_CONTEXT_TOKENS from the proxy's own declared context window instead of leaving Claude Code to assume a 200K default
+- Mission tab: delivered-card text no longer gets blanket-hidden by PR dedup, the 'Needs attention' pill is removed, kind labels and per-card timestamps are replaced by a single session-start divider, and the commands toggle is no longer alarm-colored
+- Runtime badge/bar and its Codex Light hint no longer show on a Task when Settings only allows one runtime (Both/Claude Only/Codex Only) — the hint now lives once in Settings, reworded.
+- The board toolbar's Claim filter toggle is now hidden when Leadwright isn't installed, matching the existing lead-tag filter's gating; an already-active Claim filter also clears itself instead of staying silently applied.
+- Codextender launches now actively unset CLAUDE_CODE_MAX_CONTEXT_TOKENS (not just omit it) when the proxy's context-window probe fails, and suppress the recurring "auto mode isn't eligible for classifier billing" notice via CLAUDE_CODE_AUTO_MODE_SERVER=0.
+- E2E spec title-bar-full-bleed.spec.ts now seeds its own fixture task so its '.page-head' assertions no longer depend on another spec leaving state behind — it was silently relying on that to avoid the '/first-contact' empty-registry redirect.
+- Mission tab: the 'Session started' divider now anchors to the transcript's true first event, not the first surviving card, so early quiet turns no longer misreport a late start time
+- Mission tab: a large session transcript whose commit footer fell outside the old 1 MB recovery window now resolves correctly and renders its full artifact rail (Requirement/Spec/Tests/Review/Commit)
+- Mission tab: the harness's own transient 'auto mode classifier gave no verdict' rejection no longer renders as a permanent failed/blocker card
+- Mission tab: a test-run card left wordless by a transient rejection is dropped instead of showing as a stuck, textless '1 command' chip
+- Mission tab: an ordinary closing status message no longer renders with the dashed border and gear icon reserved for a real system/compaction event
+- Mission tab: a code-reviewer/doubt-reviewer subagent's completion now resolves its card out of 'Running…' and makes it clickable, instead of staying stuck forever
+- Codextender launches now pin ANTHROPIC_DEFAULT_OPUS_MODEL / _SONNET_MODEL / _HAIKU_MODEL to the launch alias (and clean them up afterwards), so Claude Code's opus/sonnet/haiku tier aliases no longer resolve to claude-* names the proxy does not serve.
+- Real-shell smoke tests (launcher, launcher-codextender) probe for PowerShell once per process with retry and diagnostics, and fail loudly in CI instead of dying with "No PowerShell available" or passing null to spawn (flaked the Diff coverage gate on PR #496)
+- Fix: with SHIPWRIGHT_TAILSCALE_HTTPS=1 the server now binds loopback so the tailscale-serve HTTPS front can reach it (previously the HTTPS URL hung with ERR_SSL_PROTOCOL_ERROR when the server only listened on the Tailscale IP)
+- Task Board shows three lanes without horizontal scrolling on tablets (iPad landscape and portrait); only phones keep the swipe carousel.
+- Task Board list view scrolls in one place beneath the title bar and its column header stays pinned.
+- On phones and tablets the app fits above the on-screen keyboard while typing in the terminal and tucks the page header away so more terminal is visible.
+- Triage cards keep their id, priority and time together instead of spreading across the full width on phones and tablets.
+- E2E specs 55, 80 and 80b now seed and clean up their own project and task, so they pass standalone and no longer leak fixture tasks into the isolated-stack contamination guard
+- The full Playwright E2E suite passes again: 25 stale or leaking specs now follow the current UI and clean up after themselves
+
+### Security
+
+- A claim-authorized task launch (leadwright's stage-2 executor) now runs with an explicit --tools allow-list and --permission-mode dontAsk instead of unrestricted authority; manual/human launches are unchanged.
+- Lead-setup commit now re-runs leadwright's real preflight check server-side before writing, closing a bypass where a client could submit a proposal with unmet rules using only an unsigned digest match
+
 ## [0.27.0] - 2026-09-05
 
 ### Added

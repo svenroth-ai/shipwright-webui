@@ -1,1 +1,0 @@
-Codextender launches now actively unset CLAUDE_CODE_MAX_CONTEXT_TOKENS (not just omit it) when the proxy's context-window probe fails, and suppress the recurring "auto mode isn't eligible for classifier billing" notice via CLAUDE_CODE_AUTO_MODE_SERVER=0.

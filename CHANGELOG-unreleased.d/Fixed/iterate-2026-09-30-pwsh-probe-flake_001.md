@@ -1,1 +1,0 @@
-Real-shell smoke tests (launcher, launcher-codextender) probe for PowerShell once per process with retry and diagnostics, and fail loudly in CI instead of dying with "No PowerShell available" or passing null to spawn (flaked the Diff coverage gate on PR #496)

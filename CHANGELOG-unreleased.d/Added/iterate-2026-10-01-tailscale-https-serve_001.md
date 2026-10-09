@@ -1,1 +1,0 @@
-Opt-in HTTPS over the tailnet: set SHIPWRIGHT_TAILSCALE_HTTPS=1 and the production start scripts front the server with `tailscale serve`, so the WebUI opens at https://<machine>.<tailnet>.ts.net and Ctrl+V / Shift+Insert paste works in the embedded terminal
