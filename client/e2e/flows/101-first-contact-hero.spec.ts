@@ -37,7 +37,7 @@ test.describe("First Contact hero — always reachable at /first-contact", () =>
     const door = page.getByTestId("wizard-door-new");
     await expect(door).toBeEnabled();
     await door.click();
-    await expect(page).toHaveURL(/\/wizard$/);
+    await expect(page).toHaveURL(/\/wizard\/new$/);
     await expect(page.getByTestId("intent-wizard")).toBeVisible();
   });
 });

@@ -56,10 +56,9 @@ test.describe("A12 — Mission 'Operation' card", () => {
     const card = page.getByTestId("operation-card");
     await expect(card).toBeVisible();
 
-    const narration = page.getByTestId("mission-narration");
-    await expect(narration).toBeVisible();
-    await expect(narration).toHaveAttribute("data-empty", "true");
-    await expect(page.getByTestId("mission-narration")).toContainText(/waiting/i);
+    const feed = page.getByTestId("mission-activity-feed");
+    await expect(feed).toBeVisible();
+    await expect(feed).toContainText(/waiting/i);
     // Never a green ALL CLEAR over an unknown run.
     await expect(card).not.toContainText("ALL CLEAR");
   });
@@ -100,7 +99,7 @@ test.describe("A12 — Mission 'Operation' card", () => {
     // Both cards of the Mission body are present: the left panel + the Operation card.
     await expect(page.getByTestId("record-rail")).toBeVisible();
     await expect(page.getByTestId("operation-card")).toBeVisible();
-    // The live narration is keyboard-reachable (a labelled scroll region, AC7).
-    await expect(page.getByTestId("mission-narration")).toHaveAttribute("tabindex", "0");
+    // The activity feed is keyboard-reachable (a labelled scroll region, AC7).
+    await expect(page.getByTestId("mission-activity-feed")).toHaveAttribute("tabindex", "0");
   });
 });

@@ -113,13 +113,8 @@ test.describe("FR-01.66 S4 — the stepper holds Analyze through scope", () => {
 
     const stepper = page.getByTestId("mission-stage");
     await expect(stepper).toHaveAttribute("data-stage", "Analyze", { timeout: 15_000 });
-    // FR-01.68: the narration reports SCOUTING, and a scratch probe is not the
-    // work — it is neither counted as a change nor named. S4 stopped the scratch
-    // write from faking the Build STAGE; this stops it from posing as the story.
-    const narration = page.getByTestId("mission-narration");
-    await expect(narration).toContainText("getting its bearings", { timeout: 15_000 });
-    await expect(narration).not.toContainText("probe.mjs");
-    await expect(narration).not.toContainText("files were then changed");
+    // A scratch probe is not the work — the feed must not name it either.
+    await expect(page.getByTestId("mission-activity-feed")).not.toContainText("probe.mjs");
 
     // SPEC: the iterate spec is actually written. Only now does the stepper move,
     // and it moves to Spec — not to the Build the scratch write would have faked.

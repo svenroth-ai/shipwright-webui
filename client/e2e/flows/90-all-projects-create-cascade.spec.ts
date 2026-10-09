@@ -28,10 +28,12 @@ test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
       request.post("/api/projects", {
         data: { name, path: cwd, profile: "default", status: "active" },
       });
-    const { data: a } = (await (await mk(`cascade-a-${suffix}`, projectACwd)).json()) as {
+    const nameA = `cascade-a-${suffix}`;
+    const nameB = `cascade-b-${suffix}`;
+    const { data: a } = (await (await mk(nameA, projectACwd)).json()) as {
       data: { id: string };
     };
-    const { data: b } = (await (await mk(`cascade-b-${suffix}`, projectBCwd)).json()) as {
+    const { data: b } = (await (await mk(nameB, projectBCwd)).json()) as {
       data: { id: string };
     };
 
@@ -65,7 +67,8 @@ test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
     await aTask.press("Enter");
     const taskModal = page.getByTestId("new-issue-modal-new-task");
     await expect(taskModal).toBeVisible();
-    await expect(page.getByTestId("new-issue-project-select")).toHaveValue(a.id);
+    // A scoped project renders the "Creating in" strip, not a <select>.
+    await expect(page.getByTestId("project-context-name")).toHaveText(nameA);
     // AC6 — selecting from the cascade does NOT mutate the board filter
     // (no hidden scope switch); it stays on "All projects".
     await expect(page.getByTestId("project-filter-dropdown")).toContainText(
@@ -81,7 +84,7 @@ test.describe("All-Projects create-menu cascade (iterate-2026-06-02)", () => {
     await plainB.press("Enter");
     const plainModal = page.getByTestId("new-issue-modal-new-plain");
     await expect(plainModal).toBeVisible();
-    await expect(page.getByTestId("new-issue-project-select")).toHaveValue(b.id);
+    await expect(page.getByTestId("project-context-name")).toHaveText(nameB);
     await page.keyboard.press("Escape");
     await expect(plainModal).toHaveCount(0);
 

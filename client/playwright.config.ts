@@ -94,6 +94,7 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
       testIgnore: [
         /90-phone-responsive\.spec\.ts/,
+        /90b-phone-new-task-touch-safety\.spec\.ts/,
         /mobile-work-mode(-mission)?\.spec\.ts/,
         /A20-mobile-visual-fixes\.spec\.ts/,
         SCHEMA_ISOLATED_SPECS,

@@ -16,9 +16,13 @@
  *
  *   - the FIRST WS attach ever (no pty existed) reports `ptyReused:false`
  *   - the SECOND WS attach — re-attaching to the pty that persisted
- *     across the first connection's detach — reports `ptyReused:true`.
- *     That re-attach is the server-side equivalent of a browser reload
- *     remounting EmbeddedTerminal.
+ *     across the first connection's detach — reports `ptyReused:true`
+ *     WHEN the first connection typed something. That re-attach is the
+ *     server-side equivalent of a browser reload remounting EmbeddedTerminal.
+ *   - a PASSIVE first attach (nothing typed) leaves the second attach at
+ *     `ptyReused:false` (iterate-2026-08-16-task-lifecycle-ux-fixes: the
+ *     flag is sourced from `hadDataWritten`, not from a writer-attach latch,
+ *     so revisiting a never-launched task is not mistaken for a live session).
  *
  * Two raw `new WebSocket()` probes are used (not the React component)
  * deliberately: the raw probes are single, fully-controlled connections
@@ -29,51 +33,22 @@
  */
 
 import { test, expect } from "@playwright/test";
-import os from "node:os";
-import path from "node:path";
-import fs from "node:fs/promises";
-
-async function makeTaskCwd(): Promise<string> {
-  return await fs.mkdtemp(path.join(os.tmpdir(), "resume-guard-reload-e2e-"));
-}
-
-async function cleanupCwd(dir: string): Promise<void> {
-  // Windows: a freshly-spawned pty keeps the cwd open until it exits.
-  // Best-effort with retries; leftover tmpdir bytes are acceptable.
-  for (let attempt = 0; attempt < 5; attempt++) {
-    try {
-      await fs.rm(dir, { recursive: true, force: true });
-      return;
-    } catch {
-      if (attempt === 4) return;
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  }
-}
-
-async function createTask(
-  request: import("@playwright/test").APIRequestContext,
-  cwd: string,
-): Promise<string> {
-  const res = await request.post("/api/external/tasks", {
-    data: { title: "resume-guard-survives-reload-e2e", cwd },
-  });
-  if (!res.ok()) throw new Error(`create task: HTTP ${res.status()}`);
-  const body = (await res.json()) as { task: { taskId: string } };
-  return body.task.taskId;
-}
+import { cleanupTaskCwd, seedTask } from "../helpers/fixtures";
 
 /**
  * Open a raw WebSocket to /api/terminal/:taskId/ws from the browser
  * context (so the loopback Origin gate sees the same Origin the page
  * uses), wait for the `ready` envelope, then close. Returns the parsed
  * envelope. No React, no StrictMode — a single deterministic attach.
+ * With `typeInput` the connection (the writer) sends one keystroke frame
+ * before closing, which is what latches `hadDataWritten` server-side.
  */
 async function probeReadyEnvelope(
   page: import("@playwright/test").Page,
   taskId: string,
+  typeInput = false,
 ): Promise<{ status: string; ptyReused: unknown }> {
-  return await page.evaluate(async (id: string) => {
+  return await page.evaluate(async ([id, type]: [string, boolean]) => {
     return await new Promise<{ status: string; ptyReused: unknown }>(
       (resolve) => {
         const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -95,8 +70,12 @@ async function probeReadyEnvelope(
             ) as { type?: string; ptyReused?: unknown };
             if (parsed && parsed.type === "ready") {
               clearTimeout(timeout);
-              ws.close();
-              resolve({ status: "open", ptyReused: parsed.ptyReused });
+              if (type) ws.send(JSON.stringify({ type: "data", payload: "\r" }));
+              // Give the server a beat to process the frame before the detach.
+              setTimeout(() => {
+                ws.close();
+                resolve({ status: "open", ptyReused: parsed.ptyReused });
+              }, type ? 400 : 0);
             }
           } catch {
             /* ignore non-JSON payloads */
@@ -108,36 +87,53 @@ async function probeReadyEnvelope(
         });
       },
     );
-  }, taskId);
+  }, [taskId, typeInput] as [string, boolean]);
 }
 
 test.describe("fix-resume-guard-survives-reload — reused-pty ready signal", () => {
-  test("ready envelope: ptyReused=false on the first attach, true on re-attach to the persisted pty", async ({
+  test("ready envelope: ptyReused=false on the first attach, true on re-attach to a pty that was typed into", async ({
     page,
     request,
   }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd);
+    const task = await seedTask(request, { title: "resume-guard-survives-reload-e2e" });
     try {
       // Land on the board — no EmbeddedTerminal mounts here, so nothing
       // pre-spawns this task's pty before the probes run.
       await page.goto("/");
 
-      // Attach #1 — no pty existed; this WS upgrade spawns a fresh one.
-      const first = await probeReadyEnvelope(page, taskId);
+      // Attach #1 — no pty existed; this WS upgrade spawns a fresh one, and the
+      // writer types a keystroke (what a launch / the user does).
+      const first = await probeReadyEnvelope(page, task.taskId, true);
       expect(first.status).toBe("open");
       expect(first.ptyReused).toBe(false);
 
       // Attach #2 — the pty persisted across attach #1's detach
-      // (ADR-068-A1: detach never kills the pty). Re-attaching to it is
-      // exactly what a browser reload remounting EmbeddedTerminal does;
-      // the server must report the reused pty so the client arms its
-      // one-shot inject guard.
-      const second = await probeReadyEnvelope(page, taskId);
+      // (ADR-068-A1: detach never kills the pty) and has real input in it.
+      // Re-attaching is exactly what a browser reload remounting
+      // EmbeddedTerminal does; the server must report the reused pty so the
+      // client arms its one-shot inject guard.
+      const second = await probeReadyEnvelope(page, task.taskId);
       expect(second.status).toBe("open");
       expect(second.ptyReused).toBe(true);
     } finally {
-      await cleanupCwd(cwd);
+      await cleanupTaskCwd(request, task);
+    }
+  });
+
+  test("a passive first attach (nothing typed) does not mark the pty as reused", async ({
+    page,
+    request,
+  }) => {
+    const task = await seedTask(request, { title: "resume-guard-passive-attach-e2e" });
+    try {
+      await page.goto("/");
+      const first = await probeReadyEnvelope(page, task.taskId);
+      expect(first.ptyReused).toBe(false);
+      const second = await probeReadyEnvelope(page, task.taskId);
+      expect(second.status).toBe("open");
+      expect(second.ptyReused).toBe(false);
+    } finally {
+      await cleanupTaskCwd(request, task);
     }
   });
 });

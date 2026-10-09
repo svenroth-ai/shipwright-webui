@@ -107,7 +107,7 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await expect(entries).toHaveCount(1);
     // Real and recorded, but not yet numbered — and no number invented for it.
     await expect(page.getByTestId("artifact-decision-unnumbered")).toContainText(
-      "not yet published in a release",
+      "ADR number assigned at release",
     );
     await expect(entries.first()).toHaveAttribute("data-adr", "");
     await expect(entries.first()).toHaveAttribute("data-source", "drop");

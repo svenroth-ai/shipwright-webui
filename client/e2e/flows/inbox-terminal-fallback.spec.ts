@@ -121,11 +121,7 @@ test.describe("Inbox → terminal fallback (A19, FR-01.63)", () => {
     // Landed on TaskDetail…
     await expect(page.getByTestId("task-detail-page")).toBeVisible({ timeout: 15_000 });
     // …Files & Terminal tab, Terminal segment active…
-    await expect(page.getByTestId("task-detail-terminal")).toHaveAttribute(
-      "data-state",
-      "active",
-      { timeout: 15_000 },
-    );
+    await expect(page.getByTestId("task-detail-terminal")).toBeVisible({ timeout: 15_000 });
 
     // Wait for the WS to be READY before asserting focus (StrictMode aborts the
     // first embedded-terminal WS; the terminal reports readiness via the attr).

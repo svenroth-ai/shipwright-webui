@@ -60,6 +60,7 @@ function removeChart() {
 test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)", () => {
   let tmpDir = "";
   let projectId = "";
+  let projectName = "";
 
   test.beforeEach(async ({ request }) => {
     writeChart();
@@ -116,8 +117,9 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
       "utf-8",
     );
 
+    projectName = `triage-fix-now-e2e-${Date.now()}`;
     const createRes = await request.post("/api/projects", {
-      data: { name: `triage-fix-now-e2e-${Date.now()}`, path: tmpDir },
+      data: { name: projectName, path: tmpDir },
     });
     expect(createRes.status()).toBeLessThan(300);
     const body = (await createRes.json()) as { data: { id: string } };
@@ -198,9 +200,7 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
     // asserted title/description/phase/priority/domain but never the
     // project, so the modal could silently fall back to realProjects[0]
     // (alphabetical) and the user had to re-pick the project manually.
-    await expect(
-      page.getByTestId("new-issue-project-select"),
-    ).toHaveValue(projectId);
+    await expect(page.getByTestId("project-context-name")).toHaveText(projectName);
   });
 
   // @covers FR-01.30
@@ -241,8 +241,6 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
     // iterate-2026-05-22-triage-fix-now-project-preselect — same project
     // assertion for the new-iterate route. See comment on the github
     // case above for rationale.
-    await expect(
-      page.getByTestId("new-issue-project-select"),
-    ).toHaveValue(projectId);
+    await expect(page.getByTestId("project-context-name")).toHaveText(projectName);
   });
 });
