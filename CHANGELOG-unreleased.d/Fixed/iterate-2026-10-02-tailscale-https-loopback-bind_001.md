@@ -1,1 +1,0 @@
-Fix: with SHIPWRIGHT_TAILSCALE_HTTPS=1 the server now binds loopback so the tailscale-serve HTTPS front can reach it (previously the HTTPS URL hung with ERR_SSL_PROTOCOL_ERROR when the server only listened on the Tailscale IP)

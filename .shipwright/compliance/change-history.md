@@ -1,20 +1,20 @@
 # Commit Change Log
 
-Generated: 2026-09-29T06:30:07.241905+00:00
-Source-State: run=compliance-b7-d027462b-20260929
-Consistency-audit: last run 2026-09-29 (same day) — FAIL
-Total commits: 916
+Generated: 2026-10-09T15:49:55.718376+00:00
+Source-State: run=iterate-2026-10-09-e2e-spec-repair base=5e852211f1fa release=v0.28.0
+Consistency-audit: last run 2026-09-29 (10 days earlier) — PASS
+Total commits: 937
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 372
-    "feat" : 231
-    "chore" : 149
-    "docs" : 76
-    "refactor" : 35
-    "test" : 30
+    "fix" : 376
+    "feat" : 234
+    "chore" : 156
+    "docs" : 77
+    "refactor" : 37
+    "test" : 34
     "other" : 9
     "ci" : 8
     "perf" : 5
@@ -23,10 +23,14 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 372 commits
+### Fixes (fix) — 376 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-08 | ci | ignore the sibling shipwright action by its full Dependabot name (#512) | 8cdf49c4cb0e |
+| 2026-10-08 | ui | tablet board lanes, on-demand Smart Viewer, soft-keyboard fit and phone polish (#504) | d678cc92e469 |
+| 2026-10-02 | deploy | bind loopback when the tailscale HTTPS front is on (#501) | 377256ed8dfa |
+| 2026-09-30 | test | probe PowerShell once and fail loud in CI for the smoke suites (#499) | ca154defe4a1 |
 | 2026-09-29 | webui | pin Claude tier aliases to the Codextender launch alias (#493) | b567a15e1f89 |
 | 2026-09-28 | webui | Mission activity feed completeness (session-start anchor, mid-file Run-ID recovery, transient-error/note styling) (#492) | f179c230af5a |
 | 2026-09-28 | webui | unset CLAUDE_CODE_MAX_CONTEXT_TOKENS on probe-miss + suppress auto-mode notice (#490) | b4c2b853f92b |
@@ -400,10 +404,13 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 231 commits
+### Features (feat) — 234 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-08 | pr-review | switch the PR-review gate default model to Claude Haiku 5.5 (#505) | 5c09c2340e85 |
+| 2026-10-01 | deploy | opt-in HTTPS over the tailnet via tailscale serve (#500) | f166338fcf4a |
+| 2026-09-29 | campaigns | show the dependency graph and launch ready steps from the campaign card (#495) | bde54bc6c592 |
 | 2026-09-26 | webui | Mission tab subrunner visibility + feed polish (#483) | b03817a85783 |
 | 2026-09-23 | webui | Codextender integration mode for Codex-runtime tasks (#480) | 36168d56152e |
 | 2026-09-20 | webui | live Codex model catalog for the New Iterate launch form (#477) | 19ddf6a49119 |
@@ -636,12 +643,19 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 149 commits
+### Chores (chore) — 156 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-09-29 | compliance | reconcile B7, F5, F6, H1 and retag D-orphan tests | 6c30df65e616 |
-| 2026-09-29 | triage | sweep 5 outbox append(s) into branch | 60869d5a0c13 |
+| 2026-10-09 | ci | Bump actions/checkout from 4 to 7 (#513) | 4454f4b6c7f8 |
+| 2026-10-08 | ci | Bump actions/upload-artifact from 4 to 6 (#510) | 61710e13de08 |
+| 2026-10-08 | ci | Bump actions/setup-node from 4 to 6 (#509) | e7bc67703448 |
+| 2026-10-08 | ci | Bump actions/setup-python from 5 to 7 (#508) | ca6711cb047b |
+| 2026-10-08 | ci | Bump actions/github-script from 7 to 9 (#507) | 1438f3195907 |
+| 2026-10-08 | ci | enable Dependabot for GitHub Actions only (#506) | 8eddc8560269 |
+| 2026-09-29 | compliance | allow the "config" commit scope in G2 (#498) | 15cb645d497e |
+| 2026-09-29 | config | declare "Prepare review request" an advisory check (#496) | da143d0f7de7 |
+| 2026-09-29 | compliance | reconcile B7, F5, F6, H1 and retag D-orphan tests (#494) | 9edc48409396 |
 | 2026-09-28 | webui | dismiss stale codex-model-catalog-dropdown triage card (#491) | a8c8b1a633e9 |
 | 2026-09-28 | webui | close 3 phase-quality Tier-1 gates (design C1/D1, iterate W3) (#489) | cb0e2375af8e |
 | 2026-09-26 | webui | pre-bump session-parser.ts bloat-baseline ceiling to 842 (#484) | be02273f9e5f |
@@ -790,10 +804,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 76 commits
+### Documentation (docs) — 77 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-07 | — | refresh Command Center board and task screenshots (#502) | 841d82cf20b2 |
 | 2026-09-26 | webui | re-sync AGENTS.md with monorepo Codex operating contract (#487) | dbc153107c7b |
 | 2026-09-10 | — | document --plugins-only and --webui-only flags in README + guide (#460) | 80b827cd0a6f |
 | 2026-09-01 | terminal | document root cause of residual table-only smear (ADR-288) (#405) | fa86f26bd1b9 |
@@ -871,10 +886,12 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 35 commits
+### Refactoring (refactor) — 37 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-09 | client | split two oversize files under bloat limit (H1) (#515) | a290d2b25ce7 |
+| 2026-09-29 | campaigns | extract pure campaign selectors (#497) | 5a603164bd6e |
 | 2026-09-01 | security | swap Tier-3 PR-review gate to GLM 5.3 with reused ZDR routing (#408) | 2d4eb255d44e |
 | 2026-09-01 | security | swap Tier-3 PR-review gate to DeepSeek with reused ZDR routing (#407) | 254e52c978c9 |
 | 2026-08-10 | compliance | reconcile stale audit findings (#359) | 8ba78d97be5c |
@@ -911,10 +928,14 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 30 commits
+### Tests (test) — 34 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-09 | e2e | repair the 25 stale specs - full isolated suite green (#518) | 5e852211f1fa |
+| 2026-10-09 | e2e | specs 55/80/80b seed and clean up their own fixtures (#517) | f683c8b688be |
+| 2026-10-09 | client | disambiguate useSplitterKeydown test names (tag-binding gate) (#516) | bb3a3c8e444f |
+| 2026-10-07 | — | backfill @covers FR-01.38 tags on PR #465 mobile triage tests (#503) | c211320c44f2 |
 | 2026-07-30 | terminal | gate the drop-resync spec in CI and make its waits assertion-based (#336) | bedbb55f47db |
 | 2026-07-29 | mermaid | render real diagrams in a real browser so a dependency bump cannot pass green (#331) | fa475c1e6ae9 |
 | 2026-07-18 | traceability | webUI retrofit — @covers tags, manifest, RTM, D-orphan (reconciled to #287) (#289) | d19b6b9081fb |
@@ -993,7 +1014,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 916 |
+| Total commits | 937 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 916 |
+| Human-authored commits | 937 |
 

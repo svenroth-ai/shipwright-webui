@@ -1,1 +1,0 @@
-E2E spec title-bar-full-bleed.spec.ts now seeds its own fixture task so its '.page-head' assertions no longer depend on another spec leaving state behind — it was silently relying on that to avoid the '/first-contact' empty-registry redirect.

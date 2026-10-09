@@ -1,1 +1,0 @@
-Codextender launches now pin ANTHROPIC_DEFAULT_OPUS_MODEL / _SONNET_MODEL / _HAIKU_MODEL to the launch alias (and clean them up afterwards), so Claude Code's opus/sonnet/haiku tier aliases no longer resolve to claude-* names the proxy does not serve.

@@ -1,1 +1,0 @@
-Codex-driven tasks' More-options panel now shows real, session-only Plan review / Review model overrides (left/right, matching the Claude layout) instead of a read-only Reviewer-identity display; Implementation model moved to its own row.

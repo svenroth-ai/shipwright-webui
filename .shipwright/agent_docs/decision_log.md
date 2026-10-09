@@ -4517,3 +4517,815 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rejected:** A pty-activity-driven flip inside `CodexTaskWatcher` itself (rejected: duplicates the existing, reviewed AC-4 mechanism through a second code path, adds up to 60s detection lag vs. the synchronous WS-attach signal, and risks racing the watcher's own launch-confirmation early-return). `codex-thread-discovery.ts`'s threadId discovery as the liveness signal (rejected: best-effort/delayable, weaker than "a WS actually attached").
 - **Related:** shipwright monorepo campaign `codex-plugin-execution-reliability` (draft, not started) proposes an invocation-envelope mechanism that will likely touch `launcher-codex.ts`; whoever plans that campaign's R0 should read this ADR for the existing Codex-runtime liveness-signal precedent before designing envelope delivery timing. Different axis (Codex *executing* the skill/hook lifecycle as driver) — no code overlap, no blocking dependency.
 - **Details:** [bug-report.md](../planning/iterate/iterate-2026-09-20-codex-liveness-transition/bug-report.md), [spec.md](../planning/iterate/iterate-2026-09-20-codex-liveness-transition/spec.md), [mini-plan.md](../planning/iterate/iterate-2026-09-20-codex-liveness-transition/mini-plan.md)
+
+---
+
+### ADR-310: Claim-authorized launch gets an explicit permission perimeter
+- **Date:** 2026-09-06
+- **Section:** Iterate — change: claim-authorized launch permission perimeter
+- **Run-ID:** iterate-2026-09-06-claim-launch-permission-perimeter
+- **Context:** leadwright's stage-2 executor spawns a detached, unattended process with full shell/credential access and no permission restriction whenever it holds a valid task claim.
+- **Decision:** Arm --tools <allow-list> --permission-mode dontAsk on a claim-authorized launch only, via a single config module + a centralized post-dispatch 409 backstop; manual launches unchanged.
+- **Commit:** (assigned post-merge)
+- **Rationale:** checkClaimHolderGate's own claimAuthorized boolean is the single source of truth; a centralized backstop closes the gap where per-branch opt-in wiring reaches only 2 of 6 launch branches.
+- **Consequences:** Executor keeps Bash/git/npm ability but cannot use unlisted tools without an unanswerable prompt. Does NOT close OS-level containment (nested claude via Bash is invisible to this perimeter).
+- **Rejected:** Allowed-tools alone (proven not to block Bash); --restricted (strips needed plugins/settings); rendered-output-only anchor uniqueness (defeatable by a coincidental caller-supplied match).
+- **Details:** [iterate-2026-09-06-claim-launch-permission-perimeter.md](../planning/adr/iterate-2026-09-06-claim-launch-permission-perimeter.md)
+
+---
+
+### ADR-311: State the FR-04.28 lock contract explicitly at both call sites
+- **Date:** 2026-09-06
+- **Section:** FR-04.28
+- **Run-ID:** iterate-2026-09-06-claim-lock-contract-explicit
+- **Context:** leadwright published a machine-readable lock contract (staleMs:10000, realpath:true) for sdk-sessions.json/decisions-proposed.md. decisions-lock.ts already set these explicitly; index.ts's sdk-sessions.json lock relied on proper-lockfile's own defaults happening to equal the contract, an accidental agreement a library version bump could silently break.
+- **Decision:** Vendor the contract JSON at server/src/vendor/leadwright/, add core/claim-record-lock.ts exporting the parsed constant plus claimRecordLockOptions()/lockClaimRecordFile() helpers, and route both call sites through it. claimRecordLockOptions structurally drops any lockfilePath a caller passes.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Vendoring (a human re-copies on a leadwright contractVersion bump) avoids a live cross-repo build/runtime dependency, which the task explicitly ruled out. A pinned contractVersion test forces deliberate review of a bump instead of silent drift.
+- **Consequences:** Both lock sites now agree by contract, not by coincidence, and a vendored-copy drift is caught by a pinned test. index.ts's shared lockPath also now covers projects.json/settings.json (harmless: contract values equal proper-lockfile's defaults). New read surface: the vendored JSON, copied into dist/ by copy-assets.mjs and asserted there by build-assets.test.ts.
+- **Rejected:** Reading the leadwright checkout live at build or test time — rejected: creates a cross-repo dependency neither side can keep green, and this repo cannot assume a sibling leadwright checkout exists.
+- **Details:** [iterate-2026-09-06-claim-lock-contract-explicit-brief.md](../planning/iterate/iterate-2026-09-06-claim-lock-contract-explicit-brief.md)
+
+---
+
+### ADR-312: Decisions-proposed.md countersign — browser surface
+- **Date:** 2026-09-06
+- **Section:** Iterate — feature: decisions-proposed.md countersign browser surface
+- **Run-ID:** iterate-2026-09-06-decisions-proposed-countersign
+- **Context:** PO had no browser way to see/countersign AI-lead decision proposals; only the secret-gated API or terminal could.
+- **Decision:** Add a fifth OrgSharedDocs tile parsing decisions-proposed.md client-side; its Countersign button calls a new plain route sharing the gated route's exact performCountersign/handleCountersignRequest core.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the beat-register/release one-core-two-mounts precedent so the shared-core proof is meaningful; client-side parsing avoids a second server-side definition of decisions-lock.ts's own transfer format.
+- **Consequences:** PO can countersign from the browser without the secret; one implementation proven shared by a cross-mount test; charter PUT's 403 on decision files stays pinned by a new regression test.
+- **Rejected:** A typed JSON GET endpoint pre-parsing entries server-side was rejected as duplicate logic with no behavioral gain over parsing the existing raw-text /api/org/file response.
+- **Details:** [iterate-2026-09-06-decisions-proposed-countersign.md](../planning/adr/iterate-2026-09-06-decisions-proposed-countersign.md)
+
+---
+
+### ADR-313: Client-side stateless merge for the cross-lead audit timeline
+- **Date:** 2026-09-06
+- **Section:** Iterate — feature: cross-lead audit timeline
+- **Run-ID:** iterate-2026-09-06-org-audit-timeline
+- **Context:** PO cannot see what one or more leads did overnight without opening a per-lead raw-JSON audit modal for each. The per-lead route's 'before' cursor is a physical position count into that lead's own newest-first stream, not a timestamp, so a naive shared offset across merged leads drops or repeats entries.
+- **Decision:** New 'Activity' view merges each selected lead's freshly-fetched top-windowSize entries (unmodified GET /api/org/leads/:leadId/audit, always before:0) client-side, sorted by numeric epoch ts, capped at MAX_LIMIT=200. No cursor is persisted between rounds; Load-more grows windowSize (200 immediately when a time filter is active). No server change.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Two rounds of external LLM review (architecture then iterate mode, both legs each round) drove this: round 1 rejected a server-side merged endpoint with an opaque cursor as disproportionate; round 2 found that even a client-side per-lead consumed-count cursor produces gaps and repeats once the underlying file grows between rounds -- exactly the PO's overnight-daemon-write scenario. A stateless design has no cursor to desync.
+- **Consequences:** New client files only: auditTimelineMerge.ts, auditKindLabels.ts, AuditTimelineModal/FilterBar/RowList.tsx. No new read/write surface. Self-healing under concurrent daemon writes by construction (no stale cursor to desync). Bounded re-read cost: up to 200 lines per lead re-fetched on every Load-more click, accepted as proportionate at single-digit-lead scale.
+- **Rejected:** (1) Server-side merged endpoint owning one opaque composite cursor -- permanent API/wire contract for one browser-only consumer, rejected round 1. (2) Client-side merge with a persisted per-lead consumed-count cursor -- provably wrong under concurrent appends (position drift), rejected round 2.
+
+---
+
+### ADR-314: Surface server staleness + beat-register findings on the org card
+- **Date:** 2026-09-06
+- **Section:** Iterate — change: org lead staleness + beat-register findings
+- **Run-ID:** iterate-2026-09-06-org-lead-staleness-register
+- **Context:** FR-04.06/FR-04.41 filed for months as 'not shown'; server already computed both (lastRunCore, evaluateRegisterHealth) and the release action already existed, but the client discarded the values and the release action was not browser-reachable.
+- **Decision:** Widen LeadLastRunView/LeadRegisterView to carry the server's verdicts verbatim; render with no second vocabulary; proxy the existing release action to a new POST /api/org/leads/:leadId/beat-register/release sharing one handleReleaseRequest with the secret-gated route.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Task brief pre-approved wiring the existing release button (not inventing a new endpoint); cross-lead mutation is prevented structurally (leadId-derived path, sessionId/entry matching), regression-tested.
+- **Consequences:** Browser can release a stuck beat directly; staleness 'unknown' is a genuine third UI state with a worded reason; the plain org surface gains its first browser-reachable mutating route.
+- **Rejected:** Option B (release stays secret-gated-only) rejected per Architecture Review — required inventing an out-of-scope endpoint shape for a security benefit already achieved structurally. Folding register into LeadNowState rejected as circular.
+- **Details:** [iterate-2026-09-06-org-lead-staleness-register.md](../planning/adr/iterate-2026-09-06-org-lead-staleness-register.md)
+
+---
+
+### ADR-315: Off-DOM measured column auto-fit, scoped to the SmartViewer pane
+- **Date:** 2026-09-06
+- **Section:** Iterate — change: SmartViewer table auto-fit + a11y
+- **Run-ID:** iterate-2026-09-06-smartviewer-table-a11y
+- **Context:** SmartViewer markdown tables with one long free-text column crushed that column into many wrapped lines instead of using the pane's existing horizontal scroll (table-layout:auto shrinks to the longest word).
+- **Decision:** Measure natural column widths by cloning the table INSIDE its real container (preserves CSS cascade), apply via colgroup + table-layout:fixed, gated to run only inside .smart-viewer-markdown so DocumentMarkdown's 4 other non-SmartViewer consumers are untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** table-layout:fixed is required because auto treats an explicit <col> width as a mere hint; measuring from document.body (instead of inside the container) silently dropped .markdown-body's padding/weight rules and under-measured columns, both verified live before landing.
+- **Consequences:** Tables with a long column now scroll horizontally instead of wrapping character-by-character; re-fits on ResizeObserver. Also added th scope=col, a focusable/labelled preview region, and a keyboard-reachable ViewerTabBar close button.
+- **Rejected:** Wrapping every DocumentMarkdown table unconditionally was rejected (Stage-1 spec-reviewer REJECT): inert but still cloning/mutating DOM + installing a ResizeObserver on 4 unrelated modals/panels.
+
+---
+
+### ADR-316: Top-align SmartViewer table cells, scoped only to that pane
+- **Date:** 2026-09-06
+- **Section:** Iterate — change: table cell top-align
+- **Run-ID:** iterate-2026-09-06-table-cell-top-align
+- **Context:** Cells vertically centered by default; a row mixing short and wrapped multi-line cells looked broken.
+- **Decision:** Add vertical-align: top scoped to .smart-viewer-markdown .markdown-body table th/td, mirroring the sibling scoped rule already in index.css.
+- **Commit:** (assigned post-merge)
+- **Rationale:** First draft touched the shared base rule and would have silently re-flowed those 5 other consumers; spec-reviewer caught it and the existing scoped-rule pattern was the fix.
+- **Consequences:** SmartViewer cells top-align; the ~5 other DocumentMarkdown consumers (chat bubbles, OrgDocViewerModal, ComplianceDetailModal, MissionArtifactBody, MissionSlice2Details) are unaffected.
+- **Rejected:** Unscoped base-rule edit (rejected: leaks into unrelated consumers, no visual re-verification there).
+
+---
+
+### ADR-317: Tablet/iPad UX pass: terminal reconnect visibility, title truncation, Ship's Log independent scroll
+- **Date:** 2026-09-06
+- **Section:** AC-1 through AC-6
+- **Run-ID:** iterate-2026-09-06-tablet-ipad-ux-pass
+- **Context:** iPad reports: terminal appears smeared/frozen when tapping back in with no indication anything is wrong (top priority); task titles wrap unbounded at tablet AND classic-iPad-landscape desktop widths; sidebar Settings clipped in short viewports; Ship's Log Documents column scrolled together with the Log instead of independently.
+- **Decision:** Surface the existing WS liveness probe as a visible 'reconnecting' banner via a new onProbing callback in wsLiveness.ts wired into useTerminalSocket. Truncate EditableTaskTitle to one line with tap-to-expand/tooltip on BOTH tablet and desktop branches. Give ShipsLogPage's log column its own bounded overflow-y:auto (rule 27 pattern) so Documents scrolls independently. Full detail in the linked spec.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root-caused rather than patched: the terminal 'smear' was never corrupted pixels, it was a stale frame with zero indication a silent reconnect was already in flight.
+- **Consequences:** A probe resolving in the 1.5-4s band now visibly flashes the banner for a bounded window (accepted trade-off, proven bounded by a new test). Both external reviewers' MEDIUM findings verified as false positives (desktop grid bounding confirmed live; lockfile drift pre-existing). No spec.md changes (spec_impact=none).
+- **Rejected:** Widening the shared COMPACT_MEDIA_QUERY (1023px) breakpoint to fix the classic-iPad-landscape title wrap — rejected: 30 app-wide consumers, would recreate the md:/lg: mismatch this iterate fixed elsewhere; fixed the title's own missing truncate class instead.
+- **Details:** [2026-09-06-tablet-ipad-ux-pass.md](../planning/iterate/2026-09-06-tablet-ipad-ux-pass.md)
+
+---
+
+### ADR-318: CI regenerates and diffs the traceability manifest against the commit
+- **Date:** 2026-09-07
+- **Section:** Iterate - feature: evidence chain CI gate
+- **Run-ID:** iterate-2026-09-06-w1-evidence-chain
+- **Context:** P0b/D8 for the WebUI: the traceability manifest had no CI enforcement, so drift could sit uncaught indefinitely (WebUI half of monorepo PR 654).
+- **Decision:** Push/workflow_dispatch-only CI job regenerates the manifest via a SHA-pinned monorepo checkout and diffs FR-test topology against the commit; source_commit is informational only, never gating.
+- **Commit:** (assigned post-merge)
+- **Rationale:** source_commit cannot equal HEAD by construction (a commit hash depends on its own tree); confirmed empirically against this repo history. Staleness must be judged by FR-test content, not provenance.
+- **Consequences:** CI now enforces manifest freshness on every push to main. External review (3 rounds) found and fixed a reject-severity self-referential source_commit design flaw before merge.
+- **Rejected:** Vendoring the 850-line collector; gating on pull_request (iterate PRs cannot carry a regen); comparing source_commit literally to HEAD.
+- **Details:** [iterate-2026-09-06-w1-evidence-chain.md](../planning/adr/iterate-2026-09-06-w1-evidence-chain.md)
+
+---
+
+### ADR-319: CI pin bump for schema v4 manifest support, AC work deferred
+- **Date:** 2026-09-07
+- **Section:** Iterate — change: ac-scoped-layer-promotion
+- **Run-ID:** iterate-2026-09-07-ac-scoped-layer-promotion
+- **Context:** w5 shipped FR-level promotion; both external reviewers flagged the title implied AC-level, which needs schema v4 (landed upstream today, PR #686).
+- **Decision:** Bump the pinned CI checkout to the exact PR #686 merge SHA in its own PR; the forced manifest regen (v3->v4) ships in a separate main-repair PR right after, since a regenerated manifest is a derived snapshot an iterate PR may not carry.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Full AC follow-up mirrors the monorepo's own 8-sub-iterate campaign scope; bundling it here would mix an infra pin with first-ever AC-authoring work. check_no_derived_snapshots_committed forbids the regenerated manifest in an iterate commit regardless.
+- **Consequences:** Main's push-triggered gate goes red for one cycle right after this merges (expected, self-caused); a same-day main-repair PR regenerates the manifest to close it, mirroring PR #443/#444 earlier this session. Gate can then write acs data once AC tags exist; no behavior change today.
+- **Rejected:** Deferring the pin bump entirely (openai's architecture-review suggestion) - declined by operator decision; bundling the manifest regen into this same PR - blocked by the derived-snapshot gate, not a preference.
+- **Details:** [2026-09-07-ac-scoped-layer-promotion.md](../planning/iterate/2026-09-07-ac-scoped-layer-promotion.md)
+
+---
+
+### ADR-320: Lead-setup wizard: real-verdict re-verification + single write-sequence lock
+- **Date:** 2026-09-07
+- **Section:** Iterate — feature: leadwright lead-setup wizard
+- **Run-ID:** iterate-2026-09-07-leadwright-setup-wizard
+- **Context:** Wizard's Finish action must be gated on a real leadwright preflight verdict, not a client-side approximation, and the commit write sequence (3 files) must be race-safe under true concurrency.
+- **Decision:** Re-run leadwright's real check-setup.ts subprocess server-side at commit (not just preview); treat expectedProposalDigest as staleness-UX only; hold ONE org-chart.json lock across the whole write sequence; pass existingCharters into the merged proposal.
+- **Commit:** (assigned post-merge)
+- **Rationale:** External reviewers (openai+GLM) independently flagged both issues; cross-checked against the real local leadwright source, which confirmed the fixes and disproved this repo's own doc comment about a nonexistent 'path mode' charter fallback.
+- **Consequences:** Closes an unsigned-digest bypass and a true-concurrency double-write race (both flagged high by external review); one extra subprocess call per commit; commit.ts split into 4 files to stay under the bloat ceiling.
+- **Rejected:** HMAC-signing the digest (still stale vs current rules); per-file locks (reopens the sequential-resubmission race for true concurrency); keeping the path-mode charter read (contradicted by leadwright's real setup-preflight.ts).
+- **Details:** [iterate-2026-09-07-leadwright-setup-wizard.md](../planning/adr/iterate-2026-09-07-leadwright-setup-wizard.md)
+
+---
+
+### ADR-321: Origin->Basis rename + Layers column retrofit; 29-vs-35 discrepancy resolved
+- **Date:** 2026-09-07
+- **Section:** Iterate - docs: FR-table form convergence (S8)
+- **Run-ID:** iterate-2026-09-07-w2-form-convergence
+- **Context:** S8 form convergence: retrofit spec.md's 14 FR sub-tables onto the monorepo's converged shape. Origin held provenance strings, not the closed Basis vocabulary; the campaign brief cited an unexplained 29-vs-35 discrepancy.
+- **Decision:** Renamed Origin->Basis (values carried over unchanged) and added a trailing Layers column (every cell literal (inferred)) across all 14 area tables. 29-vs-35 traced to the monorepo's own design spec: 29 living FR rows vs 35 AC-heading blocks (17 orphaned from the 2026-07-17 fold); re-measured today as 32-vs-38, same 17-orphan set.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Design doc Spec/design/2026-07-22-req3-campaign-SPEC.md Section 8 lines 411-439 classifies S8 as pure Mechanische Transformation (mechanical transformation); revaluing 32 provenance strings or auditing 17 folded AC-blocks is judgement-heavy content work, not mechanical, and is explicitly flagged there as separate open cleanup.
+- **Consequences:** Table is header-converged, matching the monorepo's shared FR-table reader by column name. Basis column is NOT value-converged (provenance strings, not the 6-value vocabulary) - deliberate, recorded, currently unowned. The 17 orphaned AC-blocks and 11 AC-less live rows remain - diagnosed, not cleaned up; out of this unit's mechanical-transformation scope.
+- **Rejected:** Coercing Basis values into the closed vocabulary now (judgement call, not mechanically derivable, out of this small-complexity unit's scope); cleaning up the 17 orphaned AC-blocks in this unit (a content audit, not a table-shape retrofit).
+- **Details:** [iterate-2026-09-07-w2-form-convergence.md](../planning/adr/iterate-2026-09-07-w2-form-convergence.md)
+
+---
+
+### ADR-322: Reader on manifest v4: accept AC-scoped @covers tags without a false ahead-warning
+- **Date:** 2026-09-07
+- **Section:** Iterate — change: reader on manifest v4
+- **Run-ID:** iterate-2026-09-07-w3-reader-manifest-v4
+- **Context:** Monorepo P3.2 (merged, tip c0d1b38be2) bumps test-traceability.json to schema_version 4 (AC-scoped @covers). WebUI reader's known-max was still 3.
+- **Decision:** Bump TRACEABILITY_SCHEMA_VERSION 3->4; no reader-logic change (only reads fields unchanged across v3/v4). Frozen fixture pins both AC-scoped and bare-tag v4 shapes.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reader never validates additionalProperties, only reads .id/.tests[layer][*].id/.layer/.resolved_from, unchanged in v4. Verified mechanically via git diff of the shipped schema, not by trusting its doc comment.
+- **Consequences:** No false contract_version_ahead warning on a v4 manifest; v1-v3 manifests and v4 manifests with no AC tags behave identically. ac_id/acs surfacing downstream deferred, disclosed not dropped.
+- **Rejected:** Trimming the fixture to reader-consumed fields only: rejected, defeats its drift-catching purpose. Surfacing ac_id/acs downstream now for w5: rejected, out of this unit's AC scope.
+- **Details:** [iterate-2026-09-07-w3-reader-manifest-v4.md](../planning/adr/iterate-2026-09-07-w3-reader-manifest-v4.md)
+
+---
+
+### ADR-323: Tagging backfill: 32/32 FRs bound, coverage 15.75% -> 31.97%
+- **Date:** 2026-09-07
+- **Section:** F3
+- **Run-ID:** iterate-2026-09-07-w4-tagging-backfill-webui
+- **Context:** Base manifest: 1161/7372 tests bound (15.75%), 25/32 FRs with >=1 bound test, 100% covers_comment. Scope (w4): tag EXISTING tests proving an FR AC with no @covers binding; writing new tests is out of scope (REQ3.07/trg-58a3e32d).
+- **Decision:** Two comment-only passes. Pass1: automated sweep finds fully-untagged files naming exactly one FR-01.NN in their own text, fold-map-resolved to survivor IDs, describe-scoped (brace-depth), exclusion-phrase filtered -> 1093 tests/165 files. Pass2: manual, spec-verified backfill for the 7 zero-coverage FRs -> 103 tests/13 files. One pre-existing docstring typo fixed (FR-01.31->FR-01.33, campaigns.events.test.ts).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Header/describe-title self-declared FR mentions are a strong, auditable signal already used as the repo's own documentation; fold-map resolution matches documented survivor-only @covers convention. Full detail + external review disposition tables in spec-ref.
+- **Consequences:** Coverage 15.75%->31.97%, 32/32 FRs now have >=1 bound test (was 25/32). 1196 unique tests newly tagged (1093 automated + 103 manual). Zero tests deleted/weakened. Manifest itself NOT regenerated/committed (push-only CI regen per repo convention). Full findings + review dispositions in spec-ref.
+- **Rejected:** Capping automated tagging to single-top-level-describe files only: discarded ~700 legitimate content-verified tests, rejected. Auditing pre-existing FR-01.37 tags on project-actions-loader.test.ts in this same run: out of mandate, deferred. Fixing collector's it.each multi-line-title blind spot: lives in a different repo, deferred.
+- **Details:** [iterate-2026-09-07-w4-tagging-backfill-webui.md](../planning/adr/iterate-2026-09-07-w4-tagging-backfill-webui.md)
+
+---
+
+### ADR-324: FR-level layer promotion: autonomous, one-way, per-requirement
+- **Date:** 2026-09-07
+- **Section:** req3-06-mechanics-webui/w5
+- **Run-ID:** iterate-2026-09-07-w5-bind-and-promote
+- **Context:** w5 (last unit, campaign req3-06-mechanics-webui) needed to promote spec.md FR Layers cells from (inferred) to explicit wherever bound tests are confirmed green in fresh CI evidence, per the p3.5 doc's decidable-predicate rule, without a batch/sweep path and without the run ever authoring its own escalation approval.
+- **Decision:** layer_promotion.py (pure predicate, ALL observed layers must be green) + promote_fr_layers.py (two full manifest regen passes around a spec.md row rewrite, never hand-patched) + a one-way ledger. Escalation reuses diff_risk_recheck.py's exit-code SHAPE (0/3), never a literal call. FR-level not AC-level (schema v3 has no acs field) -- scope deferral, follow-up triage trg-f2c8df89 filed.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Two-regen-pass keeps spec_hash/untagged_tests authoritative against the real collector -- verified empirically. Requiring every observed layer green (not just the highest) prevents a promoted cell from misrepresenting a red lower layer as covered.
+- **Consequences:** 9 of 32 active FRs promoted to explicit (unit-layer only); 23 escalated (absent_ci_evidence), a systemic pattern correctly named rather than reported as 23 individual surprises. Verified against the real w1 traceability_manifest_gate.py CI gate (success:true). External code-review cascade found and fixed 8 real issues before commit (evidence freshness, atomic rollback, run_id guard, non-dict guard, visibility gaps).
+- **Rejected:** AC-scoped @covers tagging this pass (too large, no acs field yet); running @smoke Playwright e2e (empirically checked: would have promoted zero additional FRs this round).
+- **Details:** [mini-plan.md](../planning/iterate/iterate-2026-09-07-w5-bind-and-promote/mini-plan.md)
+
+---
+
+### ADR-325: Reconcile B7/G2/H1/H2 compliance findings
+- **Date:** 2026-09-08
+- **Section:** compliance-reconciliation
+- **Run-ID:** iterate-2026-09-08-compliance-b7-g2-h1
+- **Context:** Detective audit flagged B7 (6 commits since v0.27.0 with no matching event, all traceability-regen auto-commits), G2 (14 commits with unrecognized conventional-commit scopes: main/org/tablet/w2/w4), H1 (5 files over the 300-line ceiling), and H2 (bloat baseline current values stale vs. disk).
+- **Decision:** B7/G2: restated audit_detector.py's full b7_exclusions default plus one new exclude_path_prefixes entry for the traceability-regen path, and added the 5 missing scopes to g2_stoplist with dated rationale. H1: cohesive file-level splits (fetchers out of orgApi.ts; test files split by concern) per this repo's established bloat-retirement convention, not line-merging. H2: corrected 10 stale current values in shipwright_bloat_baseline.json to match on-disk counts.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Read the plugin's actual default config and retention-rule source rather than guessing at exclusions, so the fix is structurally correct and won't silently diverge from the plugin's own defaults on the next shallow-merge config load.
+- **Consequences:** All 4 findings verified fixed via a fresh detective-audit re-run (12 pass / 0 fail, was 4 fail). Full server (4054) and client (4005) suites stay green. I5 (33 malformed FR Basis values) is deliberately out of scope as a separate, larger spec-content concern.
+
+---
+
+### ADR-326: Lead Inventory page: per-lead authority ladder + unclaimed-effect warning
+- **Date:** 2026-09-08
+- **Section:** Iterate — feature: Lead Inventory page
+- **Run-ID:** iterate-2026-09-08-lead-inventory-page
+- **Context:** The Org page shows chart+cards but nothing shows what an AI lead did overnight, ordered by authority band, next to its own declared authority ladder, or whether any beat's effect went unclaimed.
+- **Decision:** New viewer-only /org/inventory page + roster-wide GET /api/org/inventory composite: per-lead last-night beats with band-chip step logs, charter-derived authority ladder, needs-you questions, unclaimed-effect warning. No editing, no new leadwright API, no budget work.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors this codebase's existing composite-endpoint and open-first-file-read patterns instead of inventing new ones.
+- **Consequences:** A read failure for one lead's register/steps/audit degrades that figure alone (tri-state), never a false-positive clear/empty state. Audit scan is a synchronous unbounded full-file read, accepted at this iterate's scale.
+- **Rejected:** Declared/missing authority binary (always 4/4, vacuous); a second server-merged needs-you endpoint (duplicate of FR-01.71(D)); bounded audit-scan pagination (superseded by a single full-file scan); either/or E2E isolation guard (real bypass, closed to AND semantics).
+- **Details:** [iterate-2026-09-08-lead-inventory-page.md](../planning/adr/iterate-2026-09-08-lead-inventory-page.md)
+
+---
+
+### ADR-327: Lead-question 'Discuss in terminal' escape hatch
+- **Date:** 2026-09-08
+- **Section:** inbox/lead-question
+- **Run-ID:** iterate-2026-09-08-lead-question-discuss-terminal
+- **Context:** The lead-daemon question round-trip takes 1-3 min per turn, too slow for real discussion; PO decided (2026-09-07) against multi-round ping-pong in the inbox card.
+- **Decision:** Add 'Discuss in terminal' (reuses the existing POST /api/terminal/:taskId/spawn + navigate, no new route) and 'Take the outcome as the answer' (focuses the card's answer field) to the lead_question inbox card. FR-04.42's server round mechanics are untouched.
+- **Commit:** (assigned post-merge)
+- **Consequences:** A terminal session opened this way spawns a real, separate Claude process not attributed to the lead's own weekly budget; flagged as a follow-up, not addressed here. Fixed code-review finding: the card's Enter/Space keydown handler no longer swallows nested-button keyboard activation.
+- **Rejected:** Extending the daemon round-trip UI into a real back-and-forth thread (PO explicitly rejected ping-pong given the 1-3 min per-round latency).
+
+---
+
+### ADR-328: Traceability manifest gate: advisory severity + CI-opened regen PR
+- **Date:** 2026-09-08
+- **Section:** CI / Compliance Gates
+- **Run-ID:** iterate-2026-09-08-manifest-regen-finalization
+- **Context:** Traceability manifest gate hard-failed push-to-main on nearly any PR that adds a test, producing 7 repair PRs across 8 failures in 3 weeks and blocking every other iterate each time (trg-1324dfc4).
+- **Decision:** Gate stays but becomes advisory (continue-on-error on the regen step); a follow-up step opens/refreshes a bot PR with the fresh regen whenever real drift is found, using only GITHUB_TOKEN — no auto-merge.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Option (a) is code-forbidden by check_no_derived_snapshots_committed; option (c) is disproportionate given this repo's own live readers of the file. Auto-merge needs a PAT this repo does not have and should not add unilaterally; the monorepo already treats this failure class as advisory (ci_manifest_drift_check.py).
+- **Consequences:** Main no longer reads red for this class; repair still needs a human/next-iterate nudge+merge since a GITHUB_TOKEN-opened PR can't trigger the other required pull_request checks. Full unattended automation would need a new PAT (not provisioned). Portability: advisory half applies to the monorepo now; the auto-PR half should wait on its manifest's own reproducibility fix (separate, unfiled work).
+- **Rejected:** (a) finalization regenerates+stages in the iterate branch: forbidden by DERIVED_SNAPSHOTS/F11 (collision + wrong git history, iterate-2026-07-27). (c) stop committing, derive in CI only: breaks this repo's own webui mission-context readers of the committed file; vendoring the collector was already rejected elsewhere as disproportionate.
+- **Details:** [iterate-2026-09-08-manifest-regen-finalization-traceability-gate-advisory.md](../planning/adr/iterate-2026-09-08-manifest-regen-finalization-traceability-gate-advisory.md)
+
+---
+
+### ADR-329: Repo-scoped tsx-watch kill sweep
+- **Date:** 2026-09-09
+- **Section:** Iterate — bug: deploy-tsx-kill-scope
+- **Run-ID:** iterate-2026-09-09-deploy-tsx-kill-scope
+- **Context:** findTsxServerPids() matched tsx+src/index.ts machine-wide with no repo input; a deploy from one worktree killed an unrelated project's, or a sibling worktree's, tsx watch dev server.
+- **Decision:** Scope the sweep to an anchored <repoRoot>/node_modules/.../tsx/ path match, split into a pure filterTsxEntriesByRepo() + impure discovery, with PPID-based parent-before-child kill ordering.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Text-argv matching cannot close every gap without filesystem access; three rounds of external-review narrowing closed the practical cases, verified against two live worktree dev servers.
+- **Consequences:** A deploy now only kills its own repo's tsx-watch parent + its own port listener; foreign repos and sibling worktrees survive. Diagnostics now distinguish 0-candidates/discovery-failure/no-match-in-repo.
+- **Rejected:** Dropping the sweep (tsx watch respawns and re-takes the port); per-PID cwd resolution (unneeded once the 'relative entry path' premise was falsified); unconditional case-folding (would cross-match POSIX checkouts).
+- **Details:** [iterate-2026-09-09-deploy-tsx-kill-scope-repo-scoped-tsx-sweep.md](../planning/adr/iterate-2026-09-09-deploy-tsx-kill-scope-repo-scoped-tsx-sweep.md)
+
+---
+
+### ADR-330: Gate leadwright board/dialog affordances on useOrgChartPresence(), reuse FR-01.71's signal
+- **Date:** 2026-09-09
+- **Section:** Leadwright board affordances — org-chart presence gate
+- **Run-ID:** iterate-2026-09-09-leadwright-gate-org-presence
+- **Context:** Task Board's lead-tag filter menu + BellDot toggle and the New-issue dialog's leadwright fields (domain/priority/complexity/tags/blockedBy) always rendered, even on an installation with no org chart/leads configured — dead controls for the majority of users who never adopt leadwright.
+- **Decision:** Gate LeadTagFilterMenu+LeadWaitToggleButton (new LeadTagFilterToolbarGroup wrapper) and LeadwrightFieldsFragment on the existing useOrgChartPresence() hook (FR-01.71/org-page.spec.ts precedent) — hide only on confirmed absent (org_chart_missing 404), stay visible on loading/broken (fail visible, never fail hidden). Never gate anything that reports already-persisted data (TaskCard lead chips, TaskCardClaimChip, lead tags, Inbox lead-question card).
+- **Commit:** (assigned post-merge)
+- **Consequences:** Zero new fetches or endpoints — a second consumer of the shared ORG_CHART_QUERY_KEY cache. Three pre-existing E2E specs (lead-board-surface, triage-fix-now, triage-fix-now-more-options-clip) needed a seeded org-chart.json fixture since the isolated E2E stack's empty-registry default now reads absent for them too.
+- **Rejected:** A second hand-typed org_chart_missing check per call site — rejected: violates the single-signal requirement and would drift from the FR-01.71 hook if the 404 contract ever changes.
+
+---
+
+### ADR-331: Compare vendored leadwright schemas against a real checkout, gated on SHIPWRIGHT_LEADWRIGHT_CHECKOUT
+- **Date:** 2026-09-09
+- **Section:** Iterate — feature: leadwright vendored-schema drift check
+- **Run-ID:** iterate-2026-09-09-leadwright-schema-drift
+- **Context:** server/src/vendor/leadwright/*.json are snapshots of leadwright-generated schemas that nothing ever re-compares to the originals. leadwright can regenerate a schema, both repos stay green, and the break only shows up in production. org-chart.schema.json was not vendored at all despite webui parsing org charts in a dozen places.
+- **Decision:** Add leadwright-schema-drift.ts/.test.ts (server/src/types/) that, when SHIPWRIGHT_LEADWRIGHT_CHECKOUT points at a checkout, deep-compares parsed JSON (never bytes, to survive a CRLF-dirty checkout) per vendored file discovered in the directory, via a named it.skipIf per file so CI stays green with visible skips. Vendor org-chart.schema.json as a pin. Re-vendor the already-drifted preflight-input.schema.json.
+- **Commit:** (assigned post-merge)
+- **Consequences:** A leadwright schema regen is now catchable locally by any developer with a checkout, before it reaches production. org-chart.schema.json vendoring buys a pin, not validation, until a reader consults it. schema-drift.ts lives outside vendor/leadwright/ so copy-assets.mjs's blanket cpSync never ships it into dist/.
+
+---
+
+### ADR-332: Mission Control Tests artifact: per-AC coverage view
+- **Date:** 2026-09-09
+- **Section:** FR-01.66
+- **Run-ID:** iterate-2026-09-09-mission-ac-coverage-view
+- **Context:** Triage REQ3.08 asked Mission Control to show, per acceptance criterion, which tests were added/changed/removed. The v4 traceability manifest (campaign req3-06-mechanics-webui) can carry an optional ac_id per test link, but in this repo 0/33 requirements carry one today.
+- **Decision:** traceability.ts now relays ac_id verbatim into TestFrRef.acIds (unioned per file+FR, no binding computed). A new artifacts-tests-ac.ts groupByAc() regroups the SAME TestRow[] the file table already renders, keyed by (frId, acId), with tagged=groups.length>0. The client (new MissionTestsAcCoverage.tsx) renders the groups when tagged, or an explicit not-yet-tagged note when tagged=false — never an empty/misleading table.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The card explicitly requires a VIEW, not a second source of truth for AC bindings, and requires absent-vs-zero to stay distinct on this highly visible surface. Regrouping existing rows server-side (where the manifest is already bounded/parsed) keeps one inversion point; tagged:false is a first-class state, not an empty array.
+- **Consequences:** Mission Control's Tests card now has an AC-scoped sub-view. Adds TestFrRef.acIds, AcTestGroup, and TestsArtifact.detail.acCoverage to the hand-mirrored wire types (server types-slice2.ts / client missionContextApi.ts, ADR-080). No new read/write surface — same manifest, same rows. Bloat baseline bumped for MissionSlice2Details.tsx and missionContextApi.ts (documented notes).
+- **Rejected:** Client-side-only AC grouping by re-fetching the raw manifest: rejected because it would duplicate traceability.ts's own size/corruption bounding (8MB cap, entry cap, typed unavailable) in a second place — exactly the second-source-of-truth risk the triage card rules out.
+- **Details:** [2026-09-09-mission-ac-coverage-view-miniplan.md](../planning/iterate/2026-09-09-mission-ac-coverage-view-miniplan.md)
+
+---
+
+### ADR-333: Phone touch-target audit + icon-only "+ New" reversal
+- **Date:** 2026-09-09
+- **Section:** Iterate — change: phone touch-target audit + icon-only + New
+- **Run-ID:** iterate-2026-09-09-phone-touch-targets-plus-cta
+- **Context:** Phone (393px) audit found controls below the 44px AAA/HIG floor across Board toolbar, Inbox, Settings, Task Detail. Sven separately asked the '+ New' trigger go icon-only, reversing the 88px labeled-pill precedent.
+- **Decision:** Bumped every failing control via the existing pointer-coarse:min-h-[44px] idiom (no new matchMedia/breakpoint). Shipped icon-only '+' in BOTH presentations (ProjectCreatePhoneMenu, CreateMenuSplitButton primary), aria-label preserved.
+- **Commit:** (assigned post-merge)
+- **Rationale:** pointer-coarse: is the single established touch-target idiom (SidebarNavItem/ModalShell/EditTaskModal/ContinuePipelineModal precedent) — extending it keeps one breakpoint source of truth. Full reversal record + review-cascade doubts in the spec file.
+- **Consequences:** Every named surface clears 44x44 except a documented Board-toolbar WIDTH exemption (row overflow budget, height-only bump, verified via a real overflow E2E assertion). Icon-only reversal is width-gated; height bumps are pointer-gated (any width), by design.
+- **Rejected:** Padding + New back to 88px to keep the old assertion green (the exact anti-pattern flagged); full 44x44 both axes on the toolbar row (overflows 393px); a new touch-detection hook (duplicates useCoarsePointer).
+- **Details:** [iterate-2026-09-09-phone-touch-targets-plus-cta-touch-target-audit.md](../planning/adr/iterate-2026-09-09-phone-touch-targets-plus-cta-touch-target-audit.md)
+
+---
+
+### ADR-334: Delete the traceability-manifest gate instead of tightening it
+- **Date:** 2026-09-09
+- **Section:** Iterate — change: remove traceability-manifest CI gate
+- **Run-ID:** iterate-2026-09-09-remove-traceability-manifest-gate
+- **Context:** The gate hard-failed CI on a committed derived-snapshot file no enforcing gate reads. Iterate PRs cannot update that file, so the gate manufactured drift rather than catching it; PR #449 already downgraded it to advisory + auto-regen-PR as a stopgap.
+- **Decision:** Delete both CI jobs, the pinned shipwright-compliance checkout, the write-permission carve-out, and both gate scripts + tests. Close the standing bot regen PR (#452) unmerged. Add one additive TestRow.unresolvedReason field so an added-or-modified, unindexed test file reads as unknown coverage, not zero coverage (amended post-review: widened from added-only to also cover modified -- task-owner call).
+- **Commit:** (assigned post-merge)
+- **Rationale:** refresh_compliance_docs.py already meets every constraint the deleted gate tried to enforce, without a hard CI block on a file iterate PRs are structurally forbidden from touching.
+- **Consequences:** CI workflow permissions become contents: read for every job, no exceptions. Manifest staleness is unchanged in kind, just no longer CI-blocking. scripts/ci/promote_fr_layers*.py (a separate, self-regenerating FR-layer pipeline) is untouched.
+- **Rejected:** Keeping the gate but excluding iterate-authored files: still blocks on staleness the gate itself cannot fix.
+
+---
+
+### ADR-335: Reconcile B7/G2/I5 compliance findings
+- **Date:** 2026-09-11
+- **Section:** compliance-reconciliation
+- **Run-ID:** iterate-2026-09-11-compliance-b7-g2-i5
+- **Context:** Detective audit flagged B7 (commit 1a0cbc58, PR #456, no matching event), G2 (5ccd8165 scope=leadwright PR #457; 81cb38b5 scope=a11y PR #454), and I5 (all 33 spec.md FR rows carried a legacy provenance-trail Basis cell instead of the closed vocabulary).
+- **Decision:** B7: backfilled a work_completed event for 1a0cbc58. G2: added leadwright + a11y to g2_stoplist. I5: normalized every malformed Basis cell to the bare value code. See spec-ref for full rationale per finding.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Followed the established per-run reconciliation pattern (record_event.py backfill, dated g2_stoplist entries). I5's code choice traces every row's real provenance -- adoption crawl/AST source-reading or later code-grounded iterate work -- to fr_basis.py's own vocabulary table.
+- **Consequences:** All 3 findings verified fixed via a fresh detective audit re-run scoped to B,G,I (17 checks, 0 fail, was 3 fail). No application code touched; server + client suites and typechecks re-verified green.
+- **Details:** [iterate-2026-09-11-compliance-b7-g2-i5.md](../planning/adr/iterate-2026-09-11-compliance-b7-g2-i5.md)
+
+---
+
+### ADR-336: Distinct list load-error state; run-mode default fixed to standalone
+- **Date:** 2026-09-11
+- **Section:** Iterate — bug: list load-error state + run-mode default sentinel
+- **Run-ID:** iterate-2026-09-11-list-error-state-run-mode-sentinel
+- **Context:** Re-verified triage card trg-0f040744 (FR-01.01) found two still-open issues: four list pages collapsed a failed fetch into the same onboarding empty state, and DEFAULT_RUN_MODE still fell back to the retired multi_session literal.
+- **Decision:** Added a shared ListLoadErrorState component wired into TaskBoard/ShipsLog/Triage/Projects ahead of any empty-state branch, and changed DEFAULT_RUN_MODE in both run-config-v2 mirrors to the framework's own standalone/INERT_MODE sentinel.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the framework's own INERT_MODE precedent and this repo's existing per-page empty-state pattern; narrowly scoped per the approved plan.
+- **Consequences:** A failed list fetch now shows Retry instead of a false onboarding claim; the run-mode fallback matches the framework's read-compat design. No === single_session gating logic changed.
+- **Rejected:** Hiding the Continue Pipeline affordance and adding a missing per-phase mode guard were explicitly deferred as separate, later decisions.
+
+---
+
+### ADR-337: Move FR-01.31/33/35 provenance notes after their bullets so spec_parser recognizes their existing acceptance criteria
+- **Date:** 2026-09-11
+- **Section:** Iterate — CHANGE: spec.md acceptance-criteria adjacency fix
+- **Run-ID:** iterate-2026-09-11-req3-03-ac-parse-adjacency
+- **Context:** REQ3.03 (trg-35c0daff) re-measured spec_parser.parse_fr_headings against this repo's real spec.md and found 3 of 38 FRs (FR-01.31, FR-01.33, FR-01.35) parsing with zero acceptance, despite each already carrying well-formed (E) bullets. trg-8de744d4's AC-minting work is explicitly ordered behind REQ3.03 finishing.
+- **Decision:** Root cause: fr_criteria.leading_criteria's S5 fallback only counts the CONTIGUOUS LEADING bullet run in a heading body; each of these three FRs has a short provenance sentence ("Backfilled by"/"Added by") before its bullets, breaking that adjacency. Relocated each provenance sentence to immediately after its own FR's bullet list — verbatim, no bullet added/reworded/reordered.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mechanical, low-risk, fully reversible, verified by direct before/after re-parse. No business-judgment content authoring performed, unlike the remainder of REQ3.03.
+- **Consequences:** spec_parser now reports 38/38 FRs with acceptance (was 35/38). Unblocks the rest of REQ3.03 (17 folded AC blocks, a human-quality pass over all 38 FRs' prose) and, once that lands, trg-8de744d4's AC-minting/re-tagging.
+- **Rejected:** Retrofitting a **Acceptance Criteria:** label instead — explicitly forbidden by trg-35c0daff (diverges from the producers' emitted form and would force the parser to support two shapes).
+- **Details:** [iterate-2026-09-11-req3-03-ac-parse-adjacency.md](../planning/adr/iterate-2026-09-11-req3-03-ac-parse-adjacency.md)
+
+---
+
+### ADR-338: Port local-wins status precedence into the WebUI triage composer
+- **Date:** 2026-09-11
+- **Section:** server/src/core/triage-compose.ts
+- **Run-ID:** iterate-2026-09-11-triage-compose-local-wins
+- **Context:** Python's read_all_items fix (iterate-2026-09-10-triage-cross-tree-precedence) made a local status decision always outrank a foreign status, regardless of timestamp. Its review flagged this composer as a follow-up: it had no equivalent guard, so an origin status could still reopen an id this tree already decided -- the same bug class, left open here.
+- **Decision:** Added localStatusIds(rawLines) to triage-compose.ts (mirrors Python's local_status_ids), reusing the STATUSES set now exported from triage-store.ts. readAllItemsWithDeliveredOrigin filters opts.originRawLines to drop any status event whose id is in that set before concatenating [tracked, origin, outbox] into the existing, unmodified resolveUnion. amend events are NOT filtered -- purely chronological, matching Python's scope.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The precedence rule is a pure input filter applied before the existing two-pass resolution runs, exactly how the Python fix was structured -- porting it 1:1 keeps the two readers in provable agreement.
+- **Consequences:** An origin status event can never reopen a locally-decided id. An id never locally decided still resolves from origin's own chronology (gap-fill, unchanged). resolveUnion/readAllItems/triage-store.ts line count untouched (298, baseline unchanged) -- the new filter lives in triage-compose.ts, the only reader with a foreign tail.
+- **Rejected:** Reimplementing precedence inside resolveUnion -- rejected because resolveUnion is parity-tested byte-for-byte against Python; a filter-before-union approach isolates the new behavior to the only reader with a foreign tail.
+
+---
+
+### ADR-339: ModalShell flex height-chain + Triage phone spacing/collapse
+- **Date:** 2026-09-12
+- **Section:** Iterate — bug: mobile Triage/task-form layout
+- **Run-ID:** iterate-2026-09-12-mobile-triage-form-layout
+- **Context:** Phone (<768px) users saw the New Task/Triage-detail form's Launch button pushed near off-screen, Triage detail actions clipped past the dialog's left edge, excessive Triage list scrolling, and no way to collapse the filter bar.
+- **Decision:** ModalShell.tsx: flex-column dialog capped at max-h-[80dvh] (position unchanged); TriageDetailModal action row gets flex-wrap; Triage section/card margins tighten under max-md:; filter bar collapses on phone by default.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The reported vh/dvh mechanism is structurally unreproducible in headless Chromium (verified via git-stash falsification); disclosed rather than falsely claimed as covered. See spec-ref.
+- **Consequences:** All 4 ACs pass real-browser E2E + unit fences; found and fixed a real pre-existing bug (body-slot wrapper needed flex flex-col for max-h-full to resolve). Full detail, rejected alternatives, and disclosed residuals in the spec-ref.
+- **Rejected:** Raising the 44px touch-target further; top-1/2 centering; switching top-[10%] to top-[10dvh] without a real device. See spec-ref.
+- **Details:** [iterate-2026-09-12-mobile-triage-form-layout-flex-height-chain.md](../planning/adr/iterate-2026-09-12-mobile-triage-form-layout-flex-height-chain.md)
+
+---
+
+### ADR-340: Codex CLI as an alternate task runtime
+- **Date:** 2026-09-16
+- **Section:** Iterate — feature: Codex Light (Codex CLI as an alternate task runtime)
+- **Run-ID:** iterate-2026-09-16-codex-light-webui
+- **Context:** Webui only ever launched Claude. Operators want Codex as a second, per-task-selectable runtime to run both side by side, not just as a quota-exhaustion fallback.
+- **Decision:** Add immutable task.runtime (claude|codex), a per-task RuntimeToggle + global default, a Codex launch/resume command builder, and an oracle+watcher completion-detection loop replacing Claude's JSONL heartbeat for Codex tasks.
+- **Commit:** (assigned post-merge)
+- **Rationale:** v1 launches Codex as a plain pty TUI (no new terminal-stack code, CLAUDE.md rule 1) rather than integrating the app-server protocol, which is deferred to a Campaign-capable Codex Light 2 follow-up.
+- **Consequences:** Claude paths are byte-identical and unaffected (verified: full server+client suites green). Codex tasks get weaker, always-labeled-degraded completion evidence than Claude's. One more unref'd 60s watcher interval in index.ts.
+- **Rejected:** App-server-based heartbeat (needs new terminal-stack code, still defers Campaign); Codex critical:true in readiness-probe.ts (blocks an all-Claude machine, defeats the per-task toggle).
+- **Details:** [iterate-2026-09-16-codex-light-webui.md](../planning/adr/iterate-2026-09-16-codex-light-webui.md)
+
+---
+
+### ADR-341: Route the codex probe through win32-spawn's shim resolver, not defaultRun
+- **Date:** 2026-09-16
+- **Section:** server/src/core/readiness-probe-run.ts
+- **Run-ID:** iterate-2026-09-16-codex-probe-win32-shim
+- **Context:** codex_cli_not_found fired on Windows even when Codex CLI was installed: it ships as a .cmd PATH shim (no codex.exe), and execFile(shell:false) cannot spawn a .cmd, so defaultRun('codex', ...) threw ENOENT. defaultRun is documented as .exe-only for exactly this reason.
+- **Decision:** Added a sibling function, defaultRunShim, that resolves the command via the existing win32-spawn.ts resolveSpawn (ADR-044) on Windows before probing; isCodexCliAvailable and probeReadiness's codex arm now use it, while defaultRun itself is untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** resolveSpawn has no env override, so routing defaultRun itself through it would have silently regressed the ~/.local/bin augmented-PATH fix for uv (iterate-2026-08-23). A sibling avoids that coupling entirely.
+- **Consequences:** Both the /launch chokepoint and the /api/readiness card now find a genuinely installed codex on Windows. defaultRunShim reads the raw process PATH (no probeEnv augmentation), so it is deliberately not a drop-in replacement for defaultRun's uv/python/git probing.
+- **Rejected:** Editing defaultRun in place to add shim resolution -- rejected because resolveSpawn cannot honor defaultRun's probeEnv-augmented env, risking a silent regression of the already-shipped uv PATH-augmentation fix.
+
+---
+
+### ADR-342: Mission feed plain-language rendering + TDD gate-stamp exclusion
+- **Date:** 2026-09-17
+- **Section:** Iterate — change: Mission activity feed render fidelity
+- **Run-ID:** iterate-2026-09-16-mission-feed-render-fidelity
+- **Context:** Mission tab feed showed a redundant completed-run header, always-expanded raw command chips, un-rendered markdown, blocker cards with no plain explanation, and stamped a freshly-written test's own first run with the run-wide Passing/Failing gate.
+- **Decision:** Remove the completed-run header strip; collapse command chips behind an N-commands toggle; route card text/explanation through the existing safe markdown renderer; derive a plain-language blocker headline with raw output behind a collapsed disclosure; exclude TDD authoring runs (first run of a just-written test file, bounded 6-call window) from the run-wide gate stamp.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Independently re-verified this session: architecture is a clean layered pipeline (deriveActivityFeed -> resolveToolResults -> reconcileArtifactCards), every edge-case branch traced/tested, two remaining external-review re-raises (authoring window bound, monorepo path suffix bridge) are verbatim repeats of already-declined, test-pinned decisions.
+- **Consequences:** Reducer split across focused modules (classify/authoringTrack/testPaths/authoringRollback/text/types), each at or under the 300-line convention; full client suite green (4263 tests), tsc clean; no server/API/schema surface touched.
+- **Rejected:** A distinct neutral 'authoring' pill (glm's alternative) was rejected as inventing vocabulary the reported problem never asked for.
+
+---
+
+### ADR-343: Fix empty phase on triage-promote + unprefixed SKILL.md path in Codex launch prompt
+- **Date:** 2026-09-19
+- **Section:** Iterate — bug: Codex-runtime launch-prompt phase/path fixes
+- **Run-ID:** iterate-2026-09-19-codex-launch-phase-empty
+- **Context:** An Opus review of a reported Codex launch failure falsified the original worktree-creation hypothesis and instead found two real bugs: triage-promote never set task.phase, so buildCodexPrompt() dropped the SKILL.md pointer line; and that pointer's path template was missing the plugins/ prefix the real layout needs.
+- **Decision:** Stamp phase='iterate' on every triage-promoted task (mirrors the existing hardcoded actionId) and add the missing plugins/ prefix to the SKILL.md pointer template; update the two tests that encoded the old wrong path and add a new test for the phase stamp.
+- **Commit:** (assigned post-merge)
+- **Consequences:** Triage-promoted Codex tasks now get the SKILL.md pointer instruction, pointed at a resolvable path for every phase. No client-visible change (phase badge already derived from actionId). Idempotent-recovery reuse of a pre-existing phase-less task is a noted, pre-existing, out-of-scope edge case.
+- **Details:** [iterate-2026-09-19-codex-launch-phase-empty.md](../planning/adr/iterate-2026-09-19-codex-launch-phase-empty.md)
+
+---
+
+### ADR-344: Fix Codex launch failing on Windows PowerShell 7 (PSReadLine multi-line buffer corruption)
+- **Date:** 2026-09-19
+- **Section:** Iterate — bug: codex-launch-powershell-chunk
+- **Run-ID:** iterate-2026-09-19-codex-launch-powershell-chunk
+- **Context:** Clicking Launch on a Codex task (guided or autonomous) failed on Windows/pwsh.exe with `done:false: The term 'done:false' is not recognized...` and no Codex process started. PSReadLine (PowerShell 7's line editor), fed the pty-injected launch command, corrupts its own multi-line edit buffer whenever the single-quoted argument contains a literal newline -- Codex's prompt is always multi-paragraph. See spec_ref for the full empirical repro.
+- **Decision:** Added `qPsMultiline()` (server/src/core/shell-quote.ts): pass-through to `qPs()` when the value has no \r/\n; otherwise Base64-encodes it and wraps it in a PowerShell sub-expression that decodes back to the exact original text before the command runs, so no literal newline reaches the pty. `renderCodex()` uses it only for the PowerShell form's prompt argument; cmd/posix and the resume path are untouched. Full mechanism in spec_ref.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Verified live and empirically, not guessed: an atomic (unchunked) pty.write() control reproduced the bug identically, ruling out ChunkedPtyWriter/ADR-308 chunking. Bracketed-paste wrapping also did not prevent the corruption. Base64 + a PowerShell-native decode sub-expression was the only approach that survived a real pwsh.exe repro. Details in spec_ref.
+- **Consequences:** Codex launches (fresh, guided and autonomous) now work on Windows PowerShell 7 without corrupting the multi-paragraph prompt. cmd.exe's auto-execute path is left on the plain quoter -- unproven for this class, disclosed follow-up from code review. No architectural surface changed: one new pure string-transform helper plus its single call site.
+- **Rejected:** ChunkedPtyWriter chunking as root cause (disproved by atomic-write control test). Bracketed-paste wrapping (tested, did not fix it). Rejecting/truncating multi-line prompts outright (mirrors launcher.ts's Claude-title newline guard, but Codex prompts are legitimately multi-paragraph, so preserving content via decode was preferred over rejection).
+- **Details:** [iterate-2026-09-19-codex-launch-powershell-chunk.md](../planning/adr/iterate-2026-09-19-codex-launch-powershell-chunk.md)
+
+---
+
+### ADR-345: Live Codex model catalog for the New Iterate launch form
+- **Date:** 2026-09-19
+- **Section:** Iterate — feature: live Codex model catalog
+- **Run-ID:** iterate-2026-09-19-codex-model-catalog
+- **Context:** PR #473's Codex model fields are blind free text with no feedback until launch fails; a hardcoded slug enum needs a PR per new model. Neither is acceptable per user feedback.
+- **Decision:** Add a server probe (codex debug models, TTL-cached, always-200) and turn the three Codex model fields into datalist comboboxes; free text always still accepted.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Native input+datalist needs no new dependency and free text is its default; defaultRunShim reuses the existing win32 .cmd-shim pattern already proven for codex --version.
+- **Consequences:** New global read surface GET /api/codex-models, no new persisted state; suggestions track the installed Codex CLI's own catalog instead of a hand-maintained list.
+- **Rejected:** Hardcoded enum (drifts, needs a PR per model); blind free text (status quo, no feedback); disk-caching the catalog; a Radix combobox library; sharing readiness's own cache lifetime.
+- **Details:** [iterate-2026-09-19-codex-model-catalog.md](../planning/adr/iterate-2026-09-19-codex-model-catalog.md)
+
+---
+
+### ADR-346: Codex More-options panel: real Plan review / Review overrides, Implementation model relocated
+- **Date:** 2026-09-19
+- **Section:** client-scope
+- **Run-ID:** iterate-2026-09-19-codex-reviewer-fields
+- **Context:** PR #471 gave Codex a free-text Implementation model field plus a read-only Reviewer-identity block in the slots where Claude shows editable Plan-review/Review dropdowns. User feedback: layout should match Claude's, and a read-only display is not a useful UI concept.
+- **Decision:** Replaced the Codex branch's read-only CodexReviewerIdentity with two free-text session-scoped overrides labeled Plan review / Review, left/right like Claude's fields. Implementation model moved to its own row above the two-column grid. Emitted at launch as SHIPWRIGHT_CODEX_PLAN_REVIEW_MODEL / SHIPWRIGHT_CODEX_REVIEW_MODEL, mirroring the existing codexImplementationModel precedent.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Env-var prefix (not a -c flag) because these override Codex's own review subagents, invoked mid-session by its shell tool, not the top-level codex process itself; shell_environment_policy.inherit=all already carries them through.
+- **Consequences:** Codex-driven tasks can now override which model reviews their plan/code for one session without touching shipwright_model_config.json. Consumed by run_codex_review (shipwright#772, already merged) resolving these env vars ahead of the project-config fallback.
+
+---
+
+### ADR-347: Codex-runtime terminal flicker: two upstream causes, one fixed here
+- **Date:** 2026-09-19
+- **Section:** Iterate (bug, small)
+- **Run-ID:** iterate-2026-09-19-codex-terminal-flicker
+- **Context:** User reported the embedded terminal flickers only under the Codex runtime, not Claude, describing it as genuinely disruptive. Reproduced Codex CLI 0.155.x's raw output via bare node-pty spawns outside the webui: one at startup (fixed size, no resize), one across a live turn.
+- **Decision:** Ship `-c tui.animations=false` on every Codex launch (launcher-codex.ts), verified via A/B pty capture to eliminate the recurring ~108ms title-spinner/status-redraw flicker during a turn. Reversible via SHIPWRIGHT_CODEX_TUI_ANIMATIONS=0. A separate, unfixed mechanism -- a one-time startup box-relayout storm (~9 redraws, unwrapped DECSET 2026) -- remains upstream-only; documented, not patched. Both recorded in CLAUDE.md DO-NOT #32.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The recurring flicker is what the user reported as disruptive; Codex's own upstream config key gates exactly that decorative path with zero risk to the surrounding launch-command contract (additive `-c` flag, existing quoting). The startup reflow has no equivalent flag and would need an upstream Codex source fix.
+- **Consequences:** Codex-runtime turns no longer flicker while 'thinking'. Trade-off: the 'Working Xs' elapsed counter freezes until the terminal is hidden/shown (upstream bug, openai/codex#45564) -- judged acceptable vs continuous flicker. Startup box reflow still flickers once per launch; a future report should map to DO-NOT #32 Cause B, not be re-investigated as #28/#29. Claude-runtime launches (launcher.ts) are untouched.
+- **Rejected:** Buffering/coalescing pty output before relay to hide gaps up to ~700ms -- rejected, adds perceptible input lag to every runtime. Treating either cause as WebGL-atlas (#28) or CUF stale-cell (#29) -- rejected, both mechanisms ruled out empirically. Declaring 'no fix possible' -- rejected after a deeper live-turn repro found an actual upstream flag.
+- **Details:** [bug-report.md](../planning/iterate/iterate-2026-09-19-codex-terminal-flicker/bug-report.md)
+
+---
+
+### ADR-348: Fix invisible phase description text in the New-Project wizard plan card
+- **Date:** 2026-09-19
+- **Section:** Iterate — bug: white-on-white phase description text in the New-Project wizard plan card
+- **Run-ID:** iterate-2026-09-19-fix-wizard-plan-card-white-text
+- **Context:** Sven reported (screenshot) the New-Project wizard's plan card rendered its per-phase descriptions (Project/Design/Plan/Build/Test/Changelog/Deploy) invisible: white text on a white card. Root cause: the phase-list container (wizard-plan-phases) was a bare inline-styled <div> outside on-photo.css's .on-photo solid-surface reset whitelist, so --ink stayed flipped white while its own background stayed opaque white.
+- **Decision:** Give the container className="iw-card" — the exact class its sibling envVarsRequired block already uses for the identical background/border/radius/shadow — so on-photo.css's rule-2 solid-surface reset applies and --ink resets to dark-on-white. Also set borderTop: undefined on the first phase row (idx===0) so the now-visible --line separator doesn't read as a stray line above the first item, and add a stable data-testid on each phase description div for test targeting.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing iw-card (already used for the sibling envVarsRequired card in the same component) is the smallest possible fix and matches the existing on-photo.css reset-whitelist pattern, avoiding a new bespoke CSS rule for an already-covered surface pattern.
+- **Consequences:** Phase descriptions are now legible (verified >=4.5:1 WCAG AA contrast via a real-Chromium Playwright spec). The pre-existing opacity:0.55 dim on the skipped/Deploy row now measures ~3.9:1, below AA — disclosed as pre-existing/out-of-scope, not part of the reported defect. A directory-wide static-scan guard for this recurring defect class (3rd occurrence) was considered and declined for this run's scope.
+- **Rejected:** A directory-wide regex/static-scan guard over all of IntentWizard/*.tsx for this defect class — a verified counter-example (GradeDimensionRow.tsx's safe unclassed inline background, which inherits a safe token via CSS custom-property inheritance) would produce false positives; left for a separately-scoped future iterate. Also rejected: inline text-shadow / manual color overrides on the description div, which would fight the token system's light/dark flip guarantee.
+- **Details:** [iterate-2026-09-19-fix-wizard-plan-card-white-text.md](../planning/adr/iterate-2026-09-19-fix-wizard-plan-card-white-text.md)
+
+---
+
+### ADR-349: Mission activity feed: transcript fidelity fixes
+- **Date:** 2026-09-20
+- **Section:** Iterate — bug: mission feed transcript fidelity
+- **Run-ID:** iterate-2026-09-20-mission-feed-transcript-fidelity
+- **Context:** Sven reported 7 gaps between the Mission feed and the real transcript: wordless tool cards, missing user replies, cramped Delivered spacing, no run start/end narration, uninformative blockers, empty spec cards, invisible reviewer-spawn narration.
+- **Decision:** Extended deriveActivityFeed's reducer + 3 cooperating modules: filter wordless cards while preserving evidence, surface user replies, dedupe a goal card for the intro banner, flush trailing narration, explain every blocker, synthesize reviewer-spawn text, add one CSS spacing rule.
+- **Commit:** (assigned post-merge)
+- **Rationale:** 3 internal + 3 external review rounds progressively caught a self-inflicted regression and 2 external-only defects; each was fixed and test-pinned before the cascade closed with both external reviewers approving.
+- **Consequences:** Pure client-side change, no server/API impact. Real correctness fixes across 6 review rounds pushed 5 files over the 300-line bloat baseline; each was mechanically split into cohesive sibling modules (zero behavior change, re-verified) instead of grandfathered, to avoid touching the sensitive bloat-baseline policy file per user direction. shipwright_bloat_baseline.json is unchanged from origin/main.
+- **Rejected:** Adding slash-command XML tags to the shared INJECTED denylist (already handled upstream by the parser's own structural reclassification); a CSS display override (traced the DOM — the sibling is a button, already inline-block, no fix needed).
+- **Details:** [iterate-2026-09-20-mission-feed-transcript-fidelity.md](../planning/adr/iterate-2026-09-20-mission-feed-transcript-fidelity.md)
+
+---
+
+### ADR-350: Codextender integration mode for Codex-runtime tasks
+- **Date:** 2026-09-23
+- **Section:** Iterate — feature: Codextender WebUI integration
+- **Run-ID:** iterate-2026-09-23-codextender-webui-integration
+- **Context:** Codex Light added the codex CLI as a runtime; some users run Codextender (claude via a local proxy) instead and need the same webui UI/model surfaces.
+- **Decision:** New global codexIntegrationMode setting (light|codextender), orthogonal to runtime; Codextender reuses plain-Claude commands plus an env-var prefix, gated by a proxy liveness probe.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reusing plain-Claude CopyCommandForms keeps one source of truth for the claude invocation; the liveness vs model-catalog probes differ because the proxy's two endpoints have different real auth requirements.
+- **Consequences:** New settings surface, new read surface (2 proxy endpoints), new GET /api/codextender-models route; fork.ts duplicates the mode check via shared error builders.
+- **Rejected:** Silent double-cd-prefix fallback (now a typed error); one combined proxy probe (spec-reviewer REJECTed); an independent useSettings() read in ModelTierOverrideFields (code-reviewer fix).
+- **Details:** [iterate-2026-09-23-codextender-webui-integration-codextender-integration.md](../planning/adr/iterate-2026-09-23-codextender-webui-integration-codextender-integration.md)
+
+---
+
+### ADR-351: Disable Plan review / Review model fields under Codextender integration mode
+- **Date:** 2026-09-24
+- **Section:** Iterate — change: disable unwired Codextender review-model fields
+- **Run-ID:** iterate-2026-09-24-codextender-review-model-disable
+- **Context:** PR #480 shipped Codextender integration. Post-merge gap: CodexModelOverrideFields.tsx still rendered free-text Plan review / Review model fields under codexIntegrationMode === "codextender", but buildCodextenderCommands (launcher-codextender.ts) never reads codexPlanReviewModel/codexReviewModel — only the implementation model is threaded through — so any value an operator typed there was silently dropped at launch.
+- **Decision:** Disable (not hide) both review-model fields when codexIntegrationMode === "codextender", with an inline note that reviews follow the main model. The implementation-model field is untouched — it IS wired through buildCodextenderCommands's model arg.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Wiring the fields through would require Codextender's proxy to support per-role models, which it structurally does not (single-model proxy, confirmed via grep before starting). Making the client honest about that limit is the correctly-sized fix. Classified small despite Stage-1's medium keyword match (confidence 0.6) — the actual diff is 2 files, UI-only, no risk flags, fully covered by unit+E2E tests, matching the operator's own "small follow-up fix" framing.
+- **Consequences:** Operators no longer see a form field that silently discards their input. spec.md FR-01.74's Codextender AC updated to match the corrected behavior. No server-side change — Codextender's proxy has no per-role model concept to receive these overrides.
+- **Details:** [iterate-2026-09-24-codextender-review-model-disable.md](../planning/adr/iterate-2026-09-24-codextender-review-model-disable.md)
+
+---
+
+### ADR-352: Re-sync webui AGENTS.md with monorepo Codex operating contract
+- **Date:** 2026-09-26
+- **Section:** AGENTS.md
+- **Run-ID:** iterate-2026-09-26-agents-md-codex-sync
+- **Context:** Root AGENTS.md documents itself as shared verbatim with the monorepo's AGENTS.md. The monorepo (PRs #771/#772/#798) replaced hardcoded Codex model names with configurable codex_review/codex_plan_review keys, added an F11 verify_local mention, and referenced Spec/codex-light-webui.md; webui's copy had drifted (last synced 2026-08-09).
+- **Decision:** Replace webui's AGENTS.md content with the monorepo's current AGENTS.md verbatim, matching the file's own shared-verbatim contract.
+- **Commit:** (assigned post-merge)
+- **Consequences:** webui's Codex operating contract stays byte-identical to the monorepo source of truth; no code or runtime behavior changed.
+
+---
+
+### ADR-353: Remove the Codex Implementation-model override field
+- **Date:** 2026-09-26
+- **Section:** Iterate — change: Codex Implementation-model field removal
+- **Run-ID:** iterate-2026-09-26-codex-model-field-removal
+- **Context:** Operator report (2026-09-26): the free-text Implementation-model field must be gone for Codex runtime, no exceptions, reversing PR #481's deliberate keep.
+- **Decision:** Remove the field, its param key, and its client-to-server body wiring entirely for both codexIntegrationMode values; send no override from webui.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Confirmed with the operator before implementing: the CLI's own configured model is what should be used; both reviewers and internal review converged on no-override as proportionate.
+- **Consequences:** Codex Light inherits the CLI's own /model selection; Codextender falls back to DEFAULT_CODEXTENDER_MODEL_ALIAS (sol) — both launchers unchanged. Server still accepts the field on the wire (disclosed gap).
+- **Rejected:** Disabling instead of removing (would misrepresent Codex Light's real CLI-level adjustability); a new project-level Codex-model setting (product decision explicitly rejected a new webui-owned override).
+- **Details:** [iterate-2026-09-26-codex-model-field-removal.md](../planning/adr/iterate-2026-09-26-codex-model-field-removal.md)
+
+---
+
+### ADR-354: Codextender launches set CLAUDE_CODE_MAX_CONTEXT_TOKENS from the proxy's declared window
+- **Date:** 2026-09-26
+- **Section:** Iterate — bug: Codextender context-window default too small
+- **Run-ID:** iterate-2026-09-26-codextender-context-window
+- **Context:** Codextender-routed tasks compacted almost immediately because Claude Code assumes a 200K context window for any model id it doesn't recognize (the Codex alias), regardless of the real ~1.05M-token window.
+- **Decision:** launcher-codextender.ts now sets CLAUDE_CODE_MAX_CONTEXT_TOKENS from Codextender's own /v1/models max_input_tokens field for the selected alias, resolved fresh at every launch/fork rather than hardcoded.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reading the value dynamically keeps webui and Codextender's own declared window from ever drifting apart, and reuses the existing fail-closed probe pattern already used for liveness.
+- **Consequences:** Codextender tasks get the real context budget instead of a silent 200K ceiling; a probe failure leaves the var unset (safe 200K default), never a guessed number.
+- **Rejected:** Hardcoding ~1,050,000 in webui was rejected -- it would drift silently if Codextender's declared window ever changes.
+
+---
+
+### ADR-355: Mission feed subrunner card + polish items
+- **Date:** 2026-09-26
+- **Section:** Iterate — change: mission tab feed polish + subrunner visibility
+- **Run-ID:** iterate-2026-09-26-mission-tab-subrunner
+- **Context:** The Mission tab under-reported delegated subagent work (no card, no completion signal) and had six other reported UX gaps (dedup, You-card styling, needs-attention pill, toggle color, per-card labels/timestamps).
+- **Decision:** Add a subrunner card kind correlated by Agent/Task dispatch -> ack agentId -> task-notification, opening a right-side report panel; fix the other 5 items alongside it.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A single cohesive iterate keeps all 6 Mission-feed reports (from real screenshots + design review) fixed together instead of six one-line PRs.
+- **Consequences:** New SubrunnerPanel.tsx component; session-parser.ts's task-notification parse cap widened and bounded rather than dropping oversized reports; a one-time session-start divider replaces per-card timestamps/labels.
+- **Rejected:** A stacked/tabbed multi-panel layout for concurrent subrunners was declined for v1 (real layout redesign, no real concurrent transcript to design against).
+- **Details:** [2026-09-26-mission-tab-subrunner.md](../planning/iterate/2026-09-26-mission-tab-subrunner.md)
+
+---
+
+### ADR-356: Gate the runtime badge and the board's Claim filter on their own presence signals
+- **Date:** 2026-09-26
+- **Section:** Iterate — change: runtime-badge-and-leads-gate
+- **Run-ID:** iterate-2026-09-26-runtime-badge-and-leads-gate
+- **Context:** A runtime badge/hint rendered on every Task even when Settings' codexAvailability allowed only one runtime, leaving nothing to choose but a bar anyway; its Codex Light limitation hint repeated per-task instead of stating the posture once in Settings. Separately, the board toolbar's ClaimFilterToggle (a Leadwright-only affordance) always rendered even with no org-chart.json present, unlike its sibling lead-tag filter which was already gated by useOrgChartPresence().
+- **Decision:** RuntimeToggle now returns null when availability !== "both" (fixes every call site at once). The Codex Light hint moved into CodexSettingsCardFields, reworded. ClaimFilterToggle gates on useOrgChartPresence() === "absent", mirroring LeadTagFilterToolbarGroup. TaskBoardPage clears an already-active claimFilter on that same transition.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root-cause fix at the shared RuntimeToggle component (not per-call-site patches) follows CLAUDE.md rule 26's own history of per-component fixes recurring; ClaimFilterToggle reuses the exact useOrgChartPresence() shape its sibling already proved.
+- **Consequences:** Runtime UI now only appears where a real choice exists; the Codex Light note is stated once. The board's Claim affordance is invisible without Leadwright installed, consistent with its sibling filter. Per-task lead data displays remain deliberately ungated (prior decision, out of scope here). The identical stuck-filter gap on leadTagFilter is a pre-existing, explicitly out-of-scope issue flagged for a future iterate.
+- **Rejected:** Hiding RuntimeToggle only at the two current call sites via a wrapper condition — rejected because it would have missed the Settings preview call site and repeats the per-caller-patch pattern CLAUDE.md rule 26 already warns against.
+- **Details:** [2026-09-26-runtime-badge-and-leads-gate.md](../planning/iterate/2026-09-26-runtime-badge-and-leads-gate.md)
+
+---
+
+### ADR-357: Codextender launches unset CLAUDE_CODE_MAX_CONTEXT_TOKENS on probe-miss and set CLAUDE_CODE_AUTO_MODE_SERVER=0
+- **Date:** 2026-09-28
+- **Section:** Iterate -- bug: Codextender gateway env-var follow-ups (context-window unset hardening + auto-mode-server notice)
+- **Run-ID:** iterate-2026-09-28-codextender-auto-mode-server
+- **Context:** Two follow-ups to iterate-2026-09-26-codextender-context-window's env-var block in launcher-codextender-env.ts: (1) a probe failure must actively UNSET CLAUDE_CODE_MAX_CONTEXT_TOKENS on all 3 shells, not just omit assigning it, since PowerShell/cmd persist env across the long-lived pty; (2) every gateway-routed Codextender session shows a recurring cosmetic auto-mode/classifier-billing notice.
+- **Decision:** launcher-codextender-env.ts actively unsets CLAUDE_CODE_MAX_CONTEXT_TOKENS via each shell's own unset idiom when the probe returns undefined, and unconditionally sets CLAUDE_CODE_AUTO_MODE_SERVER=0 in the same env-var prefix block, cleaned up in the same unconditional cleanup suffix as the other 6 vars.
+- **Commit:** (assigned post-merge)
+- **Rationale:** CLAUDE_CODE_AUTO_MODE_SERVER is a fixed constant (never dynamic, no probe, no undefined branch), unlike CLAUDE_CODE_MAX_CONTEXT_TOKENS -- it belongs in the uniform plainEntries loop alongside CODEXTENDER_ACTIVE/CODEXTENDER_MODEL rather than a conditional branch. Classifier-request billing is unaffected either way; this only suppresses a cosmetic notice.
+- **Consequences:** An earlier launch's context-window value can no longer leak through a same-tab relaunch; the classifier-billing notice no longer re-appears on every classifier-gated action for a Codextender session. Neither var can outlive its own claude invocation in the pty.
+- **Rejected:** Leaving CLAUDE_CODE_AUTO_MODE_SERVER unset was rejected -- the notice is confirmed to re-fire on every classifier-gated action for the life of a gateway-routed session, not just once.
+
+---
+
+### ADR-358: 35-no-chat-panel.spec.ts deletes its own fixture task; title-bar-full-bleed.spec.ts seeds its own
+- **Date:** 2026-09-28
+- **Section:** Iterate — bug: E2E fixture-task cleanup (35-no-chat-panel.spec.ts + title-bar-full-bleed.spec.ts)
+- **Run-ID:** iterate-2026-09-28-e2e-no-chat-fixture-cleanup
+- **Context:** 35-no-chat-panel.spec.ts leaked a fixture task, tripping isolated-stack.mjs's contamination guard. Fixing that leak surfaced a 2nd bug: title-bar-full-bleed.spec.ts's '.page-head' wait depended on that leaked task to avoid RootRoute's empty-registry '/first-contact' redirect. Confirmed via 2 real CI failures (PR #488). Full detail in spec_ref.
+- **Decision:** Wrap 35-no-chat-panel.spec.ts in try/finally + shared cleanupTask helper (matches other fixture specs). Give title-bar-full-bleed.spec.ts its own beforeAll/afterAll fixture task via the same helpers so it no longer depends on ambient state or run order. Detail in spec_ref.
+- **Commit:** (assigned post-merge)
+- **Rationale:** 35-no-chat-panel.spec.ts was the one outlier that never deleted its task. title-bar-full-bleed.spec.ts's ambient-state dependency was a latent pre-existing gap, masked by the leak since #321 shipped 2 days after this spec (#312) — the fix is self-sufficiency, not reintroducing the leak.
+- **Consequences:** Neither spec depends on ambient state from other specs; isolated-stack teardown clean; full local @smoke set (34 tests, CI file order) passes. No production code changed.
+- **Details:** [iterate-2026-09-28-e2e-no-chat-fixture-cleanup-e2e-fixture-cleanup.md](../planning/adr/iterate-2026-09-28-e2e-no-chat-fixture-cleanup-e2e-fixture-cleanup.md)
+
+---
+
+### ADR-359: Mission-tab completeness fixes (6 defects, real-session-driven)
+- **Date:** 2026-09-28
+- **Section:** Iterate — change: mission feed completeness
+- **Run-ID:** iterate-2026-09-28-mission-feed-completeness
+- **Context:** Sven found 6 Mission-tab completeness/correctness defects in a real finished session; the feed must accurately narrate what a session did.
+- **Decision:** Fix each at its true root cause: session-start anchor, 8 MiB recovery window plus a startedMidFile signal, transient-classifier-error handling, dashed-styling scope, and attachment-based subrunner resolution.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Every defect was root-caused against real transcript data, not guessed, and each fix is pinned by a test that fails pre-fix and passes post-fix; AC2 was additionally verified against the actual reported session JSONL.
+- **Consequences:** Mission feed now narrates a real session's timeline and outcomes accurately; no new standing mechanism. Review cascade found and fixed two dangling-reference bugs in existing rollback state.
+- **Rejected:** Reading the whole transcript for recovery instead of a larger fixed cap — rejected as unbounded, against CLAUDE.md rule 6; see iterate spec Alternative approach section.
+- **Details:** [2026-09-28-mission-feed-completeness.md](../planning/iterate/2026-09-28-mission-feed-completeness.md)
+
+---
+
+### ADR-360: Close 3 open Tier-1 phase-quality FAILs (design C1/D1, iterate W3)
+- **Date:** 2026-09-28
+- **Section:** compliance
+- **Run-ID:** iterate-2026-09-28-phase-quality-tier1-fixes
+- **Context:** Dashboard showed 3 Tier-1 FAILs: design had no phase_completed event and no design artifact (this project was adopted, so design never ran); iterate's test-evidence.md had gone stale (last regenerated 2026-09-19) so W3 could not verify the latest work_completed run.
+- **Decision:** Write retrospective screens.md + user-flow.md documenting the existing screens/flows (D1/D2), record a phase_completed[design] event (C1), and run this iterate through the normal F0-F11 finalization so F5b regenerates test-evidence.md against this run's own work_completed event (W3).
+- **Commit:** (assigned post-merge)
+- **Consequences:** The three gates go green; screens.md/user-flow.md become the durable reference for future UI work instead of the app having no design record at all. No product code changed.
+
+---
+
+### ADR-361: Cohesive campaign selector module
+- **Date:** 2026-09-29
+- **Section:** Iterate — change: campaign API selector split
+- **Run-ID:** iterate-2026-09-29-campaign-api-bloat-split
+- **Context:** Compliance H1 found campaignsApi.ts at 301 lines, one beyond the 300-line cap; a baseline exemption would hide avoidable coupling.
+- **Decision:** Extract seven pure campaign selectors to campaignSelectors.ts and re-export them from campaignsApi.ts. Keep types and network wrappers in the established entry point.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A cohesive selector module separates read-only derivation from transport without seven tiny files or caller churn.
+- **Consequences:** Existing imports and FR-01.33 behavior stay unchanged; both modules are under 300 lines. An identity test guards the re-exports.
+- **Rejected:** A bloat-baseline entry accepts avoidable drift; per-selector files fragment cohesive logic.
+
+---
+
+### ADR-362: Render the scheduler's readiness verdict; never re-derive it
+- **Date:** 2026-09-29
+- **Section:** Iterate — feature: campaign dependency-graph view
+- **Run-ID:** iterate-2026-09-29-campaign-dag-view
+- **Context:** Campaign steps gained depends_on; the operator could not see which are ready or blocked, and readiness needs git ancestry and branch strategy a display layer cannot see.
+- **Decision:** Bridge the monorepo's read-only loop_claim.py readiness (cached 15s, coalesced) run in the campaign's own worktree; show it per step; guard the launch route server-side, fail-open with readinessChecked:false.
+- **Commit:** (assigned post-merge)
+- **Rationale:** One source of truth for readiness avoids showing units the scheduler would refuse; failing open keeps the operator unblocked while never hiding that the check was skipped.
+- **Consequences:** Only dependency-blocked steps are refused; campaign-level gates and scheduler outages still allow a flagged hand-launch. New read-only endpoint and one uncached re-check before any refusal.
+- **Rejected:** Re-deriving readiness from depends_on in TypeScript (misses ancestry and strategy); a client-only guard (bypassable); fail-closed on scheduler outage; per-unit autonomous toggle.
+
+---
+
+### ADR-363: Codextender launches pin ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL to the launch alias
+- **Date:** 2026-09-29
+- **Section:** Iterate — bug: pin Claude tier aliases to the Codextender launch alias
+- **Run-ID:** iterate-2026-09-29-codextender-tier-aliases
+- **Context:** Claude Code resolves opus/sonnet/haiku (subagent model frontmatter, --model, Agent tool param, auto-mode classifier) to claude-* names and sends them to ANTHROPIC_BASE_URL. The Codextender proxy no longer has claude-* wildcards (codextender 78c9401), so those requests failed with HTTP 400 no healthy deployments.
+- **Decision:** buildCodextenderEnvPrefix adds the three ANTHROPIC_DEFAULT_*_MODEL vars to plainEntries with the launch model alias; buildCodextenderEnvCleanupSuffix removes them. All three shell forms are covered by the uniform loop.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Client-side mapping keeps the proxy free of claude-* routes, as decided upstream.
+- **Consequences:** Every tier alias resolves to the launch alias on the proxy; the vars do not leak into later commands in the long-lived pty. A separate opus alias would need an extra launch arg and is out of scope.
+- **Rejected:** CLAUDE_CODE_SUBAGENT_MODEL (a subagent frontmatter model outranks it since Claude Code v2.1.251); re-adding claude-* proxy routes (the removed quick fix).
+
+---
+
+### ADR-364: Probe PowerShell once per test file and fail loud in CI
+- **Date:** 2026-09-30
+- **Section:** Iterate — bug: flaky PowerShell probe in launcher smoke tests
+- **Run-ID:** iterate-2026-09-30-pwsh-probe-flake
+- **Context:** PR #496 Diff coverage gate failed: launcher smoke suites probed pwsh twice (skipIf at collection, beforeAll later); the probes disagreed, so a test ran holding null. pwsh was on the runner image throughout.
+- **Decision:** One shared probe helper: probe once per module instance, 3 attempts with backoff, quiet pwsh telemetry env, diagnostics captured; missing PowerShell FAILS in CI and skips only locally.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The failed run's first PowerShell test was not skipped, proving the collection-time probe found pwsh; a missing binary would have skipped, not failed.
+- **Consequences:** Flake source removed and any recurrence is diagnosable. Test-helper only, no product or workflow change. Root cause of the second probe failing is not proven.
+- **Rejected:** Installing PowerShell via apt in the required CI jobs: adds a third-party package source to the gate path for a binary already present, and would not fix a probe that flakes.
+
+---
+
+### ADR-365: Opt-in HTTPS via tailscale serve for secure-context paste
+- **Date:** 2026-10-01
+- **Section:** Iterate — feature: opt-in HTTPS over the tailnet
+- **Run-ID:** iterate-2026-10-01-tailscale-https-serve
+- **Context:** Over the Tailscale http IP the page is not a browser secure context, so navigator.clipboard is undefined and Ctrl+V paste cannot work in the embedded terminal (follow-up to ADR-114).
+- **Decision:** SHIPWRIGHT_TAILSCALE_HTTPS=1 makes the production start scripts run `tailscale serve --bg --https=443` to the real bind address via scripts/tailscale-https.mjs; no server/client change.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Origin gate already accepts https *.ts.net and the client picks wss from page protocol, so TLS termination at tailscale is the minimal change.
+- **Consequences:** Tailnet users get https://<machine>.<tailnet>.ts.net (secure context). Needs HTTPS certificates enabled once in the Tailscale admin console. Best-effort; never fails a deploy.
+- **Rejected:** Terminating TLS inside Hono (cert management, renewal) and tailscale funnel (public exposure).
+
+---
+
+### ADR-366: Bind loopback when the tailscale HTTPS front is on
+- **Date:** 2026-10-02
+- **Section:** Iterate — bug: tailscale HTTPS front needs a loopback bind
+- **Run-ID:** iterate-2026-10-02-tailscale-https-loopback-bind
+- **Context:** PR #500's tailscale serve proxied to the server's Tailscale-IP bind; tailscaled cannot dial this machine's own tailnet IP, so the HTTPS URL hung (ERR_SSL_PROTOCOL_ERROR).
+- **Decision:** With profile=tailscale and SHIPWRIGHT_TAILSCALE_HTTPS=1, resolveHonoHost returns 127.0.0.1 and the serve helper proxies to loopback; explicit HONO_HOST still wins.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Verified empirically: loopback backend via serve returns 200, own tailnet IP hangs.
+- **Consequences:** Server reachable only via the tailnet-only HTTPS URL while the flag is on; http://<tailscale-ip>:PORT stops working. Origin policy and probes unchanged.
+- **Rejected:** Requiring users to set HONO_HOST=127.0.0.1 (loosens Origin gate to any); a loopback forwarder process.
+
+---
+
+### ADR-367: Tablet lanes share width; Smart Viewer on demand; soft-keyboard viewport fit
+- **Date:** 2026-10-08
+- **Section:** Iterate — change: tablet/mobile layout polish
+- **Run-ID:** iterate-2026-10-08-tablet-mobile-layout-polish
+- **Context:** On iPad landscape the board scrolled sideways (fixed lg:360px lanes), list scrolling was nested, the Smart Viewer squeezed the terminal, and phones had a useless maximize icon, a pill Description, a tiny file tree and a soft keyboard that covered the terminal.
+- **Decision:** Lanes flex from md (max 360); list = one scroller + sticky th; coarse 1024-1399px starts with the viewer hidden (transient, ViewerToggle); useKeyboardViewportFit mirrors visualViewport into CSS vars and folds chrome while the terminal is focused; Description unfolds in place; compact drops maximize; tree rows 44px; triage meta row clusters.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Sharing width beats a carousel on tablets; transient state keeps the desktop collapse preference intact; visualViewport is the only signal iOS gives for the keyboard.
+- **Consequences:** No horizontal board scroll at >=768px; at 1280px lanes now shrink to ~330px (visual baselines may shift). Keyboard behaviour has no real-device test. overflow-clip needs Safari 16+ for rounded clipping.
+- **Rejected:** Treating tablet as compact tabs (hides the file tree too); server-side or persisted viewer state; hiding the whole page chrome on any input focus.
+
+---
+
+### ADR-368: Extract lane palette and splitter key handlers to clear H1 bloat drift
+- **Date:** 2026-10-09
+- **Section:** Iterate — change: split two oversize board/detail components (H1 bloat)
+- **Run-ID:** iterate-2026-10-09-bloat-split-taskboard-threepane
+- **Context:** TaskBoardColumns.tsx (302) and TaskDetailThreePane.tsx (317) crossed the 300-line limit without a baseline entry, raising compliance finding H/H1.
+- **Decision:** Move the static lane metadata and glass palette to external/boardColumnStyles.ts and the left/right splitter keydown handlers to external/useSplitterKeydown.ts; no baseline entry added.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A cohesive file-level extraction of pure data and a self-contained hook retires the finding at the root instead of grandfathering the files into the baseline.
+- **Consequences:** TaskBoardColumns is 229 lines and TaskDetailThreePane 264; both new files are under 300. Behavior unchanged; toggleTabletViewer became a useCallback so memo deps stay stable.
+- **Rejected:** Adding both files to shipwright_bloat_baseline.json: it would ratchet the limit instead of fixing the drift.
+
+---
+
+### ADR-369: Specs 55/80/80b stop depending on, and leaking, shared E2E state
+- **Date:** 2026-10-09
+- **Section:** Iterate — change: E2E specs seed and clean up their own fixtures
+- **Run-ID:** iterate-2026-10-09-e2e-spec-fixture-hygiene
+- **Context:** Spec 55 created tasks on hardcoded C:/tmp cwds and never deleted them, so the isolated-stack contamination guard failed otherwise green runs; specs 80/80b assumed an earlier spec had left a project with a task, and failed when run alone.
+- **Decision:** Add helpers/board-fixture.ts (seedBoard/cleanupBoard: project plus one task, torn down task-first); spec 55 uses seedTask with a real temp cwd and deletes it; 80/80b seed a board per test. seedBoard removes its project if task seeding fails.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Each spec owns the state it asserts on; the board renders columns only for a project with at least one task, so the fixture seeds exactly that.
+- **Consequences:** 55, 80 and 80b pass standalone with exit 0 and no leaked tasks. The full suite still ends non-zero because 25 unrelated specs fail on main and leak their own fixtures; that is a separate follow-up.
+- **Rejected:** Relaxing the contamination guard or ordering specs so a seeding spec runs first: both hide the missing fixture instead of providing it.
+
+---
+
+### ADR-370: E2E specs follow the current product surface; the full isolated run is green
+- **Date:** 2026-10-09
+- **Section:** Iterate - change: repair the 25 stale E2E specs
+- **Run-ID:** iterate-2026-10-09-e2e-spec-repair
+- **Context:** 25 Playwright specs failed on main for deterministic reasons: they targeted retired or renamed surfaces (mission narrator, terminal data-state, project select), drifted semantics (ptyReused, mouse frame type, org-chart gate), leaked fixture tasks, or ran a mobile-only spec in the desktop project.
+- **Decision:** Re-point each assertion to the surface the product has now, keep its intent, and make the specs seed and tear down their own tasks; retire mission-narrative-prose.spec.ts because OperationLive is no longer mounted; exclude the mobile-only 90b spec from the desktop project.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A suite that always fails hides new regressions; the failures were stale specs, not product defects, so no product code changed.
+- **Consequences:** node client/e2e/isolated-stack.mjs with chromium, mobile-chromium and schema-isolated now exits 0 (509 passed, 10 skipped) with no leaked fixture tasks. The narrator's prose assertions (outcome wording, inline artifact link) are retired with it, not ported.
+- **Rejected:** Skipping or quarantining the failing specs: that keeps the red count honest-looking but leaves the surfaces untested.

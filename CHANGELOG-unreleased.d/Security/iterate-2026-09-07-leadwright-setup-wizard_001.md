@@ -1,1 +1,0 @@
-Lead-setup commit now re-runs leadwright's real preflight check server-side before writing, closing a bypass where a client could submit a proposal with unmet rules using only an unsigned digest match
