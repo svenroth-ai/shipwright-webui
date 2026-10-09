@@ -90,6 +90,7 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `TaskCardLeadExpander` (`LeadOriginGlyph` + `TaskCardLeadExpander`, FR-04.11, iterate-2026-09-01-lead-board-surface) — the bot glyph next to the project pill plus the on-card expander (domain/priority/complexityHint/lead-tag readouts); wrapper `stopPropagation` on both `onClick` and `onKeyDown` keeps the card's own `navigateToDetail` click AND `TaskBoardColumns`' dnd-kit `KeyboardSensor` from firing when the expander is used | `external/TaskCardLeadExpander.tsx` | 173 | 1 |
 | `LeadTagFilter` (`LeadTagFilterMenu` Bot dropdown + `LeadWaitToggleButton` BellDot shortcut, FR-04.11, iterate-2026-09-01-lead-board-surface) — board toolbar filter over the closed three-prefix tag vocabulary (`lead:`/`lead-wait:`/`lead-dedup:`, see `lib/leadTags.ts`); mirrors `BoardStatusFilter`'s menu anatomy | `external/LeadTagFilter.tsx` | 157 | 1 |
 | `TaskBoardColumns` (board grid + DnD, decoupled `boardColumn`; iterate-2026-06-17; uses `lib/boardColumnApi` + `lib/taskSort` for Last-Modified-desc within-column order) | `external/TaskBoardColumns.tsx` | — | 1 |
+| `boardColumnStyles` (lane metadata `COLUMN_META` + colored-glass `COLUMN_STYLES` palette, extracted from `TaskBoardColumns` — bloat H1, iterate-2026-10-09-bloat-split-taskboard-threepane) | `external/boardColumnStyles.ts` | 81 | 0 |
 | `SmartViewer` | `external/SmartViewer.tsx` | 286 | 13 |
 | `MarkdownText` | `external/MarkdownText.tsx` | 195 | 13 |
 | `CommandPreviewPanel` | `external/CommandPreviewPanel.tsx` | 254 | 12 |
@@ -109,7 +110,8 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `SkillCard` | `external/SkillCard.tsx` | 118 | 7 |
 | `AttachmentCard` | `external/AttachmentCard.tsx` | 105 | 6 |
 | `ConfirmDeleteDialog` | `external/ConfirmDeleteDialog.tsx` | 76 | 6 |
-| `TaskDetailThreePane` | `external/TaskDetailThreePane.tsx` | 245 | 5 |
+| `TaskDetailThreePane` | `external/TaskDetailThreePane.tsx` | 264 | 5 |
+| `useSplitterKeydown` (left/right splitter keyboard handlers, extracted from `TaskDetailThreePane` — bloat H1, iterate-2026-10-09-bloat-split-taskboard-threepane) | `external/useSplitterKeydown.ts` | 75 | 0 |
 | `ViewerToggle` | `external/ViewerToggle.tsx` | 36 | 1 |
 | `CreateMenuSplitButton` | `external/CreateMenuSplitButton.tsx` | 209 | 5 |
 | `CreateControls` | `external/CreateControls.tsx` | 90 | 1 |
