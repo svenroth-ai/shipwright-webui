@@ -1,0 +1,9 @@
+{"items":[
+{"name":"AC coverage","verdict":"pass","note":"Board toolbar controls equal height: dropdown, view toggle, filter, density = 32px desktop / 44px touch, measured in real Chromium (desktop + Pixel 5) and iPad-WebKit/Chromium exploration. Triage paint bug NOT reproduced (headless WebKit renders correctly) - reported, not patched."},
+{"name":"Tests","verdict":"pass","note":"Full client vitest 4461 pass; board-toolbar-equal-height.spec (chromium + mobile-chromium) and A20-mobile-visual-fixes pass."},
+{"name":"Regression guards","verdict":"pass","note":"No JSONL writes, no chat composer, touch target floor 44px preserved (rule 26 family)."},
+{"name":"Edge cases","verdict":"pass","note":"Phone fluid dropdown keeps truncate/max-w; phone stacks dropdown above toggle (same-row check only >=768px)."},
+{"name":"Type/lint","verdict":"pass","note":"tsc clean, oxlint pre-existing warnings only."},
+{"name":"Simplicity","verdict":"pass","note":"Four class edits, no new component."},
+{"name":"Affected boundaries","verdict":"pass","note":"Only TaskBoardPage consumes ProjectFilterDropdown/ViewToggle."}
+]}

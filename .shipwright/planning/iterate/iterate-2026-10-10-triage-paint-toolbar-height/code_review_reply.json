@@ -1,0 +1,5 @@
+{"review":[
+{"severity":"high","category":"correctness","file":"client/src/components/external/ViewToggle.tsx","finding":"First revision: wrapper h-[44px] with a real 1.5px border shrank child buttons to 41px on touch (below the 44px floor; A20 spec asserts >=44). FIXED: border is now an ::after overlay; A20 + new spec pass."},
+{"severity":"low","category":"test","file":"client/e2e/flows/board-toolbar-equal-height.spec.ts","finding":"Spec only compared controls to each other. FIXED: asserts absolute 32/44px and >=44px view-toggle buttons on touch."},
+{"severity":"low","category":"docs","file":"client/src/components/external/ViewToggle.tsx","finding":"Header comment about the min-h floor is partly stale; the new inline comment documents the overlay border."}
+]}

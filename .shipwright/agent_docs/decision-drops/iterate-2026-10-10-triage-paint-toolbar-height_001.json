@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-10-triage-paint-toolbar-height",
+  "date": "2026-10-10",
+  "section": "Iterate — bug: equal-height Task Board toolbar controls",
+  "title": "Board toolbar controls share one fixed height (32px desktop, 44px touch)",
+  "context": "Sven (iPad): the Task Board header dropdowns were not equally tall. Measured on touch: project dropdown 38px, Board/List 47px, filter 44px, density 44px; on desktop 37/35/32/32.",
+  "decision": "ProjectFilterDropdown and ViewToggle get an explicit h-8 / pointer-coarse:h-[44px] like the filter and density buttons. ViewToggle draws its 1.5px border as an ::after overlay so its buttons keep the full 44px target.",
+  "consequences": "Desktop dropdown and Board/List shrink to 32px; phone top-bar dropdown grows to 44px. Triage card-paint gap seen on iPad is NOT fixed: it does not reproduce in headless WebKit or Chromium and needs a real device.",
+  "rationale": "One shared height makes alignment structural instead of a per-component padding guess; a real border would have cut the touch target to 41px.",
+  "rejected": "Per-component padding tweaks (the cause of the drift); shipping an unverified compositing hack for the Triage paint gap.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
