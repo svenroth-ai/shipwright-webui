@@ -77,14 +77,18 @@ luxury. See the [user guide](docs/guide.md) for the full tour.
 
 ## Get started
 
-**Prerequisites:** Node.js 20+, Git, and the Claude Code CLI ≥ 2.1.114
-(the pinned `MIN_SUPPORTED_CLI`). No databases, no Docker, no Python, no
-system services. Verify each:
+**Prerequisites:** Node.js 20+, Git, the Claude Code CLI ≥ 2.1.114
+(the pinned `MIN_SUPPORTED_CLI`), and Python 3.11+ with `uv` (a uv-managed
+Python is accepted; the plugin hooks run via `uv run`). The command stops with
+an install hint if one is missing; `--webui-only` starts just the Command
+Center and skips the plugin prerequisites. No databases, no Docker, no system
+services. Verify each:
 
 ```bash
 node --version       # v20.x.x or higher
 git --version
 claude --version     # 2.1.114 or higher
+uv --version         # plus Python 3.11+ (system or uv-managed)
 ```
 
 **One command — install _and_ update the whole system** (the `/shipwright-*`
