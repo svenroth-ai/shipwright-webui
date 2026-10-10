@@ -64,7 +64,10 @@ interface PasteImageResponseLike {
  * the matching `{capture:true}` flag so React.StrictMode dev double-mount
  * doesn't leak a stale handler.
  */
-export function usePasteImage(opts: UsePasteImageOptions): void {
+export function usePasteImage(opts: UsePasteImageOptions): {
+  /** Stable uploader for the Ctrl+V / Alt+V keyboard path (same route as a native paste). */
+  uploadImage: (blob: Blob) => void;
+} {
   const {
     taskId,
     containerRef,
@@ -180,4 +183,12 @@ export function usePasteImage(opts: UsePasteImageOptions): void {
     // Refs are stable. Narrow deps avoid duplicate listener registration.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uploadPasteBlob]);
+
+  const uploadRef = useRef(uploadPasteBlob);
+  uploadRef.current = uploadPasteBlob;
+  const uploadImage = useCallback((blob: Blob): void => {
+    void uploadRef.current(blob, `paste-${Date.now()}.png`);
+  }, []);
+
+  return { uploadImage };
 }

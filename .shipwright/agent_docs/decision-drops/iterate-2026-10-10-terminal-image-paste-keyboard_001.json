@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-10-terminal-image-paste-keyboard",
+  "date": "2026-10-10",
+  "section": "Iterate - bug: keyboard image paste in embedded terminal",
+  "title": "Ctrl+V and Alt+V paste a browser-clipboard image via the existing paste-image route",
+  "context": "Over Tailscale https text Ctrl+V worked, but an image on the remote browser clipboard was dropped: Ctrl+V read text only and suppressed the native paste event; Alt+V made Claude read the server's empty clipboard. Only right-click Paste worked.",
+  "decision": "Ctrl+V/Shift+Insert call navigator.clipboard.read() once and upload an image (else use its text/plain, readText as fallback). Alt+V is intercepted: upload an image, else forward ESC v to the pty. Reuses usePasteImage's upload helper; server unchanged.",
+  "consequences": "Keyboard image paste works remotely. Alt+V on Windows/Linux no longer reaches Claude directly when the browser clipboard has an image. macOS Option+V (key U+221A) stays passthrough.",
+  "rationale": "Single read() because Safari/Firefox gate each clipboard read on a user gesture; reusing the upload helper keeps one server path and caps.",
+  "rejected": "Server-side clipboard read for Alt+V (reads the wrong machine); a paste-event-only approach (Ctrl+V keydown is suppressed to avoid double paste).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

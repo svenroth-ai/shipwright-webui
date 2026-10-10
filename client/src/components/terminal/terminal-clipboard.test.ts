@@ -85,10 +85,23 @@ describe("classifyClipboardChord", () => {
     );
   });
 
-  it("Alt+V → passthrough (Claude TUI image-paste, never intercepted)", () => {
+  it("Alt+V → paste-image (client-side image paste, not Claude's server clipboard)", () => {
     expect(classifyClipboardChord(ev({ altKey: true, key: "v" }))).toBe(
-      "passthrough",
+      "paste-image",
     );
+  });
+
+  it("macOS Option+V (key is a symbol) stays passthrough", () => {
+    expect(
+      classifyClipboardChord(ev({ altKey: true, key: "\u221a" })),
+    ).toBe("passthrough");
+  });
+
+  it("Alt+C and Ctrl+Alt+V stay passthrough", () => {
+    expect(classifyClipboardChord(ev({ altKey: true, key: "c" }))).toBe("passthrough");
+    expect(
+      classifyClipboardChord(ev({ altKey: true, ctrlKey: true, key: "v" })),
+    ).toBe("passthrough");
   });
 
   it("plain c (no modifier) → passthrough", () => {
@@ -171,6 +184,43 @@ describe("readClipboardForPaste", () => {
     stubClipboard({ readText: vi.fn(async () => multi) });
     const result = await readClipboardForPaste();
     expect(result).toEqual({ ok: true, text: multi });
+  });
+
+  it("returns the image when clipboard.read() offers one (image wins over text)", async () => {
+    const png = new Blob(["x"], { type: "image/png" });
+    const readText = vi.fn(async () => "alt text");
+    stubClipboard({
+      read: vi.fn(async () => [
+        { types: ["text/plain", "image/png"], getType: vi.fn(async () => png) },
+      ]),
+      readText,
+    });
+    await expect(readClipboardForPaste()).resolves.toEqual({ ok: true, image: png });
+    expect(readText).not.toHaveBeenCalled();
+  });
+
+  it("falls back to readText when read() has no image or rejects", async () => {
+    const readText = vi.fn(async () => "fallback");
+    stubClipboard({
+      read: vi.fn(async () => [
+        {
+          types: ["text/plain"],
+          // jsdom's Blob lacks .text(); a minimal stand-in is enough
+          getType: vi.fn(async () => ({ text: async () => "just text" })),
+        },
+      ]),
+      readText,
+    });
+    // single read(): the text comes from the item, readText is not called
+    await expect(readClipboardForPaste()).resolves.toEqual({ ok: true, text: "just text" });
+    expect(readText).not.toHaveBeenCalled();
+    stubClipboard({
+      read: vi.fn(async () => {
+        throw new Error("NotAllowedError");
+      }),
+      readText: vi.fn(async () => "just text"),
+    });
+    await expect(readClipboardForPaste()).resolves.toEqual({ ok: true, text: "just text" });
   });
 
   it("returns denied when readText rejects (permission denied)", async () => {

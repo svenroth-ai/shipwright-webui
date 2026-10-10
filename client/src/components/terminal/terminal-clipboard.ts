@@ -13,13 +13,22 @@
  * xterm's built-in Ctrl+V fails silently in a non-secure context (the WebUI
  * reached over the Tailscale IP — plain http — where `navigator.clipboard` is
  * unavailable); this handler surfaces an inline "use right-click → Paste" hint
- * instead of failing silently. `Meta+*` (macOS) and `Alt+*` (Claude TUI's
- * Alt+V image-paste) are always passthrough.
+ * instead of failing silently. `Meta+*` (macOS) is always passthrough.
+ *
+ * IMAGES (iterate-2026-10-10-terminal-image-paste-keyboard): Ctrl+V used to read
+ * TEXT only and preventDefault the native `paste` event, so an image on the
+ * clipboard was dropped (only right-click -> Paste, whose native event carries
+ * the image, worked). Ctrl+V now reads the async clipboard for an image first
+ * and hands it to the same upload route as the native path. Alt+V (Claude TUI's
+ * image-paste chord) is intercepted for the same reason: Claude would read the
+ * SERVER's OS clipboard, which is empty when the WebUI is used from a remote
+ * machine. With no image on the browser clipboard it forwards the chord to the
+ * pty, so local use is unchanged.
  */
 
 import type { Terminal } from "@xterm/xterm";
 
-export type ClipboardChord = "paste" | "passthrough";
+export type ClipboardChord = "paste" | "paste-image" | "passthrough";
 
 /**
  * Subset of `KeyboardEvent` the classifier reads. Declared as an interface so
@@ -44,7 +53,14 @@ export function classifyClipboardChord(ev: ChordEventLike): ClipboardChord {
   if (ev.type !== "keydown") return "passthrough";
   // macOS Cmd+* and Alt+* are never our chords — let the browser / Claude TUI
   // handle them (Cmd+V fires a native `paste` event).
-  if (ev.metaKey || ev.altKey) return "passthrough";
+  if (ev.metaKey) return "passthrough";
+
+  // Alt+V - Claude TUI's image-paste chord; handled client-side (see header).
+  if (ev.altKey) {
+    // Semantic key only: macOS Option+V yields "√" and stays passthrough.
+    const isV = ev.key.toLowerCase() === "v";
+    return isV && !ev.ctrlKey && !ev.shiftKey ? "paste-image" : "passthrough";
+  }
 
   const key = ev.key.toLowerCase();
   const isInsert = ev.key === "Insert";
@@ -57,10 +73,49 @@ export function classifyClipboardChord(ev: ChordEventLike): ClipboardChord {
   return "passthrough";
 }
 
-/** Outcome of a clipboard read for a paste. */
+/** Outcome of a clipboard read for a paste. An image wins over text. */
 export type PasteRead =
-  | { ok: true; text: string }
+  | { ok: true; text: string; image?: undefined }
+  | { ok: true; image: Blob; text?: undefined }
   | { ok: false; reason: "unavailable" | "denied" };
+
+/** `navigator.clipboard.read()` items, or null (absent / denied / failed). */
+async function readClipboardItems(): Promise<ClipboardItems | null> {
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard ||
+    typeof navigator.clipboard.read !== "function"
+  ) {
+    return null;
+  }
+  try {
+    return await navigator.clipboard.read();
+  } catch {
+    return null;
+  }
+}
+
+async function firstImage(items: ClipboardItems): Promise<Blob | null> {
+  for (const item of items) {
+    const type = item.types.find((t) => t.startsWith("image/"));
+    if (!type) continue;
+    try {
+      return await item.getType(type);
+    } catch {
+      /* try the next item */
+    }
+  }
+  return null;
+}
+
+/**
+ * First image on the browser clipboard, or null (no async `read()`, permission
+ * denied, or no image item). Never throws - callers fall back to passthrough.
+ */
+export async function readClipboardImage(): Promise<Blob | null> {
+  const items = await readClipboardItems();
+  return items ? firstImage(items) : null;
+}
 
 /**
  * Read the OS clipboard for a paste.
@@ -78,6 +133,21 @@ export async function readClipboardForPaste(): Promise<PasteRead> {
   ) {
     return { ok: false, reason: "unavailable" };
   }
+  // ONE async read for image + text: Safari/Firefox gate every clipboard read
+  // on a user gesture, so read() followed by readText() could lose the gesture.
+  const items = await readClipboardItems();
+  if (items) {
+    const image = await firstImage(items);
+    if (image) return { ok: true, image };
+    for (const item of items) {
+      if (!item.types.includes("text/plain")) continue;
+      try {
+        return { ok: true, text: await (await item.getType("text/plain")).text() };
+      } catch {
+        /* fall through to readText */
+      }
+    }
+  }
   try {
     const text = await navigator.clipboard.readText();
     return { ok: true, text };
@@ -90,7 +160,7 @@ export async function readClipboardForPaste(): Promise<PasteRead> {
 export type ClipboardNoticeKind = "copy-failed" | "paste-hint" | "paste-failed";
 
 /** xterm surface the paste handler needs — kept minimal for test fakes. */
-export type ClipboardTerminal = Pick<Terminal, "paste">;
+export type ClipboardTerminal = Pick<Terminal, "paste" | "input">;
 
 export interface ClipboardKeyHandlerDeps {
   /** The xterm terminal — paste sink. */
@@ -101,6 +171,10 @@ export interface ClipboardKeyHandlerDeps {
   notify: (kind: ClipboardNoticeKind) => void;
   /** Read the OS clipboard (readClipboardForPaste). */
   readClipboard: () => Promise<PasteRead>;
+  /** Read only an image off the clipboard (Alt+V). */
+  readImage: () => Promise<Blob | null>;
+  /** Upload a clipboard image (same route as the native paste event). */
+  uploadImage: (blob: Blob) => void;
 }
 
 /**
@@ -114,15 +188,33 @@ export interface ClipboardKeyHandlerDeps {
  *    normalization); `unavailable` → "paste-hint"; `denied` → "paste-failed".
  *  - held chord → suppress, no re-paste.
  *
+ * Image paste: Ctrl+V / Shift+Insert upload an image found on the clipboard
+ * (instead of pasting text); Alt+V uploads an image or, when there is none,
+ * forwards ESC v to the pty so Claude's own chord still works locally.
+ *
  * Every other key — including Ctrl+C / Ctrl+Insert — passes through to the pty.
  */
 export function createClipboardKeyHandler(
   deps: ClipboardKeyHandlerDeps,
 ): (ev: KeyboardEvent) => boolean {
-  const { term, isDisposed, notify, readClipboard } = deps;
+  const { term, isDisposed, notify, readClipboard, readImage, uploadImage } =
+    deps;
 
   return (ev: KeyboardEvent): boolean => {
-    if (classifyClipboardChord(ev) !== "paste") return true;
+    const chord = classifyClipboardChord(ev);
+    if (chord === "passthrough") return true;
+
+    if (chord === "paste-image") {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (ev.repeat) return false;
+      void readImage().then((image) => {
+        if (isDisposed()) return;
+        if (image) uploadImage(image);
+        else term.input("\x1bv", true); // no browser image: forward Alt+V to the pty
+      });
+      return false;
+    }
 
     // Suppress xterm's default AND the native `paste` event that Ctrl+V /
     // Shift+Insert also fire — otherwise the pasted text lands twice.
@@ -132,6 +224,10 @@ export function createClipboardKeyHandler(
     void readClipboard().then((result) => {
       if (isDisposed()) return;
       if (result.ok) {
+        if (result.image) {
+          uploadImage(result.image);
+          return;
+        }
         // term.paste() normalizes line endings + wraps the text in
         // bracketed-paste markers when the app enabled them, so a multi-line
         // prompt pastes intact instead of submitting on its first line.

@@ -1,0 +1,8 @@
+{"items":[
+{"name":"correctness","verdict":"pass","note":"Ctrl+V reads clipboard.read() image first, falls back to readText; Alt+V uploads image or forwards ESC v"},
+{"name":"tests","verdict":"pass","note":"classifier, handler, readClipboardForPaste image/fallback cases added; 469 terminal tests pass"},
+{"name":"types-lint","verdict":"pass","note":"tsc --noEmit and oxlint clean"},
+{"name":"double-paste","verdict":"pass","note":"keydown preventDefault stops native paste event, as before"},
+{"name":"scope","verdict":"pass","note":"client-only; server paste-image route unchanged"},
+{"name":"docs-boundaries","verdict":"n/a","note":"no new IO boundary"},
+{"name":"affected-boundaries","verdict":"pass","note":"clipboard permission prompt same as readText"}]}
