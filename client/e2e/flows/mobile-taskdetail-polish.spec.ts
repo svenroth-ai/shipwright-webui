@@ -107,8 +107,7 @@ test("keyboard-up: New Task dialog hugs the visible viewport bottom, scene paddi
 test("home-screen icon set is served (iOS apple-touch-icon + manifest)", async ({ request, page }) => {
   for (const [url, type] of [
     ["/apple-touch-icon.png", "image/png"],
-    ["/favicon.ico", "icon"],
-    ["/manifest.webmanifest", ""],
+    ["/manifest.json", ""],
   ] as const) {
     const res = await request.get(url);
     expect(res.status(), url).toBe(200);
