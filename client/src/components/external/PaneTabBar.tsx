@@ -47,7 +47,7 @@ export function PaneTabBar({ active, onChange }: PaneTabBarProps) {
       role="tablist"
       aria-label="Task detail panes"
       data-testid="pane-tab-bar"
-      className="compact-tab-surface grid shrink-0 grid-cols-3 gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
+      className="pane-tab-bar compact-tab-surface grid shrink-0 grid-cols-3 gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
       onKeyDown={(event) => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault();

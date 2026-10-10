@@ -73,7 +73,7 @@ export function ModalShell({
           // and footer below are `shrink-0`; the scroll-body wrapper is
           // `min-h-0 flex-1` so it — not a hardcoded pixel budget — absorbs
           // whatever height header+footer don't use.
-          className={`fixed left-1/2 top-[10%] z-50 flex max-h-[80dvh] flex-col ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--surface-form,#edeae7)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
+          className={`kbd-dialog fixed left-1/2 top-[10%] z-50 flex max-h-[80dvh] flex-col ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--surface-form,#edeae7)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
           data-testid={`new-issue-modal-${mode}`}
         >
           {/* Header: icon tile + title/subtitle + close */}

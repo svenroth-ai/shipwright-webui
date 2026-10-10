@@ -16,7 +16,7 @@ describe("computeKeyboardFit", () => {
 
   it("detects the keyboard and mirrors the visual viewport box", () => {
     const fit = computeKeyboardFit(800, 480.4, 31.6, false);
-    expect(fit).toEqual({ open: true, terminal: false, height: 480, top: 32 });
+    expect(fit).toEqual({ open: true, terminal: false, height: 480, top: 32, bottom: 288 });
   });
 
   it("flags terminal focus only while the keyboard is open", () => {

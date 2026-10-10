@@ -241,3 +241,28 @@ export function createClipboardKeyHandler(
     return false;
   };
 }
+
+/**
+ * Touch paste (key-bar "Paste" button). iOS offers no long-press paste menu on
+ * the terminal surface, so a TAP — the user gesture `navigator.clipboard.read*`
+ * demands — is the paste path there. Same read + routing as the Ctrl+V chord:
+ * an image uploads, text goes through `term.paste` (bracketed-paste aware).
+ */
+export async function pasteFromClipboardTap(deps: {
+  term: Pick<Terminal, "paste"> | null;
+  writer: boolean;
+  isDisposed: () => boolean;
+  notify: (kind: ClipboardNoticeKind) => void;
+  uploadImage: (image: Blob) => void;
+}): Promise<void> {
+  if (!deps.writer || !deps.term) return;
+  const r = await readClipboardForPaste();
+  if (deps.isDisposed()) return;
+  if (!r.ok) return deps.notify(r.reason === "unavailable" ? "paste-hint" : "paste-failed");
+  try {
+    if (r.image) deps.uploadImage(r.image);
+    else if (r.text) deps.term.paste(r.text);
+  } catch {
+    deps.notify("paste-failed");
+  }
+}

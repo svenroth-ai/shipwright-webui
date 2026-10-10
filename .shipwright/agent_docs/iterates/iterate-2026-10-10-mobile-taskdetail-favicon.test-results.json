@@ -1,0 +1,108 @@
+{
+  "last_updated": "2026-10-10T07:19:54.402821+00:00",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-10-mobile-taskdetail-favicon",
+    "date": "2026-10-10",
+    "unit": {
+      "status": "passed",
+      "passed": 4461,
+      "total": 4461
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 5,
+      "total": 5
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Description toggle renders in the same flex row as the status pill on compact viewports",
+          "disposition": "tested",
+          "evidence": "mobile-taskdetail-polish.spec.ts (real Pixel 5) + TaskDetailHeader.phone.test.tsx PASSED"
+        },
+        {
+          "behavior": "Header expand toggle hosts in the header (not over terminal), mirrors html[data-term-expanded], folds pane-tab-bar and restores",
+          "disposition": "tested",
+          "evidence": "mobile-taskdetail-polish.spec.ts + TaskDetailHeader.phone.test.tsx PASSED"
+        },
+        {
+          "behavior": "Keyboard open: New Task dialog bottom hugs visible viewport (<=10px gap) and .scene-fore bottom padding is 0",
+          "disposition": "tested",
+          "evidence": "mobile-taskdetail-polish.spec.ts keyboard-up PASSED (simulated flags in real Chromium)"
+        },
+        {
+          "behavior": "useKeyboardViewportFit exposes --app-bottom (layout bottom minus visual bottom)",
+          "disposition": "tested",
+          "evidence": "useKeyboardViewportFit.test.ts PASSED"
+        },
+        {
+          "behavior": "Tap Paste key reads clipboard and routes text/image/denied/unavailable/reader/disposed/throw cases",
+          "disposition": "tested",
+          "evidence": "terminal-clipboard-tap.test.ts + TerminalKeyBar.test.tsx PASSED"
+        },
+        {
+          "behavior": "iOS apple-touch-icon, favicon.ico and manifest are served by the built server and linked from index.html",
+          "disposition": "tested",
+          "evidence": "mobile-taskdetail-polish.spec.ts home-screen icon set PASSED"
+        },
+        {
+          "behavior": "Triage cards sit <=6px apart and 3 fit in the first phone screen",
+          "disposition": "tested",
+          "evidence": "mobile-taskdetail-polish.spec.ts triage PASSED + PerProjectTriageSection/DeferredTriageSection class fences PASSED"
+        },
+        {
+          "behavior": "Native iOS long-press paste menu on the terminal surface",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "iOS Safari native selection/paste menu cannot be driven in headless Chromium/WebKit; mitigated by the tap Paste key"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=mobile-chromium e2e/flows/mobile-taskdetail-polish.spec.ts --reporter=json",
+      "exit_code": 0,
+      "tests_run": 5,
+      "evidence_path": ".shipwright/runs/iterate-2026-10-10-mobile-taskdetail-favicon/surface_verification.log",
+      "timestamp": "2026-10-10T07:18:54.862Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

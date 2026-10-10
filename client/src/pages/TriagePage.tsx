@@ -173,8 +173,7 @@ export default function TriagePage() {
       {/* Body — wrapped in .page-container so Triage aligns with Inbox/Projects.
           Top gap matches Projects' 24px (Sven 2026-07-17: equal top padding). */}
       <div
-        className="flex-1 overflow-y-auto"
-        style={{ paddingBlock: "24px 40px" }}
+        className="flex-1 overflow-y-auto pt-4 pb-10 md:pt-6"
       >
         <div className="page-container density-surface">
           {realProjects.length === 0 ? (

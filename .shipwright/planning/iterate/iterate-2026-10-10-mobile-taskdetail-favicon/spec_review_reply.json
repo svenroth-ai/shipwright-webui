@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"APPROVE","spec_citations":[],"summary":"All 7 requests implemented in the diff and in scope (description inline, header expand toggle, Paste key, .kbd-dialog keyboard anchoring, scene-fore padding drop, favicon/apple-touch-icon/manifest, triage spacing). Note: no real-browser spec for triage spacing or Paste; unit only."}

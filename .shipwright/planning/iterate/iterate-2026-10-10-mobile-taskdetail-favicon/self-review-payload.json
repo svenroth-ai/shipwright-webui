@@ -1,0 +1,9 @@
+{"items":[
+{"name":"AC coverage","verdict":"pass","note":"7 requests mapped: description inline (MissionTopRow+TaskDescriptionDisclosure inline), header expand toggle (useTerminalExpanded + CSS), Paste key (TerminalKeyBar/pasteFromClipboardTap), modal+terminal keyboard gap (.kbd-dialog, --app-bottom, scene padding), favicon/apple-touch-icon/manifest, triage spacing; iOS long-press menu not settable -> Paste button instead."},
+{"name":"Tests","verdict":"pass","note":"Full client vitest 4460 pass; new unit tests + e2e mobile-taskdetail-polish.spec.ts (4 pass x3 runs) real browser."},
+{"name":"Regression guards","verdict":"pass","note":"No JSONL writes, no chat composer, EmbeddedTerminal 309 lines <= baseline 311, motion tokens untouched."},
+{"name":"Edge cases","verdict":"pass","note":"Expand flag cleared on unmount; kbd CSS only matches when data-kbd-open set (touch only); Paste gated to writer, http fallback hint."},
+{"name":"Type/lint","verdict":"pass","note":"tsc clean, oxlint only pre-existing warnings."},
+{"name":"Simplicity","verdict":"pass","note":"Paste logic extracted to terminal-clipboard.ts; shared .kbd-dialog class for 4 dialogs."},
+{"name":"Affected boundaries","verdict":"pass","note":"New public assets served by vite publicDir; index.html links verified by e2e."}
+]}

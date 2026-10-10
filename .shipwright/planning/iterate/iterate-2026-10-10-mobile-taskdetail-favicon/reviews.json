@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-10-mobile-taskdetail-favicon",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T07:08:01.582251+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T07:08:46.913720+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/styles/keyboard-fit.css",
+          "line": null,
+          "finding": ".kbd-dialog max-height cap clips Edit/Continue dialogs (no scroll body) with keyboard up.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "client/src/components/triage/PerProjectTriageSection.tsx",
+          "line": null,
+          "finding": "Triage tightening also changes desktop; stale comment; visual baselines may shift.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/styles/keyboard-fit.css",
+          "line": null,
+          "finding": "CSS selects pane tab bar via data-testid.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/TaskDescriptionDisclosure.tsx",
+          "line": null,
+          "finding": "inline mode drops wrapper testid; dynamic Wrapper clever.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionTopRow.tsx",
+          "line": null,
+          "finding": "Expand hides Awaiting-approval pill.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/terminal/EmbeddedTerminal.tsx",
+          "line": null,
+          "finding": "inline onPaste one-liner; sync uploadImage throw unhandled.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-10T07:11:37.019597+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "kbd-dialog anchoring correct on iOS",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "term-expanded flag cannot leak",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "scene-fore padding drop harmless",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "icon/manifest links safe",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "no desktop regression",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-10T07:18:11.542299+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T07:17:20.335801+00:00",
+      "disposition": "small iterate, no risk flags: external code review is medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T07:08:51.556655+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T07:08:47.040311+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T07:08:47.168634+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

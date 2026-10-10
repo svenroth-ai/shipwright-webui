@@ -40,7 +40,7 @@ export function DeferredTriageSection({ items, hiddenCount, onClick }: DeferredT
 
   return (
     <div
-      className="mb-4 max-md:mb-2"
+      className="mb-3 max-md:mb-2"
       data-testid="triage-deferred-section"
     >
       {/* iterate-2026-09-12-mobile-triage-form-layout: `max-md:` (<768px)
@@ -64,7 +64,7 @@ export function DeferredTriageSection({ items, hiddenCount, onClick }: DeferredT
           {hiddenCount} parked item{hiddenCount === 1 ? "" : "s"} hidden by the current view.
         </p>
       )}
-      <div className="space-y-2">
+      <div className="space-y-1.5 max-md:space-y-1">
         {items.map((item) => (
           <button
             key={item.id}

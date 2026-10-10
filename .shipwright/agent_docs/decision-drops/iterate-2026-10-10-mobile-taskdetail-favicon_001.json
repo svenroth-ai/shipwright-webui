@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-10-mobile-taskdetail-favicon",
+  "date": "2026-10-10",
+  "section": "Iterate — change: mobile Task Detail polish + home-screen icon + tighter Triage",
+  "title": "Phone polish: header-hosted expand, tap Paste key, keyboard-fit anchoring, ship's-wheel icon",
+  "context": "Sven reported on phone: description under the status pill, no way to expand the terminal without a control covering status messages, paste/long-press not working on iOS, New Task modal and terminal input sitting 5-13mm above the keyboard, no home-screen icon, Triage spacing still too large.",
+  "decision": "Description joins the status row; Expand toggle lives in MissionTopRow and sets html[data-term-expanded]; a tap Paste key (Clipboard API) replaces the uncontrollable iOS long-press menu; dialogs with a scroll body get .kbd-dialog anchored to the visual-viewport bottom via --app-bottom and .scene-fore drops its safe-area padding while the keyboard is up; ship's-wheel apple-touch-icon/favicon/manifest; Triage spacing tightened.",
+  "consequences": "Desktop is unchanged (all keyboard/expand CSS is flag- or media-gated); Triage density changes on every width. The iOS keyboard fit is verified by simulated flags in Chromium plus reasoning, not on a real device. The native iOS long-press paste menu remains unavailable.",
+  "rationale": "iOS Safari exposes no hook to enable the native selection menu on a canvas/DOM terminal; a tap is a user gesture, which the Clipboard API requires. visualViewport math anchors dialogs exactly instead of tuning magic offsets.",
+  "rejected": "Floating expand button over the terminal (covers status messages); capping every dialog height (clips dialogs without a scroll body, CLAUDE.md rule 24); CSS hacks for the unreproduced Triage paint gap.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

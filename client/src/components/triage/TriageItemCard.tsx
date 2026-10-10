@@ -33,7 +33,7 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-3 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
+      className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] px-3 py-2 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
       data-nav-item
       data-testid={`triage-item-${item.id}`}
     >
@@ -42,7 +42,7 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
           laptop the card spans ~900px+, and `ml-auto` flung the time to the far
           edge, leaving a wide dead gap between a card's id/priority and its time
           (Sven, twice: "cards too far apart horizontally"). */}
-      <div className="flex items-center gap-x-2 gap-y-1 mb-1.5 flex-wrap">
+      <div className="flex items-center gap-x-2 gap-y-0.5 mb-1 flex-wrap">
         <SourceBadge source={item.source} />
         <SeverityBadge severity={item.severity} />
         {item.pendingDelivery && <PendingDeliveryBadge />}
@@ -59,12 +59,12 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
           {formatRelative(item.originalTs)}
         </span>
       </div>
-      <h3 className="text-sm font-medium text-[var(--color-text)] mb-1">{item.title}</h3>
-      <p className="text-xs text-[var(--color-text)] line-clamp-2 whitespace-pre-wrap">
+      <h3 className="text-sm font-medium leading-snug text-[var(--color-text)] mb-0.5">{item.title}</h3>
+      <p className="text-xs leading-snug text-[var(--color-text)] line-clamp-2 whitespace-pre-wrap">
         {item.detail}
       </p>
       {item.dedupKey && (
-        <p className="text-[10px] text-[var(--color-muted)] font-mono mt-1.5">
+        <p className="text-[10px] text-[var(--color-muted)] font-mono mt-1">
           dedup: {item.dedupKey}
         </p>
       )}
