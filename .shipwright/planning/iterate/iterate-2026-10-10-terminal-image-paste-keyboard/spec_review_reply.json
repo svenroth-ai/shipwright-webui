@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"All 4 ACs met: Ctrl+V/Shift+Insert image upload via existing route, Alt+V image or ESC v forward, no double paste, tests added."}

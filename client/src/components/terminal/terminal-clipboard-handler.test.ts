@@ -20,10 +20,16 @@ import {
 /** Flush queued microtasks + the setTimeout(0) tick so `.then` runs. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-type FakeTerminal = ClipboardTerminal & { paste: ReturnType<typeof vi.fn> };
+type FakeTerminal = ClipboardTerminal & {
+  paste: ReturnType<typeof vi.fn>;
+  input: ReturnType<typeof vi.fn>;
+};
 
 function fakeTerm(): FakeTerminal {
-  return { paste: vi.fn<(data: string) => void>() };
+  return {
+    paste: vi.fn<(data: string) => void>(),
+    input: vi.fn<(data: string, wasUserInput?: boolean) => void>(),
+  };
 }
 
 function keyEvent(partial: Partial<KeyboardEvent>): KeyboardEvent {
@@ -44,6 +50,7 @@ function keyEvent(partial: Partial<KeyboardEvent>): KeyboardEvent {
 interface HarnessOverrides {
   isDisposed?: () => boolean;
   readClipboard?: () => Promise<PasteRead>;
+  readImage?: () => Promise<Blob | null>;
 }
 
 function harness(over: HarnessOverrides = {}) {
@@ -52,13 +59,17 @@ function harness(over: HarnessOverrides = {}) {
   const readClipboard =
     over.readClipboard ??
     vi.fn(async (): Promise<PasteRead> => ({ ok: true, text: "CLIP" }));
+  const readImage = over.readImage ?? vi.fn(async (): Promise<Blob | null> => null);
+  const uploadImage = vi.fn();
   const handler = createClipboardKeyHandler({
     term,
+    readImage,
+    uploadImage,
     isDisposed: over.isDisposed ?? (() => false),
     notify,
     readClipboard,
   });
-  return { term, notify, readClipboard, handler };
+  return { term, notify, readClipboard, readImage, uploadImage, handler };
 }
 
 describe("createClipboardKeyHandler — paste", () => {
@@ -171,5 +182,52 @@ describe("createClipboardKeyHandler — passthrough (copy removed)", () => {
   it("a plain typed key passes through", () => {
     const h = harness();
     expect(h.handler(keyEvent({ key: "a" }))).toBe(true);
+  });
+});
+
+// @covers FR-01.28
+describe("createClipboardKeyHandler - images", () => {
+  const png = new Blob(["x"], { type: "image/png" });
+
+  it("Ctrl+V with an image on the clipboard uploads it and pastes no text", async () => {
+    const h = harness({
+      readClipboard: vi.fn(async (): Promise<PasteRead> => ({ ok: true, image: png })),
+    });
+    expect(h.handler(keyEvent({ ctrlKey: true, key: "v" }))).toBe(false);
+    await flush();
+    expect(h.uploadImage).toHaveBeenCalledWith(png);
+    expect(h.term.paste).not.toHaveBeenCalled();
+  });
+
+  it("Alt+V with an image uploads it and does not forward the chord", async () => {
+    const h = harness({ readImage: vi.fn(async () => png) });
+    const ev = keyEvent({ altKey: true, key: "v" });
+    expect(h.handler(ev)).toBe(false);
+    expect(ev.preventDefault).toHaveBeenCalled();
+    await flush();
+    expect(h.uploadImage).toHaveBeenCalledWith(png);
+    expect(h.term.input).not.toHaveBeenCalled();
+  });
+
+  it("Alt+V without a browser image forwards ESC v to the pty", async () => {
+    const h = harness();
+    h.handler(keyEvent({ altKey: true, key: "v" }));
+    await flush();
+    expect(h.uploadImage).not.toHaveBeenCalled();
+    expect(h.term.input).toHaveBeenCalledWith("\x1bv", true);
+  });
+
+  it("a held Alt+V reads the clipboard only once", () => {
+    const h = harness();
+    h.handler(keyEvent({ altKey: true, key: "v", repeat: true }));
+    expect(h.readImage).not.toHaveBeenCalled();
+  });
+
+  it("Alt+V does nothing once the terminal is disposed", async () => {
+    const h = harness({ isDisposed: () => true });
+    h.handler(keyEvent({ altKey: true, key: "v" }));
+    await flush();
+    expect(h.uploadImage).not.toHaveBeenCalled();
+    expect(h.term.input).not.toHaveBeenCalled();
   });
 });

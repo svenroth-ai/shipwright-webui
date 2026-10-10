@@ -28,10 +28,7 @@ import {
   type TerminalOutbound,
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
-import {
-  createClipboardKeyHandler,
-  readClipboardForPaste,
-} from "./terminal-clipboard";
+import { createClipboardKeyHandler, readClipboardForPaste, readClipboardImage } from "./terminal-clipboard";
 import { createOsc52ClipboardHandler } from "./terminal-osc52";
 import { classifyOutboundTerminalData } from "./terminal-mouse-report";
 import { attachTouchScroll } from "./touch-scroll";
@@ -134,7 +131,7 @@ export const EmbeddedTerminal = forwardRef<
   const { manualSendCommand, previewCommand, handleManualSend, dismissManualSend } =
     useAutoLaunch({ taskId, taskState, socket, coord, gate, onBeforeDispatch: syncSizeNow, dispatchReady: active });
 
-  usePasteImage({
+  const { uploadImage } = usePasteImage({
     taskId,
     containerRef,
     termRef,
@@ -201,7 +198,7 @@ export const EmbeddedTerminal = forwardRef<
         term: handle.term,
         isDisposed: () => disposedRef.current,
         notify: clip.notify,
-        readClipboard: readClipboardForPaste,
+        readClipboard: readClipboardForPaste, readImage: readClipboardImage, uploadImage,
       }),
     );
 

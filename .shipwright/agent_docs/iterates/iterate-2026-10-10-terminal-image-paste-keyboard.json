@@ -1,0 +1,70 @@
+{
+  "run_id": "iterate-2026-10-10-terminal-image-paste-keyboard",
+  "date": "2026-10-10T06:16:40.082645Z",
+  "event_at": "2026-10-09T21:41:06.809208+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/terminal-image-paste-keyboard",
+  "spec": "none",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-10-terminal-image-paste-keyboard",
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/97-terminal-keyboard-image-paste.spec.ts",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\terminal-image-paste-keyboard\\.shipwright\\runs\\iterate-2026-10-10-terminal-image-paste-keyboard\\surface_verification.log",
+    "timestamp": "2026-10-10T06:16:16.210Z",
+    "attempts": 1
+  },
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Ctrl+V uploads a clipboard image instead of dropping it",
+        "disposition": "tested",
+        "evidence": "terminal-clipboard-handler.test.ts image Ctrl+V + e2e 97 Control+V PASSED"
+      },
+      {
+        "behavior": "Alt+V uploads a browser-clipboard image",
+        "disposition": "tested",
+        "evidence": "terminal-clipboard-handler.test.ts + e2e 97 Alt+V PASSED"
+      },
+      {
+        "behavior": "Alt+V without image forwards ESC v; held/disposed no-op",
+        "disposition": "tested",
+        "evidence": "terminal-clipboard-handler.test.ts PASSED"
+      },
+      {
+        "behavior": "readClipboardForPaste uses a single read() for image-or-text, falls back to readText",
+        "disposition": "tested",
+        "evidence": "terminal-clipboard.test.ts PASSED"
+      },
+      {
+        "behavior": "macOS Option+V stays passthrough",
+        "disposition": "tested",
+        "evidence": "terminal-clipboard.test.ts PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 4,
+      "covered_acs": 4
+    }
+  },
+  "unit": {
+    "status": "passed",
+    "passed": 4451,
+    "total": 4451
+  },
+  "e2e": {
+    "status": "passed",
+    "passed": 2,
+    "total": 2
+  }
+}

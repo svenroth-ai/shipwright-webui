@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-10-terminal-image-paste-keyboard",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:11:09.493329+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:13:07.903425+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/terminal/terminal-clipboard.ts",
+          "line": 122,
+          "finding": "Ctrl+V calls clipboard.read() then readText() after an await; Safari/Firefox gate each read on a user gesture, so text paste may fail or double-prompt.",
+          "suggestion": "Call read() once, take image or text/plain from the items; readText only if read() throws/missing.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/terminal/terminal-clipboard.ts",
+          "line": 183,
+          "finding": "macOS Option+V matches via code KeyV and forwards ESC v after an async read.",
+          "suggestion": "Restrict to ev.key === 'v' / drop the code widening.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/terminal/terminal-clipboard.ts",
+          "line": 153,
+          "finding": "JSDoc of createClipboardKeyHandler does not mention the paste-image branch.",
+          "suggestion": "Document it.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-10T06:11:27.624758+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:13:07.903425+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:13:07.903425+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:11:51.073899+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:13:07.903425+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-10T06:13:07.903425+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
