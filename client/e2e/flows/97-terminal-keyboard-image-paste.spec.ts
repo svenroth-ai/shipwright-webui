@@ -39,7 +39,7 @@ test.describe("Spec 97 — keyboard image paste", () => {
   });
 
   for (const chord of ["Control+V", "Alt+V"]) {
-    test(`${chord} with an image on the clipboard uploads it`, async ({ page, request }) => {
+    test(`${chord} with an image on the clipboard uploads it`, { tag: ["@FR-01.28"] }, async ({ page, request }) => {
       const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "kbd-img-"));
       const taskId = await createTask(request, cwd);
       try {

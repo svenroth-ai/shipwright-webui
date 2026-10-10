@@ -28,6 +28,7 @@ function ev(partial: Partial<ChordEventLike>): ChordEventLike {
   };
 }
 
+// @covers FR-01.28
 describe("classifyClipboardChord", () => {
   it("Ctrl+C → passthrough (copy is OSC 52 now; Ctrl+C stays interrupt)", () => {
     expect(classifyClipboardChord(ev({ ctrlKey: true, key: "c" }))).toBe(
@@ -133,6 +134,7 @@ describe("classifyClipboardChord", () => {
   });
 });
 
+// @covers FR-01.28
 describe("readClipboardForPaste", () => {
   const originalClipboard = Object.getOwnPropertyDescriptor(
     navigator,

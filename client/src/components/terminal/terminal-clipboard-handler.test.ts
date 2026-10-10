@@ -185,6 +185,7 @@ describe("createClipboardKeyHandler — passthrough (copy removed)", () => {
   });
 });
 
+// @covers FR-01.28
 describe("createClipboardKeyHandler - images", () => {
   const png = new Blob(["x"], { type: "image/png" });
 
