@@ -171,7 +171,8 @@ export default function TriagePage() {
       />
 
       {/* Body — wrapped in .page-container so Triage aligns with Inbox/Projects.
-          Top gap matches Projects' 24px (Sven 2026-07-17: equal top padding). */}
+          Top gap matches Projects' 24px from md up (Sven 2026-07-17: equal top
+          padding); phones use 16px to keep the list tight (2026-10-10). */}
       <div
         className="flex-1 overflow-y-auto pt-4 pb-10 md:pt-6"
       >
