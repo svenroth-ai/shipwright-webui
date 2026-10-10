@@ -138,8 +138,18 @@ need a separate terminal app.
 - **Git:** used under the hood. <https://git-scm.com/>
 - **Claude Code CLI 2.1.114 or newer:** the same one you use today.
   Check with `claude --version`.
+- **Python 3.11 or newer, with [uv](https://docs.astral.sh/uv/):** the
+  `/shipwright-*` plugin hooks run through `uv run`. A system Python is
+  fine, and so is a Python that uv manages itself (`uv python install 3.11`).
+  Check with `uv --version`.
 
-That's it. No databases, no Docker, no Python, no system services.
+The one command below checks all of this first and **stops** (with an
+install hint per missing tool) if Claude Code, Python 3.11+ with uv, or
+Git is missing: without them the plugins cannot install and the Command
+Center would be empty. If you only want the Command Center board (no
+`/shipwright-*` plugins), add `--webui-only`: that path needs just
+Node.js, and Claude Code once you launch tasks. No databases, no Docker,
+no system services either way.
 
 ### One command
 
