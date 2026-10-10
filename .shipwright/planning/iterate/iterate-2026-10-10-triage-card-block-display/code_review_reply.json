@@ -1,0 +1,4 @@
+{"review":[
+{"severity":"low","category":"test","file":"client/e2e/flows/triage-card-block-display.spec.ts","finding":"Gap check has no lower bound and Chromium hides the WebKit bug, so only display===block truly guards it. Accepted: spec header documents the mechanism; display assertion is the guard."},
+{"severity":"low","category":"traceability","file":"client/e2e/flows/triage-card-block-display.spec.ts","finding":"@covers FR-01.38 same FR as sibling triage-layout specs; accepted."}
+]}

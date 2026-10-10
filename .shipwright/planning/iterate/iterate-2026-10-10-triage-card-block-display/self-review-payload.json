@@ -1,0 +1,9 @@
+{"items":[
+{"name":"AC coverage","verdict":"pass","note":"Triage cards no longer sit on a line box: computed display block. Root cause reproduced in iPad-WebKit with real data (gaps 174px+), fix verified by spec failing before / passing after."},
+{"name":"Tests","verdict":"pass","note":"triage-card-block-display.spec chromium + mobile-chromium pass; triage vitest 312 pass."},
+{"name":"Regression guards","verdict":"pass","note":"No JSONL writes, no chat composer."},
+{"name":"Edge cases","verdict":"pass","note":"Open and parked (Deferred) cards both covered; grep found no other inline-block stacked card buttons."},
+{"name":"Type/lint","verdict":"pass","note":"tsc and oxlint clean."},
+{"name":"Simplicity","verdict":"pass","note":"One class added to two buttons."},
+{"name":"Affected boundaries","verdict":"pass","note":"Only Triage list markup."}
+]}

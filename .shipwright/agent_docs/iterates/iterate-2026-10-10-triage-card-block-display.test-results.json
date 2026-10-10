@@ -1,0 +1,72 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-10-triage-card-block-display",
+    "date": "2026-10-10",
+    "unit": {
+      "status": "passed",
+      "passed": 4461,
+      "total": 4461
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Triage open and parked cards are block-level and stack with only the list gap between them (no WebKit line-box gap)",
+          "disposition": "tested",
+          "evidence": "triage-card-block-display.spec.ts chromium + mobile-chromium PASSED; fails without the fix (display inline-block); iPad-WebKit repro with real data showed 170px+ gaps before"
+        }
+      ],
+      "counts": {
+        "testable": 1,
+        "tested": 1,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 1,
+        "covered_acs": 1
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium --project=mobile-chromium e2e/flows/triage-card-block-display.spec.ts --reporter=json",
+      "exit_code": 0,
+      "tests_run": 2,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-card-block-display\\.shipwright\\runs\\iterate-2026-10-10-triage-card-block-display\\surface_verification.log",
+      "timestamp": "2026-10-10T16:16:14.997Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

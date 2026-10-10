@@ -70,7 +70,7 @@ export function DeferredTriageSection({ items, hiddenCount, onClick }: DeferredT
             key={item.id}
             type="button"
             onClick={() => onClick(item)}
-            className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-3 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
+            className="block w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-3 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
             data-nav-item
             data-testid={`triage-deferred-item-${item.id}`}
           >

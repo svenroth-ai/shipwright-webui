@@ -33,7 +33,11 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] px-3 py-2 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
+      // `block` is load-bearing: a <button> is `inline-block` by default, so it
+      // sits on a LINE box and WebKit (iPad/iPhone Safari) adds baseline/descender
+      // space under a card whose line-clamped text sets the baseline — a 170px+
+      // empty gap after some cards (Sven, 2026-10-10). Chromium/Edge hide it.
+      className="block w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] px-3 py-2 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
       data-nav-item
       data-testid={`triage-item-${item.id}`}
     >
