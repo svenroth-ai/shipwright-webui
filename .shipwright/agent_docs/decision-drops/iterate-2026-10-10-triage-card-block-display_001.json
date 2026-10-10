@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-10-triage-card-block-display",
+  "date": "2026-10-10",
+  "section": "Iterate - bug: Triage card gaps in WebKit",
+  "title": "Triage card buttons are display:block (no line-box gap in Safari)",
+  "context": "Sven (iPad/iPhone Safari): huge empty gaps after some Triage cards; Edge on Windows/Mac fine. Reproduced in iPad-WebKit with the real data: card buttons are computed inline-block, so each sits on a line box and WebKit adds 170px+ baseline/descender space under cards whose line-clamped text sets the baseline.",
+  "decision": "TriageItemCard and DeferredTriageSection card buttons get the block utility so no line box exists.",
+  "consequences": "Cards stack with only the list gap in every engine; no visual change in Chromium. The earlier hypothesis of a paint/compositing bug was wrong - the cards were laid out, not unpainted.",
+  "rationale": "Removing the line box fixes the cause; a compositing hack would have treated a symptom that was never there.",
+  "rejected": "Compositing hint on the scroller; removing the bg image filter (needs many baseline regens, and would not fix a layout gap).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
