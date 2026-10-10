@@ -1,0 +1,1 @@
+{"stage":1,"verdict":"APPROVE","spec_citations":[],"summary":"All four toolbar controls resolve to 32px desktop / 44px touch; ViewToggle border moved to an ::after overlay so buttons keep a 44px target; new real-browser spec asserts absolute + equal heights. No scope creep."}

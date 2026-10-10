@@ -1,0 +1,58 @@
+{
+  "run_id": "iterate-2026-10-10-triage-paint-toolbar-height",
+  "date": "2026-10-10T11:54:11.320163Z",
+  "event_at": "2026-10-10T07:20:25.458758+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/triage-paint-toolbar-height",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-10-triage-paint-toolbar-height",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Task Board toolbar controls (project dropdown, Board/List toggle, filter, density) are exactly equally tall: 32px desktop, 44px touch, same row from tablet up",
+        "disposition": "tested",
+        "evidence": "board-toolbar-equal-height.spec.ts chromium + mobile-chromium PASSED (+ iPad WebKit/Chromium exploration: all 44)"
+      },
+      {
+        "behavior": "ViewToggle buttons keep a >=44px touch target (border is an overlay)",
+        "disposition": "tested",
+        "evidence": "board-toolbar-equal-height.spec.ts + A20-mobile-visual-fixes.spec.ts:120 PASSED"
+      },
+      {
+        "behavior": "Triage cards not painted on real iPad Safari (blank gaps between cards)",
+        "disposition": "untestable",
+        "reason_code": "requires-physical-device",
+        "reason": "Not reproducible in headless WebKit/Chromium at iPad viewport (cards render correctly); needs a real iPad compositor"
+      }
+    ],
+    "counts": {
+      "testable": 2,
+      "tested": 2,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --project=mobile-chromium e2e/flows/board-toolbar-equal-height.spec.ts --reporter=json",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-paint-toolbar-height\\.shipwright\\runs\\iterate-2026-10-10-triage-paint-toolbar-height\\surface_verification.log",
+    "timestamp": "2026-10-10T11:53:13.351Z",
+    "attempts": 1
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

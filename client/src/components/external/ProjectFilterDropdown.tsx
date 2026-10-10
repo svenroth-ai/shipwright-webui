@@ -95,15 +95,15 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
           type="button"
           data-testid="project-filter-dropdown"
           className={
-            "inline-flex items-center gap-2 rounded-[var(--radius-button)] " +
+            "inline-flex h-8 items-center gap-2 rounded-[var(--radius-button)] pointer-coarse:h-[44px] " +
             // fluid (phone top bar): size to content, capped at 60vw + truncate
             // — narrower than the bar instead of full-width (phone-header-polish #3).
             (fluid ? "max-w-[60vw] min-w-0 " : "min-w-[220px] ") +
             "border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] " +
-            // fluid: top-heavy padding (9px/8px vs. the even 8px/8px below) — a
-            // touch more breathing room above the text
-            // (iterate-2026-08-13-mission-mobile-visual).
-            (fluid ? "px-3 pt-[9px] pb-2 " : "px-3 py-2 ") +
+            // Height is FIXED (h-8, 44px on touch) so the board toolbar's four
+            // controls are exactly as tall as each other; the old py-2 sized this
+            // one to its text (iterate-2026-10-10-triage-paint-toolbar-height).
+            "px-3 " +
             "text-[13px] font-medium text-[var(--color-text)] " +
             "transition-colors hover:border-[var(--color-primary)] " +
             (className ?? "")
