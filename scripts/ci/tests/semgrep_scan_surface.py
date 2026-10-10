@@ -51,6 +51,8 @@ UNSCANNED_EXTENSIONS: dict[str, str] = {
             "entry must move to SCANNED_EXTENSIONS.",
     ".png": "Binary image asset.",
     ".jpg": "Binary image asset.",
+    ".ico": "Binary favicon image asset.",
+    ".webmanifest": "PWA manifest: static JSON data (name, icons, colours), not code.",
     ".txt": "Plain-text notes and fixtures.",
     ".log": "Captured terminal-output fixture.",
     ".toml": "Tool configuration data.",
