@@ -68,6 +68,12 @@ interface TerminalKeyBarProps {
   onKey: (key: TerminalKey) => void;
   /** Focus the terminal — summons the soft keyboard within the tap gesture. */
   onFocusTerminal: () => void;
+  /**
+   * Paste from the OS clipboard. iOS Safari exposes no long-press paste menu on
+   * the terminal surface, so this tap (a user gesture, which is what
+   * `navigator.clipboard.read*` requires) is the touch paste path.
+   */
+  onPaste?: () => void;
   /** Disable the control keys for the read-only reader role. */
   disabled?: boolean;
 }
@@ -96,7 +102,7 @@ const BTN =
  * Touch key bar. Renders nothing on a fine-pointer (desktop) device, so the
  * ≥1024px / mouse experience is byte-identical to today.
  */
-export function TerminalKeyBar({ onKey, onFocusTerminal, disabled }: TerminalKeyBarProps) {
+export function TerminalKeyBar({ onKey, onFocusTerminal, onPaste, disabled }: TerminalKeyBarProps) {
   const coarse = useCoarsePointer();
   if (!coarse) return null;
 
@@ -120,6 +126,19 @@ export function TerminalKeyBar({ onKey, onFocusTerminal, disabled }: TerminalKey
       >
         ⌨
       </button>
+      {onPaste && (
+        <button
+          type="button"
+          aria-label="Paste"
+          data-testid="terminal-key-paste"
+          disabled={disabled}
+          onPointerDown={noFocus}
+          onClick={onPaste}
+          className={BTN}
+        >
+          Paste
+        </button>
+      )}
       {KEYS.map((k) => (
         <button
           key={k.id}

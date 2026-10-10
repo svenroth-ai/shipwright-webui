@@ -74,7 +74,7 @@ export function TriageFilterSortBar({ view, availableDomains }: TriageFilterSort
 
   return (
     <div
-      className="mb-4 max-md:mb-2 flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+      className="mb-3 max-md:mb-2 flex flex-col gap-1.5 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2"
       data-testid="triage-filter-sort-bar"
     >
       {isPhone && (

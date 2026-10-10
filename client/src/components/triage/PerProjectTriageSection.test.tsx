@@ -203,11 +203,11 @@ describe("PerProjectTriageSection", () => {
   it("section + heading + open-items-list margins are tightened on phone, unchanged above it", () => {
     renderSection({ items: [item({ id: "trg-a" })] });
     const section = screen.getByTestId("triage-project-proj-a");
-    expect(section).toHaveClass("mb-8", "max-md:mb-4");
+    expect(section).toHaveClass("mb-5", "max-md:mb-3");
     const heading = section.querySelector("h2");
     expect(heading).not.toBeNull();
-    expect(heading).toHaveClass("mb-3", "max-md:mb-2");
+    expect(heading).toHaveClass("mb-2", "max-md:mb-1.5");
     const openItems = screen.getByTestId("triage-open-items-proj-a");
-    expect(openItems).toHaveClass("space-y-2", "max-md:space-y-1", "mb-4", "max-md:mb-2");
+    expect(openItems).toHaveClass("space-y-1.5", "max-md:space-y-1", "mb-3", "max-md:mb-2");
   });
 });

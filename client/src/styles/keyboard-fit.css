@@ -28,3 +28,34 @@ html[data-kbd-pan] .app-shell {
     display: none;
   }
 }
+
+/* Keyboard up: the home-indicator inset is covered by the keyboard, so the
+   bottom safe-area padding on the scene scroller only leaves a dead strip
+   (~5mm) between the terminal input line and the keyboard. */
+html[data-kbd-open] .scene-fore {
+  padding-bottom: 0 !important;
+}
+
+/* Dialogs sit at top-[10%] of the LAYOUT viewport; with the keyboard up that
+   left a ~1.3cm gap above the keyboard. ONLY dialogs that own a bounded scroll
+   body may carry `.kbd-dialog` (New Task ModalShell, CampaignLaunchDialog): the
+   max-height cap would otherwise clip a dialog with no scroller (CLAUDE.md rule 24). Anchor them to the bottom edge of the
+   VISIBLE viewport instead (--app-bottom = layout bottom - visual bottom) and
+   cap the height to what is visible. Touch devices only: the flags are never
+   set on desktop, so nothing here matches there. */
+html[data-kbd-open] .kbd-dialog {
+  top: auto !important;
+  bottom: calc(var(--app-bottom, 0px) + 8px) !important;
+  max-height: calc(var(--app-vh, 100dvh) - 16px) !important;
+}
+
+/* Compact "expand terminal" (header toggle in MissionTopRow): fold away the
+   chrome under the title bar. The title row + its toggle stay so it can be
+   undone. */
+@media (max-width: 1023px) {
+  html[data-term-expanded] .mc-tabrow,
+  html[data-term-expanded] .mc-top-extra,
+  html[data-term-expanded] .pane-tab-bar {
+    display: none;
+  }
+}

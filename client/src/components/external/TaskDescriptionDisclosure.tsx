@@ -24,6 +24,7 @@
  * same plain chevron + label as desktop, unfolding in place; the phone only
  * adds a 44px touch target.
  */
+import { Fragment } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
 import type { ExternalTask } from "../../lib/externalApi";
@@ -34,9 +35,15 @@ const COLLAPSE_KEY = "webui:task-description-collapsed";
 
 interface Props {
   task: ExternalTask;
+  /**
+   * Render the toggle as a direct child of the caller's (flex-wrap) row so it
+   * sits NEXT TO the status pill instead of under it; the unfolded body takes a
+   * full line of its own (`basis-full`). Compact header only.
+   */
+  inline?: boolean;
 }
 
-export function TaskDescriptionDisclosure({ task }: Props) {
+export function TaskDescriptionDisclosure({ task, inline = false }: Props) {
   const [collapsed, setCollapsed] = useLocalStorage<boolean>(
     COLLAPSE_KEY,
     true,
@@ -44,8 +51,12 @@ export function TaskDescriptionDisclosure({ task }: Props) {
   const description = task.description?.trim() ?? "";
   if (description.length === 0) return null;
 
+  const Wrapper = inline ? Fragment : "div";
+  const wrapperProps = inline
+    ? {}
+    : { "data-testid": "task-description-disclosure", className: "mt-0.5" };
   return (
-    <div data-testid="task-description-disclosure" className="mt-0.5">
+    <Wrapper {...wrapperProps}>
       <button
         type="button"
         onClick={() => setCollapsed(!collapsed)}
@@ -63,11 +74,11 @@ export function TaskDescriptionDisclosure({ task }: Props) {
       {!collapsed && (
         <div
           data-testid="task-description-body"
-          className="mt-1 max-h-[min(40vh,140px)] overflow-y-auto whitespace-pre-wrap break-words rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-2.5 py-1.5 text-[12px] leading-[1.5] text-[var(--color-text,#1a1a1a)]"
+          className={(inline ? "basis-full " : "") + "mt-1 max-h-[min(40vh,140px)] overflow-y-auto whitespace-pre-wrap break-words rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-2.5 py-1.5 text-[12px] leading-[1.5] text-[var(--color-text,#1a1a1a)]"}
         >
           {description}
         </div>
       )}
-    </div>
+    </Wrapper>
   );
 }

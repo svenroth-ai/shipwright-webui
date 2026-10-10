@@ -1,0 +1,7 @@
+{"stage":"doubt","gating":"advisory-must-address","doubts":[
+{"severity":"low","claim_under_doubt":"kbd-dialog anchoring correct on iOS","disposition":"Verified by reasoning + simulated flags in real Chromium only (no real device); few px drift absorbed by 8px margin; inert on Chrome Android by design (resizes-content)."},
+{"severity":"low","claim_under_doubt":"term-expanded flag cannot leak","disposition":"Single consumer, cleaned on unmount, toggle in .mc-top always reachable."},
+{"severity":"low","claim_under_doubt":"scene-fore padding drop harmless","disposition":"Only matches under data-kbd-open (coarse pointer, >=140px gap)."},
+{"severity":"low","claim_under_doubt":"icon/manifest links safe","disposition":"e2e asserts 200 for apple-touch-icon, favicon.ico, manifest from the built server."},
+{"severity":"low","claim_under_doubt":"no desktop regression","disposition":"New CSS gated on flags/media query; kbd-dialog class inert without flag."}
+],"summary":"No concrete failure found; five low notes, all answered."}

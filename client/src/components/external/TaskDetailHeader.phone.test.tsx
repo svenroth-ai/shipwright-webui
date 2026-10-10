@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 
@@ -120,5 +120,35 @@ describe("TaskDetailHeader — compact (tablet + phone) header condense (AC-1)",
     renderHeader(makeTask());
     expect(screen.getByTestId("task-detail-breadcrumb")).toBeInTheDocument();
     expect(screen.getByTestId("task-detail-subline")).toBeInTheDocument();
+  });
+
+  // @covers FR-01.38
+  it("puts the description toggle in the SAME status row as the state badge (phone)", () => {
+    mockCompact(true);
+    renderHeader(makeTask({ description: "A brief" }));
+    const row = screen.getByTestId("task-detail-mobile-status-row");
+    expect(row).toContainElement(screen.getByTestId("task-description-toggle"));
+  });
+
+  // @covers FR-01.38
+  it("hosts the expand toggle in the header and mirrors it to <html data-term-expanded>", () => {
+    mockCompact(true);
+    renderHeader(makeTask());
+    const header = screen.getByTestId("task-detail-header");
+    const btn = screen.getByTestId("task-detail-expand-terminal");
+    expect(header).toContainElement(btn);
+    expect(document.documentElement.hasAttribute("data-term-expanded")).toBe(false);
+    fireEvent.click(btn);
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    expect(document.documentElement.hasAttribute("data-term-expanded")).toBe(true);
+    fireEvent.click(btn);
+    expect(document.documentElement.hasAttribute("data-term-expanded")).toBe(false);
+  });
+
+  // @covers FR-01.38
+  it("does not render the expand toggle on desktop (the ft-head maximize owns it there)", () => {
+    mockCompact(false);
+    renderHeader(makeTask());
+    expect(screen.queryByTestId("task-detail-expand-terminal")).toBeNull();
   });
 });

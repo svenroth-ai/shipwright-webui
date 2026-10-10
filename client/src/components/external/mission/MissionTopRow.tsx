@@ -14,7 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useProjects } from "../../../hooks/useProjects";
@@ -34,6 +34,7 @@ import { ResumeCTA } from "../TaskDetailHeader/ResumeCTA";
 import { LaunchFailureRecovery } from "../TaskDetailHeader/LaunchFailureRecovery";
 import { TitleEdit } from "../TaskDetailHeader/TitleEdit";
 import { HeaderMenu } from "../TaskDetailHeader/HeaderMenu";
+import { useTerminalExpanded } from "../../../hooks/useTerminalExpanded";
 import { Instruments } from "./Instruments";
 import { MissionMetaLine } from "./MissionMetaLine";
 
@@ -67,6 +68,10 @@ export function MissionTopRow({ task, modelName }: Props) {
   // The cluster's shared mission-state derivation (A11) — drives the additive
   // design-gate pill; never re-derived (DO-NOT #16, no JSONL-mtime staleness).
   const missionState = useMissionState(task);
+  // Compact "expand terminal": hides the page chrome below this bar via a
+  // <html> flag (styles/keyboard-fit.css); the toggle lives HERE, in the header,
+  // never over the terminal where it would cover status messages.
+  const [expanded, toggleExpanded] = useTerminalExpanded();
 
   const [ctaError, setCtaError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -173,6 +178,17 @@ export function MissionTopRow({ task, modelName }: Props) {
               <TitleEdit ref={titleRef} task={task} />
             </div>
             <div className="flex shrink-0 items-center gap-1.5" data-testid="task-detail-actions">
+              <button
+                type="button"
+                onClick={toggleExpanded}
+                aria-pressed={expanded}
+                aria-label={expanded ? "Restore page layout" : "Expand terminal"}
+                title={expanded ? "Restore page layout" : "Expand terminal"}
+                data-testid="task-detail-expand-terminal"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]"
+              >
+                {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
+              </button>
               {actionsCluster}
             </div>
           </div>
@@ -180,7 +196,7 @@ export function MissionTopRow({ task, modelName }: Props) {
           {/* Status row sits below the title row, left-padded 44px (back-arrow
               width, matching its restored 44px touch target) + 8px (gap) so the
               pills visually align under the title text, not under the back arrow. */}
-          <div className="flex min-w-0 items-center gap-2 pl-[52px]" data-testid="task-detail-mobile-status-row">
+          <div className={`flex min-w-0 flex-wrap items-center gap-x-2 pl-[52px]${missionState === "designgate" ? "" : " mc-top-extra"}`} data-testid="task-detail-mobile-status-row">
             <StateBadge state={task.state} />
             {missionState === "designgate" && (
               <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-warn-tint px-2.5 py-0.5 text-[11px] font-semibold text-warn" data-testid="mission-awaiting-approval">
@@ -188,14 +204,10 @@ export function MissionTopRow({ task, modelName }: Props) {
                 Awaiting approval
               </span>
             )}
+            {/* Description sits NEXT TO the status pill (inline), its body
+                unfolding on a full line below when opened. */}
+            {task.description?.trim() ? <TaskDescriptionDisclosure task={task} inline /> : null}
           </div>
-          {/* Own row: the brief unfolds IN PLACE, so it needs the full width the
-              status row's flex siblings would otherwise steal. */}
-          {task.description?.trim() ? (
-            <div className="pl-[52px]">
-              <TaskDescriptionDisclosure task={task} />
-            </div>
-          ) : null}
         </>
       ) : (
         <>

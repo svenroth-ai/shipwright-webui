@@ -73,7 +73,7 @@ export function CampaignLaunchDialog(props: CampaignLaunchDialogProps) {
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
         <Dialog.Content
           data-testid={tid("dialog")}
-          className="fixed left-1/2 top-[10%] z-50 flex max-h-[80vh] w-[540px] max-w-[95vw] -translate-x-1/2 flex-col overflow-hidden rounded-[var(--radius-card,12px)] bg-white shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]"
+          className="kbd-dialog fixed left-1/2 top-[10%] z-50 flex max-h-[80vh] w-[540px] max-w-[95vw] -translate-x-1/2 flex-col overflow-hidden rounded-[var(--radius-card,12px)] bg-white shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]"
         >
           <div className="flex items-center gap-3 border-b border-[var(--color-border,#e0dbd4)] px-5 py-4">
             <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[8px]" style={{ background: "var(--info-tint)", color: "var(--info)" }} aria-hidden>
@@ -89,7 +89,7 @@ export function CampaignLaunchDialog(props: CampaignLaunchDialogProps) {
             </Dialog.Close>
           </div>
 
-          <div className="flex flex-col gap-3 overflow-y-auto [&>*]:shrink-0 px-5 py-4 text-[12px] text-[var(--color-text,#111827)]">
+          <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto [&>*]:shrink-0 px-5 py-4 text-[12px] text-[var(--color-text,#111827)]">
             {/* WHAT */}
             <Field label="What will run" testId={tid("what")}>
               {what.stepId && <span className="font-mono font-semibold">{what.stepId}</span>}{" "}

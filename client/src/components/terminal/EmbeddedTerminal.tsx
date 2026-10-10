@@ -28,7 +28,7 @@ import {
   type TerminalOutbound,
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
-import { createClipboardKeyHandler, readClipboardForPaste, readClipboardImage } from "./terminal-clipboard";
+import { createClipboardKeyHandler, pasteFromClipboardTap, readClipboardForPaste, readClipboardImage } from "./terminal-clipboard";
 import { createOsc52ClipboardHandler } from "./terminal-osc52";
 import { classifyOutboundTerminalData } from "./terminal-mouse-report";
 import { attachTouchScroll } from "./touch-scroll";
@@ -297,6 +297,7 @@ export const EmbeddedTerminal = forwardRef<
       <TerminalKeyBar
         disabled={socket.role !== "writer"}
         onFocusTerminal={() => termRef.current?.focus()}
+        onPaste={() => void pasteFromClipboardTap({ term: termRef.current, writer: socket.role === "writer", isDisposed: () => disposedRef.current, notify: clip.notify, uploadImage })}
         onKey={(k) => {
           if (socket.role !== "writer") return;
           const m = termRef.current?.modes?.applicationCursorKeysMode ?? false;

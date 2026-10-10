@@ -29,6 +29,8 @@ interface FitState {
   terminal: boolean;
   height: number;
   top: number;
+  /** Gap between the visual viewport's bottom edge and the layout viewport's. */
+  bottom: number;
 }
 
 /** Pure decision, exported for unit tests. */
@@ -47,6 +49,7 @@ export function computeKeyboardFit(
     terminal: open && terminalFocused,
     height: Math.round(vvHeight),
     top: Math.max(0, Math.round(vvOffsetTop)),
+    bottom: Math.max(0, Math.round(layoutHeight - vvHeight - vvOffsetTop)),
   };
 }
 
@@ -73,6 +76,7 @@ export function useKeyboardViewportFit(): void {
       if (fit.open) {
         root.style.setProperty('--app-vh', `${fit.height}px`);
         root.style.setProperty('--app-top', `${fit.top}px`);
+        root.style.setProperty('--app-bottom', `${fit.bottom}px`);
         root.setAttribute('data-kbd-open', '');
         // Only a panned visual viewport needs the shell translated; a transform
         // is also a containing block for fixed descendants, so avoid it at 0.
@@ -81,6 +85,7 @@ export function useKeyboardViewportFit(): void {
       } else {
         root.style.removeProperty('--app-vh');
         root.style.removeProperty('--app-top');
+        root.style.removeProperty('--app-bottom');
         root.removeAttribute('data-kbd-open');
         root.removeAttribute('data-kbd-pan');
       }
@@ -100,6 +105,7 @@ export function useKeyboardViewportFit(): void {
       document.removeEventListener('focusout', apply);
       root.style.removeProperty('--app-vh');
       root.style.removeProperty('--app-top');
+      root.style.removeProperty('--app-bottom');
       root.removeAttribute('data-kbd-open');
       root.removeAttribute('data-kbd-pan');
       root.removeAttribute('data-kbd-terminal');

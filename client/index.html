@@ -17,6 +17,15 @@
          breaks this local-first tool offline and makes A00's container-generated
          visual baselines permanently unstable (fallback in the container, real
          face on the dev box). AC4 asserts ZERO CDN font requests on load. -->
+    <!-- Ship's-wheel icon set. iOS ignores <link rel="icon"> for "Add to Home
+         Screen" and wants an OPAQUE apple-touch-icon (transparent pixels render
+         black); the web manifest covers Android/desktop install. -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#292522" />
+    <meta name="apple-mobile-web-app-title" content="Shipwright" />
     <title>Shipwright Command Center</title>
   </head>
   <body>

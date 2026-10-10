@@ -1,0 +1,8 @@
+{"review":[
+{"severity":"medium","category":"correctness","file":"client/src/styles/keyboard-fit.css","finding":".kbd-dialog max-height cap clips Edit/Continue dialogs (no scroll body) with keyboard up."},
+{"severity":"medium","category":"architecture","file":"client/src/components/triage/PerProjectTriageSection.tsx","finding":"Triage tightening also changes desktop; stale comment; visual baselines may shift."},
+{"severity":"low","category":"architecture","file":"client/src/styles/keyboard-fit.css","finding":"CSS selects pane tab bar via data-testid."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/TaskDescriptionDisclosure.tsx","finding":"inline mode drops wrapper testid; dynamic Wrapper clever."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/mission/MissionTopRow.tsx","finding":"Expand hides Awaiting-approval pill."},
+{"severity":"low","category":"readability","file":"client/src/components/terminal/EmbeddedTerminal.tsx","finding":"inline onPaste one-liner; sync uploadImage throw unhandled."}
+]}

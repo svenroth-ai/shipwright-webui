@@ -69,6 +69,19 @@ describe("<TerminalKeyBar>", () => {
     expect(onKey).toHaveBeenNthCalledWith(2, "up");
   });
 
+  // @covers FR-01.38
+  it("renders a Paste button only when onPaste is wired, and taps route to onPaste (not onKey)", () => {
+    mockPointer(true);
+    const { rerender } = render(<TerminalKeyBar onKey={vi.fn()} onFocusTerminal={vi.fn()} />);
+    expect(screen.queryByTestId("terminal-key-paste")).toBeNull();
+    const onPaste = vi.fn();
+    const onKey = vi.fn();
+    rerender(<TerminalKeyBar onKey={onKey} onFocusTerminal={vi.fn()} onPaste={onPaste} />);
+    fireEvent.click(screen.getByTestId("terminal-key-paste"));
+    expect(onPaste).toHaveBeenCalledTimes(1);
+    expect(onKey).not.toHaveBeenCalled();
+  });
+
   it("the ⌨ button summons the keyboard via onFocusTerminal (not onKey)", () => {
     mockPointer(true);
     const onKey = vi.fn();

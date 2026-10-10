@@ -79,7 +79,7 @@ describe("DeferredTriageSection", () => {
   it("wrapper margin is tightened on phone, unchanged above it", () => {
     render(<DeferredTriageSection items={[item({ id: "trg-a" })]} hiddenCount={0} onClick={vi.fn()} />);
     const wrapper = screen.getByTestId("triage-deferred-section");
-    expect(wrapper).toHaveClass("mb-4", "max-md:mb-2");
+    expect(wrapper).toHaveClass("mb-3", "max-md:mb-2");
   });
 
   it("invokes onClick with the item when its card is clicked", () => {
