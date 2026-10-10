@@ -54,8 +54,13 @@ export function ViewToggle({ value, onChange }: Props) {
   return (
     <div
       className={
-        "inline-flex overflow-hidden rounded-[var(--radius-button)] " +
-        "border-[1.5px] border-[var(--color-border)]"
+        // Fixed total height shared with the other board-toolbar controls. The
+        // border is an OVERLAY (not a real border): a real one would shrink the
+        // buttons' content box to 41px on touch, below the 44px target floor
+        // (iterate-2026-10-10-triage-paint-toolbar-height).
+        "relative inline-flex h-8 overflow-hidden rounded-[var(--radius-button)] pointer-coarse:h-[44px] " +
+        "after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] " +
+        "after:border-[1.5px] after:border-[var(--color-border)] after:content-['']"
       }
       data-testid="view-toggle-root"
       role="tablist"
@@ -102,7 +107,7 @@ function ToggleButton({ active, onClick, testId, icon, label, iconOnly }: Toggle
       onClick={onClick}
       data-testid={testId}
       className={
-        "inline-flex h-8 items-center justify-center gap-1.5 pointer-coarse:min-h-[44px] text-[12px] font-medium transition-colors " +
+        "inline-flex h-full items-center justify-center gap-1.5 text-[12px] font-medium transition-colors " +
         (iconOnly ? "w-8" : "px-3") + " " +
         (active
           ? "bg-[var(--color-muted-bg)] text-[var(--color-primary)]"
