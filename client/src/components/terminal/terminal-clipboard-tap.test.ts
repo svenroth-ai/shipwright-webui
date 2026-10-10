@@ -35,6 +35,7 @@ describe("pasteFromClipboardTap", () => {
     expect(d.notify).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.38
   it("does nothing for a read-only reader (never pokes the pty)", async () => {
     stubClipboard(async () => "x");
     const d = deps({ writer: false });
@@ -42,12 +43,14 @@ describe("pasteFromClipboardTap", () => {
     expect(d.term!.paste).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.38
   it("shows the paste-hint when the async Clipboard API is absent (http)", async () => {
     const d = deps();
     await pasteFromClipboardTap(d);
     expect(d.notify).toHaveBeenCalledWith("paste-hint");
   });
 
+  // @covers FR-01.38
   it("shows paste-failed when the read is denied", async () => {
     stubClipboard(async () => {
       throw new Error("denied");
@@ -57,6 +60,7 @@ describe("pasteFromClipboardTap", () => {
     expect(d.notify).toHaveBeenCalledWith("paste-failed");
   });
 
+  // @covers FR-01.38
   it("drops the result after the terminal was disposed", async () => {
     stubClipboard(async () => "late");
     const d = deps({ isDisposed: () => true });
@@ -68,6 +72,7 @@ describe("pasteFromClipboardTap", () => {
 describe("pasteFromClipboardTap — failure containment", () => {
   afterEach(() => Reflect.deleteProperty(navigator, "clipboard"));
 
+  // @covers FR-01.38
   it("turns a throwing term.paste into a paste-failed notice (no unhandled rejection)", async () => {
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,

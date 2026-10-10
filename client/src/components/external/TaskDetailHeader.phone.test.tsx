@@ -145,6 +145,7 @@ describe("TaskDetailHeader — compact (tablet + phone) header condense (AC-1)",
     expect(document.documentElement.hasAttribute("data-term-expanded")).toBe(false);
   });
 
+  // @covers FR-01.38
   it("does not render the expand toggle on desktop (the ft-head maximize owns it there)", () => {
     mockCompact(false);
     renderHeader(makeTask());
