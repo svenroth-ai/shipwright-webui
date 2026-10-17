@@ -52,7 +52,11 @@ export const SAFE_LINK_PROTOCOLS = ["http", "https", "mailto"];
  */
 export function buildEditorExtensions(): Extensions {
   return [
-    StarterKit,
+    // tiptap 3's StarterKit bundles Link, Underline and a TrailingNode (an
+    // empty paragraph forced after a trailing non-text block). We configure
+    // Link ourselves below, and the other two would change what the editor
+    // serializes (`<u>`, a stray empty paragraph after a raw-HTML block).
+    StarterKit.configure({ link: false, underline: false, trailingNode: false }),
     Link.configure({
       openOnClick: false,
       autolink: false,
@@ -77,13 +81,11 @@ export function buildEditorExtensions(): Extensions {
 
 /**
  * Serialize the current editor document back to Markdown via the
- * `tiptap-markdown` storage. Accepts the loose `Editor.storage`
- * (`Record<string, any>`) shape; returns "" if the extension is absent.
+ * `tiptap-markdown` storage. Accepts any `Editor.storage`
+ * shape (tiptap 3 types it as an interface, not a Record); returns "" if the extension is absent.
  */
-export function serializeEditorMarkdown(editor: {
-  storage: Record<string, unknown>;
-}): string {
-  const storage = editor.storage.markdown as
+export function serializeEditorMarkdown(editor: { storage: object }): string {
+  const storage = (editor.storage as Record<string, unknown>).markdown as
     | { getMarkdown?: () => string }
     | undefined;
   return storage?.getMarkdown?.() ?? "";
