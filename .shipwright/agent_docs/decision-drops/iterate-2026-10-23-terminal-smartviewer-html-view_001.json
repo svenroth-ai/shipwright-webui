@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-23-terminal-smartviewer-html-view",
+  "date": "2026-10-23",
+  "section": "Iterate — feature: SmartViewer HTML rendering + header layout",
+  "title": "Render .html in a sandboxed, network-blocked iframe",
+  "context": "Users wanted to view HTML boards (e.g. the social-engagement board) in the SmartViewer; html was shown only as source.",
+  "decision": "HtmlRenderer renders .html/.htm in an iframe sandboxed WITHOUT allow-same-origin, with a CSP meta (connect-src none, form-action none) emitted after any doctype; Preview/Source toggle; terminal links open http(s) in a new noopener tab.",
+  "consequences": "Rendered pages run scripts but cannot reach the webui API or save anything back; interactive boards stay usable via their own server in a separate tab.",
+  "rationale": "An opaque origin plus CSP isolates untrusted file content; reusing the existing file endpoint adds no server surface.",
+  "rejected": "allow-same-origin (exposes /api and storage); a server-side HTML proxy route (new write/read surface).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

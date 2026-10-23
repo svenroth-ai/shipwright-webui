@@ -57,7 +57,7 @@ export function MissionTabRow({ value, onChange, taskId }: Props) {
 
   return (
     <div
-      className="mc-tabrow flex-shrink-0 gap-2 px-2 py-1.5 md:gap-3 md:px-8 md:py-2"
+      className="mc-tabrow flex-shrink-0 gap-2 px-2 py-1.5 md:gap-3 md:px-8 md:py-1"
       data-testid="mission-tabrow"
     >
       <MissionSegmented

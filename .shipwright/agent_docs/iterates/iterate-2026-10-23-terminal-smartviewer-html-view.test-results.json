@@ -1,0 +1,98 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-23-terminal-smartviewer-html-view",
+    "date": "2026-10-23",
+    "unit": {
+      "status": "passed",
+      "passed": 4475,
+      "total": 4475
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "HTML files render in a sandboxed iframe without allow-same-origin",
+          "disposition": "tested",
+          "evidence": "HtmlRenderer.test.tsx + smartviewer-html-render.spec.ts PASSED"
+        },
+        {
+          "behavior": "CSP forbids connect/form and precedes author markup; doctype stays first",
+          "disposition": "tested",
+          "evidence": "HtmlRenderer.test.tsx PASSED; E2E fetch-blocked PASSED"
+        },
+        {
+          "behavior": "Preview/Source toggle",
+          "disposition": "tested",
+          "evidence": "HtmlRenderer.test.tsx + E2E PASSED"
+        },
+        {
+          "behavior": "Terminal http(s) links open in new tab noopener; other schemes ignored",
+          "disposition": "tested",
+          "evidence": "openTerminalLink.test.ts PASSED"
+        },
+        {
+          "behavior": "Description toggle renders on the meta-line row",
+          "disposition": "tested",
+          "evidence": "MissionMetaLine.test.tsx trailing PASSED"
+        },
+        {
+          "behavior": "Tab-row desktop padding reduced",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "pure spacing value; visual baselines regenerate Linux-only in CI"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/smartviewer-html-render.spec.ts",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\terminal-smartviewer-html-view\\.shipwright\\runs\\iterate-2026-10-23-terminal-smartviewer-html-view\\surface_verification.log",
+      "timestamp": "2026-10-23T20:59:44.730Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

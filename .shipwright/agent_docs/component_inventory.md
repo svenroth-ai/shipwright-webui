@@ -191,6 +191,7 @@ The new tool-use+result `ToolOutputBlock` is intentionally name-collision-aliase
 | Name | Path | LOC | Usages |
 |------|------|-----|--------|
 | `MermaidRenderer` | `external/SmartViewer/MermaidRenderer.tsx` | 151 | 6 |
+| `HtmlRenderer` | `external/SmartViewer/HtmlRenderer.tsx` | 78 | 0 |
 | `ViewerTabBar` | `external/SmartViewer/ViewerTabBar.tsx` | 115 | 3 |
 | `CodeRenderer` | `external/SmartViewer/CodeRenderer.tsx` | 84 | 3 |
 | `ImageRenderer` | `external/SmartViewer/ImageRenderer.tsx` | 55 | 3 |
