@@ -234,9 +234,15 @@ export function MissionTopRow({ task, modelName }: Props) {
               <ProjectChipMenu task={task} open={projectPickerOpen} onOpenChange={setProjectPickerOpen} />
             </div>
 
-            <MissionMetaLine task={task} startedAt={startedAt} lastEventAt={lastEventAt} modelName={modelName} />
-
-            <TaskDescriptionDisclosure task={task} />
+            {/* Description toggle sits NEXT TO the meta line (same wrapping row);
+                its unfolded body takes a full line below (`inline`). */}
+            <MissionMetaLine
+              task={task}
+              startedAt={startedAt}
+              lastEventAt={lastEventAt}
+              modelName={modelName}
+              trailing={task.description?.trim() ? <TaskDescriptionDisclosure task={task} inline /> : null}
+            />
           </div>
 
           <div className="flex items-center gap-2" data-testid="task-detail-actions">

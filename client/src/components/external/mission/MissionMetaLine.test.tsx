@@ -53,4 +53,16 @@ describe("MissionMetaLine", () => {
     );
     expect(screen.getByTestId("task-detail-subline")).toBeInTheDocument();
   });
+
+  // @covers FR-01.02
+  it("renders the trailing node on the same row as the meta line", () => {
+    render(
+      <MissionMetaLine
+        task={makeTask()}
+        startedAt="2026-04-20T10:00:00.000Z"
+        trailing={<button type="button" data-testid="trail">Description</button>}
+      />,
+    );
+    expect(screen.getByTestId("task-detail-subline")).toContainElement(screen.getByTestId("trail"));
+  });
 });

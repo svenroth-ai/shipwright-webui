@@ -5,6 +5,7 @@
  * Extension dispatch:
  *   .md / .markdown   → MarkdownRenderer
  *   .mmd / .mermaid   → MermaidRenderer (lazy-imported)
+ *   .html / .htm      → HtmlRenderer (sandboxed iframe, read-only; Source toggle)
  *   .png .jpg .jpeg .gif .svg .webp → ImageRenderer (browser-streamed)
  *   known-code exts   → CodeRenderer (rehype-highlight common bundle)
  *   everything else   → TextRenderer
@@ -30,43 +31,21 @@ import { CodeRenderer } from "./SmartViewer/CodeRenderer";
 import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
 import { VideoRenderer } from "./SmartViewer/VideoRenderer";
+import { HtmlRenderer } from "./SmartViewer/HtmlRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { useDocNavigation } from "./SmartViewer/useDocNavigation";
 
-export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "unknown";
+export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "html" | "unknown";
 
 const MARKDOWN_EXTS = new Set(["md", "markdown"]);
 const MERMAID_EXTS = new Set(["mmd", "mermaid"]);
+const HTML_EXTS = new Set(["html", "htm"]);
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp"]);
 const VIDEO_EXTS = new Set(["mp4", "m4v", "webm", "ogv", "ogg", "mov"]);
 const CODE_EXTS = new Set([
-  "ts",
-  "tsx",
-  "js",
-  "jsx",
-  "mjs",
-  "cjs",
-  "py",
-  "rb",
-  "go",
-  "rs",
-  "java",
-  "kt",
-  "c",
-  "h",
-  "cpp",
-  "hpp",
-  "json",
-  "yaml",
-  "yml",
-  "toml",
-  "sh",
-  "bash",
-  "zsh",
-  "sql",
-  "html",
-  "xml",
-  "css",
+  "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "rb", "go", "rs", "java", "kt",
+  "c", "h", "cpp", "hpp", "json", "yaml", "yml", "toml", "sh", "bash", "zsh",
+  "sql", "xml", "css",
 ]);
 
 export function resolveKind(path: string): { kind: SmartViewerKind; ext: string } {
@@ -74,6 +53,7 @@ export function resolveKind(path: string): { kind: SmartViewerKind; ext: string 
   const ext = dot >= 0 ? path.slice(dot + 1).toLowerCase() : "";
   if (MARKDOWN_EXTS.has(ext)) return { kind: "markdown", ext };
   if (MERMAID_EXTS.has(ext)) return { kind: "mermaid", ext };
+  if (HTML_EXTS.has(ext)) return { kind: "html", ext };
   if (IMAGE_EXTS.has(ext)) return { kind: "image", ext };
   if (VIDEO_EXTS.has(ext)) return { kind: "video", ext };
   if (CODE_EXTS.has(ext)) return { kind: "code", ext };
@@ -262,6 +242,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
     }
     if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
+    if (kind === "html") return <HtmlRenderer text={state.text} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;
   })();

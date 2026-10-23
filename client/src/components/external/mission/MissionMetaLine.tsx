@@ -8,7 +8,7 @@
  * stays reachable elsewhere (project via the chip, session metadata via ⋯).
  */
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { formatRelativeTime } from "../../../lib/formatTime";
@@ -19,9 +19,11 @@ interface Props {
   startedAt: string;
   lastEventAt?: string;
   modelName?: string | null;
+  /** Rendered last, on the same wrapping row (the task description toggle). */
+  trailing?: ReactNode;
 }
 
-export function MissionMetaLine({ task, startedAt, lastEventAt, modelName }: Props) {
+export function MissionMetaLine({ task, startedAt, lastEventAt, modelName, trailing }: Props) {
   const phase = useMemo(() => {
     const resolved = resolveTaskPhase(task);
     if (!resolved) return null;
@@ -53,6 +55,7 @@ export function MissionMetaLine({ task, startedAt, lastEventAt, modelName }: Pro
           <span className="font-mono text-[11px]">{modelName}</span>
         </>
       )}
+      {trailing}
     </div>
   );
 }
