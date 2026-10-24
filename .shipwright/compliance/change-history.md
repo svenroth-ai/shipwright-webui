@@ -1,21 +1,21 @@
 # Commit Change Log
 
-Generated: 2026-10-09T15:49:55.718376+00:00
-Source-State: run=iterate-2026-10-09-e2e-spec-repair base=5e852211f1fa release=v0.28.0
-Consistency-audit: last run 2026-09-29 (10 days earlier) — PASS
-Total commits: 937
+Generated: 2026-10-24T08:45:17.140185+00:00
+Source-State: run=iterate-2026-10-24-compliance-reconcile-b7-d-h1
+Consistency-audit: last run 2026-10-24 (same day) — FAIL
+Total commits: 953
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 376
-    "feat" : 234
-    "chore" : 156
-    "docs" : 77
+    "fix" : 382
+    "feat" : 236
+    "chore" : 162
+    "docs" : 78
     "refactor" : 37
     "test" : 34
-    "other" : 9
+    "other" : 10
     "ci" : 8
     "perf" : 5
     "build" : 1
@@ -23,10 +23,16 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 376 commits
+### Fixes (fix) — 382 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-17 | deps | migrate the markdown editor to tiptap 3 and tiptap-markdown 0.9 (#530) | 697c943a8f81 |
+| 2026-10-17 | deps | bump vitest to 4.1.12 (clears @vitest/mocker advisory) (#529) | 5bf0ec7f773a |
+| 2026-10-17 | deps | clear all high and critical npm audit findings (#528) | 850b40a22c02 |
+| 2026-10-10 | ui | remove the big gaps between Triage cards on iPad/iPhone Safari (#524) | 17ba67d62908 |
+| 2026-10-10 | ui | equal-height Task Board toolbar controls (#523) | c84809abcfe0 |
+| 2026-10-10 | terminal | paste browser-clipboard images with Ctrl+V and Alt+V (#521) | 078a97a4c8c8 |
 | 2026-10-08 | ci | ignore the sibling shipwright action by its full Dependabot name (#512) | 8cdf49c4cb0e |
 | 2026-10-08 | ui | tablet board lanes, on-demand Smart Viewer, soft-keyboard fit and phone polish (#504) | d678cc92e469 |
 | 2026-10-02 | deploy | bind loopback when the tailscale HTTPS front is on (#501) | 377256ed8dfa |
@@ -404,10 +410,12 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 234 commits
+### Features (feat) — 236 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-23 | smartviewer | render HTML files, compact task header, terminal links in new tab (#532) | a42d41a130e9 |
+| 2026-10-10 | ui | phone Task Detail polish, keyboard fit, home-screen icon, tighter Triage (#522) | 8c1556f3b5a0 |
 | 2026-10-08 | pr-review | switch the PR-review gate default model to Claude Haiku 5.5 (#505) | 5c09c2340e85 |
 | 2026-10-01 | deploy | opt-in HTTPS over the tailnet via tailscale serve (#500) | f166338fcf4a |
 | 2026-09-29 | campaigns | show the dependency graph and launch ready steps from the campaign card (#495) | bde54bc6c592 |
@@ -643,10 +651,16 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 156 commits
+### Chores (chore) — 162 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-24 | triage | sweep 2 outbox append(s) into branch | da9f9dc8bece |
+| 2026-10-17 | events | record the v0.28.0 changelog phase_completed event (#531) | 6a38d249f3dd |
+| 2026-10-17 | ci | Bump actions/setup-node from 6 to 7 (#527) | 4de69d3af209 |
+| 2026-10-17 | ci | Bump actions/upload-artifact from 6 to 7 (#526) | c6e4a36378b1 |
+| 2026-10-09 | compliance | allow the "pr-review" commit scope in G2 (#520) | 893c9c793c77 |
+| 2026-10-09 | ci | Bump peter-evans/create-or-update-comment from 4.0.0 to 5.0.0 (#514) | b8ddfaaaa762 |
 | 2026-10-09 | ci | Bump actions/checkout from 4 to 7 (#513) | 4454f4b6c7f8 |
 | 2026-10-08 | ci | Bump actions/upload-artifact from 4 to 6 (#510) | 61710e13de08 |
 | 2026-10-08 | ci | Bump actions/setup-node from 4 to 6 (#509) | e7bc67703448 |
@@ -804,10 +818,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 77 commits
+### Documentation (docs) — 78 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-10 | — | correct prerequisites (Python 3.11+ with uv for the full npx flow) (#525) | df41250af9c4 |
 | 2026-10-07 | — | refresh Command Center board and task screenshots (#502) | 841d82cf20b2 |
 | 2026-09-26 | webui | re-sync AGENTS.md with monorepo Codex operating contract (#487) | dbc153107c7b |
 | 2026-09-10 | — | document --plugins-only and --webui-only flags in README + guide (#460) | 80b827cd0a6f |
@@ -967,10 +982,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### Other (other) — 9 commits
+### Other (other) — 10 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-10-09 | — | Release v0.28.0 (#519) | 676fe5c80824 |
 | 2026-09-07 | — | iterate(w4): tag-backfill — 1196 tests, 15.75%->31.97% coverage (#437) | 1a5c3df339a5 |
 | 2026-09-07 | — | iterate(w2): form-convergence — Origin->Basis, Layers column, 29-vs-35 diagnosis (#435) | e3bbc1edcd38 |
 | 2026-09-06 | — | Release v0.27.0 (#424) | c9d3170c8394 |
@@ -1014,7 +1030,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 937 |
+| Total commits | 953 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 937 |
+| Human-authored commits | 953 |
 
