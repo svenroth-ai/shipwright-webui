@@ -1,0 +1,67 @@
+{
+  "run_id": "iterate-2026-10-24-compliance-reconcile-b7-d-h1",
+  "date": "2026-10-24T08:45:16.621621Z",
+  "event_at": "2026-10-24T08:38:31.278068+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/compliance-reconcile-b7-d-h1",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-24-compliance-reconcile-b7-d-h1",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "openTerminalLink opens http(s) in a noopener tab and ignores other schemes after extraction",
+        "disposition": "tested",
+        "evidence": "openTerminalLink.test.ts PASSED"
+      },
+      {
+        "behavior": "createEmbeddedXterm still loads Fit and WebLinks addons in the documented order",
+        "disposition": "tested",
+        "evidence": "xtermAddons.test.ts PASSED"
+      },
+      {
+        "behavior": "xtermAddons.ts is under the 300-line budget (H1 clears)",
+        "disposition": "tested",
+        "evidence": "run_audit.py H1 pass; wc -l = 299"
+      },
+      {
+        "behavior": "3 backfilled work_completed events satisfy B7",
+        "disposition": "tested",
+        "evidence": "run_audit.py B7 pass"
+      },
+      {
+        "behavior": "regenerated manifest gives executed-passing unit+e2e coverage (D1, D-layer)",
+        "disposition": "tested",
+        "evidence": "run_audit.py D1 and D-layer pass after vitest (9124) and Playwright (6) evidence"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 5,
+      "covered_acs": 5
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "n/a",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-10-24T08:45:06.227772+00:00",
+    "justification": "Behavior-preserving module extraction plus compliance bookkeeping; no UI, API or message-contract behavior changed. Covered by the xtermAddons and openTerminalLink unit tests."
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

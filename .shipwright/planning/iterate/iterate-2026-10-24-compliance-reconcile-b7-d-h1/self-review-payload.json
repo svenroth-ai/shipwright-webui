@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Four findings: B7 backfilled with 3 work_completed events; H1 fixed by extracting openTerminalLink + createTerminalLinksAddon (xtermAddons.ts 308->299); D1/D-layer cleared by regenerating the traceability manifest from executed vitest (client+server) and targeted Playwright (FR-01.66/FR-01.74) evidence. Re-audit shows 0 non-E fails."},
+{"name":"Error Handling","verdict":"pass","note":"Pure extraction; scheme allowlist (http/https only) unchanged."},
+{"name":"Security Basics","verdict":"pass","note":"Link opener keeps noopener,noreferrer and ignores non-http(s) schemes; no new inputs."},
+{"name":"Test Quality","verdict":"pass","note":"openTerminalLink.test.ts retargeted to the new module; xtermAddons tests (38) pass; full client 4469 and server 4655 vitest pass."},
+{"name":"Performance Basics","verdict":"pass","note":"No runtime change."},
+{"name":"Naming & Structure","verdict":"pass","note":"New module sits next to xtermAddons; both files under 300 lines."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No IO boundary touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"No skips or .only added."}
+]}

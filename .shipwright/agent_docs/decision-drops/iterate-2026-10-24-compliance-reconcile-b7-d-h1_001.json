@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-24-compliance-reconcile-b7-d-h1",
+  "date": "2026-10-24",
+  "section": "Iterate — change: reconcile B7, D1, D-layer, H1 compliance findings",
+  "title": "Reconcile four open compliance findings at their causes",
+  "context": "The detective audit reported B7 (3 deps commits without events), H1 (xtermAddons.ts 308>300 after PR 532), D1 and D-layer (traceability manifest carried executed=not_run).",
+  "decision": "Backfill three work_completed events; extract openTerminalLink and the WebLinks addon factory into openTerminalLink.ts; regenerate the manifest from executed vitest and targeted Playwright evidence.",
+  "consequences": "Audit shows no B/D/H fails; xtermAddons.ts at 299 lines; evidence reflects an actual run, not a stale manifest.",
+  "rationale": "Fix each finding where it originates instead of raising the baseline or suppressing the check.",
+  "rejected": "Adding xtermAddons.ts to the bloat baseline (would ratchet a fresh crossing).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
