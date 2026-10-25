@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: server/src/routes/stack-profiles.ts:79\n- Finding: Creating a user profile discards the selected project root before checking name availability. If the selected project already has `mine`, creating a user profile named `mine` succeeds because the resolver only lists user and bundled sources. This violates AC2\u2019s requirement that the name be unused in every source and creates a profile shadowed in that project.\n- Suggestion: Pass the selected project root through for collision checking and validation, while using `scope` only to choose the destination directory. Add a test for a user-scope create colliding with a project profile.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/wizard/IntentWizard/wizardState.ts:65\n- Finding: When a refresh reports that the chosen profile was deleted or became invalid, the reducer clears the answer but retains the old `customProfiles` entries. Returning to the stack question still shows that profile as enabled, and selecting it again allows the stale name to reach the launch request. Clearing the answer also changes the active question sequence after step 1, contrary to the specified step-freezing behavior.\n- Suggestion: Preserve question positions while updating the usability of existing choices, and refuse `setProfile` for profiles no longer valid. Test refreshing an invalid/deleted profile, navigating back, and attempting to select and launch it again.\n\nOverall assessment: ship-with-fixes. The resolver bridge and core flows are substantially implemented, but collision checking and refreshed wizard state need correction before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n**Category:** bug\n**Severity:** medium\n**File:** client/src/components/wizard/IntentWizard/IntentWizard.tsx (~line 57, `useStackProfiles(null, initialDoor === null || initialDoor === \"new\")`)\n**Finding:** The `enabled` flag is computed once from the immutable `initialDoor` prop. If the wizard mounts with `initialDoor` set to a repo door (\"adopt\"/\"grade\"), the query is disabled forever \u2014 even after the user presses Back to the door picker and picks \"New\". The stack-profile fetch never runs, `customProfiles` stays empty, and a user who *does* have own profiles silently gets the classic four-question flow, violating AC3's \"offers the user's own profiles in one question\".\n**Suggestion:** Derive `enabled` from the live state (e.g. `state.door === null || state.door === \"new\"`), or use a ref/state that updates when the door changes, so backing out of a repo door into the New path still fetches.\n\n**Category:** bug\n**Severity:** medium\n**File:** client/src/components/wizard/IntentWizard/wizardState.ts (deriveNewRows, `value: a.remember || a.profile ? p.name : \"\"`)\n**Finding:** `p` comes from the pre-existing `profileFor(answers)` in stubData, which was not touched by this diff and knows nothing about `answers.profile`. When a custom profile is chosen, the FlightPlanRail \"Stack profile\" row (and likely the plan card's `p.note` via the same helper) will render the *default* bundled stack name instead of the user's profile name \u2014 a wrong result shown right before launch. The E2E asserts the plan card contains \"e2e-mine\", but only via `resolveStackProfile`-derived text if the plan card uses it; the spine row definitely uses `p.name`.\n**Suggestion:** Make `profileFor` (or the plan/spine call sites) honor `answers.profile` first, mirroring `resolveStackProfile`'s new early return.\n\n**Category:** edge-case\n**Severity:** low\n**File:** client/src/components/settings/StackProfilesCard.tsx (`check()`, keyed by `${p.source}:${p.name}`)\n**Finding:** The per-name Check result is stored per `(source, name)`, but `validateStackProfile` resolves the name through the resolver's lookup order. With a user profile shadowing a same-named bundled one, clicking \"Check\" on the bundled row shows the *user* profile's verdict on the bundled row (and vice versa). Also, `checks` isn't cleared when the project selector changes, so stale cross-project verdicts persist.\n**Suggestion:** Clear `checks` when `projectId` changes, and/or have validate return the resolved source/path so the verdict can be attributed (or shown ungrouped by name).\n\n**Category:** edge-case\n**Severity:** low\n**File:** server/src/core/stack-profiles.ts (`validateStackProfile`, `if (ran.code !== 0)` branch)\n**Finding:** Any non-zero exit \u2014 including a resolver *internal* crash (exit 1), not just the probed 2 (not found) / 3 (invalid JSON) \u2014 is converted into `{ valid: false, error: lastLine(stderr) }`. An infrastructure failure is therefore rendered to the user as \"your profile is not usable\", which is a false verdict.\n**Suggestion:** Map only the known data exit codes (2, 3) to `{valid:false}`; anything else should be `{status:\"failed\"}` with the stderr line as the reason.\n\n**Category:** test\n**Severity:** low\n**File:** server/src/routes/stack-profiles.test.ts (\"removes a created file the resolver rejects\")\n**Finding:** The rollback test relies on the fake validate rejecting any name it doesn't special-case (\"zzz\" \u2192 exit 2 \"not found\"). That exercises rollback on the not-found path, but not the \"resolver returns `{valid:false, error}` with exit 0\" path \u2014 a fake returning `code:0, stdout:{valid:false}` would be a more faithful check that JSON-level rejection also triggers `fsp.rm`. Low risk, but the current test would pass even if the code only rolled back on non-zero exits.\n**Suggestion:** Add (or switch to) a fake validate that exits 0 with `{valid:false, name, error:\"...\"}` and assert the file is removed.\n\n**Category:** edge-case\n**Severity:** low\n**File:** client/src/components/wizard/IntentWizard/adoptSnapshotProfile.ts (schema_version guard)\n**Finding:** Only `major > SUPPORTED` is refused; a `schema_version` of `\"0.x\"` (or a negative major) passes the guard and is read. Harmless today but inconsistent with the \"refuse a newer major\" intent stated in the test (\"never half-reads\").\n**Suggestion:** Also refuse non-positive/unparseable majors, or at least document that only newer majors are refused.\n\n## Notes on what's solid\n\n- AC1, AC2, AC4, AC5 are genuinely implemented: fixture-pinned contract with unknown-major refusal, `wx` write with rollback on resolver rejection, reserved/device/name-shape refusal, tolerant 1.0/1.1 snapshot reader with tests for both.\n- The create surface is careful: name never reaches argv without shape check (option-injection blocked), `from` must match a resolver-listed bundled profile, project symlink escape checked, project synthesized paths excluded from route resolution.\n- The reducer step math (`activeQuestions`/`planStep`, late-list freezing, chosen-profile disappearing) is well covered by `customProfile.test.tsx` with real behavioral assertions, not smoke calls.\n\n**Overall assessment:** ship-with-fixes \u2014 the core feature is well built, but the wizard's fetch-enable freeze (repo door \u2192 back \u2192 New silently loses the profile question) and the spine/plan-card rendering of custom profile names need to be fixed before this matches AC3 end-to-end.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-25-custom-stack-profiles-ui",
+    "at": "2026-10-25T06:55:18.371325+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

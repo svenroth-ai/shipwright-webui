@@ -299,7 +299,7 @@ if (isMainModule) {
       // createProjectRoutes is registered below — its DELETE cascade needs the
       // scrollback + snapshot stores constructed further down.
       app.route("/", createSettingsRoutes(settingsPath, settingsDeps));
-      app.route("/", createProfilesRoutes());
+      app.route("/", createProfilesRoutes({ projectManager }));
       // Section 03 (iterate 3) — preview-session manager. Single instance
       // per server process so the dedup map lives across requests. Its
       // killAll() runs on shutdown so user-spawned dev servers don't

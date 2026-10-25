@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-25-custom-stack-profiles-ui",
+  "date": "2026-10-25",
+  "section": "Iterate — feature: custom stack profiles UI",
+  "title": "Surface custom stack profiles through the monorepo resolver CLI, not by reading the profile dirs",
+  "context": "Shipwright's resolver (contract_version 1) now finds project/user/bundled stack profiles. The Command Center needed to list, validate and create them, and to offer a user's own stack in the Intent Wizard.",
+  "decision": "Wrap resolve_profile.py list|validate --json (uv, shell:false, pinned contract + real-output fixture); the only write is a renamed copy of a bundled profile (wx, resolver-validated, rolled back unless confirmed valid). The wizard asks one explained stack question only when own profiles exist; choosing one skips remember/where.",
+  "consequences": "Lookup order and schema stay owned by the monorepo, so the UI cannot disagree with the phases. The wizard step count is now dynamic (activeQuestions/planStep). Preview for a project with a custom profile is not wired (profile-loader reads only the bundled snapshot).",
+  "rationale": "Reading ~/.shipwright/profiles from Node would duplicate lookup order, shadowing and schema rules and drift silently; a bridge mirrors the campaign-readiness pattern already used here.",
+  "rejected": "Reading the profile directories directly in Node (drift risk); generating a profile from wizard answers (out of scope, operator may want it later).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

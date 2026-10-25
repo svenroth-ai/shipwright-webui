@@ -25,10 +25,13 @@ import type { NewAnswers } from "./types";
 
 export function NewPathPlanCard({
   answers,
+  stepCount = 5,
   dispatch,
   onLaunch,
 }: {
   answers: NewAnswers;
+  /** Total step dots (questions + the plan); 5 in the classic four-question run. */
+  stepCount?: number;
   dispatch: (a: WizardAction) => void;
   onLaunch: (request: WizardLaunchRequest) => void;
 }) {
@@ -42,7 +45,7 @@ export function NewPathPlanCard({
 
   return (
     <div className="wz-left wz-block" data-testid="wizard-plan-card">
-      <StepDots total={5} current={5} />
+      <StepDots total={stepCount} current={stepCount} />
       <h2 className="wz-q wz-q-sub">Here’s what I understood.</h2>
       <div className="wz-hint">
         {answers.brief || "Your idea"} — for <b>{answers.who || "you"}</b>, on the <b>{p.name}</b> stack ({p.note}).

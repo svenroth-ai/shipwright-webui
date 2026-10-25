@@ -68,6 +68,11 @@ export interface StackProfileResolution {
 }
 
 export function resolveStackProfile(answers: NewAnswers): StackProfileResolution {
+  // One of the user's OWN profiles decides the stack outright. Env-var needs are
+  // the profile's business (the Deploy step reads them), not the wizard's.
+  if (answers.profile) {
+    return { profile: answers.profile, note: "your own stack profile", envVarsRequired: false };
+  }
   const remembers = answers.remember === "Yes";
   const onWeb = answers.where === "On the web";
   if (remembers) {
@@ -205,9 +210,15 @@ export function composeNewBrief(
   const idea = answers.brief?.trim() || "My idea";
   const parts: string[] = [];
   if (answers.who) parts.push(`Users: ${answers.who}`);
-  parts.push(`Saves data: ${answers.remember ?? "Not sure yet"}`);
-  if (answers.where) parts.push(`Runs: ${answers.where}`);
-  parts.push(`Stack profile: ${resolution.profile}`);
+  if (!answers.profile) {
+    parts.push(`Saves data: ${answers.remember ?? "Not sure yet"}`);
+    if (answers.where) parts.push(`Runs: ${answers.where}`);
+  }
+  parts.push(
+    answers.profile
+      ? `Stack profile: ${resolution.profile} (the user's own — do not re-ask the stack)`
+      : `Stack profile: ${resolution.profile}`,
+  );
   if (resolution.envVarsRequired) {
     parts.push("Supabase env vars will be needed at the Deploy step (not before)");
   }

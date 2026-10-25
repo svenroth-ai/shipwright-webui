@@ -99,6 +99,18 @@ export interface NewAnswers {
   who?: string;
   remember?: string;
   where?: string;
+  /** Name of one of the user's OWN stack profiles. When set it decides the
+   *  stack, so the "remember" / "where" questions are not asked. */
+  profile?: string;
+}
+
+/** One of the user's own profiles, as offered by the stack question. */
+export interface CustomProfileChoice {
+  name: string;
+  description: string | null;
+  /** Invalid profiles are listed with their reason but cannot be picked. */
+  valid: boolean;
+  error: string | null;
 }
 
 export interface WizardState {
@@ -110,6 +122,9 @@ export interface WizardState {
   path: string | null;
   /** working-screen progress index, or null when not working. */
   workingTick: number | null;
+  /** The user's own profiles (from the resolver). Empty ⇒ the stack question
+   *  is skipped and the wizard is exactly the four-question flow. */
+  customProfiles: CustomProfileChoice[];
 }
 
 /** A single row on the flight-plan spine. `answered=false` ⇒ dim node, not a placeholder row. */

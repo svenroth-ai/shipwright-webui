@@ -7,8 +7,8 @@
  * so the reducer knows when to advance to the result without the view telling it.
  */
 
-import { doorLabel, profileFor, scanSteps } from "./stubData";
-import type { FlightRow, WizardDoor, WizardState } from "./types";
+import { activeQuestions, doorLabel, profileFor, scanSteps } from "./stubData";
+import type { CustomProfileChoice, FlightRow, WizardDoor, WizardState } from "./types";
 
 export const INITIAL_STATE: WizardState = {
   door: null,
@@ -16,13 +16,21 @@ export const INITIAL_STATE: WizardState = {
   answers: {},
   path: null,
   workingTick: null,
+  customProfiles: [],
 };
+
+/** The plan card's step = one past the last question of THIS run. */
+export function planStep(s: Pick<WizardState, "customProfiles" | "answers">): number {
+  return activeQuestions(s).length + 1;
+}
 
 export type WizardAction =
   | { t: "pickDoor"; door: WizardDoor }
   | { t: "setBrief"; text: string }
   | { t: "chip"; text: string }
   | { t: "answer"; k: "who" | "remember" | "where"; v: string }
+  | { t: "setProfile"; name: string | null }
+  | { t: "setCustomProfiles"; profiles: CustomProfileChoice[] }
   | { t: "next" }
   | { t: "back" }
   | { t: "setPath"; path: string }
@@ -40,12 +48,38 @@ export function wizardReducer(s: WizardState, a: WizardAction): WizardState {
       return { ...s, answers: { ...s.answers, brief: a.text }, step: 2 };
     case "answer":
       return { ...s, answers: { ...s.answers, [a.k]: a.v } };
+    case "setProfile": {
+      const { profile: _drop, ...rest } = s.answers;
+      // An unusable (or unknown) profile can never become the answer.
+      if (a.name && !s.customProfiles.some((c) => c.name === a.name && c.valid)) return s;
+      return { ...s, answers: a.name ? { ...rest, profile: a.name } : rest };
+    }
+    case "setCustomProfiles": {
+      // Before the questions start the list is simply taken (step numbers shift
+      // with it). Later it is FROZEN - except that a chosen profile which is no
+      // longer in the fresh list (deleted or broken on disk since) is dropped, so
+      // a stale name can never be handed to /shipwright-run.
+      const stillUsable =
+        !s.answers.profile || a.profiles.some((p) => p.name === s.answers.profile && p.valid);
+      const { profile: _gone, ...rest } = s.answers;
+      const answers = stillUsable ? s.answers : rest;
+      if (s.step > 1) {
+        // Frozen SHAPE (same entries, same order => same question count), fresh
+        // USABILITY: a profile the new list lacks or marks broken can't be re-picked.
+        const refreshed = s.customProfiles.map((c) => {
+          const now = a.profiles.find((p) => p.name === c.name);
+          return now ? { ...c, valid: now.valid, error: now.error } : { ...c, valid: false, error: "It no longer exists." };
+        });
+        return { ...s, answers, customProfiles: refreshed };
+      }
+      return { ...s, answers, customProfiles: a.profiles };
+    }
     case "next": {
       // New door: step 1 keeps a typed-but-empty brief honest with a default.
       if (s.door === "new" && s.step === 1 && !s.answers.brief?.trim()) {
         return { ...s, answers: { ...s.answers, brief: "My idea" }, step: 2 };
       }
-      return { ...s, step: Math.min(5, s.step + 1) };
+      return { ...s, step: Math.min(planStep(s), s.step + 1) };
     }
     case "back": {
       if (s.workingTick !== null) {
@@ -54,7 +88,8 @@ export function wizardReducer(s: WizardState, a: WizardAction): WizardState {
       }
       if (s.step <= 1) {
         // Adopt/grade step-1 back returns to the picker; new step-1 too.
-        return { ...INITIAL_STATE };
+        // Keep the fetched profile list: the effect that fills it won't re-fire.
+        return { ...INITIAL_STATE, customProfiles: s.customProfiles };
       }
       return { ...s, step: s.step - 1 };
     }
@@ -98,9 +133,13 @@ export function deriveNewRows(s: WizardState): FlightRow[] {
     },
     {
       key: "Stack profile",
-      answered: !!a.remember,
-      value: a.remember ? p.name : "",
-      why: a.remember ? `Because you said “${a.remember}” → ${p.note}.` : "",
+      answered: !!a.remember || !!a.profile,
+      value: a.remember || a.profile ? p.name : "",
+      why: a.profile
+        ? "Your own profile — it decides the stack, so I won’t ask about it."
+        : a.remember
+          ? `Because you said “${a.remember}” → ${p.note}.`
+          : "",
     },
     {
       key: "Runs at",

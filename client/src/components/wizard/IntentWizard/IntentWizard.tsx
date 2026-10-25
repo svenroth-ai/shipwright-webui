@@ -20,6 +20,7 @@ import { GradeResult } from "./GradeResult";
 import { LaunchingScreen } from "./LaunchingScreen";
 import { FlightPlanRail } from "./FlightPlanRail";
 import { useReadiness } from "./useReadiness";
+import { useStackProfiles } from "../../../hooks/useStackProfiles";
 import { useWizardLaunch } from "./useWizardLaunch";
 import { useGradeReport } from "./useGradeReport";
 import { isRemote } from "./stubData";
@@ -27,8 +28,10 @@ import {
   INITIAL_STATE,
   deriveDoorRows,
   deriveNewRows,
+  planStep,
   wizardReducer,
 } from "./wizardState";
+import { activeQuestions } from "./stubData";
 import type { WizardLaunchRequest } from "./contract";
 import type { WizardDoor, WizardState } from "./types";
 
@@ -48,6 +51,22 @@ export function IntentWizard({
 }) {
   const [state, dispatch] = useReducer(wizardReducer, initialDoor, initState);
   const readiness = useReadiness();
+  // The user's OWN stack profiles (no project yet → user-level + built-in only).
+  // Resolver trouble is silent here on purpose: the wizard then simply behaves
+  // as the classic four-question flow (Settings explains the cause).
+  // Fetched from the moment the wizard opens (not after the door is picked), so
+  // the answer is normally in before the first question is even answered.
+  const stackProfiles = useStackProfiles(null, state.door === null || state.door === "new");
+  const stackReport = stackProfiles.data?.status === "ok" ? stackProfiles.data.report : null;
+  useEffect(() => {
+    if (!stackReport) return;
+    dispatch({
+      t: "setCustomProfiles",
+      profiles: stackReport.profiles
+        .filter((p) => p.source === "user")
+        .map((p) => ({ name: p.name, description: p.description, valid: p.valid, error: p.error })),
+    });
+  }, [stackReport]);
   const launch = useWizardLaunch();
   // Grade door: run the REAL read-only grade once the user commits a target
   // (step ≥ 2). A bare /wizard/grade (step 1) fires nothing (A09b, FR-01.53).
@@ -119,10 +138,17 @@ export function IntentWizard({
   } else if (state.step === 0 || state.door === null) {
     body = <DoorPicker readiness={readiness} onPickDoor={(d) => dispatch({ t: "pickDoor", door: d })} />;
   } else if (state.door === "new") {
-    body = state.step >= 5 ? (
-      <NewPathPlanCard answers={state.answers} dispatch={dispatch} onLaunch={handleLaunch} />
+    const plan = planStep(state);
+    body = state.step >= plan ? (
+      <NewPathPlanCard answers={state.answers} stepCount={plan} dispatch={dispatch} onLaunch={handleLaunch} />
     ) : (
-      <NewPathQuestions step={state.step} answers={state.answers} dispatch={dispatch} />
+      <NewPathQuestions
+        step={state.step}
+        questions={activeQuestions(state)}
+        customProfiles={state.customProfiles}
+        answers={state.answers}
+        dispatch={dispatch}
+      />
     );
   } else if (state.step === 1) {
     body = <RepoPicker door={state.door} path={state.path} dispatch={dispatch} />;

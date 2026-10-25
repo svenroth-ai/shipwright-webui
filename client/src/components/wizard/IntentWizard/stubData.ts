@@ -64,6 +64,28 @@ export interface QuestionDef {
   opts?: string[];
 }
 
+/** The stack question — only offered when the user has profiles of their own. */
+export const STACK_QUESTION: QuestionDef = {
+  k: "profile",
+  q: "Do you already have a tech stack you like to use?",
+  hint:
+    "A few questions will follow that decide the technology your project is built on. " +
+    "If you've used Shipwright before and saved your own tech stack (a “stack profile”), pick it below and I'll skip those questions. " +
+    "New here? Choose “I'm new — guide me” and I'll ask a few simple questions instead.",
+  type: "opts",
+};
+
+/** The questions for THIS wizard run, in order. With no own profiles (or none
+ *  chosen) this is the classic four; choosing a profile drops the two
+ *  stack-deciding questions ("remember" and "where"). */
+export function activeQuestions(
+  s: { customProfiles: unknown[]; answers: NewAnswers },
+): QuestionDef[] {
+  const [brief, who, remember, where] = QUESTIONS;
+  const stack = s.customProfiles.length > 0 ? [STACK_QUESTION] : [];
+  return s.answers.profile ? [brief, ...stack, who] : [brief, ...stack, who, remember, where];
+}
+
 export const QUESTIONS: QuestionDef[] = [
   {
     k: "brief",
