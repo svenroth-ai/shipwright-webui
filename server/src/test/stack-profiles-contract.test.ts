@@ -22,6 +22,7 @@ const spawnOf = (stdout: string, code = 0, stderr = ""): CliChildSpawnFn => asyn
 const deps = (spawn: CliChildSpawnFn) => ({ run: okRun, spawn, existsFn: () => true, homeDir: "/h" });
 
 describe("stack-profile list contract v1", () => {
+  // @covers FR-01.75
   it("pins the entry shape the UI renders", () => {
     const parsed = JSON.parse(fixture);
     expect(parsed.contract_version).toBe(1);
@@ -34,6 +35,7 @@ describe("stack-profile list contract v1", () => {
     expect(Object.keys(parsed).sort()).toEqual(["contract_version", "profiles", "searched", "warnings"]);
   });
 
+  // @covers FR-01.75
   it("returns the report for a supported contract and keeps invalid entries", async () => {
     const out = await listStackProfiles({}, deps(spawnOf(fixture)));
     expect(out.status).toBe("ok");
@@ -44,16 +46,19 @@ describe("stack-profile list contract v1", () => {
     expect(out.report.profiles.find((p) => p.name === "my-stack")?.source).toBe("project");
   });
 
+  // @covers FR-01.75
   it("refuses an unrecognised major instead of half-rendering", async () => {
     const v2 = JSON.stringify({ ...JSON.parse(fixture), contract_version: 2 });
     expect(await listStackProfiles({}, deps(spawnOf(v2)))).toEqual({ status: "unsupported-contract", version: "2" });
   });
 
+  // @covers FR-01.75
   it("is engine-unavailable when the resolver script is missing", async () => {
     const out = await listStackProfiles({}, { ...deps(spawnOf(fixture)), existsFn: () => false });
     expect(out.status).toBe("engine-unavailable");
   });
 
+  // @covers FR-01.75
   it("surfaces the CLI error line when it exits non-zero", async () => {
     const out = await listStackProfiles({}, deps(spawnOf("", 1, "error: boom\n")));
     expect(out).toEqual({ status: "failed", reason: "boom" });
@@ -61,6 +66,7 @@ describe("stack-profile list contract v1", () => {
 });
 
 describe("validate parsing + create rollback policy", () => {
+  // @covers FR-01.75
   it("parses the JSON document even when the human line before it contains a brace", async () => {
     const { validateStackProfile } = await import("../core/stack-profiles.js");
     const out = `profile 'a{b': source=user (/x/{y}.json)\n${JSON.stringify({ valid: true, name: "a", source: "user", path: "/x", schema_version: 1, shadows: [], warnings: [], searched: [] }, null, 2)}`;
@@ -68,17 +74,20 @@ describe("validate parsing + create rollback policy", () => {
     expect(r.status === "ok" && r.report.valid).toBe(true);
   });
 
+  // @covers FR-01.75
   it("does not render a validate report of a different contract as valid", async () => {
     const { validateStackProfile } = await import("../core/stack-profiles.js");
     const out = JSON.stringify({ contract_version: 2, valid: true, name: "abc" });
     expect(await validateStackProfile({ name: "abc" }, deps(spawnOf(out)))).toEqual({ status: "unsupported-contract", version: "2" });
   });
 
+  // @covers FR-01.75
   it("rejects malformed list entries instead of trusting them", async () => {
     const bad = JSON.stringify({ contract_version: 1, profiles: [{ name: "x" }], warnings: [], searched: [] });
     expect((await listStackProfiles({}, deps(spawnOf(bad)))).status).toBe("failed");
   });
 
+  // @covers FR-01.75
   it("never lets an option-looking name reach the resolver", async () => {
     const { validateStackProfile } = await import("../core/stack-profiles.js");
     let called = false;

@@ -26,18 +26,21 @@ const start = (profiles = [mine]): WizardState =>
 const keys = (s: WizardState) => activeQuestions(s).map((q) => q.k);
 
 describe("activeQuestions", () => {
+  // @covers FR-01.75
   it("is exactly the classic four when the user has no own profiles", () => {
     const s = start([]);
     expect(keys(s)).toEqual(["brief", "who", "remember", "where"]);
     expect(planStep(s)).toBe(5);
   });
 
+  // @covers FR-01.75
   it("inserts the stack question after the brief when own profiles exist", () => {
     const s = start();
     expect(keys(s)).toEqual(["brief", "profile", "who", "remember", "where"]);
     expect(planStep(s)).toBe(6);
   });
 
+  // @covers FR-01.75
   it("drops remember/where once an own profile is chosen, and restores them when unchosen", () => {
     let s = wizardReducer(start(), { t: "setProfile", name: "my-stack" });
     expect(keys(s)).toEqual(["brief", "profile", "who"]);
@@ -49,6 +52,7 @@ describe("activeQuestions", () => {
 });
 
 describe("reducer", () => {
+  // @covers FR-01.75
   it("walks brief → stack → who → plan with an own profile", () => {
     let s = wizardReducer(start(), { t: "setProfile", name: "my-stack" });
     s = { ...s, step: 3 }; // on "who"
@@ -56,6 +60,7 @@ describe("reducer", () => {
     expect(s.step).toBe(planStep(s));
   });
 
+  // @covers FR-01.75
   it("ignores a late profile list once the questions have started (step numbers would shift)", () => {
     let s = wizardReducer({ ...INITIAL_STATE }, { t: "pickDoor", door: "new" });
     s = { ...s, step: 3 };
@@ -66,6 +71,7 @@ describe("reducer", () => {
 describe("launch request", () => {
   const answers = { brief: "A yoga tool", who: "Just me", profile: "my-stack" };
 
+  // @covers FR-01.75
   it("resolves to the own profile, no Supabase env note", () => {
     expect(resolveStackProfile({ ...answers, remember: "Yes", where: "On the web" })).toEqual({
       profile: "my-stack",
@@ -74,6 +80,7 @@ describe("launch request", () => {
     });
   });
 
+  // @covers FR-01.75
   it("hands the profile to /shipwright-run and does not claim answers it never asked", () => {
     const req = buildNewLaunchRequest(answers, { name: "yoga", path: "C:\\dev\\yoga" });
     expect(req.profile).toBe("my-stack");
@@ -84,6 +91,7 @@ describe("launch request", () => {
 });
 
 describe("back to the door picker", () => {
+  // @covers FR-01.75
   it("keeps the fetched profile list (the fetch effect will not re-fire)", () => {
     let s = start();
     s = wizardReducer(s, { t: "back" }); // step 1 → picker
