@@ -226,7 +226,8 @@ describe("projectCommandRefusal", () => {
     expect(userCommandRefusal("../other/prog")).not.toBeNull();
     expect(userCommandRefusal("make dev")).toBeNull();
     expect(projectCommandRefusal("next dev -p 5190")).toBeNull();
-    expect(userCommandRefusal(".\\dev.exe")).not.toBeNull();
+    // a backslash is a path separator on Windows only (POSIX quoting eats it)
+    if (process.platform === "win32") expect(userCommandRefusal(".\\dev.exe")).not.toBeNull();
     expect(userCommandRefusal(join(project, "bin", "x"), project)).not.toBeNull();
     expect(userCommandRefusal(process.platform === "win32" ? "C:\\tools\\dev.exe" : "/usr/bin/dev")).toBeNull();
   });
