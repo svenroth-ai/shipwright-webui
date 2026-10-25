@@ -115,7 +115,7 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/107-custom-stack-profiles.spec.ts",
+      "runner": "npm.cmd --prefix client run test:e2e -- client/e2e/flows/107-custom-stack-profiles.spec.ts",
       "exit_code": 0,
       "tests_run": 2,
       "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\custom-stack-profiles-ui\\.shipwright\\runs\\iterate-2026-10-25-custom-stack-profiles-ui\\surface_verification.log",
