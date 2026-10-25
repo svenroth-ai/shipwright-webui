@@ -110,6 +110,8 @@ client/e2e/.poc-screenshots/
 /.shipwright/agent_docs/decision-drops-legacy-pending-scan/
 /.shipwright/planning/iterate/**/scratch/
 /.shipwright/agent_docs/*.log.lock
+!/.shipwright/profiles/
+/.shipwright/profiles/*.tmp
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)
