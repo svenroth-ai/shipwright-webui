@@ -1,0 +1,380 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T12:32:03.365599+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "“Any failure → null” conflicts with AC2: bundled profiles must keep working when the resolver is absent. Falling back only when the resolver returns `source: bundled` cannot handle that case.",
+          "suggestion": "Explicitly preserve the existing bundled loader when the resolver is unavailable. Distinguish resolver unavailability from a resolver response declaring a custom profile invalid; the latter must not fall back to a bundled profile with the same name. Test both paths.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The cache description does not specify how failed lookups expire or how cached successes are revalidated. An unchanged file mtime does not reveal a newly created higher-priority project profile, and a cached profile must not survive deletion or a symlink change that puts it outside the allowed roots.",
+          "suggestion": "Make the 15-second TTL trigger resolver validation independently of mtime. Before reusing a successful entry, check its current realpath, containment, and mtime; evict on failure. Give negative results a bounded TTL and test shadowing, deletion, and symlink replacement.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "useAdoptScan(path)` introduces asynchronous results without specifying what happens when the selected repository changes during a scan. A slower response for repository A could overwrite the profile shown for repository B.",
+          "suggestion": "Key scan state by the selected path, reset to explicitly labelled sample data on changes, and ignore superseded responses. Ensure failed scans clear any previous live profile.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "The proposed browser test stops at “URL returned,” which does not establish AC6’s requirement that a dev server actually starts. Also, the scan plan does not explicitly verify rejection of unknown snapshot majors.",
+          "suggestion": "Have the browser test wait for the preview URL to serve identifiable fixture content. Add a scan-route test showing that an unknown major produces the unavailable/sample fallback rather than displaying its profile.  The approach is sound and appropriately scoped, but bundled fallback behavior and cache semantics need clarification before implementation. The remaining changes are small additions to client state handling and acceptance verification.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-25T12:03:47.835931+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: approach — Severity: low**\n  Caching keyed on `projectPath\\0name` with mtime check is sound and the resolver-not-reimplementation stance is right. One refinement: distinguish failure modes in the cache — a negative result (invalid profile) should also be cached briefly, otherwise a broken profile means a resolver spawn on every actions GET for that project. Confirm the null result is cached, not just successes.\n\n- **Category: risk — Severity: medium**\n  Changing `loadProfile` from sync to a union (`Promise|sync`) ripples to every existing consumer of that dependency. If any caller outside the two you've listed (actions GET, preview spawn) uses `loadProfile` synchronously — e.g. `ProjectManager.hasPreviewCapability` is explicitly out of scope but other call sites may exist — a union type hides the break until runtime. Suggestion: grep all `loadProfile` call sites before settling on the union; consider making it strictly `Promise` and updating all callers, which is a small, honest refactor and avoids a type lie.\n\n- **Category: security — Severity: medium**\n  `POST /api/adopt/scan` takes an arbitrary `path` from the request body. Even with realpath + fixed argv + shell:false, this lets any client with app access point a read-only analyzer at any directory on the machine and exfiltrate a structural summary (file names, detected frameworks) through the response. Suggestion: at minimum require the path to be under a user-configured workspace/known-repos root, or confirm this route sits behind the same auth as other mutating routes and document the exposure. Also note that `analyze_codebase.py` output lands in os tmp — ensure the tmp file is deleted on timeout/error paths, not just success, or you leak repo structure into tmp.\n\n- **Category: edge-case — Severity: low**\n  AC2 requires \"unreadable file yields no Preview\" with error `preview_profile_invalid`, but the mini-plan collapses every failure to `null` with a single code. A pars […truncated]\n\n[openai] 1. **Category: risk | Severity: high**  \n   **Finding:** “Any failure → null” conflicts with AC2: bundled profiles must keep working when the resolver is absent. Falling back only when the resolver returns `source: bundled` cannot handle that case.  \n   **Suggestion:** Explicitly preserve the existing bundled loader when the resolver is unavailable. Distinguish resolver unavailability from a resolver response declaring a custom profile invalid; the latter must not fall back to a bundled profile with the same name. Test both paths.\n\n2. **Category: edge-case | Severity: medium**  \n   **Finding:** The cache description does not specify how failed lookups expire or how cached successes are revalidated. An unchanged file mtime does not reveal a newly created higher-priority project profile, and a cached profile must not survive deletion or a symlink change that puts it outside the allowed roots.  \n   **Suggestion:** Make the 15-second TTL trigger resolver validation independently of mtime. Before reusing a successful entry, check its current realpath, containment, and mtime; evict on failure. Give negative results a bounded TTL and test shadowing, deletion, and symlink replacement.\n\n3. **Category: edge-case | Severity: medium**  \n   **Finding:** `useAdoptScan(path)` introduces asynchronous results without specifying what happens when the selected repository changes during a scan. A slower response for repository A could overwrite the profile shown for repository B.  \n   **Suggestion:** Key scan state by the selected path, reset to explicitly labelled sample data on changes, and ignore superseded responses. Ensure failed scans clear any previous live profile.\n\n4. **Category: approach | Severity: medium**  \n   **Finding:** The proposed browser test stops at “URL returned,” which does not establish AC6’s requirement that a dev server actually starts. Also, the scan plan does not explicitly verify rejection of unknown snapshot majors.  \n   **Suggestion:** Have t […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 69,
+          "finding": "Inline-eval guard for project profiles bypassable (node --eval=1, python -cprint(1), python -Ic, --import data:, deno eval, uv run python -c). FIXED: interpreters accept only plain file args; negative tests added.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/hooks/useAdoptScan.ts",
+          "line": 13,
+          "finding": "Transient scan outcomes (busy/failed/engine-unavailable) cached as success for 60s. FIXED: staleTime 0 unless status ok.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 105,
+          "finding": "slot() could exceed the concurrency cap. FIXED: direct hand-off.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 178,
+          "finding": "fresh/non-fresh resolve race on inFlight/cache and uncached throw. FIXED: identity check, newer-cache guard, negative-cached throw.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 121,
+          "finding": "Symlinked profiles folder passed containment. FIXED: lstat symlink refusal.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/adopt-scan.ts",
+          "line": 130,
+          "finding": "UNC paths accepted by scan. FIXED: refused.",
+          "suggestion": "fixed",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/routes/profiles.ts",
+          "line": 1,
+          "finding": "adopt-scan mounted inside createProfilesRoutes. DECLINED: index.ts is at its bloat ceiling; documented.",
+          "suggestion": "declined",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "duplication",
+          "file": "server/src/external/actions/get.ts",
+          "line": 1,
+          "finding": "loadProfile type repeated four times. DECLINED: cosmetic, out of scope.",
+          "suggestion": "declined",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/adopt-scan.ts",
+          "line": 88,
+          "finding": "Raw bidi chars in CONTROL regex. DECLINED: matches parameter-resolver.ts practice.",
+          "suggestion": "declined",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T12:24:43.065921+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "server/src/core/adopt-scan.ts",
+          "line": 130,
+          "finding": "Claim under doubt: UNC scan paths are refused — regex class in adopt-scan.ts was mis-escaped so backslash UNC paths reached realpathSync. FIXED: correct class; test asserts the up-front rejection for backslash, slash and extended-length UNC forms.",
+          "suggestion": "fixed",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 49,
+          "finding": "Claim under doubt: project command policy is a real boundary — npx/bun/pnpm/yarn args unchecked. FIXED: npx removed; package managers only run/dev/start of a plain script name; interpreters take plain in-project file args only (no flags/eval/URL/absolute/drive/parent paths); negative tests added.",
+          "suggestion": "fixed",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 113,
+          "finding": "Claim under doubt: resolver queue on hot actions GET is bounded — waiters unbounded. FIXED: more than 8 waiting degrades to no-Preview immediately; test added.",
+          "suggestion": "fixed",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "server/src/core/adopt-scan.ts",
+          "line": 148,
+          "finding": "Claim under doubt: one scan at a time — uv --version spawned before busy check. FIXED: lock taken before any process.",
+          "suggestion": "fixed",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 133,
+          "finding": "Claim under doubt: profiles folder symlink refused — ancestor symlink not covered. FIXED: realBase must be inside realpath(project).",
+          "suggestion": "fixed",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T12:28:16.736201+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec / bug",
+          "file": "server/src/core/custom-profile-loader.ts` (~line 195, the `candidates`/`existsSync` fast path)",
+          "line": null,
+          "finding": "AC1 says the profile file is located by the shipwright resolver, \"never by a re-implemented lookup.\" The fast path is a partial re-implementation: it only probes `<name>.json` in the two custom dirs. Any profile the resolver would attribute to that name through a different file name (a file whose internal `name` field matches, which is how shadowing reports typically work in the resolver), or any other resolution rule the resolver applies, is silently skipped and the bundled twin is returned instead. A user who creates `~/.shipwright/profiles/myconf.json` with `\"name\": \"vite-hono\"` would get the bundled profile instead of their shadowing one — resolver and this loader disagree.",
+          "suggestion": "Either drop the fast path (the concurrency cap already protects the hot endpoint) or narrow it to a provable subset and document the divergence; at minimum add a test pinning that the fast path matches the resolver's semantics for name-field shadowing.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/routes/adopt-scan.ts:15-27",
+          "line": null,
+          "finding": "AC5 requires \"local-only/Origin guard confirmed\" for `/api/adopt/scan`. The route itself has only a JSON content-type check (a decent CSRF mitigation, and it blocks simple cross-site form posts), but no Host/Origin validation is visible in the diff. If the surrounding app doesn't already apply a local-only guard to this mount point, a DNS-rebinding page can pass the content-type check (it's same-origin after rebinding, preflight succeeds) and drive the analyzer on arbitrary local paths. Also note the route is mounted inside `createProfilesRoutes` only when `projectManager` is present (`server/src/routes/profiles.ts:33-34`) — a build without a project manager silently loses the route, and it's unclear that mount point carries the same guard as the `/api/external/` surface.",
+          "suggestion": "Confirm/assert the local-only/Origin guard covers this route (and add a test), or add the same Host check the other routes use directly in `createAdoptScanRoutes`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/custom-profile-loader.ts` `readCustom` (lstat/realpath of `base`)",
+          "line": null,
+          "finding": "Containment is computed relative to `realpathSync(base)`, but an ancestor of the base (e.g. `~/.shipwright` or `<project>/.shipwright`) that is itself a symlink relocates `realBase` to anywhere on disk, and every file under the relocated folder then passes `contained`. The project-source branch checks that `realBase` stays inside the project's realpath, but there is no equivalent check that a user-source `realBase` stays inside the home dir — contradicting AC3's \"must lie inside … `~/.shipwright/profiles` after realpath\" for the user case (relevant when `HOME` is attacker-influenced or a dotfile symlink exists).",
+          "suggestion": "Add a `contained(realpathSync(homeDir), realBase)` check for the user source, symmetric to the project one.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/core/adopt-scan.ts` `refuseRoot",
+          "line": null,
+          "finding": "Home-folder refusal compares the realpath'd repo against `path.resolve(home)`, not `realpathSync(home)`. On macOS (`/tmp` → `/private/tmp`) or any symlinked home, a repo placed directly in home passes the guard. Low impact (still needs a valid repo), but the guard silently doesn't fire where it's meant to.",
+          "suggestion": "realpath the home dir before comparing (falling back to resolve on error).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/108-custom-profile-preview-and-adopt.spec.ts` (\"a bundled-profile project keeps working…\")",
+          "line": null,
+          "finding": "AC2 requires bundled profiles to behave exactly as before. The test only asserts `typeof preview.enabled === \"boolean\"` — a regression that disables Preview for every bundled profile would still pass.",
+          "suggestion": "Assert `enabled: true` with the expected port for the seeded bundled profile (e.g. vite-hono).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/core/adopt-scan.test.ts` (\"refuses a relative path, a file, a drive root and the home folder\")",
+          "line": null,
+          "finding": "root.slice(0, 3)` on POSIX is `\"/tm\"` (a nonexistent path), so the drive-root case passes via the \"doesn't exist\" branch, not the root-refusal branch. The root-refusal code path itself is never exercised on POSIX; only the UNC test touches up-front shape checks.",
+          "suggestion": "Use `path.parse(root).root` as the root input so the actual `refuseRoot` branch is tested on all platforms.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": null,
+          "line": null,
+          "finding": "AC7 (verify `/shipwright-run` honors the wizard brief's profile name) and the recorded follow-up are not present anywhere in the diff. The spec allows this (\"do not block\"), but there's no evidence it was run or recorded.",
+          "suggestion": "Record the AC7 result (or the follow-up filing) alongside the run evidence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 49,
+          "finding": "The runner allowlist deliberately excludes `npx`, which AC3 explicitly allows. A valid project profile using `npx vite` therefore gets no Preview, contrary to AC1.",
+          "suggestion": "Include `npx` and enforce the command policy specified in AC3. If a stricter policy is intended, reconcile it with the acceptance criteria first.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 171,
+          "finding": "Command validation runs only for project-source profiles. User-source commands such as `./scripts/dev` or `../other/program` are accepted, although AC3 permits user executables only as bare names or absolute paths. These relative commands can execute programs from the selected repository.",
+          "suggestion": "Tokenize user-source commands too and reject executable tokens that contain a path separator unless they are absolute paths.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/custom-profile-loader.ts",
+          "line": 152,
+          "finding": "The ancestor-symlink containment check applies only to project profiles. If `~/.shipwright` is a symlink outside the home directory, its `profiles` directory passes the checks and files outside the permitted user profile location are accepted.",
+          "suggestion": "Validate the real user profile root against the real home directory as well, refusing ancestor symlinks that relocate it outside the allowed location.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/adopt-scan.ts",
+          "line": 165,
+          "finding": "The temporary output directory is not guaranteed to be outside the scanned directory. Selecting `os.tmpdir()` itself—or an allowed ancestor of it—creates `sw-adopt-scan-` inside the scan target. This violates AC5’s read-only guarantee and exposes the analyzer to its own output.",
+          "suggestion": "Check containment between the canonical scan target and temporary output location before creating output. Choose an external location or refuse the scan when none is available.  Overall assessment: ship-with-fixes. The main wiring is implemented, but command-policy compliance and containment need the specific corrections above before shipping. Workspace inspection was blocked by execution policy, so this assessment is based on the supplied diff.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-25T12:31:49.276742+00:00",
+      "disposition": "Fixed: user-source relative commands refused, user ancestor-symlink containment, scan temp dir outside target, home realpath, UNC. Declined: npx stays excluded (remote package fetch, doubt review), fast path is the resolver's own filename lookup (verified), Origin guard is the global CORS gate in index.ts.",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ### Findings\n\n- **Category: spec / bug — Severity: medium**\n  **File:** `server/src/core/custom-profile-loader.ts` (~line 195, the `candidates`/`existsSync` fast path)\n  **Finding:** AC1 says the profile file is located by the shipwright resolver, \"never by a re-implemented lookup.\" The fast path *is* a partial re-implementation: it only probes `<name>.json` in the two custom dirs. Any profile the resolver would attribute to that name through a different file name (a file whose internal `name` field matches, which is how shadowing reports typically work in the resolver), or any other resolution rule the resolver applies, is silently skipped and the bundled twin is returned instead. A user who creates `~/.shipwright/profiles/myconf.json` with `\"name\": \"vite-hono\"` would get the bundled profile instead of their shadowing one — resolver and this loader disagree.\n  **Suggestion:** Either drop the fast path (the concurrency cap already protects the hot endpoint) or narrow it to a provable subset and document the divergence; at minimum add a test pinning that the fast path matches the resolver's semantics for name-field shadowing.\n\n- **Category: security — Severity: medium**\n  **File:** `server/src/routes/adopt-scan.ts:15-27`\n  **Finding:** AC5 requires \"local-only/Origin guard confirmed\" for `/api/adopt/scan`. The route itself has only a JSON content-type check (a decent CSRF mitigation, and it blocks simple cross-site form posts), but no Host/Origin validation is visible in the diff. If the surrounding app doesn't already apply a local-only guard to this mount point, a DNS-rebinding page can pass the content-type check (it's same-origin after rebinding, preflight succeeds) and drive the analyzer on arbitrary local paths. Also note the route is mounted inside `createProfilesRoutes` only when `projectManager` is present (`server/src/routes/profiles.ts:33-34`) — a build without a project manager silently loses the route, and it's unclear that mount point carri […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: server/src/core/custom-profile-loader.ts:49\n- Finding: The runner allowlist deliberately excludes `npx`, which AC3 explicitly allows. A valid project profile using `npx vite` therefore gets no Preview, contrary to AC1.\n- Suggestion: Include `npx` and enforce the command policy specified in AC3. If a stricter policy is intended, reconcile it with the acceptance criteria first.\n\n- Category: security\n- Severity: medium\n- File: server/src/core/custom-profile-loader.ts:171\n- Finding: Command validation runs only for project-source profiles. User-source commands such as `./scripts/dev` or `../other/program` are accepted, although AC3 permits user executables only as bare names or absolute paths. These relative commands can execute programs from the selected repository.\n- Suggestion: Tokenize user-source commands too and reject executable tokens that contain a path separator unless they are absolute paths.\n\n- Category: security\n- Severity: medium\n- File: server/src/core/custom-profile-loader.ts:152\n- Finding: The ancestor-symlink containment check applies only to project profiles. If `~/.shipwright` is a symlink outside the home directory, its `profiles` directory passes the checks and files outside the permitted user profile location are accepted.\n- Suggestion: Validate the real user profile root against the real home directory as well, refusing ancestor symlinks that relocate it outside the allowed location.\n\n- Category: bug\n- Severity: medium\n- File: server/src/core/adopt-scan.ts:165\n- Finding: The temporary output directory is not guaranteed to be outside the scanned directory. Selecting `os.tmpdir()` itself—or an allowed ancestor of it—creates `sw-adopt-scan-*` inside the scan target. This violates AC5’s read-only guarantee and exposes the analyzer to its own output.\n- Suggestion: Check containment between the canonical scan target and temporary output location before creating output. Choose an external location […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T12:20:55.660327+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T12:03:47.467634+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T12:03:47.640355+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}

@@ -5,6 +5,7 @@
  * the bloat ceiling — pure object construction, no new behavior.
  */
 import { getProfilesDir, loadProfile as loadProfileReal } from "./core/profile-loader.js";
+import { createPreviewProfileResolver, type ResolvedPreviewProfile } from "./core/custom-profile-loader.js";
 import type { ProjectManager } from "./core/project-manager.js";
 import type { SdkSessionsStore } from "./core/sdk-sessions-store.js";
 import type { SessionWatcher } from "./core/session-watcher.js";
@@ -49,6 +50,10 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
     getCodextenderPort,
   } = deps;
 
+  const previewProfiles = createPreviewProfileResolver({
+    bundled: (n) => loadProfileReal(n, getProfilesDir()) as ResolvedPreviewProfile | null,
+  });
+
   return {
     store: sdkSessionsStore,
     watcher: sessionWatcher,
@@ -72,7 +77,10 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
       };
     },
     previewManager,
-    loadProfile: (name: string) => loadProfileReal(name, getProfilesDir()),
+    // Bundled profiles keep the sync snapshot loader; the user's own project / user
+    // profiles are resolved through the shipwright resolver (custom-profile-loader).
+    loadProfile: async (name: string, projectPath?: string, opts?: { fresh?: boolean }) =>
+      (await previewProfiles.resolve(name, projectPath ?? "", opts)).profile,
     // ADR-068-A1: cascade-clean scrollback on DELETE /tasks/:id.
     scrollbackClearBestEffort: (taskId: string) => scrollbackStore.clearBestEffort(taskId),
     // Iterate C (ADR-087, MEDIUM-B1): cascade-clean the cell-state

@@ -43,7 +43,8 @@ export interface CreateExternalRoutesArgs {
    * Section 03 — loads a profile by name. Defaults to the real
    * `core/profile-loader.ts` entry; tests inject a synthetic profile.
    */
-  loadProfile?: (profileName: string) => PreviewProfile | null;
+  loadProfile?: (profileName: string, projectPath?: string, opts?: { fresh?: boolean }) =>
+    Promise<PreviewProfile | null> | PreviewProfile | null;
   /**
    * iterate/multi-session-run-orchestrator-v2 — reads a project's
    * shipwright_run_config.json. Tests inject a stub so they don't

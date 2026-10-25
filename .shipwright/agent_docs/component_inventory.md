@@ -306,6 +306,11 @@ transient `design-feedback-round{N}.md` write (gitignored scratch). Resume = the
 | `DiagnosticsPage` | `pages/DiagnosticsPage.tsx` | — |
 | `SettingsPage` | `pages/SettingsPage.tsx` | — |
 | `StackProfilesCard` (FR-01.75) | `components/settings/StackProfilesCard.tsx` | — |
+| `custom-profile-loader` (FR-01.75) | `server/src/core/custom-profile-loader.ts` | — |
+| `adopt-scan` (FR-01.75) | `server/src/core/adopt-scan.ts` | — |
+| `adopt-scan` route (FR-01.75) | `server/src/routes/adopt-scan.ts` | — |
+| `useAdoptScan` (FR-01.75) | `client/src/hooks/useAdoptScan.ts` | — |
+| `adoptScanApi` (FR-01.75) | `client/src/lib/adoptScanApi.ts` | — |
 
 `InboxPage`'s split modules (ADR-124, Campaign C / C7) live under `client/src/pages/inbox/`:
 

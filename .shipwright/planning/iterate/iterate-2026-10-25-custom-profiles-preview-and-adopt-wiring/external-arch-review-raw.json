@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "1. **The question, answered in one sentence.** Yes \u2014 this is wiring two existing capabilities (the resolver, the analyzer) into two existing screens; the only new standing surface is the small loader module and one read-only endpoint, and that is roughly the right size.\n\n2. **The smallest thing that would do.** Option 1, but the cache can shrink: key it on the profile file's path + mtime (one stat per lookup) and drop the TTL. The TTL is a second invalidation mechanism reasoning about the same staleness the mtime already covers, and TTL-expiry + resolver-spawn makes `preview.enabled` occasionally wrong in a way nobody will debug. Everything else in Option 1 is the minimum: resolver for locate/validate, containment check, existing spawner.\n\n3. **What it costs to keep.** A permanent dependency on the resolver CLI's `validate --json` output shape (a boundary contract to track across resolver changes), and an HTTP endpoint that runs Python against a user-supplied path \u2014 every future change to that route has to re-reason about path handling and the read-only guarantee.\n\n4. **What it forecloses.** Not much. Option 2 would have frozen a duplicate of the resolver's lookup order in TypeScript \u2014 that's the version that forecloses; this one doesn't. The endpoint does fix `analyze_codebase.py`'s CLI as a public surface, which mildly constrains renaming its flags.\n\n5. **Findings**\n\n- Category: proportionality\n- Severity: low\n- Finding: TTL + mtime invalidation is two mechanisms for one staleness problem; the mtime check is required anyway (the cache can't be trusted without it), so the TTL only adds a window where `preview.enabled` is computed by a cold resolver spawn or serves stale-valid data.\n- Suggestion: cache keyed on resolved path + mtime only; remove the TTL. If resolver spawns ever show up in profiling, add TTL then.\n\n- Category: ownership\n- Severity: low\n- Finding: if the resolver binary is missing or changes its JSON shape, custom-profile Preview silently degrades to \"bundled only\" (AC2 folds this into normal behavior), and nothing flags that the capability quietly disappeared for all custom-profile users.\n- Suggestion: log (once, not per-request) when a resolver invocation fails for a project whose profile source is custom, so the gap is observable in server logs rather than only as a missing button.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Yes\u2014option 1 should exist roughly as proposed:** it connects existing profile resolution and analysis machinery to two user-facing features without creating competing rules.\n\n2. **Smallest thing that would do:** use the resolver only for custom Preview profiles, retain the existing bundled loader, and feed the existing analyzer\u2019s profile block into one Adopt row through an on-demand endpoint. Keep the cache short-lived and local to the server.\n\n3. **What it costs to keep:** compatibility with the resolver\u2019s output and analyzer\u2019s snapshot format, cache freshness, and continued enforcement of the boundary between user-authored commands and the existing spawner. These obligations belong to the Preview and Adopt maintainers; no scheduled operation or separate service is needed.\n\n4. **What it forecloses:** custom Preview and live Adopt results cannot operate independently of their respective CLI/Python tooling. Direct directory lookup would remove one dependency but create a second profile-resolution policy to keep synchronized\u2014a larger ongoing obligation.\n\n5. **Findings**\n\nNo findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring",
+    "at": "2026-10-25T12:02:31.154936+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

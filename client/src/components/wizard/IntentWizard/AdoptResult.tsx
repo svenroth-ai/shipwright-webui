@@ -7,15 +7,19 @@
  * with the repo path as the brief (contract.ts + useWizardLaunch). Webui spawns
  * no Claude (Architecture rule 1).
  *
- * The FINDINGS are still a provenance-tagged sample — the live repo scan is a
- * later server-side step; only the LAUNCH is wired here, so the note stays
- * honest about what is and isn't live (AC5). Copy matches the plugin: adopt is
+ * The FINDINGS are still a provenance-tagged sample EXCEPT the Profile row: that
+ * one is a real read-only scan of the chosen local repo (POST /api/adopt/scan -
+ * which profile was detected, where it came from, and any discovery warnings).
+ * While it loads, or when it is unavailable, the sample row stays and the note
+ * says so - the note must never claim more is live than is (AC5). Copy matches the plugin: adopt is
  * NEVER-OVERWRITE (existing files kept byte-for-byte, originals preserved as
  * `.preserved`) — there is no diff-approval UI, so we don't claim one.
  */
 
 import { Play } from "lucide-react";
 
+import { useAdoptScan } from "../../../hooks/useAdoptScan";
+import { profileSourceLabel } from "../../../lib/adoptScanApi";
 import { ADOPT_SNAPSHOT, isRemote } from "./stubData";
 import { StepDots } from "./StepDots";
 import { WzPrimary, WzOutline } from "./buttons";
@@ -62,6 +66,21 @@ export function AdoptResult({
   // launch adopt against it; the honest ask is "clone it first" (OpenAI review).
   const remote = isRemote(trimmedPath);
   const canStart = trimmedPath.length > 0 && !remote;
+  const scan = useAdoptScan(trimmedPath, canStart);
+  const live = scan.data?.status === "ok" ? scan.data.profile : null;
+  const liveValue = live
+    ? `${live.matched ?? "no profile matched"}${live.source ? ` - ${profileSourceLabel(live.source)}` : ""}`
+    : null;
+  const found = ADOPT_SNAPSHOT.found.map((r) => (r.label === "Profile" && liveValue ? { ...r, value: liveValue } : r));
+  let scanNote: string | null = null;
+  if (canStart && !live) {
+    if (scan.isPending) scanNote = "Reading your repo's stack profile…";
+    else if (scan.data?.status === "unsupported-schema")
+      scanNote = "This repo's scan is from a newer Shipwright than this Command Center understands — the sample row stays.";
+    else if (scan.data && "reason" in scan.data)
+      scanNote = `Couldn't read the profile live (${scan.data.reason}) — the sample row stays.`;
+    else scanNote = "Couldn't read the profile live — the sample row stays.";
+  }
   return (
     <div className="wz-left wz-block" data-testid="wizard-adopt-result" style={{ overflow: "auto" }}>
       <StepDots total={3} current={2} />
@@ -74,8 +93,10 @@ export function AdoptResult({
         style={{ maxWidth: 840, marginBottom: 12, borderColor: "var(--warn-line)", background: "var(--warn-tint)" }}
       >
         <span style={{ fontSize: 12.5, color: "var(--ink)" }}>
-          Sample findings — not a live read of your repo yet (the real scan lands later). The button below is real,
-          though: it starts the adopt task on your repo now.
+          {live
+            ? "The Profile row is read live from your repo; the other findings are still samples (the full scan lands later). "
+            : "Sample findings — not a live read of your repo yet (the full scan lands later). "}
+          The button below is real, though: it starts the adopt task on your repo now.
         </span>
       </div>
 
@@ -84,7 +105,24 @@ export function AdoptResult({
           <div className="eyebrow" style={{ marginBottom: 6 }}>
             What’s already here
           </div>
-          <Table rows={ADOPT_SNAPSHOT.found} />
+          <Table rows={found} />
+          {live ? (
+            <div data-testid="wizard-adopt-profile-live" className="caption" style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+              Profile read live from your repo.
+            </div>
+          ) : null}
+          {live && live.warnings.length > 0 ? (
+            <ul data-testid="wizard-adopt-profile-warnings" style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--ink)" }}>
+              {live.warnings.map((w, i) => (
+                <li key={i}>{w}</li>
+              ))}
+            </ul>
+          ) : null}
+          {scanNote ? (
+            <div data-testid="wizard-adopt-scan-note" className="caption" style={{ marginTop: 8, fontSize: 12, color: "var(--muted)" }}>
+              {scanNote}
+            </div>
+          ) : null}
         </div>
         <div className="iw-card pad" data-testid="wizard-adopt-writes">
           <div className="eyebrow" style={{ marginBottom: 6 }}>

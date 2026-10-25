@@ -30,7 +30,8 @@ import { registerActionsUploadDelete } from "./upload-delete.js";
 
 export interface ActionsRouterDeps {
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
-  loadProfile: (profileName: string) => PreviewProfile | null;
+  loadProfile: (profileName: string, projectPath?: string, opts?: { fresh?: boolean }) =>
+    Promise<PreviewProfile | null> | PreviewProfile | null;
 }
 
 export function createActionsRouter(deps: ActionsRouterDeps): Hono {
