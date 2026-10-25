@@ -86,7 +86,6 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-
 /** Tolerant reader (snapshot 1.0 lacks source/warnings); unknown major refused. */
 export function extractProfile(raw: unknown): AdoptScanOutcome {
   if (!isObject(raw)) return { status: "failed", reason: "The scan returned something unreadable." };
