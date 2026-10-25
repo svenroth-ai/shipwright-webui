@@ -1,0 +1,9 @@
+{"items":[
+{"name":"1 Correctness vs ACs","verdict":"pass","note":"AC1-5 each covered by unit + route + real-browser E2E (107-custom-stack-profiles)."},
+{"name":"2 Error paths","verdict":"pass","note":"engine-unavailable, unsupported contract, CLI non-zero, invalid name, exists, resolver-rejected copy rolled back."},
+{"name":"3 Security","verdict":"pass","note":"shell:false fixed argv, name regex + reserved names, wx open, no overwrite, projectId resolved server-side, no user text in argv except validated --name."},
+{"name":"4 Tests outcome-based","verdict":"pass","note":"Contract pinned from real resolver output; reducer step math and copy tested."},
+{"name":"5 Conventions / size","verdict":"pass","note":"All new files <300 LOC; index.ts net-zero (route mounted via createProfilesRoutes)."},
+{"name":"6 Docs / spec","verdict":"pass","note":"FR-01.75 added to spec.md; architecture/inventory entries in F2."},
+{"name":"7 Affected boundaries","verdict":"pass","note":"resolver list JSON, profile file write, adopt snapshot 1.1 read - all probed against real artifacts."}
+]}

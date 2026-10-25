@@ -6,7 +6,7 @@
  * the actions-config surface.
  */
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, it, expect, beforeEach } from "vitest";
 import { http, HttpResponse } from "msw";
@@ -82,7 +82,8 @@ describe("SettingsPage", () => {
     renderPage();
     expect(await screen.findByTestId("actions-config-row-pX")).toBeInTheDocument();
     // Full header on Settings: name + path are shown (not hidden like the modal).
-    expect(screen.getByText("Gamma Repo")).toBeInTheDocument();
+    // Scoped to the actions row: the stack-profiles project picker lists the name too.
+    expect(within(screen.getByTestId("actions-config-row-pX")).getByText("Gamma Repo")).toBeInTheDocument();
     expect(screen.getByText("/repo/gamma")).toBeInTheDocument();
     expect(screen.getByText("Upload .json")).toBeInTheDocument();
   });

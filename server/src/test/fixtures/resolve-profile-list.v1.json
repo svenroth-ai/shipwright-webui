@@ -1,0 +1,66 @@
+{
+  "contract_version": 1,
+  "profiles": [
+    {
+      "name": "broken",
+      "source": "user",
+      "path": "/home/u/.shipwright/profiles/broken.json",
+      "valid": false,
+      "error": "Profile file /home/u/.shipwright/profiles/broken.json is not valid JSON: Expecting property name enclosed in double quotes: line 1 column 18 (char 17)",
+      "kind": "invalid",
+      "schema_version": null,
+      "description": null,
+      "shadows": []
+    },
+    {
+      "name": "my-stack",
+      "source": "project",
+      "path": "/work/proj/.shipwright/profiles/my-stack.json",
+      "valid": true,
+      "error": null,
+      "kind": null,
+      "schema_version": 1,
+      "description": "Split Vite+React frontend with Hono backend (npm/tsx). Two services managed in parallel by dev_server.py.",
+      "shadows": []
+    },
+    {
+      "name": "python-plugin-monorepo",
+      "source": "bundled",
+      "path": "/cache/shared/profiles/python-plugin-monorepo.json",
+      "valid": true,
+      "error": null,
+      "kind": null,
+      "schema_version": 1,
+      "description": "Python plugin monorepo (uv workspace). Library/framework with no deployable web server. Each subdirectory under plugins/ is its own pyproject.toml-managed package; shared/ holds cross-plugin scripts and profiles. No root dev server, no frontend.",
+      "shadows": []
+    },
+    {
+      "name": "supabase-nextjs",
+      "source": "bundled",
+      "path": "/cache/shared/profiles/supabase-nextjs.json",
+      "valid": true,
+      "error": null,
+      "kind": null,
+      "schema_version": 1,
+      "description": "Full-stack Next.js with Supabase backend, optimized for Jelastic deployment",
+      "shadows": []
+    },
+    {
+      "name": "vite-hono",
+      "source": "bundled",
+      "path": "/cache/shared/profiles/vite-hono.json",
+      "valid": true,
+      "error": null,
+      "kind": null,
+      "schema_version": 1,
+      "description": "Split Vite+React frontend with Hono backend (npm/tsx). Two services managed in parallel by dev_server.py.",
+      "shadows": []
+    }
+  ],
+  "warnings": [],
+  "searched": [
+    "/work/proj/.shipwright/profiles",
+    "/home/u/.shipwright/profiles",
+    "/cache/shared/profiles"
+  ]
+}

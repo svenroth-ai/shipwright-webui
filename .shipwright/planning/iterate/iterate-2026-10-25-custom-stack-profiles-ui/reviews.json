@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-25-custom-stack-profiles-ui",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T06:51:24.795283+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "\"List fetched when the wizard opens\" + async uv spawn (~1s) races the wizard's first question. The design notes say `setCustomProfiles` is ignored once past step 1 — but the user can type an idea and advance within a second, meaning own-profiles would silently not be offered, and the answer set (4 vs 5 questions) diverges from what the user saw.",
+          "suggestion": "Block step-1 completion on the fetch resolving (or a short timeout), not on step numbering; or gate the whole wizard on the initial fetch before the first question renders. Make the timeout path explicitly \"no own profiles\" and observable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Create-from-bundled: \"removed only on a definite invalid verdict\" leaves an unvalidated file on disk when the resolver is unavailable or errors at validate time (engine-unavailable is presumably not a \"definite invalid\"). That contradicts AC2's implication that every created file is resolver-validated.",
+          "suggestion": "Define the rule as rollback on anything other than a definite valid (invalid, unavailable, unknown contract version, timeout). An unavailable engine means the write shouldn't have happened.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "TOCTOU on name-uniqueness: `wx` prevents same-instant collision but \"unused in every source\" is checked via a stale list; two concurrent POSTs against different sources (project vs user) or a profile created between list and POST can produce confusing UX even though `wx` keeps it safe. Also unstated: when the name is taken in project but the POST targets user (or vice versa) — does the create accept a target, or does the route pick one implicitly?",
+          "suggestion": "State the target-source rule explicitly and re-list immediately before the `wx` open; keep `wx` as the authority, with a friendly \"name taken\" error.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "AC3 hands the chosen profile to `/shipwright-run`, but out-of-scope notes say profile-loader reads only the bundled snapshot and preview isn't wired. If `/shipwright-run` doesn't already accept a profile identifier, this change has a dangling dependency — the wizard will produce a selection no consumer honors.",
+          "suggestion": "Confirm the shipwright-run side accepts a custom profile name in this campaign (or that adopt 1.1 `profile.source` covers it). If not wired, either scope the hand-off explicitly or make the wizard's selection a recorded answer the run phase consumes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Wizard drop rule \"a vanished/invalid chosen profile is dropped\" is underspecified: dropped to what — back to remember/where, back to the profiles question, or an error? The step math (`activeQuestions`) must account for whichever, or the reducer's step numbering and the UI can desync.",
+          "suggestion": "Specify: re-fetch/validate on submit; on vanish, return the user to the profiles question with an inline message; verify `activeQuestions` reflects the removed question.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Resolver spawn latency (~1s per uv run) also hits the Settings list and per-profile Check. Per-profile Check could be N×1s if implemented as one validate per profile serially.",
+          "suggestion": "Validate all profiles in one batched invocation (or parallel spawns) for the Check button; confirm `resolve_profile.py` supports multi-profile validate or the list output already carries validity (it appears to — AC1 says the list shows validity, so the per-profile Check may be redundant; consider whether it adds value).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Realpath containment is mentioned for the project dir on write — good — but not for the bundled profile source path (if the bundled-profile identifier comes from the request body, a crafted id could read/copy an arbitrary file into the user's profiles dir).",
+          "suggestion": "Resolve the bundled profile against a fixed allowlist of bundled names (from the resolver's list output), not a request-supplied path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "AC1 handles \"missing resolver\" and \"newer contract major\" but not the middle case: resolver present, contract version older than the fixture's pinned 1.x, or list output valid JSON with missing/extra entry fields (shape-check failure on a single entry). Decide whether one malformed entry poisons the whole list.",
+          "suggestion": "Fail per-entry, keep the rest of the list, and surface the shape error as that profile's warning; refuse only the whole payload on major mismatch.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "The rollback policy is inconsistent: AC2 requires removing the copy if the resolver rejects it, while the approach removes it only on a definite invalid verdict. A timeout, unavailable resolver, or unsupported contract after writing can leave an unvalidated profile installed.",
+          "suggestion": "Define these outcomes explicitly. Report creation as successful only after validation succeeds; otherwise remove the file created by this request and report any cleanup failure.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "wx` prevents overwriting the destination, but does not enforce name uniqueness across sources. Concurrent requests can both pass the availability check and create the same name in different scopes. Resolver validation may then validate the higher-priority profile instead of the newly written copy.",
+          "suggestion": "Serialize application create operations by profile name, refresh availability before writing, and verify that validation resolves to the exact destination and source created. Handle external filesystem races explicitly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "Project-directory realpath containment alone does not establish that the destination `.shipwright/profiles` directory stays inside the project. An existing symlink or Windows junction can redirect the write elsewhere.",
+          "suggestion": "Resolve and check the destination directory against the authorized project root, including existing intermediate directories. Apply an explicit symlink/junction policy before writing or cleaning up.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The wizard’s late-data guard leaves a timing gap: profiles can arrive while the user is on step 1 and insert a question as they advance. Also, dropping a vanished selection could leave the wizard with remember/where skipped but no usable profile.",
+          "suggestion": "Freeze question availability when the idea is submitted. Revalidate the selected profile before handoff; if it disappears or becomes invalid, show an explanation and return to a valid question path rather than silently dropping it. Verify that `/shipwright-run` receives the intended project context and profile identifier.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The verification runner is still unspecified, and the referenced F5 test ledger is absent. The listed coverage does not establish browser-level behavior for the existing four-question flow or the new asynchronous branch.",
+          "suggestion": "Fix the isolated-stack runner command and add focused E2E coverage for both flows, including late resolver responses and selected-profile invalidation.  The resolver-backed approach is sound and appropriately scoped. Resolve the creation guarantees and wizard state transitions, then complete the concrete verification setup before approval.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-25T06:59:21.034454+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: edge-case — Severity: medium**\n  **Finding:** \"List fetched when the wizard opens\" + async uv spawn (~1s) races the wizard's first question. The design notes say `setCustomProfiles` is ignored once past step 1 — but the user can type an idea and advance within a second, meaning own-profiles would silently not be offered, and the answer set (4 vs 5 questions) diverges from what the user saw.\n  **Suggestion:** Block step-1 completion on the fetch resolving (or a short timeout), not on step numbering; or gate the whole wizard on the initial fetch before the first question renders. Make the timeout path explicitly \"no own profiles\" and observable.\n\n- **Category: edge-case — Severity: medium**\n  **Finding:** Create-from-bundled: \"removed only on a definite invalid verdict\" leaves an unvalidated file on disk when the resolver is unavailable or errors at validate time (engine-unavailable is presumably not a \"definite invalid\"). That contradicts AC2's implication that every created file is resolver-validated.\n  **Suggestion:** Define the rule as rollback on *anything other than a definite valid* (invalid, unavailable, unknown contract version, timeout). An unavailable engine means the write shouldn't have happened.\n\n- **Category: edge-case — Severity: medium**\n  **Finding:** TOCTOU on name-uniqueness: `wx` prevents same-instant collision but \"unused in every source\" is checked via a stale list; two concurrent POSTs against different sources (project vs user) or a profile created between list and POST can produce confusing UX even though `wx` keeps it safe. Also unstated: when the name is taken in *project* but the POST targets *user* (or vice versa) — does the create accept a target, or does the route pick one implicitly?\n  **Suggestion:** State the target-source rule explicitly and re-list immediately before the `wx` open; keep `wx` as the authority, with a friendly \"name taken\" error.\n\n- **Category: dependency — Severity: medium**\n  […truncated]\n\n[openai] 1. **Category:** risk · **Severity:** medium  \n   **Finding:** The rollback policy is inconsistent: AC2 requires removing the copy if the resolver rejects it, while the approach removes it only on a definite invalid verdict. A timeout, unavailable resolver, or unsupported contract after writing can leave an unvalidated profile installed.  \n   **Suggestion:** Define these outcomes explicitly. Report creation as successful only after validation succeeds; otherwise remove the file created by this request and report any cleanup failure.\n\n2. **Category:** edge-case · **Severity:** medium  \n   **Finding:** `wx` prevents overwriting the destination, but does not enforce name uniqueness across sources. Concurrent requests can both pass the availability check and create the same name in different scopes. Resolver validation may then validate the higher-priority profile instead of the newly written copy.  \n   **Suggestion:** Serialize application create operations by profile name, refresh availability before writing, and verify that validation resolves to the exact destination and source created. Handle external filesystem races explicitly.\n\n3. **Category:** security · **Severity:** medium  \n   **Finding:** Project-directory realpath containment alone does not establish that the destination `.shipwright/profiles` directory stays inside the project. An existing symlink or Windows junction can redirect the write elsewhere.  \n   **Suggestion:** Resolve and check the destination directory against the authorized project root, including existing intermediate directories. Apply an explicit symlink/junction policy before writing or cleaning up.\n\n4. **Category:** edge-case · **Severity:** medium  \n   **Finding:** The wizard’s late-data guard leaves a timing gap: profiles can arrive while the user is on step 1 and insert a question as they advance. Also, dropping a vanished selection could leave the wizard with remember/where skipped but no usable profile.  \n   **Suggestio […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/wizardState.ts",
+          "line": 72,
+          "finding": "The back action at step<=1 returns {...INITIAL_STATE}, which resets customProfiles to []. The IntentWizard effect depends only on stackReport (unchanged), so after New -> back -> New the user's own profiles are gone for the session.",
+          "suggestion": "Preserve customProfiles on reset; add a reducer test for pickDoor -> back -> pickDoor.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/routes/stack-profiles.ts",
+          "line": 57,
+          "finding": "POST /api/stack-profiles/validate passes user-supplied body.name unvalidated into the resolver argv (--name <name>). shell:false rules out shell injection, but a value such as --project-root or -h is parsed by argparse as an option. No length cap or character check, unlike create.",
+          "suggestion": "Reject names failing the shared NAME_RE and length cap with 400, or use --name=<name>.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/stack-profiles-create.ts",
+          "line": 116,
+          "finding": "On a transport failure after the write (engine-unavailable, timeout, unsupported-contract) the file is removed but the message says the resolver rejected it; fsp.rm is unguarded so an rm failure throws an unhandled 500.",
+          "suggestion": "Distinguish transport failure from valid:false; wrap rollback rm in try/catch.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/stack-profiles-create.ts",
+          "line": 107,
+          "finding": "Name traversal and overwrite properly blocked. The .shipwright/profiles dir has no realpath check (DO-NOT #10); a symlinked dir could redirect the write. Low risk: projectRoot comes from the server registry.",
+          "suggestion": "Optionally realpath the target dir and assert it stays under the project root / user dir.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/wizardState.ts",
+          "line": 57,
+          "finding": "A profile list arriving after step 1 is silently dropped; consistent and safe, a deliberate trade-off.",
+          "suggestion": "Accept as is.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T06:52:59.347547+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "concurrency & ordering / hidden coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: A profile chosen in the wizard always exists when /shipwright-run receives it — setCustomProfiles frozen at step>1; after back + refetch the list may lack answers.profile; stale name goes into createProject payload and brief.",
+          "suggestion": "Clear answers.profile when absent/invalid in the incoming list; reducer test.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract (fails open)",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Unsupported or garbled resolver output is rejected — validateStackProfile does not check contract_version; list entries are cast unchecked; parseJson slices from the first brace.",
+          "suggestion": "Check contract_version in validate; parse from the line-start brace; element-validate profiles[].",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility / boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Create cannot write outside the profiles dir and rollback only deletes what it created — Symlinked .shipwright/profiles redirects the write; rollback rm also runs after a transport failure deleting a valid file with a misleading message.",
+          "suggestion": "realpath containment; rm only on definite valid:false.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary (argv / spawn)",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: User text cannot inject argv — validate route passes body.name unvalidated into --name <name>.",
+          "suggestion": "Name-shape check and --name=<name>.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T06:54:27.442461+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/wizard/IntentWizard/IntentWizard.tsx (~line 57, `useStackProfiles(null, initialDoor === null || initialDoor === \"new\")`)",
+          "line": null,
+          "finding": "The `enabled` flag is computed once from the immutable `initialDoor` prop. If the wizard mounts with `initialDoor` set to a repo door (\"adopt\"/\"grade\"), the query is disabled forever — even after the user presses Back to the door picker and picks \"New\". The stack-profile fetch never runs, `customProfiles` stays empty, and a user who does have own profiles silently gets the classic four-question flow, violating AC3's \"offers the user's own profiles in one question\".",
+          "suggestion": "Derive `enabled` from the live state (e.g. `state.door === null || state.door === \"new\"`), or use a ref/state that updates when the door changes, so backing out of a repo door into the New path still fetches.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/wizard/IntentWizard/wizardState.ts (deriveNewRows, `value: a.remember || a.profile ? p.name : \"\"`)",
+          "line": null,
+          "finding": "p` comes from the pre-existing `profileFor(answers)` in stubData, which was not touched by this diff and knows nothing about `answers.profile`. When a custom profile is chosen, the FlightPlanRail \"Stack profile\" row (and likely the plan card's `p.note` via the same helper) will render the default bundled stack name instead of the user's profile name — a wrong result shown right before launch. The E2E asserts the plan card contains \"e2e-mine\", but only via `resolveStackProfile`-derived text if the plan card uses it; the spine row definitely uses `p.name`.",
+          "suggestion": "Make `profileFor` (or the plan/spine call sites) honor `answers.profile` first, mirroring `resolveStackProfile`'s new early return.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/settings/StackProfilesCard.tsx (`check()`, keyed by `${p.source}:${p.name}`)",
+          "line": null,
+          "finding": "The per-name Check result is stored per `(source, name)`, but `validateStackProfile` resolves the name through the resolver's lookup order. With a user profile shadowing a same-named bundled one, clicking \"Check\" on the bundled row shows the user profile's verdict on the bundled row (and vice versa). Also, `checks` isn't cleared when the project selector changes, so stale cross-project verdicts persist.",
+          "suggestion": "Clear `checks` when `projectId` changes, and/or have validate return the resolved source/path so the verdict can be attributed (or shown ungrouped by name).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/stack-profiles.ts (`validateStackProfile`, `if (ran.code !== 0)` branch)",
+          "line": null,
+          "finding": "Any non-zero exit — including a resolver internal crash (exit 1), not just the probed 2 (not found) / 3 (invalid JSON) — is converted into `{ valid: false, error: lastLine(stderr) }`. An infrastructure failure is therefore rendered to the user as \"your profile is not usable\", which is a false verdict.",
+          "suggestion": "Map only the known data exit codes (2, 3) to `{valid:false}`; anything else should be `{status:\"failed\"}` with the stderr line as the reason.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/routes/stack-profiles.test.ts (\"removes a created file the resolver rejects\")",
+          "line": null,
+          "finding": "The rollback test relies on the fake validate rejecting any name it doesn't special-case (\"zzz\" → exit 2 \"not found\"). That exercises rollback on the not-found path, but not the \"resolver returns `{valid:false, error}` with exit 0\" path — a fake returning `code:0, stdout:{valid:false}` would be a more faithful check that JSON-level rejection also triggers `fsp.rm`. Low risk, but the current test would pass even if the code only rolled back on non-zero exits.",
+          "suggestion": "Add (or switch to) a fake validate that exits 0 with `{valid:false, name, error:\"...\"}` and assert the file is removed.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/wizard/IntentWizard/adoptSnapshotProfile.ts (schema_version guard)",
+          "line": null,
+          "finding": "Only `major > SUPPORTED` is refused; a `schema_version` of `\"0.x\"` (or a negative major) passes the guard and is read. Harmless today but inconsistent with the \"refuse a newer major\" intent stated in the test (\"never half-reads\").",
+          "suggestion": "Also refuse non-positive/unparseable majors, or at least document that only newer majors are refused.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/routes/stack-profiles.ts",
+          "line": 79,
+          "finding": "Creating a user profile discards the selected project root before checking name availability. If the selected project already has `mine`, creating a user profile named `mine` succeeds because the resolver only lists user and bundled sources. This violates AC2’s requirement that the name be unused in every source and creates a profile shadowed in that project.",
+          "suggestion": "Pass the selected project root through for collision checking and validation, while using `scope` only to choose the destination directory. Add a test for a user-scope create colliding with a project profile.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/wizard/IntentWizard/wizardState.ts",
+          "line": 65,
+          "finding": "When a refresh reports that the chosen profile was deleted or became invalid, the reducer clears the answer but retains the old `customProfiles` entries. Returning to the stack question still shows that profile as enabled, and selecting it again allows the stale name to reach the launch request. Clearing the answer also changes the active question sequence after step 1, contrary to the specified step-freezing behavior.",
+          "suggestion": "Preserve question positions while updating the usability of existing choices, and refuse `setProfile` for profiles no longer valid. Test refreshing an invalid/deleted profile, navigating back, and attempting to select and launch it again.  Overall assessment: ship-with-fixes. The resolver bridge and core flows are substantially implemented, but collision checking and refreshed wizard state need correction before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-25T06:56:46.487073+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category:** bug\n**Severity:** medium\n**File:** client/src/components/wizard/IntentWizard/IntentWizard.tsx (~line 57, `useStackProfiles(null, initialDoor === null || initialDoor === \"new\")`)\n**Finding:** The `enabled` flag is computed once from the immutable `initialDoor` prop. If the wizard mounts with `initialDoor` set to a repo door (\"adopt\"/\"grade\"), the query is disabled forever — even after the user presses Back to the door picker and picks \"New\". The stack-profile fetch never runs, `customProfiles` stays empty, and a user who *does* have own profiles silently gets the classic four-question flow, violating AC3's \"offers the user's own profiles in one question\".\n**Suggestion:** Derive `enabled` from the live state (e.g. `state.door === null || state.door === \"new\"`), or use a ref/state that updates when the door changes, so backing out of a repo door into the New path still fetches.\n\n**Category:** bug\n**Severity:** medium\n**File:** client/src/components/wizard/IntentWizard/wizardState.ts (deriveNewRows, `value: a.remember || a.profile ? p.name : \"\"`)\n**Finding:** `p` comes from the pre-existing `profileFor(answers)` in stubData, which was not touched by this diff and knows nothing about `answers.profile`. When a custom profile is chosen, the FlightPlanRail \"Stack profile\" row (and likely the plan card's `p.note` via the same helper) will render the *default* bundled stack name instead of the user's profile name — a wrong result shown right before launch. The E2E asserts the plan card contains \"e2e-mine\", but only via `resolveStackProfile`-derived text if the plan card uses it; the spine row definitely uses `p.name`.\n**Suggestion:** Make `profileFor` (or the plan/spine call sites) honor `answers.profile` first, mirroring `resolveStackProfile`'s new early return.\n\n**Category:** edge-case\n**Severity:** low\n**File:** client/src/components/settings/StackProfilesCard.tsx (`check()`, keyed by `${p.source}:${p.name}`)\n**Finding:** The per-nam […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: server/src/routes/stack-profiles.ts:79\n- Finding: Creating a user profile discards the selected project root before checking name availability. If the selected project already has `mine`, creating a user profile named `mine` succeeds because the resolver only lists user and bundled sources. This violates AC2’s requirement that the name be unused in every source and creates a profile shadowed in that project.\n- Suggestion: Pass the selected project root through for collision checking and validation, while using `scope` only to choose the destination directory. Add a test for a user-scope create colliding with a project profile.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/wizard/IntentWizard/wizardState.ts:65\n- Finding: When a refresh reports that the chosen profile was deleted or became invalid, the reducer clears the answer but retains the old `customProfiles` entries. Returning to the stack question still shows that profile as enabled, and selecting it again allows the stale name to reach the launch request. Clearing the answer also changes the active question sequence after step 1, contrary to the specified step-freezing behavior.\n- Suggestion: Preserve question positions while updating the usability of existing choices, and refuse `setProfile` for profiles no longer valid. Test refreshing an invalid/deleted profile, navigating back, and attempting to select and launch it again.\n\nOverall assessment: ship-with-fixes. The resolver bridge and core flows are substantially implemented, but collision checking and refreshed wizard state need correction before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T06:52:06.093886+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T06:58:35.671380+00:00",
+      "disposition": "Pre-build plan/architecture review was not run in this run: implementation began before the planning gate (process lapse, disclosed in the F12 summary). Compensated by spec + code + doubt + external code review of the finished diff.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T06:58:35.937589+00:00",
+      "disposition": "Pre-build plan/architecture review was not run in this run: implementation began before the planning gate (process lapse, disclosed in the F12 summary). Compensated by spec + code + doubt + external code review of the finished diff.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
+    }
+  }
+}

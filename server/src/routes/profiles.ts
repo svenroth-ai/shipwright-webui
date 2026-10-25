@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { readdirSync } from "node:fs";
 import { loadProfile, getProfilesDir } from "../core/profile-loader.js";
+import { createStackProfilesRoutes } from "./stack-profiles.js";
 
 export interface ProfileSummary {
   name: string;
@@ -9,6 +10,8 @@ export interface ProfileSummary {
 }
 
 export interface ProfilesRouteDeps {
+  /** When given, also mounts the custom stack-profile routes (`/api/stack-profiles`). */
+  projectManager?: { getById(id: string): { path: string; synthesized?: boolean } | undefined };
   profilesDir?: string;
   readdirSync?: (path: string) => string[];
   loadProfile?: (name: string, dir: string) => { name?: string; label?: string; description?: string } | null;
@@ -24,6 +27,15 @@ export interface ProfilesRouteDeps {
  */
 export function createProfilesRoutes(deps: ProfilesRouteDeps = {}): Hono {
   const app = new Hono();
+  if (deps.projectManager) {
+    const pm = deps.projectManager;
+    app.route("/", createStackProfilesRoutes({
+      getProjectPath: (id) => {
+        const p = pm.getById(id);
+        return p && !p.synthesized ? p.path : undefined;
+      },
+    }));
+  }
   const dir = deps.profilesDir ?? getProfilesDir();
   const readdir = deps.readdirSync ?? ((p: string) => readdirSync(p));
   const load = deps.loadProfile ?? loadProfile;

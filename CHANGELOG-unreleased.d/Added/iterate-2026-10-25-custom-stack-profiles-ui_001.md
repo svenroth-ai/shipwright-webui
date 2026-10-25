@@ -1,0 +1,1 @@
+Settings → Stack profiles: see the project's, your own and the built-in stack profiles with where each comes from and whether it is valid, re-check one, and create a copy of a built-in profile to edit.

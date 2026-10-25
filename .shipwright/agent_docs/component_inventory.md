@@ -305,6 +305,7 @@ transient `design-feedback-round{N}.md` write (gitignored scratch). Resume = the
 | `TriagePage` (ADR-101) | `pages/TriagePage.tsx` | — |
 | `DiagnosticsPage` | `pages/DiagnosticsPage.tsx` | — |
 | `SettingsPage` | `pages/SettingsPage.tsx` | — |
+| `StackProfilesCard` (FR-01.75) | `components/settings/StackProfilesCard.tsx` | — |
 
 `InboxPage`'s split modules (ADR-124, Campaign C / C7) live under `client/src/pages/inbox/`:
 

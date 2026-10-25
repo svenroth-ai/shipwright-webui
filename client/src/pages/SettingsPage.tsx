@@ -27,6 +27,7 @@ import { useProjects } from "../hooks/useProjects";
 import { ActionsConfigCard } from "../components/settings/ActionsConfigCard";
 import { TerminalSettingsCard } from "../components/settings/TerminalSettingsCard";
 import { CodexSettingsCard } from "../components/settings/CodexSettingsCard";
+import { StackProfilesCard } from "../components/settings/StackProfilesCard";
 import { PageHead } from "../components/common/PageHead";
 
 export default function SettingsPage() {
@@ -65,6 +66,8 @@ export default function SettingsPage() {
           <TerminalSettingsCard />
           {/* Codex Light AC1/AC5 — global runtime default + stall timeout. */}
           <CodexSettingsCard />
+          {/* Custom stack profiles (project / user / built-in) via the resolver. */}
+          <StackProfilesCard projects={projects} />
           {/* FR-01.27 — per-project actions.json upload + reset. */}
           <ActionsConfigCard projects={projects} />
         </div>
