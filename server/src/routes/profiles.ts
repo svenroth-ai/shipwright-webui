@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { readdirSync } from "node:fs";
 import { loadProfile, getProfilesDir } from "../core/profile-loader.js";
 import { createStackProfilesRoutes } from "./stack-profiles.js";
+import { createAdoptScanRoutes } from "./adopt-scan.js";
 
 export interface ProfileSummary {
   name: string;
@@ -29,6 +30,8 @@ export function createProfilesRoutes(deps: ProfilesRouteDeps = {}): Hono {
   const app = new Hono();
   if (deps.projectManager) {
     const pm = deps.projectManager;
+    // Read-only Adopt-screen scan; mounted here so index.ts (over its bloat limit) does not grow.
+    app.route("/", createAdoptScanRoutes());
     app.route("/", createStackProfilesRoutes({
       getProjectPath: (id) => {
         const p = pm.getById(id);

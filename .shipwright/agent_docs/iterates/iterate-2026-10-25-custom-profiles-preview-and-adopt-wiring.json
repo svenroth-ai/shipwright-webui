@@ -1,0 +1,84 @@
+{
+  "run_id": "iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring",
+  "date": "2026-10-25T12:36:57.261832Z",
+  "event_at": "2026-10-25T07:13:42.454744+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/custom-profiles-preview-and-adopt-wiring",
+  "spec": ".shipwright/planning/iterate/2026-10-25-custom-profiles-preview-and-adopt-wiring.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A project/user custom profile with a dev_server yields a Preview button and a real dev server",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/108-custom-profile-preview-and-adopt.spec.ts custom profile test PASSED; custom-profile-loader.test.ts"
+      },
+      {
+        "behavior": "Broken, refused or unreadable custom profile gives no Preview (400 preview_profile_invalid)",
+        "disposition": "tested",
+        "evidence": "108 spec broken/evil/inline PASSED; preview/__tests__/custom-profile.test.ts"
+      },
+      {
+        "behavior": "Hostile project commands (path, inline eval, flags, URLs, npx, dlx, parent paths) are refused; user relative command refused",
+        "disposition": "tested",
+        "evidence": "custom-profile-loader.test.ts command-policy tests PASSED"
+      },
+      {
+        "behavior": "Containment: file outside profiles folder or via symlinked folder is refused; only allowlisted fields copied",
+        "disposition": "tested",
+        "evidence": "custom-profile-loader.test.ts containment + allowlist PASSED"
+      },
+      {
+        "behavior": "Cache, in-flight dedupe, fresh bypass, bounded queue, never-throw",
+        "disposition": "tested",
+        "evidence": "custom-profile-loader.test.ts cache/queue tests PASSED"
+      },
+      {
+        "behavior": "Bundled profiles unchanged; no custom file means no resolver process",
+        "disposition": "tested",
+        "evidence": "custom-profile-loader.test.ts fast-path test + 108 bundled test PASSED"
+      },
+      {
+        "behavior": "Adopt scan: ok/invalid-path/busy/unsupported-schema/engine-unavailable/failed, UNC refused, private temp, lock",
+        "disposition": "tested",
+        "evidence": "server/src/core/adopt-scan.test.ts 14 tests PASSED"
+      },
+      {
+        "behavior": "Adopt screen shows live profile with source and warnings, keeps sample row with a note otherwise, never scans a remote URL",
+        "disposition": "tested",
+        "evidence": "AdoptResult.live.test.tsx 6 tests PASSED; 108 adopt test PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e -- --project=chromium client/e2e/flows/108-custom-profile-preview-and-adopt.spec.ts",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\custom-profiles-preview-and-adopt-wiring\\.shipwright\\runs\\iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring\\surface_verification.log",
+    "timestamp": "2026-10-25T12:35:15.263Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_public_api",
+    "touches_io_boundary"
+  ]
+}

@@ -5,8 +5,10 @@
  * `profile.warnings` and `candidates[].source` were added. Cross-repo rules
  * (`cross-repo-contract.md`): a 1.0 snapshot simply lacks the new keys and must
  * stay readable; never assume a key exists; an unknown MAJOR is refused.
- * Nothing renders a live snapshot yet (AdoptResult is still fed by stubData);
- * this is the guarded entry point that wiring must use.
+ * The Adopt screen's live Profile row comes through POST /api/adopt/scan, whose
+ * server twin (`core/adopt-scan.ts` extractProfile) applies the same rules plus
+ * caps/cleaning of repo-derived text; this reader stays the client-side guard for
+ * a raw snapshot and is the type source (`SnapshotProfile`) for that response.
  */
 
 export type SnapshotProfileSource = "project" | "user" | "bundled" | "user-hint" | (string & {});

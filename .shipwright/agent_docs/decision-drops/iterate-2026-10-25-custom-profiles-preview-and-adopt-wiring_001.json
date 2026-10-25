@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring",
+  "date": "2026-10-25",
+  "section": "Iterate - feature: custom-profile Preview and live Adopt profile",
+  "title": "Preview for custom stack profiles; live Adopt profile row",
+  "context": "Preview only knew the bundled profile snapshot, so projects with their own stack profile got no Preview, and the Adopt result Profile row was sample data.",
+  "decision": "Resolve profiles via the shipwright resolver, treat the file as untrusted (realpath containment, field allowlist, command policy, fresh re-resolve at spawn), and add a read-only POST /api/adopt/scan feeding the Adopt Profile row.",
+  "consequences": "Preview works for project/user profiles; hostile profiles get no Preview. Actions GET is async with a bounded resolver queue; npx is not accepted in project profiles.",
+  "rationale": "A cloned repo can ship a profile, so the file is input not config; the resolver stays the only authority on which file a name means, and the spawn path is unchanged.",
+  "rejected": "Re-implementing lookup in webui; trusting the file as-is; a per-command confirmation dialog; allowing npx; running the scan inside the repo.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

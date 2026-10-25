@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n- **Category: approach \u2014 Severity: low**\n  Caching keyed on `projectPath\\0name` with mtime check is sound and the resolver-not-reimplementation stance is right. One refinement: distinguish failure modes in the cache \u2014 a negative result (invalid profile) should also be cached briefly, otherwise a broken profile means a resolver spawn on every actions GET for that project. Confirm the null result is cached, not just successes.\n\n- **Category: risk \u2014 Severity: medium**\n  Changing `loadProfile` from sync to a union (`Promise|sync`) ripples to every existing consumer of that dependency. If any caller outside the two you've listed (actions GET, preview spawn) uses `loadProfile` synchronously \u2014 e.g. `ProjectManager.hasPreviewCapability` is explicitly out of scope but other call sites may exist \u2014 a union type hides the break until runtime. Suggestion: grep all `loadProfile` call sites before settling on the union; consider making it strictly `Promise` and updating all callers, which is a small, honest refactor and avoids a type lie.\n\n- **Category: security \u2014 Severity: medium**\n  `POST /api/adopt/scan` takes an arbitrary `path` from the request body. Even with realpath + fixed argv + shell:false, this lets any client with app access point a read-only analyzer at any directory on the machine and exfiltrate a structural summary (file names, detected frameworks) through the response. Suggestion: at minimum require the path to be under a user-configured workspace/known-repos root, or confirm this route sits behind the same auth as other mutating routes and document the exposure. Also note that `analyze_codebase.py` output lands in os tmp \u2014 ensure the tmp file is deleted on timeout/error paths, not just success, or you leak repo structure into tmp.\n\n- **Category: edge-case \u2014 Severity: low**\n  AC2 requires \"unreadable file yields no Preview\" with error `preview_profile_invalid`, but the mini-plan collapses every failure to `null` with a single code. A parse error, containment failure, and resolver-invalid are different diagnostics; users debugging a broken custom profile will see only \"invalid.\" Suggestion: keep the return shape informative internally (reason string) even if the client surfaces one code.\n\n- **Category: edge-case \u2014 Severity: low**\n  Containment via realpath on the profile path: symlink inside `.shipwright/profiles` pointing outside is correctly rejected, good. But `~` expansion and Windows path case-insensitivity are worth an explicit test \u2014 the two-root containment check (`project/.shipwright/profiles` OR `~/.shipwright/profiles`) is exactly where platform path bugs live.\n\n- **Category: dependency \u2014 Severity: low**\n  The adopt scan depends on `uv` being on PATH at runtime. AC5 covers \"if unavailable, sample rows stay,\" but the route should return a distinguishable status (e.g. `unavailable` vs `error`) so the client message is accurate rather than a generic failure. Also confirm `analyze_codebase.py`'s exit codes / stderr behavior are handled \u2014 a nonzero exit with partial JSON on stdout shouldn't be parsed.\n\n- **Category: edge-case \u2014 Severity: low**\n  AC7 (`/shipwright-run` honoring the brief's profile name) is a verification item, but there's no stated follow-up if the answer is \"no.\" Decide now: if it doesn't honor it, that's a new gap ticket \u2014 the spec should say the result is recorded and a failure spawns a follow-up, not silently accepted.\n\n## Overall assessment\nSound approach that correctly avoids re-implementing profile resolution; the main things to tighten are the sync\u2192async ripple beyond the two named consumers, path-scoping on the adopt scan route, and failure-mode fidelity (caching negatives, distinguishing errors, tmp cleanup on failure).\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: risk | Severity: high**  \n   **Finding:** \u201cAny failure \u2192 null\u201d conflicts with AC2: bundled profiles must keep working when the resolver is absent. Falling back only when the resolver returns `source: bundled` cannot handle that case.  \n   **Suggestion:** Explicitly preserve the existing bundled loader when the resolver is unavailable. Distinguish resolver unavailability from a resolver response declaring a custom profile invalid; the latter must not fall back to a bundled profile with the same name. Test both paths.\n\n2. **Category: edge-case | Severity: medium**  \n   **Finding:** The cache description does not specify how failed lookups expire or how cached successes are revalidated. An unchanged file mtime does not reveal a newly created higher-priority project profile, and a cached profile must not survive deletion or a symlink change that puts it outside the allowed roots.  \n   **Suggestion:** Make the 15-second TTL trigger resolver validation independently of mtime. Before reusing a successful entry, check its current realpath, containment, and mtime; evict on failure. Give negative results a bounded TTL and test shadowing, deletion, and symlink replacement.\n\n3. **Category: edge-case | Severity: medium**  \n   **Finding:** `useAdoptScan(path)` introduces asynchronous results without specifying what happens when the selected repository changes during a scan. A slower response for repository A could overwrite the profile shown for repository B.  \n   **Suggestion:** Key scan state by the selected path, reset to explicitly labelled sample data on changes, and ignore superseded responses. Ensure failed scans clear any previous live profile.\n\n4. **Category: approach | Severity: medium**  \n   **Finding:** The proposed browser test stops at \u201cURL returned,\u201d which does not establish AC6\u2019s requirement that a dev server actually starts. Also, the scan plan does not explicitly verify rejection of unknown snapshot majors.  \n   **Suggestion:** Have the browser test wait for the preview URL to serve identifiable fixture content. Add a scan-route test showing that an unknown major produces the unavailable/sample fallback rather than displaying its profile.\n\nThe approach is sound and appropriately scoped, but bundled fallback behavior and cache semantics need clarification before implementation. The remaining changes are small additions to client state handling and acceptance verification.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-25-custom-profiles-preview-and-adopt-wiring",
+    "at": "2026-10-25T12:01:58.394730+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

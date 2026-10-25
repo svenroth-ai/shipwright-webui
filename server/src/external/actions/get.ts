@@ -22,12 +22,13 @@ export function registerActionsGet(
   app: Hono,
   deps: {
     getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
-    loadProfile: (profileName: string) => PreviewProfile | null;
+    loadProfile: (profileName: string, projectPath?: string, opts?: { fresh?: boolean }) =>
+    Promise<PreviewProfile | null> | PreviewProfile | null;
   },
 ): void {
   const { getProjectById, loadProfile } = deps;
 
-  app.get("/api/external/projects/:projectId/actions", (c) => {
+  app.get("/api/external/projects/:projectId/actions", async (c) => {
     const projectId = c.req.param("projectId");
     const project = getProjectById?.(projectId);
     if (!project) {
@@ -90,8 +91,18 @@ export function registerActionsGet(
     //            "auto"  → follow Step 1.
     //            true    → only honored if Step 1 also allowed it.
     //            false   → force off regardless.
+    // Awaited: custom (project / user) profiles are resolved by the shipwright
+    // resolver (async). Never throws - any failure just means "no Preview".
+    let loadedProfile: PreviewProfile | null = null;
+    if (project.profile) {
+      try {
+        loadedProfile = await loadProfile(project.profile, project.path);
+      } catch {
+        loadedProfile = null;
+      }
+    }
     const profile = project.profile
-      ? (loadProfile(project.profile) as
+      ? (loadedProfile as
           | (PreviewProfile & { stack?: { frontend?: unknown } })
           | null)
       : null;

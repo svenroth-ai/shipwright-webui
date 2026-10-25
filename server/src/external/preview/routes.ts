@@ -35,7 +35,8 @@ import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 export interface PreviewRouterDeps {
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
   previewManager?: PreviewSessionManager;
-  loadProfile: (profileName: string) => PreviewProfile | null;
+  loadProfile: (profileName: string, projectPath?: string, opts?: { fresh?: boolean }) =>
+    Promise<PreviewProfile | null> | PreviewProfile | null;
 }
 
 export function createPreviewRouter(deps: PreviewRouterDeps): Hono {
@@ -57,7 +58,13 @@ export function createPreviewRouter(deps: PreviewRouterDeps): Hono {
         400,
       );
     }
-    const profile = loadProfile(project.profile);
+    // fresh: spawn re-resolves right before it runs (no stale cache, no TOCTOU).
+    let profile: PreviewProfile | null = null;
+    try {
+      profile = await loadProfile(project.profile, project.path, { fresh: true });
+    } catch {
+      profile = null;
+    }
     if (!profile) {
       return c.json(
         { error: "preview_profile_invalid", detail: "profile not found" },

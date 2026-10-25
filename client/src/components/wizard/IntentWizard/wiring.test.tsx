@@ -10,6 +10,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { NewPathPlanCard } from "./NewPathPlanCard";
 import { AdoptResult } from "./AdoptResult";
@@ -17,6 +18,13 @@ import { LaunchingScreen } from "./LaunchingScreen";
 import type { NewLaunchRequest, AdoptLaunchRequest } from "./contract";
 
 afterEach(() => cleanup());
+
+// AdoptResult now reads the repo profile live (react-query); these tests are
+// about the launch button, so the scan is left unanswered (stays "reading").
+function renderAdopt(ui: React.ReactElement) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>);
+}
 
 const ANSWERS = {
   brief: "A booking tool for my yoga studio",
@@ -71,7 +79,7 @@ describe("New plan card → Go builds a new-pipeline request with the brief (AC3
 describe("Adopt result → start builds a new-task + adopt request (AC2/AC3)", () => {
   it("emits actionId new-task + adopt phase + a non-empty brief, carrying the path", () => {
     const onLaunch = vi.fn();
-    render(<AdoptResult path={"C:\\work\\api-server"} dispatch={vi.fn()} onLaunch={onLaunch} />);
+    renderAdopt(<AdoptResult path={"C:\\work\\api-server"} dispatch={vi.fn()} onLaunch={onLaunch} />);
     fireEvent.click(screen.getByTestId("wizard-adopt-start"));
     expect(onLaunch).toHaveBeenCalledTimes(1);
     const req = onLaunch.mock.calls[0][0] as AdoptLaunchRequest;
@@ -84,13 +92,13 @@ describe("Adopt result → start builds a new-task + adopt request (AC2/AC3)", (
 
   it("start is inert without a repo path", () => {
     const onLaunch = vi.fn();
-    render(<AdoptResult path={null} dispatch={vi.fn()} onLaunch={onLaunch} />);
+    renderAdopt(<AdoptResult path={null} dispatch={vi.fn()} onLaunch={onLaunch} />);
     expect(screen.getByTestId("wizard-adopt-start")).toBeDisabled();
   });
 
   it("refuses a remote URL — adopt needs a local repo (grade→adopt handoff edge)", () => {
     const onLaunch = vi.fn();
-    render(<AdoptResult path="github.com/acme/checkout" dispatch={vi.fn()} onLaunch={onLaunch} />);
+    renderAdopt(<AdoptResult path="github.com/acme/checkout" dispatch={vi.fn()} onLaunch={onLaunch} />);
     expect(screen.getByTestId("wizard-adopt-start")).toBeDisabled();
     expect(screen.getByTestId("wizard-adopt-remote-note")).toHaveTextContent(/clone/i);
     fireEvent.click(screen.getByTestId("wizard-adopt-start"));
@@ -98,7 +106,7 @@ describe("Adopt result → start builds a new-task + adopt request (AC2/AC3)", (
   });
 
   it("does not claim a diff-approval UI the plugin lacks (AC5)", () => {
-    render(<AdoptResult path={"C:\\r"} dispatch={vi.fn()} onLaunch={vi.fn()} />);
+    renderAdopt(<AdoptResult path={"C:\\r"} dispatch={vi.fn()} onLaunch={vi.fn()} />);
     const result = screen.getByTestId("wizard-adopt-result");
     expect(result.textContent ?? "").not.toMatch(/show you the diff first/i);
     expect(result.textContent ?? "").not.toMatch(/approve the diff/i);
