@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/components/wizard/IntentWizard/briefIntake.ts:23 \u2014 `STACK_LABEL` and `INTAKE_MARK`\n- Finding: The claimed Unicode case-fold coverage is incomplete. Python case-insensitive matching accepts `\u0130` and `\u0131` for `i`, but these JavaScript patterns leave `Stack prof\u0131le:` and `(\u0130ntake` intact. An idea containing `(\u0130ntake \u2014 Stack prof\u0131le: evil;)` can therefore survive sanitization as an earlier complete trailer and make the downstream reader reject the brief as ambiguous. The JavaScript reader port also misses these variants, so the hostile-input tests do not catch this.\n- Suggestion: Match all Unicode variants accepted by the Python reader in both sanitizers, and test the resulting briefs against the actual reader or a faithful port of its case-fold behavior.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/wizard/IntentWizard/AdoptResult.live.test.tsx:110\n- Finding: AC5 requires the committed real analyzer snapshot to run through both `extractFindings` and `AdoptResult` in CI. The extractor test reads that snapshot, but the component tests use independently handwritten findings. The browser additions also assert Stack values without asserting the required live CI value, leaving that acceptance criterion partially implemented.\n- Suggestion: Feed findings extracted from the committed snapshot into `AdoptResult` in a CI test, and add an explicit live CI assertion to the real-analyzer browser scenario.\n\n- Category: edge-case\n- Severity: low\n- File: server/src/core/adopt-scan-findings.ts:41\n- Finding: `joined()` truncates with UTF-16 `.slice(0, MAX_TEXT)`, which can split an astral character despite `clean()` taking care to preserve code points. For example, a primary language of `\"aa\" + \"\ud83d\ude00\".repeat(19)` followed by a sufficiently long emoji technology name produces a dangling surrogate at the truncation boundary.\n- Suggestion: Truncate the joined string by code points, as `clean()` already does, and cover truncation across multiple joined parts.\n\nShip-with-fixes: the implementation broadly follows the specification, but the brief sanitization bypass and missing real-snapshot UI verification should be addressed before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: edge-case\n  Severity: medium\n  File: `client/src/components/wizard/IntentWizard/briefIntake.ts:60` (`composeNewBrief`)\n  Finding: The idea (user prose) is *not* stripped of control characters or newlines \u2014 by design per AC1 \u2014 but the reader contract depends on \"last physical line, last `(Intake`\". That holds only because the trailer is appended after the idea and contains no newlines itself. However, if the idea's last line itself ends with text like `x) (Intake` it is neutralised, fine \u2014 but a `Stack profile:`-shaped fragment *before a `;` or `)`* inside the last physical line before the trailer cannot occur because the trailer is last and the label in the idea is neutralised. I traced the hostile cases and they pass; the one residual gap: an idea ending in a bare `)` immediately before ` (Intake \u2014` produces `...) (Intake \u2014` \u2014 the ported reader still finds the last `(Intake` correctly. No concrete failure found here; flagging only that the safety now rests entirely on the ordering invariant (label neutralisation + trailer-last), which is tested but is the single point of failure for the whole contract. Any future edit that inserts a part after user text (e.g. a `Runs:` part containing a `(` from `envVarsRequired` wording changes) must re-run these tests \u2014 they exist and cover it.\n  Suggestion: None required; the contract tests already pin this. Keep them as the gate for any edit to `composeNewBrief`.\n\n- Category: bug\n  Severity: low\n  File: `server/src/core/adopt-scan-findings.ts:96` (`if (has(\"features\")) out.routes = count(raw.features);`)\n  Finding: \"Routes\" is derived from the snapshot's `features` array length. If the analyzer's `features` are anything other than routes/endpoints (the spec's Out-of-Scope says \"Features row (inferred from enrichment, not in the snapshot)\", suggesting `features` is not the route list), the Routes row reports a misleading count. The committed real-snapshot fixture (routes: 2) makes this hard to dispute for this repo, but the semantic mapping is asserted only through fixtures, not documented against the analyzer schema.\n  Suggestion: Confirm against `analyze_codebase.py` 1.1 that `features` is exactly the routes/endpoints list; if it is, add a one-line comment naming the schema field so the mapping is auditable.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/components/wizard/IntentWizard/AdoptResult.tsx:83` (`scan.data?.status === \"ok\" ? (scan.data.findings ?? {}) : null`)\n  Finding: When a scan returns `ok` from an older server with no `findings` key, all six scan rows flip from sample to \"Not reported by this scan version\" and the sample values disappear. That matches AC3/AC4's key-absent rule for *snapshot* keys, but a missing `findings` *block* is a server-version signal, not a per-key statement \u2014 the banner then asserts \"Not reported by this scan version: Stack, Routes, \u2026\" even though this scan version may simply be older than the client. The unit test pins this behaviour deliberately, so it's a wording-honesty nit rather than a violation.\n  Suggestion: Consider treating `findings === undefined` as \"keep samples\" (only a present-but-partial `findings` object drives per-key unreported). Low priority; the shape-sync test makes the mixed-version window narrow.\n\n- Category: test\n  Severity: low\n  File: `client/src/test/adopt-scan-findings-sync.test.ts:14-19` (`body()`)\n  Finding: The drift test slices the interface source to the *first* `}` after the declaration. It works today because the interface has no nested braces, but a future field like `nested?: { a: string }` would truncate the comparison silently mid-body and could still pass if the truncated prefixes match. `expect(start)` guards the start but nothing guards truncation.\n  Suggestion: Assert the extracted body contains the last field name (e.g. `commands`) so a truncated read fails loudly.\n\n- Category: edge-case\n  Severity: low\n  File: `server/src/core/adopt-scan-findings.ts:91` (`commands`)\n  Finding: `COMMAND_NAMES.filter((name) => clean(v[name], 200) !== \"\")` counts a script as present if its command text is non-blank \u2014 correct \u2014 but a hostile repo can also make a script name appear by setting e.g. `\"dev\": \" \"` (whitespace-only) \u2014 no, that cleans to `\"\"` and is excluded. Only real gaps: none found. (Withdrawing; no defect.)\n\nEverything else checks out: AC1's hostile-text matrix is genuinely adversarial (Unicode folds, separators, nested trailers) and runs against a ported reader on real `composeNewBrief` output; AC2's reducer/`resolveStackProfile` refusal is tested including the server-lists-it-valid case; the no-flag rule and both drift tests are in place; AC3's per-key isolation, name-only commands, `no-store`, and additive profile block are all tested; AC4's three row states and per-row-derived banner are behaviourally pinned; AC6's exact-value preview assertion and the merged `ResolvedPreviewProfile` type are done. I found no security defect: untrusted text is cleaned, capped, never rendered as markup, and never logged.\n\nOverall assessment: ship-as-is; the findings above are refinements, none block the contract or the live rows.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+    "at": "2026-10-25T23:16:45.397653+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

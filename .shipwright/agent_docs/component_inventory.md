@@ -308,6 +308,8 @@ transient `design-feedback-round{N}.md` write (gitignored scratch). Resume = the
 | `StackProfilesCard` (FR-01.75) | `components/settings/StackProfilesCard.tsx` | — |
 | `custom-profile-loader` (FR-01.75) | `server/src/core/custom-profile-loader.ts` | — |
 | `adopt-scan` (FR-01.75) | `server/src/core/adopt-scan.ts` | — |
+| `adopt-scan-findings` (FR-01.75) | `server/src/core/adopt-scan-findings.ts` | — |
+| `adoptLiveRows` (FR-01.75) | `client/src/components/wizard/IntentWizard/adoptLiveRows.ts` | — |
 | `adopt-scan` route (FR-01.75) | `server/src/routes/adopt-scan.ts` | — |
 | `useAdoptScan` (FR-01.75) | `client/src/hooks/useAdoptScan.ts` | — |
 | `adoptScanApi` (FR-01.75) | `client/src/lib/adoptScanApi.ts` | — |

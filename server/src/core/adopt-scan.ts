@@ -1,7 +1,8 @@
 /*
  * adopt-scan.ts — a READ-ONLY look at a local repo for the Adopt screen: runs the
  * shipwright adopt analyzer (`analyze_codebase.py`, Layer-1 detectors) and returns
- * ONLY the detected stack-profile block (match, source, discovery warnings).
+ * ONLY the detected stack-profile block (match, source, discovery warnings) plus a
+ * few short, cleaned findings rows (`adopt-scan-findings.ts`) - never the snapshot.
  *
  * "Nothing has been written yet" must stay true, so the analyzer is always given
  * `--output` pointing at a private temp dir (without it the analyzer writes
@@ -18,6 +19,7 @@ import { closeSync, existsSync, fstatSync, mkdtempSync, openSync, readdirSync, r
 import os from "node:os";
 import path from "node:path";
 
+import { CONTROL, extractFindings, type AdoptScanFindings } from "./adopt-scan-findings.js";
 import { defaultCliChildSpawn, type CliChildSpawnFn } from "./cli-child-spawn.js";
 import { READINESS_REPAIR_COMMAND, shipwrightCacheRoot, type RunFn } from "./readiness-probe.js";
 import { resolveUv } from "./uv-runner.js";
@@ -36,7 +38,7 @@ export interface AdoptScanProfile {
 }
 
 export type AdoptScanOutcome =
-  | { status: "ok"; profile: AdoptScanProfile }
+  | { status: "ok"; profile: AdoptScanProfile; findings: AdoptScanFindings }
   | { status: "invalid-path"; reason: string }
   | { status: "busy"; reason: string }
   | { status: "unsupported-schema"; version: string }
@@ -84,9 +86,6 @@ function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-// eslint-disable-next-line no-control-regex
-const CONTROL = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g;
-
 /** Tolerant reader (snapshot 1.0 lacks source/warnings); unknown major refused. */
 export function extractProfile(raw: unknown): AdoptScanOutcome {
   if (!isObject(raw)) return { status: "failed", reason: "The scan returned something unreadable." };
@@ -106,6 +105,7 @@ export function extractProfile(raw: unknown): AdoptScanOutcome {
     : [];
   return {
     status: "ok",
+    findings: extractFindings(raw),
     profile: {
       matched: typeof p.matched === "string" ? p.matched.replace(CONTROL, " ").slice(0, 120) : null,
       confidence: typeof p.confidence === "number" && Number.isFinite(p.confidence) ? p.confidence : null,

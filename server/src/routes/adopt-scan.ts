@@ -21,6 +21,8 @@ export function createAdoptScanRoutes(deps: AdoptScanDeps = {}): Hono {
     if (typeof body !== "object" || body === null || Array.isArray(body)) {
       return c.json({ status: "invalid-request", reason: "Expected a JSON body." }, 400);
     }
+    // findings are derived from an untrusted repo: never cached by the browser or an intermediary
+    c.header("Cache-Control", "no-store");
     return c.json(await scanRepoProfile({ path: (body as Record<string, unknown>).path }, deps));
   });
   return app;

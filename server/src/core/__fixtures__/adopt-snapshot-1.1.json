@@ -1,0 +1,167 @@
+{
+  "schema_version": "1.1",
+  "project_root": "<project>",
+  "excludes": [],
+  "stack": {
+    "primary_language": "typescript",
+    "runtime": {
+      "typescript": "^5.6.0"
+    },
+    "frontend": {
+      "react": "React@^19.0.0",
+      "react-dom": "React@^19.0.0",
+      "vite": "Vite@^6.0.0"
+    },
+    "backend": {
+      "tsx": "tsx (TypeScript runner)@^4.21.0",
+      "hono": "Hono@^4.12.34",
+      "@hono/node-server": "Hono Node Server@^1.14.0"
+    },
+    "database": {},
+    "auth": {},
+    "signals": [
+      "has-multi-service-layout"
+    ],
+    "multi_service": {
+      "detected": true,
+      "confidence": "medium",
+      "services": [
+        {
+          "name": "frontend",
+          "root": "client",
+          "framework": "react",
+          "dev_command": "npm --prefix client run dev",
+          "proxy_target": null
+        },
+        {
+          "name": "backend",
+          "root": "server",
+          "framework": "hono",
+          "dev_command": "npm --prefix server run dev",
+          "proxy_target": null
+        }
+      ],
+      "evidence": [
+        "sibling package.jsons found at client/ + server/",
+        "frontend framework signal: react",
+        "backend framework signal: hono"
+      ]
+    }
+  },
+  "profile": {
+    "matched": "vite-hono",
+    "confidence": 0.875,
+    "candidates": [
+      {
+        "name": "vite-hono",
+        "score": 0.875,
+        "matched_deps": [
+          "@hono/node-server",
+          "hono",
+          "react",
+          "react-dom",
+          "tsx",
+          "typescript",
+          "vite"
+        ],
+        "source": "bundled"
+      },
+      {
+        "name": "supabase-nextjs",
+        "score": 0.214,
+        "matched_deps": [
+          "react",
+          "react-dom",
+          "typescript"
+        ],
+        "source": "bundled"
+      },
+      {
+        "name": "python-plugin-monorepo",
+        "score": 0.0,
+        "matched_deps": [],
+        "source": "bundled"
+      }
+    ],
+    "source": "bundled",
+    "warnings": []
+  },
+  "conventions": {
+    "linter": null,
+    "formatter": null,
+    "tsconfig_strict": false,
+    "editorconfig": null,
+    "python_style": null,
+    "typescript": false
+  },
+  "test_frameworks": {
+    "unit": null,
+    "integration": null,
+    "e2e": null,
+    "db": null,
+    "coverage_tool": null
+  },
+  "ci_pipeline": {
+    "provider": "github-actions",
+    "workflows": [
+      ".github/workflows/bloat-check.yml",
+      ".github/workflows/ci.yml",
+      ".github/workflows/codeql.yml",
+      ".github/workflows/pr-review-run.yml",
+      ".github/workflows/pr-review.yml",
+      ".github/workflows/publish-npm.yml",
+      ".github/workflows/security.yml",
+      ".github/workflows/visual-baselines.yml"
+    ]
+  },
+  "folders": {
+    "layers": [
+      {
+        "name": "docs",
+        "paths": [
+          "docs"
+        ]
+      },
+      {
+        "name": "infrastructure",
+        "paths": [
+          "scripts"
+        ]
+      }
+    ],
+    "loc_by_layer": {
+      "docs": 0,
+      "infrastructure": 19703
+    }
+  },
+  "nested_projects": [],
+  "features": [
+    {
+      "route": "/api/health",
+      "source_file": "server/src/index.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.01"
+    },
+    {
+      "route": "*",
+      "source_file": "server/src/index.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.02"
+    }
+  ],
+  "git": {
+    "commits_total": 1132,
+    "contributors": [],
+    "major_refactor_commits": []
+  },
+  "commands": {
+    "dev": null,
+    "build": null,
+    "test": null,
+    "lint": null
+  }
+}

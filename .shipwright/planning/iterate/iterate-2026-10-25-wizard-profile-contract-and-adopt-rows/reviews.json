@@ -1,0 +1,386 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T23:04:41.856714+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "parse the regex source from the server file and assert behavior on a shared battery of names (valid/invalid cases) plus the literal source for the length cap, rather than strict text equality of the whole line.  2. Category: edge-case — Severity: medium AC1's cleaning rules strip `(`, `)`, `;`, newline, `Stack profile:` and `(Intake` from user-supplied brief parts. But the monorepo reader takes the last physical line and the last `(Intake` marker. If cleaning removes a newline from user text (rather than truncating at it), two user lines get joined — which is fine — but confirm the reader's \"head ends at first inner bracket\" rule combined with profile-first ordering is tested against a brief where the idea text originally contained `)` at position 0 of an item. The spec says a test ports the reader's rules; make sure the ported test is byte-faithful (last physical line, not last trailer occurrence), since `composeNewBrief` output ending in a multi-line trailer would silently fall back to the reader's \"last physical line\" and drop the profile.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "add one test asserting the composed brief is exactly one physical line at the trailer, and that the ported reader extracts the profile from the actual `composeNewBrief` output for every test case, not just from synthetic strings.  3. Category: edge-case — Severity: low AC3's per-key nulling (\"one bad key nulls only that key\") is good, but the spec doesn't state what happens if the snapshot's `findings`-bearing node itself is not an object (e.g., a string or array). Ensure `extractFindings` treats a malformed container as \"report nothing\" (all keys absent or null) rather than throwing — a hostile or future analyzer version could send anything.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "add a type-guard test for non-object findings nodes.  4. Category: risk — Severity: low The reducer refusing invalid names \"even when the server list marks it valid\" changes behavior for any existing saved wizard state or stored custom profile whose name fails the rule (e.g., created before this change, or with an uppercase name). If `setProfile` now refuses, a user with a pre-existing invalid profile name may find the wizard silently ignoring their selection.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "decide and document the fallback (sanitize to a valid name, or show an inline validation error instead of silently refusing), and test migration of existing state.  5. Category: edge-case — Severity: low AC4: \"while loading... every row stays the sample.\" If a previous scan result is cached in component state and a re-scan begins, ensure rows don't flicker between live and sample mid-flight, and that a scan that transitions ok→error reverts rows to sample with the honest note. The spec covers \"unavailable/fails\" but not the transition case explicitly.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "one test for ok-then-error re-scan resetting per-row flags.  6. Category: approach — Severity: low (positive / tidy) AC6's loader-type merge and exact-`enabled` assertion are fine. The `adoptLiveRows.ts` mapper as a separate module is justified by testability; keep it free of React so the pure mapping stays unit-testable — don't let JSX creep in.  7. Category: security — Severity: low Response is `no-store` and never logged — confirm this also covers the existing `profile` block and any future middleware that logs request bodies (e.g., error handlers that dump payloads). The cap of 120 chars / 8 items with bidi/control stripping is a solid defense; make sure the stripping happens server-side (in `extractFindings`), not only client-side, so the cached/never-logged contract holds regardless of consumer.  Overall: The approach is sound and unusually well-calibrated — contract pinning via a ported-reader test, additive API changes, and honest UI states are all the right calls. The findings above are refinements; the mirror-drift test mechanism (finding 1) and the reducer's silent refusal of pre-existing invalid names (finding 4) are the two worth fixing before merge.  SHIPWRIGHT_VERDICT: approve",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Step 7 allows reviewing PR text as a fallback for running AC7. PR text cannot establish that a custom profile reaches run configuration or that invalid names produce `profile_error` and exit 3. The plan also omits the required initial verification against B2b.",
+          "suggestion": "Run the integration probe against B2b first and merged #923 at completion. Assert the selected profile and invalid-name failure explicitly; report unavailable execution as unverified.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan lists brief tests and profile-name guards, but does not explicitly schedule the `composeNewBrief` sanitization required by AC1. Validating the profile name alone does not prevent user text from introducing brackets, separators, labels, or physical lines that change parsing.",
+          "suggestion": "Explicitly include sanitizing all four user fields and placing the profile item first. Test the resulting brief through the ported reader, including hostile text in each field and combinations of fields.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "AC5’s committed real-analyzer fixture is missing from the files, work breakdown, and test strategy. Because the browser test can skip when the analyzer is unavailable, synthetic unit tests could become the only CI coverage of the actual snapshot format.",
+          "suggestion": "Commit a representative real snapshot and run it through both `extractFindings` and `AdoptResult` in CI, asserting live values, reported-empty values, and the Features sample marker.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Step 3 specifies “Not detected at the top of the repo,” which differs from AC4’s required empty-state copy and omits the sub-folder explanation.",
+          "suggestion": "Use the acceptance-criteria wording and assert distinct UI output for absent keys and reported-empty keys.  The approach is sound and appropriately scoped, but the contract sanitization and empirical verification need explicit implementation steps before proceeding. The committed fixture is also necessary to keep meaningful integration coverage when the browser test skips.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-25T23:02:23.317372+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**1. Category: dependency — Severity: medium**\nThe client mirrors server `PROFILE_NAME_RE` and `MAX_PROFILE_NAME_LENGTH` \"guarded by a drift test that reads the server source text.\" A source-text-equality test is brittle: any reformat, comment, or refactor of the server regex line breaks the drift test without an actual contract break, and vice versa a semantically-equivalent rewrite (whitespace, group naming) will fail it. Also confirm the drift test actually imports/loads the server file path reliably in the client test runner — cross-package file reads in a test often break depending on working directory or bundler config.\n**Suggestion:** parse the regex source from the server file and assert *behavior* on a shared battery of names (valid/invalid cases) plus the literal source for the length cap, rather than strict text equality of the whole line.\n\n**2. Category: edge-case — Severity: medium**\nAC1's cleaning rules strip `(`, `)`, `;`, newline, `Stack profile:` and `(Intake` from user-supplied brief parts. But the monorepo reader takes the *last physical line* and the *last* `(Intake` marker. If cleaning *removes* a newline from user text (rather than truncating at it), two user lines get joined — which is fine — but confirm the reader's \"head ends at first inner bracket\" rule combined with profile-first ordering is tested against a brief where the *idea* text originally contained `)` at position 0 of an item. The spec says a test ports the reader's rules; make sure the ported test is byte-faithful (last physical line, not last trailer occurrence), since `composeNewBrief` output ending in a multi-line trailer would silently fall back to the reader's \"last physical line\" and drop the profile.\n**Suggestion:** add one test asserting the composed brief is exactly one physical line at the trailer, and that the ported reader extracts the profile from the actual `composeNewBrief` output for every test case, not just from synthetic strings […truncated]\n\n[openai] 1. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** Step 7 allows reviewing PR text as a fallback for running AC7. PR text cannot establish that a custom profile reaches run configuration or that invalid names produce `profile_error` and exit 3. The plan also omits the required initial verification against B2b.  \n   **Suggestion:** Run the integration probe against B2b first and merged #923 at completion. Assert the selected profile and invalid-name failure explicitly; report unavailable execution as unverified.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** The plan lists brief tests and profile-name guards, but does not explicitly schedule the `composeNewBrief` sanitization required by AC1. Validating the profile name alone does not prevent user text from introducing brackets, separators, labels, or physical lines that change parsing.  \n   **Suggestion:** Explicitly include sanitizing all four user fields and placing the profile item first. Test the resulting brief through the ported reader, including hostile text in each field and combinations of fields.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** AC5’s committed real-analyzer fixture is missing from the files, work breakdown, and test strategy. Because the browser test can skip when the analyzer is unavailable, synthetic unit tests could become the only CI coverage of the actual snapshot format.  \n   **Suggestion:** Commit a representative real snapshot and run it through both `extractFindings` and `AdoptResult` in CI, asserting live values, reported-empty values, and the Features sample marker.\n\n4. **Category:** edge-case  \n   **Severity:** low  \n   **Finding:** Step 3 specifies “Not detected at the top of the repo,” which differs from AC4’s required empty-state copy and omits the sub-folder explanation.  \n   **Suggestion:** Use the acceptance-criteria wording and assert distinct UI output for absent keys and reported-empty keys.\n\nT […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/adoptLiveRows.ts",
+          "line": null,
+          "finding": "Banner lists 'unreported' rows as read live (AC4).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/adoptLiveRows.test.ts",
+          "line": null,
+          "finding": "Banner test does not bite (prefix match).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/briefIntake.ts",
+          "line": null,
+          "finding": "Label neutralising misses stack_profile / stack-profile / '=' aliases the reader's key parser accepts.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/wizard/IntentWizard/briefIntakeContract.test.ts",
+          "line": null,
+          "finding": "Hostile matrix never exercises remember/where cleaning or the inferred path.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/adopt-scan-findings.ts",
+          "line": null,
+          "finding": "CONTROL misses U+061C, U+2060-2064, U+FEFF, U+00AD, tag block; slice may split a surrogate pair.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/wizard/IntentWizard/briefIntake.ts",
+          "line": null,
+          "finding": "Doc block sits above STACK_LABEL and omits the profile-first rule.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/wizard/IntentWizard/adoptLiveRows.ts",
+          "line": null,
+          "finding": "Loosely typed say callback and a cast; package.json wording unconfirmed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T23:10:09.400716+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "8711ef05fa7f102a1e39e7e5422e065b5deb83d7"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Line separators U+2028/2029/0085 not stripped from who/where/remember — Rebutted: the real reader (brief_profile.py at 7fc60e2a3, merged #923) splits on LF only; all C0 breaks are stripped by the wizard.",
+          "suggestion": "resolved - see disproof_attempt",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: JS vs Python regex dialect: Kelvin sign, dotless i, whitespace sets — Fixed: STACK_LABEL and INTAKE_MARK cover the Unicode folds and \u001c-\u001f/; verified with the REAL reader on six hostile Unicode briefs (all exit 0, correct profile).",
+          "suggestion": "resolved - see disproof_attempt",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Routes row fed from snapshot 'features' — Rebutted: analyzer 'features' is infer_features_ast, the de-duplicated route list; wording accurate; root-only scan limitation disclosed.",
+          "suggestion": "resolved - see disproof_attempt",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: CONTROL misses invisible filler characters — Fixed: added U+3164, U+115F, U+1160, U+2800, U+034F, U+180E, U+FE00-FE0F.",
+          "suggestion": "resolved - see disproof_attempt",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: AC3/AC5 proof gaps — Accepted: AC5 wording matches the hand-typed UI fixture; AC7 now proven against the merged reader.",
+          "suggestion": "resolved - see disproof_attempt",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T23:16:40.579377+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "reviewed_commit": "8711ef05fa7f102a1e39e7e5422e065b5deb83d7"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/components/wizard/IntentWizard/briefIntake.ts:60` (`composeNewBrief`)",
+          "line": null,
+          "finding": "The idea (user prose) is not stripped of control characters or newlines — by design per AC1 — but the reader contract depends on \"last physical line, last `(Intake`\". That holds only because the trailer is appended after the idea and contains no newlines itself. However, if the idea's last line itself ends with text like `x) (Intake` it is neutralised, fine — but a `Stack profile:`-shaped fragment before a `;` or `)` inside the last physical line before the trailer cannot occur because the trailer is last and the label in the idea is neutralised. I traced the hostile cases and they pass; the one residual gap: an idea ending in a bare `)` immediately before ` (Intake —` produces `...) (Intake —` — the ported reader still finds the last `(Intake` correctly. No concrete failure found here; flagging only that the safety now rests entirely on the ordering invariant (label neutralisation + trailer-last), which is tested but is the single point of failure for the whole contract. Any future edit that inserts a part after user text (e.g. a `Runs:` part containing a `(` from `envVarsRequired` wording changes) must re-run these tests — they exist and cover it.",
+          "suggestion": "None required; the contract tests already pin this. Keep them as the gate for any edit to `composeNewBrief`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "server/src/core/adopt-scan-findings.ts:96` (`if (has(\"features\")) out.routes = count(raw.features);`)",
+          "line": null,
+          "finding": "\"Routes\" is derived from the snapshot's `features` array length. If the analyzer's `features` are anything other than routes/endpoints (the spec's Out-of-Scope says \"Features row (inferred from enrichment, not in the snapshot)\", suggesting `features` is not the route list), the Routes row reports a misleading count. The committed real-snapshot fixture (routes: 2) makes this hard to dispute for this repo, but the semantic mapping is asserted only through fixtures, not documented against the analyzer schema.",
+          "suggestion": "Confirm against `analyze_codebase.py` 1.1 that `features` is exactly the routes/endpoints list; if it is, add a one-line comment naming the schema field so the mapping is auditable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/wizard/IntentWizard/AdoptResult.tsx:83` (`scan.data?.status === \"ok\" ? (scan.data.findings ?? {}) : null`)",
+          "line": null,
+          "finding": "When a scan returns `ok` from an older server with no `findings` key, all six scan rows flip from sample to \"Not reported by this scan version\" and the sample values disappear. That matches AC3/AC4's key-absent rule for snapshot keys, but a missing `findings` block is a server-version signal, not a per-key statement — the banner then asserts \"Not reported by this scan version: Stack, Routes, …\" even though this scan version may simply be older than the client. The unit test pins this behaviour deliberately, so it's a wording-honesty nit rather than a violation.",
+          "suggestion": "Consider treating `findings === undefined` as \"keep samples\" (only a present-but-partial `findings` object drives per-key unreported). Low priority; the shape-sync test makes the mixed-version window narrow.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/test/adopt-scan-findings-sync.test.ts:14-19` (`body()`)",
+          "line": null,
+          "finding": "The drift test slices the interface source to the first `}` after the declaration. It works today because the interface has no nested braces, but a future field like `nested?: { a: string }` would truncate the comparison silently mid-body and could still pass if the truncated prefixes match. `expect(start)` guards the start but nothing guards truncation.",
+          "suggestion": "Assert the extracted body contains the last field name (e.g. `commands`) so a truncated read fails loudly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/adopt-scan-findings.ts:91` (`commands`)",
+          "line": null,
+          "finding": "COMMAND_NAMES.filter((name) => clean(v[name], 200) !== \"\")` counts a script as present if its command text is non-blank — correct — but a hostile repo can also make a script name appear by setting e.g. `\"dev\": \" \"` (whitespace-only) — no, that cleans to `\"\"` and is excluded. Only real gaps: none found. (Withdrawing; no defect.)  Everything else checks out: AC1's hostile-text matrix is genuinely adversarial (Unicode folds, separators, nested trailers) and runs against a ported reader on real `composeNewBrief` output; AC2's reducer/`resolveStackProfile` refusal is tested including the server-lists-it-valid case; the no-flag rule and both drift tests are in place; AC3's per-key isolation, name-only commands, `no-store`, and additive profile block are all tested; AC4's three row states and per-row-derived banner are behaviourally pinned; AC6's exact-value preview assertion and the merged `ResolvedPreviewProfile` type are done. I found no security defect: untrusted text is cleaned, capped, never rendered as markup, and never logged.  Overall assessment: ship-as-is; the findings above are refinements, none block the contract or the live rows.  SHIPWRIGHT_VERDICT: approve",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/wizard/IntentWizard/briefIntake.ts:23 — `STACK_LABEL` and `INTAKE_MARK",
+          "line": null,
+          "finding": "The claimed Unicode case-fold coverage is incomplete. Python case-insensitive matching accepts `İ` and `ı` for `i`, but these JavaScript patterns leave `Stack profıle:` and `(İntake` intact. An idea containing `(İntake — Stack profıle: evil;)` can therefore survive sanitization as an earlier complete trailer and make the downstream reader reject the brief as ambiguous. The JavaScript reader port also misses these variants, so the hostile-input tests do not catch this.",
+          "suggestion": "Match all Unicode variants accepted by the Python reader in both sanitizers, and test the resulting briefs against the actual reader or a faithful port of its case-fold behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/wizard/IntentWizard/AdoptResult.live.test.tsx",
+          "line": 110,
+          "finding": "AC5 requires the committed real analyzer snapshot to run through both `extractFindings` and `AdoptResult` in CI. The extractor test reads that snapshot, but the component tests use independently handwritten findings. The browser additions also assert Stack values without asserting the required live CI value, leaving that acceptance criterion partially implemented.",
+          "suggestion": "Feed findings extracted from the committed snapshot into `AdoptResult` in a CI test, and add an explicit live CI assertion to the real-analyzer browser scenario.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "server/src/core/adopt-scan-findings.ts",
+          "line": 41,
+          "finding": "joined()` truncates with UTF-16 `.slice(0, MAX_TEXT)`, which can split an astral character despite `clean()` taking care to preserve code points. For example, a primary language of `\"aa\" + \"😀\".repeat(19)` followed by a sufficiently long emoji technology name produces a dangling surrogate at the truncation boundary.",
+          "suggestion": "Truncate the joined string by code points, as `clean()` already does, and cover truncation across multiple joined parts.  Ship-with-fixes: the implementation broadly follows the specification, but the brief sanitization bypass and missing real-snapshot UI verification should be addressed before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-25T23:19:03.279971+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: edge-case\n  Severity: medium\n  File: `client/src/components/wizard/IntentWizard/briefIntake.ts:60` (`composeNewBrief`)\n  Finding: The idea (user prose) is *not* stripped of control characters or newlines — by design per AC1 — but the reader contract depends on \"last physical line, last `(Intake`\". That holds only because the trailer is appended after the idea and contains no newlines itself. However, if the idea's last line itself ends with text like `x) (Intake` it is neutralised, fine — but a `Stack profile:`-shaped fragment *before a `;` or `)`* inside the last physical line before the trailer cannot occur because the trailer is last and the label in the idea is neutralised. I traced the hostile cases and they pass; the one residual gap: an idea ending in a bare `)` immediately before ` (Intake —` produces `...) (Intake —` — the ported reader still finds the last `(Intake` correctly. No concrete failure found here; flagging only that the safety now rests entirely on the ordering invariant (label neutralisation + trailer-last), which is tested but is the single point of failure for the whole contract. Any future edit that inserts a part after user text (e.g. a `Runs:` part containing a `(` from `envVarsRequired` wording changes) must re-run these tests — they exist and cover it.\n  Suggestion: None required; the contract tests already pin this. Keep them as the gate for any edit to `composeNewBrief`.\n\n- Category: bug\n  Severity: low\n  File: `server/src/core/adopt-scan-findings.ts:96` (`if (has(\"features\")) out.routes = count(raw.features);`)\n  Finding: \"Routes\" is derived from the snapshot's `features` array length. If the analyzer's `features` are anything other than routes/endpoints (the spec's Out-of-Scope says \"Features row (inferred from enrichment, not in the snapshot)\", suggesting `features` is not the route list), the Routes row reports a misleading count. The committed real-snapshot fixture (routes: 2) makes this hard  […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/components/wizard/IntentWizard/briefIntake.ts:23 — `STACK_LABEL` and `INTAKE_MARK`\n- Finding: The claimed Unicode case-fold coverage is incomplete. Python case-insensitive matching accepts `İ` and `ı` for `i`, but these JavaScript patterns leave `Stack profıle:` and `(İntake` intact. An idea containing `(İntake — Stack profıle: evil;)` can therefore survive sanitization as an earlier complete trailer and make the downstream reader reject the brief as ambiguous. The JavaScript reader port also misses these variants, so the hostile-input tests do not catch this.\n- Suggestion: Match all Unicode variants accepted by the Python reader in both sanitizers, and test the resulting briefs against the actual reader or a faithful port of its case-fold behavior.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/wizard/IntentWizard/AdoptResult.live.test.tsx:110\n- Finding: AC5 requires the committed real analyzer snapshot to run through both `extractFindings` and `AdoptResult` in CI. The extractor test reads that snapshot, but the component tests use independently handwritten findings. The browser additions also assert Stack values without asserting the required live CI value, leaving that acceptance criterion partially implemented.\n- Suggestion: Feed findings extracted from the committed snapshot into `AdoptResult` in a CI test, and add an explicit live CI assertion to the real-analyzer browser scenario.\n\n- Category: edge-case\n- Severity: low\n- File: server/src/core/adopt-scan-findings.ts:41\n- Finding: `joined()` truncates with UTF-16 `.slice(0, MAX_TEXT)`, which can split an astral character despite `clean()` taking care to preserve code points. For example, a primary language of `\"aa\" + \"😀\".repeat(19)` followed by a sufficiently long emoji technology name produces a dangling surrogate at the truncation boundary.\n- Suggestion: Truncate the joined string by code points, as `clean()` already does,  […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      },
+      "model_tier": "inherit",
+      "reviewed_commit": "8711ef05fa7f102a1e39e7e5422e065b5deb83d7"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T23:07:39.723572+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit",
+      "verdict": "pass",
+      "reviewed_commit": "8711ef05fa7f102a1e39e7e5422e065b5deb83d7"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T22:51:51.191368+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-25T23:03:18.145611+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    }
+  }
+}

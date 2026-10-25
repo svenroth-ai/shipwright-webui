@@ -1,15 +1,28 @@
 /*
  * adoptScanApi.ts - client wrapper for POST /api/adopt/scan (read-only look at a
  * local repo for the Adopt screen). The server runs the shipwright adopt analyzer
- * and returns ONLY the detected profile block; it already refused an unknown
+ * and returns the detected profile block plus a few short findings rows (never the
+ * snapshot); it already refused an unknown
  * snapshot major and capped/cleaned the repo-derived warnings. Read outcomes are
  * data (`status`), never thrown.
  */
 
 import type { SnapshotProfile } from "../components/wizard/IntentWizard/adoptSnapshotProfile";
 
+/** Verbatim mirror of the server's `AdoptScanFindings` (`core/adopt-scan-findings.ts`);
+ *  drift guard: `test/adopt-scan-findings-sync.test.ts`. A key left out = the scan does
+ *  not report it; `null` = reported, nothing found. */
+export interface AdoptScanFindings {
+  stack?: string | null;
+  routes?: number | null;
+  tests?: string | null;
+  ci?: string | null;
+  conventions?: string | null;
+  commands?: string[] | null;
+}
+
 export type AdoptScanOutcome =
-  | { status: "ok"; profile: SnapshotProfile }
+  | { status: "ok"; profile: SnapshotProfile; findings?: AdoptScanFindings }
   | { status: "invalid-path" | "busy" | "failed"; reason: string }
   | { status: "unsupported-schema"; version: string }
   | { status: "engine-unavailable"; reason: string; repairCommand: string };

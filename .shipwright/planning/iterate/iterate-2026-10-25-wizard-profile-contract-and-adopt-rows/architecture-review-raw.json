@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "1. **Should this mechanism exist?** Mostly no new mechanism is created \u2014 this hardens two existing ones (the brief trailer, the existing scan response) \u2014 and that is the right shape.\n\n2. **The smallest thing that would do.** Option A, as described. The trailer sanitising and the first-position profile item are a fix to an existing producer, not a new standing thing. The `findings` block rides the existing `/api/adopt/scan` response and an existing extractor pattern (`extractProfile`), with an existing mirror-plus-drift-test convention. Options B and C are both strictly larger standing surfaces: B commits the whole untrusted snapshot shape to the client (forever), C puts presentation wording in the server. D leaves a contract the monorepo has already committed to unenforced, which is the actual problem.\n\n3. **What it costs to keep.** Two client/server mirrors (name rule, findings type) each guarded by a source-reading drift test \u2014 every future edit to either side must keep the mirror test green, and the drift test's reading of source text is itself a small thing that can break on innocent refactors. That is the only new standing obligation, and it matches the repo's established convention.\n\n4. **What it forecloses.** Minor: once `findings` keys are consumed by the UI, the server can no longer drop or rename them freely; the omitted-key escape hatch (\"not reported by this scan version\") is the right pressure valve and keeps it cheap.\n\n5. **Findings.**\n\n- Category: proportionality\n- Severity: low\n- Finding: The findings block omits absent keys to keep 1.0 readable, but the client must now forever distinguish three states (live, empty, not-reported); this triples the wording surface of each row.\n- Suggestion: Acceptable as proposed; just make sure the drift test pins the key set so the third state cannot silently proliferate.\n\n- Category: simpler-alternative\n- Severity: low\n- Finding: The name-rule mirror plus source-text drift test duplicates a rule the server already owns and already validates.\n- Suggestion: Fine to keep given the established mirror convention and that the alternative (serving the rule to the client) would add a new endpoint \u2014 a larger standing mechanism. No change requested; noted so the mirror is not later extended to more rules without revisiting.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Should it exist?** Yes\u2014option A proportionately extends existing machinery to preserve the profile handoff and replace misleading sample results, without adding an operational service.\n\n2. **Smallest thing that would do:** Fix the existing trailer producer and validate profile names; add only the six bounded findings to the existing scan response and map them onto existing rows. Returning the whole snapshot unnecessarily broadens the contract; returning finished row strings couples the server to presentation wording.\n\n3. **What it costs to keep:** Maintain the profile-rule mirror, compatibility with the monorepo reader, and the small findings contract across analyzer, server and client. The drift tests make some of these obligations executable rather than dependent on someone remembering them.\n\n4. **What it forecloses:** The committed trailer grammar constrains future free-text formatting, and the findings response makes changes to those six fields compatibility work. Neither prevents future extension.\n\n5. **Findings:** No findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+    "at": "2026-10-25T23:02:32.956445+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}

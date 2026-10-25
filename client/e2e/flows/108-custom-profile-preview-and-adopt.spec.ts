@@ -93,9 +93,12 @@ test.describe("Custom profile Preview + live Adopt profile", () => {
 
   // @covers FR-01.75
   test("a bundled-profile project keeps working with the resolver in play", async ({ request }) => {
-    const p = await project(request, "108-bundled", "vite-hono", {});
-    const preview = await previewOf(request, p.projectId);
-    expect(typeof preview.enabled).toBe("boolean");
+    // exact values, read from the bundled profiles: supabase-nextjs declares a frontend AND a
+    // dev server (Preview on, its port); vite-hono declares no dev server (Preview off)
+    const next = await project(request, "108-bundled-next", "supabase-nextjs", {});
+    expect(await previewOf(request, next.projectId)).toMatchObject({ enabled: true, port: 3000 });
+    const vite = await project(request, "108-bundled-vite", "vite-hono", {});
+    expect((await previewOf(request, vite.projectId)).enabled).toBe(false);
   });
 
   // @covers FR-01.75
@@ -111,7 +114,15 @@ test.describe("Custom profile Preview + live Adopt profile", () => {
     await expect(page.getByTestId("wizard-adopt-result")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("wizard-adopt-profile-live")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("wizard-adopt-profile-warnings")).toContainText("e2e-adopt-broken");
-    await expect(page.getByTestId("wizard-adopt-stub-note")).toContainText("Profile row is read live");
+    await expect(page.getByTestId("wizard-adopt-stub-note")).toContainText("Read live from your repo");
+    // the rows the scan answers come from THIS repo (package.json: react + vite), the rest says so
+    const found = page.getByTestId("wizard-adopt-found");
+    await expect(found).toContainText("React");
+    await expect(found).toContainText("Vite");
+    await expect(found).not.toContainText("34 mapped");
+    await expect(found).toContainText("Nothing found at the top of the repo");
+    await expect(page.getByTestId("wizard-adopt-sample-tag")).toHaveCount(1);
+    await expect(page.getByTestId("wizard-adopt-stub-note")).toContainText("Still samples: Features");
     // looking at the repo wrote nothing into it
     expect(existsSync(path.join(p.path, ".shipwright", "adopt"))).toBe(false);
   });

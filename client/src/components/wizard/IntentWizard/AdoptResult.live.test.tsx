@@ -46,8 +46,8 @@ describe("Adopt result — live profile row", () => {
     expect(found()).toContain("my-stack - one of your own profiles");
     expect(found()).not.toContain("vite-hono");
     expect(screen.getByTestId("wizard-adopt-profile-warnings").textContent).toContain("skipped broken-one");
-    expect(screen.getByTestId("wizard-adopt-stub-note").textContent).toContain("Profile row is read live");
-    expect(screen.getByTestId("wizard-adopt-stub-note").textContent).toContain("still samples");
+    expect(screen.getByTestId("wizard-adopt-stub-note").textContent).toContain("Read live from your repo");
+    expect(screen.getByTestId("wizard-adopt-stub-note").textContent).toContain("Still samples: Features");
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ path: "C:\\work\\api" });
   });
 
@@ -86,5 +86,60 @@ describe("Adopt result — live profile row", () => {
     cleanup();
     mount(null);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+// @covers FR-01.75
+describe("Adopt result - live findings rows", () => {
+  const profile = { matched: "vite-hono", confidence: 0.9, source: "bundled", warnings: [] };
+  const row = (label: string) => {
+    const el = screen.getAllByText(label).find((n) => n.closest('[data-testid="wizard-adopt-found"]'));
+    return (el?.parentElement?.textContent ?? "").replace(label, "");
+  };
+
+  it("shows live values, marks Features as a sample and leaves no stale sample numbers", async () => {
+    answer({
+      status: "ok",
+      profile,
+      findings: { stack: "typescript · React · Hono", routes: 12, tests: "unit: vitest", ci: "github-actions · 3 workflows", conventions: "oxlint", commands: ["dev", "build"] },
+    });
+    mount("C:\\work\\api");
+    await waitFor(() => expect(screen.getByTestId("wizard-adopt-profile-live")).toBeTruthy());
+    expect(row("Stack")).toContain("typescript · React · Hono");
+    expect(row("Routes")).toContain("12 found");
+    expect(row("Tests")).toContain("unit: vitest");
+    expect(row("CI")).toContain("github-actions · 3 workflows");
+    expect(row("Commands")).toContain("dev · build");
+    expect(found()).not.toContain("84 files");
+    expect(found()).not.toContain("34 mapped");
+    expect(row("Features")).toContain("(sample)");
+    expect(screen.getAllByTestId("wizard-adopt-sample-tag")).toHaveLength(1);
+    expect(screen.getByTestId("wizard-adopt-stub-note").textContent).toContain("Still samples: Features");
+  });
+
+  it("says 'nothing found' for a reported-empty key and 'not reported' for an absent one", async () => {
+    answer({ status: "ok", profile, findings: { stack: null, routes: 0, ci: "github-actions" } });
+    mount("C:\\work\\api");
+    await waitFor(() => expect(screen.getByTestId("wizard-adopt-profile-live")).toBeTruthy());
+    expect(row("Stack")).toContain("Nothing found at the top of the repo");
+    expect(row("Routes")).toContain("Nothing found at the top of the repo");
+    expect(row("Tests")).toContain("Not reported by this scan version");
+    expect(row("Commands")).toContain("Not reported by this scan version");
+  });
+
+  it("renders repo-derived text as text, never as markup", async () => {
+    answer({ status: "ok", profile, findings: { stack: "<img src=x onerror=alert(1)>" } });
+    mount("C:\\work\\api");
+    await waitFor(() => expect(screen.getByTestId("wizard-adopt-profile-live")).toBeTruthy());
+    expect(screen.getByTestId("wizard-adopt-found").querySelector("img")).toBeNull();
+    expect(row("Stack")).toContain("<img src=x onerror=alert(1)>");
+  });
+
+  it("keeps every row a sample, tagged, when the scan failed", async () => {
+    answer({ status: "failed", reason: "The scan took too long and was stopped." });
+    mount("C:\\work\\api");
+    await waitFor(() => expect(screen.getByTestId("wizard-adopt-scan-note")).toBeTruthy());
+    expect(screen.getAllByTestId("wizard-adopt-sample-tag")).toHaveLength(8);
+    expect(screen.getByTestId("wizard-adopt-stub-note").textContent).toContain("Sample findings");
   });
 });
