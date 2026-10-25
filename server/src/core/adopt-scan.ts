@@ -85,7 +85,7 @@ function isObject(v: unknown): v is Record<string, unknown> {
 }
 
 // eslint-disable-next-line no-control-regex
-const CONTROL = /[\u0000-\u001f\u007f-\u009f‪-‮⁦-⁩]/g;
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2066-\u2069]/g;
 
 /** Tolerant reader (snapshot 1.0 lacks source/warnings); unknown major refused. */
 export function extractProfile(raw: unknown): AdoptScanOutcome {
