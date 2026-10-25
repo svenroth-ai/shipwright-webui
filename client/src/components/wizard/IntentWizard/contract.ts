@@ -17,6 +17,8 @@
  */
 
 import type { NewAnswers, WizardDoor } from "./types";
+import { composeNewBrief, isProfileNameShape } from "./briefIntake";
+export { composeNewBrief, isProfileNameShape, MAX_PROFILE_NAME_LENGTH, PROFILE_NAME_RE } from "./briefIntake";
 
 export type { WizardDoor };
 
@@ -70,7 +72,8 @@ export interface StackProfileResolution {
 export function resolveStackProfile(answers: NewAnswers): StackProfileResolution {
   // One of the user's OWN profiles decides the stack outright. Env-var needs are
   // the profile's business (the Deploy step reads them), not the wizard's.
-  if (answers.profile) {
+  // A name that fails the shape rule is not a choice (the reducer already refuses it).
+  if (isProfileNameShape(answers.profile)) {
     return { profile: answers.profile, note: "your own stack profile", envVarsRequired: false };
   }
   const remembers = answers.remember === "Yes";
@@ -194,35 +197,6 @@ export function deriveAdoptProjectName(path: string): string {
   const cleaned = path.trim().replace(/[\\/]+$/g, "");
   const seg = cleaned.split(/[\\/]/).filter(Boolean).pop() ?? "";
   return seg || "adopted-repo";
-}
-
-/**
- * Compose the full wizard intake into ONE brief line for `/shipwright-run` so
- * its brief-intake (B4/B5) doesn't re-ask what the wizard already answered
- * (AC1 — "no wizard question asked twice"). The idea leads; the four answers +
- * the derived stack profile follow as explicit intake context. Single physical
- * line (the server substituter flattens newlines, but we keep it clean here).
- */
-export function composeNewBrief(
-  answers: NewAnswers,
-  resolution: StackProfileResolution,
-): string {
-  const idea = answers.brief?.trim() || "My idea";
-  const parts: string[] = [];
-  if (answers.who) parts.push(`Users: ${answers.who}`);
-  if (!answers.profile) {
-    parts.push(`Saves data: ${answers.remember ?? "Not sure yet"}`);
-    if (answers.where) parts.push(`Runs: ${answers.where}`);
-  }
-  parts.push(
-    answers.profile
-      ? `Stack profile: ${resolution.profile} (the user's own — do not re-ask the stack)`
-      : `Stack profile: ${resolution.profile}`,
-  );
-  if (resolution.envVarsRequired) {
-    parts.push("Supabase env vars will be needed at the Deploy step (not before)");
-  }
-  return `${idea} (Intake — ${parts.join("; ")}.)`;
 }
 
 /**

@@ -7,11 +7,13 @@
  * with the repo path as the brief (contract.ts + useWizardLaunch). Webui spawns
  * no Claude (Architecture rule 1).
  *
- * The FINDINGS are still a provenance-tagged sample EXCEPT the Profile row: that
- * one is a real read-only scan of the chosen local repo (POST /api/adopt/scan -
- * which profile was detected, where it came from, and any discovery warnings).
- * While it loads, or when it is unavailable, the sample row stays and the note
- * says so - the note must never claim more is live than is (AC5). Copy matches the plugin: adopt is
+ * The FINDINGS are a provenance-tagged sample EXCEPT the rows a real read-only scan
+ * of the chosen local repo answers (POST /api/adopt/scan - the detected profile,
+ * where it came from and its discovery warnings, plus stack, routes, tests, CI,
+ * conventions and the package.json script names; `adoptLiveRows.ts` decides row by
+ * row). Rows the scan cannot answer stay samples and say so. While it loads, or when
+ * it is unavailable, every row is a sample and the note says so - the note is
+ * derived from the rows and must never claim more is live than is (AC5). Copy matches the plugin: adopt is
  * NEVER-OVERWRITE (existing files kept byte-for-byte, originals preserved as
  * `.preserved`) — there is no diff-approval UI, so we don't claim one.
  */
@@ -21,13 +23,13 @@ import { Play } from "lucide-react";
 import { useAdoptScan } from "../../../hooks/useAdoptScan";
 import { profileSourceLabel } from "../../../lib/adoptScanApi";
 import { ADOPT_SNAPSHOT, isRemote } from "./stubData";
+import { adoptBannerText, buildAdoptRows, type AdoptRowState } from "./adoptLiveRows";
 import { StepDots } from "./StepDots";
 import { WzPrimary, WzOutline } from "./buttons";
 import { buildAdoptLaunchRequest, type WizardLaunchRequest } from "./contract";
 import type { WizardAction } from "./wizardState";
-import type { AdoptSnapshot } from "./types";
 
-function Table({ rows, accent }: { rows: AdoptSnapshot["found"]; accent?: boolean }) {
+function Table({ rows, accent }: { rows: Array<{ label: string; value: string; state?: AdoptRowState }>; accent?: boolean }) {
   return (
     <>
       {rows.map((r) => (
@@ -43,7 +45,14 @@ function Table({ rows, accent }: { rows: AdoptSnapshot["found"]; accent?: boolea
           >
             {r.label}
           </span>
-          <span style={{ fontSize: 12.5, color: "var(--body)", lineHeight: 1.5 }}>{r.value}</span>
+          <span style={{ fontSize: 12.5, color: "var(--body)", lineHeight: 1.5, overflowWrap: "anywhere", minWidth: 0 }}>
+            {r.value}
+            {r.state === "sample" ? (
+              <span data-testid="wizard-adopt-sample-tag" style={{ marginLeft: 8, fontSize: 11, color: "var(--muted)" }}>
+                (sample)
+              </span>
+            ) : null}
+          </span>
         </div>
       ))}
     </>
@@ -71,7 +80,10 @@ export function AdoptResult({
   const liveValue = live
     ? `${live.matched ?? "no profile matched"}${live.source ? ` - ${profileSourceLabel(live.source)}` : ""}`
     : null;
-  const found = ADOPT_SNAPSHOT.found.map((r) => (r.label === "Profile" && liveValue ? { ...r, value: liveValue } : r));
+  const found = buildAdoptRows(ADOPT_SNAPSHOT.found, {
+    profileValue: liveValue,
+    findings: scan.data?.status === "ok" ? (scan.data.findings ?? {}) : null,
+  });
   let scanNote: string | null = null;
   if (canStart && !live) {
     if (scan.isPending) scanNote = "Reading your repo's stack profile…";
@@ -93,9 +105,7 @@ export function AdoptResult({
         style={{ maxWidth: 840, marginBottom: 12, borderColor: "var(--warn-line)", background: "var(--warn-tint)" }}
       >
         <span style={{ fontSize: 12.5, color: "var(--ink)" }}>
-          {live
-            ? "The Profile row is read live from your repo; the other findings are still samples (the full scan lands later). "
-            : "Sample findings — not a live read of your repo yet (the full scan lands later). "}
+          {adoptBannerText(found)}
           The button below is real, though: it starts the adopt task on your repo now.
         </span>
       </div>

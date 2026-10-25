@@ -1,0 +1,74 @@
+{
+  "run_id": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+  "date": "2026-10-25T23:30:09.756033Z",
+  "event_at": "2026-10-25T12:37:06.857694+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/wizard-profile-contract-and-adopt-rows",
+  "spec": ".shipwright/planning/iterate/2026-10-25-wizard-profile-contract-and-adopt-rows.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "The brief names the chosen stack profile exactly once as the first item of the (Intake ...) trailer on the last line; typed text (idea, who, where, remember) can neither hide nor forge it, incl. Unicode folds",
+        "disposition": "tested",
+        "evidence": "briefIntakeContract.test.ts hostile matrix PASSED; real brief_intake (merged #923 @ 7fc60e2a3) returned the right profile on 15 hostile briefs"
+      },
+      {
+        "behavior": "A profile name failing ^[a-z0-9][a-z0-9-]*$ (or over 64 chars) is never offered, accepted or sent; resolveStackProfile ignores it",
+        "disposition": "tested",
+        "evidence": "briefIntakeContract.test.ts name-rule tests + profile-name-rule-sync.test.ts PASSED"
+      },
+      {
+        "behavior": "Scan response gains capped, cleaned findings (stack, routes, tests, CI, conventions, command names only); malformed key nulls only itself; key omitted vs null; no-store header",
+        "disposition": "tested",
+        "evidence": "adopt-scan-findings.test.ts 10 tests + adopt-scan.test.ts PASSED (real analyzer 1.1 snapshot fixture)"
+      },
+      {
+        "behavior": "Adopt rows are live when reported, 'Nothing found' when reported-empty, 'Not reported' when absent, Features stays a sample; banner is derived from the rows",
+        "disposition": "tested",
+        "evidence": "adoptLiveRows.test.ts 5 tests + AdoptResult.live.test.tsx PASSED"
+      },
+      {
+        "behavior": "Real browser with the real analyzer: live Stack/CI rows and one sample tag; exact bundled Preview values",
+        "disposition": "tested",
+        "evidence": "108-custom-profile-preview-and-adopt.spec.ts 4/4 PASSED (analyzer env set)"
+      },
+      {
+        "behavior": "Client findings type mirrors the server type; merged loader type compiles",
+        "disposition": "tested",
+        "evidence": "adopt-scan-findings-sync.test.ts PASSED; tsc clean except pre-existing markdownTiptap.ts"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs client/e2e/flows/108-custom-profile-preview-and-adopt.spec.ts",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\wizard-profile-contract-and-adopt-rows\\.shipwright\\runs\\iterate-2026-10-25-wizard-profile-contract-and-adopt-rows\\surface_verification.log",
+    "timestamp": "2026-10-25T23:29:35.902Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_public_api",
+    "touches_io_boundary"
+  ]
+}

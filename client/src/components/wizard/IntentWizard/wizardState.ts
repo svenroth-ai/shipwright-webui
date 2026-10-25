@@ -7,6 +7,7 @@
  * so the reducer knows when to advance to the result without the view telling it.
  */
 
+import { isProfileNameShape } from "./contract";
 import { activeQuestions, doorLabel, profileFor, scanSteps } from "./stubData";
 import type { CustomProfileChoice, FlightRow, WizardDoor, WizardState } from "./types";
 
@@ -50,8 +51,8 @@ export function wizardReducer(s: WizardState, a: WizardAction): WizardState {
       return { ...s, answers: { ...s.answers, [a.k]: a.v } };
     case "setProfile": {
       const { profile: _drop, ...rest } = s.answers;
-      // An unusable (or unknown) profile can never become the answer.
-      if (a.name && !s.customProfiles.some((c) => c.name === a.name && c.valid)) return s;
+      // An unusable, unknown or badly-named profile can never become the answer.
+      if (a.name && (!isProfileNameShape(a.name) || !s.customProfiles.some((c) => c.name === a.name && c.valid))) return s;
       return { ...s, answers: a.name ? { ...rest, profile: a.name } : rest };
     }
     case "setCustomProfiles": {

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Review Findings\n\n**1. Category: dependency \u2014 Severity: medium**\nThe client mirrors server `PROFILE_NAME_RE` and `MAX_PROFILE_NAME_LENGTH` \"guarded by a drift test that reads the server source text.\" A source-text-equality test is brittle: any reformat, comment, or refactor of the server regex line breaks the drift test without an actual contract break, and vice versa a semantically-equivalent rewrite (whitespace, group naming) will fail it. Also confirm the drift test actually imports/loads the server file path reliably in the client test runner \u2014 cross-package file reads in a test often break depending on working directory or bundler config.\n**Suggestion:** parse the regex source from the server file and assert *behavior* on a shared battery of names (valid/invalid cases) plus the literal source for the length cap, rather than strict text equality of the whole line.\n\n**2. Category: edge-case \u2014 Severity: medium**\nAC1's cleaning rules strip `(`, `)`, `;`, newline, `Stack profile:` and `(Intake` from user-supplied brief parts. But the monorepo reader takes the *last physical line* and the *last* `(Intake` marker. If cleaning *removes* a newline from user text (rather than truncating at it), two user lines get joined \u2014 which is fine \u2014 but confirm the reader's \"head ends at first inner bracket\" rule combined with profile-first ordering is tested against a brief where the *idea* text originally contained `)` at position 0 of an item. The spec says a test ports the reader's rules; make sure the ported test is byte-faithful (last physical line, not last trailer occurrence), since `composeNewBrief` output ending in a multi-line trailer would silently fall back to the reader's \"last physical line\" and drop the profile.\n**Suggestion:** add one test asserting the composed brief is exactly one physical line at the trailer, and that the ported reader extracts the profile from the actual `composeNewBrief` output for every test case, not just from synthetic strings.\n\n**3. Category: edge-case \u2014 Severity: low**\nAC3's per-key nulling (\"one bad key nulls only that key\") is good, but the spec doesn't state what happens if the snapshot's `findings`-bearing node itself is not an object (e.g., a string or array). Ensure `extractFindings` treats a malformed container as \"report nothing\" (all keys absent or null) rather than throwing \u2014 a hostile or future analyzer version could send anything.\n**Suggestion:** add a type-guard test for non-object findings nodes.\n\n**4. Category: risk \u2014 Severity: low**\nThe reducer refusing invalid names \"even when the server list marks it valid\" changes behavior for any existing saved wizard state or stored custom profile whose name fails the rule (e.g., created before this change, or with an uppercase name). If `setProfile` now refuses, a user with a pre-existing invalid profile name may find the wizard silently ignoring their selection.\n**Suggestion:** decide and document the fallback (sanitize to a valid name, or show an inline validation error instead of silently refusing), and test migration of existing state.\n\n**5. Category: edge-case \u2014 Severity: low**\nAC4: \"while loading... every row stays the sample.\" If a previous scan result is cached in component state and a re-scan begins, ensure rows don't flicker between live and sample mid-flight, and that a scan that transitions ok\u2192error reverts rows to sample with the honest note. The spec covers \"unavailable/fails\" but not the transition case explicitly.\n**Suggestion:** one test for ok-then-error re-scan resetting per-row flags.\n\n**6. Category: approach \u2014 Severity: low (positive / tidy)**\nAC6's loader-type merge and exact-`enabled` assertion are fine. The `adoptLiveRows.ts` mapper as a separate module is justified by testability; keep it free of React so the pure mapping stays unit-testable \u2014 don't let JSX creep in.\n\n**7. Category: security \u2014 Severity: low**\nResponse is `no-store` and never logged \u2014 confirm this also covers the existing `profile` block and any future middleware that logs request bodies (e.g., error handlers that dump payloads). The cap of 120 chars / 8 items with bidi/control stripping is a solid defense; make sure the stripping happens server-side (in `extractFindings`), not only client-side, so the cached/never-logged contract holds regardless of consumer.\n\n**Overall:** The approach is sound and unusually well-calibrated \u2014 contract pinning via a ported-reader test, additive API changes, and honest UI states are all the right calls. The findings above are refinements; the mirror-drift test mechanism (finding 1) and the reducer's silent refusal of pre-existing invalid names (finding 4) are the two worth fixing before merge.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category:** dependency  \n   **Severity:** medium  \n   **Finding:** Step 7 allows reviewing PR text as a fallback for running AC7. PR text cannot establish that a custom profile reaches run configuration or that invalid names produce `profile_error` and exit 3. The plan also omits the required initial verification against B2b.  \n   **Suggestion:** Run the integration probe against B2b first and merged #923 at completion. Assert the selected profile and invalid-name failure explicitly; report unavailable execution as unverified.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** The plan lists brief tests and profile-name guards, but does not explicitly schedule the `composeNewBrief` sanitization required by AC1. Validating the profile name alone does not prevent user text from introducing brackets, separators, labels, or physical lines that change parsing.  \n   **Suggestion:** Explicitly include sanitizing all four user fields and placing the profile item first. Test the resulting brief through the ported reader, including hostile text in each field and combinations of fields.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** AC5\u2019s committed real-analyzer fixture is missing from the files, work breakdown, and test strategy. Because the browser test can skip when the analyzer is unavailable, synthetic unit tests could become the only CI coverage of the actual snapshot format.  \n   **Suggestion:** Commit a representative real snapshot and run it through both `extractFindings` and `AdoptResult` in CI, asserting live values, reported-empty values, and the Features sample marker.\n\n4. **Category:** edge-case  \n   **Severity:** low  \n   **Finding:** Step 3 specifies \u201cNot detected at the top of the repo,\u201d which differs from AC4\u2019s required empty-state copy and omits the sub-folder explanation.  \n   **Suggestion:** Use the acceptance-criteria wording and assert distinct UI output for absent keys and reported-empty keys.\n\nThe approach is sound and appropriately scoped, but the contract sanitization and empirical verification need explicit implementation steps before proceeding. The committed fixture is also necessary to keep meaningful integration coverage when the browser test skips.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+    "at": "2026-10-25T23:01:31.353111+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

@@ -14,6 +14,7 @@ import {
   validateActionsSchema,
   type SchemaError,
 } from "../../core/actions-schema-validator.js";
+import type { ResolvedPreviewProfile } from "../../core/custom-profile-loader.js";
 import type { PreviewProfile } from "../../core/preview-session-manager.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import { dryRunTemplate } from "./_helpers.js";
@@ -102,9 +103,7 @@ export function registerActionsGet(
       }
     }
     const profile = project.profile
-      ? (loadedProfile as
-          | (PreviewProfile & { stack?: { frontend?: unknown } })
-          | null)
+      ? (loadedProfile as ResolvedPreviewProfile | null)
       : null;
     const profileAllowsPreview =
       Boolean(profile?.stack?.frontend) &&

@@ -45,7 +45,7 @@ describe("scanRepoProfile", () => {
     const tmp = join(root, "tmp");
     mkdirSync(tmp);
     const r = await scanRepoProfile({ path: repo }, deps(spawnWriting(snap({ matched: "vite-hono", confidence: 0.9, source: "user", warnings: ["skipped x: invalid"] })), tmp));
-    expect(r).toEqual({ status: "ok", profile: { matched: "vite-hono", confidence: 0.9, source: "user", warnings: ["skipped x: invalid"] } });
+    expect(r).toEqual({ status: "ok", findings: {}, profile: { matched: "vite-hono", confidence: 0.9, source: "user", warnings: ["skipped x: invalid"] } });
     expect(readdirSync(tmp)).toEqual([]);
     expect(readdirSync(repo)).toEqual([]);
   });
@@ -64,7 +64,7 @@ describe("scanRepoProfile", () => {
 
   it("// @covers FR-01.75 a 1.0 snapshot (no source / warnings) stays readable", async () => {
     const r = await scanRepoProfile({ path: repo }, deps(spawnWriting(snap({ matched: "vite-hono", confidence: 0.8 }, "1.0"))));
-    expect(r).toEqual({ status: "ok", profile: { matched: "vite-hono", confidence: 0.8, source: null, warnings: [] } });
+    expect(r).toEqual({ status: "ok", findings: {}, profile: { matched: "vite-hono", confidence: 0.8, source: null, warnings: [] } });
   });
 
   it("// @covers FR-01.75 an unknown or non-positive major is refused on the server", async () => {
@@ -140,6 +140,18 @@ describe("resolveAnalyzerScript", () => {
   });
   it("// @covers FR-01.75 is null when nothing is installed", () => {
     expect(resolveAnalyzerScript({ homeDir: home })).toBeNull();
+  });
+});
+
+describe("findings ride along the profile", () => {
+  it("// @covers FR-01.75 are additive: the profile block is unchanged and the response is never cached", async () => {
+    const body = { ...snap({ matched: "vite-hono", confidence: 0.9, source: "bundled", warnings: [] }), ci_pipeline: { provider: "github-actions", workflows: ["a.yml"] } };
+    const route = createAdoptScanRoutes(deps(spawnWriting(body)));
+    const r = await route.request("/api/adopt/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: repo }) });
+    expect(r.headers.get("cache-control")).toBe("no-store");
+    const json = (await r.json()) as { status: string; profile: unknown; findings: unknown };
+    expect(json.profile).toEqual({ matched: "vite-hono", confidence: 0.9, source: "bundled", warnings: [] });
+    expect(json.findings).toEqual({ ci: "github-actions · 1 workflow" });
   });
 });
 

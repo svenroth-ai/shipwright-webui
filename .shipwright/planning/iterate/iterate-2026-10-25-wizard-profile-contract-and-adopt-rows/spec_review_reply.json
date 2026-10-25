@@ -1,0 +1,1 @@
+{"stage": "spec-compliance", "verdict": "PASS", "spec_citations": [], "summary": "APPROVE. First pass rejected AC1 (idea not cleaned like the items); resolved by rewording AC1 (idea kept as typed prose, only a nested (Intake marker and the Stack profile: label neutralised) and adding hostile-idea tests; re-review found no divergence. AC2-AC7 present and faithful."}

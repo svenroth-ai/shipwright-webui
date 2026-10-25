@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-25-wizard-profile-contract-and-adopt-rows",
+  "date": "2026-10-26",
+  "section": "Iterate - change: wizard brief profile contract and live Adopt rows",
+  "title": "Profile first in the Intake trailer; live Adopt rows from the scan",
+  "context": "The monorepo brief intake now reads the wizard's Stack profile item strictly, so a bracket or label in typed text could hide the choice or refuse the run; the Adopt screen still showed mostly sample rows.",
+  "decision": "composeNewBrief puts the profile item first and cleans typed text; the name rule is mirrored and drift-tested; the existing scan response gains short findings that the client maps onto the Adopt rows.",
+  "consequences": "A chosen profile always reaches the run; Adopt rows are live or honestly marked sample. Two client/server mirrors need upkeep, guarded by tests.",
+  "rationale": "Fix the producer of the contract the monorepo committed to; return structured capped data so wording stays testable in the UI; never show repo command text.",
+  "rejected": "Returning the whole snapshot, server-worded rows, splitting the Adopt rows out, doing nothing.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}
