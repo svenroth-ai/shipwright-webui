@@ -14,7 +14,7 @@
  * engine-unavailable, whole-tree kill on timeout (cli-child-spawn).
  */
 
-import { existsSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, mkdtempSync, openSync, readdirSync, readFileSync, realpathSync, rmSync, statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -188,10 +188,16 @@ async function scanLocked(real: string, deps: AdoptScanDeps, unavailable: (reaso
       const line = result.stderr.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).pop() ?? "";
       return { status: "failed", reason: line.replace(CONTROL, " ").slice(0, 200) || "The scan failed." };
     }
-    if (statSync(file).size > MAX_SNAPSHOT_BYTES) return { status: "failed", reason: "The scan result was too large." };
     let parsed: unknown;
     try {
-      parsed = JSON.parse(readFileSync(file, "utf-8"));
+      // size check and read share one descriptor - no check-then-act window
+      const fd = openSync(file, "r");
+      try {
+        if (fstatSync(fd).size > MAX_SNAPSHOT_BYTES) return { status: "failed", reason: "The scan result was too large." };
+        parsed = JSON.parse(readFileSync(fd, "utf-8"));
+      } finally {
+        closeSync(fd);
+      }
     } catch {
       return { status: "failed", reason: "The scan returned something unreadable." };
     }

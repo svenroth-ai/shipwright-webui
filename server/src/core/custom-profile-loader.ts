@@ -17,7 +17,7 @@
  * they fall back to it, so Preview for bundled stacks never regresses.
  */
 
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, lstatSync, openSync, readFileSync, realpathSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -208,8 +208,14 @@ export function createPreviewProfileResolver(deps: PreviewProfileResolverDeps) {
     if (!contained(realBase, real)) return { profile: null, reason: "profile file is outside the profiles folder" };
     let raw: unknown;
     try {
-      if (!lstatSync(real).isFile()) return { profile: null, reason: "profile is not a regular file" };
-      raw = JSON.parse(readFileSync(real, "utf-8"));
+      // one descriptor for the type check AND the read - no check-then-act window
+      const fd = openSync(real, "r");
+      try {
+        if (!fstatSync(fd).isFile()) return { profile: null, reason: "profile is not a regular file" };
+        raw = JSON.parse(readFileSync(fd, "utf-8"));
+      } finally {
+        closeSync(fd);
+      }
     } catch {
       return { profile: null, reason: "profile file is not readable JSON" };
     }
