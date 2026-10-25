@@ -49,6 +49,7 @@ export const NEGATIVE_TTL_MS = 30_000;
 // `npx` is deliberately absent: it downloads and runs a package the repo names.
 const RUNNERS = new Set(["npm", "pnpm", "yarn", "bun", "node", "vite", "next", "python", "python3", "uv", "deno"]);
 const MAX_WAITING = 8;
+const BUSY = "profile resolver busy";
 const PACKAGE_MANAGERS = new Set(["npm", "pnpm", "yarn", "bun"]);
 const SCRIPT_VERBS = new Set(["run", "run-script", "dev", "start", "serve", "preview"]);
 // Interpreters take code from flags (-e, --eval=, -cprint, -Ic, --import data:...),
@@ -73,6 +74,8 @@ export function projectCommandRefusal(command: string): string | null {
   const name = exe.toLowerCase().replace(/\.(cmd|exe|bat)$/, "");
   if (!RUNNERS.has(name)) return `“${exe}” is not an allowed runner for a project profile`;
   const args = argv.slice(1);
+  const argRefusal = runnerArgRefusal(args);
+  if (argRefusal) return argRefusal;
   if (PACKAGE_MANAGERS.has(name)) {
     // Run a script the repo's own package.json declares - the same trust as `npm run dev`.
     // exec / dlx / x / create fetch and run a package; -e / -c run inline code.
@@ -99,7 +102,7 @@ export function projectCommandRefusal(command: string): string | null {
 }
 
 /** User-source: any bare program, or an ABSOLUTE path - never a path relative to the repo. */
-export function userCommandRefusal(command: string): string | null {
+export function userCommandRefusal(command: string, projectPath = ""): string | null {
   let argv: string[];
   try {
     argv = PreviewSessionManager.tokenizeCommand(command);
@@ -107,13 +110,40 @@ export function userCommandRefusal(command: string): string | null {
     return err instanceof Error ? err.message : "unparseable command";
   }
   const exe = argv[0] ?? "";
-  if (/[\/]/.test(exe) && !path.isAbsolute(exe)) return "a profile command must be a bare program or an absolute path";
+  if (/[\\/]/.test(exe) && !path.isAbsolute(exe)) return "a profile command must be a bare program or an absolute path";
+  // an absolute path that points INTO the repository is the same thing as a repo-relative one
+  if (projectPath && path.isAbsolute(exe)) {
+    let root = projectPath;
+    let target = exe;
+    try {
+      root = realpathSync(projectPath);
+      target = realpathSync(exe);
+    } catch {
+      // a program that does not exist yet cannot be resolved - compare the literal paths
+    }
+    if (contained(root, target) || contained(path.resolve(projectPath), path.resolve(exe))) {
+      return "a profile command may not point into the project";
+    }
+  }
+  return null;
+}
+
+/** Arguments no runner may take: a path out of the project, a URL, or a config/eval flag. */
+function runnerArgRefusal(args: string[]): string | null {
+  for (const a of args) {
+    if (/^([\\/]|[a-z]:)/i.test(a) || a.split(/[\\/]/).includes("..")) return "a project profile argument may not be an absolute path or leave the project";
+    if (/^[a-z][a-z0-9+.-]*:/i.test(a) && !/^[a-z]:[\\/]/i.test(a)) return "a project profile argument may not be a URL";
+    const flag = a.toLowerCase().split("=")[0];
+    if (["-c", "--config", "-e", "--eval", "--print", "--require", "-r", "--import", "--loader", "--input-type"].includes(flag ?? "")) {
+      return "config, eval and preload flags are not allowed in a project profile";
+    }
+  }
   return null;
 }
 
 function contained(root: string, target: string): boolean {
   const rel = path.relative(root, target);
-  return rel !== "" && !rel.startsWith("..") && !path.isAbsolute(rel);
+  return rel !== "" && rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel);
 }
 
 /** Copy ONLY the fields Preview uses; refuse anything malformed. */
@@ -146,7 +176,7 @@ export function createPreviewProfileResolver(deps: PreviewProfileResolverDeps) {
     // slip in between the release and the wake-up and exceed the cap.
     // A stuck resolver must not queue the hot actions endpoint without bound: past a
     // short queue the lookup degrades (no Preview for now) instead of waiting.
-    if (running >= max && waiters.length >= MAX_WAITING) throw new Error("profile resolver busy");
+    if (running >= max && waiters.length >= MAX_WAITING) throw new Error(BUSY);
     if (running >= max) await new Promise<void>((r) => waiters.push(r));
     else running++;
     try {
@@ -186,7 +216,7 @@ export function createPreviewProfileResolver(deps: PreviewProfileResolverDeps) {
     const profile = allowlisted(raw);
     if (!profile) return { profile: null, reason: "profile has no usable dev_server" };
     const command = profile.dev_server?.command ?? "";
-    const refusal = source === "project" ? projectCommandRefusal(command) : userCommandRefusal(command);
+    const refusal = source === "project" ? projectCommandRefusal(command) : userCommandRefusal(command, projectPath);
     if (refusal) return { profile: null, reason: refusal };
     return { profile };
   }
@@ -252,7 +282,8 @@ export function createPreviewProfileResolver(deps: PreviewProfileResolverDeps) {
           return r.value;
         } catch (err) {
           const value = { profile: null, reason: err instanceof Error ? err.message.slice(0, 200) : "lookup failed" };
-          cache.set(key, { at: now(), ttl: NEGATIVE_TTL_MS, value });
+          // an overloaded resolver is transient - do not hide Preview for a whole TTL
+          if (!(err instanceof Error && err.message === BUSY)) cache.set(key, { at: now(), ttl: NEGATIVE_TTL_MS, value });
           return value;
         } finally {
           if (inFlight.get(key) === p) inFlight.delete(key);

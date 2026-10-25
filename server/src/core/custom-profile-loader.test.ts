@@ -134,7 +134,7 @@ describe("custom profile resolution", () => {
   });
 
   it("// @covers FR-01.75 a project profile may not run a repo program or inline code", async () => {
-    for (const command of ["./evil.js", "node -e process.exit(1)", "python -c print(1)", "C:\\tmp\\x.exe", "powershell -enc AAA", "vite && echo hi", "node --eval=1", "node --print=1", "python -cprint(1)", "python -Ic 1", "node --import data:text/javascript,1", "deno eval 1", "deno run https://x.test/a.ts", "uv run python -c 1", "uv run --with x y.py", "python -m http.server", "npx cowsay", "npx https://x.test/p.tgz", "npm exec -c id", "pnpm dlx evil", "yarn dlx evil", "bun -e 1", "npm run ../x", "node ../../x.js", "node /abs/x.js", "node C:/x.js"]) {
+    for (const command of ["./evil.js", "node -e process.exit(1)", "python -c print(1)", "C:\\tmp\\x.exe", "powershell -enc AAA", "vite && echo hi", "node --eval=1", "node --print=1", "python -cprint(1)", "python -Ic 1", "node --import data:text/javascript,1", "deno eval 1", "deno run https://x.test/a.ts", "uv run python -c 1", "uv run --with x y.py", "python -m http.server", "vite --config /tmp/x.js", "next dev ../x", "vite --config=C:/x.js", "vite https://x.test/a", "npx cowsay", "npx https://x.test/p.tgz", "npm exec -c id", "pnpm dlx evil", "yarn dlx evil", "bun -e 1", "npm run ../x", "node ../../x.js", "node /abs/x.js", "node C:/x.js"]) {
       const f = projectFile("p3", { ...good, dev_server: { command, port: 5190 } });
       expect((await make(ok("project", f)).resolve("p3", project)).profile, command).toBeNull();
     }
@@ -225,7 +225,10 @@ describe("projectCommandRefusal", () => {
     expect(userCommandRefusal("./scripts/dev")).not.toBeNull();
     expect(userCommandRefusal("../other/prog")).not.toBeNull();
     expect(userCommandRefusal("make dev")).toBeNull();
-    expect(userCommandRefusal(process.platform === "win32" ? "C:\tools\dev.exe" : "/usr/bin/dev")).toBeNull();
+    expect(projectCommandRefusal("next dev -p 5190")).toBeNull();
+    expect(userCommandRefusal(".\\dev.exe")).not.toBeNull();
+    expect(userCommandRefusal(join(project, "bin", "x"), project)).not.toBeNull();
+    expect(userCommandRefusal(process.platform === "win32" ? "C:\\tools\\dev.exe" : "/usr/bin/dev")).toBeNull();
   });
 
   it("// @covers FR-01.75 allows plain runners, refuses everything else", () => {

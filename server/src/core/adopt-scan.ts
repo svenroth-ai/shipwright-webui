@@ -172,7 +172,7 @@ async function scanLocked(real: string, deps: AdoptScanDeps, unavailable: (reaso
     out = mkdtempSync(path.join(deps.tmpRoot ?? os.tmpdir(), "sw-adopt-scan-"));
     // the snapshot must never be written into the repo being looked at
     const rel = path.relative(real, realpathSync(out));
-    if (rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel))) {
+    if (rel === "" || (rel !== ".." && !rel.startsWith(".." + path.sep) && !path.isAbsolute(rel))) {
       return { status: "failed", reason: "The scan needs a temporary folder outside the project." };
     }
     const file = path.join(out, "snapshot.json");
