@@ -47,6 +47,7 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Configure actions")).toBeInTheDocument();
   });
 
+  // @covers FR-01.75
   it("still maps real projects to actions rows (full header) after the extraction", async () => {
     // Guards the behavior-preserving extraction: the Settings card must keep
     // rendering one ActionsConfigRow per real project, in FULL mode (name +
