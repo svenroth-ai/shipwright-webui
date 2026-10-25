@@ -35,6 +35,7 @@ const renderCard = () =>
   );
 
 describe("StackProfilesCard", () => {
+  // @covers FR-01.75
   it("groups by source, flags an invalid profile and shows resolver warnings", async () => {
     mockFetch(() => report([entry("mine", "user"), entry("broken", "user", false, "not valid JSON"), entry("vite-hono", "bundled")]));
     renderCard();
@@ -45,12 +46,14 @@ describe("StackProfilesCard", () => {
     expect(screen.getByTestId("stack-profiles-warnings")).toHaveTextContent("user dir missing");
   });
 
+  // @covers FR-01.75
   it("says so plainly when the resolver isn't installed", async () => {
     mockFetch(() => ({ status: "engine-unavailable", reason: "The Shipwright profile resolver isn't installed.", repairCommand: "npx x" }));
     renderCard();
     expect(await screen.findByTestId("stack-profiles-unavailable")).toHaveTextContent("npx x");
   });
 
+  // @covers FR-01.75
   it("creates a copy of a built-in profile and shows the reason when it is refused", async () => {
     let created = false;
     mockFetch((_url, init) => {

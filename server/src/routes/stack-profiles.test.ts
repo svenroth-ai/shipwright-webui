@@ -51,6 +51,7 @@ const post = (a: ReturnType<typeof app>, path: string, body: unknown) =>
   a.request(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
 describe("stack-profiles routes", () => {
+  // @covers FR-01.75
   it("lists through the resolver and 404s an unknown project", async () => {
     const a = app(join(dir, "u"));
     const ok = await (await a.request("/api/stack-profiles")).json();
@@ -59,6 +60,7 @@ describe("stack-profiles routes", () => {
     expect((await a.request("/api/stack-profiles?projectId=nope")).status).toBe(404);
   });
 
+  // @covers FR-01.75
   it("creates a user profile from a bundled one, renamed, never overwriting", async () => {
     const userDir = join(dir, "u");
     const a = app(userDir);
@@ -71,6 +73,7 @@ describe("stack-profiles routes", () => {
     expect((await post(a, "/api/stack-profiles", { from: "vite-hono", name: "mine", scope: "user" })).status).toBe(409);
   });
 
+  // @covers FR-01.75
   it("rejects bad names, reserved names, non-bundled sources and missing scope", async () => {
     const a = app(join(dir, "u"));
     for (const name of ["../evil", "Has Caps", "generic", "con", ""]) {
@@ -81,6 +84,7 @@ describe("stack-profiles routes", () => {
     expect((await post(a, "/api/stack-profiles", { from: "vite-hono", name: "x1", scope: "project" })).status).toBe(400);
   });
 
+  // @covers FR-01.75
   it("a user-scope create also refuses a name the chosen project already has", async () => {
     const userDir = join(dir, "u");
     const a = createStackProfilesRoutes({
@@ -102,6 +106,7 @@ describe("stack-profiles routes", () => {
     expect(existsSync(join(userDir, "taken.json"))).toBe(false);
   });
 
+  // @covers FR-01.75
   it("removes the copy when the resolver resolves the name to a DIFFERENT file", async () => {
     const userDir = join(dir, "u");
     const a = createStackProfilesRoutes({
@@ -119,6 +124,7 @@ describe("stack-profiles routes", () => {
     expect(existsSync(join(userDir, "dup.json"))).toBe(false);
   });
 
+  // @covers FR-01.75
   it("removes a created file the resolver rejects", async () => {
     const userDir = join(dir, "u");
     const a = app(userDir);
@@ -128,6 +134,7 @@ describe("stack-profiles routes", () => {
     expect(existsSync(join(userDir, "zzz.json"))).toBe(false);
   });
 
+  // @covers FR-01.75
   it("validate reports an unknown profile as data, not a transport failure", async () => {
     const a = app(join(dir, "u"));
     const body = await (await post(a, "/api/stack-profiles/validate", { name: "ghost" })).json();

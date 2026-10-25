@@ -90,11 +90,13 @@ describe("validate parsing + create rollback policy", () => {
 });
 
 describe("validate failure classes", () => {
+  // @covers FR-01.75
   it("a crash (no resolver error line) is an outage, not a verdict on the profile", async () => {
     const { validateStackProfile } = await import("../core/stack-profiles.js");
     const r = await validateStackProfile({ name: "abc" }, deps(spawnOf("", 1, "Traceback (most recent call last):\n  boom")));
     expect(r.status).toBe("failed");
   });
+  // @covers FR-01.75
   it("the resolver's own not-found line is a verdict", async () => {
     const { validateStackProfile } = await import("../core/stack-profiles.js");
     const r = await validateStackProfile({ name: "abc" }, deps(spawnOf("", 2, "error: Stack profile 'abc' not found.")));

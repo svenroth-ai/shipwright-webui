@@ -15,9 +15,12 @@ import path from "node:path";
 const script = process.env.SHIPWRIGHT_RESOLVE_PROFILE_SCRIPT;
 const userDir = process.env.SHIPWRIGHT_USER_PROFILES_DIR;
 
+// @covers FR-01.75
 test.describe("Custom stack profiles", () => {
+  // @covers FR-01.75
   test.skip(!script || !userDir, "SHIPWRIGHT_RESOLVE_PROFILE_SCRIPT / SHIPWRIGHT_USER_PROFILES_DIR not set");
 
+  // @covers FR-01.75
   test.beforeEach(() => {
     mkdirSync(userDir as string, { recursive: true });
     writeFileSync(
@@ -26,12 +29,14 @@ test.describe("Custom stack profiles", () => {
     );
     writeFileSync(path.join(userDir as string, "e2e-broken.json"), '{"name":"e2e-broken",');
   });
+  // @covers FR-01.75
   test.afterEach(() => {
     for (const f of ["e2e-mine", "e2e-broken", "e2e-created"]) {
       rmSync(path.join(userDir as string, `${f}.json`), { force: true });
     }
   });
 
+  // @covers FR-01.75
   test("Settings lists own profiles by source, flags the broken one, and creates a copy", async ({ page }) => {
     await page.goto("/settings");
     await expect(page.getByTestId("stack-profiles-group-user")).toBeVisible();
@@ -54,6 +59,7 @@ test.describe("Custom stack profiles", () => {
     await expect(page.getByTestId("stack-profiles-message")).toContainText("already exists");
   });
 
+  // @covers FR-01.75
   test("Wizard: an own profile skips the stack questions; 'I'm new' keeps them", async ({ page }) => {
     const listed = page.waitForResponse((r) => r.url().includes("/api/stack-profiles") && r.ok());
     await page.goto("/wizard");

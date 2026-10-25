@@ -95,6 +95,7 @@ describe("back to the door picker", () => {
 });
 
 describe("a chosen profile that disappears", () => {
+  // @covers FR-01.75
   it("is dropped when a fresh list no longer offers it, even after the questions started", () => {
     let s = wizardReducer(start(), { t: "setProfile", name: "my-stack" });
     s = { ...s, step: 3 };
@@ -103,6 +104,7 @@ describe("a chosen profile that disappears", () => {
     expect(resolveStackProfile(after.answers).profile).not.toBe("my-stack");
   });
 
+  // @covers FR-01.75
   it("is dropped when the same profile turns invalid, and kept while it stays valid", () => {
     let s = { ...wizardReducer(start(), { t: "setProfile", name: "my-stack" }), step: 3 };
     expect(wizardReducer(s, { t: "setCustomProfiles", profiles: [mine] }).answers.profile).toBe("my-stack");
@@ -112,6 +114,7 @@ describe("a chosen profile that disappears", () => {
 });
 
 describe("refreshed list keeps the question positions", () => {
+  // @covers FR-01.75
   it("marks a vanished profile unusable instead of removing the entry, and refuses re-picking it", () => {
     let s = { ...wizardReducer(start(), { t: "setProfile", name: "my-stack" }), step: 3 };
     s = wizardReducer(s, { t: "setCustomProfiles", profiles: [] });
