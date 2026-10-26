@@ -1,0 +1,80 @@
+{
+  "last_updated": "2026-10-26",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-26-compliance-reconcile-d-g-h",
+    "date": "2026-10-26",
+    "unit": {
+      "status": "passed",
+      "passed": 9224,
+      "total": 9224
+    },
+    "integration": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "stubData.ts and stubReports.ts keep the wizard stub exports (ADOPT_SNAPSHOT, GRADE_REPORT) importable from stubData",
+          "disposition": "tested",
+          "evidence": "src/components/wizard vitest (51 files) PASSED"
+        },
+        {
+          "behavior": "custom-profile-loader still exports projectCommandRefusal/userCommandRefusal after the policy extraction",
+          "disposition": "tested",
+          "evidence": "custom-profile-loader.test.ts PASSED"
+        },
+        {
+          "behavior": "H1 clears: stubData.ts 182 and custom-profile-loader.ts 215 lines",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only G,H: H1 pass"
+        },
+        {
+          "behavior": "G2 clears: preview and settings scopes in g2_stoplist",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only G,H: G2 pass"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "runner": "n/a",
+      "exit_code": 0,
+      "tests_run": 0,
+      "evidence_path": "",
+      "timestamp": "2026-10-26T07:30:00+00:00",
+      "justification": "Behavior-preserving module extraction plus compliance config; no UI, API or message-contract behavior changed. Covered by existing wizard and custom-profile-loader unit tests."
+    }
+  }
+}
