@@ -29,16 +29,16 @@
     },
     "code": {
       "review_type": "code",
-      "status": "not_applicable",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-26T07:05:40.700677+00:00",
-      "disposition": "closed by reason_code trivial-auto",
-      "recorded_by": "close-missing",
+      "completed_at": "2026-10-26T07:09:51.935594+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "trivial-auto"
+      "model_tier": "sonnet"
     },
     "doubt": {
       "review_type": "doubt",

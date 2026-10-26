@@ -20,7 +20,6 @@ const SCRIPT_VERBS = new Set(["run", "run-script", "dev", "start", "serve", "pre
 // "runner + plain file argument(s)": any dash-led argument, `eval`, or URL is refused.
 const INTERPRETERS = new Set(["node", "python", "python3", "deno", "uv"]);
 
-
 /** Project-source command policy. Returns a refusal reason, or null when allowed. */
 export function projectCommandRefusal(command: string): string | null {
   let argv: string[];
