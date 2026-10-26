@@ -1,0 +1,1 @@
+{"stage":"code-quality","verdict":"PASS","review":[],"summary":"No findings. Command policy moved character-identical; contained newly exported; loader re-exports the two refusal functions; no import cycle; all stubData importers keep working. Nit: double blank line in custom-profile-command-policy.ts (fixed)."}

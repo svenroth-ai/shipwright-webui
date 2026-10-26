@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-26-compliance-reconcile-d-g-h",
+  "date": "2026-10-26",
+  "section": "Iterate — change: reconcile D1, D-layer, G2, H1 compliance findings",
+  "title": "Reconcile G2 and H1 by config and extraction; defer D1/D-layer to the refresh flow",
+  "context": "Audit flagged two scopes (preview, settings), two oversize files (stubData.ts 321, custom-profile-loader.ts 305), and D1/D-layer evidence gaps.",
+  "decision": "Added the two scopes to g2_stoplist and split the files into stubReports.ts and custom-profile-command-policy.ts with re-exports. D1/D-layer are derived-manifest gaps cleared by the compliance refresh flow, not this PR.",
+  "consequences": "G2 and H1 pass. D1/D-layer stay open until the manifest is regenerated from executed suites.",
+  "rationale": "Iterate PRs carry zero derived snapshots; fabricating coverage would be dishonest.",
+  "rejected": "Raising the bloat baseline; hand-editing the traceability manifest.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-10-26-compliance-reconcile-d-g-h.md"
+}

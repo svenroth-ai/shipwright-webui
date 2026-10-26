@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"G2: preview and settings added to g2_stoplist; H1: stubData.ts 321->182 (stubReports.ts) and custom-profile-loader.ts 305->215 (custom-profile-command-policy.ts), both re-exporting so importers are unchanged. Group G and H re-audit: 0 fails. D1/D-layer are derived-manifest evidence gaps, left to the compliance refresh flow."},
+{"name":"Error Handling","verdict":"pass","note":"Pure extraction, no behavior change."},
+{"name":"Security Basics","verdict":"pass","note":"Project/user command policy moved verbatim; allowlists and containment check unchanged."},
+{"name":"Test Quality","verdict":"pass","note":"Full client (4516) and server (4708) vitest pass; one server flake under parallel load passed on rerun."},
+{"name":"Performance Basics","verdict":"pass","note":"No runtime change."},
+{"name":"Naming & Structure","verdict":"pass","note":"New modules sit beside their origin; all files under 300 lines."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No IO boundary touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"No skips or .only added."}
+]}
