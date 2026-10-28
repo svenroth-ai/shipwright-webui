@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-10-28-no-loop-readiness-copy",
+  "date": "2026-10-28T17:13:23.319176Z",
+  "event_at": "2026-10-26T07:06:12.023901+00:00",
+  "type": "change",
+  "complexity": "trivial",
+  "branch": "iterate/no-loop-readiness-copy",
+  "spec": "none (trivial)",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-28-no-loop-readiness-copy"
+}

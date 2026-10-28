@@ -176,9 +176,10 @@ describe("CampaignLaneCard — dependency graph", () => {
   });
 });
 
+// @covers FR-01.33
 describe("CampaignLaneCard — no scheduler verdict (degrades to today's behaviour)", () => {
   it.each<[string, CampaignReadiness, RegExp | null]>([
-    ["no loop running", { status: "no-loop" }, /No autonomous run is set up/],
+    ["no loop running", { status: "no-loop" }, /You have two options: launch each step yourself, or start an autonomous run\./],
     ["engine unavailable", { status: "engine-unavailable", reason: "uv isn't installed" }, /Readiness unavailable: uv isn't installed/],
     ["failed", { status: "failed", reason: "boom" }, /Readiness check failed: boom/],
     ["unsupported version", { status: "unsupported-version", version: "2.0" }, /newer readiness format \(2\.0\)/],

@@ -1,0 +1,11 @@
+{
+  "items": [
+    {"name": "1 Correctness", "verdict": "pass", "note": "Only the no-loop banner string changed; readinessBanner logic, tone and branches are untouched."},
+    {"name": "2 Tests", "verdict": "pass", "note": "CampaignDagSteps no-loop case now matches the new text; full client vitest 498 files / 4516 tests green, tsc clean."},
+    {"name": "3 Spec fidelity", "verdict": "pass", "note": "Text is the operator-approved wording verbatim; FR-01.33 AC about plain-words banner still holds (card keeps Launch next)."},
+    {"name": "4 Security", "verdict": "n/a", "note": "Static UI copy, no input or I/O."},
+    {"name": "5 Performance", "verdict": "n/a", "note": "No runtime change."},
+    {"name": "6 Conventions", "verdict": "pass", "note": "Test describe block tagged // @covers FR-01.33 like sibling campaign tests."},
+    {"name": "7 Affected boundaries", "verdict": "pass", "note": "No server, API or contract change; no other occurrence of the old string in client, server or docs."}
+  ]
+}
