@@ -1,0 +1,11 @@
+{
+  "items": [
+    {"name": "1 Correctness", "verdict": "pass", "note": "Both dates renewed to 2027-01-28 (register expires + trivy ignore expired_at), as the gate's own fix text requires; accepted_risks_cli check reports no drift, expire reports none past due."},
+    {"name": "2 Tests", "verdict": "pass", "note": "scripts/ci/tests: 797 passed, 2 skipped. No source or test code changed."},
+    {"name": "3 Spec fidelity", "verdict": "pass", "note": "Renewal is the re-review the entry itself schedules; operator approved the 3-month renewal on 2026-10-28."},
+    {"name": "4 Security", "verdict": "pass", "note": "Evidence re-checked today: @hono/node-ws latest 1.3.1 still peer-requires node-server ^1.19.11 (trigger not fired); lockfiles pin 1.19.17 < 2.0.5; server/src/index.ts still has three wildcard app.use calls (tripwire not fired). Recorded in the register statement."},
+    {"name": "5 Performance", "verdict": "n/a", "note": "Config only."},
+    {"name": "6 Conventions", "verdict": "pass", "note": "Same 3-month window and statement style as the existing entry; no other acceptance touched."},
+    {"name": "7 Affected boundaries", "verdict": "pass", "note": "Scanner configuration only; no workflow, runtime or dependency change."}
+  ]
+}

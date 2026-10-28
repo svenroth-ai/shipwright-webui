@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-28-renew-hono-accepted-risk",
+  "date": "2026-10-28",
+  "section": "Iterate — change: renew the @hono/node-server accepted risk",
+  "title": "Renew the GHSA-frvp-7c67-39w9 acceptance for three months",
+  "context": "The acceptance for the @hono/node-server serve-static Windows path traversal expired on 2026-10-28, which turned the Accepted-risk register gate red on every PR.",
+  "decision": "Renew both the register entry and the trivy ignore entry to 2027-01-28 after re-checking the evidence: @hono/node-ws is still 1.3.1 and peer-requires node-server ^1.19.11, the lockfiles pin 1.19.17, and every app.use in server/src/index.ts is still a wildcard.",
+  "consequences": "The gate is green again. The re-review trigger (a node-ws release compatible with node-server 2.x) and the tripwire (guarded middleware under the static root) are unchanged; the next review is due in January.",
+  "rationale": "The fix is still blocked upstream and the advisory is still not reachable here; the operator approved the renewal.",
+  "rejected": "Replacing @hono/node-ws to unblock the upgrade was rejected for now as a larger change with risk to the embedded terminal.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

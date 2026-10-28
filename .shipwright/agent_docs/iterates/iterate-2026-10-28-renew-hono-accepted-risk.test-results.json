@@ -1,0 +1,48 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-28-renew-hono-accepted-risk",
+    "date": "2026-10-28",
+    "unit": {
+      "status": "passed",
+      "passed": 797,
+      "total": 799
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "reason_code": "trivial-auto",
+      "behaviors": []
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-10-28-renew-hono-accepted-risk",
+    "commit": "b1fe8c2e4431de6b0a81375432176e09c532224e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

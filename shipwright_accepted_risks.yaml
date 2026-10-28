@@ -66,7 +66,7 @@ acceptances:
       paths:
         - "server/package-lock.json"
         - "bootstrapper/package-lock.json"
-    expires: 2026-10-28
+    expires: 2027-01-28
     rationale_ref: iterate-2026-07-28-security-accepted-risk-register
     statement: >-
       @hono/node-server < 2.0.5 — path traversal in serve-static on Windows via
@@ -96,6 +96,13 @@ acceptances:
       What that check does NOT settle: whether 1.3.1 is still the LATEST
       @hono/node-ws (an npm-registry fact, not a lockfile one). That is the one
       thing to look up in October — a newer adapter release IS the trigger above.
+      RE-REVIEWED 2026-10-28 (iterate-2026-10-28-renew-hono-accepted-risk,
+      operator-approved renewal to 2027-01-28): npm registry shows @hono/node-ws
+      latest = 1.3.1, still peer-requiring "@hono/node-server": "^1.19.11", so
+      the trigger has not fired; both lockfiles pin node-server 1.19.17 (< 2.0.5);
+      server/src/index.ts still has exactly three app.use calls, all wildcards
+      (cors "*", requestLogger "*", serveStatic "/*"), so the tripwire has not
+      fired either. Next review: look up @hono/node-ws again in January.
 
   - id: ar-2026-07-28-react-router-rsc-csrf
     target: trivy-ignore
