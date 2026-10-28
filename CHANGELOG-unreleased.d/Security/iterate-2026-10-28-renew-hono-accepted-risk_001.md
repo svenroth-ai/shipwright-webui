@@ -1,0 +1,1 @@
+Renewed the accepted risk for the @hono/node-server Windows serve-static advisory (GHSA-frvp-7c67-39w9) until 2027-01-28 after re-checking that the fix is still blocked upstream and the advisory is not reachable.

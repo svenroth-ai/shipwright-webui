@@ -88,7 +88,7 @@ vulnerabilities:
   # Register: shipwright_accepted_risks.yaml → ar-2026-07-28-hono-node-server-serve-static-windows
   # Occurs in server/package-lock.json and bootstrapper/package-lock.json.
   - id: GHSA-frvp-7c67-39w9
-    expired_at: 2026-10-28
+    expired_at: 2027-01-28
     statement: >-
       @hono/node-server < 2.0.5 path traversal in serve-static on Windows via an
       encoded backslash (%5C). NOT FIXABLE: @hono/node-ws@1.3.1 (latest)
