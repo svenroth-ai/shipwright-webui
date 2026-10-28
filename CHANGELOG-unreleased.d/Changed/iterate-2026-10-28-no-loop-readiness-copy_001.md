@@ -1,0 +1,1 @@
+The campaign board now says there are two ways to start a campaign, launching each step yourself or an autonomous run that starts every ready step at once, instead of claiming no autonomous run is set up.

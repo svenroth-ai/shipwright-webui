@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-28-no-loop-readiness-copy",
+  "date": "2026-10-28",
+  "section": "Iterate — change: campaign board no-loop readiness text",
+  "title": "Campaign board explains both ways to start a campaign",
+  "context": "When a campaign has no autonomous run, the board said 'No autonomous run is set up for this campaign', which reads like a missing setup although launching steps by hand is a normal way to run a campaign.",
+  "decision": "Replace the text with the operator-approved wording: 'You have two options: launch each step yourself, or start an autonomous run. An autonomous run starts every step that is ready at the same time and keeps going until the campaign is done or needs you.'",
+  "consequences": "Copy only: the banner tone, the conditions that show it and the launch buttons are unchanged. The wording now also states that an autonomous run starts ready steps in parallel, matching the wave scheduler.",
+  "rationale": "The operator found the old text misleading while starting a campaign by hand.",
+  "rejected": "'No run is in progress' was rejected because it is false while a hand-launched step is running.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

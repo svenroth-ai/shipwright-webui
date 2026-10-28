@@ -1,0 +1,48 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-28-no-loop-readiness-copy",
+    "date": "2026-10-28",
+    "unit": {
+      "status": "passed",
+      "passed": 4516,
+      "total": 4516
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "n/a",
+      "reason_code": "trivial-auto",
+      "behaviors": []
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-10-28-no-loop-readiness-copy",
+    "commit": "f9622b1e7179d6172d45d85fb9e1d52ec0c22b7f",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

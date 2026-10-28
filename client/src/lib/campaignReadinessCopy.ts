@@ -49,7 +49,7 @@ export function readinessBanner(
       }
       return null;
     case "no-loop":
-      return { tone: "info", text: "No autonomous run is set up for this campaign — launch the next step by hand, or start an autonomous run." };
+      return { tone: "info", text: "You have two options: launch each step yourself, or start an autonomous run. An autonomous run starts every step that is ready at the same time and keeps going until the campaign is done or needs you." };
     case "unsupported-version":
       return { tone: "warn", text: `The scheduler reports a newer readiness format (${r.version}) than this Command Center understands — update the Command Center to see which units are ready.` };
     case "engine-unavailable":
