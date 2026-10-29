@@ -3,7 +3,7 @@
  * project-bound phase resolution. Extracted from routes.ts during C2.
  */
 
-import { loadActionsForProject } from "../../core/project-actions-loader.js";
+import { loadActionsForProjectRecord } from "../../core/project-actions-loader.js";
 import {
   PHASE_TASK_ID_PATTERN,
   RUN_ID_PATTERN,
@@ -36,7 +36,7 @@ export function validatePhaseForProject(
       },
     };
   }
-  const loaded = loadActionsForProject(project.path || "");
+  const loaded = loadActionsForProjectRecord(project);
   const match = loaded.actions.phases.find((p) => p.id === rawPhase);
   if (!match) {
     return {

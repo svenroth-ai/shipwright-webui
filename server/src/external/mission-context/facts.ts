@@ -9,7 +9,7 @@
  * and have the resolver believe it.
  */
 
-import { loadActionsForProject } from "../../core/project-actions-loader.js";
+import { loadActionsForProjectRecord } from "../../core/project-actions-loader.js";
 import { readCampaigns } from "../../core/campaign-store.js";
 import { resolveCampaignsDir } from "../../core/campaign-paths.js";
 import { buildPipelineFact, getCampaignFact } from "./facts-slice3.js";
@@ -77,7 +77,7 @@ export async function getScenarioFacts(
 ): Promise<ScenarioFacts> {
   let actions: ScenarioFacts["actions"] = null;
   try {
-    const loaded = loadActionsForProject(project.path);
+    const loaded = loadActionsForProjectRecord(project);
     actions = {
       fromUser: loaded.fromUser,
       hasDiagnostics: loaded.diagnostics.length > 0,

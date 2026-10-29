@@ -102,6 +102,9 @@ export function ProjectLogCard({
         <span className="lc-name" title={project.name}>
           {project.name}
           {project.synthesized && <span className="lc-synth"> (synthesized)</span>}
+          {project.standalone && (
+            <span className="lc-synth" title="Standalone: nothing is written into this repository"> (standalone)</span>
+          )}
         </span>
         <span className="grow" />
         {project.synthesized ? null : hasGrade ? (

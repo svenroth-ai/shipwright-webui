@@ -73,4 +73,12 @@ export interface Project {
    * delete affordances. ADR-037.
    */
   synthesized?: boolean;
+  /**
+   * iterate-2026-10-29-standalone-mode — user-chosen at registration and
+   * STORED in projects.json (unlike the server-derived `mode`; do not confuse
+   * with `ProjectMode` "standalone", which means "no run_config"). When true
+   * the webui writes NOTHING under `path` and keeps its per-project files in
+   * the central data dir instead (`core/project-data-dir.ts`).
+   */
+  standalone?: boolean;
 }

@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "AC-1..AC-7 present, faithful and in scope; no code path found that still writes under project.path for a standalone project. Non-blocking notes: (1) behaviour test lacks cases for append-gitignore 409 and updateAutonomy not writing; (2) unused projectDataGuardRoot import in actions/stub.ts (fixed); (3) paste for a task without projectId falls back to in-repo path (unreachable for standalone tasks)."
+}

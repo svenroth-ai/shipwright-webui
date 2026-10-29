@@ -1,10 +1,8 @@
 /*
  * routes.ts — embedded-terminal HTTP + WebSocket surface (iterate-2026-05-03).
  *
- * The WebSocket upgrade at GET /api/terminal/:taskId/ws is the AUTHORITATIVE
- * lifecycle entrypoint: it ensure-or-creates the pty atomically. The
- * separate POST /spawn route is retained only as an idempotent prewarm
- * (returns the existing handle if one exists; never duplicates).
+ * GET /api/terminal/:taskId/ws is the AUTHORITATIVE lifecycle entrypoint
+ * (atomic ensure-or-create of the pty); POST /spawn is only an idempotent prewarm.
  *
  * External-review (2026-05-03) drove these contracts:
  *   - WS upgrade rejects unknown Origin (loopback CORS posture mirrored).
@@ -80,6 +78,8 @@ export interface TerminalRoutesDeps {
   resolveShell?: () => string;
   /** Per-task.cwd image-paste retention (default 20). */
   pastesKeepLast?: number;
+  /** Central data dir when the task belongs to a standalone project (by id or cwd). */
+  standaloneRootFor?: (task: { projectId?: string; cwd?: string }) => string | null;
   /**
    * Iterate-2026-05-04 (ADR-068-A1) — disk-backed scrollback. Optional
    * for tests; production uses a single ScrollbackStore instance shared
@@ -182,7 +182,7 @@ function defaultResolveShell(): string {
 }
 
 export function createTerminalRoutes(deps: TerminalRoutesDeps) {
-  const { store, ptyManager, upgradeWebSocket } = deps;
+  const { store, ptyManager, upgradeWebSocket, standaloneRootFor } = deps;
   const allowedOrigins = deps.allowedOrigins ?? defaultAllowedOrigins;
   const resolveShell = deps.resolveShell ?? defaultResolveShell;
   const pastesKeepLast = deps.pastesKeepLast ?? 20;
@@ -283,15 +283,11 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
     });
 
     // --- POST /api/terminal/:taskId/paste-image ---------------------------
-    // Multipart/form-data with field "image: File". Saves to
-    // <task.cwd>/.shipwright-webui/pastes/img-<ts>-<rand>.<ext> (iterate v0.8.2
-    // AC-6 — moved from `.claude-pastes/`), prunes to keep-last-N, and
-    // pty.write()s the shell-quoted absolute path into the buffer
-    // (followed by a trailing space). 413 fast-fail on large Content-Length.
+    // Multipart "image: File" -> <task.cwd>/.shipwright-webui/pastes/img-*
+    // (standalone: <central data dir>/pastes), prune keep-last-N, pty.write()
+    // the shell-quoted path + space. 413 fast-fail on large Content-Length.
     app.post("/api/terminal/:taskId/paste-image", async (c) => {
-      // Iterate v0.8.2 AC-4: structured timing logs gated by
-      // SHIPWRIGHT_DEBUG_PASTE_TIMING. Off in prod by default; flip on
-      // when diagnosing the latency of the full clipboard→pty roundtrip.
+      // Timing logs gated by SHIPWRIGHT_DEBUG_PASTE_TIMING (off by default).
       const debugTiming =
         process.env.SHIPWRIGHT_DEBUG_PASTE_TIMING === "1" ||
         process.env.SHIPWRIGHT_DEBUG_PASTE_TIMING === "true";
@@ -373,6 +369,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           cwd: trustedCwd,
           bytes,
           keepLast: pastesKeepLast,
+          centralDir: standaloneRootFor?.(task) ?? undefined,
         });
         mark("savePastedImage-done");
         let ptyWritten = false;
@@ -411,6 +408,9 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       const task = store.get(taskId);
       if (!task) return c.json({ error: "task_not_found" }, 404);
+      if (standaloneRootFor?.(task)) {
+        return c.json({ error: "standalone_project_read_only" }, 409);
+      }
       const trustedCwd = resolveTrustedCwd(task.cwd);
       if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
 

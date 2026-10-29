@@ -1,0 +1,49 @@
+{
+  "stage": "doubt-review",
+  "verdict": "objections",
+  "summary": "Claim FALSE as shipped: production wiring (external-routes-wiring.ts getProjectById) strips the standalone flag so the actions routes still write into the repo (D1, high). Medium: tasks without a resolvable projectId write pastes/.gitignore into the repo (D2); guard/resolver keyed by projectId not path (D3); campaigns readiness GET can run git fetch (D4). Low: over-block of campaign dismiss/restore (D5); meta-test cannot catch narrowed project views (D6).",
+  "doubts": [
+    {
+      "severity": "high",
+      "lens": "boundary",
+      "claim_under_doubt": "A standalone project is never written to",
+      "failing_scenario": "external-routes-wiring.ts getProjectById drops `standalone`, so stub/upload/upload-delete/get/create/phase-helpers/launch/mission-facts resolve the in-repo dir for a standalone project and write into the repo.",
+      "file": "server/src/external-routes-wiring.ts"
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary",
+      "claim_under_doubt": "A standalone project is never written to",
+      "failing_scenario": "Paste and append-gitignore protection keys only on task.projectId; a task created with the repo cwd and no resolvable projectId writes <cwd>/.shipwright-webui/pastes and edits .gitignore.",
+      "file": "server/src/terminal/standalone-target.ts"
+    },
+    {
+      "severity": "medium",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "A standalone project is never written to",
+      "failing_scenario": "Guard and resolver are keyed by projectId, never by path; registering the same folder twice as a regular project is not blocked.",
+      "file": "server/src/middleware/standalone-guard.ts"
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary",
+      "claim_under_doubt": "A standalone project is never written to",
+      "failing_scenario": "GET /api/campaigns/:projectId/:slug/readiness can run git fetch origin in the repo, writing .git/FETCH_HEAD; guard passes GET.",
+      "file": "server/src/routes/campaigns-readiness.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "A standalone project is never written to",
+      "failing_scenario": "REPO_WRITE_PATTERNS blocks campaign dismiss/restore, which only write the webui's own dismissed-campaigns.json.",
+      "file": "server/src/middleware/standalone-guard.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "A standalone project is never written to",
+      "failing_scenario": "Invariant meta-test cannot catch a project view narrowed before it reaches the resolver.",
+      "file": "server/src/test/project-data-dir-invariant.test.ts"
+    }
+  ]
+}

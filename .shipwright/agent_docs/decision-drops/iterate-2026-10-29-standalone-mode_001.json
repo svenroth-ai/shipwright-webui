@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-29-standalone-mode",
+  "date": "2026-10-29",
+  "section": "Iterate — feature: standalone projects (zero repo footprint)",
+  "title": "Standalone projects: per-project webui files move to a central data dir, repo-writing routes are refused",
+  "context": "Sven works in customer repos where a .shipwright-webui folder, .gitignore edit or .code-workspace file would be noticed; the webui must still give a board and terminal there, without Shipwright plugins.",
+  "decision": "A stored per-project flag standalone:true redirects actions.json and pastes to <registryDir>/projects/<id>/ via core/project-data-dir.ts and refuses repo-writing routes through one middleware (403 standalone_project_read_only).",
+  "consequences": "Zero bytes written into a standalone repo (snapshot-tested); SHIPWRIGHT_DATA_DIR relocates all webui data; Shipwright-only views stay empty; switching the flag later does not migrate existing files.",
+  "rationale": "One resolver plus one chokepoint middleware beats per-route checks; a per-project flag lets customer and own Shipwright projects share one webui; the flag is stored, not derived, because it is a user decision.",
+  "rejected": "Global standalone switch (cannot mix projects); per-route guards (a forgotten route silently writes into the customer repo); reusing ProjectMode 'standalone' (already means no run_config); migrating files on flag switch (surprising data movement).",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

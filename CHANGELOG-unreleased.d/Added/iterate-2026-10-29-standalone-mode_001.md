@@ -1,0 +1,1 @@
+Standalone mode: register a repo as Standalone and the Command Center writes nothing into it (no .shipwright-webui, .code-workspace or .gitignore edit); per-project files live in ~/.shipwright-webui/projects/<id>/ (relocatable via SHIPWRIGHT_DATA_DIR), and no Shipwright plugins are required

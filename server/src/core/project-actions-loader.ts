@@ -23,6 +23,7 @@
  * the loader stays pure I/O.
  */
 
+import { projectDataDir, type DataDirProject } from "./project-data-dir.js";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,6 +111,8 @@ export interface LoadResult {
 export interface LoaderDeps {
   readFileSync?: (path: string, encoding: "utf-8" | "utf8") => string;
   statSync?: (path: string) => { mtimeMs: number };
+  /** Directory holding `actions.json`; default `<projectPath>/.shipwright-webui`. */
+  dataDir?: string;
 }
 
 interface CacheEntry {
@@ -166,7 +169,12 @@ export function clearActionsCache(): void {
  * on their next GET (review feedback: avoid global thundering-herd).
  */
 export function clearActionsCacheForProject(projectPath: string): void {
-  cache.delete(projectPath);
+  clearActionsCacheForDataDir(join(projectPath, ".shipwright-webui"));
+}
+
+/** Same invalidation, keyed by the directory that holds `actions.json`. */
+export function clearActionsCacheForDataDir(dataDir: string): void {
+  cache.delete(join(dataDir, "actions.json"));
 }
 
 /**
@@ -181,7 +189,10 @@ export function loadActionsForProject(
   const read = deps.readFileSync ?? readFileSync;
   const stat = deps.statSync ?? statSync;
 
-  const userPath = join(projectPath, ".shipwright-webui", "actions.json");
+  const userPath = join(
+    deps.dataDir ?? join(projectPath, ".shipwright-webui"),
+    "actions.json",
+  );
 
   // mtime-based cache. mtimeMs = null = cached "no user file" branch.
   let mtimeMs: number | null = null;
@@ -191,7 +202,7 @@ export function loadActionsForProject(
     mtimeMs = null;
   }
 
-  const cached = cache.get(projectPath);
+  const cached = cache.get(userPath);
   if (cached && cached.mtimeMs === mtimeMs) {
     return {
       actions: cached.data,
@@ -209,7 +220,7 @@ export function loadActionsForProject(
       fromUser: false,
       diagnostics: [],
     };
-    cache.set(projectPath, entry);
+    cache.set(userPath, entry);
     return { actions: bundled, fromUser: false, diagnostics: [] };
   }
 
@@ -230,7 +241,7 @@ export function loadActionsForProject(
       fromUser: true,
       diagnostics: [],
     };
-    cache.set(projectPath, entry);
+    cache.set(userPath, entry);
     return { actions: parsed, fromUser: true, diagnostics: [] };
   } catch (err) {
     const diag: LoaderDiagnostic = {
@@ -245,7 +256,7 @@ export function loadActionsForProject(
       fromUser: false,
       diagnostics: [diag],
     };
-    cache.set(projectPath, entry);
+    cache.set(userPath, entry);
     // Warn once on the server side so an operator sees it in logs too.
     // Using plain console.warn to match project-manager style.
     console.warn(
@@ -263,4 +274,19 @@ export function loadActionsForProject(
 /** Non-test diagnostic accessor — lets index.ts report bundled-load age. */
 export function bundledDefaultLoadedAtMs(): number {
   return bundledDefaultLoadedAt;
+}
+
+/**
+ * Record-aware entry point: resolves the actions dir through
+ * `projectDataDir` so a standalone project reads its CENTRAL actions.json.
+ * Prefer this over `loadActionsForProject(project.path)` in every route.
+ */
+export function loadActionsForProjectRecord(
+  project: DataDirProject,
+  deps: LoaderDeps = {},
+): LoadResult {
+  return loadActionsForProject(project.path || "", {
+    ...deps,
+    dataDir: projectDataDir(project),
+  });
 }

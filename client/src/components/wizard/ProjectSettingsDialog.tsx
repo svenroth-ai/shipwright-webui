@@ -44,6 +44,7 @@ export function ProjectSettingsDialog({
 }: ProjectSettingsDialogProps) {
   const [name, setName] = useState('');
   const [color, setColor] = useState<string | null>(null);
+  const [standalone, setStandalone] = useState(false);
   const updateProject = useUpdateProject();
 
   // Re-seed local state every time the dialog is opened with a new project.
@@ -51,6 +52,7 @@ export function ProjectSettingsDialog({
     if (open && project) {
       setName(project.name);
       setColor(project.settings?.color ?? null);
+      setStandalone(project.standalone === true);
       updateProject.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -67,6 +69,7 @@ export function ProjectSettingsDialog({
         id: project.id,
         patch: {
           name: name.trim(),
+          standalone,
           // Explicit null → clear custom color (Auto). Settings payload
           // is merged server-side so this only touches `color`.
           settings: { color: color ?? undefined },
@@ -174,6 +177,25 @@ export function ProjectSettingsDialog({
               onChange={setColor}
               testidPrefix="project-settings-color"
             />
+
+            {/* Standalone (iterate-2026-10-29-standalone-mode) — a stored flag. */}
+            {!project.synthesized && (
+              <label className="flex items-start gap-3 cursor-pointer" data-testid="project-settings-standalone">
+                <input
+                  type="checkbox"
+                  checked={standalone}
+                  onChange={(e) => setStandalone(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+                />
+                <span className="text-[13px] text-[var(--color-text)] leading-snug">
+                  <span className="font-semibold tracking-tight">Standalone — don&rsquo;t touch this repository</span>
+                  <span className="block text-xs text-[var(--color-muted)] mt-0.5">
+                    The webui writes nothing into the project folder. Switching does not move existing
+                    actions.json or pasted images.
+                  </span>
+                </span>
+              </label>
+            )}
 
             {/* Actions configuration (iterate-2026-06-14-actions-config-ux) —
                 same upload/reset surface as the Settings page, scoped to this

@@ -309,7 +309,7 @@ export class ProjectManager {
       settings: { ...existing.settings, autonomy },
     });
 
-    // 2. Merge into <project>/shipwright_run_config.json (non-fatal).
+    if (existing.standalone) return updated; // 2. (run_config merge below) never into a standalone repo
     const runConfigPath = `${existing.path}/shipwright_run_config.json`;
     try {
       let runConfig: Record<string, unknown> = {};

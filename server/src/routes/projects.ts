@@ -76,7 +76,11 @@ export function createProjectRoutes(
     if (!body.name || !body.path) {
       throw new AppError("name and path are required", 400);
     }
-    if (fsDeps) {
+    // iterate-2026-10-29-standalone-mode — a standalone project must leave the
+    // repo untouched: no mkdir of the path (create() 400s if it is missing),
+    // no `.shipwright-webui/`, no `.code-workspace`.
+    body.standalone = body.standalone === true;
+    if (fsDeps && !body.standalone) {
       if (!fsDeps.existsSync(body.path)) {
         fsDeps.mkdirSync(body.path, { recursive: true });
       }
@@ -103,6 +107,9 @@ export function createProjectRoutes(
     const body = await c.req.json();
     // Same paste-artifact guard as POST, for path edits via the settings UI.
     if (typeof body.path === "string") body.path = normalizeFsPath(body.path);
+    if ("standalone" in body && typeof body.standalone !== "boolean") {
+      throw new AppError("standalone must be a boolean", 400);
+    }
     const updated = projectManager.update(c.req.param("id"), body);
     if (!updated) throw new AppError("Project not found", 404);
     return c.json({ data: updated });

@@ -43,6 +43,8 @@ import { evaluatePreviewCoherence } from "./core/preview-coherence.js";
 import { lockClaimRecordFile } from "./core/claim-record-lock.js";
 
 import { createProjectRoutes } from "./routes/projects.js";
+import { standaloneGuard } from "./middleware/standalone-guard.js";
+import { standaloneRootForTask } from "./terminal/standalone-target.js";
 import { cascadeDeleteProjectTasks } from "./core/cascade-delete-project-tasks.js";
 import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
@@ -401,6 +403,7 @@ if (isMainModule) {
         }
       }
       // /api/projects/* — here so the DELETE cascade reaches the stores above (iterate-2026-07-06).
+      app.use("/api/*", standaloneGuard((id) => projectManager.getById(id)));
       app.route("/", createProjectRoutes(projectManager, projectFsDeps, (id) =>
         cascadeDeleteProjectTasks(id, {
           store: sdkSessionsStore,
@@ -756,19 +759,15 @@ if (isMainModule) {
         upgradeWebSocket,
         pastesKeepLast: config.claudePastesKeepLast,
         scrollbackStore,
-        // ADR-089 — wire the snapshot store + expected version so the WS
-        // replay branch uses the new envelope when a snapshot exists.
-        // The snapshot store is created above (ADR-088); we only pass it
-        // through here when the flag is effectively ON (config + probe).
-        snapshotStore:
-          headlessMirrorEnabledEffective && snapshotStoreReady
-            ? snapshotStore
-            : undefined,
+        // ADR-089 — snapshot store + expected version for the WS replay envelope;
+        // passed only when the headless-mirror flag is effectively ON.
+        snapshotStore: headlessMirrorEnabledEffective && snapshotStoreReady ? snapshotStore : undefined,
         expectedTerminalVersion,
         // Iterate v0.8.2 AC-9 — retention + dir surfaced in `ready`.
         retentionDays: config.terminalScrollbackTtlDays,
         scrollbackDirHint: config.terminalScrollbackDir,
         allowedOrigins: corsOriginPolicy.isAllowed,
+        standaloneRootFor: (t) => standaloneRootForTask(t, () => projectManager.getAll()),
       })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).

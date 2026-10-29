@@ -56,6 +56,43 @@ workflow, updates, autostart, network access, custom actions for your
 own slash skills, and troubleshooting. This README gets you running;
 the guide goes deeper.
 
+## Use it without Shipwright (Standalone mode)
+
+**You do not need Shipwright to use the Command Center.** If all you want
+is a Kanban board and an embedded terminal for plain Claude Code sessions,
+the Command Center works on its own: no Shipwright plugins, no
+`.shipwright/` folder, no pipeline.
+
+Standalone mode is for repositories you must leave untouched, for example a
+customer's repo where an extra folder would raise questions. Register such a
+repo as **Standalone** and the Command Center writes **nothing** into it:
+no `.shipwright-webui/` folder, no `.code-workspace` file, no `.gitignore`
+edit. Everything it needs lives in your user directory instead.
+
+1. Start only the Command Center (no plugins are installed or required):
+   `npx @svenroth-ai/shipwright@latest --webui-only`, or clone this repo and
+   run `npm install` + `npm run dev` in `server/` and `client/` (neither
+   installs any plugin).
+2. In the app, open **Projects → Create Project → Register a project
+   manually…**, enter the folder, tick **Standalone — don't touch this
+   repository**, and create it. You can switch the flag later in the
+   project's Settings dialog.
+3. Create tasks and click **Launch**: you get the board, the live transcript,
+   the embedded terminal and Launch / Resume, exactly as for any project.
+
+**Where the data lives:** `~/.shipwright-webui/` (project registry, tasks,
+settings, terminal scrollback) plus `~/.shipwright-webui/projects/<project-id>/`
+for per-project files (custom `actions.json`, pasted images). Set
+`SHIPWRIGHT_DATA_DIR` to put all of it somewhere else. Claude's own session
+transcripts stay where Claude puts them, under `~/.claude/projects/`.
+
+**What is switched off for a standalone project:** everything that would write
+into the repo, namely editing Markdown files from the file viewer, design
+feedback, and triage / campaign status changes (the server answers `403
+standalone_project_read_only`). Shipwright-specific views such as Ship's Log
+and Triage simply show nothing, because there is no `.shipwright/` folder to
+read. Details: [guide §5.4](docs/guide.md#54-standalone-mode--use-it-without-shipwright).
+
 ## What you get
 
 - **One Kanban board across every project:** Backlog → In Progress →
@@ -71,7 +108,8 @@ the guide goes deeper.
 - **Diagnostics:** CLI version, session count, watcher health at a
   glance.
 
-It's optional (every Shipwright skill works fine without it), but once
+It's optional (every Shipwright skill works fine without it, and it works
+without Shipwright too, see [Standalone mode](#use-it-without-shipwright-standalone-mode)), but once
 you have more than one project running in parallel, it stops being a
 luxury. See the [user guide](docs/guide.md) for the full tour.
 

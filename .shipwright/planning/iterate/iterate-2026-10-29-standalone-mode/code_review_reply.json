@@ -1,0 +1,16 @@
+{
+  "stage": "code-review",
+  "verdict": "PASS",
+  "summary": "No high-severity findings; project id cannot escape registryDir/projects (randomUUID, re-forced on update), symlink guards effective for pastes, middleware mounted before all repo-writing routes, bloat ceilings not grown.",
+  "review": [
+    {"finding": "Unused projectDataGuardRoot import in actions/stub.ts.", "severity": "medium", "category": "readability", "file": "server/src/external/actions/stub.ts"},
+    {"finding": "Invariant meta-test is line-based; a multi-line join(...) with the literal on its own line evades it.", "severity": "medium", "category": "correctness", "file": "server/src/test/project-data-dir-invariant.test.ts"},
+    {"finding": "Actions cache is keyed by projectPath while the user file now depends on dataDir; a flag flip or two projects at one path can share a stale entry.", "severity": "medium", "category": "correctness", "file": "server/src/core/project-actions-loader.ts"},
+    {"finding": "SHIPWRIGHT_DATA_DIR is used verbatim; a relative value resolves against the cwd at each use.", "severity": "low", "category": "robustness", "file": "server/src/config.ts"},
+    {"finding": "project.id is joined into a path with no format check (defence in depth; ids are UUIDs today).", "severity": "low", "category": "security", "file": "server/src/core/project-data-dir.ts"},
+    {"finding": "The step comment above the run_config write was deleted to hold the bloat ceiling; restore a one-line comment.", "severity": "low", "category": "readability", "file": "server/src/core/project-manager.ts"},
+    {"finding": "Unrelated comments were condensed in terminal/routes.ts and image-paste.ts only to hold ceilings; revert where headroom allows.", "severity": "low", "category": "readability", "file": "server/src/terminal/routes.ts"},
+    {"finding": "No tests for PATCH standalone type validation, updateAutonomy skipping the run_config write, or middleware ordering in index.ts.", "severity": "low", "category": "test-quality", "file": "server/src/test/standalone-mode.test.ts"},
+    {"finding": "Pasted-image paths for a standalone project point outside the repo cwd; document the caveat.", "severity": "low", "category": "docs", "file": "docs/guide.md"}
+  ]
+}
