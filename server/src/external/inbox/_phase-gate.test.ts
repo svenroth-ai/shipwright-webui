@@ -42,6 +42,7 @@ const task = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("appendPhaseGates", () => {
+  // @covers FR-01.04
   it("surfaces the task whose phase task is paused at a human gate", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [];
@@ -58,6 +59,7 @@ describe("appendPhaseGates", () => {
     ]);
   });
 
+  // @covers FR-01.04
   it("emits nothing once the loop resumed (status running)", async () => {
     writeLoop({ status: "running", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [];
@@ -65,6 +67,7 @@ describe("appendPhaseGates", () => {
     expect(out).toEqual([]);
   });
 
+  // @covers FR-01.04
   it("ignores a task bound to a different phase task", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-2" });
     const out: AggregatedEntry[] = [];
@@ -72,6 +75,7 @@ describe("appendPhaseGates", () => {
     expect(out).toEqual([]);
   });
 
+  // @covers FR-01.04
   it("emits nothing for a missing or torn loop-state file", async () => {
     const out: AggregatedEntry[] = [];
     await appendPhaseGates(out, { store: storeOf(task()) });
@@ -80,6 +84,7 @@ describe("appendPhaseGates", () => {
     expect(out).toEqual([]);
   });
 
+  // @covers FR-01.04
   it("skips done tasks and tasks without a phaseTaskId", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [];
@@ -89,6 +94,7 @@ describe("appendPhaseGates", () => {
     expect(out).toEqual([]);
   });
 
+  // @covers FR-01.04
   it("defers to a specific question already surfaced for the same task", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [
@@ -105,6 +111,7 @@ describe("appendPhaseGates", () => {
     expect(out.map((e) => e.kind)).toEqual(["terminal_prompt"]);
   });
 
+  // @covers FR-01.04
   it("skips a phase task already terminal in the run-config (stale gate)", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [];
@@ -119,6 +126,7 @@ describe("appendPhaseGates", () => {
     expect(out).toEqual([]);
   });
 
+  // @covers FR-01.04
   it("still surfaces when the run-config is unreadable", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [];
@@ -131,6 +139,7 @@ describe("appendPhaseGates", () => {
     expect(out).toHaveLength(1);
   });
 
+  // @covers FR-01.04
   it("emits one entry when two live tasks share a phase task", async () => {
     writeLoop({ status: "paused_human_gate", currentPhaseTaskId: "ptk-1" });
     const out: AggregatedEntry[] = [];

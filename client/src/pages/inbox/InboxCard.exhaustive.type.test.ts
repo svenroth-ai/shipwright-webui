@@ -35,6 +35,7 @@ describe("InboxItem exhaustiveness guard stays load-bearing", () => {
     expectTypeOf(typeOnlyRejectsFakeFifthKind).returns.toBeVoid();
   });
 
+  // @covers FR-01.04
   it("today's eight real kinds are exactly what InboxItem is (no silent ninth)", () => {
     type RealKinds = InboxItem["kind"];
     expectTypeOf<RealKinds>().toEqualTypeOf<

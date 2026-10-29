@@ -30,10 +30,12 @@ const item: InboxItem = {
 };
 
 describe("InboxCard phase_gate", () => {
+  // @covers FR-01.04
   it("keys the item pg-<taskId>", () => {
     expect(inboxItemKey(item)).toBe("pg-t-pg");
   });
 
+  // @covers FR-01.04
   it("renders the waiting card with the terminal-honesty line", () => {
     const qc = new QueryClient();
     render(

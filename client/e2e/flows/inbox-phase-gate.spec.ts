@@ -17,6 +17,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 test.describe("Inbox phase gate", () => {
+  // @covers FR-01.04
   test("shows a paused guided phase and clears it on resume", async ({ page, request }) => {
     const proj = mkdtempSync(path.join(tmpdir(), "inbox-phase-gate-"));
     mkdirSync(path.join(proj, ".shipwright"), { recursive: true });
