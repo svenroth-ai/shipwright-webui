@@ -1,3 +1,4 @@
+// @covers FR-01.03
 /**
  * iterate-2026-10-29-standalone-mode — a STANDALONE project leaves its repo
  * byte-identical: every webui file for it lives in the central data dir, and

@@ -1,3 +1,4 @@
+// @covers FR-01.03
 /**
  * iterate-2026-10-29-standalone-mode — review-driven gaps: autonomy write,
  * PATCH validation, cache across a flag flip, hostile id, middleware order.

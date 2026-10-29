@@ -1,3 +1,4 @@
+// @covers FR-01.03
 /**
  * iterate-2026-10-29-standalone-mode — `core/project-data-dir.ts` is the ONLY
  * place that may name the in-repo `.shipwright-webui` directory when joining a

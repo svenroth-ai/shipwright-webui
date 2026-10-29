@@ -4,27 +4,29 @@
   "reviews": {
     "self": {
       "review_type": "self",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-10-29T22:32:03.287100+00:00",
+      "disposition": "no separate self-review pass; spec, code and doubt reviewers ran as the cascade",
+      "recorded_by": "none",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "unavailable"
     },
     "plan": {
       "review_type": "plan",
-      "status": "pending",
+      "status": "not_applicable",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-10-29T22:32:03.409174+00:00",
+      "disposition": "no external plan review; scope fits the iterate spec",
+      "recorded_by": "none",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
     },
     "code": {
       "review_type": "code",
@@ -191,15 +193,16 @@
     },
     "external_code": {
       "review_type": "external_code",
-      "status": "pending",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-10-29T22:32:09.580020+00:00",
+      "disposition": "no external code review run; internal code and doubt reviewers ran",
+      "recorded_by": "none",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "config-disabled"
     },
     "spec": {
       "review_type": "spec",
@@ -216,27 +219,29 @@
     },
     "plan_internal": {
       "review_type": "plan_internal",
-      "status": "pending",
+      "status": "not_applicable",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-10-29T22:32:03.550982+00:00",
+      "disposition": "no separate plan; iterate spec reviewed by spec-reviewer",
+      "recorded_by": "none",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
     },
     "architecture_internal": {
       "review_type": "architecture_internal",
-      "status": "pending",
+      "status": "not_applicable",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": null,
-      "disposition": null,
-      "recorded_by": null,
+      "completed_at": "2026-10-29T22:32:03.678956+00:00",
+      "disposition": "no architecture brief; the change adds a flag and one resolver",
+      "recorded_by": "none",
       "parse_status": null,
-      "raw_excerpt": null
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
     }
   }
 }
