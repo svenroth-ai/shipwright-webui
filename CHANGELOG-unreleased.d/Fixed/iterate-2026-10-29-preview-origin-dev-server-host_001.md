@@ -1,0 +1,1 @@
+- Preview now opens the host named by the profile's `dev_server.host` (`127.0.0.1` or `localhost`; anything else falls back to `localhost`), so a companion that checks the Host header (skill-companion-app) no longer answers 403 through the Preview button.

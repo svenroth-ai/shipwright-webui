@@ -225,23 +225,41 @@ export function isValidPort(port: unknown): port is number {
   );
 }
 
+/** Hosts a profile's dev_server.host may name. Anything else falls back to localhost. */
+const PREVIEW_HOSTS = ["localhost", "127.0.0.1"] as const;
+
+export function resolvePreviewHost(host: unknown): string {
+  return typeof host === "string" && (PREVIEW_HOSTS as readonly string[]).includes(host)
+    ? host
+    : "localhost";
+}
+
 /**
  * Build the RETURNED preview URL (the one handed to window.open in the
  * browser). Mirrors buildReadyUrl's host-pinning (F10): a malicious profile
  * ready_path like "@evil.com/" — or an absolute "http://evil.com/" — must not
  * smuggle a new authority into the string. We resolve the path through the URL
- * constructor against a localhost origin and reject any host drift, preserving
+ * constructor against a pinned origin and reject any host drift, preserving
  * the historical host-only shape for a root path.
+ *
+ * The origin host is the profile's `dev_server.host` when it is one of
+ * PREVIEW_HOSTS (a companion that checks the Host header accepts only the host
+ * it bound, e.g. 127.0.0.1), otherwise `localhost`.
  */
-export function buildPreviewUrl(port: number, readyPath: string): string {
-  const origin = `http://localhost:${port}`;
+export function buildPreviewUrl(
+  port: number,
+  readyPath: string,
+  host?: string,
+): string {
+  const pinned = resolvePreviewHost(host);
+  const origin = `http://${pinned}:${port}`;
   try {
     const clean = readyPath.replace(/^[/@]+/, "/").trim() || "/";
     const url = new URL(clean, `${origin}/`);
     // Reject any host OR scheme drift: an absolute "http://evil.com/", a
     // "//"/"\\" authority smuggle, or a "javascript:"/"data:" scheme all
-    // resolve away from the pinned http://localhost origin.
-    if (url.protocol !== "http:" || url.hostname !== "localhost") return origin;
+    // resolve away from the pinned origin.
+    if (url.protocol !== "http:" || url.hostname !== pinned) return origin;
     if (url.pathname === "/" && !url.search && !url.hash) return origin;
     return `${origin}${url.pathname}${url.search}${url.hash}`;
   } catch {
