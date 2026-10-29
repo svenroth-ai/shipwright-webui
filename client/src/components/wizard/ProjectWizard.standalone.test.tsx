@@ -53,6 +53,7 @@ async function createWith(tickStandalone: boolean): Promise<Record<string, unkno
 }
 
 describe('ProjectWizard — standalone registration', () => {
+  // @covers FR-01.03
   it('offers the Standalone checkbox, unticked by default', () => {
     renderWizard();
     const box = screen.getByRole('checkbox') as HTMLInputElement;
@@ -60,11 +61,13 @@ describe('ProjectWizard — standalone registration', () => {
     expect(screen.getByText(/don.t touch this repository/i)).toBeInTheDocument();
   });
 
+  // @covers FR-01.03
   it('sends standalone: true when ticked', async () => {
     const body = await createWith(true);
     expect(body.standalone).toBe(true);
   });
 
+  // @covers FR-01.03
   it('omits the field when left unticked', async () => {
     const body = await createWith(false);
     expect('standalone' in body).toBe(false);

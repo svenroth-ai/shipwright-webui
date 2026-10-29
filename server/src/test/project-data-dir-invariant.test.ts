@@ -34,6 +34,7 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe("project-data-dir invariant", () => {
+  // @covers FR-01.03
   it("no route joins the in-repo .shipwright-webui dir outside the allow-list", () => {
     const offenders: string[] = [];
     for (const abs of walk(SRC)) {
@@ -58,6 +59,7 @@ describe("project-data-dir invariant", () => {
     expect(offenders).toEqual([]);
   });
 
+  // @covers FR-01.03
   it("every allow-list entry still exists (rot guard)", () => {
     for (const rel of ALLOWED.keys()) expect(fs.existsSync(path.join(SRC, rel))).toBe(true);
   });

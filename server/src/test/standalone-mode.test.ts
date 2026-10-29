@@ -68,12 +68,14 @@ afterEach(() => {
 });
 
 describe("projectDataDir", () => {
+  // @covers FR-01.03
   it("regular project keeps the in-repo dir", () => {
     const p = { id: "a", path: repo };
     expect(projectDataDir(p)).toBe(path.join(repo, ".shipwright-webui"));
     expect(projectDataGuardRoot(p)).toBe(repo);
   });
 
+  // @covers FR-01.03
   it("standalone project resolves under SHIPWRIGHT_DATA_DIR/projects/<id>", () => {
     const p = { id: "abc", path: repo, standalone: true };
     expect(projectDataDir(p)).toBe(path.join(dataRoot, "projects", "abc"));
@@ -84,6 +86,7 @@ describe("projectDataDir", () => {
 describe("standalone project leaves the repo untouched", () => {
   const project = () => ({ id: "sa1", name: "Customer", path: repo, standalone: true });
 
+  // @covers FR-01.03
   it("POST /api/projects writes no .shipwright-webui and no .code-workspace", async () => {
     const before = snapshot(repo);
     const app = new Hono();
@@ -100,6 +103,7 @@ describe("standalone project leaves the repo untouched", () => {
     expect(snapshot(repo)).toEqual(before);
   });
 
+  // @covers FR-01.03
   it("a regular project still gets .shipwright-webui (behaviour unchanged)", async () => {
     const app = new Hono();
     const manager = { create: (d: object) => ({ id: "r1", ...d }) };
@@ -112,6 +116,7 @@ describe("standalone project leaves the repo untouched", () => {
     expect(fs.existsSync(path.join(repo, ".shipwright-webui", "mine.code-workspace"))).toBe(true);
   });
 
+  // @covers FR-01.03
   it("actions stub/reset use the central dir; the loader reads it back", async () => {
     const before = snapshot(repo);
     const app = new Hono();
@@ -132,6 +137,7 @@ describe("standalone project leaves the repo untouched", () => {
     expect(snapshot(repo)).toEqual(before);
   });
 
+  // @covers FR-01.03
   it("pasted images land in the central dir; no gitignore suggestion", async () => {
     const before = snapshot(repo);
     const root = standalonePasteRoot("sa1", (id) => (id === "sa1" ? project() : undefined));
@@ -147,6 +153,7 @@ describe("standalone project leaves the repo untouched", () => {
     expect(snapshot(repo)).toEqual(before);
   });
 
+  // @covers FR-01.03
   it("a regular project still pastes into <cwd>/.shipwright-webui/pastes", async () => {
     expect(standalonePasteRoot("r1", () => ({ id: "r1", path: repo }))).toBeNull();
     const res = await savePastedImage({ cwd: repo, bytes: PNG, keepLast: 5 });
@@ -166,6 +173,7 @@ describe("standaloneGuard", () => {
     return a;
   };
 
+  // @covers FR-01.03
   it.each([
     ["PUT", "/api/external/projects/sa/file?path=a.md"],
     ["POST", "/api/external/projects/sa/design-feedback"],
@@ -178,6 +186,7 @@ describe("standaloneGuard", () => {
     expect((await res.json()).error).toBe("standalone_project_read_only");
   });
 
+  // @covers FR-01.03
   it("lets reads and regular projects through", async () => {
     expect((await makeApp().request("/api/triage/sa/items")).status).toBe(200);
     expect((await makeApp().request("/api/triage/reg/dismiss", { method: "POST" })).status).toBe(200);
@@ -186,11 +195,13 @@ describe("standaloneGuard", () => {
 });
 
 describe("runs without Shipwright plugins", () => {
+  // @covers FR-01.03
   it("a default launch command carries no --plugin-dir", () => {
     const c = buildCopyCommands({ sessionUuid: "00000000-0000-4000-8000-000000000000", cwd: repo });
     for (const form of [c.powershell, c.cmd, c.posix]) expect(form).not.toContain("--plugin-dir");
   });
 
+  // @covers FR-01.03
   it("a missing plugin marketplace resolves to null instead of throwing", async () => {
     const v = await readShipwrightPluginVersion({ homedir: () => dataRoot });
     expect(v).toBeNull();

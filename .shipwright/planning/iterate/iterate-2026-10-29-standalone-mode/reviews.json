@@ -4,16 +4,15 @@
   "reviews": {
     "self": {
       "review_type": "self",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-29T22:32:03.287100+00:00",
-      "disposition": "no separate self-review pass; spec, code and doubt reviewers ran as the cascade",
-      "recorded_by": "none",
+      "completed_at": "2026-10-29T22:33:57.866117+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
       "parse_status": null,
-      "raw_excerpt": null,
-      "reason_code": "unavailable"
+      "raw_excerpt": null
     },
     "plan": {
       "review_type": "plan",

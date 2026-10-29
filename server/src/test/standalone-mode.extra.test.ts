@@ -30,6 +30,7 @@ function pmWithSpyWrites() {
 }
 
 describe("updateAutonomy", () => {
+  // @covers FR-01.03
   it("never writes shipwright_run_config.json into a standalone repo", async () => {
     const { pm, writes } = pmWithSpyWrites();
     const p = pm.create({ name: "C", path: "/tmp/cust", profile: "x", status: "active", standalone: true });
@@ -37,6 +38,7 @@ describe("updateAutonomy", () => {
     expect(writes.some((w) => w.endsWith("shipwright_run_config.json"))).toBe(false);
   });
 
+  // @covers FR-01.03
   it("still writes it for a regular project", async () => {
     const { pm, writes } = pmWithSpyWrites();
     const p = pm.create({ name: "R", path: "/tmp/mine", profile: "x", status: "active" });
@@ -60,9 +62,11 @@ describe("PATCH /api/projects/:id standalone validation", () => {
       body: JSON.stringify(body),
     });
 
+  // @covers FR-01.03
   it("rejects a non-boolean", async () => {
     expect((await patch({ standalone: "yes" })).status).toBe(400);
   });
+  // @covers FR-01.03
   it("accepts a boolean", async () => {
     expect((await patch({ standalone: true })).status).toBe(200);
   });
@@ -85,15 +89,18 @@ describe("data dir resolution", () => {
     fs.rmSync(data, { recursive: true, force: true });
   });
 
+  // @covers FR-01.03
   it("refuses an id that could leave projects/", () => {
     expect(() => projectDataDir({ id: "../x", path: repo, standalone: true })).toThrow();
   });
 
+  // @covers FR-01.03
   it("a relative SHIPWRIGHT_DATA_DIR is made absolute", () => {
     process.env.SHIPWRIGHT_DATA_DIR = path.relative(process.cwd(), data);
     expect(path.isAbsolute(projectDataDir({ id: "a", path: repo, standalone: true }))).toBe(true);
   });
 
+  // @covers FR-01.03
   it("flipping the flag switches which actions.json is read (no stale cache)", () => {
     const body = JSON.stringify({ schemaVersion: 1, defaults: { autonomy: "guided" }, actions: [], phases: [], preview: { enabled: "auto" } });
     fs.mkdirSync(path.join(data, "projects", "p1"), { recursive: true });
@@ -107,6 +114,7 @@ describe("data dir resolution", () => {
 });
 
 describe("index.ts wiring", () => {
+  // @covers FR-01.03
   it("mounts standaloneGuard BEFORE every route family it protects", () => {
     const src = fs.readFileSync(path.resolve(__dirname, "../index.ts"), "utf8");
     const guard = src.indexOf("app.use(\"/api/*\", standaloneGuard(");
@@ -120,6 +128,7 @@ describe("index.ts wiring", () => {
 });
 
 describe("production wiring keeps the standalone flag (doubt D1)", () => {
+  // @covers FR-01.03
   it("getProjectById handed to the external routes carries standalone", () => {
     const projectManager = {
       getAll: () => [],
@@ -162,10 +171,12 @@ describe("standaloneRootForTask (doubt D2)", () => {
 
   const projects = () => [{ id: "sa", path: repo, standalone: true }, { id: "r", path: "/elsewhere" }];
 
+  // @covers FR-01.03
   it("matches by projectId", () => {
     expect(standaloneRootForTask({ projectId: "sa", cwd: "/x" }, projects)).toBe(path.join(data, "projects", "sa"));
   });
 
+  // @covers FR-01.03
   it("matches a task with NO resolvable projectId by cwd inside the repo", () => {
     const sub = path.join(repo, "src");
     fs.mkdirSync(sub);
@@ -173,6 +184,7 @@ describe("standaloneRootForTask (doubt D2)", () => {
     expect(standaloneRootForTask({ cwd: sub }, projects)).toBe(path.join(data, "projects", "sa"));
   });
 
+  // @covers FR-01.03
   it("does not match a sibling folder or a regular project", () => {
     expect(standaloneRootForTask({ cwd: repo + "-other" }, projects)).toBeNull();
     expect(standaloneRootForTask({ projectId: "r", cwd: "/elsewhere" }, projects)).toBeNull();
