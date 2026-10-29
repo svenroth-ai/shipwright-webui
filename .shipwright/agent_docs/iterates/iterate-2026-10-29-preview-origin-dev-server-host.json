@@ -1,0 +1,66 @@
+{
+  "run_id": "iterate-2026-10-29-preview-origin-dev-server-host",
+  "date": "2026-10-29T17:34:39.136306Z",
+  "event_at": "2026-10-29T07:23:33.592256+00:00",
+  "type": "bug",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/preview-origin-dev-server-host",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-29-preview-origin-dev-server-host",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "buildPreviewUrl uses dev_server.host 127.0.0.1",
+        "disposition": "tested",
+        "evidence": "preview-child-lifecycle.branches.test.ts: uses the profile's 127.0.0.1 host PASSED"
+      },
+      {
+        "behavior": "host outside allowlist falls back to localhost",
+        "disposition": "tested",
+        "evidence": "preview-child-lifecycle.branches.test.ts: falls back to localhost PASSED"
+      },
+      {
+        "behavior": "authority smuggling still rejected under 127.0.0.1",
+        "disposition": "tested",
+        "evidence": "preview-child-lifecycle.branches.test.ts: still rejects authority smuggling PASSED"
+      },
+      {
+        "behavior": "spawn entry.url carries profile host",
+        "disposition": "tested",
+        "evidence": "preview-session-manager.validation.test.ts: returns the profile's dev_server.host PASSED"
+      },
+      {
+        "behavior": "custom-profile-loader allowlist passes host through",
+        "disposition": "tested",
+        "evidence": "exercised via bundled-profile resolver path; full server suite 4722 passed"
+      }
+    ],
+    "counts": {
+      "testable": 5,
+      "tested": 5,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    }
+  },
+  "surface_verification": {
+    "surface": "api",
+    "runner": "npm.cmd --prefix server test -- src/core/preview src/core/custom-profile-loader",
+    "exit_code": 0,
+    "tests_run": 105,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\preview-origin-dev-server-host\\.shipwright\\runs\\iterate-2026-10-29-preview-origin-dev-server-host\\surface_verification.log",
+    "timestamp": "2026-10-29T17:33:41.696Z",
+    "attempts": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

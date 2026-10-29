@@ -153,6 +153,7 @@ describe("PreviewSessionManager.spawn — port validation (F30)", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.17
   it("returns the profile's dev_server.host in the preview url", async () => {
     const spawn = vi.fn(() => fakeChild());
     const entry = await mgr.spawn(

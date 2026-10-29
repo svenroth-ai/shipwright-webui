@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-29-preview-origin-dev-server-host",
+  "date": "2026-10-29",
+  "section": "Iterate — bug: preview origin host",
+  "title": "Preview origin host comes from the profile's dev_server.host",
+  "context": "buildPreviewUrl pinned http://localhost:<port>; a companion that checks the Host header (skill-companion-app, 127.0.0.1) answered 403 through the Preview button.",
+  "decision": "The profile's dev_server.host (allowlist 127.0.0.1|localhost, else localhost) sets the preview origin; the host is part of the profile hash.",
+  "consequences": "Preview opens the host the profile names; hosts outside the allowlist still fall back to localhost; authority smuggling stays rejected.",
+  "rationale": "Keeps the F10 host pin while honouring the one host choice a profile legitimately needs.",
+  "rejected": "Free-form host from the profile (re-opens the open-redirect surface F10 closed).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
