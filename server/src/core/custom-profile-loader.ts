@@ -65,6 +65,7 @@ function allowlisted(raw: unknown): ResolvedPreviewProfile | null {
   if (typeof port !== "number" || !Number.isInteger(port) || port < 1024 || port > 65535) return null;
   const out: NonNullable<ResolvedPreviewProfile["dev_server"]> = { command: dev.command, port };
   if (typeof dev.ready_path === "string" && dev.ready_path.startsWith("/")) out.ready_path = dev.ready_path;
+  if (dev.host === "127.0.0.1" || dev.host === "localhost") out.host = dev.host;
   const t = dev.ready_timeout_seconds;
   if (typeof t === "number" && Number.isInteger(t) && t >= 1 && t <= 600) out.ready_timeout_seconds = t;
   const frontend = isObject(raw.stack) ? raw.stack.frontend : undefined;

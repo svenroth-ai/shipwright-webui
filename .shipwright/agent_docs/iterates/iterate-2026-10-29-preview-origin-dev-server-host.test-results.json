@@ -1,0 +1,82 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-29-preview-origin-dev-server-host",
+    "date": "2026-10-29",
+    "unit": {
+      "status": "passed",
+      "passed": 4722,
+      "skipped": 13,
+      "total": 4735
+    },
+    "integration": {
+      "status": "not_run"
+    },
+    "pgtap": {
+      "status": "not_run"
+    },
+    "e2e": {
+      "status": "not_run"
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "buildPreviewUrl uses dev_server.host 127.0.0.1",
+          "disposition": "tested",
+          "evidence": "preview-child-lifecycle.branches.test.ts: uses the profile's 127.0.0.1 host PASSED"
+        },
+        {
+          "behavior": "host outside allowlist falls back to localhost",
+          "disposition": "tested",
+          "evidence": "preview-child-lifecycle.branches.test.ts: falls back to localhost PASSED"
+        },
+        {
+          "behavior": "authority smuggling still rejected under 127.0.0.1",
+          "disposition": "tested",
+          "evidence": "preview-child-lifecycle.branches.test.ts: still rejects authority smuggling PASSED"
+        },
+        {
+          "behavior": "spawn entry.url carries profile host",
+          "disposition": "tested",
+          "evidence": "preview-session-manager.validation.test.ts: returns the profile's dev_server.host PASSED"
+        },
+        {
+          "behavior": "custom-profile-loader allowlist passes host through",
+          "disposition": "tested",
+          "evidence": "exercised via bundled-profile resolver path; full server suite 4722 passed"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      }
+    },
+    "surface_verification": {
+      "surface": "api",
+      "runner": "npm.cmd --prefix server test -- src/core/preview src/core/custom-profile-loader",
+      "exit_code": 0,
+      "tests_run": 105,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\preview-origin-dev-server-host\\.shipwright\\runs\\iterate-2026-10-29-preview-origin-dev-server-host\\surface_verification.log",
+      "timestamp": "2026-10-29T17:33:41.696Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

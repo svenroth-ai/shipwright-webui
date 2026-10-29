@@ -152,4 +152,22 @@ describe("PreviewSessionManager.spawn — port validation (F30)", () => {
     }
     expect(spawn).not.toHaveBeenCalled();
   });
+
+  // @covers FR-01.17
+  it("returns the profile's dev_server.host in the preview url", async () => {
+    const spawn = vi.fn(() => fakeChild());
+    const entry = await mgr.spawn(
+      "p-host",
+      {
+        dev_server: {
+          command: "npm run dev",
+          port: 3911,
+          host: "127.0.0.1",
+          ready_timeout_seconds: 5,
+        },
+      },
+      opts(spawn),
+    );
+    expect(entry.url).toBe("http://127.0.0.1:3911");
+  });
 });

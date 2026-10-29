@@ -190,6 +190,27 @@ describe("isValidPort", () => {
 });
 
 describe("buildPreviewUrl", () => {
+  // @covers FR-01.17
+  it("uses the profile's 127.0.0.1 host (Host-header-checking companion)", () => {
+    expect(buildPreviewUrl(3911, "/", "127.0.0.1")).toBe("http://127.0.0.1:3911");
+    expect(buildPreviewUrl(3911, "/board?x=1", "127.0.0.1")).toBe(
+      "http://127.0.0.1:3911/board?x=1",
+    );
+  });
+
+  // @covers FR-01.17
+  it("falls back to localhost for a host outside the allowlist", () => {
+    expect(buildPreviewUrl(3911, "/", "evil.com")).toBe("http://localhost:3911");
+    expect(buildPreviewUrl(3911, "/", "")).toBe("http://localhost:3911");
+  });
+
+  // @covers FR-01.17
+  it("still rejects authority smuggling under a 127.0.0.1 host", () => {
+    expect(buildPreviewUrl(3911, "http://localhost:3911/", "127.0.0.1")).toBe(
+      "http://127.0.0.1:3911",
+    );
+  });
+
   it("renders host-only for a root path (no trailing slash)", () => {
     expect(buildPreviewUrl(5173, "/")).toBe("http://localhost:5173");
   });

@@ -45,7 +45,7 @@ export interface PreviewProfile {
     command?: string;
     port?: number;
     ready_path?: string;
-    ready_timeout_seconds?: number;
+    ready_timeout_seconds?: number; host?: string;
   };
 }
 
@@ -134,7 +134,7 @@ function hashProfile(p: PreviewProfile): string {
     cmd: p.dev_server?.command ?? "",
     port: p.dev_server?.port ?? 0,
     ready: p.dev_server?.ready_path ?? "/",
-    timeout: p.dev_server?.ready_timeout_seconds ?? 60,
+    timeout: p.dev_server?.ready_timeout_seconds ?? 60, host: p.dev_server?.host ?? "",
   });
   return createHash("sha1").update(payload).digest("hex").slice(0, 12);
 }
@@ -362,7 +362,7 @@ export class PreviewSessionManager {
     const entry: PreviewEntry = {
       projectId,
       pid: child.pid ?? -1,
-      url: buildPreviewUrl(port, readyPath),
+      url: buildPreviewUrl(port, readyPath, profile.dev_server?.host),
       sessionId: randomUUID(),
       startedAt: now(),
       profileHash,
