@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-29-inbox-guided-phase-questions",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:15:02.861280+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:17:08.839030+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/inbox/_phase-gate.ts",
+          "line": 44,
+          "finding": "Loop-state read from task.cwd; design gate uses project.path. A non-root cwd silently yields no entry.",
+          "suggestion": "Document/test that phase tasks launch with cwd == project root, or resolve project path.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/external/inbox/_phase-gate.ts",
+          "line": 46,
+          "finding": "No stale-gate guard against a terminal run-config phase-task status (deriveDesignGate has one).",
+          "suggestion": "Read run-config and skip terminal phase tasks.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/inbox/_phase-gate.ts",
+          "line": 38,
+          "finding": "Several live tasks sharing a phaseTaskId each get an entry; loopByCwd key not normalized on Windows.",
+          "suggestion": "One entry per (cwd, phaseTaskId); normalize cwd key; add test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/external/inbox/routes.ts",
+          "line": 73,
+          "finding": "appendPhaseGates runs before lead/codex appenders so its deferral cannot see their entries.",
+          "suggestion": "Call it last or document.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/external/inbox/_phase-gate.ts",
+          "line": 41,
+          "finding": "entries.some per task; precompute a Set.",
+          "suggestion": "Precompute taskIds set.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-29T07:16:02.680507+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:17:10.050124+00:00",
+      "disposition": "no migrations/async/cross-plugin/irreversible surface; conditional pass",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:17:09.781229+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:15:29.723365+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "inherit"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:17:09.142143+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-29T07:17:09.466622+00:00",
+      "disposition": "small iterate: external/plan reviews apply at medium+ only",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

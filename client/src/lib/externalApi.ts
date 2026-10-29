@@ -160,6 +160,7 @@ export type {
   InboxItemBase,
   AskToolInboxItem,
   TextQuestionInboxItem,
+  PhaseGateInboxItem,
   TerminalPromptInboxItem,
   CodexWatcherInboxItem,
   CodexApprovalInboxItem,

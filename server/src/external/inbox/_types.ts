@@ -41,6 +41,14 @@ export type AggregatedEntry =
       bestEffort: true;
     }
   | {
+      kind: "phase_gate";
+      taskId: string;
+      sessionUuid: string;
+      taskTitle: string;
+      promptText: string;
+      bestEffort: true;
+    }
+  | {
       kind: "lead_question";
       taskId: string;
       sessionUuid: string;

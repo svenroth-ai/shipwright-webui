@@ -72,6 +72,8 @@ export function inboxItemKey(item: InboxItem): string {
       return `tp-${item.taskId}`;
     case "text_question":
       return item.questionId;
+    case "phase_gate":
+      return `pg-${item.taskId}`;
     case "lead_question":
       return `lq-${item.taskId}`;
     case "codex_watcher":
@@ -150,6 +152,7 @@ export function InboxCard({
   switch (item.kind) {
     case "text_question":
     case "terminal_prompt":
+    case "phase_gate":
     case "codex_approval":
       return <WaitingReplyCard item={item} task={task} />;
     case "ask_tool":

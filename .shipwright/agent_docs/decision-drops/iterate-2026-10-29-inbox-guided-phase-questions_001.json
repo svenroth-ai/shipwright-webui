@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-29-inbox-guided-phase-questions",
+  "date": "2026-10-29",
+  "section": "Iterate — feature: inbox lists guided-phase questions",
+  "title": "Surface guided-phase human-gate waits in the Inbox via run_loop_state",
+  "context": "In guided mode a phase asks its question as a terminal menu; the live-terminal detector is best-effort, so someone watching only the Inbox could miss that a run waits.",
+  "decision": "Add a read-only phase_gate Inbox kind driven by the durable paused_human_gate loop-state: the task whose phaseTaskId equals currentPhaseTaskId and is not terminal in the run-config gets an Awaiting-your-reply row; a specific question kind for the same task wins.",
+  "consequences": "A paused phase is never invisible in the Inbox. The row carries a generic message, not the question text (terminal_prompt supplies that when detection works). Relies on task.cwd being the project root.",
+  "rationale": "The loop-state is written by the orchestrator at every human gate, independent of terminal rendering, so it cannot miss a wait the way screen scraping can.",
+  "rejected": "Widening the terminal picker detector alone (still best-effort); a new cross-package contract carrying the question text (out of scope here).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

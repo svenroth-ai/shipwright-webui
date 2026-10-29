@@ -1,0 +1,10 @@
+{"items":[
+{"name":"spec-compliance","verdict":"pass","note":"phase_gate inbox kind surfaces a paused_human_gate guided phase; terminal-answered card"},
+{"name":"tests","verdict":"pass","note":"server _phase-gate.test.ts (6) + client InboxCard.phaseGate.test.tsx (2); full suites green"},
+{"name":"error-handling","verdict":"pass","note":"missing/torn loop-state => no entry (readLoopState returns null)"},
+{"name":"read-only-rule","verdict":"pass","note":"observer only; no write to run_loop_state/run_config/JSONL (rule 12)"},
+{"name":"no-duplication","verdict":"pass","note":"specific question kinds win; one loop-state read per cwd"},
+{"name":"file-size","verdict":"pass","note":"all files <300 LOC"},
+{"name":"types-exhaustive","verdict":"pass","note":"InboxItem union + exhaustive switch + exhaustiveness test updated"},
+{"name":"affected-boundaries","verdict":"pass","note":"reads .shipwright/run_loop_state.json (io boundary, existing reader)"}
+]}
