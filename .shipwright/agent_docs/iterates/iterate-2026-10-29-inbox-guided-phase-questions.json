@@ -1,0 +1,80 @@
+{
+  "run_id": "iterate-2026-10-29-inbox-guided-phase-questions",
+  "date": "2026-10-29T07:23:22.028455Z",
+  "event_at": "2026-10-28T17:21:58.346527+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/inbox-guided-phase-questions",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-29-inbox-guided-phase-questions",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "phase_gate row appears when loop is paused_human_gate for the task's phaseTaskId",
+        "disposition": "tested",
+        "evidence": "server/src/external/inbox/_phase-gate.test.ts surfaces the task... PASSED"
+      },
+      {
+        "behavior": "no row once loop resumed / different phase task / missing or torn loop-state",
+        "disposition": "tested",
+        "evidence": "_phase-gate.test.ts 3 cases PASSED"
+      },
+      {
+        "behavior": "specific question kinds win over phase_gate",
+        "disposition": "tested",
+        "evidence": "_phase-gate.test.ts defers... PASSED"
+      },
+      {
+        "behavior": "terminal-status phase task (stale gate) is skipped; unreadable run-config still surfaces",
+        "disposition": "tested",
+        "evidence": "_phase-gate.test.ts 2 cases PASSED"
+      },
+      {
+        "behavior": "one row per shared phase task",
+        "disposition": "tested",
+        "evidence": "_phase-gate.test.ts emits one entry... PASSED"
+      },
+      {
+        "behavior": "client renders phase_gate as Awaiting-your-reply card with honesty line, key pg-<taskId>",
+        "disposition": "tested",
+        "evidence": "client InboxCard.phaseGate.test.tsx 2 PASSED"
+      },
+      {
+        "behavior": "real browser: card appears for paused loop and clears on resume",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/inbox-phase-gate.spec.ts chromium 1 passed"
+      },
+      {
+        "behavior": "InboxItem union exhaustiveness",
+        "disposition": "tested",
+        "evidence": "InboxCard.exhaustive.type.test.ts PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 1,
+      "covered_acs": 1
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --grep inbox-phase-gate",
+    "exit_code": 0,
+    "tests_run": 1,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\inbox-guided-phase-questions\\.shipwright\\runs\\iterate-2026-10-29-inbox-guided-phase-questions\\surface_verification.log",
+    "timestamp": "2026-10-29T07:19:35.009Z"
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

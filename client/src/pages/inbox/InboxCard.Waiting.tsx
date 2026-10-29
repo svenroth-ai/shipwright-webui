@@ -31,6 +31,7 @@ import { formatRelativeTime } from "../../lib/formatTime";
 import type {
   CodexApprovalInboxItem,
   ExternalTask,
+  PhaseGateInboxItem,
   TerminalPromptInboxItem,
   TextQuestionInboxItem,
 } from "../../lib/externalApi";
@@ -46,7 +47,11 @@ export function WaitingReplyCard({
   item,
   task,
 }: {
-  item: TextQuestionInboxItem | TerminalPromptInboxItem | CodexApprovalInboxItem;
+  item:
+    | TextQuestionInboxItem
+    | TerminalPromptInboxItem
+    | PhaseGateInboxItem
+    | CodexApprovalInboxItem;
   task: ExternalTask | undefined;
 }) {
   const navigate = useNavigate();
@@ -55,7 +60,9 @@ export function WaitingReplyCard({
       ? item.questionId
       : item.kind === "codex_approval"
         ? `ca-${item.taskId}`
-        : `tp-${item.taskId}`;
+        : item.kind === "phase_gate"
+          ? `pg-${item.taskId}`
+          : `tp-${item.taskId}`;
   const bodyText =
     item.kind === "text_question" ? item.questionText : item.promptText;
   const isMarkdown = item.kind === "text_question";

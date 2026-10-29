@@ -1,0 +1,7 @@
+{"section":"iterate-2026-10-29-inbox-guided-phase-questions","review":[
+{"severity":"medium","category":"correctness","file":"server/src/external/inbox/_phase-gate.ts","line":44,"finding":"Loop-state read from task.cwd; design gate uses project.path. A non-root cwd silently yields no entry.","suggestion":"Document/test that phase tasks launch with cwd == project root, or resolve project path."},
+{"severity":"medium","category":"correctness","file":"server/src/external/inbox/_phase-gate.ts","line":46,"finding":"No stale-gate guard against a terminal run-config phase-task status (deriveDesignGate has one).","suggestion":"Read run-config and skip terminal phase tasks."},
+{"severity":"low","category":"correctness","file":"server/src/external/inbox/_phase-gate.ts","line":38,"finding":"Several live tasks sharing a phaseTaskId each get an entry; loopByCwd key not normalized on Windows.","suggestion":"One entry per (cwd, phaseTaskId); normalize cwd key; add test."},
+{"severity":"low","category":"architecture","file":"server/src/external/inbox/routes.ts","line":73,"finding":"appendPhaseGates runs before lead/codex appenders so its deferral cannot see their entries.","suggestion":"Call it last or document."},
+{"severity":"low","category":"readability","file":"server/src/external/inbox/_phase-gate.ts","line":41,"finding":"entries.some per task; precompute a Set.","suggestion":"Precompute taskIds set."}
+]}

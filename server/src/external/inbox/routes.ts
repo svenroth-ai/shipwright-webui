@@ -41,6 +41,7 @@ import {
   extractLeadQuestionBody,
   LEAD_QUESTION_DISMISS_PREFIX,
 } from "./_lead.js";
+import { appendPhaseGates } from "./_phase-gate.js";
 import { appendCodexWatcherNotices, appendCodexTerminalSignals } from "./_codex.js";
 import type { CodexTaskWatcher } from "../../core/codex-task-watcher.js";
 
@@ -72,6 +73,7 @@ export function createInboxRouter(deps: InboxRouterDeps): Hono {
     appendLeadQuestions(entries, { store });
     if (codexWatcher) appendCodexWatcherNotices(entries, { store, codexWatcher });
     appendCodexTerminalSignals(entries, { store, ptyManager });
+    await appendPhaseGates(entries, { store });
     if (storeDirty) await store.persist();
     return c.json({ items: entries });
   });

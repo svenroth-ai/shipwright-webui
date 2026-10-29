@@ -67,6 +67,17 @@ export interface TerminalPromptInboxItem extends InboxItemCommon {
   promptText: string;
 }
 
+/**
+ * iterate-2026-10-29-inbox-guided-phase-questions — a guided-mode phase is
+ * paused at a human gate (`run_loop_state.json` → `paused_human_gate`) and
+ * waits for an answer in the task's terminal. Durable fallback for when the
+ * live picker text is not detectable; read-only, auto-clears on resume.
+ */
+export interface PhaseGateInboxItem extends InboxItemCommon {
+  kind: "phase_gate";
+  promptText: string;
+}
+
 /** Codex Light AC6 — mirrors the server's `codex_watcher` AggregatedEntry
  *  kind (`server/src/external/inbox/_codex.ts`). */
 export interface CodexWatcherInboxItem extends InboxItemCommon {
@@ -97,6 +108,7 @@ export type InboxItem =
   | AskToolInboxItem
   | TextQuestionInboxItem
   | TerminalPromptInboxItem
+  | PhaseGateInboxItem
   | LeadQuestionInboxItem
   | CodexWatcherInboxItem
   | CodexApprovalInboxItem

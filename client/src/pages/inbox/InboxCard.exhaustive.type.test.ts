@@ -35,12 +35,14 @@ describe("InboxItem exhaustiveness guard stays load-bearing", () => {
     expectTypeOf(typeOnlyRejectsFakeFifthKind).returns.toBeVoid();
   });
 
-  it("today's seven real kinds are exactly what InboxItem is (no silent eighth)", () => {
+  // @covers FR-01.04
+  it("today's eight real kinds are exactly what InboxItem is (no silent ninth)", () => {
     type RealKinds = InboxItem["kind"];
     expectTypeOf<RealKinds>().toEqualTypeOf<
       | "ask_tool"
       | "text_question"
       | "terminal_prompt"
+      | "phase_gate"
       | "lead_question"
       | "codex_watcher"
       | "codex_approval"
