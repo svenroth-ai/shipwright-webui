@@ -182,6 +182,8 @@ export interface SaveOpts {
   bytes: Uint8Array;
   /** Configurable retention; default 20 per task.cwd. */
   keepLast: number;
+  /** Standalone project: store under `<centralDir>/pastes`, never in cwd. */
+  centralDir?: string;
 }
 
 export interface SaveResult {
@@ -196,7 +198,8 @@ export interface SaveResult {
 }
 
 export async function savePastedImage(opts: SaveOpts): Promise<SaveResult> {
-  const { cwd, bytes, keepLast } = opts;
+  const { cwd, bytes, keepLast, centralDir } = opts;
+  const root = centralDir ?? cwd;
   if (bytes.byteLength > MAX_IMAGE_BYTES) {
     throw new ImagePasteError("image_too_large", `image exceeds ${MAX_IMAGE_BYTES} bytes`);
   }
@@ -208,15 +211,13 @@ export async function savePastedImage(opts: SaveOpts): Promise<SaveResult> {
     );
   }
 
-  // Resolve the .claude-pastes dir under cwd via the path-guard, then
-  // mkdir, then re-realpath-guard to defeat any symlink that may have
-  // appeared between the string check and the actual write.
-  const dirGuard = pathGuard(cwd, PASTES_DIR);
+  // Path-guard the pastes dir, mkdir, then re-realpath-guard (symlink swap).
+  const dirGuard = pathGuard(root, centralDir ? "pastes" : PASTES_DIR);
   if (!dirGuard.ok) {
     throw new ImagePasteError("path_guard_traversal", `pastes dir guard failed: ${dirGuard.reason}`);
   }
   await fs.mkdir(dirGuard.absolute, { recursive: true });
-  const realDirGuard = realPathGuard(cwd, dirGuard.absolute);
+  const realDirGuard = realPathGuard(root, dirGuard.absolute);
   if (!realDirGuard.ok) {
     throw new ImagePasteError(
       "path_guard_symlink_escape",
@@ -240,7 +241,7 @@ export async function savePastedImage(opts: SaveOpts): Promise<SaveResult> {
     /* realpath of a freshly-written file should rarely fail; fall back. */
   }
   // Final containment check after write.
-  const finalGuard = realPathGuard(cwd, realAbsolute);
+  const finalGuard = realPathGuard(root, realAbsolute);
   if (!finalGuard.ok) {
     // Best-effort: try to delete what we just wrote so we don't leak
     // bytes into a symlinked location.
@@ -255,15 +256,14 @@ export async function savePastedImage(opts: SaveOpts): Promise<SaveResult> {
     );
   }
 
-  // Iterate v0.8.2 AC-4: prune + gitignore-check run in parallel — they
-  // touch disjoint paths and were a measurable serialised tail on Windows.
-  // Iterate v0.8.2 AC-6: gitignore detection accepts EITHER the legacy
-  // `.claude-pastes/` line OR the new `.shipwright-webui/` line so users
-  // who already gitignored the legacy dir don't get a stale suggestion.
+  // Prune + gitignore-check run in parallel (disjoint paths). Detection
+  // accepts the legacy `.claude-pastes/` OR the `.shipwright-webui/` line.
+  // Standalone never suggests touching the repo's .gitignore.
   const [prune, gitignoreSuggestion] = await Promise.all([
     pruneKeepLastN(realDirGuard.absolute, keepLast),
     (async () => {
       try {
+        if (centralDir) return false;
         const giPath = path.join(cwd, ".gitignore");
         const giContents = await fs.readFile(giPath, "utf8");
         const hasShipwrightLine = /\.shipwright-webui\/?(\s|$)/.test(giContents);

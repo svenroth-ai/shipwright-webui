@@ -73,6 +73,9 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
         path: p.path,
         profile: p.profile,
         synthesized: p.synthesized,
+        // Without this every actions route would resolve the in-repo dir for a
+        // standalone project (iterate-2026-10-29-standalone-mode, doubt D1).
+        standalone: p.standalone,
         settings: p.settings ? { color: p.settings.color } : undefined,
       };
     },

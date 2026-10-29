@@ -1,0 +1,129 @@
+{
+  "last_updated": "2026-10-29T22:27:52.141137+00:00",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-29-standalone-mode",
+    "date": "2026-10-29",
+    "unit": {
+      "status": "passed",
+      "passed": 9272,
+      "total": 9285,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A standalone project registered via the wizard leaves the repo byte-identical (no .shipwright-webui, .code-workspace, .gitignore edit)",
+          "disposition": "tested",
+          "evidence": "server/src/test/standalone-mode.test.ts 'POST /api/projects writes no .shipwright-webui' + e2e 107-standalone-project.spec.ts PASSED"
+        },
+        {
+          "behavior": "actions stub/reset for a standalone project use the central data dir and the loader reads it back",
+          "disposition": "tested",
+          "evidence": "standalone-mode.test.ts 'actions stub/reset use the central dir' PASSED"
+        },
+        {
+          "behavior": "production wiring forwards the standalone flag to the external routes (doubt D1)",
+          "disposition": "tested",
+          "evidence": "standalone-mode.extra.test.ts 'getProjectById handed to the external routes carries standalone' PASSED; falsified by removing the line (red) and in e2e (red)"
+        },
+        {
+          "behavior": "pasted images for a standalone task (by project id or cwd inside the repo) land centrally, no gitignore suggestion, append-gitignore refused",
+          "disposition": "tested",
+          "evidence": "standalone-mode.test.ts + standalone-mode.extra.test.ts standaloneRootForTask PASSED"
+        },
+        {
+          "behavior": "repo-writing routes and the campaign readiness git-fetch GET are refused with 403 for standalone projects; regular projects pass",
+          "disposition": "tested",
+          "evidence": "standalone-mode.test.ts 'standaloneGuard' it.each PASSED + e2e PUT /file 403"
+        },
+        {
+          "behavior": "updateAutonomy skips the run_config write for standalone; PATCH rejects non-boolean standalone",
+          "disposition": "tested",
+          "evidence": "standalone-mode.extra.test.ts PASSED"
+        },
+        {
+          "behavior": "a regular project is unchanged (.shipwright-webui + .code-workspace + in-repo pastes)",
+          "disposition": "tested",
+          "evidence": "standalone-mode.test.ts regression cases PASSED"
+        },
+        {
+          "behavior": "SHIPWRIGHT_DATA_DIR relocates the data dir, is made absolute, and a hostile project id cannot leave projects/",
+          "disposition": "tested",
+          "evidence": "standalone-mode.extra.test.ts 'data dir resolution' PASSED"
+        },
+        {
+          "behavior": "actions cache does not go stale when the flag flips",
+          "disposition": "tested",
+          "evidence": "standalone-mode.extra.test.ts 'flipping the flag switches which actions.json is read' PASSED"
+        },
+        {
+          "behavior": "no direct .shipwright-webui path join outside the resolver (multi-line safe)",
+          "disposition": "tested",
+          "evidence": "project-data-dir-invariant.test.ts PASSED"
+        },
+        {
+          "behavior": "standaloneGuard is mounted before the protected route families in index.ts",
+          "disposition": "tested",
+          "evidence": "standalone-mode.extra.test.ts 'index.ts wiring' PASSED"
+        },
+        {
+          "behavior": "default launch carries no --plugin-dir and a missing plugin marketplace resolves to null (runs without plugins)",
+          "disposition": "tested",
+          "evidence": "standalone-mode.test.ts 'runs without Shipwright plugins' PASSED"
+        },
+        {
+          "behavior": "wizard checkbox sends standalone:true only when ticked",
+          "disposition": "tested",
+          "evidence": "ProjectWizard.standalone.test.tsx PASSED"
+        },
+        {
+          "behavior": "real-browser: wizard registration, central actions.json, 403 on repo write, repo listing unchanged",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/107-standalone-project.spec.ts PASSED (isolated stack)"
+        }
+      ],
+      "counts": {
+        "testable": 14,
+        "tested": 14,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

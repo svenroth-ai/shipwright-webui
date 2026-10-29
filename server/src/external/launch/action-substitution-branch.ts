@@ -21,7 +21,7 @@ import {
   InvalidPlaceholderError,
   type SubstitutionContext,
 } from "../../core/actions-substitute.js";
-import { loadActionsForProject } from "../../core/project-actions-loader.js";
+import { loadActionsForProjectRecord } from "../../core/project-actions-loader.js";
 import { resolveParameters } from "../../core/parameter-resolver.js";
 import {
   type ExternalTask,
@@ -62,7 +62,7 @@ export function applyActionSubstitutionBranch(args: {
   const project = getProjectById?.(task.projectId);
   if (!project) return null; // fall back to legacy
 
-  const loaded = loadActionsForProject(project.path || "");
+  const loaded = loadActionsForProjectRecord(project);
   const action = loaded.actions.actions.find((a) => a.id === parsed.actionId);
   if (!action || !action.command_template) {
     return {

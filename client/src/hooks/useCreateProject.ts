@@ -7,6 +7,8 @@ interface CreateProjectParams {
   name: string;
   path: string;
   profile: string;
+  /** Write nothing into the repo; webui files live in the central data dir. */
+  standalone?: boolean;
   settings?: Record<string, unknown>;
 }
 

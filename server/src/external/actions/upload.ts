@@ -32,7 +32,7 @@ import { join } from "node:path";
 
 import { realPathGuard } from "../../core/path-guard.js";
 import {
-  clearActionsCacheForProject,
+  clearActionsCacheForDataDir,
   type ResolvedActions,
 } from "../../core/project-actions-loader.js";
 import {
@@ -43,6 +43,7 @@ import {
   checkContractVersion,
   ACTIONS_SCHEMA_VERSION,
 } from "../../core/contract-version.js";
+import { projectDataDir, projectDataGuardRoot } from "../../core/project-data-dir.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import { ACTIONS_UPLOAD_MAX_BYTES, dryRunTemplate } from "./_helpers.js";
 
@@ -166,12 +167,12 @@ export function registerActionsUpload(
       }
     }
 
-    const dir = join(project.path, ".shipwright-webui");
+    const dir = projectDataDir(project);
     const file = join(dir, "actions.json");
     const tmp = join(dir, `actions.json.tmp-${process.pid}-${Date.now()}`);
     try {
       mkdirSync(dir, { recursive: true });
-      const guard = realPathGuard(project.path, dir);
+      const guard = realPathGuard(projectDataGuardRoot(project), dir);
       if (!guard.ok) {
         return c.json(
           { error: "path_unsafe", reason: guard.reason, path: dir },
@@ -197,7 +198,7 @@ export function registerActionsUpload(
       );
     }
 
-    clearActionsCacheForProject(project.path);
+    clearActionsCacheForDataDir(projectDataDir(project));
     return c.json({ path: file, written: true });
   });
 }

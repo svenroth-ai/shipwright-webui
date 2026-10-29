@@ -57,6 +57,8 @@ export interface ExternalRouteProjectView {
   path: string;
   profile?: string;
   synthesized?: boolean;
+  /** Stored flag — see core/project-data-dir.ts. */
+  standalone?: boolean;
   settings?: { color?: string };
 }
 

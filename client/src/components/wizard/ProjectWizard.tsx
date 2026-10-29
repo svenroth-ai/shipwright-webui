@@ -50,6 +50,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [path, setPath] = useState('');
+  const [standalone, setStandalone] = useState(false);
   const [profile, setProfile] = useState(settings?.defaultProfile ?? 'custom');
   // Iterate 3.7e-b3 — project color. `null` === "Auto" (hash-derived).
   const [color, setColor] = useState<string | null>(null);
@@ -88,6 +89,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
         // iff the user picked a preset. "Auto" (color === null) sends
         // nothing so the server keeps `settings` minimal.
         ...(color ? { settings: { color } } : {}),
+        ...(standalone ? { standalone: true } : {}),
       },
       {
         onSuccess: async (created) => {
@@ -168,6 +170,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
     setStep(0);
     setName('');
     setPath('');
+    setStandalone(false);
     setProfile('custom');
     setColor(null);
     setWorkflowChoice('shipwright');
@@ -222,12 +225,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
           {/* Body — flex-1 so footer sticks, min-height keeps step switches stable. */}
           <div className="px-7 py-6 flex-1 overflow-y-auto min-h-[200px]">
             {step === 0 && (
-              <ProjectInfoStep
-                name={name}
-                path={path}
-                onNameChange={setName}
-                onPathChange={setPath}
-              />
+              <ProjectInfoStep name={name} path={path} standalone={standalone} onNameChange={setName} onPathChange={setPath} onStandaloneChange={setStandalone} />
             )}
             {step === 1 && (
               <StackProfileStep profile={profile} onProfileChange={setProfile} />

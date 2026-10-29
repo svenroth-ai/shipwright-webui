@@ -9,7 +9,7 @@
 
 import type { Hono } from "hono";
 
-import { loadActionsForProject } from "../../core/project-actions-loader.js";
+import { loadActionsForProjectRecord } from "../../core/project-actions-loader.js";
 import {
   validateActionsSchema,
   type SchemaError,
@@ -36,7 +36,7 @@ export function registerActionsGet(
       return c.json({ error: "project_not_found", projectId }, 404);
     }
 
-    const loaded = loadActionsForProject(project.path || "");
+    const loaded = loadActionsForProjectRecord(project);
     const actions = loaded.actions;
 
     // Structural validation (5 O24 cases).

@@ -9,7 +9,7 @@
 import type { Hono } from "hono";
 
 import { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
-import { loadActionsForProject } from "../../core/project-actions-loader.js";
+import { loadActionsForProjectRecord } from "../../core/project-actions-loader.js";
 import { normalizeFsPath } from "../../core/normalize-fs-path.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
@@ -103,7 +103,7 @@ export function registerTasksCreate(
           400,
         );
       }
-      const loaded = loadActionsForProject(project.path || "");
+      const loaded = loadActionsForProjectRecord(project);
       const match = loaded.actions.phases.find((p) => p.id === rawPhase);
       if (!match) {
         return c.json(

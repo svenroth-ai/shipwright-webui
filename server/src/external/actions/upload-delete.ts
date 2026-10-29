@@ -11,7 +11,8 @@ import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import { realPathGuard } from "../../core/path-guard.js";
-import { clearActionsCacheForProject } from "../../core/project-actions-loader.js";
+import { clearActionsCacheForDataDir } from "../../core/project-actions-loader.js";
+import { projectDataDir, projectDataGuardRoot } from "../../core/project-data-dir.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 
 export function registerActionsUploadDelete(
@@ -34,12 +35,12 @@ export function registerActionsUploadDelete(
         400,
       );
     }
-    const file = join(project.path, ".shipwright-webui", "actions.json");
+    const file = join(projectDataDir(project), "actions.json");
     if (!existsSync(file)) {
-      clearActionsCacheForProject(project.path);
+      clearActionsCacheForDataDir(projectDataDir(project));
       return c.json({ path: file, removed: false });
     }
-    const guard = realPathGuard(project.path, file);
+    const guard = realPathGuard(projectDataGuardRoot(project), file);
     if (!guard.ok) {
       return c.json(
         { error: "path_unsafe", reason: guard.reason, path: file },
@@ -58,7 +59,7 @@ export function registerActionsUploadDelete(
         500,
       );
     }
-    clearActionsCacheForProject(project.path);
+    clearActionsCacheForDataDir(projectDataDir(project));
     return c.json({ path: file, removed: true });
   });
 }

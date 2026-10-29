@@ -122,6 +122,12 @@ function clampNonNegativeInt(raw: string | undefined, fallback: number): number 
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
+/** `SHIPWRIGHT_DATA_DIR` (made absolute) or `~/.shipwright-webui`. */
+function dataRoot(): string {
+  const o = process.env.SHIPWRIGHT_DATA_DIR;
+  return o ? path.resolve(o) : path.join(os.homedir(), ".shipwright-webui");
+}
+
 export function getConfig(): ServerConfig {
   return {
     port: parseInt(process.env.PORT ?? "3847", 10),
@@ -129,7 +135,7 @@ export function getConfig(): ServerConfig {
       process.env.SHIPWRIGHT_MAX_CONCURRENT ?? "3",
       10
     ),
-    registryDir: path.join(os.homedir(), ".shipwright-webui"),
+    registryDir: dataRoot(),
     heartbeatIntervalMs: 30_000,
     // SHIPWRIGHT_STATIC_DIR — test-only seam so spa-fallback.test.ts can
     // point at a fixture instead of requiring a real `client/dist` build.
@@ -157,7 +163,7 @@ export function getConfig(): ServerConfig {
         : undefined,
     terminalScrollbackDir:
       process.env.SHIPWRIGHT_TERMINAL_SCROLLBACK_DIR ??
-      path.join(os.homedir(), ".shipwright-webui", "terminal-scrollback"),
+      path.join(dataRoot(), "terminal-scrollback"),
     terminalScrollbackMaxBytes: clampNonNegativeInt(
       process.env.SHIPWRIGHT_TERMINAL_SCROLLBACK_MAX_BYTES,
       1_048_576,
