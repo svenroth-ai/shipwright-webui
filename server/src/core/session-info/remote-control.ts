@@ -7,10 +7,11 @@
  * must not read as "on". Read-only (CLAUDE.md DO-NOT #1).
  */
 
-import { lstat, readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
+import { readSmallRegularFile } from "./small-file.js";
 import type { SessionRemoteControl } from "./types.js";
 
 export const CLAUDE_SESSIONS_DIR = path.join(homedir(), ".claude", "sessions");
@@ -48,10 +49,9 @@ export async function detectRemoteControl(
   for (const f of files) {
     let rec: Record<string, unknown>;
     try {
-      const fp = path.join(dir, f);
-      const st = await lstat(fp);
-      if (!st.isFile() || st.size > 64 * 1024) continue;
-      const parsed: unknown = JSON.parse(await readFile(fp, "utf8"));
+      const text = await readSmallRegularFile(path.join(dir, f), 64 * 1024);
+      if (text === null) continue;
+      const parsed: unknown = JSON.parse(text);
       // Valid JSON is not necessarily an object (`null`, an array, a number):
       // these files belong to another program, so one odd file must be
       // skipped, never allowed to throw out of the whole session-info read.
