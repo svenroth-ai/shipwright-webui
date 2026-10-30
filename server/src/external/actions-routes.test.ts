@@ -310,7 +310,7 @@ describe("actions/preview/stub routes", () => {
     mgr.killAll();
   });
 
-  it("POST /projects/:id/preview returns 400 preview_profile_invalid when profile missing", async () => {
+  it("POST /projects/:id/preview returns 400 preview_profile_invalid when profile missing", async () => { // @covers FR-01.03
     const fakeApp = new Hono();
     fakeApp.route(
       "/",

@@ -179,6 +179,7 @@ describe("ProjectManager", () => {
     expect(runCfg.other_field).toBe("preserved");
   });
 
+  // @covers FR-01.03
   it("updateAutonomy does NOT create shipwright_run_config.json when missing (central-data-default)", async () => {
     const store: Record<string, string> = { "/tmp/projects.json": "[]" };
     const deps: ProjectManagerDeps = {

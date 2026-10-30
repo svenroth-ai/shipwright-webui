@@ -209,6 +209,7 @@ describe("Project Routes (Plan D'' simplified)", () => {
   // .code-workspace file inside .shipwright-webui/ so the user can open
   // the project in VS Code with one double-click.
   describe("VS Code workspace generation on POST", () => {
+    // @covers FR-01.03
     it("POST creates <slug>.code-workspace with relative '..' folder + editor terminal default", async () => {
       const { app, fsDeps } = setup();
       // Project dir + .shipwright-webui exist; workspace file does NOT.
@@ -238,6 +239,7 @@ describe("Project Routes (Plan D'' simplified)", () => {
       expect(renameCall).toBeDefined();
     });
 
+    // @covers FR-01.03
     it("POST does not overwrite an existing .code-workspace", async () => {
       const { app, fsDeps } = setup();
       // Pre-existing workspace file — must be left alone.
@@ -256,6 +258,7 @@ describe("Project Routes (Plan D'' simplified)", () => {
       expect(renameCalls.some(([, dst]) => String(dst) === wsPath)).toBe(false);
     });
 
+    // @covers FR-01.03
     it.each([
       ["Shipwright WebUI", "shipwright-webui"],
       ["foo  bar", "foo-bar"],
