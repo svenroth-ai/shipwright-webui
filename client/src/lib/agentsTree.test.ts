@@ -47,6 +47,7 @@ describe("buildAgentSections", () => {
 });
 
 describe("agent labels and card lookup", () => {
+  // @covers FR-01.66
   it("tones and labels", () => {
     expect(agentTone(ag({ agentId: "a", status: "killed" }))).toBe("bad");
     expect(agentTone(ag({ agentId: "a", state: "running", status: null }))).toBe("run");
@@ -54,6 +55,7 @@ describe("agent labels and card lookup", () => {
     expect(agentStatusLabel(ag({ agentId: "a", state: "finished-stale", status: null }))).toBe("no result");
   });
 
+  // @covers FR-01.66
   it("finds a card's agent by agent id or by dispatch tool_use id", () => {
     const list = [ag({ agentId: "a1", toolUseId: "toolu_1" })];
     expect(findAgentForCard(list, "a1")?.agentId).toBe("a1");
