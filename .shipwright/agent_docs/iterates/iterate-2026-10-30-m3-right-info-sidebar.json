@@ -1,0 +1,98 @@
+{
+  "run_id": "iterate-2026-10-30-m3-right-info-sidebar",
+  "date": "2026-10-30T16:08:12.630724Z",
+  "event_at": "2026-10-30T16:07:59.388307+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-mission-desktop-style--M3",
+  "spec": ".shipwright/planning/iterate/campaigns/mission-desktop-style/sub-iterates/M3-right-info-sidebar.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-30-m3-right-info-sidebar",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Info shows Environment, Context (tokens+model, no percentage) and Outputs with Show more",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx renders/outputs tests + M3-mission-info-sidebar.spec.ts first test (passed)",
+        "category": "integration"
+      },
+      {
+        "behavior": "Outputs open in the Viewer, relativized against the project root; outside/traversal paths inert",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx + sessionInfoFormat.test.ts traversal and root tests (passed)"
+      },
+      {
+        "behavior": "Folders reuses FolderTree and selecting a file opens the Viewer",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx Folders test (passed)"
+      },
+      {
+        "behavior": "No poll timer; manual Refresh adds exactly one request; hidden panel requests no scan",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx no-timer + hidden tests; E2E idle 3.5 s makes zero requests (passed)"
+      },
+      {
+        "behavior": "Remote Control pill On/Off/Unknown; Unknown on no data, error, no session",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx missing/error/recover tests (passed)"
+      },
+      {
+        "behavior": "Loading, error and no-session states explicit; model shown without tokens",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx state tests (passed)"
+      },
+      {
+        "behavior": "Width/collapse/segment persist; keyboard resize; layout restored after the sidebar yields",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx + E2E reload and artifact open/close (passed)"
+      },
+      {
+        "behavior": "Compact Info tab shows the sidebar without splitter or collapse; no horizontal overflow",
+        "disposition": "tested",
+        "evidence": "MissionBody.compact.test.tsx Info tab + E2E phone test (passed)"
+      },
+      {
+        "behavior": "No clip at 1024/1280/1440/1920; middle card >= 360px; dark text on glass",
+        "disposition": "tested",
+        "evidence": "M3-mission-info-sidebar.spec.ts + A13-mission-shell.spec.ts (passed)"
+      },
+      {
+        "behavior": "Client mirror of session-info types equals server types, both directions",
+        "disposition": "tested",
+        "evidence": "server/src/test/session-info-types-sync.test.ts (20 passed)"
+      },
+      {
+        "behavior": "Unassigned tasks offer Info only",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx unassigned test (passed)"
+      }
+    ],
+    "counts": {
+      "testable": 11,
+      "tested": 11,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 11,
+      "covered_acs": 11
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium --project=mobile-chromium client/e2e/flows/M3-mission-info-sidebar.spec.ts client/e2e/flows/A13-mission-shell.spec.ts",
+    "exit_code": 0,
+    "tests_run": 10,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style--M3\\.shipwright\\runs\\iterate-2026-10-30-m3-right-info-sidebar\\surface_verification.log",
+    "timestamp": "2026-10-30T16:04:36.268Z",
+    "attempts": 1
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

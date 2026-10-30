@@ -1,0 +1,1 @@
+feat(mission): right sidebar in the Mission tab with Info (environment, context tokens and model, outputs), Folders and Viewer segments; resizable, remembered, refreshed on demand with no background polling

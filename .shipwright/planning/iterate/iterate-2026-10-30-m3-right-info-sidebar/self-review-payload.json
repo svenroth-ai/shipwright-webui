@@ -1,0 +1,9 @@
+{"items":[
+{"name":"spec_compliance","verdict":"pass","note":"Right sidebar Info/Folders/Viewer with Environment, Context (tokens+model, no percentage), Outputs (Show more), FolderTree/SmartViewer reuse, compact Info tab; operator decision applied: no poll timer, manual Refresh."},
+{"name":"error_handling","verdict":"pass","note":"Explicit loading, error (non-blocking, Refresh recovers), no-session (missing) states; Remote Control pill falls back to Unknown; localStorage reads defensive."},
+{"name":"security_basics","verdict":"pass","note":"Read-only; paths rendered as React text; outputs relativized against the PROJECT root, traversal/dot segments rejected client side, files open only via the existing path-guarded file route; unassigned tasks get Info only."},
+{"name":"test_quality","verdict":"pass","note":"Unit: format/traversal, sidebar states, no-timer, unassigned, hidden-panel no-scan, layout restore; server type drift guard; E2E real browser incl. layout at 1024/1280/1440/1920, colour legibility, phone tab."},
+{"name":"performance_basics","verdict":"pass","note":"No timer; 30 s staleTime for mount/focus; hidden compact panel and collapsed sidebar issue no request; Home/End/keyboard resize cheap."},
+{"name":"naming_structure","verdict":"pass","note":"New files under components/external/mission, hooks, lib, styles/mission-sidebar.css; MissionBody.tsx stays under 300 lines; mc-side added to on-photo reset lists."},
+{"name":"affected_boundaries","verdict":"pass","note":"Serialized boundary = session-info wire shape; verbatim client mirror + server drift guard session-info-types-sync.test.ts both directions; E2E fulfils the real shape."},
+{"name":"test_hygiene_probe","verdict":"pass","note":"scan_test_hygiene.py --diff: no findings."}]}

@@ -1,0 +1,1 @@
+{"stage": "spec-compliance", "verdict": "PASS", "spec_citations": [], "summary": "Round 2 re-review: both round-1 divergences (Remote Control pill and error state after a failed refetch with cached data) are fixed and the fix introduces no new divergence. AC4, AC5, AC5b verified against MissionInfoPanel.tsx, useSessionInfo.ts and the new unit test."}

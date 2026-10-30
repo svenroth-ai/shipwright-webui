@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-30-m3-right-info-sidebar",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T15:57:28.916509+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "AC2's \"outputs outside the project folder render inert\" is the only path-safety story. Clicking an output that is under `task.cwd` opens it in the Viewer — nothing states how the path is validated. If the session-info payload includes any client-influenced path (or the server list is later widened), the Viewer becomes a file-read primitive outside the task's sandbox (classic `../` / symlink escape).",
+          "suggestion": "Validate server-side (only files under cwd ever appear in the payload) and do a client-side normalized-prefix check before opening in Viewer. Add a unit test with a traversal-style path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Remote Control pill debounced to \"2 consecutive agreeing polls\" at 20 s polling means a real state change can take ~60 s to reflect, with no visual staleness indicator. If the operator acts on the pill (even though it's \"informational\"), that's a meaningful staleness window.",
+          "suggestion": "Either show a \"checking…\" state when polls disagree, or trigger an immediate refetch on disagreement (fast follow-up poll to confirm within ~2 s instead of waiting the full 20 s interval).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "\"Below 1700px an open artifact card hides the sidebar\" is a hard interaction cliff: a user who widened/pinned the sidebar, persisted that layout, and opens an artifact at 1600px gets the sidebar silently vanish — and the collapse/width state may interact confusingly with the persisted \"collapsed\" flag (is programmatic hiding conflated with user collapse?).",
+          "suggestion": "Treat viewport-yielding as a distinct transient state from the persisted `collapsed` flag; write a test for hide→close-artifact→show restoring the user's prior width/segment, not the default.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Hand-mirrored types + a drift guard test works, but it's the manual version of what codegen/typed endpoint gives for free if the project already has such infra. Fine as a pragmatic choice only if the repo genuinely lacks codegen; otherwise this is duplicated machinery.",
+          "suggestion": "If no codegen exists, keep the mirror — but have the guard test import from a single shared source of truth (e.g., the server route's types file) rather than a second hand-written copy, so drift is impossible by construction.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "No stated handling for session-info failure/loading states (request error, 404 before session exists, long-pending first poll). The ACs cover polling cadence but not what Info shows when the endpoint errors or the session hasn't started.",
+          "suggestion": "Add explicit AC/empty states: skeleton on first load, \"no session yet\" for pre-start tasks, non-blocking error state that doesn't flash the Remote Control pill.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Viewer segment receives arbitrary session outputs — file types the Smart Viewer may not render (binaries, unknown extensions). Not addressed.",
+          "suggestion": "Define fallback behavior (default-to-download or \"can't preview\" message) and cover it in the M3 E2E spec.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Scope says \"Consume /session-info from M2\" but nothing verifies M2 is merged/available; also AC9's testid guidance is stated two ways in the plan (`mission-/env-` in scope, `mission-side/env-` in AC9) — pick one, since E2E selectors will be written against it.",
+          "suggestion": "Confirm M2 endpoint is on the branch target; normalize the testid convention before writing tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security |",
+          "file": null,
+          "line": null,
+          "finding": "“Under the project folder” is not a sufficient file-access rule unless enforced by the server. String-prefix checks can accept sibling paths, traversal, or symlinks pointing outside the project. Outputs and FolderTree selections both reach the Viewer.",
+          "suggestion": "Reuse the existing authorized file-opening endpoint and its canonical path containment checks. Treat client-side inert rendering as presentation only; verify task access and project containment server-side.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "Requiring two agreeing polls adds roughly 20–40 seconds of delay to Remote Control status and can leave a stale On/Off pill visible after failures. The plan does not define initial status, error behavior, or reset on task changes.",
+          "suggestion": "Display the first successful status immediately and use the normal query refresh unless M2 documents transient readings. If stabilization is necessary, reset it per task and explicitly represent unavailable or stale status.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "Hiding the sidebar below 1700px when an artifact card opens can also hide the active Viewer or remove access to Info and Folders. A fixed breakpoint does not guarantee the middle card’s minimum width when persisted panel widths vary.",
+          "suggestion": "Define an accessible fallback when the sidebar yields, preserve its active file and segment, and derive layout constraints from available panel space. Test artifact opening and closing, resizing, and restored maximum widths at 1440px and compact boundaries.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "The plan assumes FolderTree and SmartViewer can be mounted in this new location without specifying their task context, selection ownership, or coexistence with the existing artifact viewer. Competing viewer state could cause file clicks to update the wrong panel or disappear during responsive changes.",
+          "suggestion": "Identify the existing viewer controller and FolderTree integration contract before implementation. Route both output and folder selections through that controller, with explicit ownership and state preservation across layout changes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The acceptance criteria cover successful responses but omit loading, request failure, task switching, missing token/model values, and outputs that have been deleted. Cached data could briefly show another task’s environment or files if query identity is incomplete.",
+          "suggestion": "Key queries by task and any relevant connection identity; define loading, empty, unavailable, and file-open failure states. Add focused coverage for switching tasks during an outstanding request and unavailable session information.  The approach broadly fits the requested change and sensibly reuses existing components. Resolve file-access enforcement, viewer ownership, and responsive fallback behavior before implementation; the status stabilization also needs a clearer justification and lifecycle. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-30T15:57:29.034203+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: edge-case — Severity: medium**\n  **Finding:** AC2's \"outputs outside the project folder render inert\" is the only path-safety story. Clicking an output that *is* under `task.cwd` opens it in the Viewer — nothing states how the path is validated. If the session-info payload includes any client-influenced path (or the server list is later widened), the Viewer becomes a file-read primitive outside the task's sandbox (classic `../` / symlink escape).\n  **Suggestion:** Validate server-side (only files under cwd ever appear in the payload) *and* do a client-side normalized-prefix check before opening in Viewer. Add a unit test with a traversal-style path.\n\n- **Category: edge-case — Severity: medium**\n  **Finding:** Remote Control pill debounced to \"2 consecutive agreeing polls\" at 20 s polling means a real state change can take ~60 s to reflect, with no visual staleness indicator. If the operator acts on the pill (even though it's \"informational\"), that's a meaningful staleness window.\n  **Suggestion:** Either show a \"checking…\" state when polls disagree, or trigger an immediate refetch on disagreement (fast follow-up poll to confirm within ~2 s instead of waiting the full 20 s interval).\n\n- **Category: risk — Severity: medium**\n  **Finding:** \"Below 1700px an open artifact card hides the sidebar\" is a hard interaction cliff: a user who widened/pinned the sidebar, persisted that layout, and opens an artifact at 1600px gets the sidebar silently vanish — and the collapse/width state may interact confusingly with the persisted \"collapsed\" flag (is programmatic hiding conflated with user collapse?).\n  **Suggestion:** Treat viewport-yielding as a distinct transient state from the persisted `collapsed` flag; write a test for hide→close-artifact→show restoring the user's prior width/segment, not the default.\n\n- **Category: approach — Severity: low**\n  **Finding:** Hand-mirrored types + a drift guard test works, but it's the manual version  […truncated]\n\n[openai] 1. **Category: security | Severity: high**  \n   **Finding:** “Under the project folder” is not a sufficient file-access rule unless enforced by the server. String-prefix checks can accept sibling paths, traversal, or symlinks pointing outside the project. Outputs and FolderTree selections both reach the Viewer.  \n   **Suggestion:** Reuse the existing authorized file-opening endpoint and its canonical path containment checks. Treat client-side inert rendering as presentation only; verify task access and project containment server-side.\n\n2. **Category: approach | Severity: medium**  \n   **Finding:** Requiring two agreeing polls adds roughly 20–40 seconds of delay to Remote Control status and can leave a stale On/Off pill visible after failures. The plan does not define initial status, error behavior, or reset on task changes.  \n   **Suggestion:** Display the first successful status immediately and use the normal query refresh unless M2 documents transient readings. If stabilization is necessary, reset it per task and explicitly represent unavailable or stale status.\n\n3. **Category: risk | Severity: medium**  \n   **Finding:** Hiding the sidebar below 1700px when an artifact card opens can also hide the active Viewer or remove access to Info and Folders. A fixed breakpoint does not guarantee the middle card’s minimum width when persisted panel widths vary.  \n   **Suggestion:** Define an accessible fallback when the sidebar yields, preserve its active file and segment, and derive layout constraints from available panel space. Test artifact opening and closing, resizing, and restored maximum widths at 1440px and compact boundaries.\n\n4. **Category: dependency | Severity: medium**  \n   **Finding:** The plan assumes FolderTree and SmartViewer can be mounted in this new location without specifying their task context, selection ownership, or coexistence with the existing artifact viewer. Competing viewer state could cause file clicks to update the wrong panel or d […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": 67,
+          "finding": "Splitter drag persisted the width to localStorage on every pointermove.",
+          "suggestion": "Persist once on release. FIXED in cdf71ba (live width in state, commit on pointerup).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "client/src/hooks/useSessionInfo.ts",
+          "line": 48,
+          "finding": "State-change refetch could cancel and restart an in-flight 48 MB scan.",
+          "suggestion": "refetch with cancelRefetch false. FIXED in cdf71ba.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/e2e/flows/M3-mission-info-sidebar.spec.ts",
+          "line": 170,
+          "finding": "No-clip checks only compared the document width.",
+          "suggestion": "Also assert .mc-body overflow, sidebar inside body, middle card >= 360 at 1440. FIXED in cdf71ba.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": 41,
+          "finding": "Remembered Viewer segment opens an empty Viewer after reload.",
+          "suggestion": "Accepted as-is: SmartViewer renders an explicit empty state.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": 133,
+          "finding": "Folders/Viewer mount while the compact Info tab is hidden.",
+          "suggestion": "FIXED in cdf71ba (render only when visible).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/sessionInfoFormat.ts",
+          "line": 31,
+          "finding": "relativeToCwd is called with the project root.",
+          "suggestion": "Rename deferred; caller comment documents it.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/sessionInfoFormat.ts",
+          "line": 42,
+          "finding": "Empty path segments not rejected.",
+          "suggestion": "FIXED in cdf71ba.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "mini-plan.md",
+          "line": 31,
+          "finding": "Plan still named the removed debounce test.",
+          "suggestion": "FIXED.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionInfoPanel.tsx",
+          "line": 68,
+          "finding": "Refresh button reuses .env-more.",
+          "suggestion": "Accepted, styling coupling only.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T16:07:51.445966+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "fbab7d027bccc8e68a0bb956133b7ada05176b40"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T16:07:51.586536+00:00",
+      "disposition": "Stage 3 not triggered: client-only UI change, no migration, concurrency primitive, cross-plugin import or irreversible operation",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/lib/sessionInfoFormat.ts:7-16 (`formatTokens`)",
+          "line": null,
+          "finding": "999_999` formats as `\"1000k\"` instead of `\"1M\"` (the `k >= 100` branch rounds to 1000 before the millions branch is ever reached). Any token count in [999_950, 999_999] displays a nonsensical \"1000k\".",
+          "suggestion": "After computing the rounded kilovalue, if it is ≥ 1000 fall through to the millions branch (or format from the original number).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/components/external/mission/MissionInfoPanel.tsx:44-46",
+          "line": null,
+          "finding": "useProject(unassigned ? \"\" : task.projectId)` — when the task is unassigned the hook is called with an empty string. If `useProject` does not internally guard falsy ids (not visible in the diff), this fires a request to `/projects/` (or `/projects/%20`-style URL) on every unassigned mount. Even if guarded, the intent is unclear and fragile.",
+          "suggestion": "Confirm `useProject(\"\")` is a no-op; if not, skip the call (e.g. return `data: undefined` for empty id) or make the id optional and null-safe.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/hooks/useSessionInfo.ts:40-49",
+          "line": null,
+          "finding": "The task-state-change refetch effect swallows transitions that happen while the panel is inactive (`taskId` null): `lastState.current` is updated on every render, so if the state changes while hidden, the change is consumed with no fetch; on re-activation the data can be up to `staleTime` (30 s) old with no compensating refetch trigger beyond mount-staleness.",
+          "suggestion": "Only advance `lastState.current` when a refetch actually fires (or reset `lastState` when `taskId` goes from null to a value).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": 124,
+          "finding": "active={visible && !(!compact && layout.collapsed)}` — the second clause is dead code: when `!compact && layout.collapsed` the component already returned the rail button at line ~52, so `MissionInfoPanel` can never render in that state. Harmless but misleading; the real intent (desktop CSS-yield when an artifact is open below 1700px) is NOT covered — the panel keeps its query active and keeps refetching on window focus while visually `display:none` behind `:has(.artifact)`.",
+          "suggestion": "Drop the dead clause; if the artifact-open yield should also pause scanning, that requires signal from MissionBody (e.g. a prop) rather than the unreachable expression.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx:31-33, 63-68",
+          "line": null,
+          "finding": "Unassigned-task segment handling: `const seg = unassigned ? \"info\" : layout.segment;` — if the persisted/global state is `viewer`/`folders` and the user switches to an unassigned task, the segmented control renders with value `info` while `layout.segment` stays `viewer`. Any code that reads `layout.segment` (or a future `onChange`) is now inconsistent with what's displayed; also `mission-side-body-${seg}` testid uses the forced value, so state and DOM can diverge. Additionally `open()` calls `layout.setSegment(\"viewer\")` unconditionally — for an unassigned task, clicking an output (they're inert, so currently unreachable) or any future path would persist a segment that cannot render.",
+          "suggestion": "Normalize once: on mount / when `unassigned` becomes true, `setSegment(\"info\")`, and derive everything from `layout.segment`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.test.tsx:118-120 (\"no session yet\")",
+          "line": null,
+          "finding": "The mock is set with `mockImplementation` in `beforeEach`'s `fetchMock` already assigned, then re-assigned inside the test after `mount()`? No — it's re-assigned before `mount()`, fine. However the \"Refresh recovers\" test (line ~127) uses `mockImplementationOnce` for the failure but react-query `retry: false` is per-QueryClient default here — that is set. Real gap: no test covers a malformed/200-with-garbage response or `info.context.tokens === null` with status ok (\"No usage recorded yet\" branch of `env-context-empty` is never exercised), and `env-outputs-empty` is untested.",
+          "suggestion": "Add a case with `status:\"ok\"` and `tokens: null` / empty `outputs` to pin the \"No usage/files recorded yet\" copy, which a broken implementation would otherwise render as \"Loading…\" forever or crash on.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/components/external/mission/MissionCompactTabs.tsx:33-40, 69-73",
+          "line": null,
+          "finding": "The roving-tabindex handler and `internalRefs` indexing are not shown updated for the new 4th tab; the diff only patches the ref callback (`if (refs[tab.id])`) and the TABS list. If `handleKeyDown` uses `enabled.indexOf` vs `internalRefs` indexed over the full TABS array (the ref callback writes `internalRefs.current[index]` where `index` is the full-list index), ArrowLeft/Right navigation can land on a null slot for a disabled Detail tab — the previous 3-column layout coincidentally aligned; nothing in the diff proves the 4-tab mapping is correct. The e2e/unit tests never exercise keyboard navigation between tabs.",
+          "suggestion": "Verify/adjust the index arithmetic in `handleKeyDown` for the 4-tab case and add a keyboard-nav test.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/sessionInfoFormat.ts:24-27",
+          "line": null,
+          "finding": "Comment says case-insensitive prefix match applies \"only for drive-letter (Windows) paths\", but the implementation compares the entire prefix case-insensitively for any `cwd` starting with a drive letter — meaning `C:\\Dev\\App\\...` vs project `c:/dev/app` matches, but `D:\\Foo` vs `d:/foo` also matches, and the drive-detection is keyed on the cwd, so a UNC path (`\\\\server\\share`) cwd with a drive-letter output (or vice versa) is silently rejected or compared case-sensitively against expectations. Behavior is safe (rejects), just diverges from the documented contract.",
+          "suggestion": "Either tighten to compare only the drive prefix case-insensitively, or fix the comment; add a UNC test case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/M3-mission-info-sidebar.spec.ts:96-99",
+          "line": null,
+          "finding": "The \"no timer\" assertion waits 3.5 s of idle and expects zero new requests, but the hook has `refetchOnWindowFocus: true` — in CI a focus event (e.g. between steps) would add a hit and flake the test; conversely the assertion doesn't distinguish \"no timer\" from \"no focus refetch\". Also `refetchOnWindowFocus` itself is untested behavior that could regress to a polling loop without any test noticing at longer intervals.",
+          "suggestion": "Assert against `SESSION_INFO_STALE_MS` window semantics explicitly or disable focus refetch in the test page to make the \"no timer\" claim deterministic.  Spec compliance overall is good: segments, resizable/remembered sidebar, FolderTree reuse, compact Info tab entry, mission-/env- testids, no textarea, no percentage, session-info consumption, motion-token note (static CSS). No security issues found — path relativization defensively rejects traversal and the Viewer stays project-scoped.  Overall: solid implementation with correct structure and genuinely behavior-pinning tests; the findings are localized fixes (segment-state divergence on unassigned tasks, formatTokens 1000k, possibly useProject(\"\") firing) worth addressing before ship.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionInfoPanel.tsx",
+          "line": 114,
+          "finding": "The model row is nested inside the `tokens !== null` branch. A session that reports a model but has no token usage yet displays “No usage recorded yet” and hides the known model, partially implementing the required tokens + model context display.",
+          "suggestion": "Render the model independently of token availability. Add a test with `tokens: null` and a populated `model`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/sessionInfoFormat.ts",
+          "line": 23,
+          "finding": "norm(\"/\")` becomes an empty string, so `relativeToCwd(\"/output.md\", \"/\")` returns `null`. For a project rooted at `/`, every session output becomes inert instead of opening in the Smart Viewer.",
+          "suggestion": "Preserve filesystem roots during normalization and handle their separator when computing the relative path. Add a root-directory test.  Overall assessment: ship-with-fixes. The diff covers the main sidebar requirements, but these concrete display and path-handling cases need correction; repository inspection and test execution were unavailable because command execution was blocked.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-30T16:00:15.500555+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: bug\n  Severity: low\n  File: client/src/lib/sessionInfoFormat.ts:7-16 (`formatTokens`)\n  Finding: `999_999` formats as `\"1000k\"` instead of `\"1M\"` (the `k >= 100` branch rounds to 1000 before the millions branch is ever reached). Any token count in [999_950, 999_999] displays a nonsensical \"1000k\".\n  Suggestion: After computing the rounded kilovalue, if it is ≥ 1000 fall through to the millions branch (or format from the original number).\n\n- Category: edge-case\n  Severity: medium\n  File: client/src/components/external/mission/MissionInfoPanel.tsx:44-46\n  Finding: `useProject(unassigned ? \"\" : task.projectId)` — when the task is unassigned the hook is called with an empty string. If `useProject` does not internally guard falsy ids (not visible in the diff), this fires a request to `/projects/` (or `/projects/%20`-style URL) on every unassigned mount. Even if guarded, the intent is unclear and fragile.\n  Suggestion: Confirm `useProject(\"\")` is a no-op; if not, skip the call (e.g. return `data: undefined` for empty id) or make the id optional and null-safe.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/hooks/useSessionInfo.ts:40-49\n  Finding: The task-state-change refetch effect swallows transitions that happen while the panel is inactive (`taskId` null): `lastState.current` is updated on every render, so if the state changes while hidden, the change is consumed with no fetch; on re-activation the data can be up to `staleTime` (30 s) old with no compensating refetch trigger beyond mount-staleness.\n  Suggestion: Only advance `lastState.current` when a refetch actually fires (or reset `lastState` when `taskId` goes from null to a value).\n\n- Category: bug\n  Severity: low\n  File: client/src/components/external/mission/MissionInfoSidebar.tsx:124\n  Finding: `active={visible && !(!compact && layout.collapsed)}` — the second clause is dead code: when `!compact && layout.collapsed` the component already returned the rail button at  […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionInfoPanel.tsx:114\n- Finding: The model row is nested inside the `tokens !== null` branch. A session that reports a model but has no token usage yet displays “No usage recorded yet” and hides the known model, partially implementing the required tokens + model context display.\n- Suggestion: Render the model independently of token availability. Add a test with `tokens: null` and a populated `model`.\n\n- Category: edge-case\n- Severity: low\n- File: client/src/lib/sessionInfoFormat.ts:23\n- Finding: `norm(\"/\")` becomes an empty string, so `relativeToCwd(\"/output.md\", \"/\")` returns `null`. For a project rooted at `/`, every session output becomes inert instead of opening in the Smart Viewer.\n- Suggestion: Preserve filesystem roots during normalization and handle their separator when computing the relative path. Add a root-directory test.\n\nOverall assessment: ship-with-fixes. The diff covers the main sidebar requirements, but these concrete display and path-handling cases need correction; repository inspection and test execution were unavailable because command execution was blocked.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T16:01:20.107112+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "fbab7d027bccc8e68a0bb956133b7ada05176b40"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T15:57:29.174596+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T15:57:29.310479+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

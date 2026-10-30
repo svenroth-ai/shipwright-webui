@@ -64,3 +64,4 @@ _Regenerate:_ `uv run {shared_root}/scripts/tools/rebuild_adr_index.py --project
 - [Codextender integration mode for Codex-runtime tasks](iterate-2026-09-23-codextender-webui-integration-codextender-integration.md)
 - [Remove the Codex "Implementation model" override field](iterate-2026-09-26-codex-model-field-removal.md)
 - [ADR — E2E fixture-task cleanup (35-no-chat-panel.spec.ts + title-bar-full-bleed.spec.ts)](iterate-2026-09-28-e2e-no-chat-fixture-cleanup-e2e-fixture-cleanup.md)
+- [Mission right info sidebar (client-only, no poll timer)](iterate-2026-10-30-m3-right-info-sidebar-mission-right-sidebar.md)
