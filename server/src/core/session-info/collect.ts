@@ -38,7 +38,8 @@ export interface Facts {
   toolResults: Map<string, ToolResult>;
   /** output tool_use id -> output key, so an errored write can be retracted. */
   outputUses: Map<string, string>;
-  outputTouches: Map<string, number>;
+  /** Per output key, every write attempt, so a rejected one can be retracted exactly. */
+  outputAttempts: Map<string, { id: string | null; ts: string | null; tool: SessionOutputFile["tool"] }[]>;
   usage: { tokens: number; model: string | null; at: string | null } | null;
   /** Index (line ordinal) of the usage line, to order it against compactions. */
   usageSeq: number;
@@ -58,7 +59,7 @@ export function newFacts(): Facts {
   return {
     toolResults: new Map(),
     outputUses: new Map(),
-    outputTouches: new Map(),
+    outputAttempts: new Map(),
     usage: null,
     usageSeq: -1,
     compactions: [],
@@ -135,6 +136,20 @@ export function quickTimestamp(line: string): string | null {
   return j === -1 || j - i > 60 ? null : line.slice(i + 13, j);
 }
 
+function retractAttempt(f: Facts, key: string, id: string): void {
+  const list = (f.outputAttempts.get(key) ?? []).filter((a) => a.id !== id);
+  f.outputAttempts.set(key, list);
+  const out = f.outputs.get(key);
+  if (!out) return;
+  if (!list.length) {
+    f.outputs.delete(key);
+    return;
+  }
+  out.firstAt = list[0]!.ts;
+  out.lastAt = list[list.length - 1]!.ts;
+  out.tool = list[list.length - 1]!.tool;
+}
+
 export function ingestLine(f: Facts, line: string, agentId: string | null): void {
   f.seq++;
   const hasNotif = line.includes("<task-notification>") && line.includes("<task-id>");
@@ -178,6 +193,8 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
     for (const b of msg!.content as Record<string, unknown>[]) {
       if (!b || b.type !== "tool_result" || !str(b.tool_use_id)) continue;
       const id = b.tool_use_id as string;
+      // A background launch is acknowledged by an immediate non-error result; it is NOT completion.
+      if (single && (tur.isAsync === true || tur.status === "async_launched")) continue;
       const isError = b.is_error === true;
       f.toolResults.set(id, {
         isError,
@@ -188,12 +205,7 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
         toolUses: single ? num(tur.totalToolUseCount) : null,
       });
       const key = f.outputUses.get(id);
-      if (isError && key) {
-        // A rejected / failed write produced nothing: retract this touch.
-        const left = (f.outputTouches.get(key) ?? 1) - 1;
-        f.outputTouches.set(key, left);
-        if (left <= 0) f.outputs.delete(key);
-      }
+      if (isError && key) retractAttempt(f, key, id);
     }
     return;
   }
@@ -235,8 +247,11 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
       if (!abs) continue;
       const key = outputKey(abs);
       const prev = f.outputs.get(key);
+      const tool = name as SessionOutputFile["tool"];
       if (str(b.id)) f.outputUses.set(b.id as string, key);
-      f.outputTouches.set(key, (f.outputTouches.get(key) ?? 0) + 1);
+      const list = f.outputAttempts.get(key) ?? [];
+      list.push({ id: str(b.id), ts, tool });
+      f.outputAttempts.set(key, list);
       if (prev) {
         prev.lastAt = ts ?? prev.lastAt;
         prev.tool = name as SessionOutputFile["tool"];

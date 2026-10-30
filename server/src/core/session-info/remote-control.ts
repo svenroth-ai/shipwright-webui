@@ -7,7 +7,7 @@
  * must not read as "on". Read-only (CLAUDE.md DO-NOT #1).
  */
 
-import { readdir, readFile, stat } from "node:fs/promises";
+import { lstat, readdir, readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -49,7 +49,8 @@ export async function detectRemoteControl(
     let rec: Record<string, unknown>;
     try {
       const fp = path.join(dir, f);
-      if ((await stat(fp)).size > 64 * 1024) continue;
+      const st = await lstat(fp);
+      if (!st.isFile() || st.size > 64 * 1024) continue;
       rec = JSON.parse(await readFile(fp, "utf8")) as Record<string, unknown>;
     } catch {
       continue; // being rewritten / not JSON

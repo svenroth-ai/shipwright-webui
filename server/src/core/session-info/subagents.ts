@@ -11,7 +11,7 @@
  * notification and a stale mtime is `finished-stale` (killed session, crash).
  */
 
-import { readFile, stat } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 
 import type { AgentToolUse, Facts, Notification, ToolResult } from "./collect.js";
 import type { SessionSubagent } from "./types.js";
@@ -30,7 +30,9 @@ const s = (v: unknown): string | null => (typeof v === "string" && v ? v : null)
 
 async function readMeta(p: string): Promise<Record<string, unknown>> {
   try {
-    if ((await stat(p)).size > 64 * 1024) return {}; // meta files are tiny; refuse anything else
+    // lstat: a symlinked meta file is never followed; meta files are tiny, refuse anything else.
+    const st = await lstat(p);
+    if (!st.isFile() || st.size > 64 * 1024) return {};
     const o: unknown = JSON.parse(await readFile(p, "utf8"));
     return o && typeof o === "object" ? (o as Record<string, unknown>) : {};
   } catch {

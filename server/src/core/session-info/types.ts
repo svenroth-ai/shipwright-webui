@@ -17,11 +17,10 @@ export interface SessionContextInfo {
   model: string | null;
   /** Timestamp of the message the numbers came from. */
   at: string | null;
-  /**
-   * A compaction happened AFTER that message, so `tokens` is stale. When set,
-   * `tokens` is the compactor's own `postTokens` estimate instead (null when it recorded none).
-   */
+  /** A compaction happened AFTER that message, so `tokens` is stale. */
   compactedSince: boolean;
+  /** The compactor's own post-compaction estimate; only set while `compactedSince`, null when it recorded none. */
+  tokensAfterCompaction: number | null;
 }
 
 export interface SessionCompactionInfo {

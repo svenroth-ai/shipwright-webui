@@ -32,7 +32,7 @@ describe("GET /api/external/tasks/:id/session-info", () => {
     const app = createSessionInfoRouter({
       store: store(SESSION),
       watcher: new SessionWatcher({ projectsDir: l.projectsDir }),
-      infoDeps: { sessionsDir: "Z:\none", noMemo: true },
+      infoDeps: { sessionsDir: "Z:\\none", noMemo: true },
     });
     const body = (await (await app.request("/api/external/tasks/t1/session-info")).json()) as { status: string; info: { context: { tokens: number } } };
     expect(body.status).toBe("ok");
@@ -46,7 +46,7 @@ describe("memo", () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 0, 0] })));
     const loc = { path: l.sessionPath, encodedCwd: "x", mtimeMs: 0, sizeBytes: 0 };
-    const d = { sessionsDir: "Z:\none" };
+    const d = { sessionsDir: "Z:\\none" };
     expect((await readSessionInfo(SESSION, loc, d)).context.tokens).toBe(1);
     expect((await readSessionInfo(SESSION, loc, d)).context.tokens).toBe(1);
     (await import("node:fs")).appendFileSync(l.sessionPath, jl(assistant(2, { usage: [9, 0, 0] })));

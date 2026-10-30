@@ -75,11 +75,11 @@ describe("compaction", () => {
     compactMetadata: { trigger: "auto", preTokens: 367541, postTokens: 19789 },
   });
 
-  it("compaction after the last usage => stale tokens replaced by postTokens estimate", async () => {
+  it("compaction after the last usage => usage kept (spec), flagged stale, postTokens exposed separately", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 300000, 5] }), boundary(2)));
     const info = await readSessionInfo(SESSION, loc(), deps);
-    expect(info.context).toMatchObject({ tokens: 19789, compactedSince: true });
+    expect(info.context).toMatchObject({ tokens: 300006, compactedSince: true, tokensAfterCompaction: 19789 });
     expect(info.compaction).toEqual({ count: 1, last: { at: ts(2), preTokens: 367541, postTokens: 19789 } });
   });
 
@@ -87,7 +87,7 @@ describe("compaction", () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 300000, 5] }), boundary(2), assistant(3, { usage: [1, 21000, 2] })));
     const info = await readSessionInfo(SESSION, loc(), deps);
-    expect(info.context).toMatchObject({ tokens: 21003, compactedSince: false });
+    expect(info.context).toMatchObject({ tokens: 21003, compactedSince: false, tokensAfterCompaction: null });
     expect(info.compaction.count).toBe(1);
   });
 });

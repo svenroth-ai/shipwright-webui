@@ -120,8 +120,8 @@ export async function readSessionInfo(
   );
   const facts = main.facts;
   const lastCompaction = facts.compactions.length ? facts.compactions[facts.compactions.length - 1]! : null;
-  // A compaction newer than the newest usage makes that usage stale. Use the
-  // compactor's own estimate; when it recorded none, say "unknown", not a stale number.
+  // A compaction newer than the newest usage makes that usage stale: still reported
+  // (the spec's definition), flagged, and paired with the compactor's own estimate.
   const compactedSince = !!lastCompaction && lastCompaction.seq > facts.usageSeq;
 
   const merged = new Map<string, SessionOutputFile>();
@@ -146,10 +146,11 @@ export async function readSessionInfo(
   return {
     sessionUuid,
     context: {
-      tokens: compactedSince ? (lastCompaction!.postTokens ?? null) : (facts.usage?.tokens ?? null),
+      tokens: facts.usage?.tokens ?? null,
       model: facts.usage?.model ?? facts.model,
       at: facts.usage?.at ?? null,
       compactedSince,
+      tokensAfterCompaction: compactedSince ? (lastCompaction!.postTokens ?? null) : null,
     },
     compaction: {
       count: facts.compactions.length,

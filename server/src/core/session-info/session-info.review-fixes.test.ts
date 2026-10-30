@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { appendFileSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { readSessionInfo, scanStats } from "./session-info.js";
@@ -59,15 +59,66 @@ describe("foreground subagents + failed writes", () => {
   });
 });
 
+describe("review round 1 fixes", () => {
+  it("a background launch ack (async_launched) is NOT completion: agent stays running", async () => {
+    l = makeLayout();
+    writeFileSync(
+      l.sessionPath,
+      jl(
+        assistant(1, { blocks: [toolUse("Agent", { description: "bg", prompt: "p" }, "toolu_B")] }),
+        toolResult(2, "toolu_B", { tur: { isAsync: true, status: "async_launched", agentId: "bbb1" } }),
+      ),
+    );
+    writeAgent(l, "bbb1", { toolUseId: "toolu_B", spawnDepth: 1 }, [assistant(3, { sidechain: true })]);
+    const s = (await readSessionInfo(SESSION, loc(), { ...deps, now: () => Date.now() })).subagents[0]!;
+    expect(s).toMatchObject({ state: "running", status: null, endedAt: null });
+  });
+
+  it("failed Edit after a successful Write keeps the Write's lastAt/tool; failed first attempt fixes firstAt", async () => {
+    l = makeLayout();
+    const p = ["C:", "proj", "repo", "x.ts"].join(String.fromCharCode(92));
+    writeFileSync(
+      l.sessionPath,
+      jl(
+        assistant(1, { blocks: [toolUse("Edit", { file_path: p }, "e1")] }),
+        toolResult(2, "e1", { is_error: true }),
+        assistant(3, { blocks: [toolUse("Write", { file_path: p }, "w1")] }),
+        assistant(4, { blocks: [toolUse("Edit", { file_path: p }, "e2")] }),
+        toolResult(5, "e2", { is_error: true }),
+      ),
+    );
+    const { outputs } = await readSessionInfo(SESSION, loc(), deps);
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0]).toMatchObject({ tool: "Write", firstAt: ts(3), lastAt: ts(3) });
+  });
+
+  it("a symlinked meta file is not followed (skipped when the OS forbids symlinks)", async () => {
+    l = makeLayout();
+    writeFileSync(l.sessionPath, jl(assistant(1)));
+    writeAgent(l, "sss1", { description: "real" }, [assistant(2, { sidechain: true })]);
+    const outside = path.join(l.projectsDir, "outside.json");
+    writeFileSync(outside, JSON.stringify({ description: "LEAKED" }));
+    const metaPath = path.join(l.subDir, "agent-sss1.meta.json");
+    rmSync(metaPath);
+    try {
+      symlinkSync(outside, metaPath);
+    } catch {
+      return; // no symlink privilege on this machine
+    }
+    const s = (await readSessionInfo(SESSION, loc(), deps)).subagents[0]!;
+    expect(s.description).not.toBe("LEAKED");
+  });
+});
+
 describe("compaction without postTokens", () => {
-  it("reports null, not the stale pre-compaction number", async () => {
+  it("flags stale and reports no estimate (null), never invents one", async () => {
     l = makeLayout();
     writeFileSync(
       l.sessionPath,
       jl(assistant(1, { usage: [1, 300000, 5] }), { type: "system", subtype: "compact_boundary", timestamp: ts(2), compactMetadata: { trigger: "auto" } }),
     );
     const info = await readSessionInfo(SESSION, loc(), deps);
-    expect(info.context).toMatchObject({ tokens: null, compactedSince: true });
+    expect(info.context).toMatchObject({ tokens: 300006, compactedSince: true, tokensAfterCompaction: null });
   });
 });
 
