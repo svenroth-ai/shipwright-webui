@@ -142,14 +142,14 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 7,
+      "findings_count": 4,
       "findings": [
         {
           "severity": "low",
           "category": "readability",
           "file": "client/src/lib/missionActivityFeedResolve.ts",
           "line": 85,
-          "finding": "Round 2 (head 03329eb8, verdict PASS): comment above user-input branch still says errored prompts stay pending; now only unparseable-payload errors do.",
+          "finding": "Round 3 (head 93049e37) verdict PASS, no new findings: delta (unused E2E helper removal) correct; M5 spec has no other unused symbol under noUnusedLocals/noUnusedParameters. Carried round-2 low: stale comment about errored prompts staying pending.",
           "suggestion": "Rewrite comment. Noted (LOW).",
           "source": "code-reviewer"
         },
@@ -158,7 +158,7 @@
           "category": "readability",
           "file": "client/src/lib/missionActivityFeedTypes.ts",
           "line": 21,
-          "finding": "items doc says absent while pending; it is set at tool_use time (behaviour correct).",
+          "finding": "Carried round-2 low: items doc says absent while pending.",
           "suggestion": "Reword doc. Noted (LOW).",
           "source": "code-reviewer"
         },
@@ -167,49 +167,22 @@
           "category": "correctness",
           "file": "client/src/lib/missionAskItems.ts",
           "line": 63,
-          "finding": "Round 1 (head c28d85ef): recordsNoAnswer dropped an answered card when the answers map held only non-string values (e.g. an array).",
-          "suggestion": "Return true only when every value is a blank string. FIXED in 03329eb8 with test; round 2 confirmed correct and complete.",
+          "finding": "Round 1: recordsNoAnswer dropped an answered card on non-string answer values.",
+          "suggestion": "FIXED in 03329eb8 with test; confirmed rounds 2 and 3.",
           "source": "code-reviewer"
         },
         {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": 94,
-          "finding": "Decline-with-feedback rejection drops the user's typed redirection text from the feed.",
-          "suggestion": "Accepted trade-off per spec (rejected questions not shown). Noted.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/external/session-parser.ts",
-          "line": 353,
-          "finding": "Long single-line conditional spread with repeated casts; null passes typeof guard (harmless, isRecord rejects).",
-          "suggestion": "Extract helper later; file pinned at 842 lines by bloat baseline. Noted.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "maintainability",
-          "file": "client/src/styles/mission-chat.css",
-          "line": 13,
-          "finding": "Overrides base .mc-feed-card by import order; dead declarations left in mission-operation.css.",
-          "suggestion": "Edit base rules in place. Noted.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
+          "severity": "medium",
           "category": "correctness",
           "file": "client/e2e/flows/M5-mission-desktop-chat.spec.ts",
-          "line": 147,
-          "finding": "Option-description contrast threshold 3 vs AA 4.5 for 12.5px text.",
-          "suggestion": "Raise to 4.5. Noted.",
+          "line": 17,
+          "finding": "CI E2E typecheck failed (TS6133 unused 'text').",
+          "suggestion": "FIXED in 93049e37; round 3 confirmed.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T18:43:48.995452+00:00",
+      "completed_at": "2026-10-30T19:06:11.102537+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -226,16 +199,7 @@
           "category": "boundary",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: recordsNoAnswer fails toward showing (head 03329eb8, verdict PASS) — An EMPTY answers map {} is vacuously 'all blank', so the card is dropped without consulting result.content. Theoretical CLI-shape exposure, not reproduced. ADDRESSED (rebutted): an empty map with the standard 'User has answered your questions.' content is the recorded no-decision shape mini-plan AC5 names, pinned by an explicit test; revisit only if a real line with answers:{} and meaningful content is observed.",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "concurrency",
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: live 1s polling never half-joins or double-applies answers — useMissionLive re-derives from scratch each poll; buildAskItems creates fresh objects; toolUseResult sits on the same JSONL line as its tool_result and chunks cut on newline. Not disproven.",
+          "finding": "Claim under doubt: removing the unused E2E helper weakened the proof (head 93049e37, verdict PASS) — TS6133 fires only on zero references, so no assertion used it; narratedRead entry still proves agent text bare-left (E2E L88, L112-121) via the unconditional .mc-feed-card rule. Not disproven.",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
@@ -244,13 +208,22 @@
           "category": "coupling",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: removing timeline nodes/kindAccent/FeedIcon and the .mc-feed-card override regresses no other Mission card — PR card, test pill, subrunner View agent / failure details, session-start divider all keep their own markup; tokens defined in both scopes; no motion; no chat-* or inputs; session-parser.ts 842 = baseline. Not disproven.",
+          "finding": "Claim under doubt: no other CI-gate risk in the M5 spec — All imports/constants/helpers referenced; non-null assertions valid under strict. Not disproven.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: empty answers map {} hides the card (carried from round 2) — ADDRESSED (rebutted): recorded no-decision shape per mini-plan AC5, pinned by an explicit test; revisit only if a real line with answers:{} and meaningful content is observed.",
           "suggestion": null,
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T18:43:49.124651+00:00",
+      "completed_at": "2026-10-30T19:06:11.226087+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -358,15 +331,15 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 5,
+      "findings_count": 9,
       "findings": [
         {
           "severity": null,
           "category": null,
           "file": null,
           "line": null,
-          "finding": "M5-desktop-style-chat.md:L5 AskUserQuestion cards from tool_use input + toolUseResult.answers; Other/multiSelect/rejected",
-          "suggestion": "M5-desktop-style-chat.md:L5 AskUserQuestion cards from tool_use input + toolUseResult.answers; Other/multiSelect/rejected",
+          "finding": "AC1 no avatar nodes; agent text left bare; human right bubble",
+          "suggestion": "AC1 no avatar nodes; agent text left bare; human right bubble",
           "source": "spec-reviewer"
         },
         {
@@ -374,8 +347,8 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "M5-desktop-style-chat.md:L5 unanswered questions vs accepted decision (pending keeps Answer in terminal)",
-          "suggestion": "M5-desktop-style-chat.md:L5 unanswered questions vs accepted decision (pending keeps Answer in terminal)",
+          "finding": "AC2 tool calls small grey lines",
+          "suggestion": "AC2 tool calls small grey lines",
           "source": "spec-reviewer"
         },
         {
@@ -383,8 +356,8 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "Round-2 delta 03329eb8 fail toward showing",
-          "suggestion": "Round-2 delta 03329eb8 fail toward showing",
+          "finding": "AC3 one card per answered question, chosen highlighted",
+          "suggestion": "AC3 one card per answered question, chosen highlighted",
           "source": "spec-reviewer"
         },
         {
@@ -392,8 +365,8 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "M5-desktop-style-chat.md:L5 read-only, no composer/textarea/chat-* (ADR-034, spec 35)",
-          "suggestion": "M5-desktop-style-chat.md:L5 read-only, no composer/textarea/chat-* (ADR-034, spec 35)",
+          "finding": "AC4 Other, multiSelect, notes",
+          "suggestion": "AC4 Other, multiSelect, notes",
           "source": "spec-reviewer"
         },
         {
@@ -401,13 +374,49 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "Mini-plan AC1-AC9",
-          "suggestion": "Mini-plan AC1-AC9",
+          "finding": "AC5 rejected dropped; pending keeps CTA (accepted decision)",
+          "suggestion": "AC5 rejected dropped; pending keeps CTA (accepted decision)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC6 Shipwright cards unchanged",
+          "suggestion": "AC6 Shipwright cards unchanged",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC7 read-only, no chat-*",
+          "suggestion": "AC7 read-only, no chat-*",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC8 AA contrast",
+          "suggestion": "AC8 AA contrast",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC9 real JSONL round trip",
+          "suggestion": "AC9 real JSONL round trip",
           "source": "spec-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T18:43:28.524817+00:00",
+      "completed_at": "2026-10-30T19:06:10.969016+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
