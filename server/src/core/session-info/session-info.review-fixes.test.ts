@@ -19,6 +19,7 @@ const toolResult = (n: number, id: string, extra: { is_error?: boolean; tur?: Re
 });
 
 describe("foreground subagents + failed writes", () => {
+  // @covers FR-01.66
   it("a foreground agent (tool_result, no task-notification) is finished with the toolUseResult numbers", async () => {
     l = makeLayout();
     writeFileSync(
@@ -33,6 +34,7 @@ describe("foreground subagents + failed writes", () => {
     expect(s).toMatchObject({ state: "finished", status: "completed", durationMs: 8000, tokens: 500, toolUses: 3 });
   });
 
+  // @covers FR-01.66
   it("an errored foreground agent is failed", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { blocks: [toolUse("Agent", {}, "toolu_E")] }), toolResult(3, "toolu_E", { is_error: true })));
@@ -40,6 +42,7 @@ describe("foreground subagents + failed writes", () => {
     expect((await readSessionInfo(SESSION, loc(), deps)).subagents[0]).toMatchObject({ state: "finished", status: "failed" });
   });
 
+  // @covers FR-01.66
   it("a rejected write is retracted from outputs; a successful one stays", async () => {
     l = makeLayout();
     writeFileSync(
@@ -60,6 +63,7 @@ describe("foreground subagents + failed writes", () => {
 });
 
 describe("review round 1 fixes", () => {
+  // @covers FR-01.66
   it("a background launch ack (async_launched) is NOT completion: agent stays running", async () => {
     l = makeLayout();
     writeFileSync(
@@ -74,6 +78,7 @@ describe("review round 1 fixes", () => {
     expect(s).toMatchObject({ state: "running", status: null, endedAt: null });
   });
 
+  // @covers FR-01.66
   it("failed Edit after a successful Write keeps the Write's lastAt/tool; failed first attempt fixes firstAt", async () => {
     l = makeLayout();
     const p = ["C:", "proj", "repo", "x.ts"].join(String.fromCharCode(92));
@@ -92,6 +97,7 @@ describe("review round 1 fixes", () => {
     expect(outputs[0]).toMatchObject({ tool: "Write", firstAt: ts(3), lastAt: ts(3) });
   });
 
+  // @covers FR-01.66
   it("a symlinked meta file is not followed (skipped when the OS forbids symlinks)", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1)));
@@ -111,6 +117,7 @@ describe("review round 1 fixes", () => {
 });
 
 describe("background agents", () => {
+  // @covers FR-01.66
   it("run_in_background: any tool_result (even with two acks in one line) never marks it finished", async () => {
     l = makeLayout();
     writeFileSync(
@@ -131,6 +138,7 @@ describe("background agents", () => {
 });
 
 describe("doubt-review fixes", () => {
+  // @covers FR-01.66
   it("a transient EBUSY mid-scan does not double-count (facts reset per attempt)", async () => {
     l = makeLayout();
     const b = JSON.stringify({ type: "system", subtype: "compact_boundary", timestamp: ts(1), compactMetadata: { postTokens: 5 } });
@@ -164,6 +172,7 @@ ${b}
     expect(facts).toEqual([b, b]);
   });
 
+  // @covers FR-01.66
   it("a resumed agent (writes after its notification) is running again", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { blocks: [toolUse("Agent", {}, "toolu_R")] }), { type: "queue-operation", operation: "enqueue", timestamp: ts(10), content: notification("rrr9", "toolu_R", "completed") }));
@@ -172,6 +181,7 @@ ${b}
     expect(s).toMatchObject({ state: "running", status: null, endedAt: null, durationMs: null });
   });
 
+  // @covers FR-01.66
   it("an unanswered tool call keeps a silent agent running past the normal stale threshold", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1)));
@@ -183,6 +193,7 @@ ${b}
 });
 
 describe("compaction without postTokens", () => {
+  // @covers FR-01.66
   it("flags stale and reports no estimate (null), never invents one", async () => {
     l = makeLayout();
     writeFileSync(
@@ -195,6 +206,7 @@ describe("compaction without postTokens", () => {
 });
 
 describe("timestamps", () => {
+  // @covers FR-01.66
   it("uses the record's own (last) timestamp, not one nested inside the message", async () => {
     l = makeLayout();
     const line = JSON.stringify({
@@ -211,6 +223,7 @@ describe("timestamps", () => {
 });
 
 describe("line scan edge cases", () => {
+  // @covers FR-01.66
   it("multi-chunk carry with multi-byte chars split across tiny chunks", async () => {
     l = makeLayout();
     const lines = ["aä€😀b", "ü".repeat(40), "tail"].map((t) => JSON.stringify({ t }));
@@ -220,6 +233,7 @@ describe("line scan edge cases", () => {
     expect(got).toEqual(lines);
   });
 
+  // @covers FR-01.66
   it("window starting exactly on a line boundary keeps that line; mid-line drops the partial one", async () => {
     l = makeLayout();
     const a = JSON.stringify({ a: 1 });
@@ -233,6 +247,7 @@ describe("line scan edge cases", () => {
     expect(got2).toEqual([b]);
   });
 
+  // @covers FR-01.66
   it("an over-long record is skipped without losing its neighbours", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, `{"a":1}\n${"x".repeat(5000)}\n{"c":3}\n`);
@@ -241,6 +256,7 @@ describe("line scan edge cases", () => {
     expect(got).toEqual(['{"a":1}', '{"c":3}']);
   });
 
+  // @covers FR-01.66
   it("a missing file fails fast (ENOENT is fatal, no retry budget)", async () => {
     const t = Date.now();
     await expect(scanLines("Z:\\nope\\x.jsonl", 10, () => {})).rejects.toMatchObject({ code: "ENOENT" });
@@ -249,6 +265,7 @@ describe("line scan edge cases", () => {
 });
 
 describe("per-file memo", () => {
+  // @covers FR-01.66
   it("one changed agent file triggers exactly one rescan; parallel polls share one scan", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 1, 1] })));
@@ -266,6 +283,7 @@ describe("per-file memo", () => {
 });
 
 describe("read-only guard", () => {
+  // @covers FR-01.66
   it("session-info sources import no write APIs", () => {
     const dir = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"));
     for (const f of readdirSync(dir).filter((x) => x.endsWith(".ts") && !x.includes("test"))) {

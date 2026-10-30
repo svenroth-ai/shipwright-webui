@@ -12,12 +12,14 @@ afterEach(() => l && rmSync(l.projectsDir, { recursive: true, force: true }));
 const store = (uuid: string | null) => ({ get: (id: string) => (id === "t1" && uuid ? { taskId: "t1", sessionUuid: uuid } : undefined) }) as never;
 
 describe("GET /api/external/tasks/:id/session-info", () => {
+  // @covers FR-01.66
   it("404 for an unknown task", async () => {
     l = makeLayout();
     const app = createSessionInfoRouter({ store: store(SESSION), watcher: new SessionWatcher({ projectsDir: l.projectsDir }) });
     expect((await app.request("/api/external/tasks/nope/session-info")).status).toBe(404);
   });
 
+  // @covers FR-01.66
   it("missing when no JSONL exists yet", async () => {
     l = makeLayout();
     const app = createSessionInfoRouter({ store: store(SESSION), watcher: new SessionWatcher({ projectsDir: l.projectsDir }) });
@@ -25,6 +27,7 @@ describe("GET /api/external/tasks/:id/session-info", () => {
     expect(await res.json()).toEqual({ status: "missing" });
   });
 
+  // @covers FR-01.66
   it("ok with the derived info; never modifies the transcript", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 2, 3] })));
@@ -42,6 +45,7 @@ describe("GET /api/external/tasks/:id/session-info", () => {
 });
 
 describe("memo", () => {
+  // @covers FR-01.66
   it("re-scans when the file grows, reuses when unchanged", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 0, 0] })));

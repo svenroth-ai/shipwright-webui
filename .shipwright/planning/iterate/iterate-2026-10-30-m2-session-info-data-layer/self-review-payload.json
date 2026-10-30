@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Endpoint derives context tokens, outputs, Remote Control and subagents (incl. depth-2) per the sub-iterate spec; no percentage or window size."},
+{"name":"Error Handling","verdict":"pass","note":"Torn lines, missing meta, unreadable agent files and ENOENT degrade to null/empty/missing, never a 500; failed scans are not memoised."},
+{"name":"Security Basics","verdict":"pass","note":"Read-only opens, lstat on meta/sessions files, strict agent-id filename regex, realpath containment of the subagents dir; outputs are display strings only."},
+{"name":"Test Quality","verdict":"pass","note":"35 tests with synthetic JSONL in real shapes plus a real-corpus probe; retry, chunk-split UTF-8, async ack, resumed agent and symlink cases covered."},
+{"name":"Performance Basics","verdict":"pass","note":"Bounded newest-window positional scan, per-file size/mtime memo with in-flight dedupe, LRU, 6-worker pool."},
+{"name":"Naming & Structure","verdict":"pass","note":"core/session-info split into scanner, collector, subagents, remote-control, orchestrator; every file under 300 lines."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Consumes Claude's JSONL/sessions/meta formats (producer is Claude CLI); round-trip proven by fixtures in real shapes and by a probe over a real 4 MB campaign session."}
+]}

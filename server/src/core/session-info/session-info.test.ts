@@ -15,6 +15,7 @@ const loc = () => ({ path: l.sessionPath, encodedCwd: "C--proj-repo", mtimeMs: 0
 const deps = { noMemo: true, sessionsDir: "Z:\\does-not-exist", now: () => Date.parse(ts(100)) };
 
 describe("plain iterate session", () => {
+  // @covers FR-01.66
   it("context = input+cache_read+cache_creation of the newest non-synthetic assistant message", async () => {
     l = makeLayout();
     writeFileSync(
@@ -33,6 +34,7 @@ describe("plain iterate session", () => {
     expect(info.remoteControl).toEqual({ active: false, onceEnabled: false, pid: null });
   });
 
+  // @covers FR-01.66
   it("outputs: Write/Edit/NotebookEdit, normalised against each entry's own cwd, newest first, deduped", async () => {
     l = makeLayout();
     writeFileSync(
@@ -54,6 +56,7 @@ describe("plain iterate session", () => {
     expect(outputs[0]).toMatchObject({ tool: "Edit", firstAt: ts(1), lastAt: ts(4) });
   });
 
+  // @covers FR-01.66
   it("posix cwd + relative path resolves posix", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { cwd: "/home/u/p", blocks: [toolUse("Write", { file_path: "../q/x.md" })] })));
@@ -61,6 +64,7 @@ describe("plain iterate session", () => {
     expect(outputs[0]!.path).toBe("/home/u/q/x.md");
   });
 
+  // @covers FR-01.66
   it("torn last line and unrelated records are tolerated", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 2, 3] }), { type: "mode", mode: "x" }) + '{"type":"assist');
@@ -75,6 +79,7 @@ describe("compaction", () => {
     compactMetadata: { trigger: "auto", preTokens: 367541, postTokens: 19789 },
   });
 
+  // @covers FR-01.66
   it("compaction after the last usage => usage kept (spec), flagged stale, postTokens exposed separately", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 300000, 5] }), boundary(2)));
@@ -83,6 +88,7 @@ describe("compaction", () => {
     expect(info.compaction).toEqual({ count: 1, last: { at: ts(2), preTokens: 367541, postTokens: 19789 } });
   });
 
+  // @covers FR-01.66
   it("a fresh assistant message after compaction wins again", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1, { usage: [1, 300000, 5] }), boundary(2), assistant(3, { usage: [1, 21000, 2] })));
@@ -93,6 +99,7 @@ describe("compaction", () => {
 });
 
 describe("remote control", () => {
+  // @covers FR-01.66
   it("bridge-session in JSONL alone => onceEnabled, not active", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl({ type: "bridge-session", sessionId: SESSION, bridgeSessionId: "cse_1" }, assistant(1)));
@@ -100,6 +107,7 @@ describe("remote control", () => {
     expect(info.remoteControl).toEqual({ active: false, onceEnabled: true, pid: null });
   });
 
+  // @covers FR-01.66
   it("live pid in ~/.claude/sessions with bridgeSessionId => active; dead pid => not", async () => {
     l = makeLayout();
     writeFileSync(l.sessionPath, jl(assistant(1)));
@@ -143,6 +151,7 @@ describe("campaign session with depth-2 subagents", () => {
     ]);
   }
 
+  // @covers FR-01.66
   it("joins meta + notification + prompt; depth-2 finished via the depth-1 file's notification", async () => {
     build();
     const info = await readSessionInfo(SESSION, loc(), { ...deps, now: () => Date.now() });
@@ -158,6 +167,7 @@ describe("campaign session with depth-2 subagents", () => {
     expect(by.aaa2).toMatchObject({ state: "running", status: null, endedAt: null, prompt: "Build M3", description: "M3 runner" });
   });
 
+  // @covers FR-01.66
   it("no notification + stale mtime => finished-stale", async () => {
     build();
     const p = path.join(l.subDir, "agent-aaa2.jsonl");
@@ -167,6 +177,7 @@ describe("campaign session with depth-2 subagents", () => {
     expect(info.subagents.find((s) => s.agentId === "aaa2")).toMatchObject({ state: "finished-stale", status: null, endedAt: ts(60) });
   });
 
+  // @covers FR-01.66
   it("outputs include subagent writes, attributed to the agent, merged newest-first", async () => {
     build();
     const { outputs } = await readSessionInfo(SESSION, loc(), deps);
@@ -176,6 +187,7 @@ describe("campaign session with depth-2 subagents", () => {
     ]);
   });
 
+  // @covers FR-01.66
   it("ignores non-agent files and symlink-shaped names in subagents/", async () => {
     build();
     writeFileSync(path.join(l.subDir, "agent-..evil.jsonl"), "{}\n");
@@ -186,6 +198,7 @@ describe("campaign session with depth-2 subagents", () => {
 });
 
 describe("large files", () => {
+  // @covers FR-01.66
   it("scans only the newest window of a file bigger than the cap; flags truncated; keeps UTF-8 intact", async () => {
     l = makeLayout();
     const filler = jl({ type: "user", timestamp: ts(1), message: { role: "user", content: "ä".repeat(200) } });

@@ -8,9 +8,9 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T14:21:06.731868+00:00",
-      "disposition": "7-item self-review walked; per-file memo, containment, tool_result, line-scan edge cases fixed after review",
-      "recorded_by": "none",
+      "completed_at": "2026-10-30T14:43:40.579518+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
       "parse_status": null,
       "raw_excerpt": null
     },
