@@ -51,7 +51,7 @@
       {
         "behavior": "Compact Info tab shows the sidebar without splitter or collapse; no horizontal overflow",
         "disposition": "tested",
-        "evidence": "MissionBody.compact.test.tsx Info tab + E2E phone test (passed)"
+        "evidence": "MissionBody.compact.test.tsx Info tab + E2E 390px-viewport test under the chromium project (viewport only, no touch emulation) (passed)"
       },
       {
         "behavior": "No clip at 1024/1280/1440/1920; middle card >= 360px; dark text on glass",
@@ -82,11 +82,11 @@
   },
   "surface_verification": {
     "surface": "web",
-    "runner": "cd client && npm run test:e2e -- --project=chromium --project=mobile-chromium e2e/flows/M3-mission-info-sidebar.spec.ts e2e/flows/A13-mission-shell.spec.ts",
+    "runner": "npm.cmd --prefix client run test:e2e -- client/e2e/flows/M3-mission-info-sidebar.spec.ts client/e2e/flows/A13-mission-shell.spec.ts",
     "exit_code": 0,
     "tests_run": 10,
     "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style--M3\\.shipwright\\runs\\iterate-2026-10-30-m3-right-info-sidebar\\surface_verification.log",
-    "timestamp": "2026-10-30T16:04:36.268Z",
+    "timestamp": "2026-10-30T16:09:50.594Z",
     "attempts": 1
   },
   "declared_removals": [],

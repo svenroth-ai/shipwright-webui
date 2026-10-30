@@ -188,6 +188,25 @@ test.describe("M3 — Mission right info sidebar", () => {
   });
 
   // @covers FR-01.66
+  // Review fix (3f-bis): the feed's 360px floor must not push an open artifact
+  // card (and its close button) out of the row in the 1024-1103px band, where
+  // the sidebar has already yielded.
+  test("1024: an open artifact card fits the row, close button inside", async ({ page }) => {
+    await mockSessionInfo(page, cwd);
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await page.goto(`/tasks/${taskId}`);
+    await page.getByTestId("mission-tab-mission").click();
+    await page.getByTestId("record-node-req").click();
+    await expect(page.getByTestId("artifact-panel")).toBeVisible();
+    await expect(page.getByTestId("mission-side")).toBeHidden();
+    const row = await page.getByTestId("mission-body").evaluate((el) => ({ s: el.scrollWidth, c: el.clientWidth }));
+    expect(row.s).toBeLessThanOrEqual(row.c + 1);
+    const bodyBox = (await page.getByTestId("mission-body").boundingBox())!;
+    const artBox = (await page.getByTestId("artifact-panel").boundingBox())!;
+    expect(artBox.x + artBox.width).toBeLessThanOrEqual(bodyBox.x + bodyBox.width + 1);
+  });
+
+  // @covers FR-01.66
   test("phone: the Info tab shows the sidebar", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await mockSessionInfo(page, cwd);

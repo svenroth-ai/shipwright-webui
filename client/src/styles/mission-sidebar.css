@@ -29,9 +29,15 @@
   .env-output, .env-more { min-height: 44px; }
 }
 /* Desktop: the middle card keeps a usable width (A13 AC2); the sidebar, not the
-   feed, gives way when an artifact card is also open. */
-@media (min-width: 1024px) {
+   feed, gives way when an artifact card is also open. Below 1700px with an
+   artifact open the sidebar has yielded and the floor is dropped too (pre-M3
+   behaviour), or record + 360 + artifact overflows the row at ~1024-1103px and
+   clips the artifact's close button. */
+@media (min-width: 1700px) {
   .on-photo .mc-body > .mission-panel > .mc-op { min-width: 360px; }
+}
+@media (min-width: 1024px) and (max-width: 1699px) {
+  .on-photo .mc-body:not(:has(.artifact)) > .mission-panel > .mc-op { min-width: 360px; }
 }
 /* Below 1700px there is no room for FOUR cards (left + feed + artifact + sidebar):
    an open artifact card takes the row, and the sidebar returns when it closes.
