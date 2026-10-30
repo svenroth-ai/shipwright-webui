@@ -40,7 +40,7 @@
       {
         "behavior": "AC6 Shipwright cards unchanged",
         "disposition": "tested",
-        "evidence": "existing vitest (4563 pass) + 69 other mission/M3/M4 Playwright tests pass"
+        "evidence": "existing vitest (4563 pass) + a separate 70-test mission/M3/M4 Playwright regression run (70/70 passed); the F0.5 surface run was only M5-mission-desktop-chat.spec.ts (1 test)"
       },
       {
         "behavior": "AC7 read-only: no textarea/input/chat-* in feed",
