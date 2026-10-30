@@ -145,108 +145,97 @@
       "findings_count": 7,
       "findings": [
         {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": 91,
-          "finding": "answers map with real answers under non-matching keys dropped the card.",
-          "suggestion": "Drop only when no non-blank answer exists; else legacy fallback. FIXED (recordsNoAnswer).",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/src/styles/mission-chat.css",
-          "line": 26,
-          "finding": "Chips/expand button used --faint, below AA.",
-          "suggestion": "Use --muted. FIXED.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "performance",
-          "file": "client/src/external/session-parser.ts",
-          "line": 353,
-          "finding": "toolUseResult kept for every tool, duplicating large payloads.",
-          "suggestion": "Keep only answers. FIXED.",
-          "source": "code-reviewer"
-        },
-        {
           "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/mission/MissionAskCards.tsx",
-          "line": 22,
-          "finding": "Duplicate option labels share a React key.",
-          "suggestion": "Dedupe in buildAskItems. FIXED.",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 85,
+          "finding": "Round 2 (head 03329eb8, verdict PASS): comment above user-input branch still says errored prompts stay pending; now only unparseable-payload errors do.",
+          "suggestion": "Rewrite comment. Noted (LOW).",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": "client/src/components/external/mission/MissionAskCards.tsx",
-          "line": 19,
-          "finding": "List not tied to question; Other lacks selected marker.",
-          "suggestion": "aria-labelledby + sr-only selected. FIXED.",
+          "file": "client/src/lib/missionActivityFeedTypes.ts",
+          "line": 21,
+          "finding": "items doc says absent while pending; it is set at tool_use time (behaviour correct).",
+          "suggestion": "Reword doc. Noted (LOW).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/missionAskItems.ts",
+          "line": 63,
+          "finding": "Round 1 (head c28d85ef): recordsNoAnswer dropped an answered card when the answers map held only non-string values (e.g. an array).",
+          "suggestion": "Return true only when every value is a blank string. FIXED in 03329eb8 with test; round 2 confirmed correct and complete.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": "client/src/lib/missionAskItems.ts",
-          "line": 71,
-          "finding": "Empty comma part blocked chosenAll.",
-          "suggestion": "Filter empties. FIXED.",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 94,
+          "finding": "Decline-with-feedback rejection drops the user's typed redirection text from the feed.",
+          "suggestion": "Accepted trade-off per spec (rejected questions not shown). Noted.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/external/session-parser.ts",
+          "line": 353,
+          "finding": "Long single-line conditional spread with repeated casts; null passes typeof guard (harmless, isRecord rejects).",
+          "suggestion": "Extract helper later; file pinned at 842 lines by bloat baseline. Noted.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "maintainability",
+          "file": "client/src/styles/mission-chat.css",
+          "line": 13,
+          "finding": "Overrides base .mc-feed-card by import order; dead declarations left in mission-operation.css.",
+          "suggestion": "Edit base rules in place. Noted.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
           "file": "client/e2e/flows/M5-mission-desktop-chat.spec.ts",
-          "line": 54,
-          "finding": "Contrast helper only sound on-photo.",
-          "suggestion": "Noted; ask cards render inside opaque on-photo .mc-op in the E2E.",
+          "line": 147,
+          "finding": "Option-description contrast threshold 3 vs AA 4.5 for 12.5px text.",
+          "suggestion": "Raise to 4.5. Noted.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T18:20:39.377785+00:00",
+      "completed_at": "2026-10-30T18:43:48.995452+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "d25bcc639b042a33774402bd6a1249395c053d76"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 6,
+      "findings_count": 3,
       "findings": [
         {
-          "severity": "medium",
+          "severity": "low",
           "category": "boundary",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: a real answer under an unmatched key never vanishes — In a multi-question call one key matched and another real answer did not, so it was filtered out. Fixed: allAnswersMatched; the whole call falls back to the legacy display (test added).",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "boundary",
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: keeping only answers loses user-typed text — Real JSONL has annotations[question].notes. Fixed: parser keeps answers+annotations and the card shows the note (test added).",
+          "finding": "Claim under doubt: recordsNoAnswer fails toward showing (head 03329eb8, verdict PASS) — An EMPTY answers map {} is vacuously 'all blank', so the card is dropped without consulting result.content. Theoretical CLI-shape exposure, not reproduced. ADDRESSED (rebutted): an empty map with the standard 'User has answered your questions.' content is the recorded no-decision shape mini-plan AC5 names, pinned by an explicit test; revisit only if a real line with answers:{} and meaningful content is observed.",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": "reversibility",
+          "category": "concurrency",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: drop on is_error is only a real rejection — Also hit unparseable payloads and interrupts. Narrowed to calls with parsed items; an interrupt is a rejection per the operator decision.",
+          "finding": "Claim under doubt: live 1s polling never half-joins or double-applies answers — useMissionLive re-derives from scratch each poll; buildAskItems creates fresh objects; toolUseResult sits on the same JSONL line as its tool_result and chunks cut on newline. Not disproven.",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
@@ -255,38 +244,18 @@
           "category": "coupling",
           "file": null,
           "line": null,
-          "finding": "Claim under doubt: aria ids are unique — Two answered calls both used ask-q-0. Fixed with useId.",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "contract",
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: implementation matches AC4 — multiSelect marks unambiguous labels. AC4 amended in the mini-plan.",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "coupling",
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: visual baselines stay green — Mission chat visuals shift by design; the Linux visual-baselines workflow is run after the PR opens.",
+          "finding": "Claim under doubt: removing timeline nodes/kindAccent/FeedIcon and the .mc-feed-card override regresses no other Mission card — PR card, test pill, subrunner View agent / failure details, session-start divider all keep their own markup; tokens defined in both scopes; no motion; no chat-* or inputs; session-parser.ts 842 = baseline. Not disproven.",
           "suggestion": null,
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T18:26:41.796112+00:00",
+      "completed_at": "2026-10-30T18:43:49.124651+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "7b8f4814f3f87471a27343b914ef55d67684eb36"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -389,17 +358,61 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "M5-desktop-style-chat.md:L5 AskUserQuestion cards from tool_use input + toolUseResult.answers; Other/multiSelect/rejected",
+          "suggestion": "M5-desktop-style-chat.md:L5 AskUserQuestion cards from tool_use input + toolUseResult.answers; Other/multiSelect/rejected",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "M5-desktop-style-chat.md:L5 unanswered questions vs accepted decision (pending keeps Answer in terminal)",
+          "suggestion": "M5-desktop-style-chat.md:L5 unanswered questions vs accepted decision (pending keeps Answer in terminal)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Round-2 delta 03329eb8 fail toward showing",
+          "suggestion": "Round-2 delta 03329eb8 fail toward showing",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "M5-desktop-style-chat.md:L5 read-only, no composer/textarea/chat-* (ADR-034, spec 35)",
+          "suggestion": "M5-desktop-style-chat.md:L5 read-only, no composer/textarea/chat-* (ADR-034, spec 35)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Mini-plan AC1-AC9",
+          "suggestion": "Mini-plan AC1-AC9",
+          "source": "spec-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-30T18:17:08.078326+00:00",
+      "completed_at": "2026-10-30T18:43:28.524817+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "d25bcc639b042a33774402bd6a1249395c053d76"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
