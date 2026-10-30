@@ -111,9 +111,14 @@ function textOf(content: unknown): string | null {
 }
 
 const NOTIF_RE = /<task-notification>([\s\S]*?)<\/task-notification>/g;
-const tag = (body: string, name: string): string | null => {
-  const m = new RegExp(`<${name}>([\\s\\S]*?)</${name}>`).exec(body);
-  return m ? m[1]!.trim() : null;
+/** First `<name>…</name>` content, by plain string search — `name` is never a pattern. */
+export const tag = (body: string, name: string): string | null => {
+  const open = `<${name}>`;
+  const start = body.indexOf(open);
+  if (start < 0) return null;
+  const from = start + open.length;
+  const end = body.indexOf(`</${name}>`, from);
+  return end < 0 ? null : body.slice(from, end).trim();
 };
 
 function takeNotifications(text: string, into: Map<string, Notification>, at: string | null): void {
