@@ -51,11 +51,15 @@ export async function freezeClock(page: Page, anchorIso: string): Promise<void> 
 /**
  * Regions that are never deterministic and are masked out of every screenshot.
  * The xterm canvas renders a live shell; nothing about it is reproducible.
+ * The Mission info sidebar's "Project folder" value prints `task.cwd`, which the
+ * isolated harness seeds under a fresh random temp dir (`/tmp/sw-e2e-task-XXXX`)
+ * on every run — so only that VALUE is masked; the label and row stay checked.
  */
 export function nonDeterministicRegions(page: Page): Locator[] {
   return [
     page.getByTestId("embedded-terminal-canvas"),
     page.getByTestId("embedded-terminal-launch-preview"),
+    page.getByTestId("env-folder").locator(".env-v"),
   ];
 }
 

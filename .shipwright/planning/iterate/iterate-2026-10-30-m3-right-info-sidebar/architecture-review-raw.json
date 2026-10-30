@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "1. **The question, answered in one sentence.** Yes, a client-only read-only sidebar is a legitimate mechanism \u2014 no new server surface, no writes \u2014 but it should exist in the smallest form: no polling loop, fetch on open (and manual/on-focus refresh).\n\n2. **The smallest thing that would do.** Option A's UI, but with the query hook fetching session-info once when the panel is opened and refreshing on tab focus/visibility rather than on a timer; reuse the Smart Viewer's existing layout-persistence machinery for the localStorage record rather than adding a new one if that is possible.\n\n3. **What it costs to keep.** A new panel that must be kept correct across future Mission-tab layout changes, a new consumer of session-info whose request pattern has to be reasoned about whenever that endpoint's cost changes (it rescans up to 48 MB per request), and one more testid namespace to maintain.\n\n4. **What it forecloses.** A fourth panel in the Mission body constrains future Mission-tab redesigns slightly (the compact-tabs entry already acknowledges the collision). Otherwise none identified \u2014 Option C leaves the info invisible; Option B cannot host the Folders/Viewer segments, so the sidebar is the right shape.\n\nFindings:\n\n- Category: proportionality\n- Severity: medium\n- Finding: A standing poll of an endpoint that rescans up to 48 MB per request converts a cheap UI feature into a recurring server-side cost that every future scaling change has to reason about, and the brief only bounds the interval from below (\"not 1 s\").\n- Suggestion: Make the hook fetch on panel-open and on window focus/visibility-change, with no timer. If a timer is genuinely wanted for context-token updates, cache server-side or accept seconds-scale staleness \u2014 but start with no poll at all.\n\n- Category: simpler-alternative\n- Severity: low\n- Finding: A new localStorage layout record duplicates persistence machinery that the Smart Viewer pattern already provides.\n- Suggestion: Reuse the Smart Viewer's existing resizable-panel state mechanism for this sidebar; add a new localStorage record only if reuse is genuinely not possible.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Should it exist?** No separate fourth panel should exist; option B solves the visibility problem with less permanent UI and state.\n\n2. **Smallest thing that would do:** Add machine, project folder, Remote Control status, context tokens/model, and a short outputs list to the existing Mission summary. Open output files in the existing Smart Viewer and link to the existing FolderTree. Fetch session-info when Mission opens and offer manual refresh; continuous polling is not justified by the stated need.\n\n3. **What it costs to keep:** Maintaining the summary\u2019s data display and refresh behavior. The proposed sidebar additionally creates another navigation surface, responsive layout, persisted sizing state, and recurring requests that can each rescan up to 48 MB.\n\n4. **What it forecloses:** A fourth panel makes future Mission layouts and compact-screen navigation harder by requiring them to accommodate another independently sized surface.\n\n5. **Findings**\n\nCategory: simpler-alternative\nSeverity: medium\nFinding: The separate sidebar duplicates access to folders and the viewer to solve a problem principally about seeing session information at a glance.\nSuggestion: Choose B: extend the existing summary and route file interactions to the existing viewer and folder navigation.\n\nCategory: proportionality\nSeverity: medium\nFinding: An independent polling loop introduces ongoing scan work without a stated requirement for continuously fresh information.\nSuggestion: Fetch on Mission entry and manual refresh; add bounded polling only if a concrete freshness requirement emerges.\n\nSHIPWRIGHT_VERDICT: reject",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m3-right-info-sidebar",
+    "at": "2026-10-30T15:48:59.697232+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "reject"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": true,
+    "comparable": true,
+    "requires_resolution": true,
+    "reason": "reviewers contradict each other: glm=approve, openai=reject"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n- **Category: edge-case \u2014 Severity: medium**\n  **Finding:** AC2's \"outputs outside the project folder render inert\" is the only path-safety story. Clicking an output that *is* under `task.cwd` opens it in the Viewer \u2014 nothing states how the path is validated. If the session-info payload includes any client-influenced path (or the server list is later widened), the Viewer becomes a file-read primitive outside the task's sandbox (classic `../` / symlink escape).\n  **Suggestion:** Validate server-side (only files under cwd ever appear in the payload) *and* do a client-side normalized-prefix check before opening in Viewer. Add a unit test with a traversal-style path.\n\n- **Category: edge-case \u2014 Severity: medium**\n  **Finding:** Remote Control pill debounced to \"2 consecutive agreeing polls\" at 20 s polling means a real state change can take ~60 s to reflect, with no visual staleness indicator. If the operator acts on the pill (even though it's \"informational\"), that's a meaningful staleness window.\n  **Suggestion:** Either show a \"checking\u2026\" state when polls disagree, or trigger an immediate refetch on disagreement (fast follow-up poll to confirm within ~2 s instead of waiting the full 20 s interval).\n\n- **Category: risk \u2014 Severity: medium**\n  **Finding:** \"Below 1700px an open artifact card hides the sidebar\" is a hard interaction cliff: a user who widened/pinned the sidebar, persisted that layout, and opens an artifact at 1600px gets the sidebar silently vanish \u2014 and the collapse/width state may interact confusingly with the persisted \"collapsed\" flag (is programmatic hiding conflated with user collapse?).\n  **Suggestion:** Treat viewport-yielding as a distinct transient state from the persisted `collapsed` flag; write a test for hide\u2192close-artifact\u2192show restoring the user's prior width/segment, not the default.\n\n- **Category: approach \u2014 Severity: low**\n  **Finding:** Hand-mirrored types + a drift guard test works, but it's the manual version of what codegen/typed endpoint gives for free if the project already has such infra. Fine as a pragmatic choice only if the repo genuinely lacks codegen; otherwise this is duplicated machinery.\n  **Suggestion:** If no codegen exists, keep the mirror \u2014 but have the guard test import from a single shared source of truth (e.g., the server route's types file) rather than a second hand-written copy, so drift is impossible by construction.\n\n- **Category: edge-case \u2014 Severity: low**\n  **Finding:** No stated handling for session-info failure/loading states (request error, 404 before session exists, long-pending first poll). The ACs cover polling cadence but not what Info shows when the endpoint errors or the session hasn't started.\n  **Suggestion:** Add explicit AC/empty states: skeleton on first load, \"no session yet\" for pre-start tasks, non-blocking error state that doesn't flash the Remote Control pill.\n\n- **Category: edge-case \u2014 Severity: low**\n  **Finding:** Viewer segment receives arbitrary session outputs \u2014 file types the Smart Viewer may not render (binaries, unknown extensions). Not addressed.\n  **Suggestion:** Define fallback behavior (default-to-download or \"can't preview\" message) and cover it in the M3 E2E spec.\n\n- **Category: dependency \u2014 Severity: low**\n  **Finding:** Scope says \"Consume /session-info from M2\" but nothing verifies M2 is merged/available; also AC9's testid guidance is stated two ways in the plan (`mission-*/env-*` in scope, `mission-side*/env-*` in AC9) \u2014 pick one, since E2E selectors will be written against it.\n  **Suggestion:** Confirm M2 endpoint is on the branch target; normalize the testid convention before writing tests.\n\n## Overall Assessment\n\nSound approach overall \u2014 good reuse of FolderTree/SmartViewer, sensible polling discipline, and clear ACs. The must-fix items before merge are the output-path validation for Viewer opens and clarifying the sidebar-yielding vs persisted-collapse state interaction; the rest are refinements.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: security | Severity: high**  \n   **Finding:** \u201cUnder the project folder\u201d is not a sufficient file-access rule unless enforced by the server. String-prefix checks can accept sibling paths, traversal, or symlinks pointing outside the project. Outputs and FolderTree selections both reach the Viewer.  \n   **Suggestion:** Reuse the existing authorized file-opening endpoint and its canonical path containment checks. Treat client-side inert rendering as presentation only; verify task access and project containment server-side.\n\n2. **Category: approach | Severity: medium**  \n   **Finding:** Requiring two agreeing polls adds roughly 20\u201340 seconds of delay to Remote Control status and can leave a stale On/Off pill visible after failures. The plan does not define initial status, error behavior, or reset on task changes.  \n   **Suggestion:** Display the first successful status immediately and use the normal query refresh unless M2 documents transient readings. If stabilization is necessary, reset it per task and explicitly represent unavailable or stale status.\n\n3. **Category: risk | Severity: medium**  \n   **Finding:** Hiding the sidebar below 1700px when an artifact card opens can also hide the active Viewer or remove access to Info and Folders. A fixed breakpoint does not guarantee the middle card\u2019s minimum width when persisted panel widths vary.  \n   **Suggestion:** Define an accessible fallback when the sidebar yields, preserve its active file and segment, and derive layout constraints from available panel space. Test artifact opening and closing, resizing, and restored maximum widths at 1440px and compact boundaries.\n\n4. **Category: dependency | Severity: medium**  \n   **Finding:** The plan assumes FolderTree and SmartViewer can be mounted in this new location without specifying their task context, selection ownership, or coexistence with the existing artifact viewer. Competing viewer state could cause file clicks to update the wrong panel or disappear during responsive changes.  \n   **Suggestion:** Identify the existing viewer controller and FolderTree integration contract before implementation. Route both output and folder selections through that controller, with explicit ownership and state preservation across layout changes.\n\n5. **Category: edge-case | Severity: medium**  \n   **Finding:** The acceptance criteria cover successful responses but omit loading, request failure, task switching, missing token/model values, and outputs that have been deleted. Cached data could briefly show another task\u2019s environment or files if query identity is incomplete.  \n   **Suggestion:** Key queries by task and any relevant connection identity; define loading, empty, unavailable, and file-open failure states. Add focused coverage for switching tasks during an outstanding request and unavailable session information.\n\nThe approach broadly fits the requested change and sensibly reuses existing components. Resolve file-access enforcement, viewer ownership, and responsive fallback behavior before implementation; the status stabilization also needs a clearer justification and lifecycle.\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m3-right-info-sidebar",
+    "at": "2026-10-30T15:48:59.697232+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

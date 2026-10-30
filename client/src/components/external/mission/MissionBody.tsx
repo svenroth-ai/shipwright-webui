@@ -40,6 +40,7 @@ import { MissionActivityFeed } from "./MissionActivityFeed";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { MissionArtifactPanel } from "./MissionArtifactPanel";
 import { SubrunnerPanel } from "./SubrunnerPanel";
+import { MissionInfoSidebar } from "./MissionInfoSidebar";
 import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
 import {
   MissionCompactTabs,
@@ -188,20 +189,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     setCompactPanel(panel);
   }, [compactPanel, detailAvailable]);
 
-  // A DESIGN GATE keeps the A12 Operation card outright — it is a decision
-  // surface, not a story. Every other state (live or completed) shows the
-  // activity feed directly — see this component's own doc comment for why
-  // the completed-run verdict/proof header was removed rather than kept
-  // conditionally. 69th (glm, low, regression), FLAGGED-not-fixed by glm's own
-  // reading: a terminal iterate whose legacy run join has not caught up now
-  // gets the feed where it used to get the resolved `OperationCard`, and the
-  // `mission-completed-stack` testid is gone for any downstream consumer. Both
-  // are exactly what requirement 1 asked for ("removed rather than
-  // conditionally hidden"), and the reconciled gate summary card carries the
-  // verdict the header used to. Pinned in `MissionBody.context.test.tsx`.
-  // Re-raised 78-81 (glm, low), each time answering itself "spec-sanctioned
-  // and pinned by tests; only relevant to an OUT-OF-REPO consumer". A repo-wide
-  // search for the testid returns the two rewritten tests and nothing else.
+  // A DESIGN GATE keeps the A12 Operation card (a decision surface, not a
+  // story); every other state shows the activity feed. The completed-run
+  // verdict header and its `mission-completed-stack` testid were removed on
+  // purpose (iterate-2026-09-16); pinned in `MissionBody.context.test.tsx`.
   const isDesignGate = model.missionState === "designgate";
 
   return (
@@ -285,6 +276,16 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           ) : activeSubrunnerCard ? (
             <SubrunnerPanel card={activeSubrunnerCard} onClose={handleClose} />
           ) : null}
+        </div>
+        <div
+          id="mission-panel-info"
+          role={compact ? "tabpanel" : undefined}
+          aria-labelledby={compact ? "mission-compact-tab-info" : undefined}
+          className="mission-panel"
+          hidden={compact && compactPanel !== "info"}
+          data-testid="mission-panel-info"
+        >
+          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} />
         </div>
       </div>
     </div>

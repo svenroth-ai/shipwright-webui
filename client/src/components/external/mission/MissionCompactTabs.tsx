@@ -1,6 +1,6 @@
 import { useRef, type KeyboardEvent, type RefObject } from "react";
 
-export type MissionCompactPanel = "overview" | "activity" | "detail";
+export type MissionCompactPanel = "overview" | "activity" | "detail" | "info";
 
 interface Props {
   active: MissionCompactPanel;
@@ -9,12 +9,14 @@ interface Props {
   overviewRef: RefObject<HTMLButtonElement | null>;
   activityRef: RefObject<HTMLButtonElement | null>;
   detailRef: RefObject<HTMLButtonElement | null>;
+  infoRef?: RefObject<HTMLButtonElement | null>;
 }
 
 const TABS: { id: MissionCompactPanel; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "activity", label: "Activity" },
   { id: "detail", label: "Detail" },
+  { id: "info", label: "Info" },
 ];
 
 export function MissionCompactTabs({
@@ -24,9 +26,10 @@ export function MissionCompactTabs({
   overviewRef,
   activityRef,
   detailRef,
+  infoRef,
 }: Props) {
   const internalRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const refs = { overview: overviewRef, activity: activityRef, detail: detailRef };
+  const refs = { overview: overviewRef, activity: activityRef, detail: detailRef, info: infoRef };
   const enabled = TABS.filter((tab) => tab.id !== "detail" || detailAvailable);
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -68,7 +71,7 @@ export function MissionCompactTabs({
             key={tab.id}
             ref={(element) => {
               internalRefs.current[index] = element;
-              refs[tab.id].current = element;
+              if (refs[tab.id]) refs[tab.id]!.current = element;
             }}
             type="button"
             role="tab"

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-30-m3-right-info-sidebar",
+  "date": "2026-10-30",
+  "section": "Iterate - feature: Mission right info sidebar",
+  "title": "Mission right sidebar, client-only, no poll timer",
+  "context": "Mission tab lacked at-a-glance machine, folder, context usage and outputs; session-info (M2) exposes them but rescans up to 48 MB per request.",
+  "decision": "Add a right sidebar (Info/Folders/Viewer) fetching session-info on entry, focus, task-state change and manual Refresh; no timer; reuse FolderTree and SmartViewer.",
+  "consequences": "Client-only, no new write surface. Four cards need 1700px+, so the sidebar yields while an artifact card is open below that.",
+  "rationale": "Operator specified the sidebar; openai architecture reject (prefer extending the left panel) overruled by operator, its poll concern removed by dropping the timer.",
+  "rejected": "Extend the left summary panel (cannot host Folders/Viewer); 20 s polling timer; do nothing.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-10-30-m3-right-info-sidebar-mission-right-sidebar.md"
+}

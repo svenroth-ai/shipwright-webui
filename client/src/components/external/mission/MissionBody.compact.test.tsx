@@ -7,6 +7,8 @@ import type { RunDataJoin, RunDetailResponse } from "../../../lib/runDataApi";
 const missionStateMock = vi.fn<() => "done" | "live" | "designgate">();
 const runDetailMock = vi.fn<() => { data: RunDetailResponse | undefined }>();
 const missionContextMock = vi.fn<() => { data: unknown }>();
+// M3: the right info sidebar owns its own session-info query; covered in MissionInfoSidebar.test.tsx.
+vi.mock("./MissionInfoSidebar", () => ({ MissionInfoSidebar: () => null }));
 vi.mock("../../../hooks/useMissionState", () => ({
   useMissionState: () => missionStateMock(),
 }));
@@ -104,7 +106,7 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
   it("starts on Overview with semantic tabs and disabled Detail", () => {
     setupCompletedCompact();
     expect(screen.getAllByRole("tab").map((tab) => tab.textContent)).toEqual([
-      "Overview", "Activity", "Detail",
+      "Overview", "Activity", "Detail", "Info",
     ]);
     expect(screen.getByTestId("mission-compact-tab-overview")).toHaveAttribute(
       "aria-selected", "true",
@@ -112,6 +114,14 @@ describe("MissionBody — compact Overview / Activity / Detail navigation", () =
     expect(screen.getByTestId("mission-compact-tab-detail")).toBeDisabled();
     expect(screen.getByTestId("mission-panel-overview")).not.toHaveAttribute("hidden");
     expect(screen.getByTestId("mission-panel-activity")).toHaveAttribute("hidden");
+  });
+
+  it("the Info tab reveals the right sidebar panel (M3)", () => {
+    setupCompletedCompact();
+    expect(screen.getByTestId("mission-panel-info")).toHaveAttribute("hidden");
+    fireEvent.click(screen.getByTestId("mission-compact-tab-info"));
+    expect(screen.getByTestId("mission-panel-info")).not.toHaveAttribute("hidden");
+    expect(screen.getByTestId("mission-panel-overview")).toHaveAttribute("hidden");
   });
 
   it("an Overview artifact automatically selects Detail", () => {
