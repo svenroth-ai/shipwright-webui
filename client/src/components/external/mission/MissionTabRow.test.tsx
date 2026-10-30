@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { act, render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 // S1 (AC4) — the tab row asks the resolver whether this project should have a
@@ -12,6 +12,7 @@ vi.mock("../../../hooks/useMissionContext", () => ({
   useMissionContext: () => missionContextMock(),
 }));
 
+import { setStandaloneViewEnabled } from "../../../lib/standaloneView";
 import { MissionTabRow, SHIPS_LOG_ROUTE } from "./MissionTabRow";
 
 function setup(value: "mission" | "files" = "files") {
@@ -111,5 +112,15 @@ describe("MissionTabRow — custom-actions tab hiding (AC4)", () => {
       </MemoryRouter>,
     );
     expect(onChange).toHaveBeenCalledWith("files");
+  });
+});
+
+describe("MissionTabRow in Standalone view", () => {
+  // @covers FR-01.03
+  it("hides the Shiplog button", () => {
+    setStandaloneViewEnabled(true);
+    setup("files");
+    expect(screen.queryByTestId("mission-open-ships-log")).toBeNull();
+    act(() => setStandaloneViewEnabled(false));
   });
 });

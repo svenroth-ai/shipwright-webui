@@ -1,0 +1,106 @@
+{
+  "last_updated": "2026-10-30T06:55:13.617690+00:00",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-30-hide-shipwright-views",
+    "date": "2026-10-30",
+    "unit": {
+      "status": "passed",
+      "passed": 4531,
+      "total": 4531,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Settings card toggles the Standalone view (default off) and explains what is hidden",
+          "disposition": "tested",
+          "evidence": "StandaloneViewCard test in standaloneView.test.tsx PASSED + e2e 108 PASSED"
+        },
+        {
+          "behavior": "Preference persists, is live in-tab and cross-tab, with an in-memory fallback",
+          "disposition": "tested",
+          "evidence": "standaloneView.test.tsx PASSED"
+        },
+        {
+          "behavior": "Sidebar Triage item hidden/shown live",
+          "disposition": "tested",
+          "evidence": "SidebarNav.standalone-view.test.tsx PASSED + e2e 108 PASSED"
+        },
+        {
+          "behavior": "/triage and /projects/:id/log are guarded in the REAL router and redirect to the board; deep link keeps project scope",
+          "disposition": "tested",
+          "evidence": "standaloneView.test.tsx 'real router wiring' + HiddenInStandaloneView tests PASSED; e2e 108 /triage redirect PASSED"
+        },
+        {
+          "behavior": "openProjectLog lands on the filtered board when on, Ship's Log when off",
+          "disposition": "tested",
+          "evidence": "standaloneView.test.tsx openProjectLog PASSED"
+        },
+        {
+          "behavior": "Command palette omits Triage when on",
+          "disposition": "tested",
+          "evidence": "STANDALONE_HIDDEN_DESTINATION_IDS asserted in 'real router wiring' PASSED (CommandCenter uses it; CommandCenter tests PASSED)"
+        },
+        {
+          "behavior": "Campaign card hides the triage link when on",
+          "disposition": "tested",
+          "evidence": "CampaignLaneCard.test.tsx 'hides the triage cross-link' PASSED"
+        },
+        {
+          "behavior": "Task-detail Shiplog button hidden when on",
+          "disposition": "tested",
+          "evidence": "MissionTabRow.test.tsx 'Standalone view' PASSED"
+        },
+        {
+          "behavior": "Off state is unchanged",
+          "disposition": "tested",
+          "evidence": "existing sidebar/CampaignLaneCard/MissionTabRow/CommandCenter suites PASSED; full client suite 4531/4531"
+        }
+      ],
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "cd client && npm run test:e2e -- --project=chromium e2e/flows/108-standalone-view.spec.ts",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-10-30-hide-shipwright-views/surface_verification.log",
+      "timestamp": "2026-10-30T06:55:13.000Z",
+      "attempts": 1
+    }
+  }
+}

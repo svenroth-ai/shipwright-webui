@@ -12,6 +12,8 @@
  * interim `/?projectId=` board destination (spec AC1).
  */
 
+import { isStandaloneViewEnabled } from './standaloneView';
+
 export interface OpenProjectLogDeps {
   /** From `useProjectFilter()` — the single source of truth for the filter. */
   setActiveProjectId: (id: string | null) => void;
@@ -24,5 +26,6 @@ export function openProjectLog(
   { setActiveProjectId, navigate }: OpenProjectLogDeps,
 ): void {
   setActiveProjectId(projectId);
-  navigate(`/projects/${encodeURIComponent(projectId)}/log`);
+  // Standalone view hides the logbook: the filtered board is the project's home then.
+  navigate(isStandaloneViewEnabled() ? '/' : `/projects/${encodeURIComponent(projectId)}/log`);
 }

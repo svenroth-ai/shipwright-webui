@@ -24,6 +24,7 @@ import { useProjectActions } from "../../hooks/useProjectActions";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { openProjectLog } from "../../lib/projectNav";
 import { getNavDestinations } from "../../lib/navDestinations";
+import { STANDALONE_HIDDEN_DESTINATION_IDS, useStandaloneView } from "../../lib/standaloneView";
 import { useOrgChartPresence } from "../../hooks/useOrgChartPresence";
 import { buildCommands, type Command } from "../../lib/commandRegistry";
 import { UNASSIGNED_PROJECT_ID } from "../../lib/projectIds";
@@ -42,6 +43,7 @@ export function CommandCenter() {
   // FR-01.71 — same 4-state signal SidebarNav gates "Org" on (Design Notes,
   // "Nav presence" — "two places, one condition").
   const orgPresence = useOrgChartPresence();
+  const standaloneView = useStandaloneView();
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -68,7 +70,9 @@ export function CommandCenter() {
   const commands = useMemo<Command[]>(
     () =>
       buildCommands({
-        destinations: getNavDestinations().filter((d) => d.id !== "org" || orgPresence !== "absent"),
+        destinations: getNavDestinations().filter(
+          (d) => (d.id !== "org" || orgPresence !== "absent") && !(standaloneView && STANDALONE_HIDDEN_DESTINATION_IDS.includes(d.id)),
+        ),
         navigate,
         projects: realProjects.map((p) => ({ id: p.id, name: p.name })),
         openProject: (projectId) =>
@@ -97,6 +101,7 @@ export function CommandCenter() {
       density,
       toggleDensity,
       orgPresence,
+      standaloneView,
     ],
   );
 

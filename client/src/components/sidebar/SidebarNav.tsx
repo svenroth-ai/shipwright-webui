@@ -5,6 +5,7 @@ import { InboxBadge } from './InboxBadge';
 import { TriageBadge } from './TriageBadge';
 import { COMPACT_MEDIA_QUERY, useIsCompactViewport } from '../../hooks/useIsCompactViewport';
 import { useOrgChartPresence } from '../../hooks/useOrgChartPresence';
+import { useStandaloneView } from '../../lib/standaloneView';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 /**
@@ -73,6 +74,7 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
   // still shown while loading/broken so a real failure stays visible (AC-7).
   const orgPresence = useOrgChartPresence();
   const showOrg = orgPresence !== 'absent';
+  const standaloneView = useStandaloneView();
 
   const body = (
     <>
@@ -138,14 +140,16 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
           collapsed={railed}
           onSelect={onNavigate}
         />
-        <SidebarNavItem
-          icon={Triangle}
-          label="Triage"
-          to="/triage"
-          badge={<TriageBadge count={triageCount} />}
-          collapsed={railed}
-          onSelect={onNavigate}
-        />
+        {!standaloneView && (
+          <SidebarNavItem
+            icon={Triangle}
+            label="Triage"
+            to="/triage"
+            badge={<TriageBadge count={triageCount} />}
+            collapsed={railed}
+            onSelect={onNavigate}
+          />
+        )}
         {showOrg && (
           <SidebarNavItem icon={Users} label="Org" to="/org" collapsed={railed} onSelect={onNavigate} />
         )}

@@ -26,6 +26,7 @@ import { useProjectFilter } from "../../hooks/useProjectFilter";
 import { useProjectCompliance } from "../../hooks/useProjectCompliance";
 import { buildProjectLogModel } from "../../lib/projectLogStats";
 import { openProjectLog } from "../../lib/projectNav";
+import { useStandaloneView } from "../../lib/standaloneView";
 import type { RunsResponse } from "../../lib/runDataApi";
 import type { Project } from "../../types";
 import { ComplianceGradeBadge } from "../compliance/ComplianceGradeBadge";
@@ -72,6 +73,8 @@ export function ProjectLogCard({
   // The run read is "known" (a definitive answer exists) when it resolved OR
   // the project is synthesized (which has no logbook by construction).
   const runsKnown = project.synthesized || runsResolved;
+
+  const standaloneView = useStandaloneView();
 
   function openLog() {
     if (project.synthesized) return;
@@ -183,7 +186,7 @@ export function ProjectLogCard({
               openLog();
             }}
           >
-            Open log <ChevronRight size={14} />
+            {standaloneView ? "Open board" : "Open log"} <ChevronRight size={14} />
           </button>
         )}
       </div>

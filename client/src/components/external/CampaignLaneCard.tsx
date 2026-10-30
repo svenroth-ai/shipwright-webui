@@ -26,6 +26,7 @@ import type { Campaign, CampaignLifecycleStatus } from "../../lib/campaignsApi";
 import { campaignLifecycleLabel } from "../../lib/campaignsApi";
 import type { Project } from "../../types";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useStandaloneView } from "../../lib/standaloneView";
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
 import { useCampaignReadiness } from "../../hooks/useCampaignReadiness";
@@ -65,6 +66,7 @@ export function CampaignLaneCard({
    *  (create-task cwd + projectId). Null when "All projects" / unresolved. */
   project?: Project | null;
 }) {
+  const standaloneView = useStandaloneView();
   // Per-slug persisted UI state. Default: collapsed card, closed description.
   const [collapsed, setCollapsed] = useLocalStorage<boolean>(
     `webui:campaign-card-collapsed:${campaign.slug}`,
@@ -156,7 +158,7 @@ export function CampaignLaneCard({
         {/* Board quittance — always visible (a finished ghost is usually
             collapsed); Erledigt → hide, Wiederherstellen → back. */}
         <CampaignDismissButton campaign={campaign} project={project} />
-        {!collapsed && campaign.expandsTriage && (
+        {!collapsed && campaign.expandsTriage && !standaloneView && (
           <Link
             to="/triage"
             className="inline-flex shrink-0 items-center gap-1 text-[11px] text-[var(--color-primary)] hover:underline"

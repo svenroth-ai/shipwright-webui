@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-30-hide-shipwright-views",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T06:55:13.022477+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T06:55:13.162719+00:00",
+      "disposition": "no external plan review; scope fits the iterate spec",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/standaloneView.ts",
+          "line": null,
+          "finding": "localStorage unavailable -> toggle silently does nothing (no in-memory fallback).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/ProjectLogCard.tsx",
+          "line": null,
+          "finding": "Project card still says 'Open log' when the click lands on the board.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/standaloneView.test.tsx",
+          "line": null,
+          "finding": "No unit test for the sidebar, palette or campaign-link gating.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T06:51:08.304457+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden-coupling",
+          "file": "client/src/components/external/mission/MissionTabRow.tsx",
+          "line": null,
+          "finding": "Ship's Log hidden everywhere",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test-strength",
+          "file": "client/src/lib/standaloneView.test.tsx",
+          "line": null,
+          "finding": "route guard, palette filter and campaign link are tested",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/components/common/HiddenInStandaloneView.tsx",
+          "line": null,
+          "finding": "/log deep link lands on the project board",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling",
+          "file": "client/src/layouts/MainLayout.tsx",
+          "line": null,
+          "finding": "Triage fully off",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/lib/standaloneView.ts",
+          "line": null,
+          "finding": "cross-tab live",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T06:52:43.283069+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T06:55:13.558128+00:00",
+      "disposition": "no external code review run; internal code and doubt reviewers ran",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "config-disabled"
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T06:50:28.428961+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T06:55:13.281552+00:00",
+      "disposition": "no separate plan; iterate spec reviewed by spec-reviewer",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T06:55:13.411949+00:00",
+      "disposition": "no architecture brief; a client-only display preference",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

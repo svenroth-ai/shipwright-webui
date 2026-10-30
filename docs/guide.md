@@ -340,6 +340,16 @@ Shipwright-only views (Ship's Log, Triage, campaigns) stay empty because
 there is no `.shipwright/` folder to read. Your own custom actions still work;
 they are read from the central folder above.
 
+**Hide the Shipwright-only pages (Settings → Standalone view)**
+
+Tick **Hide Triage and Ship's Log** to remove what only makes sense for
+Shipwright projects: Triage disappears from the sidebar and the command
+palette, and a project's Ship's Log is hidden — opening a project (project
+card, command palette) takes you to the task board filtered to that project,
+and `/triage` or a project's `/log` address redirects to the board. This is a
+per-browser display preference, off by default. It changes nothing about what
+is written to a repo; that is decided by the per-project Standalone flag above.
+
 **Good to know**
 
 - A pasted image is saved in the central folder, so the path typed into the

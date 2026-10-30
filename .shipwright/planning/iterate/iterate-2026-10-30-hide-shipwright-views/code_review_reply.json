@@ -1,0 +1,4 @@
+{"stage":"code-review","verdict":"PASS","summary":"Matches AC-1..AC-6; store snapshot is a stable primitive, no redirect loop, palette deps include the flag, no leaking entry point. Only low findings.","review":[
+{"finding":"localStorage unavailable -> toggle silently does nothing (no in-memory fallback).","severity":"low","category":"correctness","file":"client/src/lib/standaloneView.ts"},
+{"finding":"Project card still says 'Open log' when the click lands on the board.","severity":"low","category":"correctness","file":"client/src/components/external/ProjectLogCard.tsx"},
+{"finding":"No unit test for the sidebar, palette or campaign-link gating.","severity":"low","category":"readability","file":"client/src/lib/standaloneView.test.tsx"}]}
