@@ -14,7 +14,6 @@ import { seedClaudeJsonlEvents } from "../helpers/claude-jsonl";
 const RUN_ID = "iterate-2026-10-30-m5-desktop-chat-e2e";
 const SPEC_DOC = "# M5 desktop chat fixture\n\nTouches FR-01.66 only.\n\n## Affected Boundaries\n\nReads the session JSONL.\n";
 
-const text = (t: string) => ({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: t }] } });
 const narratedRead = (t: string) => ({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: t }, { type: "tool_use", id: "r1", name: "Edit", input: { file_path: "src/app.tsx" } }] } });
 const human = (t: string) => ({ type: "user", message: { role: "user", content: [{ type: "text", text: t }] } });
 const ask = (id: string, questions: unknown[]) => ({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id, name: "AskUserQuestion", input: { questions } }] } });
