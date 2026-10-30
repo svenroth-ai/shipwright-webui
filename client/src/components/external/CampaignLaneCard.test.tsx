@@ -3,6 +3,7 @@ import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import { setStandaloneViewEnabled } from "../../lib/standaloneView";
 import { CampaignLaneCard } from "./CampaignLaneCard";
 import type { Campaign } from "../../lib/campaignsApi";
 import type { Project } from "../../types";
@@ -253,5 +254,21 @@ describe("CampaignLaneCard", () => {
     const link = screen.getByTestId(`campaign-triage-link-${SLUG}`);
     expect(link).toHaveAttribute("href", "/triage");
     expect(link).toHaveTextContent("trg-721b1765");
+  });
+
+  // @covers FR-01.03
+  it("hides the triage cross-link in Standalone view", () => {
+    localStorage.setItem(`webui:campaign-card-collapsed:${SLUG}`, "false");
+    setStandaloneViewEnabled(true);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <CampaignLaneCard campaign={{ ...BASE, expandsTriage: "trg-721b1765" }} project={PROJECT} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByTestId(`campaign-triage-link-${SLUG}`)).toBeNull();
+    setStandaloneViewEnabled(false);
   });
 });

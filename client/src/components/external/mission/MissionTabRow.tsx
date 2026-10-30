@@ -19,6 +19,7 @@ import { BookOpen } from "lucide-react";
 
 import { MissionSegmented, type SegmentOption } from "./MissionSegmented";
 import { useMissionContext } from "../../../hooks/useMissionContext";
+import { useStandaloneView } from "../../../lib/standaloneView";
 
 export type MissionTab = "mission" | "files";
 
@@ -43,6 +44,7 @@ interface Props {
 
 export function MissionTabRow({ value, onChange, taskId }: Props) {
   const context = useMissionContext(taskId);
+  const standaloneView = useStandaloneView();
 
   // Hide ONLY on an explicit `false` from the resolver: while the query is
   // loading, or if it fails, the tab stays — hiding a useful tab on an unknown
@@ -67,6 +69,7 @@ export function MissionTabRow({ value, onChange, taskId }: Props) {
         ariaLabel="Task detail view"
       />
       <span className="grow" aria-hidden="true" />
+      {!standaloneView && (
       <Link
         to={SHIPS_LOG_ROUTE}
         className="btn-glass compact-tab-surface mobile-light-link inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--line)] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[var(--body)] shadow-sm transition hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent,#0E7A6B)] md:px-3 md:text-[13px] lg:min-h-9"
@@ -76,6 +79,7 @@ export function MissionTabRow({ value, onChange, taskId }: Props) {
         <BookOpen size={14} aria-hidden="true" />
         Shiplog
       </Link>
+      )}
     </div>
   );
 }

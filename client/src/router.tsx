@@ -13,6 +13,7 @@ import LeadInventoryPage from './pages/LeadInventoryPage';
 import PreviewPage from './pages/PreviewPage';
 import IntentWizardPage from './components/wizard/IntentWizard/IntentWizardPage';
 import FirstContact from './components/wizard/IntentWizard/FirstContact';
+import { HiddenInStandaloneView } from './components/common/HiddenInStandaloneView';
 import LeadSetupWizardPage from './components/wizard/LeadSetupWizard/LeadSetupWizardPage';
 
 export const router = createBrowserRouter([
@@ -42,9 +43,9 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <ProjectsPage />, handle: { nav: { label: 'Projects', order: 1 } } },
       // A16 (FR-01.60) — a project's HOME is its Ship's Log. This is the single
       // destination A15's openProjectLog() seam points at (client/src/lib/projectNav.ts).
-      { path: 'projects/:projectId/log', element: <ShipsLogPage /> },
+      { path: 'projects/:projectId/log', element: <HiddenInStandaloneView><ShipsLogPage /></HiddenInStandaloneView> },
       { path: 'inbox', element: <InboxPage />, handle: { nav: { label: 'Inbox', order: 2 } } },
-      { path: 'triage', element: <TriagePage />, handle: { nav: { label: 'Triage', order: 3 } } },
+      { path: 'triage', element: <HiddenInStandaloneView><TriagePage /></HiddenInStandaloneView>, handle: { nav: { label: 'Triage', order: 3 } } },
       // FR-01.71 — conditional visibility (useOrgChartPresence) filters this entry
       // at both SidebarNav and CommandCenter's read of getNavDestinations(); see
       // the iterate spec's Design Notes, "Nav presence".
