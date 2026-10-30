@@ -66,11 +66,11 @@
   },
   "surface_verification": {
     "surface": "web",
-    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/M4-mission-agents-window.spec.ts",
+    "runner": "npm.cmd --prefix client run test:e2e -- --reporter=json client/e2e/flows/M4-mission-agents-window.spec.ts",
     "exit_code": 0,
     "tests_run": 1,
     "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style--M4\\.shipwright\\runs\\iterate-2026-10-30-m4-agents-window\\surface_verification.log",
-    "timestamp": "2026-10-30T17:05:00.931Z"
+    "timestamp": "2026-10-30T17:15:55.313Z"
   },
   "declared_removals": [],
   "exemptions": {
