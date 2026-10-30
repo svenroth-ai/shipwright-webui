@@ -38,6 +38,7 @@ function TranscriptTab({ taskId, agent }: { taskId: string; agent: SessionSubage
   if (q.isLoading) body = <p className="ag-empty">Loading transcript...</p>;
   else if (q.isError) body = <p className="ag-empty" role="alert">Could not load the transcript.</p>;
   else if (q.data?.status !== "ok") body = <p className="ag-empty">No transcript file exists for this agent.</p>;
+  else if (q.data.content === "") body = <p className="ag-empty">The latest entry is too large to show here.</p>;
   else body = <BubbleTranscript content={q.data.content} />;
   return (
     <div className="ag-transcript" data-testid="agent-transcript">

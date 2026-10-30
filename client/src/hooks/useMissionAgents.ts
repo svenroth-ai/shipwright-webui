@@ -61,14 +61,19 @@ export function useMissionAgents(
   const lastSignature = useRef(signature);
   const lastActivity = useRef(activity);
   const updatedAt = useRef(0);
-  updatedAt.current = q.dataUpdatedAt;
+  useEffect(() => {
+    updatedAt.current = q.dataUpdatedAt;
+  }, [q.dataUpdatedAt]);
   useEffect(() => {
     if (!taskId) return;
     const dispatched = lastSignature.current !== signature;
     const grew = lastActivity.current !== activity && Date.now() - updatedAt.current > ACTIVITY_RESCAN_MS;
     lastSignature.current = signature;
-    lastActivity.current = activity;
-    if (dispatched || grew) void refetch({ cancelRefetch: false });
+    // A growth swallowed by the throttle is NOT consumed: the next growth still rescans.
+    if (dispatched || grew) {
+      lastActivity.current = activity;
+      void refetch({ cancelRefetch: false });
+    }
   }, [taskId, signature, activity, refetch]);
 
   const refresh = useCallback(() => void refetch({ cancelRefetch: false }), [refetch]);
@@ -84,6 +89,7 @@ export function useMissionAgents(
   const openFor = useCallback(
     (id?: string) => {
       if (id === undefined) {
+        setSelectedId(null); // opened from the bar: land on the first agent, not a stale card pick
         setOpen(true);
         return true;
       }
