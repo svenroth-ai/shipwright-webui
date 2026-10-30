@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
 import { useAutoScroll } from "../../../hooks/useAutoScroll";
 import type { ActivityFeed } from "../../../lib/missionActivityFeed";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
@@ -13,6 +13,10 @@ interface Props {
   /** Opens the right-side panel for a resolved subrunner card
    *  (iterate-2026-09-26-mission-tab-subrunner). */
   onSubrunnerClick?: (subrunnerId: string) => void;
+  /** M4: true when a subrunner card's agent can open in the Agents window (also while running). */
+  canOpenAgent?: (subrunnerId: string) => boolean;
+  /** M4: the Agents bar, pinned below the scrolling feed. */
+  footer?: ReactNode;
   commitArtifact: CommitArtifact | null;
   task: ExternalTask;
   /**
@@ -29,7 +33,7 @@ interface Props {
   visible?: boolean;
 }
 
-export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, commitArtifact, task, visible = true }: Props) {
+export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, canOpenAgent, footer, commitArtifact, task, visible = true }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // One-time "Session started · <date>, <time>" divider (iterate-2026-09-26-
   // mission-tab-subrunner) — replaces the removed per-card timestamps.
@@ -101,10 +105,11 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
             >
               <FeedIcon kind={card.kind} />
             </div>
-            <FeedCard card={card} onArtifactClick={onArtifactClick} onSubrunnerClick={onSubrunnerClick} commitArtifact={commitArtifact} task={task} />
+            <FeedCard card={card} onArtifactClick={onArtifactClick} onSubrunnerClick={onSubrunnerClick} canOpenAgent={canOpenAgent} commitArtifact={commitArtifact} task={task} />
           </div>
         );
       })}
     </div>
+    {footer}
   </section>;
 }

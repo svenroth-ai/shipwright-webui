@@ -124,6 +124,8 @@ export interface ActivityCard {
    * notification, then a later final one) — each arrival overwrites the
    * previous status/report, last one wins. */
   subrunnerStatus?: "running" | "done" | "failed";
+  /** M4: set with `subrunnerStatus: "failed"` when the agent was killed or stopped (vs. erroring). */
+  subrunnerEndStatus?: "killed" | "stopped";
   /** The delegated subagent's own final report, once resolved — same bounded
    * excerpt / untruncated-counterpart contract as every other `xFull` field. */
   subrunnerReport?: string;

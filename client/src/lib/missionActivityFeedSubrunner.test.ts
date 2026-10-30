@@ -267,3 +267,22 @@ describe("deriveActivityFeed — a non-review Task dispatch resolves synchronous
     expect(card?.subrunnerReport).toBe("The auth bug was a missing null-check in login.ts.");
   });
 });
+
+// M4: killed / stopped notifications are terminal non-success outcomes.
+describe("resolveSubrunnerNotification - killed / stopped (M4)", () => {
+  it.each(["killed", "stopped"] as const)("%s resolves the card as failed and names the outcome", (status) => {
+    const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "agent-42", subrunnerStatus: "running" };
+    resolveSubrunnerNotification([card], notification({ taskId: "agent-42", status, result: "cut short" }));
+    expect(card.subrunnerStatus).toBe("failed");
+    expect(card.subrunnerEndStatus).toBe(status);
+    expect(card.subrunnerReport).toBe("cut short");
+  });
+
+  it("a later completed notification clears the stopped marker", () => {
+    const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "agent-42", subrunnerStatus: "running" };
+    resolveSubrunnerNotification([card], notification({ taskId: "agent-42", status: "stopped", result: "a" }));
+    resolveSubrunnerNotification([card], notification({ taskId: "agent-42", status: "completed", result: "b" }));
+    expect(card.subrunnerStatus).toBe("done");
+    expect(card.subrunnerEndStatus).toBeUndefined();
+  });
+});
