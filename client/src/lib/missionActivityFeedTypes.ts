@@ -48,7 +48,7 @@ export interface ActivityCard {
    *  SOLE writer of this field and its very next statement pushes the label;
    *  nothing anywhere removes from `commands`. A hand-built card (only tests
    *  build one) that sets `commandCount` with `commands: []` breaks the
-   *  invariant and would render a blocker toggle revealing no chips —
+   *  invariant and would promise a command count with no chips —
    *  `FeedCommands` stays guarded on `commands.length` on purpose, since
    *  guarding it on `commandCount` would render an EMPTY chip row instead. */
   commandCount?: number;

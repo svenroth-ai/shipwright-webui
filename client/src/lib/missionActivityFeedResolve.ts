@@ -11,7 +11,7 @@ export type { PendingTool, ResolveState } from "./missionActivityFeedTypes";
 
 /** Fold one `user` event's `tool_result` blocks into the cards their matching
  *  `tool_use` already created — question resolution, test pass/fail/retry,
- *  and blocker creation/recovery. Extracted verbatim from
+ *  and test recovery. Extracted verbatim from
  *  `deriveActivityFeed`'s own `user`-event branch (iterate-2026-08-27
  *  bloat-ceiling split) — pure state mutation + reassignment, no behavior
  *  change. Returns the new `unresolvedTest` (the one field the caller must
@@ -192,16 +192,11 @@ export function resolveToolResults(
         awaitingTestResult.delete(pending.card);
       }
     } else if (pending.bucket === "subrunner") {
-      // MUST be checked before the generic `result.is_error` blocker branch
-      // below (external code review, glm, low — found via the transient-
-      // rejection trigger, but the actual gap was this ordering: the generic
-      // branch matches ANY error for ANY not-yet-excluded bucket, so it was
-      // silently swallowing a genuinely-failed — not just transiently-
-      // rejected — Agent/Task dispatch too, turning it into a `blocker` card
-      // and leaving `applySubrunnerAck`'s existing `isError`->"failed"
-      // fail-closed path, already covered by direct unit tests in
-      // `missionActivityFeedSubrunner.test.ts`, UNREACHABLE from the real
-      // reducer for every kind of dispatch error, not only a transient one).
+      // MUST be checked before the generic `result.is_error` skip below, or a
+      // failed Agent/Task dispatch would be silently ignored and stay
+      // "Running…" forever instead of resolving to "failed" via
+      // `applySubrunnerAck`'s isError path (also covers a transient
+      // classifier rejection of the dispatch).
       applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (result.is_error) {
       // A plain command failure outside the test/subrunner buckets is
@@ -217,15 +212,9 @@ export function resolveToolResults(
       // review (no `record_review_pass.py` call) never got that, leaving
       // the card permanently empty (iterate-2026-09-05-mission-feed-ux-gaps,
       // "External plan review wird angezeigt, aber das resultat nicht").
-      // First-wins, not the blocker branch's ambiguity skip (doubt-review
-      // catch, corrected after a regression test caught the first attempt):
-      // `add()` can coalesce two review-bucket tool calls with no narration
-      // between them into ONE card, each carrying its own real findings —
-      // unlike a blocker's error excerpt (which is genuinely ambiguous
-      // when several unrelated commands share the card), every review
-      // result here is equally relevant, so skipping both when there are
-      // 2+ commands would just as wrongly discard the FIRST review's
-      // detail. Attach only while nothing has been recorded yet.
+      // First-wins: `add()` can coalesce two review-bucket tool calls into
+      // ONE card, each carrying its own real findings, so attach only while
+      // nothing has been recorded yet rather than skipping 2+ commands.
       if (!pending.card.detail) attachDetail(pending.card, result.content);
     }
   }

@@ -93,7 +93,7 @@ describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie 
     expect(screen.getByText(/falls back to the legacy header/)).toBeInTheDocument();
   });
 
-  it("expands card.detailFull in place when Show more is clicked (a non-blocker card's detail — a blocker's own detail toggle is covered separately below)", async () => {
+  it("expands card.detailFull in place when Show more is clicked (a card's detail)", async () => {
     const user = userEvent.setup();
     renderCard({ kind: "review", text: "", commands: [], status: "ok", detail: "PASS line one\nline two…", detailFull: "PASS line one\nline two\nline three\nline four\nline five" });
     await user.click(screen.getByRole("button", { name: "Show more" }));
@@ -154,7 +154,7 @@ describe("FeedCard — commands are collapsed behind a summary line by default (
 
   // 54th-round catch (glm, low, test), ANSWERED: the `/command/i` matcher is
   // deliberately BROAD - it must also catch a "Show details (N commands)"
-  // toggle leaking onto a non-blocker card, not only the "N commands" one.
+  // toggle leaking onto a card, not only the "N commands" one.
   // Narrowing it to an exact name would shrink what the test can notice.
   it("renders no toggle at all when the card has no commands", () => {
     renderCard({ kind: "implement", text: "Some narration.", commands: [] });

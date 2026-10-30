@@ -5,7 +5,7 @@
  * The harness's own "auto mode classifier gave no verdict (error)" tool-call
  * rejection is a preflight failure, not a real command result — the tool
  * never ran. Before this fix it was treated exactly like a genuine failure:
- * a non-test tool call permanently became a "command failed" `blocker` card
+ * a non-test tool call permanently became a "command failed" error card
  * (reported: "Ich habe immer noch failed drin. Die sollen weg."), and a test
  * invocation rejected this way left a wordless "1 command" chip with no pill
  * once a LATER real invocation became the feed's own reconciled verdict
@@ -215,7 +215,7 @@ describe("deriveActivityFeed — a transiently-rejected subrunner dispatch resol
   });
 
   // The actual root cause was one level deeper than the trigger that
-  // surfaced it: the generic `else if (result.is_error)` blocker branch in
+  // surfaced it: the generic `else if (result.is_error)` branch in
   // `resolveToolResults` matched ANY error for any not-yet-excluded bucket,
   // so it also swallowed a GENUINE (non-transient) dispatch failure before
   // `applySubrunnerAck`'s own `isError`->"failed" fail-closed path — already
@@ -223,7 +223,7 @@ describe("deriveActivityFeed — a transiently-rejected subrunner dispatch resol
   // was ever reached. This proves that path is now actually reachable from
   // the real reducer, for every kind of dispatch error, not only a
   // transiently-rejected one.
-  it("a genuinely failed (non-transient) Agent dispatch still resolves to a failed subrunner card, never a blocker card (negative control)", () => {
+  it("a genuinely failed (non-transient) Agent dispatch still resolves to a failed subrunner card, never a command-failed card (negative control)", () => {
     const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "a1", name: "Agent", input: { subagent_type: "general-purpose", description: "Investigate the failure" } }] } });
     const events = parseSessionJsonl([dispatch, result("a1", "The agent launch failed outright.", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, null);

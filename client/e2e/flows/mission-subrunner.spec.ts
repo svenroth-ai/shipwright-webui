@@ -125,6 +125,11 @@ test.describe("Mission activity feed — subrunner visibility (Sven's 2026-09-26
 
     const openReport = subrunner.getByRole("button", { name: "View subrunner report" });
     await expect(openReport).toBeVisible({ timeout: 15_000 });
+    // The status glyph is line-size, not the oversized default SVG (M1).
+    const glyph = await openReport.locator("svg").boundingBox();
+    expect(glyph).not.toBeNull();
+    expect(glyph!.width).toBeLessThanOrEqual(24);
+    expect(glyph!.height).toBeLessThanOrEqual(24);
     await openReport.click();
 
     const panel = page.getByRole("dialog");

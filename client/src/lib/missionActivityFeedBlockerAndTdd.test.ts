@@ -2,10 +2,8 @@
  * iterate-2026-09-16-mission-feed-render-fidelity — split out of
  * `missionActivityFeed.test.ts` (already near the project's 300-line
  * convention) to cover excluding a TDD authoring run (a freshly-written
- * test's own first run) from the run-wide pass/fail gate stamp. The blocker-
- * explanation coverage this file also used to hold moved to the sibling
- * `missionActivityFeedBlockerText.test.ts` (17th-round, re-crossed 300); the
- * FAILED-write rollback MECHANISM (tracker restoration, tool_result
+ * test's own first run) from the run-wide pass/fail gate stamp.
+ * The FAILED-write rollback MECHANISM (tracker restoration, tool_result
  * ordering) moved to `missionActivityFeedAuthoringRollback.test.ts` (23rd-
  * round, re-crossed 300 again).
  */

@@ -58,7 +58,7 @@ describe("deriveActivityFeed - commandCount tracks real tool calls, not deduped 
       // Narrated (implement/investigate cards would otherwise carry no text
       // of their own and be dropped entirely by the empty-tool-only-card
       // filter, iterate-2026-09-20-mission-feed-transcript-fidelity) — a
-      // `test`/`blocker` card always carries real content regardless, so
+      // `test` card always carries real content regardless, so
       // those two stay bare.
       narratedTool("Fixing the typo in a.ts.", "a", "Edit", { file_path: "src/a.ts" }), result("a"),
       narratedTool("Double-checking b.ts.", "b", "Read", { file_path: "src/b.ts" }), result("b"),

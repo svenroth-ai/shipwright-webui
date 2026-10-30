@@ -81,7 +81,7 @@ describe("MissionActivityFeed", () => {
     expect(screen.queryByText("FAIL entire traceback dump")).toBeNull();
   });
 
-  // 46th (glm, low, test), ANSWERED: a NON-blocker renders `card.detail` in its own `<pre>` OUTSIDE `FeedCommands` - no toggle.
+  // 46th (glm, low, test), ANSWERED: a test card renders `card.detail` in its own `<pre>` OUTSIDE `FeedCommands` - no toggle.
   it("renders a status pill and a bounded error excerpt for a failing test card", () => {
     const { container } = render(<MissionActivityFeed feed={{
       outcome: "In progress",

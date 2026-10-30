@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-30-m1-quick-wins",
+  "date": "2026-10-30",
+  "section": "Iterate - change: no error cards in Mission feed",
+  "title": "Mission feed shows no error/blocker cards",
+  "context": "The feed synthesized 'A command failed: ...' blocker cards plus a 'run ended before the blocker was resolved' sentence for any failed plain command; the operator wants errors handled in the terminal only.",
+  "decision": "Stop producing the card in the reducer (generic is_error continues untouched) and delete the dead blocker machinery: kind, recovery merge, reconcile sentence, renderer disclosure, summarizer.",
+  "consequences": "Failed plain commands leave no trace in the feed; user-input questions, Failing test cards, failed subrunner cards and delivery/PR cards are unchanged. Old blocker tests rewritten to assert absence.",
+  "rationale": "A render-time filter would leave an invisible card state to maintain; removing the producer is smaller long-term. Both external architecture reviewers approved option 3.",
+  "rejected": "Hide the card via CSS/render filter (keeps dead state); keep the card but restyle (contradicts 'no error messages in the chat').",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

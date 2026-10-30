@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-30-m1-quick-wins",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T13:27:59.309800+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The spec's verification requirement (\"verify the same logic does not also drive genuine interactive blockers\") is addressed only by asserting AC3 in tests. But the mini-plan removes the generic `is_error => continue` recovery branch and `unresolvedBlockers` from resolve — if the blocker-error path shares any code with how unresolved interactive blockers get resolved/retried (e.g., the \"Claude may retry\" logic may also serve user-input timeouts), removing the recovery branch could affect AskUserQuestion flows that time out.",
+          "suggestion": "Trace the resolve path explicitly for the `user-input` bucket before deleting the recovery branch. Add a test case: an unresolved user-input blocker at run end — confirm its rendering/resolution behavior is unchanged.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "AC1 says failed plain commands render NO card. But the existing \"blocker-error\" card was produced when a command failed and blocked the run. If error output was previously surfaced in the feed, users lose the only in-UI signal that something went wrong — the spec accepts this (\"errors handled in terminal\"), but only if a terminal actually exists in every context the feed is viewed (e.g., viewing past mission activity after terminal scrollback is gone).",
+          "suggestion": "Confirm the mission's error state is still visible somewhere in the UI (run status, exit code on the mission row). If the feed is the sole error surface in some view, flag back to the spec author rather than silently dropping information.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "ActivityKind \"blocker\"` is removed from the type, but persisted historical mission activity (stored feeds) may contain records with `kind: \"blocker\"`. Removing the kind from the union and the render branch could cause runtime errors or silent drops when replaying old missions.",
+          "suggestion": "Keep `blocker` in the ActivityKind union (deprecated) with a no-op render, or add a migration/filter on load. At minimum, add a test loading a fixture with legacy `blocker` records.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "AC5 puts the status glyph at 1em via CSS inside the link with the title attribute — but if `card.text` (dispatch description) is empty or a raw hash in some existing records, the link title falls back to nothing readable.",
+          "suggestion": "Add a fallback (`card.text || 'Subrunner report'`) for the title attribute.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Moving `attachDetail` to `missionActivityFeedDetail.ts` while deleting `missionActivityFeedBlockerError.ts` couples two changes (card removal + file reorganization). If the detail attachment is shared with other card kinds, this move is fine; if it was blocker-specific, it should probably be deleted too.",
+          "suggestion": "Clarify whether `attachDetail` has non-blocker consumers; if blocker-only, delete rather than relocate.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Correctly scoped — deferring the subagent transcript view, defining the TBD acceptance criteria concretely, and flipping the e2e to assert absence are all the right calls. No over-production detected.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "AC3 preserves test-failure and failed-subrunner cards, while the specification says “No error messages in the chat at all.” The plan silently narrows that requirement to plain command errors.",
+          "suggestion": "Resolve this scope mismatch before implementation. Define whether failed test/subrunner status cards are allowed, and whether their error text or raw output must be suppressed. Align the rendering rules and tests with that decision.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Adding the readable dispatch description as a `title` attribute does not satisfy the requirement that the report show a readable title as its link. A hash-only link remains hash-only in the normal view, and tooltips are unreliable on touch devices and for keyboard users.",
+          "suggestion": "Use the readable title as the visible report-link text, retaining the existing destination. Verify the result with a realistic long title and the line-size status glyph.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Removing the entire `blocker` kind assumes every genuine interactive blocker uses the `user-input` path. The plan identifies AskUserQuestion, but does not establish that other interactive blocker producers or previously stored activity cannot use `blocker`.",
+          "suggestion": "Check all producers and consumers before deleting the kind, including persisted activity if applicable. Preserve or map genuine interactive cases, and retain a regression test showing an unanswered question remains visible when the run ends.  The approach is appropriately small and avoids building the transcript view. The error-visibility contract and visible report-link behavior need correction, and deleting the blocker kind needs the targeted compatibility check above.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-30T13:26:59.562428+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] # Review: M1 — Remove error cards, compact subrunner row\n\n## Findings\n\n**Category: risk — Severity: medium**\n**Finding:** The spec's verification requirement (\"verify the same logic does not also drive genuine interactive blockers\") is addressed only by asserting AC3 in tests. But the mini-plan removes the generic `is_error => continue` recovery branch and `unresolvedBlockers` from resolve — if the blocker-error path shares any code with how unresolved *interactive* blockers get resolved/retried (e.g., the \"Claude may retry\" logic may also serve user-input timeouts), removing the recovery branch could affect AskUserQuestion flows that time out.\n**Suggestion:** Trace the resolve path explicitly for the `user-input` bucket before deleting the recovery branch. Add a test case: an unresolved user-input blocker at run end — confirm its rendering/resolution behavior is unchanged.\n\n**Category: risk — Severity: medium**\n**Finding:** AC1 says failed plain commands render NO card. But the existing \"blocker-error\" card was produced when a command failed *and blocked the run*. If error output was previously surfaced in the feed, users lose the only in-UI signal that something went wrong — the spec accepts this (\"errors handled in terminal\"), but only if a terminal actually exists in every context the feed is viewed (e.g., viewing past mission activity after terminal scrollback is gone).\n**Suggestion:** Confirm the mission's error state is still visible somewhere in the UI (run status, exit code on the mission row). If the feed is the sole error surface in some view, flag back to the spec author rather than silently dropping information.\n\n**Category: risk — Severity: low**\n**Finding:** `ActivityKind \"blocker\"` is removed from the type, but persisted historical mission activity (stored feeds) may contain records with `kind: \"blocker\"`. Removing the kind from the union and the render branch could cause runtime errors or silent drops when replaying old missions.\n**Sugg […truncated]\n\n[openai] 1. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** AC3 preserves test-failure and failed-subrunner cards, while the specification says “No error messages in the chat at all.” The plan silently narrows that requirement to plain command errors.  \n   **Suggestion:** Resolve this scope mismatch before implementation. Define whether failed test/subrunner status cards are allowed, and whether their error text or raw output must be suppressed. Align the rendering rules and tests with that decision.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** Adding the readable dispatch description as a `title` attribute does not satisfy the requirement that the report show a readable title as its link. A hash-only link remains hash-only in the normal view, and tooltips are unreliable on touch devices and for keyboard users.  \n   **Suggestion:** Use the readable title as the visible report-link text, retaining the existing destination. Verify the result with a realistic long title and the line-size status glyph.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** Removing the entire `blocker` kind assumes every genuine interactive blocker uses the `user-input` path. The plan identifies AskUserQuestion, but does not establish that other interactive blocker producers or previously stored activity cannot use `blocker`.  \n   **Suggestion:** Check all producers and consumers before deleting the kind, including persisted activity if applicable. Preserve or map genuine interactive cases, and retain a regression test showing an unanswered question remains visible when the run ends.\n\nThe approach is appropriately small and avoids building the transcript view. The error-visibility contract and visible report-link behavior need correction, and deleting the blocker kind needs the targeted compatibility check above.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 14,
+          "finding": "Doc comment still lists blocker creation/recovery.",
+          "suggestion": "Drop it.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 195,
+          "finding": "Subrunner-branch comment explains ordering in terms of the removed blocker branch.",
+          "suggestion": "Reword to the failed-dispatch-never-resolves reason.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 220,
+          "finding": "Review-branch comment contrasts with the removed blocker branch.",
+          "suggestion": "Shorten to first-wins rationale.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedTypes.ts",
+          "line": 51,
+          "finding": "commandCount comment mentions a deleted blocker toggle.",
+          "suggestion": "Reword.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedBlockerAndTdd.test.ts",
+          "line": 5,
+          "finding": "Header references deleted BlockerText test.",
+          "suggestion": "Remove sentence.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedDetail.ts",
+          "line": 8,
+          "finding": "Doc comment carries history.",
+          "suggestion": "Drop parenthetical.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionBody.tsx",
+          "line": 20,
+          "finding": "Comment mentions blocker cards.",
+          "suggestion": "test cards.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedTransientTestDrop.ts",
+          "line": 11,
+          "finding": "Comment mentions generic blocker path.",
+          "suggestion": "coalesced path.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedTransientClassifierError.test.ts",
+          "line": 8,
+          "finding": "Several test comments/names still describe blocker behaviour.",
+          "suggestion": "Reword.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.test.tsx",
+          "line": 196,
+          "finding": "Test name overclaims; jsdom cannot check the 1em size.",
+          "suggestion": "Rename and add a real-browser check.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedFields.test.ts",
+          "line": 127,
+          "finding": "cards.every on possibly-empty list is weak.",
+          "suggestion": "Add narration so a card survives.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedText.ts",
+          "line": 196,
+          "finding": "Double blank line.",
+          "suggestion": "Collapse.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T13:33:36.823623+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "5ff72ec6f9685162d0411788c81d2c6891890b3e"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T13:33:54.851225+00:00",
+      "disposition": "Stage 3 applies to migrations, async/concurrency, cross-plugin imports or irreversible ops; this is a client-side feed removal at small complexity with none of those.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/missionActivityFeedResolve.ts (~line 207, the `else if (result.is_error) { ... continue; }` branch)",
+          "line": null,
+          "finding": "The spec says \"Verify the same logic does not also drive genuine interactive blockers or questions and keep those.\" The removed `handleGenericBlockerError` was the generic catch-all for every `is_error` tool_result outside the test/subrunner/review branches. This diff replaces it with an unconditional `continue` and contains no test or code demonstrating that an interactive blocker path (e.g. a permission prompt / AskUserQuestion-style interruption surfacing through an error tool_result) is still surfaced. If any genuine interactive blocker previously reached this branch, it is now silently dropped.",
+          "suggestion": "Add a test seeding an interactive-blocker-shaped error result and assert a card still renders; if it doesn't, restore a narrow branch for that case before the `continue`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx / mission-operation.css",
+          "line": null,
+          "finding": "The spec's subrunner requirement is \"the report shows a readable title with a link, not just a hash.\" The diff contains only a CSS size fix and a new test; no renderer change converts a hash-only subrunner title into the dispatch title/link. If the readable title already existed, this is fine, but if the shipped card showed a hash (as the spec implies), that half of the subrunner work is missing — the new test only checks that `card.text` renders and that an svg exists, which would pass against the old hash-only rendering too as long as text is passed through.",
+          "suggestion": "Verify against the mockup (board 2) what the subrunner row should show, and either add a renderer change or pin in the test that the rendered label is the dispatch title, not the agent id/hash.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/lib/missionActivityFeed.test.ts (\"a failed read never produces an error card\") and missionActivityFeedFields.test.ts (\"attaches no error excerpt for a single failing non-test command\")",
+          "line": null,
+          "finding": "These tests assert only negative invariants (`status !== \"err\"`, `detail === undefined`) which pass trivially if the reducer produces zero cards or drops them entirely — including a wrong implementation that also drops the turn's narration card. The fields test even acknowledges the card is dropped (\"a wordless read-only card is dropped\"). Nothing pins that the turn's own narration card still survives with its text, unlike the (g) test in missionActivityFeed.explanation.test.ts which does it properly.",
+          "suggestion": "In the single-failing-command cases, also assert the surviving card's text/explanation (like the (g) test does) so the \"keep the turn's narration\" behavior is pinned at every mutation site.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/missionActivityFeedResolve.ts (the `continue` branch)",
+          "line": null,
+          "finding": "A failed command's card now keeps only whatever the turn wrote plus a bare command chip with no status marker — a card reading \"Pushing the branch.\" + a `Bash: git push` chip is visually identical whether the push failed or succeeded. This is presumably the accepted M1 trade-off, but there is no test pinning that a successful and a failed command render distinguishably (or intentionally not), so a future change could reintroduce or over-remove status silently.",
+          "suggestion": "Add one test asserting the intended final shape for a failed command's card (text kept, no err pill) next to the successful twin.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "regression",
+          "file": "client/src/lib/missionActivityFeedTypes.ts — removal of `ActivityKind` \"blocker\" and `textLiteral`, plus deletion of `summarizeBlockerError`'s re-export in missionActivityFeedText.ts",
+          "line": null,
+          "finding": "These are hard removals of exported surface. Everything visible in the diff compiles, but any consumer outside the diff (other components, e2e helpers, or snapshot fixtures referencing `kind: \"blocker\"` / `textLiteral` / `summarizeBlockerError`) will now break at type-check or runtime. The e2e file updated here suggests there may be more stale references elsewhere in the e2e suite.",
+          "suggestion": "Run a repo-wide grep for `\"blocker\"`, `textLiteral`, and `summarizeBlockerError` before merging; update or remove any remaining fixtures.  Overall: the core M1 removal is implemented coherently and the deletion of the blocker machinery is thorough, but the spec's explicit \"verify interactive blockers survive\" requirement is not evidenced, and the subrunner \"readable title\" half may be missing. Ship-with-fixes.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+          "line": 148,
+          "finding": "Failed test output still renders directly in the feed through `card.detail`. The resolver continues attaching error excerpts to test cards, and the updated tests explicitly preserve this behavior. This only removes generic command errors; it does not satisfy “No error messages in the chat at all.”",
+          "suggestion": "Stop attaching or displaying failed tool output in feed cards, including test failures. Keep genuine interactive questions and any required test verdict indicators separate from terminal error text.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.test.tsx",
+          "line": 196,
+          "finding": "The new “compact (non-oversized)” test only checks that an SVG exists. It would pass if the sizing rule were removed entirely, reproducing the oversized checkmark this change is meant to fix.",
+          "suggestion": "Add a browser assertion that checks the rendered glyph dimensions against the link’s line size.  Overall assessment: ship-with-fixes. The generic blocker removal is implemented, but terminal error output still appears in the feed contrary to the explicit scope.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-30T13:33:36.942992+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] - Category: spec\n- Severity: medium\n- File: client/src/lib/missionActivityFeedResolve.ts (~line 207, the `else if (result.is_error) { ... continue; }` branch)\n- Finding: The spec says \"Verify the same logic does not also drive genuine interactive blockers or questions and keep those.\" The removed `handleGenericBlockerError` was the generic catch-all for every `is_error` tool_result outside the test/subrunner/review branches. This diff replaces it with an unconditional `continue` and contains no test or code demonstrating that an interactive blocker path (e.g. a permission prompt / AskUserQuestion-style interruption surfacing through an error tool_result) is still surfaced. If any genuine interactive blocker previously reached this branch, it is now silently dropped.\n- Suggestion: Add a test seeding an interactive-blocker-shaped error result and assert a card still renders; if it doesn't, restore a narrow branch for that case before the `continue`.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeedCard.tsx / mission-operation.css\n- Finding: The spec's subrunner requirement is \"the report shows a readable title with a link, not just a hash.\" The diff contains only a CSS size fix and a new test; no renderer change converts a hash-only subrunner title into the dispatch title/link. If the readable title already existed, this is fine, but if the shipped card showed a hash (as the spec implies), that half of the subrunner work is missing — the new test only checks that `card.text` renders and that an svg exists, which would pass against the old hash-only rendering too as long as text is passed through.\n- Suggestion: Verify against the mockup (board 2) what the subrunner row should show, and either add a renderer change or pin in the test that the rendered label is the dispatch title, not the agent id/hash.\n\n- Category: test\n- Severity: medium\n- File: client/src/lib/missionActivityFeed.test.ts (\"a failed read […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeedCard.tsx:148\n- Finding: Failed test output still renders directly in the feed through `card.detail`. The resolver continues attaching error excerpts to test cards, and the updated tests explicitly preserve this behavior. This only removes generic command errors; it does not satisfy “No error messages in the chat at all.”\n- Suggestion: Stop attaching or displaying failed tool output in feed cards, including test failures. Keep genuine interactive questions and any required test verdict indicators separate from terminal error text.\n\n- Category: test\n- Severity: low\n- File: client/src/components/external/mission/MissionActivityFeedCard.test.tsx:196\n- Finding: The new “compact (non-oversized)” test only checks that an SVG exists. It would pass if the sizing rule were removed entirely, reproducing the oversized checkmark this change is meant to fix.\n- Suggestion: Add a browser assertion that checks the rendered glyph dimensions against the link’s line size.\n\nOverall assessment: ship-with-fixes. The generic blocker removal is implemented, but terminal error output still appears in the feed contrary to the explicit scope.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T13:31:55.888266+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "5ff72ec6f9685162d0411788c81d2c6891890b3e"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T13:26:59.709021+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T13:26:59.846066+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
