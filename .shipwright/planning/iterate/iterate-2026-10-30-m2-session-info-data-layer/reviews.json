@@ -142,56 +142,20 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 5,
+      "findings_count": 1,
       "findings": [
         {
           "severity": "low",
-          "category": "correctness",
-          "file": "server/src/core/session-info/small-file.ts",
-          "line": 29,
-          "finding": "Post-open lstat dev/ino cross-check runs on POSIX too, where O_NOFOLLOW already refused symlinks; a temp-write+rename between open and lstat yields null for one poll (Remote Control reads off once).",
-          "suggestion": "Only compare when O_NOFOLLOW is undefined, or retry once on mismatch.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "server/src/core/session-info/small-file.ts",
-          "line": 32,
-          "finding": "Single fh.read of st.size bytes; short read practically impossible locally, possible on network FS / concurrent truncation, then silently treated as absent.",
-          "suggestion": "Optional read-until-0 loop like line-scan.ts.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "server/src/core/session-info/small-file.test.ts",
-          "line": 46,
-          "finding": "Symlink test skipped on Windows without Developer Mode; dev/ino-mismatch and FIFO branches untested.",
-          "suggestion": "Mock lstat to force the mismatch branch; optional POSIX mkfifo case.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
           "category": "readability",
-          "file": "server/src/core/session-info/small-file.ts",
-          "line": 20,
-          "finding": "`let fh;` is an untyped evolving-any declaration.",
-          "suggestion": "Type as FileHandle.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "security",
-          "file": "server/src/core/session-info/session-info.ts",
-          "line": 102,
-          "finding": "Remaining check-then-use audit: stat at :102/:119 only feeds the memo signature and the open is in another module; realpath->readdir is not a sink; small-file lstat runs after open. No remaining HIGH CodeQL candidate expected (inferred, not confirmed by a run).",
-          "suggestion": "Confirm with CodeQL on the PR head; if flagged, take size/mtime from fh.stat inside scanLines.",
+          "file": "server/src/core/session-info/collect-tag.test.ts",
+          "line": 17,
+          "finding": "The comment says expected values are what the old RegExp extraction returned; true only for the it.each cases. The metacharacter case documents an intentional change (old pattern for 'a.b' would match '<axb>').",
+          "suggestion": "Scope the comment to it.each and note the metacharacter test is an intentional fix.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T15:09:04.581194+00:00",
+      "completed_at": "2026-10-30T15:26:03.913090+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -201,57 +165,39 @@
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 5,
+      "findings_count": 3,
       "findings": [
-        {
-          "severity": "medium",
-          "category": "concurrency",
-          "file": "server/src/core/session-info/session-info.ts:64-80,134",
-          "line": null,
-          "finding": "Claim under doubt: the in-flight memo can only ever hold a settled or soon-to-settle scan — scanCached caches the PENDING promise and evicts only on rejection; no timeout. A stalled fh.read (hung network/cloud-synced home, AV filter, FIFO) never settles, and every later poll with the same size:mtime key gets that promise, so GET /session-info hangs until the file changes (for a finished session, until restart). One stuck subagent scan also holds a pool worker.",
-          "suggestion": "Timeout on the memoized promise (Promise.race + memo delete), or argue no supported deployment can stall a local read.",
-          "source": "doubt-reviewer"
-        },
         {
           "severity": "low",
           "category": "boundary & contract",
-          "file": "server/src/core/session-info/line-scan.ts:35; session-info.ts:96-104",
+          "file": "server/src/core/session-info/collect.ts:129-131, 113",
           "line": null,
-          "finding": "Claim under doubt: small-file.ts hardens the session-info read surface against planted special files — Large jsonl scans still open by path with plain 'r' (line-scan.ts:35) after a Dirent.isFile() filter; a FIFO swapped in on POSIX would block open. Needs write access to ~/.claude, so not a privilege boundary, but the hardening claim is narrower than it reads.",
-          "suggestion": "Use the same flags + fh.stat().isFile() in openReadOnly, or scope the small-file.ts header claim.",
+          "finding": "Claim under doubt: notification numbers and status come from the real usage block — result (free text) precedes usage, and tag() takes the first match in the whole body, so a result quoting duration_ms/subagent_tokens/tool_uses tags wins over the real usage values; a literal closing task-notification tag inside result truncates NOTIF_RE so the numbers become null. Same as the old regex (not a regression); task-id/status cannot be spoofed (they precede result).",
+          "suggestion": "Look usage fields up inside tag(body,'usage') first, or accept as known (display-only).",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": "boundary & contract (Windows)",
-          "file": "server/src/core/session-info/small-file.ts:27-30",
+          "category": "concurrency & ordering (event-loop blocking)",
+          "file": "server/src/core/session-info/collect.ts:113, 125, 169",
           "line": null,
-          "finding": "Claim under doubt: on Windows, post-open lstat (dev, ino) always equals fh.stat (dev, ino) — Different libuv paths (handle vs by-name fast path); agree on NTFS (tested), but ReFS/Dev Drive 128-bit IDs could disagree, making every read null silently.",
-          "suggestion": "Accept (~/.claude on NTFS system drive) or fall back to !isSymbolicLink() on win32 / debug log on mismatch.",
+          "finding": "Claim under doubt: the per-line regex work is cheap — NOTIF_RE is a lazy regex over user-controlled text; a pasted message with many unclosed task-notification openers is O(k*n) and can stall the event loop on rescans. Pre-existing, needs adversarial pasted input.",
+          "suggestion": "indexOf loop for the outer tag too, or cap text length before matching.",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": "concurrency",
-          "file": "server/src/core/session-info/subagents.ts:39,61",
+          "category": "hidden coupling",
+          "file": "server/src/core/session-info/collect-tag.test.ts:34-47",
           "line": null,
-          "finding": "Claim under doubt: the scan path is bounded so a cold memo does not open 60 files at once — readMeta runs for all subagent files via Promise.all (up to 60 concurrent small reads per poll); readMeta also accepts a JSON array.",
-          "suggestion": "Bound meta reads through the worker or state it is deliberate; optional Array.isArray guard.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "concurrency (live writer)",
-          "file": "server/src/core/session-info/small-file.ts:31-32; remote-control.ts:60-61",
-          "line": null,
-          "finding": "Claim under doubt: a sessions/<pid>.json being rewritten only causes a skip, never a wrong answer — Single read, no retry; an in-place rewrite or Windows sharing violation reads as absent, so Remote Control flickers off for one poll.",
-          "suggestion": "Note as M3 UI constraint (debounce active->false) or retry once on parse failure.",
+          "finding": "Claim under doubt: collect-tag.test.ts proves equivalence with the old regex — Hard-coded expectations omit nested same-name and first-unclosed-then-closed cases; equivalence proven by argument only.",
+          "suggestion": "Add the two cases or a property test.",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T15:11:16.331765+00:00",
-      "disposition": "Addressed at 3f-bis (fix rounds exhausted). medium: pending scan memoized without timeout - rebuttal: needs a hung LOCAL read of ~/.claude (supported deployments keep it on a local disk); the transcript route shares the same exposure; follow-up: add a deadline + memo delete. M3 constraints carried by orchestrator: full 48MB window rescan per poll (coalesce or >=5s visible-only poll); debounce Remote Control active->false (one-poll flicker). Earlier-round medium (PID reuse false-positive) stays a documented limitation. 4 low advisory.",
+      "completed_at": "2026-10-30T15:26:58.203901+00:00",
+      "disposition": "Addressed at 3f-bis: 3 LOW on 898d1060, advisory (follow-ups). Carried from the 9b30eab8 doubt pass: medium pending-scan memo without timeout (rebutted: needs a hung local read; follow-up deadline+memo delete); M3 constraints: 48MB window rescan per poll (coalesce or >=5s visible-only poll), debounce Remote Control active->false; PID-reuse false positive is a documented limitation.",
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
@@ -379,7 +325,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T15:07:33.765702+00:00",
+      "completed_at": "2026-10-30T15:25:10.175111+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
