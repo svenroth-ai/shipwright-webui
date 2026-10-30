@@ -42,7 +42,7 @@ export function registerActionsStub(
     try {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
       // Never shadow a legacy in-repo actions.json with an empty central stub.
-      if (!existsSync(file) && !existsSync(join(projectActionsReadDir(project), "actions.json"))) {
+      if (!existsSync(join(projectActionsReadDir(project), "actions.json"))) {
         const stub = {
           $schema:
             "https://shipwright.dev/schemas/actions.v1.json (see docs/actions.md)",
@@ -52,7 +52,12 @@ export function registerActionsStub(
           phases: [],
           preview: { enabled: "auto" },
         };
-        writeFileSync(file, JSON.stringify(stub, null, 2) + "\n", "utf-8");
+        try {
+          // "wx": create-only, so a concurrent create is EEXIST, not a check-then-write race.
+          writeFileSync(file, JSON.stringify(stub, null, 2) + "\n", { encoding: "utf-8", flag: "wx" });
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+        }
       }
       clearActionsCacheForRecord(project);
       return c.json({ path: file, created: true });
