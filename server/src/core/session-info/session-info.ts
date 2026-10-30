@@ -45,8 +45,13 @@ export const scanStats = { scans: 0 };
 
 async function scanFile(file: string, maxBytes: number, agentId: string | null): Promise<Scanned> {
   scanStats.scans++;
-  const facts = newFacts();
-  const scan = await scanLines(file, maxBytes, (l) => ingestLine(facts, l, agentId));
+  // readWithRetry re-runs the whole scan on a transient fs error: every attempt starts from fresh facts.
+  let facts = newFacts();
+  const scan = await scanLines(file, maxBytes, (l) => ingestLine(facts, l, agentId), {
+    onAttempt: () => {
+      facts = newFacts();
+    },
+  });
   if (scan.truncated) {
     // Window skipped the start; recover the true start timestamp from the head.
     const head = await readFirstLine(file).catch(() => null);

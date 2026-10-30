@@ -21,6 +21,8 @@ export interface ScanOptions {
   chunkBytes?: number;
   maxLineBytes?: number;
   openForRead?: OpenForRead;
+  /** Called at the start of every attempt (readWithRetry re-runs the whole scan): reset consumer state here. */
+  onAttempt?: () => void;
 }
 
 export interface LineScanResult {
@@ -43,6 +45,7 @@ export async function scanLines(
   const openForRead = opts.openForRead ?? openReadOnly;
   // The file was just located, so ENOENT means "gone": fail fast instead of burning the ~3 s retry budget.
   return readWithRetry(async () => {
+    opts.onAttempt?.();
     const fh = await openForRead(filePath);
     try {
       const { size } = await fh.stat();

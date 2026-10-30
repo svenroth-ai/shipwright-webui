@@ -12,6 +12,8 @@ import type { SessionOutputFile } from "./types.js";
 const OUTPUT_TOOLS = new Set(["Write", "Edit", "NotebookEdit", "MultiEdit"]);
 
 export interface Notification {
+  /** Timestamp of the record that carried it (to tell a resumed agent from a finished one). */
+  at: string | null;
   taskId: string;
   toolUseId: string | null;
   status: string | null;
@@ -28,6 +30,7 @@ export interface AgentToolUse {
 }
 
 export interface ToolResult {
+  at: string | null;
   isError: boolean;
   status: string | null;
   durationMs: number | null;
@@ -36,6 +39,8 @@ export interface ToolResult {
 }
 
 export interface Facts {
+  /** tool_use ids with no tool_result yet: a long silent tool call is not a dead agent. */
+  pendingUse: Set<string>;
   /** tool_use id -> result, for foreground subagents (no task-notification) and failed writes. */
   toolResults: Map<string, ToolResult>;
   /** output tool_use id -> output key, so an errored write can be retracted. */
@@ -59,6 +64,7 @@ export interface Facts {
 
 export function newFacts(): Facts {
   return {
+    pendingUse: new Set(),
     toolResults: new Map(),
     outputUses: new Map(),
     outputAttempts: new Map(),
@@ -87,7 +93,7 @@ function normalizeAbsolute(p: string, cwd: string | null): string | null {
   const isWin = (s: string) => /^[A-Za-z]:[\\/]/.test(s) || s.startsWith("\\\\");
   if (isWin(p)) return path.win32.normalize(p);
   if (p.startsWith("/")) return cwd && isWin(cwd) ? null : path.posix.normalize(p);
-  if (!cwd) return null; // relative path with no cwd to anchor it — unknowable
+  if (!cwd || !(isWin(cwd) || cwd.startsWith("/"))) return null; // relative path with no absolute cwd to anchor it — unknowable
   return isWin(cwd) ? path.win32.resolve(cwd, p) : path.posix.resolve(cwd, p);
 }
 
@@ -110,7 +116,7 @@ const tag = (body: string, name: string): string | null => {
   return m ? m[1]!.trim() : null;
 };
 
-function takeNotifications(text: string, into: Map<string, Notification>): void {
+function takeNotifications(text: string, into: Map<string, Notification>, at: string | null): void {
   for (const m of text.matchAll(NOTIF_RE)) {
     const body = m[1]!;
     const taskId = tag(body, "task-id");
@@ -120,6 +126,7 @@ function takeNotifications(text: string, into: Map<string, Notification>): void 
     const u = tag(body, "tool_uses");
     // Later notifications win: an agent can be resumed and notify again.
     into.set(taskId, {
+      at,
       taskId,
       toolUseId: tag(body, "tool-use-id"),
       status: tag(body, "status"),
@@ -179,7 +186,7 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
   const ts = str(o.timestamp);
   if (ts) {
     if (lineTs === null || lineTs !== ts) f.lastTs = ts; // the record's own stamp beats the cheap peek
-    if (!f.firstTs) f.firstTs = ts;
+    if (!f.firstTs || f.firstTs === lineTs) f.firstTs = ts;
   }
   if (type === "bridge-session") {
     f.bridgeSeen = true;
@@ -190,7 +197,7 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
 
   if (hasNotif && (type === "user" || type === "queue-operation")) {
     const text = textOf(msg?.content) ?? str(o.content);
-    if (text) takeNotifications(text, f.notifications);
+    if (text) takeNotifications(text, f.notifications, ts);
   }
 
   if (type === "user" && Array.isArray(msg?.content) && line.includes('"tool_result"')) {
@@ -202,7 +209,9 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
       // A background launch is acknowledged by an immediate non-error result; it is NOT completion.
       if (single && (tur.isAsync === true || tur.status === "async_launched")) continue;
       const isError = b.is_error === true;
+      f.pendingUse.delete(id);
       f.toolResults.set(id, {
+        at: ts,
         isError,
         // toolUseResult describes ONE result; only trust it when the line carries exactly one.
         status: single ? str(tur.status) : null,
@@ -243,6 +252,7 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
     if (!b || typeof b !== "object") continue;
     if (b.type === "text" && typeof b.text === "string" && b.text.trim()) text = b.text;
     if (b.type !== "tool_use") continue;
+    if (str(b.id)) f.pendingUse.add(b.id as string);
     const name = str(b.name);
     const input = (b.input ?? {}) as Record<string, unknown>;
     if ((name === "Agent" || name === "Task") && str(b.id)) {

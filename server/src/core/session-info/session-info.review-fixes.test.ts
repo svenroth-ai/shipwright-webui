@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { readSessionInfo, scanStats } from "./session-info.js";
 import { scanLines } from "./line-scan.js";
-import { SESSION, assistant, jl, makeLayout, toolUse, ts, writeAgent, type Layout } from "./test-fixtures.js";
+import { SESSION, assistant, jl, makeLayout, notification, toolUse, ts, writeAgent, type Layout } from "./test-fixtures.js";
 
 let l: Layout;
 afterEach(() => l && rmSync(l.projectsDir, { recursive: true, force: true }));
@@ -127,6 +127,58 @@ describe("background agents", () => {
     writeAgent(l, "bg2", { toolUseId: "toolu_2" }, [assistant(3, { sidechain: true })]);
     const subs = (await readSessionInfo(SESSION, loc(), { ...deps, now: () => Date.now() })).subagents;
     expect(subs.map((s) => s.state)).toEqual(["running", "running"]);
+  });
+});
+
+describe("doubt-review fixes", () => {
+  it("a transient EBUSY mid-scan does not double-count (facts reset per attempt)", async () => {
+    l = makeLayout();
+    const b = JSON.stringify({ type: "system", subtype: "compact_boundary", timestamp: ts(1), compactMetadata: { postTokens: 5 } });
+    writeFileSync(l.sessionPath, `${b}
+${b}
+`);
+    const real = await import("node:fs/promises");
+    let first = true;
+    const facts: string[] = [];
+    await scanLines(l.sessionPath, 1e6, (x) => facts.push(x), {
+      chunkBytes: 40,
+      onAttempt: () => {
+        facts.length = 0;
+      },
+      openForRead: async (p) => {
+        const fh = await real.open(p, "r");
+        let reads = 0;
+        return {
+          stat: () => fh.stat(),
+          close: () => fh.close(),
+          read: async (buf, off, len, pos) => {
+            if (first && ++reads === 3) {
+              first = false;
+              throw Object.assign(new Error("busy"), { code: "EBUSY" });
+            }
+            return fh.read(buf, off, len, pos);
+          },
+        };
+      },
+    });
+    expect(facts).toEqual([b, b]);
+  });
+
+  it("a resumed agent (writes after its notification) is running again", async () => {
+    l = makeLayout();
+    writeFileSync(l.sessionPath, jl(assistant(1, { blocks: [toolUse("Agent", {}, "toolu_R")] }), { type: "queue-operation", operation: "enqueue", timestamp: ts(10), content: notification("rrr9", "toolu_R", "completed") }));
+    writeAgent(l, "rrr9", { toolUseId: "toolu_R" }, [assistant(5, { sidechain: true }), assistant(60, { sidechain: true })]);
+    const s = (await readSessionInfo(SESSION, loc(), deps)).subagents[0]!;
+    expect(s).toMatchObject({ state: "running", status: null, endedAt: null, durationMs: null });
+  });
+
+  it("an unanswered tool call keeps a silent agent running past the normal stale threshold", async () => {
+    l = makeLayout();
+    writeFileSync(l.sessionPath, jl(assistant(1)));
+    const p = writeAgent(l, "ppp1", {}, [assistant(2, { sidechain: true, blocks: [toolUse("Bash", { command: "npm test" }, "toolu_slow")] })]);
+    const old = new Date(Date.now() - 30 * 60 * 1000);
+    (await import("node:fs")).utimesSync(p, old, old);
+    expect((await readSessionInfo(SESSION, loc(), { ...deps, now: () => Date.now() })).subagents[0]!.state).toBe("running");
   });
 });
 
