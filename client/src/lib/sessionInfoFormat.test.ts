@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { baseName, formatTokens, relativeToCwd, shortModel } from "./sessionInfoFormat";
 
+// @covers FR-01.66
 describe("sessionInfoFormat", () => {
   it("formats tokens without a percentage", () => {
     expect(formatTokens(999)).toBe("999");

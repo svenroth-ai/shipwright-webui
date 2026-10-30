@@ -65,6 +65,7 @@ test.describe("M3 — Mission right info sidebar", () => {
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("shows Environment / Context / Outputs, no percentage, Show more works", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     const rec = await mockSessionInfo(page, cwd);
@@ -95,6 +96,7 @@ test.describe("M3 — Mission right info sidebar", () => {
     await expect(page.getByTestId("mission-body").locator("textarea")).toHaveCount(0);
   });
 
+  // @covers FR-01.66
   test("no horizontal clip with the sidebar; Folders segment reuses the tree; layout survives reload", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await mockSessionInfo(page, cwd);
@@ -136,6 +138,7 @@ test.describe("M3 — Mission right info sidebar", () => {
     await expect(page.getByTestId("mission-side-expand")).toBeVisible();
   });
 
+  // @covers FR-01.66
   test("an open artifact card takes the row below 1700px; both fit at 1920px", async ({ page }) => {
     await mockSessionInfo(page, cwd);
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -161,6 +164,7 @@ test.describe("M3 — Mission right info sidebar", () => {
     expect(op!.width).toBeGreaterThanOrEqual(360);
   });
 
+  // @covers FR-01.66
   test("legible text (not white on glass) and no clip at 1024/1280 with the widest sidebar", async ({ page }) => {
     await mockSessionInfo(page, cwd);
     await page.setViewportSize({ width: 1280, height: 800 });
@@ -183,6 +187,7 @@ test.describe("M3 — Mission right info sidebar", () => {
     }
   });
 
+  // @covers FR-01.66
   test("phone: the Info tab shows the sidebar", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 800 });
     await mockSessionInfo(page, cwd);

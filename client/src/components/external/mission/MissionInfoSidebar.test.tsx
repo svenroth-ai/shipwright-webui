@@ -56,6 +56,7 @@ beforeEach(() => {
   vi.stubGlobal("fetch", fetchMock);
 });
 
+// @covers FR-01.66
 describe("MissionInfoSidebar", () => {
   it("renders Environment/Context/Outputs with tokens+model and no percentage", async () => {
     mount();
