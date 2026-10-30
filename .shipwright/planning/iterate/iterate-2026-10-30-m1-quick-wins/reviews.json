@@ -115,139 +115,111 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 12,
+      "findings_count": 5,
       "findings": [
-        {
-          "severity": "medium",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": 14,
-          "finding": "Doc comment still lists blocker creation/recovery.",
-          "suggestion": "Drop it.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": 195,
-          "finding": "Subrunner-branch comment explains ordering in terms of the removed blocker branch.",
-          "suggestion": "Reword to the failed-dispatch-never-resolves reason.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": 220,
-          "finding": "Review-branch comment contrasts with the removed blocker branch.",
-          "suggestion": "Shorten to first-wins rationale.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedTypes.ts",
-          "line": 51,
-          "finding": "commandCount comment mentions a deleted blocker toggle.",
-          "suggestion": "Reword.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedBlockerAndTdd.test.ts",
-          "line": 5,
-          "finding": "Header references deleted BlockerText test.",
-          "suggestion": "Remove sentence.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedDetail.ts",
-          "line": 8,
-          "finding": "Doc comment carries history.",
-          "suggestion": "Drop parenthetical.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/components/external/mission/MissionBody.tsx",
-          "line": 20,
-          "finding": "Comment mentions blocker cards.",
-          "suggestion": "test cards.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedTransientTestDrop.ts",
-          "line": 11,
-          "finding": "Comment mentions generic blocker path.",
-          "suggestion": "coalesced path.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedTransientClassifierError.test.ts",
-          "line": 8,
-          "finding": "Several test comments/names still describe blocker behaviour.",
-          "suggestion": "Reword.",
-          "source": "code-reviewer"
-        },
         {
           "severity": "low",
           "category": "correctness",
           "file": "client/src/components/external/mission/MissionActivityFeedCard.test.tsx",
-          "line": 196,
-          "finding": "Test name overclaims; jsdom cannot check the 1em size.",
-          "suggestion": "Rename and add a real-browser check.",
+          "line": 197,
+          "finding": "The test title claims a 'compact (non-oversized) status link', but it only asserts that an svg exists inside .mc-story-link. jsdom does not load CSS, and the svg was already there before this change, so the test cannot fail if the 1em sizing rule is removed. The real proof is the bounding-box check in client/e2e/flows/mission-subrunner.spec.ts:129-132.",
+          "suggestion": "Rename the test so it claims only what it checks (the visible title plus the glyph inside the link), and point to the e2e spec for the size check. Or remove the svg assertion.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": "client/src/lib/missionActivityFeedFields.test.ts",
-          "line": 127,
-          "finding": "cards.every on possibly-empty list is weak.",
-          "suggestion": "Add narration so a card survives.",
+          "file": "client/e2e/flows/mission-feed-transcript-fidelity.spec.ts",
+          "line": 237,
+          "finding": "`[data-kind=\"blocker\"]` toHaveCount(0) can never fail now that the 'blocker' kind no longer exists. AC1 also says 'no raw output', but the spec never checks that the seeded error text ('! [rejected]') is absent. Only the unit test checks this, via `detail` being undefined.",
+          "suggestion": "Replace or supplement the check with `await expect(feed).not.toContainText(\"[rejected]\")` so the browser test actually catches the raw output coming back.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedBlockerAndTdd.test.ts",
+          "line": 246,
+          "finding": "Both Read cards in this fixture are wordless, so the reconcile filter drops them and `cards` is empty. `cards.every(...)` and `!cards.some(...)` are then true on an empty list. The test still catches a returning error card, but it passes for the wrong reason and would not notice a card that is not an error but carries leaked detail.",
+          "suggestion": "Add narration to the turn so the card survives the filter, then assert on that specific card (status undefined, detail undefined, both command chips present). Or explicitly assert `cards.length`.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": "client/src/lib/missionActivityFeedText.ts",
-          "line": 196,
-          "finding": "Double blank line.",
-          "suggestion": "Collapse.",
+          "file": "client/src/lib/missionActivityFeedTurn.ts",
+          "line": 194,
+          "finding": "`PendingTool.commandKey` (tool name plus command detail) was only read by the removed blocker-recovery code. Now the only reader is `applySubrunnerAck`, which needs just the tool name and gets its own key at line 186. The keys built at lines 194/232/244/288 for non-subrunner tools are never read. The file name `missionActivityFeedBlockerAndTdd.test.ts` is also stale now that blockers are gone.",
+          "suggestion": "Non-blocking boy-scout fix: build commandKey only for subrunner dispatches (or make it optional), and rename the test file to e.g. `missionActivityFeedTdd.test.ts` together with the three comments that cite it (AuthoringRollback.ts:10, AuthoringRollback.test.ts:3, AuthoringTrack.ts:20, GateSynthesis.test.ts:3).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 201,
+          "finding": "Behaviour change that is not documented: the removed recovery path used to merge a successful retry (same command) into the earlier failed card and drop the duplicate. Now a failed narrated command and its successful retry show up as two ordinary cards, unless add() coalesces them. This is consistent with 'no errors in the feed', but the visible duplicate is not mentioned in the mini-plan.",
+          "suggestion": "Either accept it and record it in the mini-plan or decision drop, or add a unit test that pins the fail-then-retry shape so the result is a deliberate choice.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T13:33:36.823623+00:00",
+      "completed_at": "2026-10-30T13:47:28.719874+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "5ff72ec6f9685162d0411788c81d2c6891890b3e"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract (CSS cascade)",
+          "file": "client/src/styles/mission-operation.css",
+          "line": null,
+          "finding": "Claim under doubt: the subrunner status glyph now renders at line size, inline in the link row — client/src/index.css:1 does `@import \"tailwindcss\"`, which includes Tailwind 4 preflight (`svg { display:block; vertical-align:middle }`). The new rule `.mc-story-link svg { width:1em; height:1em; margin-right:5px; vertical-align:-.125em }` (mission-operation.css:61) never resets `display`, and `.mc-story-link` itself is a plain button, not flex/inline-flex. The likely result is that the 1em check or X sits on its OWN line above 'View subrunner report' / 'View failure details': `vertical-align` and `margin-right` would do nothing on a block box. That is not the compact single row the spec asks for. The unit test (MissionActivityFeedCard.test.tsx:201) only asserts that `.mc-story-link svg` exists. jsdom applies no CSS, so it cannot catch this, and no E2E or visual check measures the geometry. Every sibling icon host in this file (`.mc-feed-pill`, `.mc-feed-chip`, `.mc-feed-subrunner-status`, `.mc-gate-btn`) uses `display:inline-flex` for exactly this reason.",
+          "suggestion": "Add `display:inline-block` to the svg (or make `.mc-story-link` `inline-flex; align-items:center; gap:5px` for this usage only). Prove it in a real browser: icon top within the text line box, icon height of about 1em. Per the memory notes, a layout fix needs a vitest class fence plus a real-browser E2E.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract (spec vs. delivered scope)",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": null,
+          "finding": "Claim under doubt: 'No error messages in the chat at all; errors are handled in the terminal' is satisfied — The spec's only explicit carve-out is 'genuine interactive blockers or questions — keep those'. The mini-plan's AC3 widened that carve-out on its own authority. A failing test command still gets a red 'Failing' pill, an XIcon and the raw FAIL output in a `<pre>` (Resolve.ts:127-128, attachDetail). A failed subrunner still renders 'View failure details' with an X. Read literally, those are error messages in the chat. The defensible reading (a test verdict is a verification result, not an error message) is reasonable, but the user never made it, and Sven's wording ('at all') is absolute.",
+          "suggestion": "State the interpretation explicitly in the PR body and the iterate record: test verdicts and subagent outcomes are kept as status, not as error messages. Alternatively, confirm with the user in plain language: 'Should a failing test still show as a red Failing card with its output, or should that also live only in the terminal?'",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering (retry semantics)",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": null,
+          "finding": "Claim under doubt: removing the recovery merge is harmless — A failed plain command now keeps its card unmutated: same kind, no status, command chip intact. A retry in a later turn makes a second card with an identical chip. In the feed, `git push` (rejected) followed by `git push` (ok) reads as two pushes that both succeeded, with nothing marking the first as failed. Before this change, that sequence collapsed into one 'recovered' card. This follows directly from the stated intent (errors live in the terminal), so it is not a defect, but it is misleading-by-omission. `PendingTool.commandKey` is now only used by the subrunner path (split to recover the dispatch tool name), so it survives as a misleadingly general field.",
+          "suggestion": "Accept and record it as a known trade-off. Optionally narrow or rename `commandKey` so it is not mistaken for a live dedupe key.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": null,
+          "finding": "Claim under doubt: review-bucket failures degrade gracefully — A review `Task` whose tool_result is_error used to become a blocker card. It now hits the generic `continue` before the review branch, so the card shows 'Spawned X to review the change.' with no detail and no status, permanently. It looks the same as a review still in flight or one that returned nothing. This is consistent with M1's intent, but no test pins it.",
+          "suggestion": "Add a unit test for an errored review Task: no err status, no detail, card still present. That fixes the behavior so it cannot drift.",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-30T13:33:54.851225+00:00",
-      "disposition": "Stage 3 applies to migrations, async/concurrency, cross-plugin imports or irreversible ops; this is a client-side feed removal at small complexity with none of those.",
-      "recorded_by": "none",
+      "completed_at": "2026-10-30T13:47:28.845374+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "complexity-below-threshold"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -335,14 +307,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T13:31:55.888266+00:00",
+      "completed_at": "2026-10-30T13:47:28.610901+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "5ff72ec6f9685162d0411788c81d2c6891890b3e"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
