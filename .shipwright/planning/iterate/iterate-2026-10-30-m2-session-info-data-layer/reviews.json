@@ -1,0 +1,362 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-30-m2-session-info-data-layer",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T14:43:40.579518+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "AC2's \"newest non-synthetic assistant message\" usage selection has an ambiguity with compaction. AC3 says \"later assistant message wins again,\" but the plan doesn't specify how to detect compactor messages (isCompactSummary flag? role pattern?) or what happens when the newest usage-bearing message appears before a compact_boundary in the tail window but there are no post-compaction assistant messages yet. Also, since only the newest ~48MB window is read positionally, a session with a compact_boundary older than the window will be invisible — tokens will be reported from post-compaction messages with `compactedSince` omitted/false, which is actually correct but should be stated, otherwise an implementer may try to scan backwards for boundaries and defeat the tail-read design.",
+          "suggestion": "Specify the compaction marker format and state explicitly that boundaries outside the window are ignored by design.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Subagent answer = \"last assistant text of the agent file\" — for killed/stopped agents this may be partial, and for agents whose last messages are tool_use blocks only (no text) there's no defined fallback. Similarly \"duration from notification\" is undefined for finished-stale agents — is duration null or last-timestamp minus start?",
+          "suggestion": "Define fallbacks: answer null if no assistant text; duration from first/last timestamps when no notification.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Remote-control pid liveness check. `~/.claude/sessions/<pid>.json` keyed by pid means pids are reused by the OS; a recycled pid from an unrelated process would be \"live\" and the sessionId check (good) saves you only if the sessionId in the stale JSON can't match. But the plan doesn't say pid liveness is checked before the sessionId match, or how liveness is determined (process.kill(pid,0) only confirms a process exists, not that it's Claude). If sessionId match is required, risk is low but a recycled pid holding a different sessionId file could shadow the real one if directory scan picks the first match.",
+          "suggestion": "Scan all `<pid>.json` files and match on sessionId, not just liveness; require both.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "4MB chunk reads with \"UTF-8 safe\" — need to state the mechanism (scan forward/backward to a newline boundary within the chunk, carry partial bytes across chunk edges). Multi-byte UTF-8 split across a 4MB boundary is the classic bug. \"Torn last line tolerated\" covers the file end but not chunk boundaries mid-line.",
+          "suggestion": "Explicitly buffer bytes until newline, decode complete lines only.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "No mention of auth on `GET /api/external/tasks/:id/...` — the \"external\" prefix suggests a different auth regime. The plan says nothing about whether the existing external-task auth middleware applies to the new route.",
+          "suggestion": "Confirm the route is behind the same auth as other `/api/external` routes; state it in the plan.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Case-insensitive dedup for drive paths (win32) but outputs are \"absolute, normalised\" — mixed-separator or `\\\\?\\` prefixed paths from tool inputs may produce near-duplicates that defeat dedup. Also .meta.json missing/corrupt (partial write) isn't addressed — does the agent get skipped or surfaced with partial data?",
+          "suggestion": "Normalise separators before dedup; treat missing .meta.json as degraded-but-included (join on agentId is already specified, so fall back to JSONL-only fields).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Depth-2 notification sourced from the depth-1 agent file means the tail window (12MB per agent) may not contain the notification for long-running depth-1 agents — the plan caps reads at 12MB/agent but depth-2 spawn + notification could be deep in a large depth-1 file.",
+          "suggestion": "Note that depth-2 subagent finish state may be reported as running when the notification falls outside the window; consider a bounded backward scan or accept and document the limitation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "Fixed tail windows cannot reliably produce complete outputs or subagent metadata. Earlier writes, first timestamps, Agent prompts, and completion notifications may fall outside the window. `scan.truncated` reports the limitation but does not satisfy the promised results; missing notifications could also misclassify agents.",
+          "suggestion": "Use `session-jsonl-io.ts` for bounded-memory positional scanning of older chunks when needed. If bounded scanning is intentional, explicitly define incomplete fields and an unknown state instead of returning authoritative results.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "Campaign sub-iterate resolution is unspecified. These tasks reside inside campaign agent transcripts, so locating the task’s transcript and its reviewer children requires more than scanning the campaign’s immediate subagents. Without explicit ownership rules, the endpoint could return campaign usage or sibling-task outputs.",
+          "suggestion": "Define task-to-transcript resolution for both plain iterates and campaign sub-iterates, including parent lookup and descendant ownership. Add a campaign fixture with two sibling sub-iterates to verify isolation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security |",
+          "file": null,
+          "line": null,
+          "finding": "AC8 guards subagent filenames but does not specify containment checks for the primary transcript, session directory, or metadata files. A regular-file check alone also does not establish that the resolved path remains inside the permitted root.",
+          "suggestion": "Apply the existing path guard to every read target, including `.meta.json` files, and enforce resolved-path containment and the application’s symlink/junction policy. Confirm that the route inherits existing external-task authorization, since prompts, answers, and absolute paths expose sensitive information.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "AC3 introduces a token meaning that conflicts with the specification: compactor `postTokens` is not usage from the latest non-synthetic assistant message. It also leaves unclear which model accompanies that value and what happens when `postTokens` is absent.",
+          "suggestion": "Keep `context.tokens` and `model` sourced from the same qualifying assistant message as specified. If post-compaction counts are required, explicitly revise the contract and define their provenance, missing-value behavior, and model association.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "“No notification + stale mtime” can classify a long-running, quiet agent as finished. This becomes especially likely when the parent notification was truncated or the parent transcript is temporarily unavailable.",
+          "suggestion": "Define the stale threshold and require a complete notification search before applying it. Preserve an unknown/stale state when evidence is incomplete, and test a quiet active agent plus a notification outside the initial tail window.  The approach is broadly sound, but transcript completeness, campaign ownership, and read-path enforcement need concrete decisions before implementation. Repository access was blocked, so existing helpers and authorization behavior could not be verified.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-30T14:21:06.323079+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category: edge-case — Severity: medium**\nFinding: AC2's \"newest non-synthetic assistant message\" usage selection has an ambiguity with compaction. AC3 says \"later assistant message wins again,\" but the plan doesn't specify how to detect compactor messages (isCompactSummary flag? role pattern?) or what happens when the newest usage-bearing message appears *before* a compact_boundary in the tail window but there are no post-compaction assistant messages yet. Also, since only the newest ~48MB window is read positionally, a session with a compact_boundary older than the window will be invisible — tokens will be reported from post-compaction messages with `compactedSince` omitted/false, which is actually correct but should be stated, otherwise an implementer may try to scan backwards for boundaries and defeat the tail-read design.\nSuggestion: Specify the compaction marker format and state explicitly that boundaries outside the window are ignored by design.\n\n**Category: edge-case — Severity: medium**\nFinding: Subagent answer = \"last assistant text of the agent file\" — for killed/stopped agents this may be partial, and for agents whose last messages are tool_use blocks only (no text) there's no defined fallback. Similarly \"duration from notification\" is undefined for finished-stale agents — is duration null or last-timestamp minus start?\nSuggestion: Define fallbacks: answer null if no assistant text; duration from first/last timestamps when no notification.\n\n**Category: risk — Severity: medium**\nFinding: Remote-control pid liveness check. `~/.claude/sessions/<pid>.json` keyed by pid means pids are reused by the OS; a recycled pid from an unrelated process would be \"live\" and the sessionId check (good) saves you only if the sessionId in the stale JSON can't match. But the plan doesn't say pid liveness is checked *before* the sessionId match, or how liveness is determined (process.kill(pid,0) only confirms a process exists, not that it's Claude).  […truncated]\n\n[openai] 1. **Category: approach | Severity: high**  \n   **Finding:** Fixed tail windows cannot reliably produce complete outputs or subagent metadata. Earlier writes, first timestamps, Agent prompts, and completion notifications may fall outside the window. `scan.truncated` reports the limitation but does not satisfy the promised results; missing notifications could also misclassify agents.  \n   **Suggestion:** Use `session-jsonl-io.ts` for bounded-memory positional scanning of older chunks when needed. If bounded scanning is intentional, explicitly define incomplete fields and an unknown state instead of returning authoritative results.\n\n2. **Category: dependency | Severity: high**  \n   **Finding:** Campaign sub-iterate resolution is unspecified. These tasks reside inside campaign agent transcripts, so locating the task’s transcript and its reviewer children requires more than scanning the campaign’s immediate subagents. Without explicit ownership rules, the endpoint could return campaign usage or sibling-task outputs.  \n   **Suggestion:** Define task-to-transcript resolution for both plain iterates and campaign sub-iterates, including parent lookup and descendant ownership. Add a campaign fixture with two sibling sub-iterates to verify isolation.\n\n3. **Category: security | Severity: high**  \n   **Finding:** AC8 guards subagent filenames but does not specify containment checks for the primary transcript, session directory, or metadata files. A regular-file check alone also does not establish that the resolved path remains inside the permitted root.  \n   **Suggestion:** Apply the existing path guard to every read target, including `.meta.json` files, and enforce resolved-path containment and the application’s symlink/junction policy. Confirm that the route inherits existing external-task authorization, since prompts, answers, and absolute paths expose sensitive information.\n\n4. **Category: approach | Severity: medium**  \n   **Finding:** AC3 introduces a token m […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/session-info/collect-tag.test.ts",
+          "line": 17,
+          "finding": "The comment says expected values are what the old RegExp extraction returned; true only for the it.each cases. The metacharacter case documents an intentional change (old pattern for 'a.b' would match '<axb>').",
+          "suggestion": "Scope the comment to it.each and note the metacharacter test is an intentional fix.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T15:26:03.913090+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-info/collect.ts:129-131, 113",
+          "line": null,
+          "finding": "Claim under doubt: notification numbers and status come from the real usage block — result (free text) precedes usage, and tag() takes the first match in the whole body, so a result quoting duration_ms/subagent_tokens/tool_uses tags wins over the real usage values; a literal closing task-notification tag inside result truncates NOTIF_RE so the numbers become null. Same as the old regex (not a regression); task-id/status cannot be spoofed (they precede result).",
+          "suggestion": "Look usage fields up inside tag(body,'usage') first, or accept as known (display-only).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering (event-loop blocking)",
+          "file": "server/src/core/session-info/collect.ts:113, 125, 169",
+          "line": null,
+          "finding": "Claim under doubt: the per-line regex work is cheap — NOTIF_RE is a lazy regex over user-controlled text; a pasted message with many unclosed task-notification openers is O(k*n) and can stall the event loop on rescans. Pre-existing, needs adversarial pasted input.",
+          "suggestion": "indexOf loop for the outer tag too, or cap text length before matching.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "server/src/core/session-info/collect-tag.test.ts:34-47",
+          "line": null,
+          "finding": "Claim under doubt: collect-tag.test.ts proves equivalence with the old regex — Hard-coded expectations omit nested same-name and first-unclosed-then-closed cases; equivalence proven by argument only.",
+          "suggestion": "Add the two cases or a property test.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T15:26:58.203901+00:00",
+      "disposition": "Addressed at 3f-bis: 3 LOW on 898d1060, advisory (follow-ups). Carried from the 9b30eab8 doubt pass: medium pending-scan memo without timeout (rebutted: needs a hung local read; follow-up deadline+memo delete); M3 constraints: 48MB window rescan per poll (coalesce or >=5s visible-only poll), debounce Remote Control active->false; PID-reuse false positive is a documented limitation.",
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "spec |",
+          "file": "server/src/core/session-info/collect.ts (OUTPUT_TOOLS)",
+          "line": null,
+          "finding": "MultiEdit` is included in OUTPUT_TOOLS, but the spec enumerates only Write/Edit/NotebookEdit file_path sources. This silently widens the output set beyond spec.",
+          "suggestion": "Either remove MultiEdit or confirm with the spec owner it's intended; if intentional, note the deviation in types.ts (which does list it, so at least the code is self-consistent).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test |",
+          "file": "server/src/external/session-info/routes.test.ts (infoDeps / memo test `sessionsDir: \"Z:\\none\"`)",
+          "line": null,
+          "finding": "\"Z:\\none\"` contains a `\\n` escape — the actual path is `\"Z:\" + newline + \"one\"`. The tests pass only by accident (the directory doesn't exist). Same class of mistake as the deliberate `\"Z:\\\\none\"` elsewhere; here it's clearly unintended and masks that the intended \"nonexistent Windows dir\" setup wasn't made.",
+          "suggestion": "Use `\"Z:\\\\none\"` or `path.join(l.projectsDir, \"nope\")`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "server/src/core/session-info/session-info.test.ts (\"ignores non-agent files and symlink-shaped names\")",
+          "line": null,
+          "finding": "The `agent-..evil.jsonl` fixture is rejected by the charset regex (`[A-Za-z0-9]+`), not by any symlink handling — no symlink is ever created, so the Dirent.isFile() branch is untested.",
+          "suggestion": "Create an actual symlink to a file outside the session dir and assert it's excluded.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": "server/src/core/session-info/session-info.ts (scanCached)",
+          "line": null,
+          "finding": "The memo signature is `size:mtimeMs` from a `stat` taken before the scan; a file rewritten to the same size within filesystem mtime granularity could serve stale facts. Also, on Windows mtimeMs resolution plus rapid appends could theoretically collide. Low practical risk for append-only JSONL.",
+          "suggestion": "Acceptable as-is; if hardening, include a cheap first/last-byte hash or the memo invalidation already implied by size growth.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": "server/src/core/session-info/collect.ts (normalizeAbsolute)",
+          "line": null,
+          "finding": "A POSIX-absolute `file_path` recorded while `cwd` is a Windows path is silently dropped (returns null), and vice versa a Windows-relative path with POSIX cwd resolves via `path.posix.resolve` producing a nonsense mixed path. These are cross-platform recording anomalies; dropping is defensible but produces invisible data loss with no signal.",
+          "suggestion": "Consider surfacing a count of unresolvable paths in `scan` stats rather than silently omitting.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "server/src/core/session-info/line-scan.ts (skipping + carry > maxLine with dropFirst)",
+          "line": null,
+          "finding": "When the window begins mid-line AND that partial line is over-long, `carry` is reset without setting `skipping` (guarded by `!dropFirst`) — correct by luck, but if `dropFirst` was already consumed by a newline in the same chunk before the carry check, a following over-long line's content after its eventual newline could be emitted... actually the `skipping` flag covers that; reviewing the state machine, the paths appear consistent. Downgrade: no concrete failing input found; noting for the record only.  Everything else checks out well: the positional newest-window scan, torn-line handling, memo in-flight dedup with failure eviction, failed-write retraction, notification/tool_result join, depth-2 notifications pooled from parent agent files, compaction staleness handling, and pid liveness (EPERM treated as alive) all match the spec and have genuinely behavioral tests (the memo test counts real scans; the retraction test verifies the output list, not just a call). Route is read-only and scoped by task lookup consistent with sibling routes.  Overall: ship-as-is with the test-path escape fix recommended; the work is sound and implements the spec.  SHIPWRIGHT_VERDICT: approve",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/session-info/session-info.ts",
+          "line": 145,
+          "finding": "After compaction, `context.tokens` becomes `postTokens` or null instead of the latest non-synthetic assistant usage sum required by the spec. The returned `at` still identifies the assistant message, so it can also misattribute the replacement estimate.",
+          "suggestion": "Keep `context.tokens` derived from assistant usage and expose compaction information separately. Update the compaction tests to enforce that contract.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "server/src/core/session-info/subagents.ts",
+          "line": 65,
+          "finding": "Any Agent tool result marks the agent finished. A background launch acknowledgment is also a tool result; when its status is `async_launched`, this code immediately reports the still-running agent as finished and supplies an end timestamp.",
+          "suggestion": "Treat only terminal result statuses or actual execution errors as completion. Launch acknowledgments should leave the agent running until a terminal notification or the stale threshold.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "server/src/core/session-info/session-info.ts",
+          "line": 47,
+          "finding": "Scanning only the newest 48 MB of a session or 12 MB of an agent permanently discards required historical facts. An early output disappears, a file’s `firstAt` becomes incorrect, and an Agent invocation outside the window loses its prompt. Reading the first line only recovers a timestamp. Agent-window truncation is also absent from the response.",
+          "suggestion": "Scan earlier positional chunks for historical facts while keeping memory bounded, or maintain a complete derived index within the permitted read-only architecture. Add integration fixtures with outputs and Agent invocations before the scan boundary.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/session-info/collect.ts",
+          "line": 187,
+          "finding": "Retracting a failed write only decrements the touch count. If a successful Write is followed by a failed Edit to the same file, the output remains with the failed Edit’s `lastAt` and tool. A failed first attempt followed by success likewise leaves an incorrect `firstAt`.",
+          "suggestion": "Track timestamps and tools per attempt, then derive the file summary from attempts that have not been rejected. Test successful and failed attempts targeting the same path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/session-info/subagents.ts",
+          "line": 34,
+          "finding": "Metadata files bypass the symlink protection applied to agent JSONL files. `stat` and `readFile` follow an `agent-<id>.meta.json` symlink outside the session directory, allowing external JSON fields such as `description` or `model` to be returned through this endpoint.",
+          "suggestion": "Reject metadata symlinks and verify resolved metadata paths remain within the permitted session directory before reading. Add an actual symlink escape test; the current filename test does not exercise this.  Overall assessment: ship-with-fixes. The data layer covers the main surfaces, but completion detection, historical completeness, and the metadata path guard need correction before shipping.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-30T14:24:16.139532+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: spec | Severity: low\n  File: server/src/core/session-info/collect.ts (OUTPUT_TOOLS)\n  Finding: `MultiEdit` is included in OUTPUT_TOOLS, but the spec enumerates only Write/Edit/NotebookEdit file_path sources. This silently widens the output set beyond spec.\n  Suggestion: Either remove MultiEdit or confirm with the spec owner it's intended; if intentional, note the deviation in types.ts (which does list it, so at least the code is self-consistent).\n\n- Category: test | Severity: medium\n  File: server/src/external/session-info/routes.test.ts (infoDeps / memo test `sessionsDir: \"Z:\\none\"`)\n  Finding: `\"Z:\\none\"` contains a `\\n` escape — the actual path is `\"Z:\" + newline + \"one\"`. The tests pass only by accident (the directory doesn't exist). Same class of mistake as the deliberate `\"Z:\\\\none\"` elsewhere; here it's clearly unintended and masks that the intended \"nonexistent Windows dir\" setup wasn't made.\n  Suggestion: Use `\"Z:\\\\none\"` or `path.join(l.projectsDir, \"nope\")`.\n\n- Category: test | Severity: low\n  File: server/src/core/session-info/session-info.test.ts (\"ignores non-agent files and symlink-shaped names\")\n  Finding: The `agent-..evil.jsonl` fixture is rejected by the charset regex (`[A-Za-z0-9]+`), not by any symlink handling — no symlink is ever created, so the Dirent.isFile() branch is untested.\n  Suggestion: Create an actual symlink to a file outside the session dir and assert it's excluded.\n\n- Category: edge-case | Severity: low\n  File: server/src/core/session-info/session-info.ts (scanCached)\n  Finding: The memo signature is `size:mtimeMs` from a `stat` taken before the scan; a file rewritten to the same size within filesystem mtime granularity could serve stale facts. Also, on Windows mtimeMs resolution plus rapid appends could theoretically collide. Low practical risk for append-only JSONL.\n  Suggestion: Acceptable as-is; if hardening, include a cheap first/last-byte hash or the memo invalidation already implied by si […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: server/src/core/session-info/session-info.ts:145\n- Finding: After compaction, `context.tokens` becomes `postTokens` or null instead of the latest non-synthetic assistant usage sum required by the spec. The returned `at` still identifies the assistant message, so it can also misattribute the replacement estimate.\n- Suggestion: Keep `context.tokens` derived from assistant usage and expose compaction information separately. Update the compaction tests to enforce that contract.\n\n- Category: bug\n- Severity: high\n- File: server/src/core/session-info/subagents.ts:65\n- Finding: Any Agent tool result marks the agent finished. A background launch acknowledgment is also a tool result; when its status is `async_launched`, this code immediately reports the still-running agent as finished and supplies an end timestamp.\n- Suggestion: Treat only terminal result statuses or actual execution errors as completion. Launch acknowledgments should leave the agent running until a terminal notification or the stale threshold.\n\n- Category: spec\n- Severity: high\n- File: server/src/core/session-info/session-info.ts:47\n- Finding: Scanning only the newest 48 MB of a session or 12 MB of an agent permanently discards required historical facts. An early output disappears, a file’s `firstAt` becomes incorrect, and an Agent invocation outside the window loses its prompt. Reading the first line only recovers a timestamp. Agent-window truncation is also absent from the response.\n- Suggestion: Scan earlier positional chunks for historical facts while keeping memory bounded, or maintain a complete derived index within the permitted read-only architecture. Add integration fixtures with outputs and Agent invocations before the scan boundary.\n\n- Category: bug\n- Severity: medium\n- File: server/src/core/session-info/collect.ts:187\n- Finding: Retracting a failed write only decrements the touch count. If a successful Write is followed by a failed Edit to  […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T15:25:10.175111+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T14:21:06.450450+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T14:21:06.605083+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

@@ -24,8 +24,6 @@
  * Backed by:
  *   - core/launcher.ts          (copy-command generation)
  *   - core/session-watcher.ts   (filename-first discovery + byte-range read)
- *   - core/session-parser.ts    (server-side parser for inbox)
- *   - core/inbox-derive.ts      (pending tool_use extraction)
  *   - core/sdk-sessions-store.ts (persisted task metadata)
  */
 
@@ -50,6 +48,7 @@ import { createFileExistsRouter } from "./file/exists-routes.js";
 import { createMediaRouter } from "./media/routes.js";
 import { createInboxRouter } from "./inbox/routes.js";
 import { createTranscriptRouter } from "./transcript/routes.js";
+import { createSessionInfoRouter } from "./session-info/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 import { createLaunchRouter } from "./launch/routes.js";
 import { createPrStatusRouter } from "./pr-status/routes.js";
@@ -155,6 +154,7 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
   );
   // CLAUDE.md rule 4 — STATELESS byte-offset; multi-tab works by construction.
   app.route("/", createTranscriptRouter({ store, watcher, ptyManager }));
+  app.route("/", createSessionInfoRouter({ store, watcher }));
   // Inbox shares the derive cache + negative cache via ./inbox/_cache.ts.
   app.route("/", createInboxRouter({ store, watcher, ptyManager, codexWatcher }));
   // CLAUDE.md rule 12 — run-config is a READ-ONLY observer; no mutation.

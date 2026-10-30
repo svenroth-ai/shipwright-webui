@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"PASS after 2 re-reviews: async_launched fix and AC3 rewritten to match the spec (tokens stay latest usage; tokensAfterCompaction separate). AC1-AC9 hold."}

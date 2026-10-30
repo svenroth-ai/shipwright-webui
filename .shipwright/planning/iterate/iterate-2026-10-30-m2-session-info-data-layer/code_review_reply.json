@@ -1,0 +1,9 @@
+{"section":"M2-session-info-data-layer","review":[
+{"severity":"medium","category":"performance","finding":"FIFO memo evicts on cyclic access; fixed with LRU and MEMO_MAX 512"},
+{"severity":"medium","category":"performance","finding":"60 concurrent agent-file scans on cold memo; fixed with a 6-worker pool"},
+{"severity":"low","category":"correctness","finding":"multi-ack background launch could read as finished; fixed via run_in_background flag"},
+{"severity":"low","category":"correctness","finding":"nested timestamp skew; parsed record timestamp now wins"},
+{"severity":"low","category":"performance","finding":"stat ENOENT retry; ENOENT_FATAL now"},
+{"severity":"low","category":"readability","finding":"outputKey duplicated; exported and reused"},
+{"severity":"low","category":"correctness","finding":"pid reuse false positive; documented limitation"},
+{"severity":"low","category":"performance","finding":"meta reads sequential; now Promise.all"}]}
