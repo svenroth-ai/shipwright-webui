@@ -178,79 +178,201 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 2,
+      "findings_count": 10,
       "findings": [
         {
-          "severity": "medium",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "activity throttle dropped growth - fixed after review",
-          "suggestion": null,
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/AgentDetail.tsx",
+          "line": 83,
+          "finding": "NEW: a completed agent with a resolved chat card shows the notification report and its (usually identical) final message twice; untested.",
+          "suggestion": "Render the report block only when !completed or when it differs from agent.answer; add a test.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "selectedId reset, dead css, empty-tail note, ref write - fixed after review",
-          "suggestion": null,
+          "category": "correctness",
+          "file": "client/src/components/external/mission/AgentsDock.test.tsx",
+          "line": 92,
+          "finding": "NEW: click-inside-waitFor retries openFor before load, firing/cancelling fetches; timing-coupled.",
+          "suggestion": "Wait for load first, then click once.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/hooks/useMissionAgents.ts",
+          "line": 70,
+          "finding": "CARRIED: throttle has no trailing edge; nested agents may not appear until the next event; comment overclaims.",
+          "suggestion": "Trailing refetch or reword.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/styles/mission-agents.css",
+          "line": 53,
+          "finding": "CARRIED: DO-NOT #24 hand-rolled dialog scroll panes; no actual clipping; meta-test blind to CSS files.",
+          "suggestion": "ModalScrollBody or documented exemption.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/AgentDetail.tsx",
+          "line": 41,
+          "finding": "CARRIED: 'too large' message on an empty non-truncated transcript.",
+          "suggestion": "Gate on truncated.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/session-info/subagent-transcript.ts",
+          "line": 30,
+          "finding": "CARRIED: realpath->open TOCTOU needing same-user write.",
+          "suggestion": "O_NOFOLLOW or comment.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "server/src/core/session-info/subagent-transcript.ts",
+          "line": 71,
+          "finding": "CARRIED: EPERM/EACCES full retry budget.",
+          "suggestion": "Accepted per rule 6.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionActivityFeedSubrunner.ts",
+          "line": 208,
+          "finding": "CARRIED: stopped card neutral while agent may still run.",
+          "suggestion": "Acceptable as documented.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/external/session-info/subagent-transcript.routes.test.ts",
+          "line": 79,
+          "finding": "CARRIED: symlink test early-return on Windows; no directory-symlink case.",
+          "suggestion": "ctx.skip() and add a case.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionBody.tsx",
+          "line": 253,
+          "finding": "CARRIED: 300+ char line.",
+          "suggestion": "Extract handler.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T17:08:02.582797+00:00",
+      "completed_at": "2026-10-30T17:36:03.112388+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "00015a4e986d992824b23e8543744778290a81d7"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 3,
+      "findings_count": 9,
       "findings": [
         {
           "severity": "medium",
-          "category": "concurrency",
-          "file": null,
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/hooks/useMissionAgents.ts:97-105; client/src/components/external/mission/AgentDetail.tsx:83-89; client/src/components/external/mission/AgentsWindow.tsx:64",
           "line": null,
-          "finding": "Claim under doubt: a dispatch seen in the feed always triggers a rescan that reflects it — cancelRefetch:false joined an in-flight scan that predates the event. Fixed: dispatch restarts the scan; an openFor miss starts a fresh scan.",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "boundary",
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: stopped is a terminal failure — A turn-limit stopped notification precedes a later final one. Fixed: stopped renders neutral, killed is failed.",
-          "suggestion": null,
+          "finding": "Claim under doubt: AC7: the subrunner card opens the same agent detail and failed cards keep working — Killed/failed/stopped-then-resumed/synchronous Task/failed-launch/session-info-vs-card mismatch cases all behave correctly: report shown as 'Report returned to the parent', last message relabelled honestly, report hidden while running.",
+          "suggestion": "Resolved. No further action.",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": "coupling",
-          "file": null,
+          "category": "boundary & contract",
+          "file": "client/src/hooks/useMissionAgents.ts:99-102",
           "line": null,
-          "finding": "Claim under doubt: dialog state consistent with its mount point — Feed unmount left open=true. Fixed: the dock closes the window on unmount; throttle now counts attempts; comment corrected.",
-          "suggestion": null,
+          "finding": "Claim under doubt: reportFor returns the agent's current report — Array.find returns the oldest resolved card if two cards map to the same agent; rare.",
+          "suggestion": "findLast or pass the clicked card id",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/hooks/useMissionAgents.ts:97-105; server/src/core/session-info/subagents.ts:51-97",
+          "line": null,
+          "finding": "Claim under doubt: a killed agent always shows its failure reason — Nested (depth 2) or out-of-window agents have no main-feed card, so no report; label is honest.",
+          "suggestion": "Optional server-side capped notification result field, or accept and document.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/components/external/mission/AgentDetail.tsx:83-89",
+          "line": null,
+          "finding": "Claim under doubt: the detail view is not redundant — Completed agent with resolved card shows report and answer (often identical) twice.",
+          "suggestion": "Hide when identical.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-info/session-info.ts:98 vs subagent-transcript.ts:23",
+          "line": null,
+          "finding": "Claim under doubt: every listed agent can open its transcript — listing regex unbounded vs route {1,64}",
+          "suggestion": "Share one bounded grammar.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-info/subagent-transcript.ts:30-33",
+          "line": null,
+          "finding": "Claim under doubt: a special file cannot hurt the read — open() before isFile() blocks on a POSIX FIFO; same-user write needed.",
+          "suggestion": "O_NONBLOCK as small-file.ts does.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/hooks/useMissionAgents.ts:81; client/src/lib/sessionInfoApi.ts:100",
+          "line": null,
+          "finding": "Claim under doubt: cancelRefetch only restarts one scan — no AbortSignal; server scans overlap per dispatch event; bounded.",
+          "suggestion": "Pass query signal.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-info/subagent-transcript.ts:49-69",
+          "line": null,
+          "finding": "Claim under doubt: DO-NOT #10 shared path-guard — local exact-equality check, stricter, no escape found; APFS case untested (fails closed).",
+          "suggestion": "Use path-guard or document rationale.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "server/src/core/session-info/subagent-transcript.ts:74",
+          "line": null,
+          "finding": "Claim under doubt: window cut drops only a partial first line — boundary-aligned start drops one complete line; cosmetic.",
+          "suggestion": "Read from start-1 or document.",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T17:12:02.304824+00:00",
+      "completed_at": "2026-10-30T17:36:03.227652+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "e8e5882f3032de03aeeabcb8afdf6e01f50ecb92"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -326,17 +448,133 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L9 (AC1 bar)",
+          "suggestion": "miniplan.md:L9 (AC1 bar)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L10 (AC2 window)",
+          "suggestion": "miniplan.md:L10 (AC2 window)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L11 (AC3 tree)",
+          "suggestion": "miniplan.md:L11 (AC3 tree)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L12 (AC4 detail)",
+          "suggestion": "miniplan.md:L12 (AC4 detail)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L13 (AC5 transcript tab)",
+          "suggestion": "miniplan.md:L13 (AC5 transcript tab)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L14 (AC6 route safety)",
+          "suggestion": "miniplan.md:L14 (AC6 route safety)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L15 (AC7 card link)",
+          "suggestion": "miniplan.md:L15 (AC7 card link)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L16 (AC8 amended)",
+          "suggestion": "miniplan.md:L16 (AC8 amended)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L17 (AC9 cost)",
+          "suggestion": "miniplan.md:L17 (AC9 cost)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L18 (AC10)",
+          "suggestion": "miniplan.md:L18 (AC10)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L19 (AC11)",
+          "suggestion": "miniplan.md:L19 (AC11)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "miniplan.md:L20 (AC12 E2E)",
+          "suggestion": "miniplan.md:L20 (AC12 E2E)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "CLAUDE.md DO-NOT #1/#3/#10, rules 4-5, DO-NOT #24",
+          "suggestion": "CLAUDE.md DO-NOT #1/#3/#10, rules 4-5, DO-NOT #24",
+          "source": "spec-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-30T17:05:10.716859+00:00",
+      "completed_at": "2026-10-30T17:36:03.005701+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "00015a4e986d992824b23e8543744778290a81d7"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
