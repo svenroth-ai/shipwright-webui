@@ -57,8 +57,10 @@
 }
 /* A status glyph inside an inline link is line-size (1em), never the SVG
    default of filling the container — the subrunner card's check mark
-   rendered huge without this (campaign mission-desktop-style M1). */
-.mc-story-link svg { width: 1em; height: 1em; margin-right: 5px; vertical-align: -.125em; }
+   rendered huge without this (campaign mission-desktop-style M1). It must
+   also be `inline-block`: Tailwind preflight makes every svg `display:block`,
+   which would push the glyph onto its own line above the link text. */
+.mc-story-link svg { display: inline-block; width: 1em; height: 1em; margin-right: 5px; vertical-align: -.125em; }
 .mc-story-link:hover { text-decoration-color: currentColor; }
 .mc-story-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 3px; }
 /* ── the activity feed (iterate-2026-08-20-mission-feed-content) ──────────
