@@ -34,6 +34,7 @@ const INTERFACES = [
   "SessionInfo",
 ];
 
+// @covers FR-01.66
 describe("session-info types — server SoT vs client mirror", () => {
   it.each(INTERFACES)("interface %s has identical fields and types", (name) => {
     const s = interfaceBody(server, name);
