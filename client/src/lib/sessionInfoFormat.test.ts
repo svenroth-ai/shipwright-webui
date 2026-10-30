@@ -26,6 +26,14 @@ describe("sessionInfoFormat", () => {
     expect(relativeToCwd("/home/u/app/./a.md", "/home/u/app")).toBeNull();
     expect(relativeToCwd("/home/u/app/", "/home/u/app")).toBeNull();
   });
+  it("handles a project rooted at a filesystem root", () => {
+    expect(relativeToCwd("/output.md", "/")).toBe("output.md");
+    expect(relativeToCwd("C:\\out\\a.md", "C:\\")).toBe("out/a.md");
+    expect(relativeToCwd("/x", "")).toBeNull();
+  });
+  it("999_999 tokens reads 1M, not 1000k", () => {
+    expect(formatTokens(999_999)).toBe("1M");
+  });
   it("baseName handles both separators", () => {
     expect(baseName("C:\\a\\b.txt")).toBe("b.txt");
     expect(baseName("/a/b.txt")).toBe("b.txt");

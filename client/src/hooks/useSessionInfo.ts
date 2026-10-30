@@ -43,10 +43,13 @@ export function useSessionInfo(
   // A task-state change (launch, idle, done) is exactly when the numbers moved.
   const { refetch } = query;
   const lastState = useRef(taskState);
+  // Advance the remembered state only while enabled, so a change that happens
+  // while the panel is hidden still refetches once it becomes visible.
   useEffect(() => {
+    if (!taskId) return;
     if (lastState.current === taskState) return;
     lastState.current = taskState;
-    if (taskId) void refetch();
+    void refetch();
   }, [taskId, taskState, refetch]);
 
   return query;

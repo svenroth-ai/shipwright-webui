@@ -112,7 +112,7 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
           <MissionSegmented
             options={options}
             value={seg}
-            onChange={layout.setSegment}
+            onChange={(v) => { if (!unassigned) layout.setSegment(v); }}
             ariaLabel="Info sidebar sections"
             variant="ft-seg"
           />
@@ -129,7 +129,7 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
           )}
         </div>
         <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
-          {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={open} active={visible && !(!compact && layout.collapsed)} />}
+          {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={open} active={visible} />}
           {seg === "folders" && (
             <FolderTree projectId={task.projectId} selectedPath={path} onSelect={open} />
           )}

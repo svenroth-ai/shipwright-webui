@@ -162,6 +162,30 @@ describe("MissionInfoSidebar", () => {
     expect(localStorage.getItem("shipwright:mission-sidebar")).toBe(saved);
   });
 
+  it("after a success, a failed Refresh flips the pill to Unknown and shows the error; a good Refresh recovers", async () => {
+    mount();
+    await waitFor(() => expect(screen.getByTestId("env-remote-pill")).toHaveTextContent("On"));
+    fetchMock.mockImplementationOnce(async () => new Response("{}", { status: 500, headers: JSON_HDR }));
+    fireEvent.click(screen.getByTestId("env-refresh"));
+    expect(await screen.findByTestId("env-error")).toHaveTextContent("last known");
+    expect(screen.getByTestId("env-remote-unknown")).toBeInTheDocument();
+    expect(screen.getByTestId("env-tokens")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("env-refresh"));
+    await waitFor(() => expect(screen.getByTestId("env-remote-pill")).toHaveTextContent("On"));
+    expect(screen.queryByTestId("env-error")).toBeNull();
+  });
+
+  it("shows the model even when no token usage is recorded yet", async () => {
+    const withoutTokens = { ...info, info: { ...info.info, context: { ...info.info.context, tokens: null } } };
+    fetchMock.mockImplementation(async (url: string) =>
+      String(url).includes("/projects/")
+        ? new Response(JSON.stringify({ data: { id: "p1", path: "C:/dev/app" } }), { status: 200, headers: JSON_HDR })
+        : new Response(JSON.stringify(withoutTokens), { status: 200, headers: JSON_HDR }));
+    mount();
+    expect(await screen.findByTestId("env-model")).toHaveTextContent("claude-opus-4-7");
+    expect(screen.queryByTestId("env-tokens")).toBeNull();
+  });
+
   it("an unassigned task offers only Info (no Folders/Viewer) and every output is inert", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(

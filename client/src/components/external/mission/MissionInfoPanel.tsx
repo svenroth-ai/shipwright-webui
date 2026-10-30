@@ -45,9 +45,10 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
   const projectRoot = useProject(unassigned ? "" : task.projectId).data?.path ?? null;
   const info = q.data?.status === "ok" ? q.data.info : null;
-  const remote: boolean | null = info ? info.remoteControl.active : null;
+  // After a failed refetch the cached On/Off may be stale (session ended): show Unknown.
+  const remote: boolean | null = info && !q.isError ? info.remoteControl.active : null;
   const missing = q.data?.status === "missing";
-  const failed = q.isError && !info;
+  const failed = q.isError;
   const [showAll, setShowAll] = useState(false);
 
   const host = typeof window === "undefined" ? "" : window.location.hostname;
@@ -75,7 +76,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
       </div>
       {failed ? (
         <p className="env-empty" role="status" data-testid="env-error">
-          Session info is unavailable right now. Use Refresh to try again.
+          Session info could not be refreshed{info ? " (showing the last known values)" : ""}. Use Refresh to try again.
         </p>
       ) : null}
       {missing ? (
@@ -104,14 +105,16 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
 
       <section aria-labelledby="env-h-context" data-testid="env-context">
         <h4 id="env-h-context" className="env-h">Context</h4>
-        {info && info.context.tokens !== null ? (
+        {info && (info.context.tokens !== null || info.context.model) ? (
           <>
-            <Row k="Tokens used" testId="env-tokens">
-              {formatTokens(info.context.tokens)}
-              {info.context.compactedSince ? (
-                <span className="env-note"> (before compaction)</span>
-              ) : null}
-            </Row>
+            {info.context.tokens !== null ? (
+              <Row k="Tokens used" testId="env-tokens">
+                {formatTokens(info.context.tokens)}
+                {info.context.compactedSince ? (
+                  <span className="env-note"> (before compaction)</span>
+                ) : null}
+              </Row>
+            ) : null}
             {info.context.model ? (
               <Row k="Model" testId="env-model">{shortModel(info.context.model)}</Row>
             ) : null}

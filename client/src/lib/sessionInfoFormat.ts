@@ -7,7 +7,7 @@
 /** 1234 -> "1.2k", 1_250_000 -> "1.25M"; whole numbers below 1000. */
 export function formatTokens(n: number): string {
   if (n < 1000) return String(Math.round(n));
-  if (n < 1_000_000) {
+  if (n < 999_500) {
     const k = n / 1000;
     return `${k >= 100 ? Math.round(k) : Math.round(k * 10) / 10}k`;
   }
@@ -31,8 +31,9 @@ function norm(p: string): string {
 export function relativeToCwd(abs: string, cwd: string): string | null {
   const a = norm(abs);
   const c = norm(cwd);
-  if (!c) return null;
-  const windows = /^[a-zA-Z]:\//.test(c);
+  // "/" normalises to "" and "C:/" to "C:": legitimate roots, unlike an empty cwd.
+  if (!c && !/^[\\/]+$/.test(cwd)) return null;
+  const windows = /^[a-zA-Z]:(\/|$)/.test(c);
   const head = a.slice(0, c.length);
   const same = windows ? head.toLowerCase() === c.toLowerCase() : head === c;
   if (!same || a.charAt(c.length) !== "/") return null;
