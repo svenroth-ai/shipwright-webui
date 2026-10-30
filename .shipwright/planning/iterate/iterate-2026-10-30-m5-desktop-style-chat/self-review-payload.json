@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"AC1-AC9 each covered by vitest (missionAskItems, MissionAskCards) or the M5 Playwright spec; pending-question CTA kept per operator."},
+{"name":"Error Handling","verdict":"pass","note":"Non-record/string toolUseResult, empty answers, duplicate question text and multi-result lines all fall back without throwing; rejected question dropped."},
+{"name":"Security Basics","verdict":"pass","note":"Question/option/answer text rendered as React text nodes only; read-only, no input surface, no new route."},
+{"name":"Test Quality","verdict":"pass","note":"Unit tests for join/Other/multiSelect/rejected/pending/legacy; component tests; real-browser E2E with real JSONL, geometry and AA contrast; 74 existing mission E2E re-run green."},
+{"name":"Performance Basics","verdict":"pass","note":"Pure reducer additions, O(questions); no timer, no new request."},
+{"name":"Naming & Structure","verdict":"pass","note":"New files under 300 lines; session-parser.ts net-zero; removed dead FeedIcon/kindAccent; entry attr is data-entry-kind to avoid clashing with card data-kind selectors."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Producer Claude JSONL (tool_use input + top-level toolUseResult.answers) -> parser -> reducer -> DOM proven by E2E round trip."},
+{"name":"Motion/A11y","verdict":"pass","note":"No new motion; chosen option has check mark + sr-only (selected), not colour alone; tokens only, contrast asserted."}
+]}

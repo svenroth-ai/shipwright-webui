@@ -10,10 +10,9 @@ import type { CommitArtifact } from "../../../lib/missionContextApi";
 import type { ExternalTask } from "../../../lib/externalApi";
 import { CheckIcon, XIcon } from "./MissionFeedIcons";
 import { FeedCommands } from "./MissionActivityFeedCommands";
+import { AskAnswerCards } from "./MissionAskCards";
 import { ExpandToggle, mergeStateLabel, pillLabel } from "./MissionActivityFeedCardParts";
 import { stripDuplicateSentence } from "../../../lib/missionActivityFeedText";
-
-export { kindAccent } from "./MissionActivityFeedCardParts";
 
 export function FeedCard({
   card,
@@ -64,7 +63,10 @@ export function FeedCard({
   // but card.textFull carries real narration beyond it — that content must
   // stay reachable via the expand toggle rather than disappearing along with
   // the duplicate-only short text.
-  const showText = displayText.length > 0 || Boolean(displayTextFull && displayTextFull.length > 0);
+  // An answered question renders as per-question answer cards (M5): the templated
+  // "input was received" sentence adds nothing there, and the legacy block is replaced.
+  const askItems = card.question?.resolved ? card.question.items : undefined;
+  const showText = !askItems && (displayText.length > 0 || Boolean(displayTextFull && displayTextFull.length > 0));
   return (
     <article className="mc-feed-card" data-kind={card.kind}>
       {/* Kind label + per-card timestamp both removed site-wide
@@ -110,7 +112,9 @@ export function FeedCard({
         </div>
       )}
 
-      {card.question && (
+      {askItems && askItems.length > 0 && <AskAnswerCards items={askItems} />}
+
+      {card.question && !(askItems && askItems.length > 0) && (
         <div className="mc-feed-qa">
           {/* The real question prose (external-review catch: options/CTA/
               answer rendered without ever showing what was actually asked).

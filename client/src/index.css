@@ -8,6 +8,7 @@
 @import "./styles/mission-sidebar.css"; /* Mission right info sidebar (M3) */
 @import "./styles/mission-agents.css"; /* Mission Agents bar + window (M4) */
 @import "./styles/mission-operation.css"; /* Mission Operation card — verdict + mission line + proof summary (A12) */
+@import "./styles/mission-chat.css"; /* Mission desktop-app style chat + answered-question cards (M5) */
 @import "./styles/files-terminal.css"; /* Files & Terminal three-card row — glass · beige · glass (A18) */
 @import "./styles/command-center.css"; /* command palette (glass) + keyboard nav ring + density (A21) */
 @import "./styles/buttons.css";        /* the ONE canonical .btn-primary standard (2026-07-17) */

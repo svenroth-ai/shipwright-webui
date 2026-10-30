@@ -6,31 +6,6 @@
 import type { ActivityCard } from "../../../lib/missionActivityFeed";
 import type { MergeState } from "../../../lib/missionContextApi";
 
-/** Icon/node accent — always derived from `card.kind`/`card.status`
- * (MissionContext-sourced), never string-matched from `card.text`. Exported so
- * `MissionActivityFeed.tsx` can color the timeline node the same way. */
-export function kindAccent(card: ActivityCard): { color: string; line: string } {
-  if (card.kind === "test") {
-    return card.status === "ok" ? { color: "var(--ok)", line: "var(--ok-line)" }
-      : card.status === "err" ? { color: "var(--err)", line: "var(--err-line)" }
-      : card.status === "warn" ? { color: "var(--warn)", line: "var(--warn-line)" }
-      : { color: "var(--muted)", line: "var(--line-strong)" };
-  }
-  // `note` (a plain trailing message, AC5) shares `investigate`/`system`'s
-  // muted accent — never the vivid default accent a real work-kind card
-  // gets, since it isn't narrating a step, just carrying leftover words.
-  if (card.kind === "investigate" || card.kind === "system" || card.kind === "note") return { color: "var(--muted)", line: "var(--line-strong)" };
-  if (card.kind === "subrunner") {
-    // "done" and "failed" were visually identical (external code review,
-    // openai, medium: "the required done/failed status is invisible") — a
-    // failed subagent now gets the same err accent as a failed test.
-    return card.subrunnerStatus === "running" ? { color: "var(--warn)", line: "var(--warn-line)" }
-      : card.subrunnerStatus === "failed" ? { color: "var(--err)", line: "var(--err-line)" }
-      : { color: "var(--muted)", line: "var(--line-strong)" };
-  }
-  return { color: "var(--accent)", line: "var(--accent-line)" };
-}
-
 export function pillLabel(card: ActivityCard): string | null {
   if (!card.status) return null;
   if (card.kind === "test") return card.status === "ok" ? "Passing" : card.status === "err" ? "Failing" : "Unclear";

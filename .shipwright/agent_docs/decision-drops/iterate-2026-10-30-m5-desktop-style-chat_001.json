@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-30-m5-desktop-style-chat",
+  "date": "2026-10-30",
+  "section": "Iterate - feature: Mission desktop-app style chat (M5)",
+  "title": "Mission chat desktop-app style + answered-question cards",
+  "context": "The Mission chat was a boxed icon timeline and an answered AskUserQuestion showed only the first question with a terse answer line.",
+  "decision": "Restyle the existing feed in place (agent text left, human bubble right, no avatars, grey tool lines) and render one read-only card per answered question from tool_use input joined with toolUseResult.answers.",
+  "consequences": "Rejected and answer-less questions vanish from the feed; pending questions keep the terminal CTA; the parser keeps only the answers map; multiSelect marks options only when every part is a label.",
+  "rationale": "Smallest change that matches the desktop look and keeps every Shipwright card; both architecture reviewers approved; the real JSONL shape was verified on live sessions.",
+  "rejected": "Replacing the feed with BubbleTranscript (loses curated cards); leaving the first-question-only display.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-10-30-m5-desktop-style-chat-desktop-chat.md"
+}

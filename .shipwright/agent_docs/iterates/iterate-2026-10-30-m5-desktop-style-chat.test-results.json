@@ -1,0 +1,114 @@
+{
+  "last_updated": "2026-10-30T18:27:16Z",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-30-m5-desktop-style-chat",
+    "date": "2026-10-30",
+    "unit": {
+      "status": "passed",
+      "passed": 4563,
+      "total": 4563,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 70,
+      "total": 70,
+      "skipped": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "AC1 no avatar nodes; agent text left bare; human message right bubble",
+          "disposition": "tested",
+          "evidence": "MissionAskCards.test.tsx chat-style entries + M5 E2E geometry/computed style"
+        },
+        {
+          "behavior": "AC2 tool calls as small grey lines, expand unchanged",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeedCard.test.tsx command toggle tests + mission-feed E2E chip expand"
+        },
+        {
+          "behavior": "AC3 answered question: one card per question, chosen option highlighted, from tool_use + toolUseResult.answers",
+          "disposition": "tested",
+          "evidence": "missionAskItems.test.ts + MissionAskCards.test.tsx + M5 E2E"
+        },
+        {
+          "behavior": "AC4 Other free text, multiSelect raw text/unambiguous marks, notes",
+          "disposition": "tested",
+          "evidence": "missionAskItems.test.ts (Other, multiSelect, notes) + M5 E2E Other"
+        },
+        {
+          "behavior": "AC5 rejected / no-answer map dropped; pending keeps CTA; unmatched keys fall back to legacy",
+          "disposition": "tested",
+          "evidence": "missionAskItems.test.ts + missionActivityFeedFields.test.ts + M5 E2E rejected+pending"
+        },
+        {
+          "behavior": "AC6 Shipwright cards unchanged",
+          "disposition": "tested",
+          "evidence": "existing vitest (4563 pass) + 69 other mission/M3/M4 Playwright tests pass"
+        },
+        {
+          "behavior": "AC7 read-only: no textarea/input/chat-* in feed",
+          "disposition": "tested",
+          "evidence": "MissionAskCards.test.tsx + M5 E2E"
+        },
+        {
+          "behavior": "AC8 legibility AA contrast of ask cards",
+          "disposition": "tested",
+          "evidence": "M5 E2E contrast probes (question, chosen label, description)"
+        },
+        {
+          "behavior": "AC9 real JSONL round trip in a real browser",
+          "disposition": "tested",
+          "evidence": "M5-mission-desktop-chat.spec.ts (1 test, passed)"
+        }
+      ],
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/M5-mission-desktop-chat.spec.ts",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style--M5\\.shipwright\\runs\\iterate-2026-10-30-m5-desktop-style-chat\\surface_verification.log",
+      "timestamp": "2026-10-30T18:22:51.419Z",
+      "attempts": 1
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

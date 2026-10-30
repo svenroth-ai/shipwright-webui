@@ -1,0 +1,1 @@
+{"stage": "spec-compliance", "verdict": "PASS", "spec_citations": [], "summary": "Round 2 PASS. Round 1 REJECT (answers map recording no answer shown as answered via legacy block) fixed in missionActivityFeedResolve.ts with tests; pending-question CTA retained per operator decision."}

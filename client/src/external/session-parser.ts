@@ -47,6 +47,8 @@ export interface UserEvent extends BaseEvent {
   kind: "user";
   /** Raw message content as produced by the CLI. Could be string or block array. */
   content: unknown;
+  /** Only the `answers` + `annotations` maps of the top-level `toolUseResult` sidecar (AskUserQuestion); other tool payloads are not kept. */
+  toolUseResult?: unknown;
 }
 
 /**
@@ -318,9 +320,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
       // content is a string that matches BOTH tags back-to-back with only
       // whitespace around them — mixed user text falls through to `user`.
       const slash = detectSlashCommand(content);
-      if (slash) {
-        return { ...base, kind: "slash-command", ...slash };
-      }
+      if (slash) return { ...base, kind: "slash-command", ...slash };
       // 2026-04-23 — iterate-20260423-chat-followups AC-3 / ADR-056 AC-A:
       // skill-loader fingerprint. Length-guarded + CRLF-normalized +
       // heading-after-preamble. Body captured so `<SkillCard>` can
@@ -350,7 +350,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
       if (stopHook) {
         return { ...base, kind: "stop-hook", ...stopHook };
       }
-      return { ...base, kind: "user", content };
+      return { ...base, kind: "user", content, ...(typeof (raw.toolUseResult as { answers?: unknown } | null)?.answers === "object" && { toolUseResult: { answers: (raw.toolUseResult as { answers: unknown }).answers, annotations: (raw.toolUseResult as { annotations?: unknown }).annotations } }) };
     }
     case "assistant":
       return {

@@ -1,0 +1,9 @@
+{"review":[
+{"severity":"medium","category":"correctness","file":"client/src/lib/missionActivityFeedResolve.ts","line":91,"finding":"answers map with real answers under non-matching keys dropped the card.","suggestion":"Drop only when no non-blank answer exists; else legacy fallback. FIXED (recordsNoAnswer)."},
+{"severity":"medium","category":"correctness","file":"client/src/styles/mission-chat.css","line":26,"finding":"Chips/expand button used --faint, below AA.","suggestion":"Use --muted. FIXED."},
+{"severity":"medium","category":"performance","file":"client/src/external/session-parser.ts","line":353,"finding":"toolUseResult kept for every tool, duplicating large payloads.","suggestion":"Keep only answers. FIXED."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/mission/MissionAskCards.tsx","line":22,"finding":"Duplicate option labels share a React key.","suggestion":"Dedupe in buildAskItems. FIXED."},
+{"severity":"low","category":"readability","file":"client/src/components/external/mission/MissionAskCards.tsx","line":19,"finding":"List not tied to question; Other lacks selected marker.","suggestion":"aria-labelledby + sr-only selected. FIXED."},
+{"severity":"low","category":"correctness","file":"client/src/lib/missionAskItems.ts","line":71,"finding":"Empty comma part blocked chosenAll.","suggestion":"Filter empties. FIXED."},
+{"severity":"low","category":"correctness","file":"client/e2e/flows/M5-mission-desktop-chat.spec.ts","line":54,"finding":"Contrast helper only sound on-photo.","suggestion":"Noted; ask cards render inside opaque on-photo .mc-op in the E2E."}
+]}
