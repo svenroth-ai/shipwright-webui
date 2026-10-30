@@ -1,8 +1,8 @@
 /*
  * external/actions/upload-delete.ts — DELETE /api/projects/:id/actions-upload.
  *
- * Reset the project to the bundled default by removing
- * `<project.path>/.shipwright-webui/actions.json`. Idempotent: returns
+ * Reset the project to the bundled default by removing its actions.json
+ * (central, plus a legacy in-repo copy). Idempotent: returns
  * `{removed: false}` when the file did not exist.
  */
 
@@ -11,8 +11,8 @@ import { existsSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 import { realPathGuard } from "../../core/path-guard.js";
-import { clearActionsCacheForDataDir } from "../../core/project-actions-loader.js";
-import { projectDataDir, projectDataGuardRoot } from "../../core/project-data-dir.js";
+import { clearActionsCacheForRecord } from "../../core/project-actions-loader.js";
+import { centralDataDir, legacyRepoDataDir, projectDataDir, projectDataGuardRoot } from "../../core/project-data-dir.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 
 export function registerActionsUploadDelete(
@@ -35,31 +35,36 @@ export function registerActionsUploadDelete(
         400,
       );
     }
-    const file = join(projectDataDir(project), "actions.json");
-    if (!existsSync(file)) {
-      clearActionsCacheForDataDir(projectDataDir(project));
-      return c.json({ path: file, removed: false });
-    }
-    const guard = realPathGuard(projectDataGuardRoot(project), file);
-    if (!guard.ok) {
-      return c.json(
-        { error: "path_unsafe", reason: guard.reason, path: file },
-        400,
-      );
+    // Reset removes the central file AND a legacy in-repo one (otherwise the
+    // legacy read-fallback would resurrect the "reset" actions.json).
+    const central = projectDataDir(project);
+    const targets = [central, legacyRepoDataDir(project), project.shared === true ? centralDataDir(project) : null]
+      .filter((d): d is string => !!d)
+      .map((d) => ({ dir: d, file: join(d, "actions.json") }))
+      .filter((t) => existsSync(t.file));
+    if (targets.length === 0) {
+      clearActionsCacheForRecord(project);
+      return c.json({ path: join(central, "actions.json"), removed: false });
     }
     try {
-      unlinkSync(file);
-    } catch (err) {
-      return c.json(
-        {
-          error: "upload_unlink_failed",
-          detail: String(err).slice(0, 200),
-          path: file,
-        },
-        500,
-      );
+    for (const t of targets) {
+      const guardRoot = t.dir === central ? projectDataGuardRoot(project) : t.dir === legacyRepoDataDir(project) ? project.path : t.dir;
+      const guard = realPathGuard(guardRoot, t.file);
+      if (!guard.ok) {
+        return c.json({ error: "path_unsafe", reason: guard.reason, path: t.file }, 400);
+      }
+      try {
+        unlinkSync(t.file);
+      } catch (err) {
+        return c.json(
+          { error: "upload_unlink_failed", detail: String(err).slice(0, 200), path: t.file },
+          500,
+        );
+      }
     }
-    clearActionsCacheForDataDir(projectDataDir(project));
-    return c.json({ path: file, removed: true });
+    return c.json({ path: targets[0].file, removed: true });
+    } finally {
+      clearActionsCacheForRecord(project);
+    }
   });
 }

@@ -8,10 +8,14 @@
  * follow-up iterate once external-launch ships.
  */
 
+import path from "node:path";
 import { Hono } from "hono";
 import type { ProjectManager } from "../core/project-manager.js";
 import { AppError } from "../middleware/error-handler.js";
 import { normalizeFsPath } from "../core/normalize-fs-path.js";
+import { projectDataDir } from "../core/project-data-dir.js";
+import { dataStatus, migrateProjectData } from "../core/project-data-migrate.js";
+import { clearActionsCacheForRecord } from "../core/project-actions-loader.js";
 
 export interface ProjectRouteDeps {
   existsSync: (path: string) => boolean;
@@ -35,6 +39,11 @@ const WORKSPACE_CONTENT = JSON.stringify(
   null,
   2,
 );
+
+/** Central workspace file: absolute folder path (it does not live inside the repo). */
+function workspaceContent(repoPath: string): string {
+  return JSON.stringify({ ...JSON.parse(WORKSPACE_CONTENT), folders: [{ path: repoPath }] }, null, 2);
+}
 
 function slugifyProjectName(name: string): string {
   return name
@@ -76,30 +85,36 @@ export function createProjectRoutes(
     if (!body.name || !body.path) {
       throw new AppError("name and path are required", 400);
     }
-    // iterate-2026-10-29-standalone-mode — a standalone project must leave the
-    // repo untouched: no mkdir of the path (create() 400s if it is missing),
-    // no `.shipwright-webui/`, no `.code-workspace`.
-    body.standalone = body.standalone === true;
-    if (fsDeps && !body.standalone) {
-      if (!fsDeps.existsSync(body.path)) {
-        fsDeps.mkdirSync(body.path, { recursive: true });
-      }
-      const webuiDir = `${body.path}/.shipwright-webui`;
-      if (!fsDeps.existsSync(webuiDir)) {
-        fsDeps.mkdirSync(webuiDir, { recursive: true });
-      }
-      const slug = slugifyProjectName(String(body.name));
-      if (slug.length > 0) {
-        const workspacePath = `${webuiDir}/${slug}.code-workspace`;
-        if (!fsDeps.existsSync(workspacePath)) {
-          // Atomic temp+rename mirrors sdk-sessions-store.ts convention.
-          const tmpPath = `${workspacePath}.tmp`;
-          fsDeps.writeFileSync(tmpPath, WORKSPACE_CONTENT);
-          fsDeps.renameSync(tmpPath, workspacePath);
-        }
-      }
+    // iterate-2026-10-30-central-data-default - the webui's own files stay out
+    // of the repo unless the user opts in with `shared`. The project folder
+    // itself is still created when missing (create() 400s otherwise).
+    body.shared = body.shared === true;
+    delete body.standalone; // retired 2026-10-29 flag
+    if (fsDeps && !fsDeps.existsSync(body.path)) {
+      fsDeps.mkdirSync(body.path, { recursive: true });
     }
     const project = projectManager.create(body);
+    if (fsDeps) {
+      // Convenience file only: the project is already stored, so a failure here
+      // must not turn the request into a 500 (a retry would duplicate it).
+      try {
+        const slug = slugifyProjectName(String(body.name));
+        const dir = projectDataDir(project);
+        if (slug.length > 0) {
+          const workspacePath = path.join(dir, `${slug}.code-workspace`);
+          fsDeps.mkdirSync(dir, { recursive: true });
+          if (!fsDeps.existsSync(workspacePath)) {
+            // Atomic temp+rename mirrors sdk-sessions-store.ts convention. A shared
+            // project keeps the portable `..`; a central one needs the absolute repo path.
+            const tmpPath = `${workspacePath}.tmp`;
+            fsDeps.writeFileSync(tmpPath, project.shared ? WORKSPACE_CONTENT : workspaceContent(project.path));
+            fsDeps.renameSync(tmpPath, workspacePath);
+          }
+        }
+      } catch {
+        /* best effort */
+      }
+    }
     return c.json({ data: project }, 201);
   });
 
@@ -107,12 +122,31 @@ export function createProjectRoutes(
     const body = await c.req.json();
     // Same paste-artifact guard as POST, for path edits via the settings UI.
     if (typeof body.path === "string") body.path = normalizeFsPath(body.path);
-    if ("standalone" in body && typeof body.standalone !== "boolean") {
-      throw new AppError("standalone must be a boolean", 400);
+    if ("shared" in body && typeof body.shared !== "boolean") {
+      throw new AppError("shared must be a boolean", 400);
     }
+    delete body.standalone; // retired flag: never persist it again
     const updated = projectManager.update(c.req.param("id"), body);
     if (!updated) throw new AppError("Project not found", 404);
     return c.json({ data: updated });
+  });
+
+  // Where the webui keeps this project's own files + whether legacy in-repo files remain.
+  app.get("/api/projects/:id/data-status", (c) => {
+    const project = projectManager.getById(c.req.param("id"));
+    if (!project) throw new AppError("Project not found", 404);
+    return c.json({ data: dataStatus(project) });
+  });
+
+  // "Move to user folder": legacy <repo>/.shipwright-webui/ to the central dir (copy, verify, delete).
+  app.post("/api/projects/:id/migrate-data", (c) => {
+    const project = projectManager.getById(c.req.param("id"));
+    if (!project) throw new AppError("Project not found", 404);
+    try {
+      return c.json({ data: migrateProjectData(project) });
+    } finally {
+      clearActionsCacheForRecord(project);
+    }
   });
 
   app.delete("/api/projects/:id", async (c) => {

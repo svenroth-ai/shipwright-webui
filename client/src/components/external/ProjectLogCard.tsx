@@ -105,8 +105,8 @@ export function ProjectLogCard({
         <span className="lc-name" title={project.name}>
           {project.name}
           {project.synthesized && <span className="lc-synth"> (synthesized)</span>}
-          {project.standalone && (
-            <span className="lc-synth" title="Standalone: nothing is written into this repository"> (standalone)</span>
+          {project.shared && (
+            <span className="lc-synth" title="Web UI data is kept in this repository"> (shared)</span>
           )}
         </span>
         <span className="grow" />

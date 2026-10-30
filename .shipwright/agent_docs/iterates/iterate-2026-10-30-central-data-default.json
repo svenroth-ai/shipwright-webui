@@ -1,0 +1,92 @@
+{
+  "run_id": "iterate-2026-10-30-central-data-default",
+  "date": "2026-10-30T08:41:07.930952Z",
+  "event_at": "2026-10-30T06:55:26.463209+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/central-data-default",
+  "spec": ".shipwright/planning/iterate/2026-10-30-central-data-default.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-30-central-data-default",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Default project: webui files (actions.json, pastes, .code-workspace) land in the central dir, repo byte-identical",
+        "disposition": "tested",
+        "evidence": "central-data-default.test.ts + e2e 107 PASSED"
+      },
+      {
+        "behavior": "shared project keeps files in <repo>/.shipwright-webui/",
+        "disposition": "tested",
+        "evidence": "central-data-default.test.ts + e2e 107 shared test PASSED"
+      },
+      {
+        "behavior": "actions.json read central-first with legacy in-repo fallback; shared falls back to central",
+        "disposition": "tested",
+        "evidence": "central-data-default.test.ts + extra.test.ts PASSED"
+      },
+      {
+        "behavior": "Reset removes central, legacy and (for shared) central copies; cache cleared even on failure",
+        "disposition": "tested",
+        "evidence": "central-data-default tests PASSED"
+      },
+      {
+        "behavior": "migrate-data / data-status: copy, verify, delete, never overwrite, no-op for shared, 404 unknown",
+        "disposition": "tested",
+        "evidence": "central-data-default.test.ts PASSED + e2e 107 PASSED"
+      },
+      {
+        "behavior": "Markdown PUT works for a default project (no write lock); guard middleware removed",
+        "disposition": "tested",
+        "evidence": "e2e 107 default test PASSED; extra.test.ts wiring test PASSED"
+      },
+      {
+        "behavior": "Image paste goes central; nested projects resolve by longest path; shared pastes in repo",
+        "disposition": "tested",
+        "evidence": "central-data-default.test.ts + extra.test.ts PASSED"
+      },
+      {
+        "behavior": "updateAutonomy only touches an existing shipwright_run_config.json",
+        "disposition": "tested",
+        "evidence": "project-manager.test.ts + extra.test.ts PASSED"
+      },
+      {
+        "behavior": "Wizard checkbox 'Keep Web UI data in the repo' sends shared:true only when ticked",
+        "disposition": "tested",
+        "evidence": "ProjectWizard.shared.test.tsx PASSED + e2e 107 PASSED"
+      },
+      {
+        "behavior": "Settings dialog toggle + Move to user folder button; (shared) badge",
+        "disposition": "tested",
+        "evidence": "e2e 107 PASSED (API flow); client tsc clean"
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 8,
+      "covered_acs": 8
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "cd client && npm run test:e2e -- --project=chromium e2e/flows/107-central-data-default.spec.ts",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": ".shipwright/runs/iterate-2026-10-30-central-data-default/surface_verification.log",
+    "timestamp": "2026-10-30T08:38:14.000Z",
+    "attempts": 2
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

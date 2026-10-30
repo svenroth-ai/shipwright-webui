@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-30-central-data-default",
+  "date": "2026-10-30",
+  "section": "Iterate - change: webui data lives outside the repo by default",
+  "title": "Central webui data by default; shared is the opt-in; no repo write lock",
+  "context": "The webui wrote .shipwright-webui/ files (actions.json, pasted screenshots, .code-workspace) into every repo. Sven wants them kept out of repos, but the standalone write lock also blocked editing the user's own Markdown, which is not wanted.",
+  "decision": "Per-project webui files resolve to <registryDir>/projects/<id>/ by default; a stored shared flag keeps them in <repo>/.shipwright-webui/. actions.json is read central-first with a legacy in-repo fallback; migrate-data moves legacy files. The standalone-guard middleware and 403 are removed.",
+  "consequences": "Repos stay clean by default and stay fully editable; existing projects keep working; central pastes sit outside the agent's cwd (may prompt for read permission); the central folder is not removed on project delete; Move/Reset delete repo files (a tracked actions.json shows as deleted in git).",
+  "rationale": "Where webui data lives and whether the repo may be edited are different questions; splitting them removes the write lock without putting webui files back into repos.",
+  "rejected": "Keeping standalone as a write lock (blocks the Markdown editor); migrating projects.json on boot (ADR-038 write-on-touch); auto-moving files when the shared flag flips (surprising data movement); a global switch.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

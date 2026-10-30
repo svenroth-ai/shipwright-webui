@@ -26,6 +26,8 @@
 import { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { apiFetch, apiPost } from '../../lib/api';
 import { useUpdateProject } from '../../hooks/useUpdateProject';
 import { ProjectColorPicker } from './ProjectColorPicker';
 import { ActionsConfigRow } from '../settings/ActionsConfigRow';
@@ -44,7 +46,20 @@ export function ProjectSettingsDialog({
 }: ProjectSettingsDialogProps) {
   const [name, setName] = useState('');
   const [color, setColor] = useState<string | null>(null);
-  const [standalone, setStandalone] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [moveMsg, setMoveMsg] = useState<string | null>(null);
+  const dataStatus = useQuery({
+    queryKey: ['project-data-status', project?.id],
+    queryFn: () => apiFetch<{ legacyPresent: boolean }>(`/projects/${project?.id}/data-status`),
+    enabled: open && !!project && !project.synthesized,
+  });
+  const migrate = useMutation({
+    mutationFn: () => apiPost<{ moved: string[]; conflicts: string[] }>(`/projects/${project?.id}/migrate-data`, {}),
+    onSuccess: (r) => {
+      setMoveMsg(`Moved ${r.moved.length} file(s)${r.conflicts.length ? `, ${r.conflicts.length} skipped (already in your user folder)` : ''}.`);
+      dataStatus.refetch();
+    },
+  });
   const updateProject = useUpdateProject();
 
   // Re-seed local state every time the dialog is opened with a new project.
@@ -52,7 +67,8 @@ export function ProjectSettingsDialog({
     if (open && project) {
       setName(project.name);
       setColor(project.settings?.color ?? null);
-      setStandalone(project.standalone === true);
+      setShared(project.shared === true);
+      setMoveMsg(null);
       updateProject.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,7 +85,7 @@ export function ProjectSettingsDialog({
         id: project.id,
         patch: {
           name: name.trim(),
-          standalone,
+          shared,
           // Explicit null → clear custom color (Auto). Settings payload
           // is merged server-side so this only touches `color`.
           settings: { color: color ?? undefined },
@@ -178,23 +194,38 @@ export function ProjectSettingsDialog({
               testidPrefix="project-settings-color"
             />
 
-            {/* Standalone (iterate-2026-10-29-standalone-mode) — a stored flag. */}
+            {/* Where the webui keeps its own files (iterate-2026-10-30-central-data-default). */}
             {!project.synthesized && (
-              <label className="flex items-start gap-3 cursor-pointer" data-testid="project-settings-standalone">
-                <input
-                  type="checkbox"
-                  checked={standalone}
-                  onChange={(e) => setStandalone(e.target.checked)}
-                  className="mt-1 h-4 w-4 accent-[var(--color-primary)]"
-                />
-                <span className="text-[13px] text-[var(--color-text)] leading-snug">
-                  <span className="font-semibold tracking-tight">Standalone — don&rsquo;t touch this repository</span>
-                  <span className="block text-xs text-[var(--color-muted)] mt-0.5">
-                    The webui writes nothing into the project folder. Switching does not move existing
-                    actions.json or pasted images.
+              <div data-testid="project-settings-shared">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={shared}
+                    onChange={(e) => setShared(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-[var(--color-primary)]"
+                  />
+                  <span className="text-[13px] text-[var(--color-text)] leading-snug">
+                    <span className="font-semibold tracking-tight">Keep Web UI data in the repo (actions.json, screenshots &hellip;)</span>
+                    <span className="block text-xs text-[var(--color-muted)] mt-0.5">
+                      Off: files live in your user folder (~/.shipwright-webui). Switching does not move
+                      existing files.
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+                {dataStatus.data?.legacyPresent && !shared && (
+                  <button
+                    type="button"
+                    data-testid="project-settings-migrate"
+                    title="Copies the files to your user folder, then removes them from the repository (a tracked file shows up as deleted in git)."
+                    disabled={migrate.isPending}
+                    onClick={() => migrate.mutate()}
+                    className="mt-2 text-xs underline text-[var(--color-primary)]"
+                  >
+                    Move to user folder
+                  </button>
+                )}
+                {moveMsg && <p className="text-xs text-[var(--color-muted)] mt-1">{moveMsg}</p>}
+              </div>
             )}
 
             {/* Actions configuration (iterate-2026-06-14-actions-config-ux) —

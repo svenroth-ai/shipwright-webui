@@ -85,7 +85,7 @@ describe("POST /api/projects/:id/actions-upload", () => {
     return {
       id: PROJECT_ID,
       name: "demo",
-      path: projectPath,
+      path: projectPath, shared: true, // shared = in-repo layout under test
     };
   }
 
@@ -418,7 +418,7 @@ describe("DELETE /api/projects/:id/actions-upload", () => {
   const PROJECT_ID = "project-001";
 
   function defaultProject(): ExternalRouteProjectView {
-    return { id: PROJECT_ID, name: "demo", path: projectPath };
+    return { id: PROJECT_ID, name: "demo", path: projectPath, shared: true };
   }
 
   beforeEach(async () => {

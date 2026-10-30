@@ -179,7 +179,8 @@ describe("ProjectManager", () => {
     expect(runCfg.other_field).toBe("preserved");
   });
 
-  it("updateAutonomy creates shipwright_run_config.json when missing (non-fatal)", async () => {
+  // @covers FR-01.03
+  it("updateAutonomy does NOT create shipwright_run_config.json when missing (central-data-default)", async () => {
     const store: Record<string, string> = { "/tmp/projects.json": "[]" };
     const deps: ProjectManagerDeps = {
       readFile: vi.fn(async (path: string) => store[path] ?? ""),
@@ -193,8 +194,7 @@ describe("ProjectManager", () => {
 
     await pm.updateAutonomy(p.id, "guided");
 
-    const runCfg = JSON.parse(store["/tmp/proj/shipwright_run_config.json"]);
-    expect(runCfg.autonomy).toBe("guided");
+    expect("/tmp/proj/shipwright_run_config.json" in store).toBe(false);
   });
 
   it("updateAutonomy also writes autonomy into project.settings in memory + projects.json", async () => {

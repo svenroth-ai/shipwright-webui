@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
+import path from "node:path";
 import { createProjectRoutes } from "./projects.js";
 import { AppError, errorHandler } from "../middleware/error-handler.js";
 
@@ -208,15 +209,16 @@ describe("Project Routes (Plan D'' simplified)", () => {
   // .code-workspace file inside .shipwright-webui/ so the user can open
   // the project in VS Code with one double-click.
   describe("VS Code workspace generation on POST", () => {
+    // @covers FR-01.03
     it("POST creates <slug>.code-workspace with relative '..' folder + editor terminal default", async () => {
       const { app, fsDeps } = setup();
       // Project dir + .shipwright-webui exist; workspace file does NOT.
-      const wsPath = "/tmp/new/.shipwright-webui/shipwright-webui.code-workspace";
+      const wsPath = path.join("/tmp/new", ".shipwright-webui", "shipwright-webui.code-workspace");
       fsDeps.existsSync.mockImplementation((p: string) => p !== wsPath);
       const res = await app.request("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Shipwright WebUI", path: "/tmp/new" }),
+        body: JSON.stringify({ name: "Shipwright WebUI", path: "/tmp/new", shared: true }),
       });
       expect(res.status).toBe(201);
       // writeFileSync called against the temp path (atomic write convention),
@@ -237,10 +239,11 @@ describe("Project Routes (Plan D'' simplified)", () => {
       expect(renameCall).toBeDefined();
     });
 
+    // @covers FR-01.03
     it("POST does not overwrite an existing .code-workspace", async () => {
       const { app, fsDeps } = setup();
       // Pre-existing workspace file — must be left alone.
-      const wsPath = "/tmp/new/.shipwright-webui/shipwright-webui.code-workspace";
+      const wsPath = path.join("/tmp/new", ".shipwright-webui", "shipwright-webui.code-workspace");
       fsDeps.existsSync.mockImplementation(() => true);
       const res = await app.request("/api/projects", {
         method: "POST",
@@ -255,18 +258,19 @@ describe("Project Routes (Plan D'' simplified)", () => {
       expect(renameCalls.some(([, dst]) => String(dst) === wsPath)).toBe(false);
     });
 
+    // @covers FR-01.03
     it.each([
       ["Shipwright WebUI", "shipwright-webui"],
       ["foo  bar", "foo-bar"],
       ["  --weird name--  ", "weird-name"],
     ])("slugifies project name %j -> %j", async (inputName, expectedSlug) => {
       const { app, fsDeps } = setup();
-      const wsPath = `/tmp/proj/.shipwright-webui/${expectedSlug}.code-workspace`;
+      const wsPath = path.join("/tmp/proj", ".shipwright-webui", `${expectedSlug}.code-workspace`);
       fsDeps.existsSync.mockImplementation((p: string) => p !== wsPath);
       const res = await app.request("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: inputName, path: "/tmp/proj" }),
+        body: JSON.stringify({ name: inputName, path: "/tmp/proj", shared: true }),
       });
       expect(res.status).toBe(201);
       const renameCall = fsDeps.renameSync.mock.calls.find(([, dst]) => dst === wsPath);

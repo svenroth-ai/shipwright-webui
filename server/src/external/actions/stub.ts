@@ -1,7 +1,7 @@
 /*
  * external/actions/stub.ts — POST /api/projects/:id/actions-stub.
  *
- * Creates `<projectDataDir>/actions.json` (central for standalone projects) as an empty structured stub.
+ * Creates `<projectDataDir>/actions.json` (central unless the project is `shared`) as an empty structured stub.
  * Only called from the wizard's "Custom" branch; idempotent (second call
  * is a no-op). This is the ONLY write webui performs inside a user's
  * project path that isn't gated by `realPathGuard`, because the
@@ -13,7 +13,8 @@ import type { Hono } from "hono";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { projectDataDir } from "../../core/project-data-dir.js";
+import { clearActionsCacheForRecord } from "../../core/project-actions-loader.js";
+import { projectActionsReadDir, projectDataDir } from "../../core/project-data-dir.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 
 export function registerActionsStub(
@@ -40,7 +41,8 @@ export function registerActionsStub(
     const file = join(dir, "actions.json");
     try {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-      if (!existsSync(file)) {
+      // Never shadow a legacy in-repo actions.json with an empty central stub.
+      if (!existsSync(join(projectActionsReadDir(project), "actions.json"))) {
         const stub = {
           $schema:
             "https://shipwright.dev/schemas/actions.v1.json (see docs/actions.md)",
@@ -50,8 +52,14 @@ export function registerActionsStub(
           phases: [],
           preview: { enabled: "auto" },
         };
-        writeFileSync(file, JSON.stringify(stub, null, 2) + "\n", "utf-8");
+        try {
+          // "wx": create-only, so a concurrent create is EEXIST, not a check-then-write race.
+          writeFileSync(file, JSON.stringify(stub, null, 2) + "\n", { encoding: "utf-8", flag: "wx" });
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+        }
       }
+      clearActionsCacheForRecord(project);
       return c.json({ path: file, created: true });
     } catch (err) {
       return c.json(

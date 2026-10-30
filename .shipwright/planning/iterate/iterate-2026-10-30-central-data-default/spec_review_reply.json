@@ -1,0 +1,6 @@
+{
+  "stage": "spec-compliance",
+  "verdict": "PASS",
+  "spec_citations": [],
+  "summary": "AC-1..AC-7 met; AC-8 gap (FR-01.03 text in 01-adopted/spec.md still described the standalone model) was FIXED by rewriting the bullet. Optional hardening applied: HTTP-level tests for data-status/migrate-data. data-status endpoint judged a necessary supporting route for AC-7."
+}
