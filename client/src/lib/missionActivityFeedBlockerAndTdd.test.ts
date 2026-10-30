@@ -230,6 +230,7 @@ describe("deriveActivityFeed — TDD authoring runs are excluded from the gate s
 
   // A coalesced card with ONE failing tool_use no longer becomes an error card
   // (campaign mission-desktop-style M1): no status, no raw output, no sentence.
+  // @covers FR-01.66
   it("does not turn a coalesced card with one failing command into an error card", () => {
     const events = parseSessionJsonl([
       event({ type: "assistant", message: { role: "assistant", content: [

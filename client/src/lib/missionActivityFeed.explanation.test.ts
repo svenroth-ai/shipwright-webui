@@ -99,6 +99,7 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     expect(card?.explanation).toBe("More detail follows.");
   });
 
+  // @covers FR-01.66
   it("(g) a failed command is NOT turned into an error card; the turn's own narration is kept (M1: errors live in the terminal)", () => {
     const events = parseSessionJsonl([
       turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),
@@ -137,6 +138,7 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     expect(implementCards[0].explanation).toBeUndefined(); // two turns touched it — must be cleared
   });
 
+  // @covers FR-01.66
   it("(j) a failed command's identical command string never swallows a later, unrelated coalesced card", () => {
     const events = parseSessionJsonl([
       turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),

@@ -71,6 +71,7 @@ describe("MissionActivityFeed", () => {
   // The entry key leads with `card.kind`, so a card that changes kind REMOUNTS
   // and its expanded-detail flag resets. Falsified by dropping `card.kind`
   // from the entry key in `MissionActivityFeed.tsx`.
+  // @covers FR-01.66
   it("remounts a card that changes kind, so an expanded detail collapses", () => {
     const failing = { kind: "test" as const, text: "Tests ran.", commands: ["Bash: npm test"], status: "err" as const, detail: "FAIL excerpt", detailFull: "FAIL entire traceback dump", timestamp: "2026-09-16T10:00:00.000Z" };
     const { rerender } = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [failing] }} commitArtifact={null} task={TASK} />);

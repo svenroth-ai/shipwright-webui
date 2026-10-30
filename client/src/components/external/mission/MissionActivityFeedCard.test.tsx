@@ -193,6 +193,7 @@ describe("FeedCard — subrunner card rendering", () => {
     expect(onSubrunnerClick).toHaveBeenCalledWith("agent-42");
   });
 
+  // @covers FR-01.66
   it("resolved: shows the readable dispatch title as visible text next to a compact (non-oversized) status link", () => {
     const { container } = renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." }, vi.fn());
     expect(screen.getByText("Investigate the auth bug")).toBeInTheDocument();

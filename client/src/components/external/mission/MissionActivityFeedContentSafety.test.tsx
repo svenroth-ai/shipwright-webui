@@ -28,6 +28,7 @@ describe("MissionActivityFeed - untrusted content stays inert", () => {
     expect(screen.getByText(/Edited the login handler/)).toBeInTheDocument();
   });
 
+  // @covers FR-01.66
   it("renders HTML-like raw-output detail as inert literal text, never a real element", () => {
     const { container } = render(<MissionActivityFeed feed={{
       outcome: "In progress",

@@ -118,6 +118,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(recovered?.detail).toBeUndefined();
   });
 
+  // @covers FR-01.66
   it("a failing command on a coalesced multi-command card yields no error card and no raw excerpt (M1)", () => {
     const events = parseSessionJsonl([
       tool("a", "Read", { file_path: "a.ts" }),
@@ -144,6 +145,7 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(cards[1].detail).toBe("FAIL suiteB");
   });
 
+  // @covers FR-01.66
   it("attaches no error excerpt for a single failing non-test command (M1)", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), errorResult("a", "ENOENT: a.ts not found")].join("\n")).events;
     const cards = deriveActivityFeed(events, context("unknown")).cards;

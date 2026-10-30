@@ -65,12 +65,14 @@ describe("isTransientClassifierError", () => {
 });
 
 describe("deriveActivityFeed — AC3: a non-test tool call rejected by the transient classifier", () => {
+  // @covers FR-01.66
   it("never becomes an error card", () => {
     const events = parseSessionJsonl([tool("t1", "Bash", { command: "git commit -m 'x'" }), result("t1", TRANSIENT_TEXT, true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
     expect(feed.cards.some((card) => card.status === "err")).toBe(false);
   });
 
+  // @covers FR-01.66
   it("a genuine command failure is not surfaced as a card either (M1: errors live in the terminal)", () => {
     const events = parseSessionJsonl([tool("t1", "Bash", { command: "git commit -m 'x'" }), result("t1", "fatal: nothing to commit", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
@@ -223,6 +225,7 @@ describe("deriveActivityFeed — a transiently-rejected subrunner dispatch resol
   // was ever reached. This proves that path is now actually reachable from
   // the real reducer, for every kind of dispatch error, not only a
   // transiently-rejected one.
+  // @covers FR-01.66
   it("a genuinely failed (non-transient) Agent dispatch still resolves to a failed subrunner card, never a command-failed card (negative control)", () => {
     const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "a1", name: "Agent", input: { subagent_type: "general-purpose", description: "Investigate the failure" } }] } });
     const events = parseSessionJsonl([dispatch, result("a1", "The agent launch failed outright.", true)].join("\n")).events;
