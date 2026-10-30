@@ -142,99 +142,15 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 9,
-      "findings": [
-        {
-          "severity": "medium",
-          "category": "performance",
-          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
-          "line": 67,
-          "finding": "Splitter drag persisted the width to localStorage on every pointermove.",
-          "suggestion": "Persist once on release. FIXED in cdf71ba (live width in state, commit on pointerup).",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "performance",
-          "file": "client/src/hooks/useSessionInfo.ts",
-          "line": 48,
-          "finding": "State-change refetch could cancel and restart an in-flight 48 MB scan.",
-          "suggestion": "refetch with cancelRefetch false. FIXED in cdf71ba.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/e2e/flows/M3-mission-info-sidebar.spec.ts",
-          "line": 170,
-          "finding": "No-clip checks only compared the document width.",
-          "suggestion": "Also assert .mc-body overflow, sidebar inside body, middle card >= 360 at 1440. FIXED in cdf71ba.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
-          "line": 41,
-          "finding": "Remembered Viewer segment opens an empty Viewer after reload.",
-          "suggestion": "Accepted as-is: SmartViewer renders an explicit empty state.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "performance",
-          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
-          "line": 133,
-          "finding": "Folders/Viewer mount while the compact Info tab is hidden.",
-          "suggestion": "FIXED in cdf71ba (render only when visible).",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/sessionInfoFormat.ts",
-          "line": 31,
-          "finding": "relativeToCwd is called with the project root.",
-          "suggestion": "Rename deferred; caller comment documents it.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/lib/sessionInfoFormat.ts",
-          "line": 42,
-          "finding": "Empty path segments not rejected.",
-          "suggestion": "FIXED in cdf71ba.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "mini-plan.md",
-          "line": 31,
-          "finding": "Plan still named the removed debounce test.",
-          "suggestion": "FIXED.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/components/external/mission/MissionInfoPanel.tsx",
-          "line": 68,
-          "finding": "Refresh button reuses .env-more.",
-          "suggestion": "Accepted, styling coupling only.",
-          "source": "code-reviewer"
-        }
-      ],
+      "findings_count": 0,
+      "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T16:07:51.445966+00:00",
+      "completed_at": "2026-10-30T16:37:46.623241+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "fbab7d027bccc8e68a0bb956133b7ada05176b40"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
@@ -242,8 +158,8 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T16:07:51.586536+00:00",
-      "disposition": "Stage 3 not triggered: client-only UI change, no migration, concurrency primitive, cross-plugin import or irreversible operation",
+      "completed_at": "2026-10-30T16:37:46.742153+00:00",
+      "disposition": "Stage 3 is conditional and did not trigger for this diff (no migration, async/concurrency, cross-plugin import or irreversible op: a read-only client sidebar + CSS); Stage 2 passed at 3f-bis round 3",
       "recorded_by": "none",
       "parse_status": null,
       "raw_excerpt": null,
@@ -371,14 +287,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T16:01:20.107112+00:00",
+      "completed_at": "2026-10-30T16:37:46.499665+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "fbab7d027bccc8e68a0bb956133b7ada05176b40"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
