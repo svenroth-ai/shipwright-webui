@@ -15,7 +15,7 @@ export function AgentsDock({ task, controller }: { task: ExternalTask; controlle
   const n = controller.runningCount;
   return (
     <>
-      {(n > 0 || controller.open) && (
+      {n > 0 && (
         <div className="mc-agents-bar" data-testid="agents-bar">
           <button
             type="button"

@@ -15,6 +15,8 @@ import { findAgentForCard, isActiveAgent } from "../lib/agentsTree";
 import { useSessionInfo } from "./useSessionInfo";
 
 const NONE: readonly SessionSubagent[] = [];
+/** Feed growth rescans at most this often. */
+const ACTIVITY_RESCAN_MS = 10_000;
 
 export interface MissionAgents {
   agents: readonly SessionSubagent[];
@@ -52,13 +54,22 @@ export function useMissionAgents(
 
   // The transcript is already polled for the feed: a dispatch / completion seen THERE is the
   // event-driven signal to rescan (one scan per event, no timer), so the bar cannot go stale.
+  // Nested agents (a reviewer started by a runner) leave no card in the MAIN feed, so any feed growth
+  // also triggers a rescan, throttled; the scan is memoised per changed file, so it stays cheap.
   const signature = cardSignature(cards);
+  const activity = cards?.length ?? 0;
   const lastSignature = useRef(signature);
+  const lastActivity = useRef(activity);
+  const updatedAt = useRef(0);
+  updatedAt.current = q.dataUpdatedAt;
   useEffect(() => {
-    if (!taskId || lastSignature.current === signature) return;
+    if (!taskId) return;
+    const dispatched = lastSignature.current !== signature;
+    const grew = lastActivity.current !== activity && Date.now() - updatedAt.current > ACTIVITY_RESCAN_MS;
     lastSignature.current = signature;
-    void refetch({ cancelRefetch: false });
-  }, [taskId, signature, refetch]);
+    lastActivity.current = activity;
+    if (dispatched || grew) void refetch({ cancelRefetch: false });
+  }, [taskId, signature, activity, refetch]);
 
   const refresh = useCallback(() => void refetch({ cancelRefetch: false }), [refetch]);
   const setOpen = useCallback(

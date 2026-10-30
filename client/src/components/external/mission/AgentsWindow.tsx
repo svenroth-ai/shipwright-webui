@@ -34,7 +34,10 @@ export function AgentsWindow({ task, controller }: { task: ExternalTask; control
           data-testid="agents-window"
           onCloseAutoFocus={(e) => {
             e.preventDefault();
-            controller.returnFocusRef.current?.focus();
+            // The opener can be gone (the bar hides at 0 running): fall back to the feed, never <body>.
+            const el = controller.returnFocusRef.current;
+            const target = el?.isConnected ? el : document.querySelector<HTMLElement>('[data-testid="mission-activity-feed"]');
+            target?.focus();
           }}
         >
           <header className="ag-head">
