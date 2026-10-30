@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AgentsDock } from "./AgentsDock";
 import { useMissionAgents } from "../../../hooks/useMissionAgents";
 import type { ExternalTask } from "../../../lib/externalApi";
+import type { ActivityCard } from "../../../lib/missionActivityFeed";
 
 const JSON_HDR = { "content-type": "application/json" };
 const task = { taskId: "t1", projectId: "p1", cwd: "C:\\dev\\app", state: "active" } as unknown as ExternalTask;
@@ -17,8 +18,8 @@ const sub = (o: Record<string, unknown>) => ({
 let subagents: unknown[];
 const transcriptLine = JSON.stringify({ type: "assistant", message: { role: "assistant", content: [{ type: "text", text: "agent says hi" }] } }) + "\n";
 
-function Harness({ openId }: { openId?: string }) {
-  const c = useMissionAgents(task.taskId, task.state);
+function Harness({ openId, cards }: { openId?: string; cards?: ActivityCard[] }) {
+  const c = useMissionAgents(task.taskId, task.state, cards);
   return (
     <>
       <button data-testid="card-open" onClick={() => c.openFor(openId)}>card</button>
@@ -26,9 +27,9 @@ function Harness({ openId }: { openId?: string }) {
     </>
   );
 }
-function mount(openId?: string) {
+function mount(openId?: string, cards?: ActivityCard[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><Harness openId={openId} /></QueryClientProvider>);
+  return render(<QueryClientProvider client={qc}><Harness openId={openId} cards={cards} /></QueryClientProvider>);
 }
 
 beforeEach(() => {
@@ -81,6 +82,28 @@ describe("AgentsDock", () => {
     fireEvent.click(screen.getByTestId("agent-tab-transcript"));
     expect(await screen.findByText("agent says hi")).toBeInTheDocument();
     expect(document.querySelector("textarea")).toBeNull();
+  });
+
+  it("a killed agent opened from its chat card shows the notification report, not its mid-work prose as the answer", async () => {
+    subagents = [sub({ agentId: "k1", description: "Killed one", status: "killed", answer: "Now let me run the tests..." })];
+    const cards = [{ kind: "subrunner", text: "x", commands: [], subrunnerId: "k1", subrunnerStatus: "failed", subrunnerEndStatus: "killed", subrunnerReport: "KILLED-REASON: out of budget" }] as ActivityCard[];
+    mount("k1", cards);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await waitFor(() => { fireEvent.click(screen.getByTestId("card-open")); expect(screen.getByTestId("agent-detail")).toBeInTheDocument(); });
+    expect(await screen.findByTestId("agent-report")).toHaveTextContent("KILLED-REASON: out of budget");
+    const answer = screen.getByTestId("agent-answer");
+    expect(answer).toHaveTextContent("Last message from the agent");
+    expect(answer).not.toHaveTextContent("Answer returned to the parent");
+  });
+
+  it("a completed agent keeps the answer heading and shows no separate report while its card is still running", async () => {
+    subagents = [sub({ agentId: "c1", description: "Done one", answer: "ANSWER" })];
+    const cards = [{ kind: "subrunner", text: "x", commands: [], subrunnerId: "c1", subrunnerStatus: "running", subrunnerReport: "stale" }] as ActivityCard[];
+    mount("c1", cards);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await waitFor(() => { fireEvent.click(screen.getByTestId("card-open")); expect(screen.getByTestId("agent-detail")).toBeInTheDocument(); });
+    expect(await screen.findByTestId("agent-answer")).toHaveTextContent("Answer returned to the parent");
+    expect(screen.queryByTestId("agent-report")).toBeNull();
   });
 
   it("a running agent has no answer yet", async () => {

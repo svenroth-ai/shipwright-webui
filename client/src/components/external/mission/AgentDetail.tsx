@@ -53,7 +53,7 @@ function TranscriptTab({ taskId, agent }: { taskId: string; agent: SessionSubage
   );
 }
 
-export function AgentDetail({ taskId, agent, parent }: { taskId: string; agent: SessionSubagent; parent: SessionSubagent | null }) {
+export function AgentDetail({ taskId, agent, parent, report = null }: { taskId: string; agent: SessionSubagent; parent: SessionSubagent | null; report?: string | null }) {
   const [tab, setTab] = useState("details");
   const meta = [
     agent.model ? shortModel(agent.model) : null,
@@ -62,6 +62,8 @@ export function AgentDetail({ taskId, agent, parent }: { taskId: string; agent: 
     agent.toolUses !== null ? `${agent.toolUses} tool calls` : null,
   ].filter(Boolean);
   const running = agent.state === "running";
+  // Only a completed agent's last message IS its answer; for killed/failed/stopped it is mid-work prose.
+  const completed = agent.status === "completed";
   return (
     <Tabs.Root value={tab} onValueChange={setTab} className="ag-detail" data-testid="agent-detail" data-agent-id={agent.agentId}>
       <header className="ag-detail-head">
@@ -78,8 +80,9 @@ export function AgentDetail({ taskId, agent, parent }: { taskId: string; agent: 
       </Tabs.List>
       <Tabs.Content value="details" className="ag-pane">
         <Block label="Prompt from the parent" text={agent.prompt} testId="agent-prompt" empty="The prompt was not recorded." />
+        {report && !running && <Block label="Report returned to the parent" text={report} testId="agent-report" empty="" />}
         <Block
-          label="Answer returned to the parent"
+          label={running || completed ? "Answer returned to the parent" : "Last message from the agent"}
           text={running ? null : agent.answer}
           testId="agent-answer"
           empty={running ? "Still running - no answer yet." : "No answer was recorded."}

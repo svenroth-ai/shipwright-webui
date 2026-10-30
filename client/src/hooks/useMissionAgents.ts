@@ -31,6 +31,8 @@ export interface MissionAgents {
   openFor: (subrunnerId?: string) => boolean;
   /** True when a card's agent can be opened in the window. */
   canOpen: (subrunnerId?: string) => boolean;
+  /** The report the parent received for this agent (its resolved chat card's task-notification), or null. */
+  reportFor: (agentId: string) => string | null;
   refresh: () => void;
   /** The element focused when the window opened (chip or chat card button); focus returns there on close. */
   returnFocusRef: { current: HTMLElement | null };
@@ -90,6 +92,17 @@ export function useMissionAgents(
     [refresh, open],
   );
   const canOpen = useCallback((id?: string) => findAgentForCard(agents, id) !== null, [agents]);
+  // The legacy SubrunnerPanel was the only place a card's notification report (e.g. a killed agent's
+  // failure reason) was shown; the agent detail now shows it, so opening a card here loses nothing.
+  const reportFor = useCallback(
+    (agentId: string) => {
+      const card = (cards ?? []).find(
+        (c) => c.kind === "subrunner" && c.subrunnerStatus !== "running" && findAgentForCard(agents, c.subrunnerId)?.agentId === agentId,
+      );
+      return card?.subrunnerReportFull ?? card?.subrunnerReport ?? null;
+    },
+    [agents, cards],
+  );
   const openFor = useCallback(
     (id?: string) => {
       if (id === undefined) {
@@ -120,6 +133,7 @@ export function useMissionAgents(
     select: setSelectedId,
     openFor,
     canOpen,
+    reportFor,
     refresh,
     returnFocusRef,
   };
