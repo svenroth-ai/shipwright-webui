@@ -56,7 +56,7 @@
       {
         "behavior": "No clip at 1024/1280/1440/1920; middle card >= 360px; dark text on glass",
         "disposition": "tested",
-        "evidence": "M3-mission-info-sidebar.spec.ts + A13-mission-shell.spec.ts (passed)"
+        "evidence": "M3-mission-info-sidebar.spec.ts (incl. 1024px with an artifact card open) + A13-mission-shell.spec.ts (passed)"
       },
       {
         "behavior": "Client mirror of session-info types equals server types, both directions",
@@ -84,9 +84,9 @@
     "surface": "web",
     "runner": "npm.cmd --prefix client run test:e2e -- client/e2e/flows/M3-mission-info-sidebar.spec.ts client/e2e/flows/A13-mission-shell.spec.ts",
     "exit_code": 0,
-    "tests_run": 10,
+    "tests_run": 11,
     "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style--M3\\.shipwright\\runs\\iterate-2026-10-30-m3-right-info-sidebar\\surface_verification.log",
-    "timestamp": "2026-10-30T16:09:50.594Z",
+    "timestamp": "2026-10-30T16:36:04.093Z",
     "attempts": 1
   },
   "declared_removals": [],
