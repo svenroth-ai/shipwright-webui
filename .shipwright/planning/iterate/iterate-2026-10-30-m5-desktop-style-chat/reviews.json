@@ -1,0 +1,453 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-30-m5-desktop-style-chat",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T18:14:48.271927+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "Human-message rendering keyed on `kind:\"user\"` is likely to catch tool-result lines too. In Claude Code session JSONL, tool results arrive as user-role messages. If the feed classifies by role kind rather than by presence of `tool_result` content, tool results will render as right-aligned human bubbles.",
+          "suggestion": "Classify \"human bubble\" as a user-kind line with no tool_result content (and no other synthetic markers), and assert this in a fixture with a tool call between two user messages.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "Pairing `tool_use` input with `toolUseResult.answers` \"keyed by question text\" is fragile: the agent can repeat the same question text across questions in one call (duplicate keys), and answer text can be an empty string. The plan doesn't state behavior for duplicate question text or missing/empty answers map entries.",
+          "suggestion": "Document the duplicate-key behavior explicitly (e.g., first match wins, second occurrence unshown) and cover it in a fixture; treat empty/whitespace answers as unanswered.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "AC4 leaves multiSelect \"encoding unverified\" — showing raw answer text with nothing highlighted. If the multiSelect encoding is ever `\\n`-joined or JSON, users see literal separators/brackets in the UI.",
+          "suggestion": "Spend the small effort now: inspect real JSONL fixtures for a multiSelect answer and render split options (with all-matching highlighting or plain text list), rather than deferring with an \"unverified\" note. If no fixture exists, state that explicitly as the reason.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk /",
+          "file": null,
+          "line": null,
+          "finding": "AC3 trusts `toolUseResult` \"only when the line carries exactly one tool_result.\" When a turn has multiple tool_results (parallel tool use), all of them lose answer attribution and fall back to legacy/pending display — a silent degradation the plan doesn't call out or cover in tests.",
+          "suggestion": "Add a fixture with two tool_results in one user turn and assert the defined fallback; if fallback is \"legacy single-answer,\" verify that path still works post-refactor.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case /",
+          "file": null,
+          "line": null,
+          "finding": "AC5 removes rejected questions from the feed, but the existing \"Answer in terminal\" CTA depends on distinguishing rejected from pending. If a question is rejected and the mission continues, the user loses all trace of it — acceptable per spec, but the pending-vs-rejected detection must run before removal; a malformed `toolUseResult` (unexpected type) could be misread as rejected and hide a still-pending question.",
+          "suggestion": "Enumerate the `toolUseResult` shapes handled (object-with-answers, string, undefined) and default malformed shapes to \"pending,\" not \"rejected.\"",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency /",
+          "file": null,
+          "line": null,
+          "finding": "session-parser.ts` must change (add `toolUseResult` to UserEvent) while the plan also imposes a net-zero-line bloat ceiling on that file. Adding a field plus typing while deleting an equal amount elsewhere may force unrelated churn to satisfy the ceiling.",
+          "suggestion": "Confirm the ceiling applies to the parser change or scope an explicit exemption for the new field; don't delete unrelated code to hit a quota.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach /",
+          "file": null,
+          "line": null,
+          "finding": "The spec's Acceptance Criteria section is \"TBD\" — the mini-plan supplies ACs, but the change spec itself was never filled in, so review against the spec can't be done.",
+          "suggestion": "Copy the mini-plan ACs into the spec before merge.  Security: no significant concerns — free-text \"Other\" answers render as React children (verify no `dangerouslySetInnerHTML` in the new card) and the contrast token-only rule is a good safeguard.  Overall assessment: The approach is fundamentally sound and well-scoped, but the tool_use/tool_result pairing and user-kind classification heuristics have concrete failure modes with parallel tool results and tool-result user lines that need explicit fixtures before this ships.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "AC5 contradicts the scope: pending questions retain a prompt and “Answer in terminal” CTA, while the specification says unanswered questions are not shown. The legacy fallback also permits rendering without the required answers map.",
+          "suggestion": "Show question cards only for questions with a recorded answer. Remove the pending CTA and legacy fallback unless explicitly authorized as scope changes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "“NO error messages” is not covered. AC5 hides rejected questions, but other tool errors could still appear in command lines or expanded output. AC6 also preserves failing-test excerpts, so the intended boundary needs clarification.",
+          "suggestion": "Define which error displays are suppressed and add coverage for ordinary failed tools and expanded command output. Explicitly preserve the required failing-test card.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The answer join lacks explicit tool-call identity rules. Requiring exactly one `tool_result` avoids ambiguous metadata but does not establish that it belongs to the question being rendered. Concurrent calls and repeated question text could attach answers incorrectly.",
+          "suggestion": "Match `tool_result.tool_use_id` to the originating `tool_use.id` first, then resolve answers by question text within that call. Define safe handling for multiple results and missing or malformed metadata.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not define answer presence or validity. An absent key, empty string, unexpected value type, and partially answered multi-question call require different handling; treating every nonmatching value as “Other” could display invalid data.",
+          "suggestion": "Validate the answer map and use explicit key-presence checks. Add fixtures for partial answers, empty values, malformed metadata, and independent answers in a multi-question call.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "User bubbles depend on `kind:\"user\"`, while tool results also originate from user-role JSONL events. Classification must keep tool-result records from becoming human bubbles or exposing raw answer metadata.",
+          "suggestion": "Verify that only actual human text receives user styling. Include a fixture containing human text and tool-result events, and assert that result payloads are consumed without rendering duplicate messages.  The presentation approach is reasonable, but the unanswered-question behavior conflicts directly with the requested scope. Resolve that mismatch and specify error filtering and answer association before implementation; the linked mockup was inaccessible, so visual fidelity could not be assessed.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-30T18:14:32.963502+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: edge-case / Severity: high**\n  **Finding:** Human-message rendering keyed on `kind:\"user\"` is likely to catch tool-result lines too. In Claude Code session JSONL, tool results arrive as user-role messages. If the feed classifies by role kind rather than by presence of `tool_result` content, tool results will render as right-aligned human bubbles.\n  **Suggestion:** Classify \"human bubble\" as a user-kind line with no tool_result content (and no other synthetic markers), and assert this in a fixture with a tool call between two user messages.\n\n- **Category: edge-case / Severity: medium**\n  **Finding:** Pairing `tool_use` input with `toolUseResult.answers` \"keyed by question text\" is fragile: the agent can repeat the same question text across questions in one call (duplicate keys), and answer text can be an empty string. The plan doesn't state behavior for duplicate question text or missing/empty answers map entries.\n  **Suggestion:** Document the duplicate-key behavior explicitly (e.g., first match wins, second occurrence unshown) and cover it in a fixture; treat empty/whitespace answers as unanswered.\n\n- **Category: edge-case / Severity: medium**\n  **Finding:** AC4 leaves multiSelect \"encoding unverified\" — showing raw answer text with nothing highlighted. If the multiSelect encoding is ever `\\n`-joined or JSON, users see literal separators/brackets in the UI.\n  **Suggestion:** Spend the small effort now: inspect real JSONL fixtures for a multiSelect answer and render split options (with all-matching highlighting or plain text list), rather than deferring with an \"unverified\" note. If no fixture exists, state that explicitly as the reason.\n\n- **Category: risk / Severity: medium**\n  **Finding:** AC3 trusts `toolUseResult` \"only when the line carries exactly one tool_result.\" When a turn has multiple tool_results (parallel tool use), all of them lose answer attribution and fall back to legacy/pending display — a silent degradation […truncated]\n\n[openai] 1. **Category: approach · Severity: high**  \n   **Finding:** AC5 contradicts the scope: pending questions retain a prompt and “Answer in terminal” CTA, while the specification says unanswered questions are not shown. The legacy fallback also permits rendering without the required answers map.  \n   **Suggestion:** Show question cards only for questions with a recorded answer. Remove the pending CTA and legacy fallback unless explicitly authorized as scope changes.\n\n2. **Category: approach · Severity: medium**  \n   **Finding:** “NO error messages” is not covered. AC5 hides rejected questions, but other tool errors could still appear in command lines or expanded output. AC6 also preserves failing-test excerpts, so the intended boundary needs clarification.  \n   **Suggestion:** Define which error displays are suppressed and add coverage for ordinary failed tools and expanded command output. Explicitly preserve the required failing-test card.\n\n3. **Category: edge-case · Severity: medium**  \n   **Finding:** The answer join lacks explicit tool-call identity rules. Requiring exactly one `tool_result` avoids ambiguous metadata but does not establish that it belongs to the question being rendered. Concurrent calls and repeated question text could attach answers incorrectly.  \n   **Suggestion:** Match `tool_result.tool_use_id` to the originating `tool_use.id` first, then resolve answers by question text within that call. Define safe handling for multiple results and missing or malformed metadata.\n\n4. **Category: edge-case · Severity: medium**  \n   **Finding:** The plan does not define answer presence or validity. An absent key, empty string, unexpected value type, and partially answered multi-question call require different handling; treating every nonmatching value as “Other” could display invalid data.  \n   **Suggestion:** Validate the answer map and use explicit key-presence checks. Add fixtures for partial answers, empty values, malformed metadata, and indepen […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 85,
+          "finding": "Round 3 (head 93049e37) verdict PASS, no new findings: delta (unused E2E helper removal) correct; M5 spec has no other unused symbol under noUnusedLocals/noUnusedParameters. Carried round-2 low: stale comment about errored prompts staying pending.",
+          "suggestion": "Rewrite comment. Noted (LOW).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/lib/missionActivityFeedTypes.ts",
+          "line": 21,
+          "finding": "Carried round-2 low: items doc says absent while pending.",
+          "suggestion": "Reword doc. Noted (LOW).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/missionAskItems.ts",
+          "line": 63,
+          "finding": "Round 1: recordsNoAnswer dropped an answered card on non-string answer values.",
+          "suggestion": "FIXED in 03329eb8 with test; confirmed rounds 2 and 3.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/e2e/flows/M5-mission-desktop-chat.spec.ts",
+          "line": 17,
+          "finding": "CI E2E typecheck failed (TS6133 unused 'text').",
+          "suggestion": "FIXED in 93049e37; round 3 confirmed.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T19:06:11.102537+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: removing the unused E2E helper weakened the proof (head 93049e37, verdict PASS) — TS6133 fires only on zero references, so no assertion used it; narratedRead entry still proves agent text bare-left (E2E L88, L112-121) via the unconditional .mc-feed-card rule. Not disproven.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "coupling",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: no other CI-gate risk in the M5 spec — All imports/constants/helpers referenced; non-null assertions valid under strict. Not disproven.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: empty answers map {} hides the card (carried from round 2) — ADDRESSED (rebutted): recorded no-decision shape per mini-plan AC5, pinned by an explicit test; revisit only if a real line with answers:{} and meaningful content is observed.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T19:06:11.226087+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx / mission-chat.css (whole diff)",
+          "line": null,
+          "finding": "The spec explicitly says \"NO error messages\" in the chat, but nothing in the diff addresses suppression of error content (error tool_results, transient errors, failing-card error prose). The diff only touches rejected AskUserQuestion handling; other error-rendering paths appear untouched.",
+          "suggestion": "Verify how error tool_results / error-status cards render in the new style; either hide them or render them as the small grey tool lines, and add a test covering an errored tool call.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/e2e/flows/M5-mission-desktop-chat.spec.ts:139-142 and MissionAskCards.tsx",
+          "line": null,
+          "finding": "Spec says \"Unanswered questions are not shown\", but a pending (never-answered, never-rejected) question is still shown with its Answer CTA. The diff treats \"unanswered\" as \"answered-with-blank/rejected\", which may be the intended FR-01.63 CTA preservation, but it contradicts the literal spec sentence.",
+          "suggestion": "Confirm with spec owner whether \"unanswered\" means \"no result line yet\" (then pending questions must be hidden) or only blank answers; adjust code or spec wording.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx:13 (`export { kindAccent } from \"./MissionActivityFeedCardParts\"` removed)",
+          "line": null,
+          "finding": "kindAccent` was a public export of both `MissionActivityFeedCardParts` and `MissionActivityFeedCard`; both are now deleted. Any out-of-diff consumer (other components, snapshot/storybook files, or tests importing it) will fail to compile.",
+          "suggestion": "Grep the repo for `kindAccent` before merge; if any consumer remains, keep the export or migrate that consumer in this change.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedResolve.ts:89-92 (rejected-card splice)",
+          "line": null,
+          "finding": "Splicing a card out of `cards` shifts the indices used in the React key `${card.kind}-${timestamp}-${commands[0]}-${index}` in `MissionActivityFeed.tsx`, remounting every later card in the feed (loss of expand/collapse state, scroll jank on large feeds). Also, if the rejected card is the one holding `feed` narration (text assigned to the user-input card via own-prose routing), that narration disappears too.",
+          "suggestion": "Prefer marking the card as hidden (a flag the feed filters on) rather than mutating the shared array, and confirm narration text never lives on a user-input card that can be rejected.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/missionAskItems.ts:70-75 (`applyAskAnswers` keyed by exact question text)",
+          "line": null,
+          "finding": "The join is an exact string match on question text. Claude's `toolUseResult.answers` keys can differ in whitespace/case from the tool_use input's `question`; any mismatch silently makes the question \"unanswered\" and it disappears from the feed (filtered by `i.answer !== undefined`). Also, `answers[item.question]` accesses an arbitrary untrusted key — fine for reads, but note `raw` values are rendered verbatim (React escapes, so no XSS).",
+          "suggestion": "Consider a normalized (trimmed) key lookup as a fallback when the exact key misses, so a whitespace difference doesn't drop an answered question.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/lib/missionAskItems.ts:71 (`seen` duplicate-question handling)",
+          "line": null,
+          "finding": "Duplicate question texts: first occurrence wins, later duplicates stay unanswered and are filtered out — but only the unit test asserts `dup).toHaveLength(1)` without asserting which one or that answers went to the right one. Minor: acceptable, but the filter means a legitimately repeated question (same text, two cards in one call) loses its second answer entirely.",
+          "suggestion": "Acceptable as a documented limitation; consider rendering the answer on all duplicates of that text instead of only the first.  Everything else — sidecar trust guarded by `results.length === 1`, rejection path, legacy fallback, multi-result sidecar ignore, and the no-bubble CSS ordering — is correct and well-tested. The unit tests are behavioral (assert chosen/other/multi-select/rejected/pending states through the real reducer), not smoke tests.  Overall: the core rendering and parsing logic is sound and well covered; fix the `kindAccent` export removal (compile risk) and clarify the \"unanswered/pending\" and \"NO error messages\" spec points before shipping. Ship-with-fixes.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+          "line": 117,
+          "finding": "Unanswered questions still render through the legacy question block, including the terminal Answer button. The spec explicitly says unanswered questions are not shown; the new unit and browser tests instead require this conflicting behavior.",
+          "suggestion": "Hide unresolved question cards and update the tests to assert that pending questions and their CTA are absent.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 96,
+          "finding": "When `toolUseResult.answers` is empty, contains only whitespace, or has no matching question keys, `applyAskAnswers` returns false and the code deletes `items`. This activates the legacy display, showing an unanswered question as resolved and potentially displaying “User has answered your questions.” as its answer.",
+          "suggestion": "Distinguish an existing answers map with zero answered questions from a missing legacy sidecar. For an existing map, remove the card when no questions have valid answers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/MissionActivityFeed.tsx",
+          "line": 97,
+          "finding": "The feed still passes every card to `FeedCard`, including error cards. Removing avatars and changing CSS does not implement the explicit “NO error messages” requirement; failing-test and other error displays remain visible.",
+          "suggestion": "Suppress error messages in the Mission chat rendering path and add a browser fixture containing a failed tool result to verify that its error text is absent.  Ship-with-fixes: the answered-question presentation is substantially implemented, but unanswered-question handling and error suppression do not meet the specification.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-30T18:21:44.547709+00:00",
+      "disposition": "unanswered/pending question CTA kept: overruled-by-operator (explicit instruction); no-error-messages delivered in M1, failing-test card kept by campaign constraint; answers-map-no-answer drop FIXED; kindAccent has no consumers; splice key shift accepted (same pattern as dropTransientTestCard)",
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: spec\n  Severity: medium\n  File: client/src/components/external/mission/MissionActivityFeedCard.tsx / mission-chat.css (whole diff)\n  Finding: The spec explicitly says \"NO error messages\" in the chat, but nothing in the diff addresses suppression of error content (error tool_results, transient errors, failing-card error prose). The diff only touches rejected AskUserQuestion handling; other error-rendering paths appear untouched.\n  Suggestion: Verify how error tool_results / error-status cards render in the new style; either hide them or render them as the small grey tool lines, and add a test covering an errored tool call.\n\n- Category: spec\n  Severity: low\n  File: client/e2e/flows/M5-mission-desktop-chat.spec.ts:139-142 and MissionAskCards.tsx\n  Finding: Spec says \"Unanswered questions are not shown\", but a pending (never-answered, never-rejected) question is still shown with its Answer CTA. The diff treats \"unanswered\" as \"answered-with-blank/rejected\", which may be the intended FR-01.63 CTA preservation, but it contradicts the literal spec sentence.\n  Suggestion: Confirm with spec owner whether \"unanswered\" means \"no result line yet\" (then pending questions must be hidden) or only blank answers; adjust code or spec wording.\n\n- Category: regression\n  Severity: medium\n  File: client/src/components/external/mission/MissionActivityFeedCard.tsx:13 (`export { kindAccent } from \"./MissionActivityFeedCardParts\"` removed)\n  Finding: `kindAccent` was a public export of both `MissionActivityFeedCardParts` and `MissionActivityFeedCard`; both are now deleted. Any out-of-diff consumer (other components, snapshot/storybook files, or tests importing it) will fail to compile.\n  Suggestion: Grep the repo for `kindAccent` before merge; if any consumer remains, keep the export or migrate that consumer in this change.\n\n- Category: bug\n  Severity: low\n  File: client/src/lib/missionActivityFeedResolve.ts:89-92 (rejected-card splice)\n  Finding: Splici […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeedCard.tsx:117\n- Finding: Unanswered questions still render through the legacy question block, including the terminal Answer button. The spec explicitly says unanswered questions are not shown; the new unit and browser tests instead require this conflicting behavior.\n- Suggestion: Hide unresolved question cards and update the tests to assert that pending questions and their CTA are absent.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedResolve.ts:96\n- Finding: When `toolUseResult.answers` is empty, contains only whitespace, or has no matching question keys, `applyAskAnswers` returns false and the code deletes `items`. This activates the legacy display, showing an unanswered question as resolved and potentially displaying “User has answered your questions.” as its answer.\n- Suggestion: Distinguish an existing answers map with zero answered questions from a missing legacy sidecar. For an existing map, remove the card when no questions have valid answers.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeed.tsx:97\n- Finding: The feed still passes every card to `FeedCard`, including error cards. Removing avatars and changing CSS does not implement the explicit “NO error messages” requirement; failing-test and other error displays remain visible.\n- Suggestion: Suppress error messages in the Mission chat rendering path and add a browser fixture containing a failed tool result to verify that its error text is absent.\n\nShip-with-fixes: the answered-question presentation is substantially implemented, but unanswered-question handling and error suppression do not meet the specification.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC1 no avatar nodes; agent text left bare; human right bubble",
+          "suggestion": "AC1 no avatar nodes; agent text left bare; human right bubble",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC2 tool calls small grey lines",
+          "suggestion": "AC2 tool calls small grey lines",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC3 one card per answered question, chosen highlighted",
+          "suggestion": "AC3 one card per answered question, chosen highlighted",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC4 Other, multiSelect, notes",
+          "suggestion": "AC4 Other, multiSelect, notes",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC5 rejected dropped; pending keeps CTA (accepted decision)",
+          "suggestion": "AC5 rejected dropped; pending keeps CTA (accepted decision)",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC6 Shipwright cards unchanged",
+          "suggestion": "AC6 Shipwright cards unchanged",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC7 read-only, no chat-*",
+          "suggestion": "AC7 read-only, no chat-*",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC8 AA contrast",
+          "suggestion": "AC8 AA contrast",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC9 real JSONL round trip",
+          "suggestion": "AC9 real JSONL round trip",
+          "source": "spec-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-30T19:06:10.969016+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T18:14:40.974125+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-30T18:14:41.098172+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

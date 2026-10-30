@@ -5,6 +5,7 @@ import { applySubrunnerAck } from "./missionActivityFeedSubrunner";
 import { isTransientClassifierError } from "./missionActivityFeedTransientError";
 import { dropTransientTestCard } from "./missionActivityFeedTransientTestDrop";
 import { attachDetail } from "./missionActivityFeedDetail";
+import { allAnswersMatched, applyAskAnswers, recordsNoAnswer } from "./missionAskItems";
 import type { ActivityCard, ResolveState } from "./missionActivityFeedTypes";
 
 export type { PendingTool, ResolveState } from "./missionActivityFeedTypes";
@@ -24,7 +25,10 @@ export function resolveToolResults(
 ): ActivityCard | null {
   const { cards, testCards, pendingTools, awaitingTestResult } = state;
   let unresolvedTest = state.unresolvedTest;
-  for (const result of toolResults(event)) {
+  const results = toolResults(event);
+  // `toolUseResult` describes ONE result; trust it only when the line carries exactly one.
+  const sidecar = results.length === 1 ? event.toolUseResult : undefined;
+  for (const result of results) {
     const pending = pendingTools.get(result.tool_use_id);
     if (!pending) continue;
     pendingTools.delete(result.tool_use_id);
@@ -82,8 +86,19 @@ export function resolveToolResults(
       // code review catch): an errored/cancelled prompt sets `resolved`
       // here too would permanently hide `AnswerInTerminalButton` (FR-01.63)
       // even though nothing was actually decided.
-      if (pending.card.question && !result.is_error) {
+      const items = pending.card.question?.items;
+      const answered = items ? applyAskAnswers(items, sidecar) : false;
+      const answeredNothing = Boolean(items) && recordsNoAnswer(sidecar);
+      if (pending.card.question && result.is_error && !items) {
+        // Unparseable payload + error: unchanged legacy behaviour (stays pending with its CTA).
+      } else if (pending.card.question && (result.is_error || answeredNothing)) {
+        // A rejected/cancelled question, or an answers map with no non-blank answer (M5): nothing was decided, so it is not shown at all.
+        const at = cards.indexOf(pending.card);
+        if (at !== -1) cards.splice(at, 1);
+      } else if (pending.card.question) {
         pending.card.question.resolved = true;
+        if (items && answered && allAnswersMatched(items, sidecar)) pending.card.question.items = items.filter((i) => i.answer !== undefined);
+        else delete pending.card.question.items;
         const resolved = resolveQuestionAnswer(result.content, pending.card.question.options);
         pending.card.question.picked = resolved.picked;
         pending.card.question.answer = resolved.answer;

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeedCard.tsx:117\n- Finding: Unanswered questions still render through the legacy question block, including the terminal Answer button. The spec explicitly says unanswered questions are not shown; the new unit and browser tests instead require this conflicting behavior.\n- Suggestion: Hide unresolved question cards and update the tests to assert that pending questions and their CTA are absent.\n\n- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedResolve.ts:96\n- Finding: When `toolUseResult.answers` is empty, contains only whitespace, or has no matching question keys, `applyAskAnswers` returns false and the code deletes `items`. This activates the legacy display, showing an unanswered question as resolved and potentially displaying \u201cUser has answered your questions.\u201d as its answer.\n- Suggestion: Distinguish an existing answers map with zero answered questions from a missing legacy sidecar. For an existing map, remove the card when no questions have valid answers.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/MissionActivityFeed.tsx:97\n- Finding: The feed still passes every card to `FeedCard`, including error cards. Removing avatars and changing CSS does not implement the explicit \u201cNO error messages\u201d requirement; failing-test and other error displays remain visible.\n- Suggestion: Suppress error messages in the Mission chat rendering path and add a browser fixture containing a failed tool result to verify that its error text is absent.\n\nShip-with-fixes: the answered-question presentation is substantially implemented, but unanswered-question handling and error suppression do not meet the specification.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: spec\n  Severity: medium\n  File: client/src/components/external/mission/MissionActivityFeedCard.tsx / mission-chat.css (whole diff)\n  Finding: The spec explicitly says \"NO error messages\" in the chat, but nothing in the diff addresses suppression of error content (error tool_results, transient errors, failing-card error prose). The diff only touches rejected AskUserQuestion handling; other error-rendering paths appear untouched.\n  Suggestion: Verify how error tool_results / error-status cards render in the new style; either hide them or render them as the small grey tool lines, and add a test covering an errored tool call.\n\n- Category: spec\n  Severity: low\n  File: client/e2e/flows/M5-mission-desktop-chat.spec.ts:139-142 and MissionAskCards.tsx\n  Finding: Spec says \"Unanswered questions are not shown\", but a pending (never-answered, never-rejected) question is still shown with its Answer CTA. The diff treats \"unanswered\" as \"answered-with-blank/rejected\", which may be the intended FR-01.63 CTA preservation, but it contradicts the literal spec sentence.\n  Suggestion: Confirm with spec owner whether \"unanswered\" means \"no result line yet\" (then pending questions must be hidden) or only blank answers; adjust code or spec wording.\n\n- Category: regression\n  Severity: medium\n  File: client/src/components/external/mission/MissionActivityFeedCard.tsx:13 (`export { kindAccent } from \"./MissionActivityFeedCardParts\"` removed)\n  Finding: `kindAccent` was a public export of both `MissionActivityFeedCardParts` and `MissionActivityFeedCard`; both are now deleted. Any out-of-diff consumer (other components, snapshot/storybook files, or tests importing it) will fail to compile.\n  Suggestion: Grep the repo for `kindAccent` before merge; if any consumer remains, keep the export or migrate that consumer in this change.\n\n- Category: bug\n  Severity: low\n  File: client/src/lib/missionActivityFeedResolve.ts:89-92 (rejected-card splice)\n  Finding: Splicing a card out of `cards` shifts the indices used in the React key `${card.kind}-${timestamp}-${commands[0]}-${index}` in `MissionActivityFeed.tsx`, remounting every later card in the feed (loss of expand/collapse state, scroll jank on large feeds). Also, if the rejected card is the one holding `feed` narration (text assigned to the user-input card via own-prose routing), that narration disappears too.\n  Suggestion: Prefer marking the card as hidden (a flag the feed filters on) rather than mutating the shared array, and confirm narration text never lives on a user-input card that can be rejected.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/lib/missionAskItems.ts:70-75 (`applyAskAnswers` keyed by exact question text)\n  Finding: The join is an exact string match on question text. Claude's `toolUseResult.answers` keys can differ in whitespace/case from the tool_use input's `question`; any mismatch silently makes the question \"unanswered\" and it disappears from the feed (filtered by `i.answer !== undefined`). Also, `answers[item.question]` accesses an arbitrary untrusted key \u2014 fine for reads, but note `raw` values are rendered verbatim (React escapes, so no XSS).\n  Suggestion: Consider a normalized (trimmed) key lookup as a fallback when the exact key misses, so a whitespace difference doesn't drop an answered question.\n\n- Category: test\n  Severity: low\n  File: client/src/lib/missionAskItems.ts:71 (`seen` duplicate-question handling)\n  Finding: Duplicate question texts: first occurrence wins, later duplicates stay unanswered and are filtered out \u2014 but only the unit test asserts `dup).toHaveLength(1)` without asserting which one or that answers went to the right one. Minor: acceptable, but the filter means a legitimately repeated question (same text, two cards in one call) loses its second answer entirely.\n  Suggestion: Acceptable as a documented limitation; consider rendering the answer on all duplicates of that text instead of only the first.\n\nEverything else \u2014 sidecar trust guarded by `results.length === 1`, rejection path, legacy fallback, multi-result sidecar ignore, and the no-bubble CSS ordering \u2014 is correct and well-tested. The unit tests are behavioral (assert chosen/other/multi-select/rejected/pending states through the real reducer), not smoke tests.\n\nOverall: the core rendering and parsing logic is sound and well covered; fix the `kindAccent` export removal (compile risk) and clarify the \"unanswered/pending\" and \"NO error messages\" spec points before shipping. Ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m5-desktop-style-chat",
+    "at": "2026-10-30T18:15:06.472668+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

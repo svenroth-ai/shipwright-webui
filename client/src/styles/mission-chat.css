@@ -1,0 +1,46 @@
+/* ============================================================================
+   Mission chat, desktop-app style (campaign mission-desktop-style, M5)
+   Loaded AFTER mission-operation.css, whose equal-specificity feed rules it
+   overrides — ordering is load-bearing. Agent text sits left on the bare
+   ground (no bubble, no avatar icon); the human's own messages sit right in
+   a bubble; tool calls are small grey lines. Shipwright cards that carry
+   their own meaning (PR link card, failing-test box, subrunner link, status
+   pills) keep their boxes. Read-only display: nothing here is an input.
+   Every colour is a token from the surrounding `.mc-op` scope (dark on
+   photo, light elsewhere) — no hardcoded text colours, so no
+   white-on-white. No motion (nothing here appears/changes on its own).
+   ============================================================================ */
+.mc-feed-scroll { padding: 4px 6px 8px; }
+.mc-feed-entry { padding-bottom: 16px; }
+.mc-feed-card { border: 0; border-radius: 0; padding: 0; background: transparent; font-size: 14px; line-height: 1.6; color: var(--body); }
+.mc-feed-card[data-kind="system"] { border: 0; text-align: center; font-size: 12px; font-style: italic; color: var(--faint); }
+
+/* human messages: right-aligned bubble */
+.mc-feed-entry[data-entry-kind="user"] { display: flex; justify-content: flex-end; }
+.mc-feed-entry[data-entry-kind="user"] .mc-feed-card {
+  max-width: min(80%, 560px); padding: 9px 14px; border: 1px solid var(--line); border-radius: 16px;
+  background: color-mix(in srgb, var(--ink) 9%, var(--card)); color: var(--ink);
+}
+
+/* tool calls: small grey lines, not boxes */
+.mc-feed-commands .mc-feed-expand-btn { margin-top: 6px; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.mc-feed-commands .mc-feed-expand-btn:hover { color: var(--ink); }
+.mc-feed-commands .mc-feed-chip { border: 0; background: transparent; padding: 1px 0; color: var(--muted); }
+.mc-feed-commands .mc-feed-chip-row { margin-top: 4px; gap: 2px 14px; }
+
+/* ── answered AskUserQuestion: one read-only card per question ───────────── */
+.mc-ask { display: grid; gap: 10px; margin-top: 4px; }
+.mc-ask-card { border: 1px solid var(--line-strong); border-radius: 12px; padding: 12px 14px; background: var(--card); color: var(--body); }
+.mc-ask-header { display: block; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.mc-feed-card .mc-ask-question { margin: 3px 0 10px; font-size: 14px; font-weight: 600; color: var(--ink); }
+.mc-ask-options { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.mc-ask-opt, .mc-ask-answer { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); }
+.mc-ask-answer { margin-top: 6px; }
+.mc-ask-opt[data-chosen="true"], .mc-ask-answer[data-chosen="true"] { border-color: var(--accent-line); background: var(--accent-tint); color: var(--ink); }
+.mc-ask-opt-mark { flex: 0 0 16px; width: 16px; height: 16px; margin-top: 2px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: inline-flex; align-items: center; justify-content: center; }
+.mc-ask-opt[data-chosen="true"] .mc-ask-opt-mark, .mc-ask-answer[data-chosen="true"] .mc-ask-opt-mark { border-color: var(--accent); color: var(--accent); }
+.mc-ask-opt-mark svg { width: 10px; height: 10px; }
+.mc-ask-opt-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; overflow-wrap: anywhere; }
+.mc-ask-opt-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.mc-ask-opt-desc { font-size: 12.5px; color: var(--muted); }
+.mc-feed-card .mc-ask-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }

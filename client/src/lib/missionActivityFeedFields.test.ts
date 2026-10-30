@@ -189,19 +189,19 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(card?.question?.answer).toBe("Both, actually");
   });
 
-  it("keeps a question pending when its tool_result is an error, not a real answer (code review catch, mini-plan)", () => {
+  // @covers FR-01.66
+  it("drops a rejected question (tool_result is_error) instead of showing a pending prompt forever (M5; was: stayed pending)", () => {
     const events = parseSessionJsonl([
       tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }] }] }),
       errorResult("ask", "cancelled"),
     ].join("\n")).events;
-    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
-    expect(card?.question?.resolved).toBe(false);
+    expect(deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input")).toBeUndefined();
   });
 
+  // @covers FR-01.66
   it("keeps an unresolved question's CTA-gating field false until a tool_result resolves it", () => {
     const events = parseSessionJsonl(tool("ask", "AskUserQuestion", { questions: [{ question: "Which platform?", options: [{ label: "Web App" }] }] })).events;
-    const card = deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input");
-    expect(card?.question?.resolved).toBe(false);
+    expect(deriveActivityFeed(events, context("unknown")).cards.find((c) => c.kind === "user-input")?.question?.resolved).toBe(false);
   });
 
   it("marks a spec/review artifact card status ok so the pill has a MissionContext-derived source", () => {

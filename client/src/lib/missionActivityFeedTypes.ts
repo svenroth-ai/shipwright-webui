@@ -1,5 +1,6 @@
 import type { ArtifactKind } from "./missionContextApi";
 import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
+import type { AskItem } from "./missionAskItems";
 
 export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "system" | "delivery" | "subrunner" | "note";
 
@@ -17,6 +18,8 @@ export interface ActivityQuestion {
    * (iterate-2026-09-05-mission-feed-ux-gaps: an answer's own excerpt was
    * silently cropped with no way to read the rest). */
   answerFull?: string;
+  /** Every ANSWERED question of the tool call (M5) — set only once `toolUseResult.answers` is joined; absent while pending or when no answers were recorded. */
+  items?: AskItem[];
 }
 
 export interface ActivityCard {

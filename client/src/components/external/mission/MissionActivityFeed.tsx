@@ -1,10 +1,9 @@
-import { useRef, type CSSProperties, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useAutoScroll } from "../../../hooks/useAutoScroll";
 import type { ActivityFeed } from "../../../lib/missionActivityFeed";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
 import type { ExternalTask } from "../../../lib/externalApi";
-import { FeedIcon } from "./MissionFeedIcons";
-import { FeedCard, kindAccent } from "./MissionActivityFeedCard";
+import { FeedCard } from "./MissionActivityFeedCard";
 import { formatSessionStart } from "./MissionActivityFeedCardParts";
 
 interface Props {
@@ -74,9 +73,6 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
       {feed.cards.length === 0 ? (
         <div className="mc-hero-empty">Waiting — nothing reliable has appeared yet.</div>
       ) : feed.cards.map((card, index) => {
-        const isSystem = card.kind === "system";
-        const isRunningSubrunner = card.kind === "subrunner" && card.subrunnerStatus === "running";
-        const accent = kindAccent(card);
         // Not just `${kind}-${index}` (doubt-review catch, iterate-2026-09-
         // 05-mission-feed-ux-gaps): a retry/recovery resolution can splice a
         // card out of the middle of this array between polls, shifting
@@ -97,14 +93,7 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
         // "remounts a card that changes kind" in `MissionActivityFeed.test.tsx`.
         const key = `${card.kind}-${card.timestamp ?? ""}-${card.commands[0] ?? ""}-${index}`;
         return (
-          <div className="mc-feed-entry" key={key}>
-            <div
-              className="mc-feed-node"
-              data-dashed={isSystem || isRunningSubrunner ? "true" : undefined}
-              style={{ "--kind": accent.color, "--kind-line": accent.line } as CSSProperties}
-            >
-              <FeedIcon kind={card.kind} />
-            </div>
+          <div className="mc-feed-entry" data-entry-kind={card.kind} key={key}>
             <FeedCard card={card} onArtifactClick={onArtifactClick} onSubrunnerClick={onSubrunnerClick} canOpenAgent={canOpenAgent} commitArtifact={commitArtifact} task={task} />
           </div>
         );

@@ -17,6 +17,7 @@ import type { ActivityCard, PendingTool } from "./missionActivityFeedTypes";
 import type { CardAdder } from "./missionActivityFeedCardFactory";
 import { isTestFilePath, sameTestFilePath, testInvocationTargetPath, trackWrittenTestFile, type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import type { ArtifactKind, MissionContext } from "./missionContextApi";
+import { buildAskItems } from "./missionAskItems";
 
 export { buildUserReplyCard, humanText } from "./missionActivityFeedHumanReply";
 
@@ -233,14 +234,12 @@ export function processTurnTools(
       if (ownProse) ownProseGivenToTestCard = true;
     } else if (bucket === "user-input") {
       const card = add("user-input", "A user decision is needed before work can continue.", label, undefined, false, timestamp, undefined, labelFull);
-      // Always set `card.question` — even the `fallback` shape carries a
-      // real (if generic) placeholder question. Gating this on
-      // `!summary.fallback` (code review catch) silently dropped the
-      // terminal CTA for a genuinely unparseable AskUserQuestion payload,
-      // since the whole question block — CTA included — renders only when
-      // `card.question` is truthy.
+      // Always set `card.question` — even the `fallback` shape carries a placeholder
+      // question (code review catch: gating on `!summary.fallback` dropped the terminal
+      // CTA for an unparseable payload; the whole block renders only when it is truthy).
       const summary = askUserQuestionSummary(tool.input);
-      card.question = { text: summary.question, options: summary.options, resolved: false };
+      const items = buildAskItems(tool.input);
+      card.question = { text: summary.question, options: summary.options, resolved: false, ...(items.length > 0 && { items }) };
       pendingTools.set(tool.id, { bucket, card, commandKey, label, full: labelFull, background });
     } else {
       // No more generic-bucket-sentence fallback (`GENERIC_TEXT`): the

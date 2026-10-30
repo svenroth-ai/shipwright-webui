@@ -1,0 +1,8 @@
+{"stage":"doubt","gating":"advisory-must-address","doubts":[
+{"severity":"medium","lens":"boundary","claim_under_doubt":"a real answer under an unmatched key never vanishes","disproof_attempt":"In a multi-question call one key matched and another real answer did not, so it was filtered out. Fixed: allAnswersMatched; the whole call falls back to the legacy display (test added)."},
+{"severity":"medium","lens":"boundary","claim_under_doubt":"keeping only answers loses user-typed text","disproof_attempt":"Real JSONL has annotations[question].notes. Fixed: parser keeps answers+annotations and the card shows the note (test added)."},
+{"severity":"low","lens":"reversibility","claim_under_doubt":"drop on is_error is only a real rejection","disproof_attempt":"Also hit unparseable payloads and interrupts. Narrowed to calls with parsed items; an interrupt is a rejection per the operator decision."},
+{"severity":"low","lens":"coupling","claim_under_doubt":"aria ids are unique","disproof_attempt":"Two answered calls both used ask-q-0. Fixed with useId."},
+{"severity":"low","lens":"contract","claim_under_doubt":"implementation matches AC4","disproof_attempt":"multiSelect marks unambiguous labels. AC4 amended in the mini-plan."},
+{"severity":"low","lens":"coupling","claim_under_doubt":"visual baselines stay green","disproof_attempt":"Mission chat visuals shift by design; the Linux visual-baselines workflow is run after the PR opens."}
+]}

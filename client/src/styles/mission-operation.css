@@ -64,8 +64,7 @@
 .mc-story-link:hover { text-decoration-color: currentColor; }
 .mc-story-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 3px; }
 /* ── the activity feed (iterate-2026-08-20-mission-feed-content) ──────────
-   Icon-node + connecting-spine timeline, per the approved high-fidelity
-   mockup. Every rule below reuses the SAME --ink/--body/--muted/--card/
+   Desktop-app style chat (M5; the icon-node timeline is gone — see mission-chat.css). Every rule below reuses the SAME --ink/--body/--muted/--card/
    --ok/--err/--warn/--accent/--line family the rest of this file already
    defines (light base here, redefined by the on-photo dark scope below) —
    no new colors. `.mc-feed-card` and its text children now carry an
@@ -77,20 +76,8 @@
 .mc-feed-pinned { display: grid; gap: 4px; flex: 0 0 auto; font-size: 13px; color: var(--body); }
 .mc-feed-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-anchor: auto; padding: 2px; position: relative; }
 .mc-feed-scroll:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 8px; }
-.mc-feed-scroll:has(.mc-feed-entry)::before {
-  content: ""; position: absolute; left: 19px; top: 4px; bottom: 4px; width: 1.5px;
-  background: linear-gradient(var(--line-strong), var(--line) 85%, transparent);
-}
-.mc-feed-entry { position: relative; display: grid; grid-template-columns: 34px 1fr; column-gap: 12px; padding-bottom: 9px; }
+.mc-feed-entry { position: relative; padding-bottom: 9px; }
 .mc-feed-entry:last-child { padding-bottom: 0; }
-.mc-feed-node {
-  position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--card); border: 1.5px solid var(--kind-line, var(--line-strong));
-  color: var(--kind, var(--muted));
-}
-.mc-feed-node svg { width: 15px; height: 15px; }
-.mc-feed-node[data-dashed="true"] { border-style: dashed; }
 .mc-feed-card { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: color-mix(in srgb, var(--card) 88%, transparent); font-size: 13px; line-height: 1.5; color: var(--body); }
 /* `overflow-wrap: anywhere` — 45th-round external review catch (glm, low):
    a long unbroken path/hash in a card paragraph would otherwise overflow the card. Set on
@@ -186,13 +173,6 @@
    iterate-2026-09-20-mission-feed-transcript-fidelity) — same 9px rhythm
    `.mc-feed-pr`/`.mc-feed-code`/`.mc-feed-qa-question` already use above. */
 .mc-feed-pr + .mc-story-link { margin-top: 9px; }
-
-/* ── "You" card (item 2, iterate-2026-09-26-mission-tab-subrunner) ────────
-   Greenish tint (final decision after comparing a gray option) + a light
-   icon fill, distinct from every other generic `.mc-feed-card`. */
-.mc-feed-card[data-kind="user"] { background: color-mix(in srgb, var(--ok) 10%, var(--card) 88%); border-color: var(--ok-line); }
-.mc-feed-entry:has(.mc-feed-card[data-kind="user"]) .mc-feed-node { background: var(--ok-tint); }
-.mc-feed-entry:has(.mc-feed-card[data-kind="user"]) .mc-feed-node svg { fill: currentColor; fill-opacity: .18; }
 
 /* ── Subrunner card (item 3, iterate-2026-09-26-mission-tab-subrunner) ──── */
 .mc-feed-subrunner-status { display: inline-flex; align-items: center; gap: 7px; margin: 0; color: var(--warn); font-size: 12.5px; font-weight: 600; }
