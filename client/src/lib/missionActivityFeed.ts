@@ -7,7 +7,7 @@ import { type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack
 import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
-import type { ActivityCard, ActivityFeed, ActivityKind } from "./missionActivityFeedTypes";
+import type { ActivityCard, ActivityFeed } from "./missionActivityFeedTypes";
 
 export type { ActivityCard, ActivityFeed, ActivityKind, ActivityQuestion } from "./missionActivityFeedTypes";
 
@@ -22,7 +22,7 @@ const MAX_PENDING_NARRATION_CARRY = 4;
 /** Typed-event reducer for the calm Mission activity feed. `MissionContext`
  * stays the SOLE source for any gate verdict — raw `toolResults()` content is
  * permitted only as bounded, sanitized `detail`/`question.answer` text on
- * `blocker`/`test`/`user-input` cards (iterate-2026-08-20-mission-feed-
+ * `test`/`user-input` cards (iterate-2026-08-20-mission-feed-
  * content). Per-card text prefers the turn's own `assistantText()`
  * explanation over the generic bucket sentence when Claude wrote one
  * (iterate-2026-08-13-mission-mobile-visual), rendered through the same safe
@@ -37,7 +37,6 @@ export function deriveActivityFeed(
   const cards: ActivityCard[] = [];
   let unresolvedTest: ActivityCard | null = null;
   const testCards: ActivityCard[] = [];
-  const unresolvedBlockers = new Map<string, { card: ActivityCard; bucket: ActivityKind }>();
   const pendingTools = new Map<string, PendingTool>();
   // Real per-card event count — deliberately NOT `commands.length`, which
   // dedupes by label and can under-count two events sharing one.
@@ -97,7 +96,7 @@ export function deriveActivityFeed(
     if (event.kind === "user") {
       const replyCard = buildUserReplyCard(event);
       if (replyCard) cards.push(replyCard);
-      const resolveState = { cards, testCards, pendingTools, unresolvedBlockers, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };
+      const resolveState = { cards, testCards, pendingTools, unresolvedTest, awaitingTestResult, writtenTestFiles, authoringConsumedBy, failedWriteToolIds, restoreValidationPending, failedTestCards, toolCallIndex };
       unresolvedTest = resolveToolResults(event, resolveState);
       writtenTestFiles = resolveState.writtenTestFiles;
       continue;

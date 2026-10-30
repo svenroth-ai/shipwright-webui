@@ -1,7 +1,7 @@
 import type { ArtifactKind } from "./missionContextApi";
 import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 
-export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "blocker" | "system" | "delivery" | "subrunner" | "note";
+export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "system" | "delivery" | "subrunner" | "note";
 
 export interface ActivityQuestion {
   text: string;
@@ -107,19 +107,6 @@ export interface ActivityCard {
    * (iterate-2026-09-16-mission-feed-render-fidelity). Never set on a
    * non-`test` card. */
   authoringRun?: boolean;
-  /** True when `text` is a SYNTHESIZED sentence embedding raw, verbatim
-   * excerpted content (currently: a blocker's derived "A command failed:
-   * …" headline) rather than a turn's own markdown-authored prose — the
-   * renderer shows it as a literal text node instead of through
-   * `MarkdownChunk`, so markdown-significant characters in the raw excerpt
-   * can't be reinterpreted as emphasis/code and garble the plain-language
-   * explanation (18th-round external review catch, glm, medium: gating on
-   * `kind === "blocker"` alone was an implicit invariant an unrelated
-   * future change could silently violate — this flag makes "this text is
-   * synthesized" an explicit, set-at-the-mutation-site fact instead).
-   * Never set on a non-`blocker` card today; cleared when a blocker
-   * recovers back to its original kind. */
-  textLiteral?: boolean;
   /** Set only on a `kind: "subrunner"` card — PROVISIONALLY the dispatching
    * tool_use's own id until `applySubrunnerAck` overwrites it with the
    * dispatch's real, stable agent id (parsed from its ack tool_result); this
@@ -217,7 +204,6 @@ export interface ResolveState {
   cards: ActivityCard[];
   testCards: ActivityCard[];
   pendingTools: Map<string, PendingTool>;
-  unresolvedBlockers: Map<string, { card: ActivityCard; bucket: ActivityKind }>;
   unresolvedTest: ActivityCard | null;
   /** Test cards genuinely still awaiting ANY result — a card leaves this set
    *  the moment it gets a real (non-background-ack) outcome, whether that

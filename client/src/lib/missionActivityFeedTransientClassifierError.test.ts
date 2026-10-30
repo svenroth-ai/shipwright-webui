@@ -65,16 +65,16 @@ describe("isTransientClassifierError", () => {
 });
 
 describe("deriveActivityFeed — AC3: a non-test tool call rejected by the transient classifier", () => {
-  it("never becomes a blocker card", () => {
+  it("never becomes an error card", () => {
     const events = parseSessionJsonl([tool("t1", "Bash", { command: "git commit -m 'x'" }), result("t1", TRANSIENT_TEXT, true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.some((card) => card.kind === "blocker")).toBe(false);
+    expect(feed.cards.some((card) => card.status === "err")).toBe(false);
   });
 
-  it("a genuine command failure still becomes a blocker card (negative control)", () => {
+  it("a genuine command failure is not surfaced as a card either (M1: errors live in the terminal)", () => {
     const events = parseSessionJsonl([tool("t1", "Bash", { command: "git commit -m 'x'" }), result("t1", "fatal: nothing to commit", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.some((card) => card.kind === "blocker")).toBe(true);
+    expect(feed.cards.some((card) => card.status === "err" || /fatal|command failed/i.test(card.text))).toBe(false);
   });
 });
 
@@ -227,7 +227,7 @@ describe("deriveActivityFeed — a transiently-rejected subrunner dispatch resol
     const dispatch = JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", id: "a1", name: "Agent", input: { subagent_type: "general-purpose", description: "Investigate the failure" } }] } });
     const events = parseSessionJsonl([dispatch, result("a1", "The agent launch failed outright.", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, null);
-    expect(feed.cards.some((card) => card.kind === "blocker")).toBe(false);
+    expect(feed.cards.some((card) => /command failed/i.test(card.text))).toBe(false);
     const subrunnerCards = feed.cards.filter((card) => card.kind === "subrunner");
     expect(subrunnerCards).toHaveLength(1);
     expect(subrunnerCards[0].subrunnerStatus).toBe("failed");

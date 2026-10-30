@@ -4,7 +4,7 @@ import { rollbackFailedWrite } from "./missionActivityFeedAuthoringRollback";
 import { applySubrunnerAck } from "./missionActivityFeedSubrunner";
 import { isTransientClassifierError } from "./missionActivityFeedTransientError";
 import { dropTransientTestCard } from "./missionActivityFeedTransientTestDrop";
-import { attachDetail, handleGenericBlockerError } from "./missionActivityFeedBlockerError";
+import { attachDetail } from "./missionActivityFeedDetail";
 import type { ActivityCard, ResolveState } from "./missionActivityFeedTypes";
 
 export type { PendingTool, ResolveState } from "./missionActivityFeedTypes";
@@ -22,7 +22,7 @@ export function resolveToolResults(
   event: UserEvent,
   state: ResolveState,
 ): ActivityCard | null {
-  const { cards, testCards, pendingTools, unresolvedBlockers, awaitingTestResult } = state;
+  const { cards, testCards, pendingTools, awaitingTestResult } = state;
   let unresolvedTest = state.unresolvedTest;
   for (const result of toolResults(event)) {
     const pending = pendingTools.get(result.tool_use_id);
@@ -204,43 +204,11 @@ export function resolveToolResults(
       // reducer for every kind of dispatch error, not only a transient one).
       applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (result.is_error) {
-      // Split out to `missionActivityFeedBlockerError.ts` (300-line
-      // convention) — the generic "a plain command failed" branch, the one
-      // case here with no test/subrunner/review bucket of its own.
-      handleGenericBlockerError(pending, result, unresolvedBlockers);
-    } else if (unresolvedBlockers.has(pending.commandKey)) {
-      const blocker = unresolvedBlockers.get(pending.commandKey)!;
-      // A stale blocker's commandKey (tool name + detail string, with no
-      // expiry) can coincidentally match a command inside a later,
-      // wholly unrelated turn — one of possibly several tool calls that
-      // `add()` coalesced into the CURRENT card. Only fold this success
-      // into the original blocked card (and discard the current one)
-      // when the current card is unambiguously about nothing but this
-      // recovered command: otherwise the `cards.splice()` below would
-      // destroy that unrelated card's other commands and any
-      // `explanation` it carries (found by doubt-review during
-      // iterate-2026-08-25-mission-feed-progress-narration — pre-existing
-      // gap, out of that iterate's scope).
-      if (pending.card.commands.length === 1) {
-        blocker.card.kind = blocker.bucket;
-        blocker.card.text = "A command error recovered after a successful retry.";
-        blocker.card.textLiteral = undefined;
-        // The new recovery sentence is short and static — any `textFull`
-        // from BEFORE this card ever became a blocker (a genuine turn's own
-        // long headline) is now stale and unrelated to it (19th-round
-        // external review catch, openai, medium: a "Show more" toggle would
-        // otherwise resurface that old narration under the new sentence).
-        delete blocker.card.textFull;
-        blocker.card.status = undefined;
-        blocker.card.detail = undefined;
-        delete blocker.card.detailFull;
-        // Same reasoning as the test-recovery merge above: overwrite so the
-        // successful retry's own full text wins over a same-label collision
-        // with the earlier failed attempt.
-        attachCommand(blocker.card, pending.label, pending.full, { overwrite: true });
-        cards.splice(cards.indexOf(pending.card), 1);
-        unresolvedBlockers.delete(pending.commandKey);
-      }
+      // A plain command failure outside the test/subrunner buckets is
+      // deliberately NOT surfaced in the chat (campaign mission-desktop-style
+      // M1: no error messages in the feed at all — errors are handled in the
+      // terminal). The card keeps whatever the turn itself wrote.
+      continue;
     } else if (pending.bucket === "review") {
       // A successful review tool_result carries the actual verdict/findings
       // text — previously discarded entirely (no branch matched it), so the

@@ -68,26 +68,15 @@ describe("MissionActivityFeed", () => {
     expect(onArtifactClick).toHaveBeenCalledWith("commit");
   });
 
-  // 40th (glm, low), DECLINED at the `detailExpanded` useState in
-  // `MissionActivityFeedCard.tsx` — pinned here. The entry key leads with
-  // `card.kind` (rounds 47/48/52 asked to confirm that order: verified), so a
-  // card leaving the blocker bucket REMOUNTS and its expanded flag resets. The
-  // 64th (glm, low) notes that key is cross-file and outside this diff, and
-  // concludes this is adequate anyway. No change: the loud failure IS the guard.
-  // 78th (glm, low, test), DECLINED — glm is right that the "FAIL excerpt" line
-  // passes on the non-blocker `<pre>` alone, but the SECOND assertion carries
-  // the test and is not vacuous: `MissionActivityFeedCard.tsx:274` renders
-  // `detailExpanded && card.detailFull ? card.detailFull : card.detail`, so a
-  // surviving flag WOULD dump the full trace here. Falsified by dropping
-  // `card.kind` from the entry key in `MissionActivityFeed.tsx` — this test,
-  // and only this test, then fails. Kept as-is; the name matches what it pins.
-  // 81st + 83rd (glm, low) re-raise only the cross-file coupling and answer
-  // themselves: "fails loudly rather than silently — acceptable as shipped".
-  it("remounts a card that changes kind, so an expanded blocker detail collapses", () => {
-    const blocker = { kind: "blocker" as const, text: "Needs attention.", commands: ["Bash: npm test"], status: "err" as const, detail: "FAIL excerpt", detailFull: "FAIL entire traceback dump", timestamp: "2026-09-16T10:00:00.000Z" };
-    const { rerender } = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [blocker] }} commitArtifact={null} task={TASK} />);
-    fireEvent.click(screen.getByRole("button", { name: "Show details (1 command)" }));
-    rerender(<MissionActivityFeed feed={{ outcome: "In progress", cards: [{ ...blocker, kind: "test" as const }] }} commitArtifact={null} task={TASK} />);
+  // The entry key leads with `card.kind`, so a card that changes kind REMOUNTS
+  // and its expanded-detail flag resets. Falsified by dropping `card.kind`
+  // from the entry key in `MissionActivityFeed.tsx`.
+  it("remounts a card that changes kind, so an expanded detail collapses", () => {
+    const failing = { kind: "test" as const, text: "Tests ran.", commands: ["Bash: npm test"], status: "err" as const, detail: "FAIL excerpt", detailFull: "FAIL entire traceback dump", timestamp: "2026-09-16T10:00:00.000Z" };
+    const { rerender } = render(<MissionActivityFeed feed={{ outcome: "In progress", cards: [failing] }} commitArtifact={null} task={TASK} />);
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+    expect(screen.getByText("FAIL entire traceback dump")).toBeInTheDocument();
+    rerender(<MissionActivityFeed feed={{ outcome: "In progress", cards: [{ ...failing, kind: "review" as const }] }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("FAIL excerpt")).toBeInTheDocument();
     expect(screen.queryByText("FAIL entire traceback dump")).toBeNull();
   });

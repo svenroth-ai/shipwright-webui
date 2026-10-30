@@ -193,6 +193,13 @@ describe("FeedCard — subrunner card rendering", () => {
     expect(onSubrunnerClick).toHaveBeenCalledWith("agent-42");
   });
 
+  it("resolved: shows the readable dispatch title as visible text next to a compact (non-oversized) status link", () => {
+    const { container } = renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." }, vi.fn());
+    expect(screen.getByText("Investigate the auth bug")).toBeInTheDocument();
+    // The glyph sits INSIDE the .mc-story-link, whose CSS sizes svg to 1em (line size).
+    expect(container.querySelector(".mc-story-link svg")).not.toBeNull();
+  });
+
   it("resolved with no click handler wired: falls back to rendering the report inline", () => {
     renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." });
     expect(screen.queryByRole("button", { name: "View subrunner report" })).not.toBeInTheDocument();

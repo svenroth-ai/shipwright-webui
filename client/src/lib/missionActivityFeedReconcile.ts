@@ -150,29 +150,6 @@ export function reconcileArtifactCards(
       : "This completed run is recorded through durable artifacts.";
     filtered.push({ kind: "delivery", text, commands: [], artifact: link });
   }
-  // A blocker still open at this point (its `kind` never flipped back — see
-  // `resolveToolResults`' recovery branch) tells the reader WHAT failed via
-  // its headline + raw output, but not whether it needs THEM specifically —
-  // reported as "Blocker sind immer noch rot ohne info ... ob es seine
-  // Interaktion braucht" (iterate-2026-09-20-mission-feed-transcript-
-  // fidelity). `context.runLive` is the one honest signal available here
-  // (no LLM call, MissionContext stays the sole verdict source): while the
-  // run is still live, Claude may yet retry or is waiting on the terminal;
-  // once it has ended with the blocker never recovering, nothing further is
-  // coming on its own. A `null` context (transient initial load, same state
-  // referenced by the gate-verdict guard above) gets its OWN conservative
-  // wording rather than no explanation at all (external review catch,
-  // medium: skipping it entirely reproduced the exact uninformative red
-  // blocker the run was fixing, just windowed to the load gap) — never
-  // claims live-vs-ended either way, since that isn't known yet.
-  for (const card of filtered) {
-    if (card.kind !== "blocker") continue;
-    card.explanation = context == null
-      ? "Run status is still loading — check the terminal for next steps."
-      : context.runLive
-        ? "Claude may retry this automatically, or may be waiting for you to respond in the terminal."
-        : "This run ended before the blocker was resolved — resume the task or check the terminal to continue.";
-  }
   // A `review`-bucket card whose dispatch turn produced no narration of its
   // own AND no artifact reconcile above supplied one is dropped the same
   // way as the implement/investigate/spec filter earlier — but ONLY here,

@@ -230,11 +230,9 @@ describe("deriveActivityFeed — TDD authoring runs are excluded from the gate s
     expect(run?.status).toBeUndefined();
   });
 
-  // 42nd-round catch (openai, medium, spec), FIXED: a coalesced card whose
-  // ONE failing tool_use turns it into a blocker used to get no `detail` at
-  // all, so requirement 4's disclosure showed the chips and no raw output.
-  // Falsify by restoring `if (commands.length === 1) attachDetail(...)`.
-  it("keeps a coalesced blocker's raw output, attributed to the command that actually failed", () => {
+  // A coalesced card with ONE failing tool_use no longer becomes an error card
+  // (campaign mission-desktop-style M1): no status, no raw output, no sentence.
+  it("does not turn a coalesced card with one failing command into an error card", () => {
     const events = parseSessionJsonl([
       event({ type: "assistant", message: { role: "assistant", content: [
         { type: "tool_use", id: "r1", name: "Read", input: { file_path: "/x/a.ts" } },
@@ -245,10 +243,9 @@ describe("deriveActivityFeed — TDD authoring runs are excluded from the gate s
         { type: "tool_result", tool_use_id: "r2", content: "ENOENT: no such file", is_error: true },
       ] } }),
     ].join("\n")).events;
-    const blocker = deriveActivityFeed(events, null).cards.find((card) => card.kind === "blocker");
-    expect(blocker?.commands).toHaveLength(2);
-    expect(blocker?.detail).toContain("ENOENT: no such file");
-    expect(blocker?.detail?.startsWith("Read: /x/b.ts")).toBe(true);
+    const cards = deriveActivityFeed(events, null).cards;
+    expect(cards.every((card) => card.status !== "err" && card.detail === undefined)).toBe(true);
+    expect(cards.some((card) => /ENOENT|command failed/i.test(card.text))).toBe(false);
   });
 
 });
