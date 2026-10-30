@@ -51,7 +51,12 @@ export async function detectRemoteControl(
       const fp = path.join(dir, f);
       const st = await lstat(fp);
       if (!st.isFile() || st.size > 64 * 1024) continue;
-      rec = JSON.parse(await readFile(fp, "utf8")) as Record<string, unknown>;
+      const parsed: unknown = JSON.parse(await readFile(fp, "utf8"));
+      // Valid JSON is not necessarily an object (`null`, an array, a number):
+      // these files belong to another program, so one odd file must be
+      // skipped, never allowed to throw out of the whole session-info read.
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+      rec = parsed as Record<string, unknown>;
     } catch {
       continue; // being rewritten / not JSON
     }
