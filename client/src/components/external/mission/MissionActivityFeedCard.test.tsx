@@ -93,7 +93,7 @@ describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie 
     expect(screen.getByText(/falls back to the legacy header/)).toBeInTheDocument();
   });
 
-  it("expands card.detailFull in place when Show more is clicked (a non-blocker card's detail — a blocker's own detail toggle is covered separately below)", async () => {
+  it("expands card.detailFull in place when Show more is clicked (a card's detail)", async () => {
     const user = userEvent.setup();
     renderCard({ kind: "review", text: "", commands: [], status: "ok", detail: "PASS line one\nline two…", detailFull: "PASS line one\nline two\nline three\nline four\nline five" });
     await user.click(screen.getByRole("button", { name: "Show more" }));
@@ -154,7 +154,7 @@ describe("FeedCard — commands are collapsed behind a summary line by default (
 
   // 54th-round catch (glm, low, test), ANSWERED: the `/command/i` matcher is
   // deliberately BROAD - it must also catch a "Show details (N commands)"
-  // toggle leaking onto a non-blocker card, not only the "N commands" one.
+  // toggle leaking onto a card, not only the "N commands" one.
   // Narrowing it to an exact name would shrink what the test can notice.
   it("renders no toggle at all when the card has no commands", () => {
     renderCard({ kind: "implement", text: "Some narration.", commands: [] });
@@ -191,6 +191,14 @@ describe("FeedCard — subrunner card rendering", () => {
     const link = screen.getByRole("button", { name: "View subrunner report" });
     await user.click(link);
     expect(onSubrunnerClick).toHaveBeenCalledWith("agent-42");
+  });
+
+  // @covers FR-01.66
+  it("resolved: shows the readable dispatch title as visible text next to a compact (non-oversized) status link", () => {
+    const { container } = renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." }, vi.fn());
+    expect(screen.getByText("Investigate the auth bug")).toBeInTheDocument();
+    // The glyph sits INSIDE the .mc-story-link, whose CSS sizes svg to 1em (line size).
+    expect(container.querySelector(".mc-story-link svg")).not.toBeNull();
   });
 
   it("resolved with no click handler wired: falls back to rendering the report inline", () => {

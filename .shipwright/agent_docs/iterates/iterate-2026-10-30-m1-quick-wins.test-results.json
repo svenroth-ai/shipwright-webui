@@ -1,0 +1,94 @@
+{
+  "last_updated": "2026-10-30",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-30-m1-quick-wins",
+    "date": "2026-10-30",
+    "unit": {
+      "status": "passed",
+      "passed": 4503,
+      "total": 4503,
+      "skipped": 0
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 6,
+      "total": 6,
+      "skipped": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "A failed plain command produces no error/blocker card, no raw output, no err status (reducer)",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (g), missionActivityFeedFields.test.ts, missionActivityFeedTransientClassifierError.test.ts PASSED"
+        },
+        {
+          "behavior": "The 'run ended before the blocker was resolved' reconcile sentence is gone",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.explanation.test.ts (g) asserts no such text; e2e mission-feed-transcript-fidelity passed in a real browser"
+        },
+        {
+          "behavior": "Interactive user-input questions are still surfaced",
+          "disposition": "tested",
+          "evidence": "missionActivityFeed.test.ts 'ignores a continuation prompt and surfaces input' and 'keeps a second unanswered user-input episode open' PASSED"
+        },
+        {
+          "behavior": "Failing test cards and failed subrunner cards still render",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx failing test card; missionActivityFeedTransientClassifierError.test.ts failed subrunner PASSED"
+        },
+        {
+          "behavior": "Subrunner report link glyph is line-size in a real browser",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mission-subrunner.spec.ts glyph bounding box <= 24px PASSED",
+          "category": "integration"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/mission-subrunner.spec.ts e2e/flows/mission-feed-transcript-fidelity.spec.ts",
+      "exit_code": 0,
+      "tests_run": 6,
+      "evidence_path": ".shipwright/runs/iterate-2026-10-30-m1-quick-wins/surface_verification.log",
+      "timestamp": "2026-10-30T13:36:00Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-10-30-m1-quick-wins",
+    "commit": "5ff72ec6f9685162d0411788c81d2c6891890b3e",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

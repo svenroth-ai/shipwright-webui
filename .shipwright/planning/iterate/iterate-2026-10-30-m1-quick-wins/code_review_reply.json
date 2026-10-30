@@ -1,0 +1,14 @@
+{"section":"M1-quick-wins","review":[
+{"severity":"medium","category":"readability","file":"client/src/lib/missionActivityFeedResolve.ts","line":14,"finding":"Doc comment still lists blocker creation/recovery.","suggestion":"Drop it."},
+{"severity":"medium","category":"readability","file":"client/src/lib/missionActivityFeedResolve.ts","line":195,"finding":"Subrunner-branch comment explains ordering in terms of the removed blocker branch.","suggestion":"Reword to the failed-dispatch-never-resolves reason."},
+{"severity":"medium","category":"readability","file":"client/src/lib/missionActivityFeedResolve.ts","line":220,"finding":"Review-branch comment contrasts with the removed blocker branch.","suggestion":"Shorten to first-wins rationale."},
+{"severity":"low","category":"readability","file":"client/src/lib/missionActivityFeedTypes.ts","line":51,"finding":"commandCount comment mentions a deleted blocker toggle.","suggestion":"Reword."},
+{"severity":"low","category":"readability","file":"client/src/lib/missionActivityFeedBlockerAndTdd.test.ts","line":5,"finding":"Header references deleted BlockerText test.","suggestion":"Remove sentence."},
+{"severity":"low","category":"readability","file":"client/src/lib/missionActivityFeedDetail.ts","line":8,"finding":"Doc comment carries history.","suggestion":"Drop parenthetical."},
+{"severity":"low","category":"readability","file":"client/src/components/external/mission/MissionBody.tsx","line":20,"finding":"Comment mentions blocker cards.","suggestion":"test cards."},
+{"severity":"low","category":"readability","file":"client/src/lib/missionActivityFeedTransientTestDrop.ts","line":11,"finding":"Comment mentions generic blocker path.","suggestion":"coalesced path."},
+{"severity":"low","category":"readability","file":"client/src/lib/missionActivityFeedTransientClassifierError.test.ts","line":8,"finding":"Several test comments/names still describe blocker behaviour.","suggestion":"Reword."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/mission/MissionActivityFeedCard.test.tsx","line":196,"finding":"Test name overclaims; jsdom cannot check the 1em size.","suggestion":"Rename and add a real-browser check."},
+{"severity":"low","category":"correctness","file":"client/src/lib/missionActivityFeedFields.test.ts","line":127,"finding":"cards.every on possibly-empty list is weak.","suggestion":"Add narration so a card survives."},
+{"severity":"low","category":"readability","file":"client/src/lib/missionActivityFeedText.ts","line":196,"finding":"Double blank line.","suggestion":"Collapse."}
+]}

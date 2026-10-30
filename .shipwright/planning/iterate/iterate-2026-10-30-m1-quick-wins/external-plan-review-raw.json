@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "# Review: M1 \u2014 Remove error cards, compact subrunner row\n\n## Findings\n\n**Category: risk \u2014 Severity: medium**\n**Finding:** The spec's verification requirement (\"verify the same logic does not also drive genuine interactive blockers\") is addressed only by asserting AC3 in tests. But the mini-plan removes the generic `is_error => continue` recovery branch and `unresolvedBlockers` from resolve \u2014 if the blocker-error path shares any code with how unresolved *interactive* blockers get resolved/retried (e.g., the \"Claude may retry\" logic may also serve user-input timeouts), removing the recovery branch could affect AskUserQuestion flows that time out.\n**Suggestion:** Trace the resolve path explicitly for the `user-input` bucket before deleting the recovery branch. Add a test case: an unresolved user-input blocker at run end \u2014 confirm its rendering/resolution behavior is unchanged.\n\n**Category: risk \u2014 Severity: medium**\n**Finding:** AC1 says failed plain commands render NO card. But the existing \"blocker-error\" card was produced when a command failed *and blocked the run*. If error output was previously surfaced in the feed, users lose the only in-UI signal that something went wrong \u2014 the spec accepts this (\"errors handled in terminal\"), but only if a terminal actually exists in every context the feed is viewed (e.g., viewing past mission activity after terminal scrollback is gone).\n**Suggestion:** Confirm the mission's error state is still visible somewhere in the UI (run status, exit code on the mission row). If the feed is the sole error surface in some view, flag back to the spec author rather than silently dropping information.\n\n**Category: risk \u2014 Severity: low**\n**Finding:** `ActivityKind \"blocker\"` is removed from the type, but persisted historical mission activity (stored feeds) may contain records with `kind: \"blocker\"`. Removing the kind from the union and the render branch could cause runtime errors or silent drops when replaying old missions.\n**Suggestion:** Keep `blocker` in the ActivityKind union (deprecated) with a no-op render, or add a migration/filter on load. At minimum, add a test loading a fixture with legacy `blocker` records.\n\n**Category: edge-case \u2014 Severity: low**\n**Finding:** AC5 puts the status glyph at 1em via CSS inside the link with the title attribute \u2014 but if `card.text` (dispatch description) is empty or a raw hash in some existing records, the link title falls back to nothing readable.\n**Suggestion:** Add a fallback (`card.text || 'Subrunner report'`) for the title attribute.\n\n**Category: approach \u2014 Severity: low**\n**Finding:** Moving `attachDetail` to `missionActivityFeedDetail.ts` while deleting `missionActivityFeedBlockerError.ts` couples two changes (card removal + file reorganization). If the detail attachment is shared with other card kinds, this move is fine; if it was blocker-specific, it should probably be deleted too.\n**Suggestion:** Clarify whether `attachDetail` has non-blocker consumers; if blocker-only, delete rather than relocate.\n\n**Category: approach \u2014 Severity: low (positive)**\n**Finding:** Correctly scoped \u2014 deferring the subagent transcript view, defining the TBD acceptance criteria concretely, and flipping the e2e to assert absence are all the right calls. No over-production detected.\n\n## Overall Assessment\n\nSound, well-scoped change with correct boundaries around interactive blockers in the test plan. The main gaps are legacy-data compatibility for the removed `blocker` ActivityKind and verifying the deleted recovery branch doesn't affect user-input resolution \u2014 both cheap to address before merging.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** AC3 preserves test-failure and failed-subrunner cards, while the specification says \u201cNo error messages in the chat at all.\u201d The plan silently narrows that requirement to plain command errors.  \n   **Suggestion:** Resolve this scope mismatch before implementation. Define whether failed test/subrunner status cards are allowed, and whether their error text or raw output must be suppressed. Align the rendering rules and tests with that decision.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** Adding the readable dispatch description as a `title` attribute does not satisfy the requirement that the report show a readable title as its link. A hash-only link remains hash-only in the normal view, and tooltips are unreliable on touch devices and for keyboard users.  \n   **Suggestion:** Use the readable title as the visible report-link text, retaining the existing destination. Verify the result with a realistic long title and the line-size status glyph.\n\n3. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** Removing the entire `blocker` kind assumes every genuine interactive blocker uses the `user-input` path. The plan identifies AskUserQuestion, but does not establish that other interactive blocker producers or previously stored activity cannot use `blocker`.  \n   **Suggestion:** Check all producers and consumers before deleting the kind, including persisted activity if applicable. Preserve or map genuine interactive cases, and retain a regression test showing an unanswered question remains visible when the run ends.\n\nThe approach is appropriately small and avoids building the transcript view. The error-visibility contract and visible report-link behavior need correction, and deleting the blocker kind needs the targeted compatibility check above.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m1-quick-wins",
+    "at": "2026-10-30T13:25:40.157332+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

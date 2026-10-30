@@ -104,16 +104,6 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(detail?.endsWith("…")).toBe(true);
   });
 
-  it("clears the stale status/detail pill when a blocker recovers (internal plan review, finding 7)", () => {
-    const events = parseSessionJsonl([
-      tool("first", "Bash", { command: "npm run build" }), errorResult("first", "Error: something broke"),
-      tool("retry", "Bash", { command: "npm run build" }), result("retry"),
-    ].join("\n")).events;
-    const recovered = deriveActivityFeed(events, context("unknown")).cards.find((card) => /recovered/i.test(card.text));
-    expect(recovered?.status).toBeUndefined();
-    expect(recovered?.detail).toBeUndefined();
-  });
-
   it("clears the stale status/detail pill when a failing test recovers (internal plan review, finding 7)", () => {
     const events = parseSessionJsonl([
       tool("first", "Bash", { command: "npm test" }), errorResult("first", "FAIL something"),
@@ -128,37 +118,23 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(recovered?.detail).toBeUndefined();
   });
 
-  // Internal plan review, finding 8 — AMENDED by the 42nd-round catch (openai,
-  // medium, spec). The requirement was "one command's error excerpt must not be
-  // misattributed to a coalesced card's OTHER chips", met by withholding the
-  // excerpt entirely; openai showed that also strips requirement 4's disclosure
-  // of all raw output. The requirement is unchanged and still asserted below —
-  // now met by ATTRIBUTING the excerpt to the command that failed.
-  it("attributes one command's error excerpt to the failing chip of a coalesced multi-command card (internal plan review, finding 8)", () => {
+  // @covers FR-01.66
+  it("a failing command on a coalesced multi-command card yields no error card and no raw excerpt (M1)", () => {
     const events = parseSessionJsonl([
       tool("a", "Read", { file_path: "a.ts" }),
       tool("b", "Read", { file_path: "b.ts" }),
       errorResult("a", "Some read error"),
     ].join("\n")).events;
-    const blocker = deriveActivityFeed(events, context("unknown")).cards.find((card) => card.kind === "blocker");
-    expect(blocker?.commands).toEqual(["Read: a.ts", "Read: b.ts"]);
-    expect(blocker?.status).toBe("err");
-    // 43rd-round catch (glm, low, test), FIXED: the erroring `tool_use_id` is
-    // `"a"` — asserted here so the expectation cannot drift from the fixture.
-    // 55th-round (glm, low) DECLINED as a misread: it supposed the result
-    // events sit outside the diff and might attribute the error to the SECOND
-    // tool. They are three lines up, in the same fixture: `errorResult("a", ...)`.
-    expect(blocker?.detail).toBe("Read: a.ts\nSome read error");
-    // The non-failing sibling is on the card but never named by the excerpt.
-    expect(blocker?.commands).toContain("Read: b.ts");
-    expect(blocker?.detail).not.toContain("b.ts");
+    const cards = deriveActivityFeed(events, context("unknown")).cards;
+    // A wordless read-only card is dropped by the feed; whatever survives
+    // must carry no error status and no raw excerpt.
+    expect(cards.every((card) => card.status !== "err" && card.detail === undefined)).toBe(true);
   });
 
   it("never shares a test card between two distinct failing test commands (external review catch, verified non-issue)", () => {
-    // Unlike blocker/implement/etc., every `test`-bucket tool_use pushes its
+    // Unlike implement/etc., every `test`-bucket tool_use pushes its
     // own fresh card rather than going through add()'s coalescing — so the
-    // single-command misattribution guard blocker cards need does not apply
-    // here. This probe confirms it, rather than taking that on faith.
+    // coalescing concerns do not apply here. This probe confirms it, rather than taking that on faith.
     const events = parseSessionJsonl([
       tool("a", "Bash", { command: "npm test suiteA" }), errorResult("a", "FAIL suiteA"),
       tool("b", "Bash", { command: "npm test suiteB" }), errorResult("b", "FAIL suiteB"),
@@ -169,10 +145,11 @@ describe("deriveActivityFeed — real content + detail/status/question fields", 
     expect(cards[1].detail).toBe("FAIL suiteB");
   });
 
-  it("attaches a single command's error excerpt when the card represents exactly one command", () => {
+  // @covers FR-01.66
+  it("attaches no error excerpt for a single failing non-test command (M1)", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), errorResult("a", "ENOENT: a.ts not found")].join("\n")).events;
-    const blocker = deriveActivityFeed(events, context("unknown")).cards.find((card) => card.kind === "blocker");
-    expect(blocker?.detail).toBe("ENOENT: a.ts not found");
+    const cards = deriveActivityFeed(events, context("unknown")).cards;
+    expect(cards.every((card) => card.status !== "err" && card.detail === undefined)).toBe(true);
   });
 
   it("shows the real merged PR title on the delivery card when the commit artifact carries one", () => {

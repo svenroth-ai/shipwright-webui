@@ -70,10 +70,12 @@ describe("deriveActivityFeed", () => {
     expect(deriveActivityFeed([], context("pass", true)).outcome).toBe("In progress");
   });
 
-  it("ignores a continuation prompt and surfaces input and unresolved command blockers", () => {
+  // @covers FR-01.66
+  it("ignores a continuation prompt and surfaces input, but no card for a failed command", () => {
     const events = parseSessionJsonl([event({ type: "user", message: { role: "user", content: "This session is being continued from a previous conversation. Summary below." } }), tool("ask", "AskUserQuestion", { questions: [] }), tool("blocked", "Bash", { command: "git push" }), result("blocked", true)].join("\n")).events;
     const feed = deriveActivityFeed(events, context("unknown"));
-    expect(feed.cards.map((card) => card.kind)).toEqual(expect.arrayContaining(["user-input", "blocker"]));
+    expect(feed.cards.map((card) => card.kind)).toEqual(expect.arrayContaining(["user-input"]));
+    expect(feed.cards.some((card) => /command failed|needs attention/i.test(card.text))).toBe(false);
     expect(feed.cards.some((card) => card.kind === "user")).toBe(false);
   });
 
@@ -129,14 +131,15 @@ describe("deriveActivityFeed", () => {
     expect(cards.length).toBe(2);
   });
 
-  it("coalesces a recovered non-test blocker into one finished episode", () => {
+  // @covers FR-01.66
+  it("a failed command followed by a successful retry leaves no error or recovery sentence", () => {
     const events = parseSessionJsonl([
       tool("first", "Bash", { command: "git push" }), result("first", true),
       tool("retry", "Bash", { command: "git push" }), result("retry"),
     ].join("\n")).events;
     const cards = deriveActivityFeed(events, context("unknown")).cards;
-    expect(cards.filter((card) => card.kind === "blocker")).toHaveLength(0);
-    expect(cards.find((card) => /recovered/i.test(card.text))?.kind).toBe("implement");
+    expect(cards.some((card) => /command failed|recovered|needs attention/i.test(card.text))).toBe(false);
+    expect(cards.every((card) => card.status !== "err")).toBe(true);
   });
 
   it("promotes a running review card when durable review evidence is available", () => {
@@ -199,9 +202,10 @@ describe("deriveActivityFeed", () => {
     expect(cards.some((card) => /needed/i.test(card.text))).toBe(true);
   });
 
-  it("does not confuse an unrelated successful read with a failed read retry", () => {
+  // @covers FR-01.66
+  it("a failed read never produces an error card", () => {
     const events = parseSessionJsonl([tool("a", "Read", { file_path: "a.ts" }), result("a", true), tool("b", "Read", { file_path: "b.ts" }), result("b")].join("\n")).events;
-    expect(deriveActivityFeed(events, context("unknown")).cards.some((card) => card.kind === "blocker")).toBe(true);
+    expect(deriveActivityFeed(events, context("unknown")).cards.some((card) => card.status === "err")).toBe(false);
   });
 
   it("prefers the turn's own explanation over the generic bucket sentence (iterate-2026-08-13-mission-mobile-visual)", () => {

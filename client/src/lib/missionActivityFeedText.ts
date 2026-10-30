@@ -194,8 +194,6 @@ export function explanationExcerpt(content: string, maxLines = 6, maxChars = 600
   return allLines.length > maxLines ? `${joined}…` : joined;
 }
 
-export { summarizeBlockerError } from "./missionActivityFeedBlockerText";
-
 const normalizeForMatch = (value: string) => value.trim().toLowerCase();
 
 /**

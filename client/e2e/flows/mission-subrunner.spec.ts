@@ -125,6 +125,24 @@ test.describe("Mission activity feed — subrunner visibility (Sven's 2026-09-26
 
     const openReport = subrunner.getByRole("button", { name: "View subrunner report" });
     await expect(openReport).toBeVisible({ timeout: 15_000 });
+    // The status glyph is line-size, not the oversized default SVG (M1).
+    const glyph = await openReport.locator("svg").boundingBox();
+    expect(glyph).not.toBeNull();
+    expect(glyph!.width).toBeLessThanOrEqual(24);
+    expect(glyph!.height).toBeLessThanOrEqual(24);
+    // ...and it sits on the SAME line as the link text: Tailwind preflight makes
+    // every svg display:block, which would stack the glyph above the label.
+    const rows = await openReport.evaluate((btn) => {
+      const svg = btn.querySelector("svg")!.getBoundingClientRect();
+      const textNode = [...btn.childNodes].find((n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim())!;
+      const range = document.createRange();
+      range.selectNodeContents(textNode);
+      const text = range.getBoundingClientRect();
+      return { svgTop: svg.top, svgBottom: svg.bottom, svgRight: svg.right, textTop: text.top, textBottom: text.bottom, textLeft: text.left };
+    });
+    expect(rows.svgBottom).toBeGreaterThan(rows.textTop);
+    expect(rows.svgTop).toBeLessThan(rows.textBottom);
+    expect(rows.textLeft).toBeGreaterThanOrEqual(rows.svgRight);
     await openReport.click();
 
     const panel = page.getByRole("dialog");

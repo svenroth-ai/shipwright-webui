@@ -35,13 +35,8 @@ export function FeedCard({
 }) {
   const [textExpanded, setTextExpanded] = useState(false);
   const [explanationExpanded, setExplanationExpanded] = useState(false);
-  // 40th (glm, low), DECLINED as unreachable, re-noted 71st: shared with the
-  // non-blocker `card.detail` <pre>, but a kind change REMOUNTS (kind-first key).
   const [detailExpanded, setDetailExpanded] = useState(false);
   const [answerExpanded, setAnswerExpanded] = useState(false);
-  // FULL untruncated detail, separate from `detailExpanded` (open vs. not),
-  // 26th (glm, medium): one state dumped the traceback on every open.
-  const [blockerDetailFullyExpanded, setBlockerDetailFullyExpanded] = useState(false);
 
   const pill = pillLabel(card);
   // Gate on artifact === "commit", not just kind === "delivery" (code review
@@ -67,13 +62,6 @@ export function FeedCard({
   // stay reachable via the expand toggle rather than disappearing along with
   // the duplicate-only short text.
   const showText = displayText.length > 0 || Boolean(displayTextFull && displayTextFull.length > 0);
-  // Clamped on `commands.length` (73rd, glm, low) — what `FeedCommands` gates
-  // on, so a `commandCount > 0` card with an EMPTY `commands` can no longer
-  // promise "N commands" and expand to no chips. Rounds 47/57/72 declined it as
-  // unreachable and that trace holds; the 73rd applies this codebase's OWN
-  // 43rd-round principle (a mechanical guard beats an argued invariant).
-  const blockerCommandCount = card.commands.length > 0 ? card.commandCount ?? card.commands.length : 0;
-
   return (
     <article className="mc-feed-card" data-kind={card.kind}>
       {/* Kind label + per-card timestamp both removed site-wide
@@ -92,31 +80,13 @@ export function FeedCard({
       {/* card.text can be empty (a turn wrote no narration of its own) — then
           only commands / detail render below. When present it takes the same
           safe markdown path as the rest of the transcript, never a raw <p>.
-          `textLiteral` (only the blocker's synthesized "A command failed: …"
-          sentence) renders as a literal text node — markdown-significant
-          characters in a raw error line would garble it (17th, glm, low). Gated
-          on the explicit flag, not `kind === "blocker"` (18th, glm, medium).
-          82nd (glm, low), FIXED with a MECHANICAL guard where the invariant had
-          only been ARGUED in `…Resolve.ts` comments: the literal branch ignored
-          `textFull`, so a card carrying BOTH lost the never-crop affordance.
-          The reducer deletes `textFull` at both mutation sites, so no
-          production render changes — the renderer stops depending on that.
-          Expanding, not glm's "drop `textFull`", is what "nie croppen" asks,
-          and the text stays a React text child, so still inert.
           `showText` (not bare `card.text`) additionally suppresses only the
           EXACT PR-title-duplicate sentence — see `prDuplicateText` above. */}
       {showText && (
-        card.textLiteral ? (
-          <>
-            <p>{textExpanded && displayTextFull ? displayTextFull : displayText}</p>
-            {card.textFull && <ExpandToggle expanded={textExpanded} onToggle={() => setTextExpanded((v) => !v)} />}
-          </>
-        ) : (
-          <>
-            <MarkdownChunk content={textExpanded && displayTextFull ? displayTextFull : displayText} />
-            {card.textFull && <ExpandToggle expanded={textExpanded} onToggle={() => setTextExpanded((v) => !v)} />}
-          </>
-        )
+        <>
+          <MarkdownChunk content={textExpanded && displayTextFull ? displayTextFull : displayText} />
+          {card.textFull && <ExpandToggle expanded={textExpanded} onToggle={() => setTextExpanded((v) => !v)} />}
+        </>
       )}
 
       {/* card.explanation is one turn's own words beyond its headline — not
@@ -173,63 +143,9 @@ export function FeedCard({
       )}
 
       {/* card.detail is a bounded, sanitized raw-output excerpt — real tool/
-          terminal content, a literal text node, never MarkdownChunk. A
-          blocker's detail is a raw traceback a reader cannot act on at a
-          glance (reported: "steht keine Lösung, nur der Bash-Befehl",
-          iterate-2026-09-16-mission-feed-render-fidelity); `card.text` above
-          carries the plain explanation, so the excerpt collapses behind "Show
-          details". The failing command renders INSIDE that same disclosure,
-          PRE-EXPANDED — one click reveals both (5th/6th, both, medium). */}
-      {card.kind === "blocker" && (card.detail || blockerCommandCount > 0) ? (
-        // Keyed on `card.kind === "blocker"` FIRST, not on `card.detail` (15th,
-        // glm, low): a blocker with no error output, or an `add()`-coalesced
-        // multi-command ambiguity skipping `attachDetail`, fell through to the
-        // doubly-collapsed generic `FeedCommands`. Rounds 28/34 argued a "dead"
-        // toggle was unreachable; it survived (35th, low) — now GUARDED on
-        // `card.detail || blockerCommandCount > 0`.
-        <div className="mc-feed-code">
-          <button
-            type="button"
-            className="mc-feed-expand-btn mc-feed-code-toggle"
-            aria-expanded={detailExpanded}
-            // 46th (glm, low), FIXED: closing the disclosure left
-            // `blockerDetailFullyExpanded` set, so RE-opening dumped the whole
-            // traceback, not the bounded excerpt. Each open starts bounded.
-            // (Duplicated by a copy slip - 47th, glm, low, FIXED.)
-            // 51st (glm, low), FIXED: the reset lived INSIDE the
-            // `setDetailExpanded` updater, which React may invoke twice
-            // (StrictMode) and requires to be side-effect-free.
-            onClick={() => {
-              if (detailExpanded) setBlockerDetailFullyExpanded(false);
-              setDetailExpanded((v) => !v);
-            }}
-          >
-            {/* Folds the count into this SAME toggle for REVEALING the commands —
-                no double-click (25th/26th, openai, medium). `FeedCommands` below
-                still mounts its own (pre-expanded, "Hide commands") toggle once
-                open — a second control, just not one needed to reveal anything
-                (31st, glm, low; re-raised 66th and 70th, both reaching the same
-                conclusion — STANDS: a bare row would drop the re-collapse
-                affordance every card kind has). */}
-            {/* A `commandCount > 0` card with an empty `commands` cannot promise
-                chips it has none of — rounds 47/57/72 declined that as
-                unreachable (`attachCommand` is the sole writer of both), and the
-                73rd made it mechanical anyway; see `blockerCommandCount`. */}
-            {detailExpanded ? "Hide details" : blockerCommandCount > 0 ? `Show details (${blockerCommandCount} command${blockerCommandCount === 1 ? "" : "s"})` : "Show details"}
-          </button>
-          {detailExpanded && (
-            <>
-              {card.detail && (
-                <>
-                  <pre>{blockerDetailFullyExpanded && card.detailFull ? card.detailFull : card.detail}</pre>
-                  {card.detailFull && <ExpandToggle expanded={blockerDetailFullyExpanded} onToggle={() => setBlockerDetailFullyExpanded((v) => !v)} />}
-                </>
-              )}
-              <FeedCommands commands={card.commands} commandCount={card.commandCount} commandFullText={card.commandFullText} defaultExpanded />
-            </>
-          )}
-        </div>
-      ) : card.detail ? (
+          terminal content (a failing test run), a literal text node, never
+          MarkdownChunk. */}
+      {card.detail ? (
         <div className="mc-feed-code">
           <pre>{detailExpanded && card.detailFull ? card.detailFull : card.detail}</pre>
           {card.detailFull && <ExpandToggle expanded={detailExpanded} onToggle={() => setDetailExpanded((v) => !v)} />}
@@ -277,8 +193,7 @@ export function FeedCard({
       )}
 
       {card.artifact && onArtifactClick ? <button type="button" className="mc-story-link" onClick={() => onArtifactClick(card.artifact!)}>Open {card.artifact}</button> : null}
-      {/* A blocker renders its command(s) inside "Show details" above. */}
-      {card.kind !== "blocker" && <FeedCommands commands={card.commands} commandCount={card.commandCount} commandFullText={card.commandFullText} />}
+      <FeedCommands commands={card.commands} commandCount={card.commandCount} commandFullText={card.commandFullText} />
     </article>
   );
 }

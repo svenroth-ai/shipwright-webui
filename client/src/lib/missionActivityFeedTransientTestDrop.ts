@@ -8,7 +8,7 @@ import type { ActivityCard, PendingTool, ResolveState } from "./missionActivityF
  * out of `missionActivityFeedResolve.ts` (300-line convention) once the
  * `authoringConsumedBy` purge below was added.
  *
- * Safe to splice unconditionally (unlike the generic blocker/coalesced path):
+ * Safe to splice unconditionally (unlike the coalesced path):
  * a `test` card is always fresh, one per `tool_use`, never shared with a
  * sibling command (see the call site's own doc comment).
  *

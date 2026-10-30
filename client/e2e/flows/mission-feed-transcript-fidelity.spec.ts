@@ -211,8 +211,8 @@ test.describe("Mission activity feed — transcript fidelity (Sven's 2026-09-20 
   });
 
   // @covers FR-01.66
-  test("a blocker card explains what to do about it, not just a red pill (issue #4)", async ({ page, request }) => {
-    const task = await seedTask(request, { title: "Explain the blocker", projectId: project.projectId });
+  test("a failed command renders no error or blocker card at all (M1: errors live in the terminal)", async ({ page, request }) => {
+    const task = await seedTask(request, { title: "No error card", projectId: project.projectId });
     taskId = task.taskId;
     await writeFiles(project.path, {
       [`.shipwright/iterate_active/${task.sessionUuid}.json`]: pointer(task.sessionUuid, project.path),
@@ -232,15 +232,10 @@ test.describe("Mission activity feed — transcript fidelity (Sven's 2026-09-20 
     const feed = page.getByTestId("mission-activity-feed");
     await expect(feed).toBeVisible({ timeout: 15_000 });
 
-    const blocker = feed.locator('[data-kind="blocker"]');
-    await expect(blocker).toBeVisible();
-    // Either wording is correct depending on this seeded task's derived
-    // runLive state (this E2E harness's fixture task has no attached live
-    // pty, so it renders the "ended" variant) — the point under test is
-    // that SOME interaction-status sentence renders, not a bare red pill.
-    await expect(blocker).toContainText(
-      /Claude may retry this automatically, or may be waiting for you to respond in the terminal\.|This run ended before the blocker was resolved — resume the task or check the terminal to continue\./,
-    );
+    // The turn's own narration stays; the failure itself is never surfaced.
+    await expect(feed).toContainText("Pushing the branch.");
+    await expect(feed.locator('[data-kind="blocker"]')).toHaveCount(0);
+    await expect(feed).not.toContainText(/A command failed|ended before the blocker|retry this automatically/);
   });
 
   // @covers FR-01.66

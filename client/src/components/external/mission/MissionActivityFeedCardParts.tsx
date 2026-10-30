@@ -10,7 +10,6 @@ import type { MergeState } from "../../../lib/missionContextApi";
  * (MissionContext-sourced), never string-matched from `card.text`. Exported so
  * `MissionActivityFeed.tsx` can color the timeline node the same way. */
 export function kindAccent(card: ActivityCard): { color: string; line: string } {
-  if (card.kind === "blocker") return { color: "var(--err)", line: "var(--err-line)" };
   if (card.kind === "test") {
     return card.status === "ok" ? { color: "var(--ok)", line: "var(--ok-line)" }
       : card.status === "err" ? { color: "var(--err)", line: "var(--err-line)" }
@@ -24,7 +23,7 @@ export function kindAccent(card: ActivityCard): { color: string; line: string } 
   if (card.kind === "subrunner") {
     // "done" and "failed" were visually identical (external code review,
     // openai, medium: "the required done/failed status is invisible") — a
-    // failed subagent now gets the same err accent as a blocker.
+    // failed subagent now gets the same err accent as a failed test.
     return card.subrunnerStatus === "running" ? { color: "var(--warn)", line: "var(--warn-line)" }
       : card.subrunnerStatus === "failed" ? { color: "var(--err)", line: "var(--err-line)" }
       : { color: "var(--muted)", line: "var(--line-strong)" };

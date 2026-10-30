@@ -4,14 +4,14 @@ import { rollbackFailedWrite } from "./missionActivityFeedAuthoringRollback";
 import { applySubrunnerAck } from "./missionActivityFeedSubrunner";
 import { isTransientClassifierError } from "./missionActivityFeedTransientError";
 import { dropTransientTestCard } from "./missionActivityFeedTransientTestDrop";
-import { attachDetail, handleGenericBlockerError } from "./missionActivityFeedBlockerError";
+import { attachDetail } from "./missionActivityFeedDetail";
 import type { ActivityCard, ResolveState } from "./missionActivityFeedTypes";
 
 export type { PendingTool, ResolveState } from "./missionActivityFeedTypes";
 
 /** Fold one `user` event's `tool_result` blocks into the cards their matching
  *  `tool_use` already created — question resolution, test pass/fail/retry,
- *  and blocker creation/recovery. Extracted verbatim from
+ *  and test recovery. Extracted verbatim from
  *  `deriveActivityFeed`'s own `user`-event branch (iterate-2026-08-27
  *  bloat-ceiling split) — pure state mutation + reassignment, no behavior
  *  change. Returns the new `unresolvedTest` (the one field the caller must
@@ -22,7 +22,7 @@ export function resolveToolResults(
   event: UserEvent,
   state: ResolveState,
 ): ActivityCard | null {
-  const { cards, testCards, pendingTools, unresolvedBlockers, awaitingTestResult } = state;
+  const { cards, testCards, pendingTools, awaitingTestResult } = state;
   let unresolvedTest = state.unresolvedTest;
   for (const result of toolResults(event)) {
     const pending = pendingTools.get(result.tool_use_id);
@@ -192,55 +192,18 @@ export function resolveToolResults(
         awaitingTestResult.delete(pending.card);
       }
     } else if (pending.bucket === "subrunner") {
-      // MUST be checked before the generic `result.is_error` blocker branch
-      // below (external code review, glm, low — found via the transient-
-      // rejection trigger, but the actual gap was this ordering: the generic
-      // branch matches ANY error for ANY not-yet-excluded bucket, so it was
-      // silently swallowing a genuinely-failed — not just transiently-
-      // rejected — Agent/Task dispatch too, turning it into a `blocker` card
-      // and leaving `applySubrunnerAck`'s existing `isError`->"failed"
-      // fail-closed path, already covered by direct unit tests in
-      // `missionActivityFeedSubrunner.test.ts`, UNREACHABLE from the real
-      // reducer for every kind of dispatch error, not only a transient one).
+      // MUST be checked before the generic `result.is_error` skip below, or a
+      // failed Agent/Task dispatch would be silently ignored and stay
+      // "Running…" forever instead of resolving to "failed" via
+      // `applySubrunnerAck`'s isError path (also covers a transient
+      // classifier rejection of the dispatch).
       applySubrunnerAck(pending.card, result.content, result.is_error, pending.commandKey);
     } else if (result.is_error) {
-      // Split out to `missionActivityFeedBlockerError.ts` (300-line
-      // convention) — the generic "a plain command failed" branch, the one
-      // case here with no test/subrunner/review bucket of its own.
-      handleGenericBlockerError(pending, result, unresolvedBlockers);
-    } else if (unresolvedBlockers.has(pending.commandKey)) {
-      const blocker = unresolvedBlockers.get(pending.commandKey)!;
-      // A stale blocker's commandKey (tool name + detail string, with no
-      // expiry) can coincidentally match a command inside a later,
-      // wholly unrelated turn — one of possibly several tool calls that
-      // `add()` coalesced into the CURRENT card. Only fold this success
-      // into the original blocked card (and discard the current one)
-      // when the current card is unambiguously about nothing but this
-      // recovered command: otherwise the `cards.splice()` below would
-      // destroy that unrelated card's other commands and any
-      // `explanation` it carries (found by doubt-review during
-      // iterate-2026-08-25-mission-feed-progress-narration — pre-existing
-      // gap, out of that iterate's scope).
-      if (pending.card.commands.length === 1) {
-        blocker.card.kind = blocker.bucket;
-        blocker.card.text = "A command error recovered after a successful retry.";
-        blocker.card.textLiteral = undefined;
-        // The new recovery sentence is short and static — any `textFull`
-        // from BEFORE this card ever became a blocker (a genuine turn's own
-        // long headline) is now stale and unrelated to it (19th-round
-        // external review catch, openai, medium: a "Show more" toggle would
-        // otherwise resurface that old narration under the new sentence).
-        delete blocker.card.textFull;
-        blocker.card.status = undefined;
-        blocker.card.detail = undefined;
-        delete blocker.card.detailFull;
-        // Same reasoning as the test-recovery merge above: overwrite so the
-        // successful retry's own full text wins over a same-label collision
-        // with the earlier failed attempt.
-        attachCommand(blocker.card, pending.label, pending.full, { overwrite: true });
-        cards.splice(cards.indexOf(pending.card), 1);
-        unresolvedBlockers.delete(pending.commandKey);
-      }
+      // A plain command failure outside the test/subrunner buckets is
+      // deliberately NOT surfaced in the chat (campaign mission-desktop-style
+      // M1: no error messages in the feed at all — errors are handled in the
+      // terminal). The card keeps whatever the turn itself wrote.
+      continue;
     } else if (pending.bucket === "review") {
       // A successful review tool_result carries the actual verdict/findings
       // text — previously discarded entirely (no branch matched it), so the
@@ -249,15 +212,9 @@ export function resolveToolResults(
       // review (no `record_review_pass.py` call) never got that, leaving
       // the card permanently empty (iterate-2026-09-05-mission-feed-ux-gaps,
       // "External plan review wird angezeigt, aber das resultat nicht").
-      // First-wins, not the blocker branch's ambiguity skip (doubt-review
-      // catch, corrected after a regression test caught the first attempt):
-      // `add()` can coalesce two review-bucket tool calls with no narration
-      // between them into ONE card, each carrying its own real findings —
-      // unlike a blocker's error excerpt (which is genuinely ambiguous
-      // when several unrelated commands share the card), every review
-      // result here is equally relevant, so skipping both when there are
-      // 2+ commands would just as wrongly discard the FIRST review's
-      // detail. Attach only while nothing has been recorded yet.
+      // First-wins: `add()` can coalesce two review-bucket tool calls into
+      // ONE card, each carrying its own real findings, so attach only while
+      // nothing has been recorded yet rather than skipping 2+ commands.
       if (!pending.card.detail) attachDetail(pending.card, result.content);
     }
   }

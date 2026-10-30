@@ -17,7 +17,7 @@
  * verdict/proof header above it (Sven: the run-id/"suite green" strip above the
  * feed read as redundant clutter, iterate-2026-09-16-mission-feed-render-
  * fidelity — removed rather than conditionally hidden, since a genuinely red
- * gate already surfaces through the feed's own blocker/test cards). Read-only
+ * gate already surfaces through the feed's own test cards). Read-only
  * observer throughout (rule 1 / DO-NOT #1).
  */
 

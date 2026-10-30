@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Failed plain commands no longer produce an error card or reconcile sentence; subrunner glyph is line-size; no transcript view built."},
+{"name":"Error Handling","verdict":"pass","note":"Generic is_error now continues without mutating the card; user-input, test and subrunner error paths are unchanged."},
+{"name":"Security Basics","verdict":"pass","note":"No new input surfaces; raw error output is no longer rendered at all, only test-failure detail as inert text (covered by ContentSafety test)."},
+{"name":"Test Quality","verdict":"pass","note":"Blocker tests were rewritten to assert absence (no error/blocker/recovery text, no err status); e2e flipped to assert absence; full vitest 4502 pass."},
+{"name":"Performance Basics","verdict":"pass","note":"Pure removal of reducer branches; no new loops."},
+{"name":"Naming & Structure","verdict":"pass","note":"attachDetail moved to missionActivityFeedDetail.ts; all touched files < 300 lines except pre-existing ones that shrank."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized format changed; the feed is derived on the fly from the transcript, nothing persisted with kind blocker."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene --diff reports only missing_file for the two deliberately deleted blocker test files; no skip/only introduced."}
+]}

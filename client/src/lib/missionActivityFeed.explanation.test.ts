@@ -99,26 +99,19 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     expect(card?.explanation).toBe("More detail follows.");
   });
 
-  it("(g) clears explanation when a card mutates to blocker, and keeps it cleared through recovery", () => {
+  // @covers FR-01.66
+  it("(g) a failed command is NOT turned into an error card; the turn's own narration is kept (M1: errors live in the terminal)", () => {
     const events = parseSessionJsonl([
       turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),
       result("p1", true),
     ].join("\n")).events;
-    const blocked = deriveActivityFeed(events, context()).cards.find((c) => c.kind === "blocker");
-    // Blocker cards now always carry an interaction hint (reported: "Blocker
-    // sind immer noch rot ohne info... ob es seine Interaktion braucht" —
-    // iterate-2026-09-20-mission-feed-transcript-fidelity), which replaces
-    // the turn-derived explanation rather than merely clearing it.
-    expect(blocked?.explanation).toBe("Claude may retry this automatically, or may be waiting for you to respond in the terminal.");
-
-    const recovered = parseSessionJsonl([
-      turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),
-      result("p1", true),
-      turn(null, { id: "p2", name: "Bash", input: { command: "git push" } }),
-      result("p2"),
-    ].join("\n")).events;
-    const recoveredCard = deriveActivityFeed(recovered, context()).cards.find((c) => /recovered/i.test(c.text));
-    expect(recoveredCard?.explanation).toBeUndefined();
+    const cards = deriveActivityFeed(events, context()).cards;
+    const pushed = cards.find((c) => c.commands.includes("Bash: git push"));
+    expect(pushed?.text).toBe("Pushing the branch.");
+    expect(pushed?.explanation).toBe("This should be a fast-forward.");
+    expect(pushed?.status).toBeUndefined();
+    expect(pushed?.detail).toBeUndefined();
+    expect(cards.some((c) => /command failed|ended before the blocker|retry this automatically/i.exec(c.text + " " + (c.explanation ?? "")) !== null)).toBe(false);
   });
 
   it("(i) counts a turn's SECOND card too (not just its explanation-receiving first), so a later turn coalescing only into that second card still clears it (External LLM Review, openai HIGH finding)", () => {
@@ -145,7 +138,8 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     expect(implementCards[0].explanation).toBeUndefined(); // two turns touched it — must be cleared
   });
 
-  it("(j) does not let a stale blocker's identical command string swallow a later, unrelated coalesced card", () => {
+  // @covers FR-01.66
+  it("(j) a failed command's identical command string never swallows a later, unrelated coalesced card", () => {
     const events = parseSessionJsonl([
       turn("Pushing the branch.\nThis should be a fast-forward.", { id: "p1", name: "Bash", input: { command: "git push" } }),
       result("p1", true),
@@ -164,7 +158,7 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     const merged = cards.find((c) => c.commands.includes("Bash: git status"));
     expect(merged?.commands).toEqual(["Bash: git status", "Bash: git push"]);
     expect(merged?.explanation).toBe("This retries the same push as a side effect.");
-    expect(cards.some((c) => c.kind === "blocker")).toBe(true);
+    expect(cards.some((c) => /command failed/i.test(c.text))).toBe(false);
   });
 
   it("(h) clears explanation when reconcileArtifactCards rewrites a review card's text from durable evidence", () => {

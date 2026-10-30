@@ -55,6 +55,12 @@
   text-decoration: underline; text-underline-offset: 3px;
   text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
 }
+/* A status glyph inside an inline link is line-size (1em), never the SVG
+   default of filling the container — the subrunner card's check mark
+   rendered huge without this (campaign mission-desktop-style M1). It must
+   also be `inline-block`: Tailwind preflight makes every svg `display:block`,
+   which would push the glyph onto its own line above the link text. */
+.mc-story-link svg { display: inline-block; width: 1em; height: 1em; margin-right: 5px; vertical-align: -.125em; }
 .mc-story-link:hover { text-decoration-color: currentColor; }
 .mc-story-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 3px; }
 /* ── the activity feed (iterate-2026-08-20-mission-feed-content) ──────────
@@ -87,9 +93,7 @@
 .mc-feed-node[data-dashed="true"] { border-style: dashed; }
 .mc-feed-card { border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: color-mix(in srgb, var(--card) 88%, transparent); font-size: 13px; line-height: 1.5; color: var(--body); }
 /* `overflow-wrap: anywhere` — 45th-round external review catch (glm, low):
-   the synthesized blocker headline renders as a LITERAL `<p>` (textLiteral),
-   outside MarkdownChunk's own wrapping, and `summarizeBlockerError` can hand
-   it a 200-char unbroken path/hash that would then overflow the card. Set on
+   a long unbroken path/hash in a card paragraph would otherwise overflow the card. Set on
    the shared `p` rule so the markdown path inherits the same guarantee.
    (Same round: `.mc-op-stack`'s removal was confirmed by a repo-wide search —
    zero references remain in client/src, client/e2e or server.)
@@ -121,11 +125,6 @@
 .mc-feed-chip svg { width: 11px; height: 11px; flex-shrink: 0; }
 .mc-feed-code { margin-top: 9px; border: 1px solid var(--err-line); background: var(--err-tint); border-radius: 8px; overflow: hidden; }
 .mc-feed-code pre { margin: 0; padding: 9px 11px; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; color: var(--err); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
-/* A blocker's collapsed-by-default "Show details" toggle (iterate-2026-09-
-   16-mission-feed-render-fidelity) — same reset as `.mc-feed-expand-btn`,
-   colored into the err family and padded to match `.mc-feed-code pre` so
-   the collapsed state reads as one coherent block, not a stray link. */
-.mc-feed-code-toggle { color: var(--err); padding: 9px 11px; margin-top: 0; }
 .mc-feed-qa-question { margin-top: 9px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .mc-feed-qa-options { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .mc-feed-qa-opt { font-size: 12.5px; padding: 5px 11px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .02); }

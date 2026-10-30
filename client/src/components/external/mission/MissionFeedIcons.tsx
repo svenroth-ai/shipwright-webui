@@ -57,12 +57,6 @@ const PATHS: Record<ActivityKind, ReactElement> = {
       <circle cx="12" cy="12" r="3" />
     </>
   ),
-  blocker: (
-    <>
-      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-      <path d="M12 9v4M12 17h.01" />
-    </>
-  ),
   delivery: (
     <>
       <circle cx="18" cy="18" r="3" />
