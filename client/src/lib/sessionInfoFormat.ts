@@ -39,7 +39,7 @@ export function relativeToCwd(abs: string, cwd: string): string | null {
   if (!same || a.charAt(c.length) !== "/") return null;
   const rel = a.slice(c.length + 1);
   // Traversal never reaches the viewer (the server path guard stays the authority).
-  if (!rel || rel.split("/").some((seg) => seg === ".." || seg === ".")) return null;
+  if (!rel || rel.split("/").some((seg) => seg === "" || seg === ".." || seg === ".")) return null;
   return rel;
 }
 

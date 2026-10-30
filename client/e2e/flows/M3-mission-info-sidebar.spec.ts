@@ -106,6 +106,13 @@ test.describe("M3 — Mission right info sidebar", () => {
       s: document.documentElement.scrollWidth, c: document.documentElement.clientWidth,
     }));
     expect(doc.s).toBeLessThanOrEqual(doc.c + 1);
+    // The row itself must not clip either (it can hide overflow without widening the page).
+    const row = await page.getByTestId("mission-body").evaluate((el) => ({ s: el.scrollWidth, c: el.clientWidth }));
+    expect(row.s).toBeLessThanOrEqual(row.c + 1);
+    const bodyBox = (await page.getByTestId("mission-body").boundingBox())!;
+    const sideBox = (await page.getByTestId("mission-side").boundingBox())!;
+    expect(sideBox.x + sideBox.width).toBeLessThanOrEqual(bodyBox.x + bodyBox.width + 1);
+    expect((await page.getByTestId("operation-card").boundingBox())!.width).toBeGreaterThanOrEqual(360);
 
     // Keyboard resize (+10px per ArrowLeft) is persisted across a reload.
     const w0 = (await page.getByTestId("mission-side").boundingBox())!.width;

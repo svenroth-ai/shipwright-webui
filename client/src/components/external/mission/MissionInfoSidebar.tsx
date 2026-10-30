@@ -12,6 +12,7 @@ import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import type { ExternalTask } from "../../../lib/externalApi";
 import {
   SIDEBAR_MAX,
+  clampSidebarWidth,
   SIDEBAR_MIN,
   useMissionSidebar,
   type MissionSidebarSegment,
@@ -40,6 +41,9 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
   const [path, setPath] = useState<string | null>(null);
   const drag = useRef<{ x: number; w: number } | null>(null);
+  // In-progress drag width: committed (and persisted) once, on release.
+  const dragW = useRef<number | null>(null);
+  const [liveW, setLiveW] = useState<number | null>(null);
 
   const open = (p: string) => {
     setPath(p);
@@ -64,9 +68,17 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
     drag.current = { x: e.clientX, w: layout.width };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
+  const endDrag = () => {
+    if (dragW.current !== null) layout.setWidth(dragW.current);
+    drag.current = null;
+    dragW.current = null;
+    setLiveW(null);
+  };
   const onMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.buttons === 0) drag.current = null;
-    if (drag.current) layout.setWidth(drag.current.w + (drag.current.x - e.clientX));
+    if (e.buttons === 0) return endDrag();
+    if (!drag.current) return;
+    dragW.current = clampSidebarWidth(drag.current.w + (drag.current.x - e.clientX));
+    setLiveW(dragW.current);
   };
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "ArrowLeft") layout.setWidth(layout.width + 10);
@@ -90,21 +102,21 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
           aria-label="Resize info sidebar"
           aria-valuemin={SIDEBAR_MIN}
           aria-valuemax={SIDEBAR_MAX}
-          aria-valuenow={layout.width}
+          aria-valuenow={liveW ?? layout.width}
           tabIndex={0}
           className="mc-side-split"
           data-testid="mission-side-splitter"
           onPointerDown={onDown}
           onPointerMove={onMove}
-          onPointerUp={() => { drag.current = null; }}
-          onPointerCancel={() => { drag.current = null; }}
-          onLostPointerCapture={() => { drag.current = null; }}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onLostPointerCapture={endDrag}
           onKeyDown={onKey}
         />
       )}
       <aside
         className="mc-side"
-        style={compact ? undefined : { width: layout.width }}
+        style={compact ? undefined : { width: liveW ?? layout.width }}
         aria-label="Session info"
         data-testid="mission-side"
       >
@@ -130,10 +142,10 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
         </div>
         <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
           {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={open} active={visible} />}
-          {seg === "folders" && (
+          {seg === "folders" && visible && (
             <FolderTree projectId={task.projectId} selectedPath={path} onSelect={open} />
           )}
-          {seg === "viewer" && <SmartViewer projectId={task.projectId} path={path} />}
+          {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={path} />}
         </div>
       </aside>
     </>

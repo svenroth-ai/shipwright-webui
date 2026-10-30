@@ -25,6 +25,7 @@ describe("sessionInfoFormat", () => {
     expect(relativeToCwd("/home/u/app/a/../../b", "/home/u/app")).toBeNull();
     expect(relativeToCwd("/home/u/app/./a.md", "/home/u/app")).toBeNull();
     expect(relativeToCwd("/home/u/app/", "/home/u/app")).toBeNull();
+    expect(relativeToCwd("/home/u/app/a//b", "/home/u/app")).toBeNull();
   });
   it("handles a project rooted at a filesystem root", () => {
     expect(relativeToCwd("/output.md", "/")).toBe("output.md");

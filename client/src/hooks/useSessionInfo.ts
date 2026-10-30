@@ -49,7 +49,8 @@ export function useSessionInfo(
     if (!taskId) return;
     if (lastState.current === taskState) return;
     lastState.current = taskState;
-    void refetch();
+    // Join a scan already in flight instead of cancelling and restarting it.
+    void refetch({ cancelRefetch: false });
   }, [taskId, taskState, refetch]);
 
   return query;
