@@ -41,7 +41,7 @@ Three categories of regression guards are spelled out in CLAUDE.md and must be r
 6. Plugin dirs re-passed on every launch (`--plugin-dir` does not survive `--resume`); `MIN_SUPPORTED_CLI` pinned (`core/cli-compat.ts`).
 7. Preview-capability precedence (ADR-044): `stack.frontend` AND `dev_server.command` gate `<PreviewButton>`; `.shipwright-webui/actions.json` `actions.preview.enabled=false` hides it regardless; plus board scope — it renders only for a genuine single-project selection (`resolvedProjectId === activeProjectId`), never All-Projects or the synthesized "Unassigned" pseudo-project (iterate-2026-08-09-triage-filter-styling).
 
-## DO-NOT regression guards (index — full text + rationale in CLAUDE.md)
+## DO-NOT regression guards (index — one-liners in CLAUDE.md; long-form rationale for #25–#33 in regression_guards.md)
 
 1. DO NOT write into Claude's JSONL under `~/.claude/projects/` — read-only observer; title sync uses `--name` at launch (ADR-035).
 2. Auto-scroll is CSS-first (`overflow-anchor:auto` + `useAutoScroll` safety net); no stale scroll libs (ADR-035; virtualized carve-out ADR-063 was reverted — see Learnings).
