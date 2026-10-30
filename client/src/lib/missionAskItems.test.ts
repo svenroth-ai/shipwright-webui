@@ -100,6 +100,16 @@ describe("deriveActivityFeed — AskUserQuestion cards", () => {
     expect(items?.map((i) => i.question)).toEqual(["Which features?"]);
   });
   // @covers FR-01.66
+  it("keeps an answered question on the legacy display when an answer value has an unrecognised shape", () => {
+    const arrayAnswer = line({
+      type: "user", message: { role: "user", content: [{ type: "tool_result", tool_use_id: "ask", content: "Tags, Due dates", is_error: false }] },
+      toolUseResult: { questions: [], answers: { "Which features?": ["Tags", "Due dates"] } },
+    });
+    const q = cardOf(ask([q2]), arrayAnswer)?.question;
+    expect(q?.resolved).toBe(true);
+    expect(q?.items).toBeUndefined();
+  });
+  // @covers FR-01.66
   it("drops a rejected question entirely", () => {
     expect(cardOf(ask([q1]), rejected())).toBeUndefined();
   });

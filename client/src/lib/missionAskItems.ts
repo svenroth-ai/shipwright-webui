@@ -57,11 +57,12 @@ export function buildAskItems(input: unknown): AskItem[] {
   return items;
 }
 
-/** True when the sidecar carries an `answers` map holding NO non-blank answer (empty / all blank) — a call that decided nothing.
- *  A map with real answers under keys that do not match any question is NOT this: it falls back to the legacy display. */
+/** True when the sidecar carries an `answers` map whose values are ALL blank strings (or none) — a call that decided nothing.
+ *  A map with real answers under keys that do not match any question is NOT this: it falls back to the legacy display.
+ *  Any non-string value (an unverified shape, e.g. an array) is NOT "nothing" either — fail toward showing, never hiding. */
 export function recordsNoAnswer(toolUseResult: unknown): boolean {
   if (!isRecord(toolUseResult) || !isRecord(toolUseResult.answers)) return false;
-  return !Object.values(toolUseResult.answers).some((v) => typeof v === "string" && v.trim() !== "");
+  return Object.values(toolUseResult.answers).every((v) => typeof v === "string" && v.trim() === "");
 }
 
 /** True when every non-blank answer key matches some item's question text (nothing real would be left out of the cards). */
