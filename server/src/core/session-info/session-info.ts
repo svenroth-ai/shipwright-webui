@@ -14,9 +14,9 @@
 import { readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
-import { readWithRetry } from "../session-jsonl-io.js";
+import { ENOENT_FATAL, readWithRetry } from "../session-jsonl-io.js";
 import type { JsonlLocation } from "../session-watcher.js";
-import { ingestLine, newFacts, quickTimestamp, type Facts } from "./collect.js";
+import { ingestLine, newFacts, outputKey, quickTimestamp, type Facts } from "./collect.js";
 import { readFirstLine, scanLines, type LineScanResult } from "./line-scan.js";
 import { detectRemoteControl, type RemoteControlDeps } from "./remote-control.js";
 import { buildSubagents, type SubagentFile } from "./subagents.js";
@@ -26,7 +26,8 @@ export const SESSION_SCAN_BYTES = 48 * 1024 * 1024;
 export const SUBAGENT_SCAN_BYTES = 12 * 1024 * 1024;
 export const MAX_SUBAGENTS = 60;
 export const MAX_OUTPUTS = 300;
-const MEMO_MAX = 128;
+const MEMO_MAX = 512;
+const SCAN_CONCURRENCY = 6;
 
 export interface SessionInfoDeps extends RemoteControlDeps {
   now?: () => number;
@@ -58,7 +59,11 @@ async function scanFile(file: string, maxBytes: number, agentId: string | null):
 function scanCached(file: string, sig: string, maxBytes: number, agentId: string | null, noMemo?: boolean): Promise<Scanned> {
   if (noMemo) return scanFile(file, maxBytes, agentId);
   const hit = memo.get(file);
-  if (hit && hit.sig === sig) return hit.p;
+  if (hit && hit.sig === sig) {
+    memo.delete(file); // LRU: refresh recency on a hit
+    memo.set(file, hit);
+    return hit.p;
+  }
   const p = scanFile(file, maxBytes, agentId);
   memo.delete(file);
   if (memo.size >= MEMO_MAX) memo.delete(memo.keys().next().value as string);
@@ -106,18 +111,22 @@ export async function readSessionInfo(
 ): Promise<SessionInfo> {
   const now = (deps.now ?? Date.now)();
   const { files: subFiles, dropped } = await listSubagentFiles(loc.path);
-  const st = await readWithRetry(() => stat(loc.path));
+  const st = await readWithRetry(() => stat(loc.path), ENOENT_FATAL);
   const main = await scanCached(loc.path, `${st.size}:${st.mtimeMs}`, SESSION_SCAN_BYTES, null, deps.noMemo);
   const subFacts = new Map<string, Facts>();
-  await Promise.all(
-    subFiles.map(async (f) => {
+  let next = 0;
+  const worker = async () => {
+    for (let k = next++; k < subFiles.length; k = next++) {
+      const f = subFiles[k]!;
       try {
         subFacts.set(f.agentId, (await scanCached(f.jsonlPath, `${f.size}:${f.mtimeMs}`, SUBAGENT_SCAN_BYTES, f.agentId, deps.noMemo)).facts);
       } catch {
         /* an unreadable agent file drops that agent's detail, not the whole view */
       }
-    }),
-  );
+    }
+  };
+  // Bounded pool: a cold memo must not open 60 files / hold 60 chunk buffers at once.
+  await Promise.all(Array.from({ length: Math.min(SCAN_CONCURRENCY, subFiles.length) }, worker));
   const facts = main.facts;
   const lastCompaction = facts.compactions.length ? facts.compactions[facts.compactions.length - 1]! : null;
   // A compaction newer than the newest usage makes that usage stale: still reported
@@ -127,7 +136,7 @@ export async function readSessionInfo(
   const merged = new Map<string, SessionOutputFile>();
   const all = [...facts.outputs.values(), ...[...subFacts.values()].flatMap((sf) => [...sf.outputs.values()])];
   for (const o of all) {
-    const key = /^[A-Za-z]:|^\\\\/.test(o.path) ? o.path.toLowerCase() : o.path;
+    const key = outputKey(o.path);
     const prev = merged.get(key);
     if (!prev) merged.set(key, { ...o });
     else {

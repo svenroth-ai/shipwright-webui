@@ -54,16 +54,17 @@ export async function buildSubagents(
   }
   const results = new Map<string, ToolResult>(parent.toolResults);
   for (const f of subFacts.values()) for (const [k, v] of f.toolResults) results.set(k, v);
+  const metas = await Promise.all(files.map((f) => readMeta(f.metaPath)));
   const out: SessionSubagent[] = [];
-  for (const file of files) {
-    const meta = await readMeta(file.metaPath);
+  for (const [idx, file] of files.entries()) {
+    const meta = metas[idx]!;
     const facts = subFacts.get(file.agentId);
     const n = notifs.get(file.agentId) ?? null;
     const toolUseId = s(meta.toolUseId) ?? n?.toolUseId ?? null;
     const tu = toolUseId ? toolUses.get(toolUseId) : undefined;
     const startedAt = facts?.firstTs ?? null;
     const lastTs = facts?.lastTs ?? null;
-    const tr = toolUseId ? results.get(toolUseId) : undefined;
+    const tr = toolUseId && !tu?.background ? results.get(toolUseId) : undefined;
     const status = n?.status ?? (tr ? (tr.isError ? "failed" : (tr.status ?? "completed")) : null);
     const state = n || tr ? "finished" : now - file.mtimeMs > SUBAGENT_STALE_MS ? "finished-stale" : "running";
     const wall =

@@ -110,6 +110,26 @@ describe("review round 1 fixes", () => {
   });
 });
 
+describe("background agents", () => {
+  it("run_in_background: any tool_result (even with two acks in one line) never marks it finished", async () => {
+    l = makeLayout();
+    writeFileSync(
+      l.sessionPath,
+      jl(
+        assistant(1, { blocks: [toolUse("Agent", { prompt: "a", run_in_background: true }, "toolu_1"), toolUse("Agent", { prompt: "b", run_in_background: true }, "toolu_2")] }),
+        { type: "user", timestamp: ts(2), message: { role: "user", content: [
+          { type: "tool_result", tool_use_id: "toolu_1", content: "ok" },
+          { type: "tool_result", tool_use_id: "toolu_2", content: "ok" },
+        ] } },
+      ),
+    );
+    writeAgent(l, "bg1", { toolUseId: "toolu_1" }, [assistant(3, { sidechain: true })]);
+    writeAgent(l, "bg2", { toolUseId: "toolu_2" }, [assistant(3, { sidechain: true })]);
+    const subs = (await readSessionInfo(SESSION, loc(), { ...deps, now: () => Date.now() })).subagents;
+    expect(subs.map((s) => s.state)).toEqual(["running", "running"]);
+  });
+});
+
 describe("compaction without postTokens", () => {
   it("flags stale and reports no estimate (null), never invents one", async () => {
     l = makeLayout();

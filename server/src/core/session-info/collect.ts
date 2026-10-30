@@ -21,6 +21,8 @@ export interface Notification {
 }
 
 export interface AgentToolUse {
+  /** run_in_background: its tool_result is only a launch ack; completion arrives as a task-notification. */
+  background: boolean;
   prompt: string | null;
   description: string | null;
 }
@@ -89,7 +91,7 @@ function normalizeAbsolute(p: string, cwd: string | null): string | null {
   return isWin(cwd) ? path.win32.resolve(cwd, p) : path.posix.resolve(cwd, p);
 }
 
-function outputKey(p: string): string {
+export function outputKey(p: string): string {
   return /^[A-Za-z]:|^\\\\/.test(p) ? p.toLowerCase() : p;
 }
 
@@ -175,6 +177,10 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
   }
   const type = o.type;
   const ts = str(o.timestamp);
+  if (ts) {
+    if (lineTs === null || lineTs !== ts) f.lastTs = ts; // the record's own stamp beats the cheap peek
+    if (!f.firstTs) f.firstTs = ts;
+  }
   if (type === "bridge-session") {
     f.bridgeSeen = true;
     return;
@@ -240,7 +246,7 @@ export function ingestLine(f: Facts, line: string, agentId: string | null): void
     const name = str(b.name);
     const input = (b.input ?? {}) as Record<string, unknown>;
     if ((name === "Agent" || name === "Task") && str(b.id)) {
-      f.agentToolUses.set(b.id as string, { prompt: capText(str(input.prompt)), description: capText(str(input.description)) });
+      f.agentToolUses.set(b.id as string, { background: input.run_in_background === true, prompt: capText(str(input.prompt)), description: capText(str(input.description)) });
     } else if (name && OUTPUT_TOOLS.has(name)) {
       const raw = str(input.file_path) ?? str(input.notebook_path);
       const abs = raw ? normalizeAbsolute(raw, str(o.cwd)) : null;
