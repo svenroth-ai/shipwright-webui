@@ -19,6 +19,7 @@ export function FeedCard({
   card,
   onArtifactClick,
   onSubrunnerClick,
+  canOpenAgent,
   commitArtifact,
   task,
 }: {
@@ -30,6 +31,8 @@ export function FeedCard({
    *  a caller that omits this prop entirely still sees the report, rendered
    *  inline instead since there is then nothing a click could open. */
   onSubrunnerClick?: (subrunnerId: string) => void;
+  /** M4: a still-running card gets a "View agent" button once its agent is known to session-info. */
+  canOpenAgent?: (subrunnerId: string) => boolean;
   commitArtifact: CommitArtifact | null;
   task: ExternalTask;
 }) {
@@ -179,13 +182,18 @@ export function FeedCard({
           instead, since there is then nothing a click could open. */}
       {card.kind === "subrunner" && (
         card.subrunnerStatus === "running" ? (
-          <p className="mc-feed-subrunner-status" data-status="running">
-            <span className="mc-feed-subrunner-dot" aria-hidden="true" />Running…
-          </p>
+          <>
+            <p className="mc-feed-subrunner-status" data-status="running">
+              <span className="mc-feed-subrunner-dot" aria-hidden="true" />Running…
+            </p>
+            {card.subrunnerId && onSubrunnerClick && canOpenAgent?.(card.subrunnerId) ? (
+              <button type="button" className="mc-story-link" onClick={() => onSubrunnerClick(card.subrunnerId!)}>View agent</button>
+            ) : null}
+          </>
         ) : card.subrunnerId && onSubrunnerClick ? (
           <button type="button" className="mc-story-link" onClick={() => onSubrunnerClick(card.subrunnerId!)}>
             {card.subrunnerStatus === "failed" ? <XIcon /> : <CheckIcon />}
-            {card.subrunnerStatus === "failed" ? "View failure details" : "View subrunner report"}
+            {card.subrunnerStatus === "failed" ? (card.subrunnerEndStatus ? `View failure details (${card.subrunnerEndStatus})` : "View failure details") : card.subrunnerEndStatus ? `View subrunner report (${card.subrunnerEndStatus})` : "View subrunner report"}
           </button>
         ) : card.subrunnerReport ? (
           <MarkdownChunk content={card.subrunnerReport} />

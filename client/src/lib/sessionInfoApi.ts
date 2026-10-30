@@ -102,3 +102,15 @@ export async function fetchSessionInfo(taskId: string): Promise<SessionInfoRespo
     `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/session-info`,
   );
 }
+
+/** GET /tasks/:id/subagents/:agentId/transcript — the agent's own JSONL tail (M4). NOT part of the
+ *  session-info mirror (server-side shape lives in core/session-info/subagent-transcript.ts). */
+export type SubagentTranscriptResponse =
+  | { status: "ok"; content: string; truncated: boolean; sizeBytes: number }
+  | { status: "missing" };
+
+export async function fetchSubagentTranscript(taskId: string, agentId: string): Promise<SubagentTranscriptResponse> {
+  return httpJson<SubagentTranscriptResponse>(
+    `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/subagents/${encodeURIComponent(agentId)}/transcript`,
+  );
+}

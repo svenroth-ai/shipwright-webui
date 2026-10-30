@@ -17,6 +17,9 @@ const missionStateMock = vi.fn<() => "done" | "live" | "designgate">();
 const runDetailMock = vi.fn<() => { data: RunDetailResponse | undefined }>();
 const missionContextMock = vi.fn<() => { data: unknown }>();
 // M3: the right info sidebar owns its own session-info query; covered in MissionInfoSidebar.test.tsx.
+vi.mock("../../../hooks/useMissionAgents", () => ({
+  useMissionAgents: () => ({ agents: [], runningCount: 0, open: false, selectedId: null, loading: false, failed: false, setOpen: () => {}, select: () => {}, openFor: () => false, canOpen: () => false, refresh: () => {} }),
+}));
 vi.mock("./MissionInfoSidebar", () => ({ MissionInfoSidebar: () => null }));
 vi.mock("../../../hooks/useMissionState", () => ({
   useMissionState: () => missionStateMock(),

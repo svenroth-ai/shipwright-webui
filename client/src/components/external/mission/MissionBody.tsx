@@ -40,6 +40,8 @@ import { MissionActivityFeed } from "./MissionActivityFeed";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { MissionArtifactPanel } from "./MissionArtifactPanel";
 import { SubrunnerPanel } from "./SubrunnerPanel";
+import { AgentsDock } from "./AgentsDock";
+import { useMissionAgents } from "../../../hooks/useMissionAgents";
 import { MissionInfoSidebar } from "./MissionInfoSidebar";
 import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
 import {
@@ -108,6 +110,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     runId: context?.scenario === "iterate" ? context.runId : undefined,
     context,
   });
+  const agents = useMissionAgents(task.taskId, task.state, model.feed.cards);
   // A work-completed run can truthfully be terminal before its commit/PR has
   // been recorded. The final feed card still opens that delivery detail (which
   // explains the missing receipt) even though hide-empty omits it from the rail.
@@ -119,11 +122,8 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     activeNode && !artifacts
       ? model.nodes.find((n) => n.key === activeNode) ?? null
       : null;
-  // A resolved subrunner card's right-panel key is `subrunner:<id>`
-  // (iterate-2026-09-26-mission-tab-subrunner) — namespaced so it can never
-  // collide with a plain artifact/record-node key. Third consumer of this
-  // same `activeNode` mechanic, additive alongside `ArtifactPanel`/
-  // `MissionArtifactPanel`.
+  // `subrunner:<id>` right-panel key: namespaced so it never collides with an
+  // artifact/record-node key. Legacy fallback when the agent is not in session-info.
   const activeSubrunnerCard = activeNode?.startsWith("subrunner:")
     ? model.feed.cards.find((c) => c.kind === "subrunner" && `subrunner:${c.subrunnerId}` === activeNode) ?? null
     : null;
@@ -250,7 +250,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           {isDesignGate ? (
             <OperationCard task={task} context={context} />
           ) : (
-            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} onSubrunnerClick={(subrunnerId) => handleNodeClick(`subrunner:${subrunnerId}`)} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
+            <MissionActivityFeed feed={model.feed} onArtifactClick={handleNodeClick} onSubrunnerClick={(id) => agents.openFor(id) || handleNodeClick(`subrunner:${id}`)} canOpenAgent={agents.canOpen} footer={<AgentsDock task={task} controller={agents} />} commitArtifact={commitArtifact} task={task} visible={!compact || compactPanel === "activity"} />
           )}
         </div>
         <div

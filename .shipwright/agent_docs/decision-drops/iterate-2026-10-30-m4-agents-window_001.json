@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-30-m4-agents-window",
+  "date": "2026-10-30",
+  "section": "Iterate - feature: Mission Agents window (M4)",
+  "title": "Mission Agents window: modal tree + read-only agent transcript route",
+  "context": "Mission users could not see which subagents run, who started whom, their prompt/answer or transcript; subrunner cards only showed a one-shot report.",
+  "decision": "Bottom-bar chip opens a Radix modal (Active/Finished tree, prompt, answer, Transcript tab); chat cards open the same detail; one new read-only transcript route; data from session-info, no timer.",
+  "consequences": "Counts refresh on open/focus/refresh and subrunner-card changes, so a nested agent can lag until Refresh; legacy SubrunnerPanel stays as fallback.",
+  "rationale": "Smallest option delivering the operator's desktop-style goal; reuses session-info, BubbleTranscript and the positional read helpers; route is strict-id + realpath/relative + handle check.",
+  "rejected": "Extending the right sidebar (same route, no modal); linking raw JSONL in the file viewer (would loosen the project path guard).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

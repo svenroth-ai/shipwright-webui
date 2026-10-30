@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/hooks/useMissionAgents.ts:56\u201360\n- Finding: Agent updates depend on changes to top-level chat subrunner cards. When a nested reviewer starts or finishes inside a running parent agent, those cards can remain unchanged, so session-info is never refreshed. The chip can show the wrong running count, and the window can omit children or retain completed children under Active until a manual refresh or focus event.\n- Suggestion: Refresh session-info while agents are running, or subscribe to events covering nested subagent changes. Add a test where a child starts and completes without changing the top-level card signature.\n\nOverall assessment: ship-with-fixes. The main UI and transcript route cover the requested functionality, but nested agent activity needs a reliable update mechanism.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: edge-case\n  Severity: medium\n  File: client/src/hooks/useMissionAgents.ts:47-54 (signature effect)\n  Finding: The running-count in the bar only refreshes on mount/focus/manual refresh or when the *feed card signature* changes. The signature is derived from `ActivityCard`s of kind `subrunner`. In a campaign session (spec explicitly requires it to work there) or any path where an agent dispatch/completion does not surface as a subrunner card in this feed, the chip's \"<n> agents running\" count can go stale \u2014 e.g. stay at \"2 agents running\" after both agents finish, or never appear for agents dispatched outside the card stream.\n  Suggestion: Also key the rescan on something agent-derived (e.g. transcript poll tick already available in MissionBody), or refetch on a lightweight interval while the Mission tab is visible.\n\n- Category: bug\n  Severity: low\n  File: client/src/components/external/mission/AgentsWindow.tsx:23-27 (onCloseAutoFocus)\n  Finding: `controller.returnFocusRef.current?.focus()` \u2014 if the window was opened programmatically while `document.activeElement` was `body` (or the originating element was unmounted, e.g. a feed card removed after a refresh), focus silently drops to `body`, breaking keyboard nav and the e2e expectation of chip focus in those flows.\n  Suggestion: Fall back to focusing the chip (or the Dialog close button) when `returnFocusRef.current` is null or no longer in the document.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/mission/AgentsWindow.tsx:24-26 (selected fallback)\n  Finding: When the selected agent disappears after a refresh (agent ids can change between scans if M2 rebuilds them), `selected` silently falls back to the first agent while `selectedId` state stays stale; the list then shows no row as selected (`selectedId={selected?.agentId}` papers over it, but the stale id is never cleared).\n  Suggestion: Clear/reset `selectedId` when it no longer resolves to an agent, rather than only masking it at render.\n\n- Category: test\n  Severity: low\n  File: client/src/components/external/mission/AgentsDock.test.tsx:81-84\n  Finding: The transcript-tab test fires both `mouseDown` and `click` on the tab trigger \u2014 the `mouseDown` is redundant and suggests it was added to work around focus/timing flakiness rather than validating real behavior; a broken tab implementation that renders both panes unconditionally would still pass the \"agent says hi\" assertion.\n  Suggestion: Drop the redundant `mouseDown` and assert the Details pane is hidden/not present while the Transcript tab is active.\n\n- Category: edge-case\n  Severity: low\n  File: server/src/core/session-info/subagent-transcript.ts:29-36 (readWindow shrink race)\n  Finding: If the file shrinks between `stat` and `read` (e.g. truncated/rotated), `bytesRead === 0` breaks with `off === 0`; the caller then computes `w.start > 0` from the stale start and `bytes.indexOf(10) + 1` on an empty buffer, returning `truncated: true` with empty content. Harmless but produces a misleading \"truncated\" flag for an empty read.\n  Suggestion: Treat `off === 0 && bytesRead === 0` as a missing/empty result rather than a truncated one.\n\n## Notes (verified clean)\n\n- Path traversal in the transcript route is well handled: id grammar check, realpath equality via `path.relative` (not startsWith), single open with handle-level regular-file check. The e2e and route tests cover the traversal, symlink-escape, and directory-named-like-file cases with real files.\n- `forest()`'s cycle guard (`seen`) is correct, including the second pass that re-lists cycle-only members as roots.\n- The killed/stopped handling in `resolveSubrunnerNotification` correctly maps to `failed` with an end-status marker, and the later-completed overwrite is tested.\n- MissionBody's `openFor(id) || handleNodeClick(...)` preserves the legacy SubrunnerPanel fallback, so existing callers aren't broken; the old tests are updated with a hook mock rather than removed.\n\n## Overall assessment\n\nShip-with-fixes \u2014 the core implementation is solid and well-tested; the findings are refinements (stale running-count in campaign sessions being the most user-visible one) rather than blockers.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m4-agents-window",
+    "at": "2026-10-30T17:02:34.187300+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}
