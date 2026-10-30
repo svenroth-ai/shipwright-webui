@@ -32,7 +32,7 @@ import { join } from "node:path";
 
 import { realPathGuard } from "../../core/path-guard.js";
 import {
-  clearActionsCacheForDataDir,
+  clearActionsCacheForRecord,
   type ResolvedActions,
 } from "../../core/project-actions-loader.js";
 import {
@@ -198,7 +198,7 @@ export function registerActionsUpload(
       );
     }
 
-    clearActionsCacheForDataDir(projectDataDir(project));
+    clearActionsCacheForRecord(project);
     return c.json({ path: file, written: true });
   });
 }

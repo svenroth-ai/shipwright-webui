@@ -7,8 +7,8 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../test/mocks/server';
 import { ProjectWizard } from './ProjectWizard';
 
-// iterate-2026-10-29-standalone-mode — the registration checkbox decides
-// whether the POST carries `standalone: true`.
+// iterate-2026-10-30-central-data-default — the registration checkbox decides
+// whether the POST carries `shared: true` (default: data stays central).
 
 function renderWizard() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -19,7 +19,7 @@ function renderWizard() {
   );
 }
 
-async function createWith(tickStandalone: boolean): Promise<Record<string, unknown>> {
+async function createWith(tickShared: boolean): Promise<Record<string, unknown>> {
   let posted: Record<string, unknown> | null = null;
   server.use(
     http.post('/api/projects', async ({ request }) => {
@@ -43,7 +43,7 @@ async function createWith(tickStandalone: boolean): Promise<Record<string, unkno
   renderWizard();
   await userEvent.type(screen.getByPlaceholderText('My Awesome App'), 'Test');
   await userEvent.type(screen.getByPlaceholderText(/Users|home|projects/), '/tmp/test');
-  if (tickStandalone) await userEvent.click(screen.getByRole('checkbox'));
+  if (tickShared) await userEvent.click(screen.getByRole('checkbox'));
   await userEvent.click(screen.getByTestId('wizard-next')); // 0→1
   await userEvent.click(screen.getByTestId('wizard-next')); // 1→2
   await userEvent.click(screen.getByTestId('wizard-next')); // 2→3
@@ -52,24 +52,24 @@ async function createWith(tickStandalone: boolean): Promise<Record<string, unkno
   return posted as unknown as Record<string, unknown>;
 }
 
-describe('ProjectWizard — standalone registration', () => {
+describe('ProjectWizard — shared registration', () => {
   // @covers FR-01.03
-  it('offers the Standalone checkbox, unticked by default', () => {
+  it('offers the keep-data-in-repo checkbox, unticked by default', () => {
     renderWizard();
     const box = screen.getByRole('checkbox') as HTMLInputElement;
     expect(box.checked).toBe(false);
-    expect(screen.getByText(/don.t touch this repository/i)).toBeInTheDocument();
+    expect(screen.getByText(/Keep Web UI data in the repo/i)).toBeInTheDocument();
   });
 
   // @covers FR-01.03
-  it('sends standalone: true when ticked', async () => {
+  it('sends shared: true when ticked', async () => {
     const body = await createWith(true);
-    expect(body.standalone).toBe(true);
+    expect(body.shared).toBe(true);
   });
 
   // @covers FR-01.03
   it('omits the field when left unticked', async () => {
     const body = await createWith(false);
-    expect('standalone' in body).toBe(false);
+    expect('shared' in body).toBe(false);
   });
 });

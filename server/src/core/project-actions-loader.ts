@@ -23,7 +23,7 @@
  * the loader stays pure I/O.
  */
 
-import { projectDataDir, type DataDirProject } from "./project-data-dir.js";
+import { projectActionsReadDir, projectDataDir, type DataDirProject } from "./project-data-dir.js";
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -172,6 +172,12 @@ export function clearActionsCacheForProject(projectPath: string): void {
   clearActionsCacheForDataDir(join(projectPath, ".shipwright-webui"));
 }
 
+/** Drop both candidate locations (central + legacy in-repo) of a project's actions.json. */
+export function clearActionsCacheForRecord(project: DataDirProject): void {
+  clearActionsCacheForDataDir(projectDataDir(project));
+  if (project.path) clearActionsCacheForProject(project.path);
+}
+
 /** Same invalidation, keyed by the directory that holds `actions.json`. */
 export function clearActionsCacheForDataDir(dataDir: string): void {
   cache.delete(join(dataDir, "actions.json"));
@@ -278,7 +284,7 @@ export function bundledDefaultLoadedAtMs(): number {
 
 /**
  * Record-aware entry point: resolves the actions dir through
- * `projectDataDir` so a standalone project reads its CENTRAL actions.json.
+ * `projectActionsReadDir` (central first, legacy in-repo fallback).
  * Prefer this over `loadActionsForProject(project.path)` in every route.
  */
 export function loadActionsForProjectRecord(
@@ -287,6 +293,6 @@ export function loadActionsForProjectRecord(
 ): LoadResult {
   return loadActionsForProject(project.path || "", {
     ...deps,
-    dataDir: projectDataDir(project),
+    dataDir: projectActionsReadDir(project),
   });
 }

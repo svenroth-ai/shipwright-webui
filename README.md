@@ -72,7 +72,7 @@ the guide goes deeper.
   glance.
 
 It's optional (every Shipwright skill works fine without it, and it works
-without Shipwright too, see [Standalone mode](#use-it-without-shipwright-standalone-mode)), but once
+without Shipwright too, see [Use it without Shipwright](#use-it-without-shipwright)), but once
 you have more than one project running in parallel, it stops being a
 luxury. See the [user guide](docs/guide.md) for the full tour.
 
@@ -177,48 +177,20 @@ helper ships for both platforms — `scripts\start-server-production.ps1`
 (Windows) and `scripts/start-server-production.sh` (macOS / Linux).
 See [guide §7](docs/guide.md#7-updating-the-command-center).
 
-## Use it without Shipwright (Standalone mode)
+## Use it without Shipwright
 
-**You do not need Shipwright to use the Command Center.** If all you want
-is a Kanban board and an embedded terminal for plain Claude Code sessions,
-the Command Center works on its own: no Shipwright plugins, no
-`.shipwright/` folder, no pipeline.
+**You do not need Shipwright.** For plain Claude Code sessions the Command
+Center gives you the board, live transcript, embedded terminal and
+Launch / Resume on its own: start only the Command Center
+(`npx @svenroth-ai/shipwright@latest --webui-only`, no plugins installed),
+then **Projects → Create Project → Register a project manually…**.
 
-Standalone mode is for repositories you must leave untouched, for example a
-customer's repo where an extra folder would raise questions. Register such a
-repo as **Standalone** and the Command Center writes **nothing** into it:
-no `.shipwright-webui/` folder, no `.code-workspace` file, no `.gitignore`
-edit. Everything it needs lives in your user directory instead.
-
-1. Start only the Command Center (no plugins are installed or required):
-   `npx @svenroth-ai/shipwright@latest --webui-only`, or clone this repo and
-   run `npm install` + `npm run dev` in `server/` and `client/` (neither
-   installs any plugin).
-2. In the app, open **Projects → Create Project → Register a project
-   manually…**, enter the folder, tick **Standalone — don't touch this
-   repository**, and create it. You can switch the flag later in the
-   project's Settings dialog.
-3. Create tasks and click **Launch**: you get the board, the live transcript,
-   the embedded terminal and Launch / Resume, exactly as for any project.
-
-**Where the data lives:** `~/.shipwright-webui/` (project registry, tasks,
-settings, terminal scrollback) plus `~/.shipwright-webui/projects/<project-id>/`
-for per-project files (custom `actions.json`, pasted images). Set
-`SHIPWRIGHT_DATA_DIR` to put all of it somewhere else. Claude's own session
-transcripts stay where Claude puts them, under `~/.claude/projects/`.
-
-**What is switched off for a standalone project:** everything that would write
-into the repo, namely editing Markdown files from the file viewer, design
-feedback, and triage / campaign status changes (the server answers `403
-standalone_project_read_only`). Shipwright-specific views such as Ship's Log
-and Triage simply show nothing, because there is no `.shipwright/` folder to
-read. Details: [guide §5.4](docs/guide.md#54-standalone-mode--use-it-without-shipwright).
-
-**Hide the Shipwright-only pages:** if you never use Shipwright, turn on
-**Settings → Standalone view**. It hides **Triage** (sidebar + command palette)
-and a project's **Ship's Log** (opening a project then lands on the task board,
-filtered to that project). It only changes what you see, per browser; it does
-not change what is written to a repo (that is the per-project Standalone flag).
+Its own files (custom `actions.json`, pasted screenshots) live in
+`~/.shipwright-webui/`, **not in your repo**; your repo stays fully editable.
+Tick **Keep Web UI data in the repo** to opt back into the in-repo
+`.shipwright-webui/` folder. **Settings → Standalone view** hides the
+Shipwright-only pages (Triage, Ship's Log). Details:
+[guide §5.4](docs/guide.md#54-use-it-without-shipwright--where-the-data-lives).
 
 ## Develop or contribute
 

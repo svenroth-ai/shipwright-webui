@@ -258,7 +258,7 @@ export async function savePastedImage(opts: SaveOpts): Promise<SaveResult> {
 
   // Prune + gitignore-check run in parallel (disjoint paths). Detection
   // accepts the legacy `.claude-pastes/` OR the `.shipwright-webui/` line.
-  // Standalone never suggests touching the repo's .gitignore.
+  // A central paste dir never suggests touching the repo's .gitignore.
   const [prune, gitignoreSuggestion] = await Promise.all([
     pruneKeepLastN(realDirGuard.absolute, keepLast),
     (async () => {

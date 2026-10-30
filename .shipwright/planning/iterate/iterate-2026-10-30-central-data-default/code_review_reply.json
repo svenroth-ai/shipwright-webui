@@ -1,0 +1,49 @@
+{
+  "stage": "code-review",
+  "verdict": "PASS",
+  "summary": "No high findings. Fixed: migration no longer moves the .code-workspace (relative '..' would break), refuses symlinked legacy/pastes dirs, uses COPYFILE_EXCL and treats copy/verify failures as conflicts, route clears the actions cache in finally; reset clears the cache in finally; actions stub no longer shadows a legacy actions.json; workspace write is best-effort after create(); cwd attribution picks the longest matching project root.",
+  "review": [
+    {
+      "finding": "Migrating the .code-workspace file breaks its relative '..' folder.",
+      "severity": "medium",
+      "category": "correctness",
+      "file": "server/src/core/project-data-migrate.ts"
+    },
+    {
+      "finding": "Symlinked pastes/.shipwright-webui dir lets migration delete files outside the repo.",
+      "severity": "medium",
+      "category": "security",
+      "file": "server/src/core/project-data-migrate.ts"
+    },
+    {
+      "finding": "copyFileSync without COPYFILE_EXCL can overwrite / write through a dangling symlink; mid-loop throw escapes uncaught.",
+      "severity": "medium",
+      "category": "correctness",
+      "file": "server/src/core/project-data-migrate.ts"
+    },
+    {
+      "finding": "Actions cache stale after a partial reset failure.",
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/external/actions/upload-delete.ts"
+    },
+    {
+      "finding": "Empty central stub shadows a legacy in-repo actions.json.",
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/external/actions/stub.ts"
+    },
+    {
+      "finding": "Project persisted before workspace file write; a throw yields 500 and a duplicate on retry.",
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/routes/projects.ts"
+    },
+    {
+      "finding": "centralRootForTask picks the first matching project, not the longest.",
+      "severity": "low",
+      "category": "correctness",
+      "file": "server/src/terminal/data-target.ts"
+    }
+  ]
+}

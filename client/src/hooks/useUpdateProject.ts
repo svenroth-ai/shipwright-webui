@@ -19,7 +19,7 @@ interface UpdateProjectParams {
   id: string;
   patch: {
     name?: string;
-    standalone?: boolean;
+    shared?: boolean;
     settings?: Partial<ProjectSettings>;
   };
 }

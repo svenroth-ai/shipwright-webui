@@ -78,8 +78,8 @@ export interface TerminalRoutesDeps {
   resolveShell?: () => string;
   /** Per-task.cwd image-paste retention (default 20). */
   pastesKeepLast?: number;
-  /** Central data dir when the task belongs to a standalone project (by id or cwd). */
-  standaloneRootFor?: (task: { projectId?: string; cwd?: string }) => string | null;
+  /** Central data dir for the task's (non-shared) project, by id or cwd. */
+  centralRootFor?: (task: { projectId?: string; cwd?: string }) => string | null;
   /**
    * Iterate-2026-05-04 (ADR-068-A1) — disk-backed scrollback. Optional
    * for tests; production uses a single ScrollbackStore instance shared
@@ -182,7 +182,7 @@ function defaultResolveShell(): string {
 }
 
 export function createTerminalRoutes(deps: TerminalRoutesDeps) {
-  const { store, ptyManager, upgradeWebSocket, standaloneRootFor } = deps;
+  const { store, ptyManager, upgradeWebSocket, centralRootFor } = deps;
   const allowedOrigins = deps.allowedOrigins ?? defaultAllowedOrigins;
   const resolveShell = deps.resolveShell ?? defaultResolveShell;
   const pastesKeepLast = deps.pastesKeepLast ?? 20;
@@ -284,7 +284,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
 
     // --- POST /api/terminal/:taskId/paste-image ---------------------------
     // Multipart "image: File" -> <task.cwd>/.shipwright-webui/pastes/img-*
-    // (standalone: <central data dir>/pastes), prune keep-last-N, pty.write()
+    // (non-shared: <central data dir>/pastes), prune keep-last-N, pty.write()
     // the shell-quoted path + space. 413 fast-fail on large Content-Length.
     app.post("/api/terminal/:taskId/paste-image", async (c) => {
       // Timing logs gated by SHIPWRIGHT_DEBUG_PASTE_TIMING (off by default).
@@ -369,7 +369,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           cwd: trustedCwd,
           bytes,
           keepLast: pastesKeepLast,
-          centralDir: standaloneRootFor?.(task) ?? undefined,
+          centralDir: centralRootFor?.(task) ?? undefined,
         });
         mark("savePastedImage-done");
         let ptyWritten = false;
@@ -408,8 +408,8 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       const task = store.get(taskId);
       if (!task) return c.json({ error: "task_not_found" }, 404);
-      if (standaloneRootFor?.(task)) {
-        return c.json({ error: "standalone_project_read_only" }, 409);
+      if (centralRootFor?.(task)) {
+        return c.json({ error: "data_not_in_repo" }, 409);
       }
       const trustedCwd = resolveTrustedCwd(task.cwd);
       if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);

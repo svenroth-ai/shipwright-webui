@@ -93,7 +93,7 @@ describe("actions/preview/stub routes", () => {
       id: PROJECT_ID,
       name: "demo",
       path: projectPath,
-      profile: "supabase-nextjs",
+      profile: "supabase-nextjs", shared: true, // shared = in-repo layout under test
     };
   }
 
@@ -319,7 +319,7 @@ describe("actions/preview/stub routes", () => {
         watcher: new SessionWatcher({ projectsDir: projectPath }),
         getProjectById: (id) =>
           id === PROJECT_ID
-            ? { id: PROJECT_ID, name: "demo", path: projectPath, profile: "unknown" }
+            ? { id: PROJECT_ID, name: "demo", path: projectPath, profile: "unknown", shared: true }
             : undefined,
         previewManager: previewMgr,
         loadProfile: () => null,

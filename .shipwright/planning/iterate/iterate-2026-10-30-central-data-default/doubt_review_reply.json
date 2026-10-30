@@ -1,0 +1,56 @@
+{
+  "stage": "doubt-review",
+  "verdict": "objections",
+  "summary": "7 doubts, none blocking. D1 FIXED (shared read falls back to central actions.json; reset clears it). D6 FIXED (case-fold only on win32/darwin). D2 documented (migrate/reset delete repo files; button tooltip + guide note). D3 rebutted/documented (unattributable cwd keeps old paste location; stated limit). D4 known trade-off (central path outside cwd may prompt). D5 cosmetic. D7 documented (central folder not removed on project delete).",
+  "doubts": [
+    {
+      "severity": "medium",
+      "lens": "reversibility",
+      "claim_under_doubt": "Flipping shared is harmless",
+      "failing_scenario": "Custom central actions.json disappears after ticking shared; no way back via migrate.",
+      "file": "server/src/core/project-data-dir.ts"
+    },
+    {
+      "severity": "medium",
+      "lens": "reversibility",
+      "claim_under_doubt": "Deleting webui files from the repo is safe",
+      "failing_scenario": "A git-tracked actions.json shows up as a deletion after Move/Reset.",
+      "file": "server/src/core/project-data-migrate.ts"
+    },
+    {
+      "severity": "medium",
+      "lens": "boundary",
+      "claim_under_doubt": "A default project never receives pastes in the repo",
+      "failing_scenario": "Task whose cwd is outside every registered project (sibling worktree) pastes into cwd.",
+      "file": "server/src/terminal/data-target.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "boundary",
+      "claim_under_doubt": "Central pastes equal in-repo pastes",
+      "failing_scenario": "Agent may prompt/refuse for an image outside its working dir.",
+      "file": "server/src/terminal/image-paste.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "concurrency",
+      "claim_under_doubt": "migrate-data is idempotent across processes",
+      "failing_scenario": "Two server processes can report a false conflict.",
+      "file": "server/src/core/project-data-migrate.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "norm() is cross-platform",
+      "failing_scenario": "Case-sensitive FS treats /work/App and /work/app as one root.",
+      "file": "server/src/terminal/data-target.ts"
+    },
+    {
+      "severity": "low",
+      "lens": "hidden-coupling",
+      "claim_under_doubt": "Deleting a project leaves nothing behind",
+      "failing_scenario": "Central project folder is never removed.",
+      "file": "server/src/routes/projects.ts"
+    }
+  ]
+}

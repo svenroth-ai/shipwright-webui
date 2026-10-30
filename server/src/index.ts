@@ -43,8 +43,7 @@ import { evaluatePreviewCoherence } from "./core/preview-coherence.js";
 import { lockClaimRecordFile } from "./core/claim-record-lock.js";
 
 import { createProjectRoutes } from "./routes/projects.js";
-import { standaloneGuard } from "./middleware/standalone-guard.js";
-import { standaloneRootForTask } from "./terminal/standalone-target.js";
+import { centralRootForTask } from "./terminal/data-target.js";
 import { cascadeDeleteProjectTasks } from "./core/cascade-delete-project-tasks.js";
 import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
@@ -403,7 +402,6 @@ if (isMainModule) {
         }
       }
       // /api/projects/* — here so the DELETE cascade reaches the stores above (iterate-2026-07-06).
-      app.use("/api/*", standaloneGuard((id) => projectManager.getById(id)));
       app.route("/", createProjectRoutes(projectManager, projectFsDeps, (id) =>
         cascadeDeleteProjectTasks(id, {
           store: sdkSessionsStore,
@@ -767,7 +765,7 @@ if (isMainModule) {
         retentionDays: config.terminalScrollbackTtlDays,
         scrollbackDirHint: config.terminalScrollbackDir,
         allowedOrigins: corsOriginPolicy.isAllowed,
-        standaloneRootFor: (t) => standaloneRootForTask(t, () => projectManager.getAll()),
+        centralRootFor: (t) => centralRootForTask(t, () => projectManager.getAll()),
       })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).

@@ -59,11 +59,11 @@ export interface Project {
    */
   synthesized?: boolean;
   /**
-   * iterate-2026-10-29-standalone-mode — user-chosen at registration and
-   * STORED in projects.json (unlike the server-derived `mode`; do not confuse
-   * with `ProjectMode` "standalone", which means "no run_config"). When true
-   * the webui writes NOTHING under `path` and keeps its per-project files in
-   * the central data dir instead (`core/project-data-dir.ts`).
+   * iterate-2026-10-30-central-data-default — user-chosen, STORED in
+   * projects.json. Default (absent/false): the webui keeps its own per-project
+   * files (actions.json, pasted screenshots) in ~/.shipwright-webui/projects/<id>/.
+   * When true they live in `<repo>/.shipwright-webui/` instead. Never a write
+   * lock: the repo stays fully editable either way.
    */
-  standalone?: boolean;
+  shared?: boolean;
 }

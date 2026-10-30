@@ -13,7 +13,7 @@ workflow they already love.
 3. [Recommended setup](#3-recommended-setup)
 4. [Installation](#4-installation)
 5. [Your first project — step by step](#5-your-first-project--step-by-step)
-   - [5.4 Standalone mode — use it without Shipwright](#54-standalone-mode--use-it-without-shipwright)
+   - [5.4 Use it without Shipwright — where the data lives](#54-use-it-without-shipwright--where-the-data-lives)
 6. [Daily workflow](#6-daily-workflow)
 7. [Updating the Command Center](#7-updating-the-command-center)
 8. [Autostart on Windows](#8-autostart-on-windows)
@@ -67,7 +67,7 @@ you one place to see every Shipwright project at a glance:
 
 It's **optional**: every Shipwright skill works perfectly fine without
 it. And the reverse holds too: the Command Center works **without
-Shipwright** for plain Claude Code sessions — see [§5.4](#54-standalone-mode--use-it-without-shipwright). But once you have more than one Shipwright project running, the
+Shipwright** for plain Claude Code sessions — see [§5.4](#54-use-it-without-shipwright--where-the-data-lives). But once you have more than one Shipwright project running, the
 Command Center stops being a luxury.
 
 > **What it is not:** a replacement for VS Code or the terminal. The
@@ -290,15 +290,12 @@ Command Center watches all of them in parallel.
 > Settings dialog (rename, color); the trash icon removes the project
 > from the registry without touching files on disk.
 
-### 5.4 Standalone mode — use it without Shipwright
+### 5.4 Use it without Shipwright — where the data lives
 
-You do **not** need Shipwright to use the Command Center. Standalone mode
-is for repositories you must leave exactly as they are, typically a
-customer's repo where a new folder would get noticed. A project registered
-as **Standalone** gets the board, the live transcript, the embedded
-terminal and Launch / Resume, and the Command Center writes **nothing**
-into its folder: no `.shipwright-webui/`, no `.code-workspace`, no
-`.gitignore` edit. No Shipwright plugin has to be installed either.
+You do **not** need Shipwright to use the Command Center. A project gets the
+board, the live transcript, the embedded terminal and Launch / Resume with no
+Shipwright plugin installed; the launch command carries no `--plugin-dir`
+unless you add one yourself.
 
 **Set it up**
 
@@ -307,38 +304,37 @@ into its folder: no `.shipwright-webui/`, no `.code-workspace`, no
    `client/` — neither installs plugins).
 2. **Projects → Create Project → Register a project manually…**
    (the readiness check that guards the three guided doors does not apply to
-   manual registration).
-3. Enter the project folder — it must already exist; a standalone project
-   never creates folders — and tick **Standalone — don't touch this
-   repository**. Create it.
-4. Add tasks and click **Launch**. Plain Claude sessions work as usual; the
-   launch command carries no `--plugin-dir` unless you add one yourself.
+   manual registration). The folder is created if it does not exist.
+3. Add tasks and click **Launch**.
 
-You can flip the flag later in the project's **Settings** dialog. Switching
-does not move files that already exist (a previous `actions.json`, pasted
-images).
-
-**Where things are stored**
+**Where things are stored (default: not in your repo)**
 
 | What | Where |
 |---|---|
 | Project list, tasks, settings | `~/.shipwright-webui/` |
-| Per-project files (custom `actions.json`, pasted images) | `~/.shipwright-webui/projects/<project-id>/` |
+| Per-project files (custom `actions.json`, pasted screenshots, the `.code-workspace` file) | `~/.shipwright-webui/projects/<project-id>/` |
 | Terminal scrollback | `~/.shipwright-webui/terminal-scrollback/` |
 | Claude's session transcripts | `~/.claude/projects/` (Claude's own location, unchanged) |
 
 Set `SHIPWRIGHT_DATA_DIR` (see [§9.1](#91-environment-variables)) to move
 the first three rows to another folder.
 
-**What is switched off**
+**Keep Web UI data in the repo (actions.json, screenshots …)**
 
-Anything that would write into the repo is refused with `403
-standalone_project_read_only`: saving Markdown from the file viewer, design
-feedback, and triage / campaign status changes. Setting the project's
-autonomy does not write a `shipwright_run_config.json` into it either.
-Shipwright-only views (Ship's Log, Triage, campaigns) stay empty because
-there is no `.shipwright/` folder to read. Your own custom actions still work;
-they are read from the central folder above.
+The exception, off by default: a project with this box ticked (at
+registration or in its **Settings** dialog) keeps the per-project files in
+`<repo>/.shipwright-webui/` as before, e.g. to share a custom `actions.json`
+with your team via git. Switching the box does not move files; a project
+that still has files in the repo shows **Move to user folder** in its
+Settings dialog, which copies, verifies and then removes them (it never
+overwrites a file that already exists in your user folder). Existing
+projects keep working unchanged: the Command Center reads the central
+`actions.json` first and falls back to the one in the repo.
+
+**Your repo stays editable.** There is no write protection: saving Markdown
+from the file viewer, design feedback, triage and campaign actions work for
+every project. Setting a project's autonomy only updates a
+`shipwright_run_config.json` that already exists; it never creates one.
 
 **Hide the Shipwright-only pages (Settings → Standalone view)**
 
@@ -347,17 +343,19 @@ Shipwright projects: Triage disappears from the sidebar and the command
 palette, and a project's Ship's Log is hidden — opening a project (project
 card, command palette) takes you to the task board filtered to that project,
 and `/triage` or a project's `/log` address redirects to the board. This is a
-per-browser display preference, off by default. It changes nothing about what
-is written to a repo; that is decided by the per-project Standalone flag above.
+per-browser display preference, off by default and independent of where a
+project's data lives.
 
 **Good to know**
 
 - A pasted image is saved in the central folder, so the path typed into the
   terminal points **outside** the repo. Claude may ask once for permission to
-  read it.
-- Register each repo once. The protection follows the project entry, so
-  registering the same folder a second time as a *regular* project (without
-  the Standalone tick) gives that second entry the normal in-repo behaviour.
+  read it. No `.gitignore` suggestion is shown for central projects.
+- "Move to user folder" (and **Reset** of custom actions) delete the files from the repo; if `actions.json` is tracked in git, that shows up as a deletion to commit or discard. Ticking *Keep Web UI data in the repo* later keeps using an existing central `actions.json` until the repo has its own.
+- Deleting a project does not remove its folder under
+  `~/.shipwright-webui/projects/`.
+- A task whose project cannot be resolved keeps the old paste location
+  inside its working directory.
 - The "+ New" menu still lists the `shipwright-*` actions; without the plugins
   they simply do nothing useful, plain tasks are what you want here.
 
@@ -731,7 +729,7 @@ folder, or wire your own slash skills into the menu.
 | `VITE_HOST` | _(unset)_ | **Legacy fine-grained override.** Bind the Vite dev server to a non-loopback interface. `true` = `0.0.0.0`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE` when set. Prefer the profile flag above for new setups. |
 | `HONO_HOST` | _(unset → loopback)_ | **Legacy fine-grained override.** Bind the Hono backend to a non-loopback interface. `true` = `::`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE`. For typical Tailscale-from-phone you do **not** need this: Vite proxies `/api` to `localhost:3847`. Only set `HONO_HOST` if clients call the backend directly. |
 | `WEBUI_TRUSTED_ORIGINS` | _(unset)_ | Comma-separated allowlist of `Origin` values the WS upgrade + HTTP CORS middleware accept. When unset, the policy follows `HONO_HOST`: loopback-only by default, "any non-empty Origin" when `HONO_HOST` is set. Use this to opt into multi-device access (e.g. `http://webui-host.tailnet.ts.net:5173`) while keeping the gate narrow. Boot log prints the resolved policy. |
-| `SHIPWRIGHT_DATA_DIR` | _(unset → `~/.shipwright-webui`)_ | Folder for everything the Command Center stores itself: project list, tasks, settings, terminal scrollback and the per-project files of [standalone projects](#54-standalone-mode--use-it-without-shipwright). Claude's own transcripts under `~/.claude/projects/` are not affected. |
+| `SHIPWRIGHT_DATA_DIR` | _(unset → `~/.shipwright-webui`)_ | Folder for everything the Command Center stores itself: project list, tasks, settings, terminal scrollback and the per-project files ([§5.4](#54-use-it-without-shipwright--where-the-data-lives)). Claude's own transcripts under `~/.claude/projects/` are not affected. |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
 | `SHIPWRIGHT_CLAUDE_BIN` | _(unset → auto-detect)_ | Absolute path to your `claude` executable. The Command Center normally finds it via `PATH` plus a list of known install locations; set this only when auto-detection fails: i.e. `/api/diagnostics` reports "Claude Code CLI not found" even though `claude --version` works in your shell. A path that doesn't exist is rejected loudly rather than silently ignored. |

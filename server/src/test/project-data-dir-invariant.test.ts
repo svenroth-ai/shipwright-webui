@@ -1,6 +1,6 @@
 // @covers FR-01.03
 /**
- * iterate-2026-10-29-standalone-mode — `core/project-data-dir.ts` is the ONLY
+ * iterate-2026-10-30-central-data-default — `core/project-data-dir.ts` is the ONLY
  * place that may name the in-repo `.shipwright-webui` directory when joining a
  * path. A direct join elsewhere would bypass the standalone redirect and write
  * into a repo the user registered as off-limits.
@@ -10,14 +10,14 @@ import fs from "node:fs";
 import path from "node:path";
 
 const SRC = path.resolve(__dirname, "..");
-// file -> why it may keep the literal (legacy default / hint, never a standalone write target)
+// file -> why it may keep the literal (legacy default / hint, never a central-mode write target)
 const ALLOWED = new Map<string, string>([
   ["core/project-data-dir.ts", "the resolver itself"],
   ["core/project-actions-loader.ts", "legacy default when no dataDir is injected"],
   ["config.ts", "the GLOBAL ~/.shipwright-webui registry dir, not a repo path"],
   ["core/gitignore-cache.ts", "platform ignore defaults"],
   ["terminal/image-paste.ts", "regular-project pastes dir + gitignore hint"],
-  ["routes/projects.ts", "regular-project .code-workspace bootstrap (skipped when standalone)"],
+  ["routes/projects.ts", "regular-project .code-workspace bootstrap (only for `shared` projects)"],
 ]);
 
 function walk(dir: string, out: string[] = []): string[] {

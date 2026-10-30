@@ -73,9 +73,9 @@ export function buildExternalRoutesArgs(deps: ExternalRoutesWiringDeps): CreateE
         path: p.path,
         profile: p.profile,
         synthesized: p.synthesized,
-        // Without this every actions route would resolve the in-repo dir for a
-        // standalone project (iterate-2026-10-29-standalone-mode, doubt D1).
-        standalone: p.standalone,
+        // Without this every actions route would resolve the central dir for a
+        // `shared` project (iterate-2026-10-29 doubt D1, kept for the new model).
+        shared: p.shared,
         settings: p.settings ? { color: p.settings.color } : undefined,
       };
     },

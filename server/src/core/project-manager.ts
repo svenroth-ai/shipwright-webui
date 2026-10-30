@@ -309,18 +309,16 @@ export class ProjectManager {
       settings: { ...existing.settings, autonomy },
     });
 
-    if (existing.standalone) return updated; // 2. (run_config merge below) never into a standalone repo
     const runConfigPath = `${existing.path}/shipwright_run_config.json`;
+    // 2. Only sync an EXISTING run_config: never create a file in a non-Shipwright repo.
+    if (!this.deps.existsSync(runConfigPath)) return updated;
     try {
       let runConfig: Record<string, unknown> = {};
-      if (this.deps.existsSync(runConfigPath)) {
-        const content = await this.deps.readFile(runConfigPath, "utf-8");
-        try {
-          runConfig = JSON.parse(content) as Record<string, unknown>;
-        } catch {
-          // Malformed — fall back to fresh object so we don't lose the write.
-          runConfig = {};
-        }
+      const content = await this.deps.readFile(runConfigPath, "utf-8");
+      try {
+        runConfig = JSON.parse(content) as Record<string, unknown>;
+      } catch {
+        runConfig = {}; // Malformed — fresh object so we don't lose the write.
       }
       runConfig.autonomy = autonomy;
       await this.deps.writeFile(runConfigPath, JSON.stringify(runConfig, null, 2));
