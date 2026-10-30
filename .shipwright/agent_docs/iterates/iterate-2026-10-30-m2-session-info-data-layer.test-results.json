@@ -1,0 +1,100 @@
+{
+  "last_updated": "2026-10-30",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-30-m2-session-info-data-layer",
+    "date": "2026-10-30",
+    "unit": {
+      "status": "passed",
+      "passed": 4788,
+      "total": 4801,
+      "skipped": 13
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Endpoint returns 404 unknown task / missing / ok and never modifies the transcript",
+          "disposition": "tested",
+          "evidence": "external/session-info/routes.test.ts PASSED"
+        },
+        {
+          "behavior": "Context tokens = input+cache_read+cache_creation of newest non-synthetic assistant message; compaction flagged with separate estimate",
+          "disposition": "tested",
+          "evidence": "session-info.test.ts + review-fixes compaction tests PASSED"
+        },
+        {
+          "behavior": "Outputs normalised per entry cwd (win32/posix), deduped, newest first, failed writes retracted",
+          "disposition": "tested",
+          "evidence": "session-info.test.ts outputs tests + review-fixes retraction tests PASSED"
+        },
+        {
+          "behavior": "Remote Control active only for live pid + bridgeSessionId; JSONL bridge only onceEnabled",
+          "disposition": "tested",
+          "evidence": "session-info.test.ts remote control tests PASSED"
+        },
+        {
+          "behavior": "Subagents: campaign depth-2 join, notification/tool_result finish, async ack, resumed, stale, pending tool call",
+          "disposition": "tested",
+          "evidence": "session-info.test.ts campaign + review-fixes tests PASSED",
+          "category": "integration"
+        },
+        {
+          "behavior": "100MB+ safety: bounded positional window, chunk-split UTF-8, over-long lines, retry-safe facts, per-file memo",
+          "disposition": "tested",
+          "evidence": "session-info.review-fixes.test.ts line scan + memo + EBUSY tests PASSED"
+        },
+        {
+          "behavior": "Read-only and containment: no write APIs, symlinked meta/dir not followed",
+          "disposition": "tested",
+          "evidence": "review-fixes read-only guard + symlink test PASSED"
+        },
+        {
+          "behavior": "Real-corpus smoke over a 4 MB campaign session with compaction and 3 subagents",
+          "disposition": "tested",
+          "evidence": "manual probe: 21ms, 8 outputs, 3 finished subagents, compaction count 1"
+        }
+      ],
+      "counts": {
+        "testable": 8,
+        "tested": 8,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

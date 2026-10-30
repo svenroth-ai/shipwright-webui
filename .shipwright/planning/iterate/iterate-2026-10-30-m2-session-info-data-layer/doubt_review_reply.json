@@ -1,0 +1,8 @@
+{"stage":"doubt","doubts":[
+{"severity":"high","claim_under_doubt":"readWithRetry re-ran the scan into the same Facts (double counts); fixed with per-attempt reset + test"},
+{"severity":"medium","claim_under_doubt":"resumed agent read as finished; fixed via record timestamps + test"},
+{"severity":"medium","claim_under_doubt":"long silent tool call read as finished-stale; pending tool_use extends threshold to 60 min + test"},
+{"severity":"low","claim_under_doubt":"cross-file notification precedence depended on scan completion order; now sorted file order"},
+{"severity":"low","claim_under_doubt":"per-request (not global) scan concurrency; accepted, documented"},
+{"severity":"low","claim_under_doubt":"TOCTOU/hardlink in containment; accepted (needs write access to ~/.claude/projects)"},
+{"severity":"low","claim_under_doubt":"path normalisation edge cases: relative cwd now null, firstTs corrected; UNC forward-slash accepted"}]}

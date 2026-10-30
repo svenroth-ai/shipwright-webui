@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: server/src/core/session-info/session-info.ts:145\n- Finding: After compaction, `context.tokens` becomes `postTokens` or null instead of the latest non-synthetic assistant usage sum required by the spec. The returned `at` still identifies the assistant message, so it can also misattribute the replacement estimate.\n- Suggestion: Keep `context.tokens` derived from assistant usage and expose compaction information separately. Update the compaction tests to enforce that contract.\n\n- Category: bug\n- Severity: high\n- File: server/src/core/session-info/subagents.ts:65\n- Finding: Any Agent tool result marks the agent finished. A background launch acknowledgment is also a tool result; when its status is `async_launched`, this code immediately reports the still-running agent as finished and supplies an end timestamp.\n- Suggestion: Treat only terminal result statuses or actual execution errors as completion. Launch acknowledgments should leave the agent running until a terminal notification or the stale threshold.\n\n- Category: spec\n- Severity: high\n- File: server/src/core/session-info/session-info.ts:47\n- Finding: Scanning only the newest 48 MB of a session or 12 MB of an agent permanently discards required historical facts. An early output disappears, a file\u2019s `firstAt` becomes incorrect, and an Agent invocation outside the window loses its prompt. Reading the first line only recovers a timestamp. Agent-window truncation is also absent from the response.\n- Suggestion: Scan earlier positional chunks for historical facts while keeping memory bounded, or maintain a complete derived index within the permitted read-only architecture. Add integration fixtures with outputs and Agent invocations before the scan boundary.\n\n- Category: bug\n- Severity: medium\n- File: server/src/core/session-info/collect.ts:187\n- Finding: Retracting a failed write only decrements the touch count. If a successful Write is followed by a failed Edit to the same file, the output remains with the failed Edit\u2019s `lastAt` and tool. A failed first attempt followed by success likewise leaves an incorrect `firstAt`.\n- Suggestion: Track timestamps and tools per attempt, then derive the file summary from attempts that have not been rejected. Test successful and failed attempts targeting the same path.\n\n- Category: security\n- Severity: medium\n- File: server/src/core/session-info/subagents.ts:34\n- Finding: Metadata files bypass the symlink protection applied to agent JSONL files. `stat` and `readFile` follow an `agent-<id>.meta.json` symlink outside the session directory, allowing external JSON fields such as `description` or `model` to be returned through this endpoint.\n- Suggestion: Reject metadata symlinks and verify resolved metadata paths remain within the permitted session directory before reading. Add an actual symlink escape test; the current filename test does not exercise this.\n\nOverall assessment: ship-with-fixes. The data layer covers the main surfaces, but completion detection, historical completeness, and the metadata path guard need correction before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "Findings:\n\n- Category: spec | Severity: low\n  File: server/src/core/session-info/collect.ts (OUTPUT_TOOLS)\n  Finding: `MultiEdit` is included in OUTPUT_TOOLS, but the spec enumerates only Write/Edit/NotebookEdit file_path sources. This silently widens the output set beyond spec.\n  Suggestion: Either remove MultiEdit or confirm with the spec owner it's intended; if intentional, note the deviation in types.ts (which does list it, so at least the code is self-consistent).\n\n- Category: test | Severity: medium\n  File: server/src/external/session-info/routes.test.ts (infoDeps / memo test `sessionsDir: \"Z:\\none\"`)\n  Finding: `\"Z:\\none\"` contains a `\\n` escape \u2014 the actual path is `\"Z:\" + newline + \"one\"`. The tests pass only by accident (the directory doesn't exist). Same class of mistake as the deliberate `\"Z:\\\\none\"` elsewhere; here it's clearly unintended and masks that the intended \"nonexistent Windows dir\" setup wasn't made.\n  Suggestion: Use `\"Z:\\\\none\"` or `path.join(l.projectsDir, \"nope\")`.\n\n- Category: test | Severity: low\n  File: server/src/core/session-info/session-info.test.ts (\"ignores non-agent files and symlink-shaped names\")\n  Finding: The `agent-..evil.jsonl` fixture is rejected by the charset regex (`[A-Za-z0-9]+`), not by any symlink handling \u2014 no symlink is ever created, so the Dirent.isFile() branch is untested.\n  Suggestion: Create an actual symlink to a file outside the session dir and assert it's excluded.\n\n- Category: edge-case | Severity: low\n  File: server/src/core/session-info/session-info.ts (scanCached)\n  Finding: The memo signature is `size:mtimeMs` from a `stat` taken before the scan; a file rewritten to the same size within filesystem mtime granularity could serve stale facts. Also, on Windows mtimeMs resolution plus rapid appends could theoretically collide. Low practical risk for append-only JSONL.\n  Suggestion: Acceptable as-is; if hardening, include a cheap first/last-byte hash or the memo invalidation already implied by size growth.\n\n- Category: edge-case | Severity: low\n  File: server/src/core/session-info/collect.ts (normalizeAbsolute)\n  Finding: A POSIX-absolute `file_path` recorded while `cwd` is a Windows path is silently dropped (returns null), and vice versa a Windows-relative path with POSIX cwd resolves via `path.posix.resolve` producing a nonsense mixed path. These are cross-platform recording anomalies; dropping is defensible but produces invisible data loss with no signal.\n  Suggestion: Consider surfacing a count of unresolvable paths in `scan` stats rather than silently omitting.\n\n- Category: bug | Severity: low\n  File: server/src/core/session-info/line-scan.ts (skipping + carry > maxLine with dropFirst)\n  Finding: When the window begins mid-line AND that partial line is over-long, `carry` is reset without setting `skipping` (guarded by `!dropFirst`) \u2014 correct by luck, but if `dropFirst` was already consumed by a newline in the same chunk before the carry check, a following over-long line's content after its eventual newline could be emitted... actually the `skipping` flag covers that; reviewing the state machine, the paths appear consistent. Downgrade: no concrete failing input found; noting for the record only.\n\nEverything else checks out well: the positional newest-window scan, torn-line handling, memo in-flight dedup with failure eviction, failed-write retraction, notification/tool_result join, depth-2 notifications pooled from parent agent files, compaction staleness handling, and pid liveness (EPERM treated as alive) all match the spec and have genuinely behavioral tests (the memo test counts real scans; the retraction test verifies the output list, not just a call). Route is read-only and scoped by task lookup consistent with sibling routes.\n\nOverall: ship-as-is with the test-path escape fix recommended; the work is sound and implements the spec.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m2-session-info-data-layer",
+    "at": "2026-10-30T14:21:50.182787+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

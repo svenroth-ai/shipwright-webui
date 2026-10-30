@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-30-m2-session-info-data-layer",
+  "date": "2026-10-30",
+  "section": "Iterate — feat: session-info data layer",
+  "title": "Read-only session-info endpoint",
+  "context": "Mission desktop UI needs context tokens, outputs, Remote Control and subagents; /transcript does not expose subagent files or full-history writes.",
+  "decision": "Add GET /tasks/:id/session-info over core/session-info (bounded positional newest-window scan, per-file size/mtime memo, subagent meta join, lstat/realpath containment).",
+  "consequences": "Contract depends on Claude's undocumented JSONL/sessions formats; history beyond the 48MB/12MB window is not reflected (scan.truncated reports it); tokensAfterCompaction exposed separately from context.tokens.",
+  "rationale": "Smallest server-side single-home parser; client parsing 100MB+ files plus subagent files was not viable. Review rounds fixed async acks, write retraction, symlinks, memo LRU.",
+  "rejected": "Client-side parsing of transcript chunks; showing nothing; an incremental persisted index (more state than needed).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

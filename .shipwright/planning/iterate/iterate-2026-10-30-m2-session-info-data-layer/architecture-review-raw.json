@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "1. **The question, answered in one sentence.** Yes \u2014 a read-only endpoint derived from data the project already owns is the right shape, and it adds essentially no standing mechanism beyond one route and a pure module.\n\n2. **The smallest thing that would do.** One GET endpoint plus stateless reader functions; the size/mtime-keyed memo is the only piece worth questioning \u2014 it's acceptable since it's process-local and keyed by file identity, but it must stay a function cache and never grow eviction/cursor logic.\n\n3. **What it costs to keep.** The endpoint's contract becomes a dependency for the Mission UI; every future change to Claude's JSONL format, subagent file layout, or bridge-session files must be re-reasoned about here. That obligation exists regardless of where the parsing lives \u2014 server-side is actually the single-home version of it, which is why option B (client-side parsing) is worse: it would duplicate the format knowledge.\n\n4. **What it forecloses.** None identified. Read-only derivation forecloses nothing; the endpoint can be deleted without residue.\n\nFindings:\n\n- Category: proportionality\n- Severity: low\n- Finding: The heuristic layers (pid liveness, \"stale mtime = finished-stale\", notification-vs-file joins, depth-2 reviewers) embed many small format assumptions that will each need attention when upstream formats drift \u2014 the real maintenance cost is not the endpoint but this inference layer.\n- Suggestion: Keep the inference layer behind a single module boundary and treat \"unknown/missing\" as a first-class return value rather than inventing fallback interpretations, so drift surfaces as visible gaps rather than silently wrong guesses.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Should it exist?** Yes\u2014option A is proportionate: a server-side reader keeps large-file parsing and access to session files behind one endpoint.\n\n2. **Smallest thing that would do:** One read-only endpoint deriving the requested fields from Claude\u2019s existing files, using the existing positional-read machinery and a disposable size/mtime cache; no persisted index, background scanner, or polling job.\n\n3. **What it costs to keep:** Maintaining compatibility with Claude\u2019s file formats, cache invalidation, and interpretations of session and subagent state. The team owning this endpoint must maintain those interpretations as Claude changes.\n\n4. **What it forecloses:** It couples these UI features to locally accessible Claude session files; supporting remote sessions or another runtime would require another data source.\n\n5. **Findings**\n\nNo findings.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "architecture",
+  "capture": {
+    "run_id": "iterate-2026-10-30-m2-session-info-data-layer",
+    "at": "2026-10-30T14:11:35.890313+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=approve"
+  }
+}
