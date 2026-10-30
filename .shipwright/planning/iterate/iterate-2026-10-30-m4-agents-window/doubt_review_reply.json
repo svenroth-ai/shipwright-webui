@@ -1,0 +1,5 @@
+{"stage":"doubt","gating":"advisory-must-address","doubts":[
+{"severity":"medium","lens":"concurrency","claim_under_doubt":"a dispatch seen in the feed always triggers a rescan that reflects it","disproof_attempt":"cancelRefetch:false joined an in-flight scan that predates the event. Fixed: dispatch restarts the scan; an openFor miss starts a fresh scan."},
+{"severity":"medium","lens":"boundary","claim_under_doubt":"stopped is a terminal failure","disproof_attempt":"A turn-limit stopped notification precedes a later final one. Fixed: stopped renders neutral, killed is failed."},
+{"severity":"low","lens":"coupling","claim_under_doubt":"dialog state consistent with its mount point","disproof_attempt":"Feed unmount left open=true. Fixed: the dock closes the window on unmount; throttle now counts attempts; comment corrected."}
+]}

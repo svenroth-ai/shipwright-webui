@@ -1,0 +1,83 @@
+{
+  "run_id": "iterate-2026-10-30-m4-agents-window",
+  "date": "2026-10-30T17:09:22.599944Z",
+  "event_at": "2026-10-30T17:09:08.492432+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "history",
+  "branch": "iterate/campaign-mission-desktop-style--M4",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-30-m4-agents-window",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "AC1 bar shows n agents running only when active",
+        "disposition": "tested",
+        "evidence": "AgentsDock.test.tsx hides at 0 / shows count; E2E bar chip"
+      },
+      {
+        "behavior": "AC2/AC3 Active/Finished sections and who-started-whom tree",
+        "disposition": "tested",
+        "evidence": "agentsTree.test.ts + AgentsDock.test.tsx + E2E data-depth rows"
+      },
+      {
+        "behavior": "AC4 prompt and answer; running has no answer",
+        "disposition": "tested",
+        "evidence": "AgentsDock.test.tsx prompt/answer + Still running"
+      },
+      {
+        "behavior": "AC5 read-only transcript tab, no composer",
+        "disposition": "tested",
+        "evidence": "AgentsDock.test.tsx + E2E transcript marker, no textarea/chat-*"
+      },
+      {
+        "behavior": "AC6 route: id grammar, symlink escape, directory, tail on newline, read-only",
+        "disposition": "tested",
+        "evidence": "subagent-transcript.routes.test.ts (5 tests) + E2E 400 on ..%2Fx"
+      },
+      {
+        "behavior": "AC7 card opens same detail; unknown agent falls back",
+        "disposition": "tested",
+        "evidence": "E2E card -> data-agent-id=fin1; openFor false unit test; mission-subrunner.spec"
+      },
+      {
+        "behavior": "AC8 killed/stopped resolve failed, later completed clears",
+        "disposition": "tested",
+        "evidence": "missionActivityFeedSubrunner.test.ts"
+      },
+      {
+        "behavior": "AC9 no timer; rescan on miss",
+        "disposition": "tested",
+        "evidence": "AgentsDock.test.tsx fetch count after openFor miss"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 12,
+      "covered_acs": 12
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/M4-mission-agents-window.spec.ts",
+    "exit_code": 0,
+    "tests_run": 1,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style--M4\\.shipwright\\runs\\iterate-2026-10-30-m4-agents-window\\surface_verification.log",
+    "timestamp": "2026-10-30T17:05:00.931Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_auth"
+  ]
+}

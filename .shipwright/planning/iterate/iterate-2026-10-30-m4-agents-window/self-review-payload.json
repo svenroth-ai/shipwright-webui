@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"AC1-AC12 of the mini-plan each have a test or E2E step."},
+{"name":"Error Handling","verdict":"pass","note":"Route maps missing/refused/EISDIR/EPERM to missing; UI has loading, error and empty states."},
+{"name":"Security Basics","verdict":"pass","note":"Strict id regex, realpath+relative equality, handle regular-file check, read-only."},
+{"name":"Test Quality","verdict":"pass","note":"Server route/tail/symlink tests, tree model, dock/window component tests, real-browser E2E."},
+{"name":"Performance Basics","verdict":"pass","note":"No timer; 1 MiB positional window; event-driven rescan only on subrunner card change."},
+{"name":"Naming & Structure","verdict":"pass","note":"Files under 300 lines; extends existing feed card/subrunner reducer."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Producer Claude subagent JSONL -> route -> BubbleTranscript consumer proven by E2E round trip."},
+{"name":"Motion/A11y","verdict":"pass","note":"Entrance gated to no-preference; 44px targets on coarse; Radix focus trap and return."}
+]}

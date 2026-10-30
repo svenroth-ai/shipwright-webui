@@ -1,0 +1,1 @@
+{"section":"M4-agents-window","verdict":"PASS (no blocking findings)","review":[{"severity":"medium","finding":"activity throttle dropped growth - fixed after review"},{"severity":"low","finding":"selectedId reset, dead css, empty-tail note, ref write - fixed after review"}]}

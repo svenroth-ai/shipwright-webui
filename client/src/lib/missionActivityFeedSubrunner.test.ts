@@ -270,10 +270,10 @@ describe("deriveActivityFeed — a non-review Task dispatch resolves synchronous
 
 // M4: killed / stopped notifications are terminal non-success outcomes.
 describe("resolveSubrunnerNotification - killed / stopped (M4)", () => {
-  it.each(["killed", "stopped"] as const)("%s resolves the card as failed and names the outcome", (status) => {
+  it.each([["killed", "failed"], ["stopped", "done"]] as const)("%s resolves the card (%s) and names the outcome", (status, expected) => {
     const card: ActivityCard = { kind: "subrunner", text: "x", commands: [], subrunnerId: "agent-42", subrunnerStatus: "running" };
     resolveSubrunnerNotification([card], notification({ taskId: "agent-42", status, result: "cut short" }));
-    expect(card.subrunnerStatus).toBe("failed");
+    expect(card.subrunnerStatus).toBe(expected);
     expect(card.subrunnerEndStatus).toBe(status);
     expect(card.subrunnerReport).toBe("cut short");
   });

@@ -61,18 +61,22 @@ export function useMissionAgents(
   const lastSignature = useRef(signature);
   const lastActivity = useRef(activity);
   const updatedAt = useRef(0);
+  const lastFired = useRef(0);
   useEffect(() => {
     updatedAt.current = q.dataUpdatedAt;
   }, [q.dataUpdatedAt]);
   useEffect(() => {
     if (!taskId) return;
     const dispatched = lastSignature.current !== signature;
-    const grew = lastActivity.current !== activity && Date.now() - updatedAt.current > ACTIVITY_RESCAN_MS;
+    const since = Date.now() - Math.max(updatedAt.current, lastFired.current); // last ATTEMPT too: errors cannot bypass it
+    const grew = lastActivity.current !== activity && since > ACTIVITY_RESCAN_MS;
     lastSignature.current = signature;
     // A growth swallowed by the throttle is NOT consumed: the next growth still rescans.
     if (dispatched || grew) {
       lastActivity.current = activity;
-      void refetch({ cancelRefetch: false });
+      lastFired.current = Date.now();
+      // A dispatch/completion must be seen by a scan that STARTS after it: restart one already in flight.
+      void refetch({ cancelRefetch: dispatched });
     }
   }, [taskId, signature, activity, refetch]);
 
@@ -95,14 +99,14 @@ export function useMissionAgents(
       }
       const a = findAgentForCard(agents, id);
       if (!a) {
-        refresh(); // not known yet: rescan so the next click can open it
+        void refetch({ cancelRefetch: true }); // not known yet: rescan (fresh) so the next click can open it
         return false;
       }
       setSelectedId(a.agentId);
       setOpen(true);
       return true;
     },
-    [agents, setOpen, refresh],
+    [agents, setOpen, refetch],
   );
 
   return {

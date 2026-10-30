@@ -193,7 +193,7 @@ export function FeedCard({
         ) : card.subrunnerId && onSubrunnerClick ? (
           <button type="button" className="mc-story-link" onClick={() => onSubrunnerClick(card.subrunnerId!)}>
             {card.subrunnerStatus === "failed" ? <XIcon /> : <CheckIcon />}
-            {card.subrunnerStatus === "failed" ? (card.subrunnerEndStatus ? `View failure details (${card.subrunnerEndStatus})` : "View failure details") : "View subrunner report"}
+            {card.subrunnerStatus === "failed" ? (card.subrunnerEndStatus ? `View failure details (${card.subrunnerEndStatus})` : "View failure details") : card.subrunnerEndStatus ? `View subrunner report (${card.subrunnerEndStatus})` : "View subrunner report"}
           </button>
         ) : card.subrunnerReport ? (
           <MarkdownChunk content={card.subrunnerReport} />

@@ -203,8 +203,9 @@ export function resolveSubrunnerNotification(cards: ActivityCard[], event: TaskN
   // (a partial "stopped at its turn limit" notification, then a later final
   // one) — each arrival overwrites the previous status/report, last one
   // wins, same as every other retry/recovery overwrite in this reducer.
-  // killed / stopped (M4) are non-success terminal outcomes: shown as failed, naming which.
-  card.subrunnerStatus = event.status === "failed" || ended ? "failed" : "done";
+  // M4: killed = failed. stopped is ALSO what a turn-limit pause of a SendMessage-continued agent reports
+  // (see above), so it is shown neutrally (not red) and a later final notification overwrites it.
+  card.subrunnerStatus = event.status === "failed" || event.status === "killed" ? "failed" : "done";
   card.subrunnerEndStatus = ended ? (event.status as "killed" | "stopped") : undefined;
   // Prefer the rich `<result>` report; fall back to the short `<summary>`
   // for a malformed/older envelope that carries no `<result>` at all.

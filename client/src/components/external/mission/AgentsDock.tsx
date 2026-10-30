@@ -5,6 +5,7 @@
  * Read-only observer (DO-NOT #1): no composer, no chat-* surface (spec 35).
  */
 
+import { useEffect, useRef } from "react";
 import { Users } from "lucide-react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
@@ -13,6 +14,12 @@ import { AgentsWindow } from "./AgentsWindow";
 
 export function AgentsDock({ task, controller }: { task: ExternalTask; controller: MissionAgents }) {
   const n = controller.runningCount;
+  // The window lives in the feed's footer: if the feed unmounts (design gate), close it instead of leaving open=true.
+  const setOpenRef = useRef(controller.setOpen);
+  useEffect(() => {
+    setOpenRef.current = controller.setOpen;
+  }, [controller.setOpen]);
+  useEffect(() => () => setOpenRef.current(false), []);
   return (
     <>
       {n > 0 && (
