@@ -111,7 +111,7 @@ describe("deriveActivityFeed — card.explanation (iterate-2026-08-25-mission-fe
     expect(pushed?.explanation).toBe("This should be a fast-forward.");
     expect(pushed?.status).toBeUndefined();
     expect(pushed?.detail).toBeUndefined();
-    expect(cards.some((c) => /command failed|ended before the blocker|retry this automatically/i.test(`${c.text} ${c.explanation ?? ""}`))).toBe(false);
+    expect(cards.some((c) => /command failed|ended before the blocker|retry this automatically/i.exec(c.text + " " + (c.explanation ?? "")) !== null)).toBe(false);
   });
 
   it("(i) counts a turn's SECOND card too (not just its explanation-receiving first), so a later turn coalescing only into that second card still clears it (External LLM Review, openai HIGH finding)", () => {
