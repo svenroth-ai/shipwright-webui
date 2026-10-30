@@ -115,56 +115,38 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 5,
+      "findings_count": 3,
       "findings": [
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/mission/MissionActivityFeedCard.test.tsx",
-          "line": 197,
-          "finding": "The test title claims a 'compact (non-oversized) status link', but it only asserts that an svg exists inside .mc-story-link. jsdom does not load CSS, and the svg was already there before this change, so the test cannot fail if the 1em sizing rule is removed. The real proof is the bounding-box check in client/e2e/flows/mission-subrunner.spec.ts:129-132.",
-          "suggestion": "Rename the test so it claims only what it checks (the visible title plus the glyph inside the link), and point to the e2e spec for the size check. Or remove the svg assertion.",
-          "source": "code-reviewer"
-        },
         {
           "severity": "low",
           "category": "correctness",
           "file": "client/e2e/flows/mission-feed-transcript-fidelity.spec.ts",
           "line": 237,
-          "finding": "`[data-kind=\"blocker\"]` toHaveCount(0) can never fail now that the 'blocker' kind no longer exists. AC1 also says 'no raw output', but the spec never checks that the seeded error text ('! [rejected]') is absent. Only the unit test checks this, via `detail` being undefined.",
-          "suggestion": "Replace or supplement the check with `await expect(feed).not.toContainText(\"[rejected]\")` so the browser test actually catches the raw output coming back.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/lib/missionActivityFeedBlockerAndTdd.test.ts",
-          "line": 246,
-          "finding": "Both Read cards in this fixture are wordless, so the reconcile filter drops them and `cards` is empty. `cards.every(...)` and `!cards.some(...)` are then true on an empty list. The test still catches a returning error card, but it passes for the wrong reason and would not notice a card that is not an error but carries leaked detail.",
-          "suggestion": "Add narration to the turn so the card survives the filter, then assert on that specific card (status undefined, detail undefined, both command chips present). Or explicitly assert `cards.length`.",
+          "finding": "`[data-kind=\"blocker\"]` toHaveCount(0) can never fail now that the kind is removed from ActivityKind. The text regex on line 238 only catches the old wording. Nothing checks that the raw error output itself (\"! [rejected] main -> main\") is absent or that no red err pill or .mc-feed-code block renders. AC1 says no raw output and no red err pill.",
+          "suggestion": "Add `await expect(feed).not.toContainText(\"[rejected]\")` and `await expect(feed.locator('.mc-feed-code, .mc-feed-pill[data-status=\"err\"]')).toHaveCount(0)`. Optionally drop the always-passing blocker locator.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": "client/src/lib/missionActivityFeedTurn.ts",
-          "line": 194,
-          "finding": "`PendingTool.commandKey` (tool name plus command detail) was only read by the removed blocker-recovery code. Now the only reader is `applySubrunnerAck`, which needs just the tool name and gets its own key at line 186. The keys built at lines 194/232/244/288 for non-subrunner tools are never read. The file name `missionActivityFeedBlockerAndTdd.test.ts` is also stale now that blockers are gone.",
-          "suggestion": "Non-blocking boy-scout fix: build commandKey only for subrunner dispatches (or make it optional), and rename the test file to e.g. `missionActivityFeedTdd.test.ts` together with the three comments that cite it (AuthoringRollback.ts:10, AuthoringRollback.test.ts:3, AuthoringTrack.ts:20, GateSynthesis.test.ts:3).",
+          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "line": 186,
+          "finding": "The comment says \"line 95 above only ever makes a card `unresolvedTest` when `!authoringRun`\", but after the deletions that assignment is at line 143. Line 95 is now part of the test-branch comment. A hard-coded line number goes stale whenever code is removed above it.",
+          "suggestion": "Point to the code instead of a line number, e.g. \"the `if (!pending.card.authoringRun) unresolvedTest = pending.card` in the is_error branch above\".",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": 201,
-          "finding": "Behaviour change that is not documented: the removed recovery path used to merge a successful retry (same command) into the earlier failed card and drop the duplicate. Now a failed narrated command and its successful retry show up as two ordinary cards, unless add() coalesces them. This is consistent with 'no errors in the feed', but the visible duplicate is not mentioned in the mini-plan.",
-          "suggestion": "Either accept it and record it in the mini-plan or decision drop, or add a unit test that pins the fail-then-retry shape so the result is a deliberate choice.",
+          "file": "client/e2e/flows/mission-subrunner.spec.ts",
+          "line": 110,
+          "finding": "AC5 says the readable dispatch title appears directly above the link. The spec only checks that the card contains the title (toContainText), not where it sits or that it is visible separately from the link. The new Range-based check covers the glyph and label sharing a line, but not the title's position.",
+          "suggestion": "Optional: check that the title's bounding box bottom is at or above the report button's top, or that the title node comes before the button in the DOM.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T13:47:28.719874+00:00",
+      "completed_at": "2026-10-30T13:53:28.455552+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -174,47 +156,20 @@
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 4,
+      "findings_count": 1,
       "findings": [
         {
-          "severity": "medium",
-          "category": "boundary & contract (CSS cascade)",
-          "file": "client/src/styles/mission-operation.css",
-          "line": null,
-          "finding": "Claim under doubt: the subrunner status glyph now renders at line size, inline in the link row — client/src/index.css:1 does `@import \"tailwindcss\"`, which includes Tailwind 4 preflight (`svg { display:block; vertical-align:middle }`). The new rule `.mc-story-link svg { width:1em; height:1em; margin-right:5px; vertical-align:-.125em }` (mission-operation.css:61) never resets `display`, and `.mc-story-link` itself is a plain button, not flex/inline-flex. The likely result is that the 1em check or X sits on its OWN line above 'View subrunner report' / 'View failure details': `vertical-align` and `margin-right` would do nothing on a block box. That is not the compact single row the spec asks for. The unit test (MissionActivityFeedCard.test.tsx:201) only asserts that `.mc-story-link svg` exists. jsdom applies no CSS, so it cannot catch this, and no E2E or visual check measures the geometry. Every sibling icon host in this file (`.mc-feed-pill`, `.mc-feed-chip`, `.mc-feed-subrunner-status`, `.mc-gate-btn`) uses `display:inline-flex` for exactly this reason.",
-          "suggestion": "Add `display:inline-block` to the svg (or make `.mc-story-link` `inline-flex; align-items:center; gap:5px` for this usage only). Prove it in a real browser: icon top within the text line box, icon height of about 1em. Per the memory notes, a layout fix needs a vitest class fence plus a real-browser E2E.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "boundary & contract (spec vs. delivered scope)",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": null,
-          "finding": "Claim under doubt: 'No error messages in the chat at all; errors are handled in the terminal' is satisfied — The spec's only explicit carve-out is 'genuine interactive blockers or questions — keep those'. The mini-plan's AC3 widened that carve-out on its own authority. A failing test command still gets a red 'Failing' pill, an XIcon and the raw FAIL output in a `<pre>` (Resolve.ts:127-128, attachDetail). A failed subrunner still renders 'View failure details' with an X. Read literally, those are error messages in the chat. The defensible reading (a test verdict is a verification result, not an error message) is reasonable, but the user never made it, and Sven's wording ('at all') is absolute.",
-          "suggestion": "State the interpretation explicitly in the PR body and the iterate record: test verdicts and subagent outcomes are kept as status, not as error messages. Alternatively, confirm with the user in plain language: 'Should a failing test still show as a red Failing card with its output, or should that also live only in the terminal?'",
-          "source": "doubt-reviewer"
-        },
-        {
           "severity": "low",
-          "category": "concurrency & ordering (retry semantics)",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
+          "category": "boundary & contract",
+          "file": "client/e2e/flows/mission-subrunner.spec.ts",
           "line": null,
-          "finding": "Claim under doubt: removing the recovery merge is harmless — A failed plain command now keeps its card unmutated: same kind, no status, command chip intact. A retry in a later turn makes a second card with an identical chip. In the feed, `git push` (rejected) followed by `git push` (ok) reads as two pushes that both succeeded, with nothing marking the first as failed. Before this change, that sequence collapsed into one 'recovered' card. This follows directly from the stated intent (errors live in the terminal), so it is not a defect, but it is misleading-by-omission. `PendingTool.commandKey` is now only used by the subrunner path (split to recover the dispatch tool name), so it survives as a misleadingly general field.",
-          "suggestion": "Accept and record it as a known trade-off. Optionally narrow or rename `commandKey` so it is not mistaken for a live dedupe key.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "hidden coupling",
-          "file": "client/src/lib/missionActivityFeedResolve.ts",
-          "line": null,
-          "finding": "Claim under doubt: review-bucket failures degrade gracefully — A review `Task` whose tool_result is_error used to become a blocker card. It now hits the generic `continue` before the review branch, so the card shows 'Spawned X to review the change.' with no detail and no status, permanently. It looks the same as a review still in flight or one that returned nothing. This is consistent with M1's intent, but no test pins it.",
-          "suggestion": "Add a unit test for an errored review Task: no err status, no detail, card still present. That fixes the behavior so it cannot drift.",
+          "finding": "Claim under doubt: the same-line e2e assertion proves the glyph sits on the label's line at every viewport — mission-subrunner.spec.ts runs only in the desktop 'chromium' project. The 'mobile-chromium' testMatch in playwright.config.ts does not include it, so phone width is never measured. The CSS is still correct at phone width: an inline-block svg flows with the text, and a wrapped label only moves its own words. But if the spec were ever added to mobile-chromium and the label wrapped, `textLeft >= svgRight` would fail. Range.getBoundingClientRect() covers both lines of a wrapped label, so its left edge falls back to the line start.",
+          "suggestion": "Nothing for this PR. If the spec is ever moved to a phone project, measure the FIRST line (range.getClientRects()[0]) instead of the union rect.",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-30T13:47:28.845374+00:00",
+      "completed_at": "2026-10-30T13:53:28.570060+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -307,7 +262,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-30T13:47:28.610901+00:00",
+      "completed_at": "2026-10-30T13:53:28.320862+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
