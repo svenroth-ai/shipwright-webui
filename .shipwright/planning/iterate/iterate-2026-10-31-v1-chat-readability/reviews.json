@@ -133,15 +133,15 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 6,
+      "findings_count": 9,
       "findings": [
         {
           "severity": "medium",
           "category": "correctness",
           "file": "client/src/styles/mission-chat.css",
           "line": 47,
-          "finding": "`.mc-feed-card .mc-table-wrap table { width: max-content; min-width: 100% }` applies on all screen sizes; sentence-length GFM cells never wrap and force sideways scroll even on desktop. Mockup uses width:100%.",
-          "suggestion": "Use width:100% (scope max-content to phones if needed); add a long-prose cell to the E2E fixture.",
+          "finding": "Table width max-content on all sizes: long prose cells never wrap (mockup uses width:100%).",
+          "suggestion": "Use width:100%; keep wrapper overflow-x auto.",
           "source": "code-reviewer"
         },
         {
@@ -149,17 +149,35 @@
           "category": "correctness",
           "file": "client/src/styles/mission-chat.css",
           "line": 34,
-          "finding": "`.mc-feed-card p { margin: 0 0 var(--gap-block) }` (0,1,1) beats `.mc-feed-subrunner-status { margin:0 }` so the running-subrunner status line gets a 12px bottom margin before the View agent button.",
-          "suggestion": "Limit to `.mc-feed-card .markdown-body p` or raise the subrunner rule specificity.",
+          "finding": ".mc-feed-card p margin (0,1,1) beats .mc-feed-subrunner-status margin:0, giving status line 12px bottom margin.",
+          "suggestion": "Scope to .markdown-body p or raise subrunner specificity.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+          "line": 116,
+          "finding": "tableWrap not passed for question text and inline subrunnerReport MarkdownChunk calls.",
+          "suggestion": "Pass tableWrap.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-chat.css",
+          "line": 42,
+          "finding": "Light scope has no --link tokens (falls back to --accent); first-column table style from mockup not implemented; e2e dark only.",
+          "suggestion": "Add light tokens or note; add light assertion.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
           "file": "client/src/styles/mission-chat.css",
-          "line": 56,
-          "finding": "font-size declared twice for .mc-feed-expand-btn (redundant in .mc-feed-commands .mc-feed-expand-btn).",
-          "suggestion": "Remove the duplicate.",
+          "line": 57,
+          "finding": "Duplicate font-size, redundant selectors, hardcoded 12px.",
+          "suggestion": "Tidy.",
           "source": "code-reviewer"
         },
         {
@@ -167,31 +185,40 @@
           "category": "readability",
           "file": "client/src/components/external/mission/MissionActivityFeed.tsx",
           "line": 96,
-          "finding": "data-switch inline ternary hard to read.",
-          "suggestion": "Hoist to a named const.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/styles/mission-chat-scale.test.ts",
-          "line": 27,
-          "finding": "12px floor test scans only mission-chat.css; sub-12px literals remain in mission-operation.css, neutralised only by overrides.",
-          "suggestion": "Extend the test to check overrides exist.",
+          "finding": "Hard-to-read inline ternary for data-switch.",
+          "suggestion": "Named const.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "architecture",
           "file": "client/src/components/external/MarkdownText.tsx",
-          "line": 111,
-          "finding": "Generic MarkdownText hardcodes mission class mc-table-wrap (opt-in, no regression).",
-          "suggestion": "Optional neutral class name.",
+          "line": 104,
+          "finding": "Shared renderer hardcodes mc-table-wrap.",
+          "suggestion": "Generic prop.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-chat-scale.test.ts",
+          "line": 25,
+          "finding": "12px floor test scans mission-chat.css only.",
+          "suggestion": "Scan operation css too.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/styles/mission-operation.css",
+          "line": 219,
+          "finding": "Dark token lifts apply to all on-photo .mc-op cards; baselines may shift.",
+          "suggestion": "Accept and note or scope to .mc-feed.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T15:15:12.530684+00:00",
+      "completed_at": "2026-10-31T15:28:17.380956+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -205,11 +232,38 @@
       "findings": [
         {
           "severity": "medium",
-          "category": "hidden coupling & blast radius",
-          "file": "client/src/lib/missionActivityFeedReconcile.ts:116",
+          "category": "hidden-coupling",
+          "file": "client/src/lib/missionActivityFeedReconcile.ts",
           "line": null,
-          "finding": "Claim under doubt: Rendering displayTextFull||displayText only removes a toggle — missionActivityFeedReconcile.ts:116 rewrites review.text and deletes explanation but leaves a stale textFull, which FeedCard now shows by default instead of the reconciled headline.",
-          "suggestion": "delete review.textFull next to delete review.explanation plus a reducer/FeedCard test.",
+          "finding": "Claim under doubt: Removing Show more only changes how much text is visible — CONFIRMED. missionActivityFeedReconcile.ts:116 rewrites review.text but leaves textFull, which FeedCard now shows by default when the first line is over 280 chars. Impact limited: text shown is the review turn's own words.",
+          "suggestion": "delete review.textFull next to delete review.explanation plus a unit test. DISPOSITION: accepted as advisory, not fixed in this merge (limited impact, no invented text); reported as follow-up.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary-contract",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Tables no longer white header — Question prose (line 116) and inline subrunnerReport (line 195) MarkdownChunk calls lack tableWrap.",
+          "suggestion": "Pass tableWrap.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden-coupling",
+          "file": "client/src/styles/mission-operation.css",
+          "line": null,
+          "finding": "Claim under doubt: Token lift only affects chat — Lifts apply to all non-gate on-photo .mc-op cards; hard visual baselines task-detail-mission(-live) may shift (unverified).",
+          "suggestion": "Visual job green on PR or regenerate baselines.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "render cost",
+          "file": "client/src/components/external/MarkdownText.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Full messages negligible cost — Full explanation through rehype-highlight auto-detect on mount.",
+          "suggestion": "Measure or accept.",
           "source": "doubt-reviewer"
         },
         {
@@ -217,40 +271,13 @@
           "category": "test evidence",
           "file": "client/e2e/flows/V1-mission-chat-readability.spec.ts",
           "line": null,
-          "finding": "Claim under doubt: e2e catches cropped-message regression — A truncated headline without toggle still passes the e2e; only the unit test catches it; spec not @smoke; light scope unasserted.",
-          "suggestion": "Marker at end of first line; assert visible.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "contract",
-          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx:116",
-          "line": null,
-          "finding": "Claim under doubt: Tables readable on dark — Question prose MarkdownChunk (MissionActivityFeedCard.tsx:116) is not passed tableWrap.",
-          "suggestion": "Pass tableWrap or record as out of scope.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "blast radius",
-          "file": "client/src/styles/mission-operation.css:219",
-          "line": null,
-          "finding": "Claim under doubt: Mission chat only — --body/--muted/--faint lifts apply to every dark .mc-op card; visual baselines are a hard gate.",
-          "suggestion": "Confirm visual workflow passes on PR.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "repair commit",
-          "file": ".shipwright/planning/01-adopted/spec.md",
-          "line": null,
-          "finding": "Claim under doubt: FR sentence accurate — light-teal links only in dark scope; light falls back to accent.",
-          "suggestion": "Wording nit.",
+          "finding": "Claim under doubt: E2E proves no truncation — Truncated headline without toggle would still pass e2e; unit tests guard it.",
+          "suggestion": "Marker after char 280.",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T15:21:18.755456+00:00",
+      "completed_at": "2026-10-31T15:30:33.116963+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -343,7 +370,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T15:12:02.252592+00:00",
+      "completed_at": "2026-10-31T15:25:04.064983+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
