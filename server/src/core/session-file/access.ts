@@ -16,7 +16,7 @@
 import { realpath } from "node:fs/promises";
 import path from "node:path";
 
-import { pathGuard, realPathGuard } from "../path-guard.js";
+import { pathGuard } from "../path-guard.js";
 import { evidenceKey } from "./evidence.js";
 import { isSensitivePath } from "./sensitive.js";
 
@@ -46,7 +46,6 @@ function lexicallyUnder(root: string, abs: string): boolean {
 
 export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessDecision> {
   const { roots, requested } = args;
-  if (roots.length === 0) return deny(400, "project_path_unavailable");
   if (!requested) return deny(400, "path_required");
   if (requested.length > MAX_PATH_CHARS || requested.includes("\0")) return deny(400, "invalid_path");
   // UNC / device namespaces would reach network shares and raw devices.
@@ -58,6 +57,8 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
   if (path.isAbsolute(requested)) {
     absolute = path.resolve(requested);
   } else {
+    // Only a relative path needs a project root; an absolute one can still be session-evidenced.
+    if (roots.length === 0) return deny(400, "project_path_unavailable");
     const g = pathGuard(roots[0]!, requested);
     if (!g.ok) return deny(400, g.reason === "traversal" ? "path_traversal" : g.reason, g.reason);
     absolute = g.absolute;
@@ -71,8 +72,14 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
     } catch (err) {
       return (err as NodeJS.ErrnoException)?.code === "ENOENT" ? deny(404, "not_found") : deny(400, "path_traversal", "symlink_escape");
     }
-    const rg = realPathGuard(root, absolute);
-    if (!rg.ok) return deny(400, "path_traversal", rg.reason);
+    // Validate the SAME resolution we return (a second realpath inside a guard could see a swapped link).
+    let realRoot: string;
+    try {
+      realRoot = await realpath(root);
+    } catch {
+      return deny(400, "path_traversal", "symlink_escape");
+    }
+    if (!lexicallyUnder(realRoot, real)) return deny(400, "path_traversal", "symlink_escape");
     return { ok: true, absolute: real, scope: "project" };
   }
 

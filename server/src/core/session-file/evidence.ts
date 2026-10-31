@@ -26,7 +26,9 @@ const CI = process.platform === "win32";
 export const evidenceKey = (p: string): string => (CI ? p.replace(/\//g, "\\").toLowerCase() : p);
 
 const BEFORE_BAD = /[\p{L}\p{N}_\-./\x5c~]/u;
-const AFTER_BAD = /[\p{L}\p{N}_\-/\x5c]/u;
+// '~', '+', '@', '%', '#', '$', '=' are valid filename characters: they continue a path, never end it.
+// (A space inside a quoted filename stays ambiguous; the extension allowlist bounds that residual.)
+const AFTER_BAD = /[\p{L}\p{N}_\-/\x5c~+@%#$=]/u;
 const MAX_STRINGS_PER_LINE = 2000;
 const MAX_DEPTH = 8;
 

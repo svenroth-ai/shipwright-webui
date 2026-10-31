@@ -253,6 +253,14 @@ describe("GET /api/external/tasks/:id/session-file", () => {
   });
 
   // @covers FR-01.66
+  it("an evidenced absolute path is served even when no project root exists any more; relative input is not", async () => {
+    session(say(1, path.join(out, "a.txt")));
+    const gone = app(true, { projectId: "nope", cwd: path.join(out, "missing-dir") });
+    expect((await get(path.join(out, "a.txt"), gone)).status).toBe(200);
+    expect((await get("in.md", gone)).status).toBe(400);
+  });
+
+  // @covers FR-01.66
   it("a task without a project falls back to its cwd as the root", async () => {
     const r = await get("a.txt", app(true, { projectId: "unassigned", cwd: out }));
     expect(r.status).toBe(200);

@@ -13,6 +13,7 @@ describe("mentionsWholePath", () => {
     expect(mentionsWholePath(`${p}/inner`, p)).toBe(false);
     expect(mentionsWholePath(`x${p}`, p)).toBe(false);
     expect(mentionsWholePath(`${p}.`, p)).toBe(true);
+    for (const sfx of ["~", "+", "@v2", "%20", "#frag", "=1"]) expect(mentionsWholePath(`${p}${sfx}`, p), sfx).toBe(false);
   });
 });
 
