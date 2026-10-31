@@ -151,196 +151,120 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 10,
+      "findings_count": 6,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
           "category": "correctness",
-          "file": "FolderTree.tsx",
-          "line": null,
-          "finding": "Focus-return race after menu close steals focus from outside clicks; second right-click can dismiss new menu.",
-          "suggestion": null,
+          "file": "client/src/components/external/useCopyToast.ts",
+          "line": 36,
+          "finding": "copy() defers via requestAnimationFrame so clipboard write runs outside the user gesture; likely 'Copy failed' on iOS/WebKit.",
+          "suggestion": "Call navigator.clipboard.writeText synchronously; defer only execCommand fallback.",
           "source": "code-reviewer"
         },
         {
           "severity": "medium",
           "category": "correctness",
-          "file": "folder-tree.css",
-          "line": null,
-          "finding": "Shared density rules also restyle Files & Terminal tree (intended by spec; visual baselines may shift).",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "readability",
-          "file": "folder-tree.css",
-          "line": null,
-          "finding": "Hardcoded colors in new CSS.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "FolderTreeRow.tsx",
-          "line": null,
-          "finding": "Mouse click on ... opens the touch sheet.",
-          "suggestion": null,
+          "file": "client/src/components/external/FolderTree.tsx",
+          "line": 129,
+          "finding": "copyText without preserveFocus: focus lost to body after execCommand fallback.",
+          "suggestion": "Pass {preserveFocus:true}.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": "folder-tree.css",
-          "line": null,
-          "finding": "Focus ring clipped by scroll container.",
-          "suggestion": null,
+          "file": "client/src/components/external/FolderTreeRow.tsx",
+          "line": 97,
+          "finding": "'...' button picks menu vs sheet via nativeEvent.pointerType==='mouse'; may show sheet at (0,0) for keyboard/old WebKit. Long-press timer not cleared on unmount; longPressed flag can swallow a click.",
+          "suggestion": "Record pointerType in onPointerDown; useEffect cleanup.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": "FolderTreeMenu.tsx",
-          "line": null,
-          "finding": "aria-labelledby on empty trigger may leave menu unnamed.",
-          "suggestion": null,
+          "file": "client/src/components/external/folderTreePaths.ts",
+          "line": 19,
+          "finding": "Windows root with forward slashes gives mixed separators.",
+          "suggestion": "Normalise root.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": "FolderTreeRow.tsx",
-          "line": null,
-          "finding": "Long-press guard when contextmenu is a MouseEvent.",
-          "suggestion": null,
+          "file": "client/src/styles/folder-tree.css",
+          "line": 69,
+          "finding": "Sheet lacks safe-area inset; '...' misplaced with folder error; aria-live repeat not announced.",
+          "suggestion": "Minor polish.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
-          "category": "readability",
-          "file": "FolderTree.tsx",
-          "line": null,
-          "finding": "setTimeout inside setState updater.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "FolderTreeRow.tsx",
-          "line": null,
-          "finding": "Double dimming of ignored rows.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "folderTreePaths.ts",
-          "line": null,
-          "finding": "relativeTreePath identity helper.",
-          "suggestion": null,
+          "category": "architecture",
+          "file": "client/package.json",
+          "line": 29,
+          "finding": "test:e2e:chromium script is scope creep; test leaks execCommand stub; touch sizing split between two CSS files.",
+          "suggestion": "Follow-up.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T14:42:28.034722+00:00",
+      "completed_at": "2026-10-31T15:58:03.652483+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "6ae4ea3319ac483b1eb964c2856613d805ad551d"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 8,
+      "findings_count": 4,
       "findings": [
         {
           "severity": "medium",
-          "category": null,
-          "file": null,
+          "category": "blast radius",
+          "file": "client/src/pages/TaskDetailPage.tsx",
           "line": null,
-          "finding": "Claim under doubt: keyboard path opens exactly one menu — Windows Menu key fires native contextmenu on keyup; content lacks preventDefault",
-          "suggestion": "add onContextMenu preventDefault on content (fixed)",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: rAF-deferred copy keeps the gesture on iOS/WebKit — same rAF pattern as lib/clipboard.ts consumers; unverified on real iOS",
-          "suggestion": "real-device check (not possible here; disclosed)",
+          "finding": "Claim under doubt: Files & Terminal not wired so V5 is local — Shared FolderTree: Files & Terminal also gets 15px rows, ignored style, footer, '...' button and menu; Copy Path permanently disabled there (no projectRoot).",
+          "suggestion": "Gate, wire projectRoot, or document. DISPOSITION: in scope per mockup README row 14 (restyle applies in Files & Terminal); Copy Path disabled there is a known limitation reported as follow-up.",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": null,
-          "file": null,
+          "category": "contract",
+          "file": ".shipwright/planning/01-adopted/spec.md",
           "line": null,
-          "finding": "Claim under doubt: unmount during copy is safe — toast timer started after unmount",
-          "suggestion": "mounted ref (fixed)",
+          "finding": "Claim under doubt: affected_frs FR-01.66 complete — FR-01.02 owns Files & Terminal tree; not listed.",
+          "suggestion": "Add FR-01.02 clause (follow-up).",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": null,
-          "file": null,
+          "category": "concurrency",
+          "file": "client/src/components/external/FolderTreeRow.tsx",
           "line": null,
-          "finding": "Claim under doubt: retargeting an open menu re-anchors — Root not keyed",
-          "suggestion": "key Root by target (fixed)",
+          "finding": "Claim under doubt: clipboard rAF OK on iOS; long-press timer safe — iOS gesture window; timer not cleared on unmount.",
+          "suggestion": "Device test / cleanup (follow-up).",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": null,
-          "file": null,
+          "category": "blast radius",
+          "file": "shipwright_events.jsonl",
           "line": null,
-          "finding": "Claim under doubt: mouse ... click always opens anchored menu — pointerType undefined on click in some engines",
-          "suggestion": "accepted: degrades to sheet",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: Open in Viewer routes folders vs files — relookup ignored target.kind",
-          "suggestion": "pass kind (fixed)",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: toast positioned correctly in both variants — .ft-card lacks position:relative",
-          "suggestion": "add .ft-files relative (fixed)",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "Claim under doubt: keyboard-opened menu immediately navigable — no highlighted item until ArrowDown",
-          "suggestion": "accepted",
+          "finding": "Claim under doubt: events line is plain append — Line inserted mid-file by merge=union merge.",
+          "suggestion": "Benign merge artifact.",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T14:47:46.379607+00:00",
+      "completed_at": "2026-10-31T15:58:03.809602+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "afe84c8b523a42eb880e72f92ed35fc15bc1dd8e"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -464,14 +388,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T14:35:47.401372+00:00",
+      "completed_at": "2026-10-31T15:58:03.522299+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "6ae4ea3319ac483b1eb964c2856613d805ad551d"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
