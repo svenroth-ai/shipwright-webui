@@ -286,18 +286,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "completed",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T14:30:47.815021+00:00",
-      "disposition": null,
+      "completed_at": "2026-10-31T16:25:23.782214+00:00",
+      "disposition": "Stage-1 REJECTED at 3f-bis: (1) no hanging indent for wrapped continuation lines (Scope + mockup Board 9); (2) contradiction: Scope/mockup assume a line-number gutter, viewer has none - a person must decide add numbers vs drop clause; (3) work_completed spec_impact none/behavior-preserving wrong (visible default wrap, new Wrap lines control, persisted pref, 13px font), affected_frs should be FR-01.02 not FR-01.35, no spec.md change. Unit held; PR left open.",
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "e8c48b493845e748277e6b21c5f2b2df0129456c"
+      "reason_code": "stage-1-rejected"
     },
     "plan_internal": {
       "review_type": "plan_internal",
