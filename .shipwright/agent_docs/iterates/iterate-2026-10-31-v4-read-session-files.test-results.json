@@ -1,0 +1,99 @@
+{
+  "last_updated": "2026-10-31",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-31-v4-read-session-files",
+    "date": "2026-10-31",
+    "unit": {
+      "status": "passed",
+      "passed": 4883,
+      "total": 4897,
+      "skipped": 14
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Inside the registered project root: relative and absolute paths served; traversal/NUL/empty rejected; symlink/junction leaving the root rejected",
+          "disposition": "tested",
+          "evidence": "external/session-file/routes.test.ts PASSED"
+        },
+        {
+          "behavior": "Outside the project only with session evidence: Write output, assistant text, user text, Bash tool call",
+          "disposition": "tested",
+          "evidence": "routes.test.ts evidence tests PASSED"
+        },
+        {
+          "behavior": "tool_result, bash/local-command output, isMeta and compact-summary records never count; other task's transcript grants nothing",
+          "disposition": "tested",
+          "evidence": "routes.test.ts + routes.scoping.test.ts PASSED"
+        },
+        {
+          "behavior": "Whole-path matching: sibling extension, parent dir, +/@/%/#/$ and shell prefixes do not evidence",
+          "disposition": "tested",
+          "evidence": "routes.test.ts + session-file.unit.test.ts PASSED"
+        },
+        {
+          "behavior": "Credential locations refused (.ssh, prod.env, hosts.yml, mcp.json, .claude.json); project scope keeps ordinary auth.json/hosts.yml",
+          "disposition": "tested",
+          "evidence": "routes.test.ts + routes.scoping.test.ts + unit PASSED"
+        },
+        {
+          "behavior": "Symlink hop needs real target named; directory never listed; 404 only after evidence; UNC/foreign drive paths invalid; Windows case/slash insensitive",
+          "disposition": "tested",
+          "evidence": "routes.test.ts PASSED"
+        },
+        {
+          "behavior": "415 binary/NUL, 413 over 5 MB, read-only (transcript untouched), non-ASCII/CRLF/BOM transcript",
+          "disposition": "tested",
+          "evidence": "routes.test.ts PASSED"
+        },
+        {
+          "behavior": "Scan queue: failing scan does not poison the next; parallel calls resolve; no cwd root",
+          "disposition": "tested",
+          "evidence": "session-file.unit.test.ts + routes.scoping.test.ts PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 8,
+        "tested": 8,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

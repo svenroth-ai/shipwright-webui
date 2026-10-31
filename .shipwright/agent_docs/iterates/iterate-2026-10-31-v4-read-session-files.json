@@ -1,0 +1,88 @@
+{
+  "run_id": "iterate-2026-10-31-v4-read-session-files",
+  "date": "2026-10-31T14:50:29.289842Z",
+  "event_at": "2026-10-31T14:50:15.734685+00:00",
+  "type": "feature",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/campaign-mission-desktop-style-v2--V4",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-31-v4-read-session-files",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Inside the registered project root: relative and absolute paths served; traversal/NUL/empty rejected; symlink/junction leaving the root rejected",
+        "disposition": "tested",
+        "evidence": "external/session-file/routes.test.ts PASSED"
+      },
+      {
+        "behavior": "Outside the project only with session evidence: Write output, assistant text, user text, Bash tool call",
+        "disposition": "tested",
+        "evidence": "routes.test.ts evidence tests PASSED"
+      },
+      {
+        "behavior": "tool_result, bash/local-command output, isMeta and compact-summary records never count; other task's transcript grants nothing",
+        "disposition": "tested",
+        "evidence": "routes.test.ts + routes.scoping.test.ts PASSED"
+      },
+      {
+        "behavior": "Whole-path matching: sibling extension, parent dir, +/@/%/#/$ and shell prefixes do not evidence",
+        "disposition": "tested",
+        "evidence": "routes.test.ts + session-file.unit.test.ts PASSED"
+      },
+      {
+        "behavior": "Credential locations refused (.ssh, prod.env, hosts.yml, mcp.json, .claude.json); project scope keeps ordinary auth.json/hosts.yml",
+        "disposition": "tested",
+        "evidence": "routes.test.ts + routes.scoping.test.ts + unit PASSED"
+      },
+      {
+        "behavior": "Symlink hop needs real target named; directory never listed; 404 only after evidence; UNC/foreign drive paths invalid; Windows case/slash insensitive",
+        "disposition": "tested",
+        "evidence": "routes.test.ts PASSED"
+      },
+      {
+        "behavior": "415 binary/NUL, 413 over 5 MB, read-only (transcript untouched), non-ASCII/CRLF/BOM transcript",
+        "disposition": "tested",
+        "evidence": "routes.test.ts PASSED"
+      },
+      {
+        "behavior": "Scan queue: failing scan does not poison the next; parallel calls resolve; no cwd root",
+        "disposition": "tested",
+        "evidence": "session-file.unit.test.ts + routes.scoping.test.ts PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 8,
+      "covered_acs": 8
+    }
+  },
+  "surface_verification": {
+    "surface": "none",
+    "runner": "",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-10-31T14:49:52.552Z",
+    "attempts": 0,
+    "justification": "Server-only read-only route with no UI consumer yet (client wiring is a later campaign unit); behavior proven by 62 route/unit tests against real temp dirs, junctions and synthetic session JSONL, plus the full server suite (4883 passed).",
+    "reason_code": "no-startable-surface"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_auth",
+    "touches_io_boundary",
+    "touches_public_api"
+  ]
+}

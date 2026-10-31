@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-31-v4-read-session-files",
+  "date": "2026-10-31",
+  "section": "Iterate - feat: session-evidenced file read route",
+  "title": "Read files outside the project only when the session evidences them",
+  "context": "Mission UI must open outputs and chat file chips that live outside the project, but the WebUI is reachable over Tailscale, so any-file read would expose ~/.ssh, tokens and .env.",
+  "decision": "Add GET /tasks/:id/session-file: inside the registered project root (path-guard, one realpath), or outside it only when this task's session names the whole path in chat text or a tool_use input, or as a Write/Edit output; credential names always refused.",
+  "consequences": "Evidence is the newest 48MB of the transcript (older mentions fail closed, reported as evidence_window_truncated); one serialized scan per request, no cache; residuals: file replaced at an evidenced path, hardlinks, spaces in quoted names.",
+  "rationale": "Smallest gate satisfying the agreed design decision (Output, chat, tool call). External and internal reviews tightened it: task cwd is never a root, command output and meta records are not evidence, evidence before realpath.",
+  "rejected": "Any absolute path (exposes secrets); outputs-only evidence (spec requires chat and tool-call mentions); no denylist (kept as defense in depth); memoized evidence (rule 4 spirit, deferred).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

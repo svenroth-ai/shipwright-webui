@@ -1,0 +1,10 @@
+{"section":"V4-read-session-files-server","review":[
+{"severity":"high","category":"security","finding":"task cwd became an evidence-free root (home dir / drive root); fixed: only the registered project root is a root, no cwd fallback"},
+{"severity":"medium","category":"security","finding":"bash-stdout / local-command output, isMeta and compact-summary records counted as evidence; fixed: excluded, regression tests"},
+{"severity":"medium","category":"security","finding":"before/after boundary sets differed (+ @ % # $); fixed, tests"},
+{"severity":"medium","category":"performance","finding":"per-request 48MB scan unbounded concurrency; fixed: serialized queue + 20s timeout; no memo (rule 4 spirit), accepted"},
+{"severity":"low","category":"security","finding":"denylist gaps; widened, scoped project vs outside"},
+{"severity":"low","category":"correctness","finding":"file:// prefix not matched; accepted (fail-closed)"},
+{"severity":"low","category":"architecture","finding":"lexicallyUnder duplicates path-guard escape rule; accepted, single-resolution reason documented"},
+{"severity":"low","category":"readability","finding":"boolean ternary and doc-comment placement; fixed"},
+{"severity":"low","category":"correctness","finding":"test gaps (safe-read unit, 8.3 names, junction swap race); partly added, ancestor-swap race test not added"}]}

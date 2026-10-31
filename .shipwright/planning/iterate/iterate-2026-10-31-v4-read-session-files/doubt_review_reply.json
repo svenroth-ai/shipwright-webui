@@ -1,0 +1,8 @@
+{"stage":"doubt","doubts":[
+{"severity":"high","claim_under_doubt":"outside the project only with evidence; task.cwd fallback root contradicted it; fixed (no cwd root) + test"},
+{"severity":"high","claim_under_doubt":"command output never evidence; user-string records leaked it; fixed (stripSections, isMeta, isCompactSummary) + tests"},
+{"severity":"medium","claim_under_doubt":"denylist covers allowlisted secrets; widened (outside scope broad, project scope small)"},
+{"severity":"medium","claim_under_doubt":"per-request scan DoS and realpath-before-evidence; fixed: serialized queue + timeout, evidence before realpath"},
+{"severity":"medium","claim_under_doubt":"round 2: project-scope denylist false positives (auth.json, hosts.yml); fixed with a small project list + test"},
+{"severity":"low","claim_under_doubt":"NTFS per-directory case sensitivity, hardlinks, replaced file, space in quoted names, shell-prefix suffix matches (partly closed); accepted residuals"},
+{"severity":"low","claim_under_doubt":"queue head-of-line blocking; 20s timeout added; client must not retry 403"}]}
