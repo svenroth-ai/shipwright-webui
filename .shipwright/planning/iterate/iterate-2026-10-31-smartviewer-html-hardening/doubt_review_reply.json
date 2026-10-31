@@ -1,0 +1,47 @@
+{
+ "stage": "doubt",
+ "gating": "advisory-must-address",
+ "doubts": [
+  {
+   "severity": "high",
+   "lens": "boundary & contract / blast radius",
+   "claim_under_doubt": "The sandbox still keeps an opened HTML file away from the project's other files, and inlining only reads stylesheets.",
+   "disproof_attempt": "Any relative href with rel containing 'stylesheet' is fetched with no extension check; the body is injected as <style> text into a scripted iframe whose CSP allows img-src https:, so a hostile board.html with <link rel=stylesheet href=\".env\"> plus a script can read and exfiltrate any project text file up to 1 MB.",
+   "file": "client/src/components/external/SmartViewer/htmlInlineStyles.ts:41-48,83",
+   "what_would_resolve_it": "Restrict inlined hrefs to a .css extension, refuse dotfile segments, add a test that href=.env is never fetched; or correct the 'untrusted' wording."
+  },
+  {
+   "severity": "medium",
+   "lens": "concurrency & ordering (ReDoS)",
+   "claim_under_doubt": "mask() is safe over arbitrary HTML up to 1 MB.",
+   "disproof_attempt": "MASKED is a lazy scan from every opening token; with a missing closer each start scans to EOF (O(n^2)): '<style'.repeat(150000) freezes the UI thread inside the effect.",
+   "file": "client/src/components/external/SmartViewer/htmlInlineStyles.ts:28,51-53",
+   "what_would_resolve_it": "Replace with a single linear scanner using indexOf; unclosed element masks to EOF; add a perf test."
+  },
+  {
+   "severity": "low",
+   "lens": "boundary & contract",
+   "claim_under_doubt": "Only real <link> elements are rewritten and the replacement is positionally exact.",
+   "disproof_attempt": "LINK_TAG ends at the first '>' even inside a quoted attribute; link-shaped text in another tag's attribute is not masked; \b over-masks '<style-guide>' / '<title-x>'; an unclosed <script> is left unmasked.",
+   "file": "client/src/components/external/SmartViewer/htmlInlineStyles.ts:26,28,95-96",
+   "what_would_resolve_it": "Use (?=[\\s>/]) instead of \b and make LINK_TAG quote-aware, or document as best-effort."
+  },
+  {
+   "severity": "low",
+   "lens": "concurrency & ordering",
+   "claim_under_doubt": "The iframe is always eventually shown.",
+   "disproof_attempt": "showFrame stays false until inlineLinkedStyles settles; Promise.all over fetchText has no timeout or abort, so one hung stylesheet request leaves 'Loading...' forever.",
+   "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx:65-88",
+   "what_would_resolve_it": "Per-fetch timeout (~5 s) resolving null; add an AbortController."
+  },
+  {
+   "severity": "info",
+   "lens": "concurrency & ordering",
+   "claim_under_doubt": "The user can never see another file's or project's styles.",
+   "disproof_attempt": "Could not break it: sameTarget compares projectId and path; A->B->A is safe; the cancelled flag stops late results; '</style' and media-attribute breakout are neutralised; resolveDocPath clamps '..'.",
+   "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx:83-88",
+   "what_would_resolve_it": "Nothing required."
+  }
+ ],
+ "summary": "Must address: (1) HIGH project text file readable into a scripted iframe via rel=stylesheet and exfiltratable via img-src https:. (2) MEDIUM quadratic ReDoS in mask(). Low: quote-unaware LINK_TAG, \b over-masking, no fetch timeout. Could not disprove: stale-state keying, </style and media breakout, path traversal."
+}

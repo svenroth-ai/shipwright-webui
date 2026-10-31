@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Adds the missing unit + E2E coverage and the header doc for the HTML stylesheet inlining and pop-out shipped in #551; no new behaviour."},
+{"name":"Error Handling","verdict":"pass","note":"Covered by test: unreadable stylesheet falls back to the raw html; inlining never throws into the render path."},
+{"name":"Security Basics","verdict":"pass","note":"No production code change; sandbox and CSP untouched; tests assert a </style breakout stays escaped and traversal hrefs clamp to the project root."},
+{"name":"Test Quality","verdict":"pass","note":"Behaviour asserted via srcdoc content, rendered computed colour in real Chromium (inline + modal), and stale-result handling on path change."},
+{"name":"Performance Basics","verdict":"pass","note":"No production code change."},
+{"name":"Naming & Structure","verdict":"pass","note":"Existing spec/test files extended; header comment re-wrapped under 80 cols; files under 300 lines."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized format touched."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py: no findings."}]}
