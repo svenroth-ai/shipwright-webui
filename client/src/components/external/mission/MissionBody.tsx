@@ -113,9 +113,8 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     context,
   });
   const agents = useMissionAgents(task.taskId, task.state, model.feed.cards);
-  const closeAgents = agents.setOpen;
   // V6: a chat file chip opens the Viewer in the info sidebar (not behind the Agents window).
-  const showViewer = useCallback(() => { setCompactPanel("info"); closeAgents(false); }, [closeAgents]);
+  const showViewer = useCallback(() => { setCompactPanel("info"); agents.setOpen(false); }, [agents.setOpen]);
   const { fileOpen, request: viewerRequest } = useMissionFileOpen(task, showViewer);
   // A work-completed run can truthfully be terminal before its commit/PR has
   // been recorded. The final feed card still opens that delivery detail (which
