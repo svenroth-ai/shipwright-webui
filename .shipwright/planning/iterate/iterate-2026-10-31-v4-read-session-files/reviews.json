@@ -134,7 +134,7 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 1,
+      "findings_count": 2,
       "findings": [
         {
           "severity": "low",
@@ -144,10 +144,19 @@
           "finding": "Accepted residual risk: a scan that hits the 20 s timeout is not aborted; the queue moves on while the stalled read continues and pendingScans is already decremented, so stalled scans on a hung share can pile up beyond the cap.",
           "suggestion": "Follow-up: pass an AbortSignal into scanLines and abort on timeout, or hold the pendingScans slot until the scan settles.",
           "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/session-file/access.ts",
+          "line": 82,
+          "finding": "Final POSIX check (head 647f0d67): foreign-absolute guard was fixed for Linux CI; drive-form regex tightened to /^[A-Za-z]:([/\\]|$)/; CRED_JSON limited to outside scope (project scope keeps the small list). Nothing blocking.",
+          "suggestion": null,
+          "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T20:54:42.126441+00:00",
+      "completed_at": "2026-10-31T21:04:04.494979+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -155,7 +164,7 @@
       "model_tier": "opus",
       "transport": "agent",
       "verdict": "pass",
-      "reviewed_commit": "dc6032586ef1d513d056be58f72ad24795cdcb3d"
+      "reviewed_commit": "0debcb7f6345cbebae36287dcbaa6100bf894717"
     },
     "doubt": {
       "review_type": "doubt",
@@ -218,7 +227,7 @@
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T20:54:53.684412+00:00",
+      "completed_at": "2026-10-31T21:04:04.614340+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -226,7 +235,7 @@
       "model_tier": "opus",
       "transport": "agent",
       "verdict": "pass",
-      "reviewed_commit": "dc6032586ef1d513d056be58f72ad24795cdcb3d"
+      "reviewed_commit": "0debcb7f6345cbebae36287dcbaa6100bf894717"
     },
     "external_code": {
       "review_type": "external_code",
@@ -305,7 +314,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T20:54:42.018452+00:00",
+      "completed_at": "2026-10-31T21:04:04.361967+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
@@ -313,7 +322,7 @@
       "model_tier": "opus",
       "transport": "agent",
       "verdict": "pass",
-      "reviewed_commit": "dc6032586ef1d513d056be58f72ad24795cdcb3d"
+      "reviewed_commit": "0debcb7f6345cbebae36287dcbaa6100bf894717"
     },
     "plan_internal": {
       "review_type": "plan_internal",
