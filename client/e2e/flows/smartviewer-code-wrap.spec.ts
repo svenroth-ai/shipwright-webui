@@ -16,7 +16,7 @@ async function open(page: Page) {
 }
 
 test.describe("SmartViewer code wrap (V7)", () => {
-  // @covers FR-01.35
+  // @covers FR-01.02
   test("wraps by default, toggles to raw scroll, remembers choice, 13px/1.6", async ({ page }) => {
     await open(page);
     const pane = page.getByTestId("smart-viewer-code");
@@ -36,6 +36,21 @@ test.describe("SmartViewer code wrap (V7)", () => {
     // The long logical line really occupies several visual rows (not clipped).
     const rows = await code.evaluate((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
     expect(rows).toBeGreaterThan(4 + 2);
+    // Hanging indent: the long line starts flush, its wrapped rows sit ~2ch further right.
+    const lefts = await code.evaluate((el) => {
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const byTop = new Map<number, number>();
+      for (const q of Array.from(r.getClientRects())) {
+        if (q.width === 0) continue;
+        const t = Math.round(q.top);
+        byTop.set(t, Math.min(byTop.get(t) ?? Infinity, q.left));
+      }
+      const ch = parseFloat(getComputedStyle(el).fontSize) * 0.6;
+      return { rows: [...byTop.entries()].sort((a, b) => a[0] - b[0]).map((e) => e[1]), ch };
+    });
+    expect(lefts.rows[2] - lefts.rows[1]).toBeGreaterThan(lefts.ch);
+    expect(Math.abs(lefts.rows[1] - lefts.rows[0])).toBeLessThan(2);
     // Viewer stays dark.
     expect(await code.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(13, 17, 23)");
 

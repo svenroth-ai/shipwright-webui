@@ -254,7 +254,7 @@ describe("CodeRenderer wrap toggle (V7)", () => {
     window.localStorage.removeItem("shipwright:viewer-wrap-lines");
   });
 
-  // @covers FR-01.35
+  // @covers FR-01.02
   it("wraps by default and the toggle flips + persists aria-pressed", async () => {
     globalThis.fetch = vi.fn(
       async () => new Response("const x = 1;", { status: 200, headers: { "Content-Type": "text/plain" } }),
@@ -270,7 +270,7 @@ describe("CodeRenderer wrap toggle (V7)", () => {
     expect(window.localStorage.getItem("shipwright:viewer-wrap-lines")).toBe("false");
   });
 
-  // @covers FR-01.35
+  // @covers FR-01.02
   it("starts unwrapped when the stored preference is false", async () => {
     window.localStorage.setItem("shipwright:viewer-wrap-lines", "false");
     globalThis.fetch = vi.fn(
@@ -281,7 +281,14 @@ describe("CodeRenderer wrap toggle (V7)", () => {
     expect(btn.getAttribute("aria-pressed")).toBe("false");
   });
 
-  // @covers FR-01.35
+  // @covers FR-01.02
+  it("class fence: hanging indent for wrapped continuation rows", () => {
+    const css = readFileSync(resolve(__dirname, "../../styles/smart-viewer-code.css"), "utf8");
+    expect(css).toMatch(/\[data-wrap="true"\] pre code\s*\{[^}]*text-indent:\s*-2ch each-line/);
+    expect(css).toMatch(/\[data-wrap="true"\] pre code\s*\{[^}]*padding-left:\s*calc\(1em \+ 2ch\)/);
+  });
+
+  // @covers FR-01.02
   it("class fence: wrap rules + 13px/1.6 live on .smart-viewer-code", () => {
     const css = readFileSync(resolve(__dirname, "../../styles/smart-viewer-code.css"), "utf8");
     expect(css).toMatch(/\[data-wrap="true"\] pre[^{]*\{[^}]*white-space:\s*pre-wrap/);
