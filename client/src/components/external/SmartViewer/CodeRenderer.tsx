@@ -18,11 +18,9 @@
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import { common } from "lowlight";
-import { useState } from "react";
-import { getStored, setStored } from "../../../lib/localStorage";
+import { WrapToggleBar, useWrapLines } from "./WrapToggle";
 
-/** Per-browser memory of the "Wrap lines" toggle (default: wrap). */
-export const WRAP_STORAGE_KEY = "shipwright:viewer-wrap-lines";
+export { WRAP_STORAGE_KEY } from "./WrapToggle";
 
 const EXT_TO_LANG: Record<string, string> = {
   ts: "typescript",
@@ -60,12 +58,7 @@ interface Props {
 }
 
 export function CodeRenderer({ text, extension }: Props) {
-  const [wrap, setWrap] = useState<boolean>(() => getStored<boolean>(WRAP_STORAGE_KEY, true) !== false);
-  const toggleWrap = () => {
-    const next = !wrap;
-    setWrap(next);
-    setStored(WRAP_STORAGE_KEY, next);
-  };
+  const { wrap, toggleWrap } = useWrapLines();
   const lang = EXT_TO_LANG[extension.toLowerCase()] ?? "plaintext";
   // react-markdown is the simplest reliable path to rehype-highlight in a
   // React tree. We wrap the file content in a fenced code block so the
@@ -81,17 +74,7 @@ export function CodeRenderer({ text, extension }: Props) {
       data-language={lang}
       data-wrap={wrap ? "true" : "false"}
     >
-      <div className="sv-code-bar">
-        <button
-          type="button"
-          className="sv-wrap-toggle"
-          aria-pressed={wrap}
-          onClick={toggleWrap}
-          data-testid="smart-viewer-wrap-toggle"
-        >
-          Wrap lines
-        </button>
-      </div>
+      <WrapToggleBar wrap={wrap} onToggle={toggleWrap} />
       <ReactMarkdown
         rehypePlugins={[
           [

@@ -5,3 +5,5 @@
 Line numbers: the live viewer has none; not added.
 
 Deviation (Sven): the 'line numbers stay aligned' clause is dropped (no gutter exists/requested); replaced by a hanging indent (text-indent:-2ch each-line + padding-left:calc(1em+2ch)). spec_impact=modify FR-01.02.
+
+Scope update (orchestrator decision): TextRenderer (txt/log/csv) is in scope: shared WrapToggle.tsx (one stored preference), 13px/1.6, hanging indent, line number on first visual row only (gutter kept). Supersedes the earlier 'no gutter' deviation, which only held for the code view.

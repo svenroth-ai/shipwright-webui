@@ -282,6 +282,30 @@ describe("CodeRenderer wrap toggle (V7)", () => {
   });
 
   // @covers FR-01.02
+  it("text path: shared Wrap lines toggle, one stored preference with the code view", async () => {
+    window.localStorage.removeItem("shipwright:viewer-wrap-lines");
+    globalThis.fetch = vi.fn(
+      async () => new Response("a" + String.fromCharCode(10) + "b", { status: 200, headers: { "Content-Type": "text/plain" } }),
+    ) as unknown as typeof fetch;
+    render(<SmartViewer projectId="proj-a" path="notes.txt" />);
+    const btn = await screen.findByRole("button", { name: "Wrap lines" });
+    expect(btn.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByTestId("smart-viewer-text").getAttribute("data-wrap")).toBe("true");
+    fireEvent.click(btn);
+    expect(btn.getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByTestId("smart-viewer-text").getAttribute("data-wrap")).toBe("false");
+    expect(window.localStorage.getItem("shipwright:viewer-wrap-lines")).toBe("false");
+  });
+
+  // @covers FR-01.02
+  it("class fence: text view wraps with 13px/1.6, hanging indent, number cell separate", () => {
+    const css = readFileSync(resolve(__dirname, "../../styles/smart-viewer-code.css"), "utf8");
+    expect(css).toMatch(/\.smart-viewer-text\s*\{[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.6/);
+    expect(css).toMatch(/\.smart-viewer-text\[data-wrap="true"\]\s*\{[^}]*white-space:\s*pre-wrap/);
+    expect(css).toMatch(/\.sv-text-body\s*\{[^}]*padding-left:\s*2ch;[^}]*text-indent:\s*-2ch/);
+  });
+
+  // @covers FR-01.02
   it("class fence: hanging indent for wrapped continuation rows", () => {
     const css = readFileSync(resolve(__dirname, "../../styles/smart-viewer-code.css"), "utf8");
     expect(css).toMatch(/\[data-wrap="true"\] pre code\s*\{[^}]*text-indent:\s*-2ch each-line/);

@@ -72,3 +72,38 @@
 }
 .sv-wrap-toggle:focus-visible { outline: none; box-shadow: var(--focus); }
 @media (pointer: coarse) { .sv-wrap-toggle { min-height: 44px; } }
+
+/* Plain-text view (TextRenderer): same wrap preference, 13px/1.6, gutter line
+ * numbers on the first visual row only, continuation rows hang 2ch. */
+.smart-viewer-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.smart-viewer-text .sv-text-line {
+  display: grid;
+  grid-template-columns: 3.5ch 1fr;
+  column-gap: 14px;
+}
+.smart-viewer-text .sv-text-ln {
+  align-self: start; /* the number sits on the first visual row only */
+}
+.smart-viewer-text .sv-text-body {
+  min-width: 0;
+}
+.smart-viewer-text[data-wrap="true"] {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.smart-viewer-text[data-wrap="true"] .sv-text-body {
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+.smart-viewer-text[data-wrap="false"] {
+  width: max-content;
+  min-width: 100%;
+  white-space: pre;
+}
