@@ -203,6 +203,7 @@ test.describe("Triage compliance file viewer", () => {
     await expect(page.getByTestId("triage-file-panel-close")).toBeInViewport();
   });
 
+  // @covers FR-01.02
   test("a long, wide .py file scrolls both vertically and horizontally instead of being clipped (iterate-2026-08-30-triage-file-viewer-followups)", async ({
     page,
     request,
