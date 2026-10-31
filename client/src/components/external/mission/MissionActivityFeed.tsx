@@ -1,9 +1,11 @@
-import { useRef, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import { useAutoScroll } from "../../../hooks/useAutoScroll";
 import type { ActivityFeed } from "../../../lib/missionActivityFeed";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
 import type { ExternalTask } from "../../../lib/externalApi";
 import { FeedCard } from "./MissionActivityFeedCard";
+import { RunResultCard } from "./RunResultCard";
+import { groupRunResult } from "../../../lib/missionActivityFeedResult";
 import { formatSessionStart } from "./MissionActivityFeedCardParts";
 
 interface Props {
@@ -59,6 +61,8 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
   // TO this compact panel re-pins to bottom too — see the prop's own doc
   // comment for why the mount-time re-pin alone is a no-op on a phone.
   useAutoScroll(scrollRef, `${feed.cards.length}:${visible}`);
+  // V2: the evidence-only "Open tests/requirement/…" cards fold into one "Run result" card.
+  const items = useMemo(() => groupRunResult(feed.cards), [feed.cards]);
 
   return <section className="mc-op mc-feed" data-testid="operation-card" data-live="true">
     <header className="mc-feed-pinned">
@@ -72,7 +76,15 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
       )}
       {feed.cards.length === 0 ? (
         <div className="mc-hero-empty">Waiting — nothing reliable has appeared yet.</div>
-      ) : feed.cards.map((card, index) => {
+      ) : items.map((item) => {
+        if (item.type === "result") {
+          return (
+            <div className="mc-feed-entry" data-entry-kind="result" key="run-result">
+              <RunResultCard rows={item.rows} delivery={item.delivery} onArtifactClick={onArtifactClick} commitArtifact={commitArtifact} />
+            </div>
+          );
+        }
+        const { card, index } = item;
         // Not just `${kind}-${index}` (doubt-review catch, iterate-2026-09-
         // 05-mission-feed-ux-gaps): a retry/recovery resolution can splice a
         // card out of the middle of this array between polls, shifting

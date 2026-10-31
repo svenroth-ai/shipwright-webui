@@ -1,0 +1,60 @@
+import { normalizeUserTextContent } from "./skill-body";
+
+/*
+ * Hand-back fingerprint (campaign mission-desktop-style-v2, V2).
+ *
+ * The CLI delivers a subagent's final report (and any message from another
+ * session) to the parent as a USER-role record, so a naive renderer shows it
+ * as something the human typed ("ich"). Real shapes, measured on disk:
+ *
+ *   Another Claude session sent a message[ while you were working]:
+ *   <agent-message from="a798d6e7922ba0bd9">
+ *   [Subagent hand-back] <English framing …> The report follows:
+ *     <report, every line indented by two spaces>
+ *   </agent-message>
+ *
+ *   That "other Claude session" is an agent working inside this same session …
+ *
+ * The framing is harness boilerplate: hidden. The UI shows its own notice.
+ * Detection is any of: leading header phrase, an `<agent-message from="…">`
+ * envelope, or the `[Subagent hand-back]` marker. Only TEXT blocks are read
+ * (never tool_result content), so quoting this text in a tool output cannot
+ * reclassify a record.
+ */
+
+export type HandbackOrigin = "subagent" | "session";
+
+const HEADER = "Another Claude session sent a message";
+const MARKER = "[Subagent hand-back]";
+const ENVELOPE_OPEN = /<agent-message\s+from="([^"]*)"\s*>/;
+const ENVELOPE_CLOSE = "</agent-message>";
+const REPORT_FOLLOWS = "The report follows:";
+const OVERSIZE_REJECT = 2_000_000;
+
+export function detectHandback(content: unknown): { sender: string; origin: HandbackOrigin; text: string } | null {
+  const raw = normalizeUserTextContent(content);
+  if (raw == null || raw.length > OVERSIZE_REJECT) return null;
+  const text = raw.replace(/\r\n/g, "\n");
+  const envelope = ENVELOPE_OPEN.exec(text);
+  const isMarked = text.includes(MARKER);
+  if (!text.trimStart().startsWith(HEADER) && !envelope && !isMarked) return null;
+
+  let body = text;
+  if (envelope) {
+    const start = envelope.index + envelope[0].length;
+    const end = text.lastIndexOf(ENVELOPE_CLOSE);
+    body = text.slice(start, end < start ? undefined : end);
+  } else if (text.trimStart().startsWith(HEADER)) {
+    const nl = text.indexOf("\n");
+    body = nl < 0 ? "" : text.slice(nl + 1);
+  }
+
+  const markerAt = body.indexOf(MARKER);
+  if (markerAt >= 0) {
+    const followsAt = body.indexOf(REPORT_FOLLOWS, markerAt);
+    body = followsAt >= 0 ? body.slice(followsAt + REPORT_FOLLOWS.length) : body.slice(markerAt + MARKER.length);
+    // The harness indents every report line by two spaces; undo that.
+    body = body.replace(/^\n/, "").replace(/^ {2}/gm, "");
+  }
+  return { sender: envelope?.[1] ?? "", origin: isMarked ? "subagent" : "session", text: body.trim() };
+}

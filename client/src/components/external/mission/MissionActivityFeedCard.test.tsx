@@ -189,7 +189,7 @@ describe("FeedCard — card.explanation renders as markdown (reported: a turn's 
 describe("FeedCard — subrunner card rendering", () => {
   it("running: shows the pulsing-dot indicator, no report link", () => {
     renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "t1", subrunnerStatus: "running" });
-    expect(screen.getByText("Running…")).toBeInTheDocument();
+    expect(screen.getByText(/Subagent · running/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "View subrunner report" })).not.toBeInTheDocument();
   });
 
@@ -206,8 +206,8 @@ describe("FeedCard — subrunner card rendering", () => {
   it("resolved: shows the readable dispatch title as visible text next to a compact (non-oversized) status link", () => {
     const { container } = renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "agent-42", subrunnerStatus: "done", subrunnerReport: "Fixed it." }, vi.fn());
     expect(screen.getByText("Investigate the auth bug")).toBeInTheDocument();
-    // The glyph sits INSIDE the .mc-story-link, whose CSS sizes svg to 1em (line size).
-    expect(container.querySelector(".mc-story-link svg")).not.toBeNull();
+    // V2: the action is the compact .mc-result-btn ("Report") inside the .mc-sub row.
+    expect(container.querySelector(".mc-sub .mc-result-btn")).toHaveTextContent("Report");
   });
 
   it("resolved with no click handler wired: falls back to rendering the report inline", () => {

@@ -15,6 +15,8 @@ import { FeedCommands } from "./MissionActivityFeedCommands";
 import { AskAnswerCards } from "./MissionAskCards";
 import { ExpandToggle, mergeStateLabel, pillLabel } from "./MissionActivityFeedCardParts";
 import { stripDuplicateSentence } from "../../../lib/missionActivityFeedText";
+import { HandbackCard } from "../HandbackCard";
+import { SubrunnerRow } from "./SubrunnerRow";
 
 export function FeedCard({
   card,
@@ -38,6 +40,25 @@ export function FeedCard({
   task: ExternalTask;
 }) {
   const [detailExpanded, setDetailExpanded] = useState(false);
+
+  // V2: a delegated subagent is its own compact row, a hand-back its own left card.
+  if (card.kind === "subrunner") {
+    return <SubrunnerRow card={card} onSubrunnerClick={onSubrunnerClick} canOpenAgent={canOpenAgent} />;
+  }
+  if (card.kind === "handback") {
+    const sender = card.handbackSender ?? "";
+    return (
+      <HandbackCard
+        className="mc-feed-card"
+        tableWrap
+        origin={card.handbackOrigin ?? "session"}
+        sender={sender}
+        text={card.text}
+        title={card.handbackTitle}
+        onSenderClick={sender && onSubrunnerClick && canOpenAgent?.(sender) ? onSubrunnerClick : undefined}
+      />
+    );
+  }
 
   const pill = pillLabel(card);
   // Gate on artifact === "commit", not just kind === "delivery" (code review
@@ -164,36 +185,6 @@ export function FeedCard({
             </span>
           </span>
         </div>
-      )}
-
-      {/* A delegated subagent's own status/report affordance
-          (iterate-2026-09-26-mission-tab-subrunner). Running renders a
-          pulsing dot — motion tokens, no magic numbers (CLAUDE.md A20) —
-          that the global reduced-motion floor (`motion.css`) settles to its
-          final visible frame, never hidden content. Done/failed open the
-          right-side panel via `onSubrunnerClick`, worded distinctly (external
-          code review, openai, medium: "the same button whether they
-          succeeded or failed" made the done/failed distinction invisible) —
-          a caller that never wires that prop up renders the report inline
-          instead, since there is then nothing a click could open. */}
-      {card.kind === "subrunner" && (
-        card.subrunnerStatus === "running" ? (
-          <>
-            <p className="mc-feed-subrunner-status" data-status="running">
-              <span className="mc-feed-subrunner-dot" aria-hidden="true" />Running…
-            </p>
-            {card.subrunnerId && onSubrunnerClick && canOpenAgent?.(card.subrunnerId) ? (
-              <button type="button" className="mc-story-link" onClick={() => onSubrunnerClick(card.subrunnerId!)}>View agent</button>
-            ) : null}
-          </>
-        ) : card.subrunnerId && onSubrunnerClick ? (
-          <button type="button" className="mc-story-link" onClick={() => onSubrunnerClick(card.subrunnerId!)}>
-            {card.subrunnerStatus === "failed" ? <XIcon /> : <CheckIcon />}
-            {card.subrunnerStatus === "failed" ? (card.subrunnerEndStatus ? `View failure details (${card.subrunnerEndStatus})` : "View failure details") : card.subrunnerEndStatus ? `View subrunner report (${card.subrunnerEndStatus})` : "View subrunner report"}
-          </button>
-        ) : card.subrunnerReport ? (
-          <MarkdownChunk content={card.subrunnerReport} />
-        ) : null
       )}
 
       {card.artifact && onArtifactClick ? <button type="button" className="mc-story-link" onClick={() => onArtifactClick(card.artifact!)}>Open {card.artifact}</button> : null}

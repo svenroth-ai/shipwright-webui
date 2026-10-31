@@ -1,0 +1,27 @@
+/**
+ * A subagent's hand-back (or another session's message) as its own LEFT feed
+ * card — never the human's bubble (campaign mission-desktop-style-v2 V2). The
+ * parser (`external/parsers/handback.ts`) has already stripped the English
+ * framing; here the sender id is matched to the dispatching subrunner card so
+ * the card can carry the delegated work's title.
+ */
+import type { HandbackEvent } from "../external/session-parser";
+import { explanationExcerpt } from "./missionActivityFeedText";
+import type { ActivityCard } from "./missionActivityFeedTypes";
+
+export function buildHandbackCard(event: HandbackEvent, cards: readonly ActivityCard[]): ActivityCard | null {
+  if (!event.text.trim()) return null;
+  const dispatch = event.sender
+    ? cards.find((c) => c.kind === "subrunner" && c.subrunnerId === event.sender)
+    : undefined;
+  const bounded = explanationExcerpt(event.text, Infinity, Infinity);
+  return {
+    kind: "handback",
+    text: bounded,
+    commands: [],
+    timestamp: event.timestamp,
+    handbackSender: event.sender,
+    handbackOrigin: event.origin,
+    handbackTitle: dispatch?.text,
+  };
+}
