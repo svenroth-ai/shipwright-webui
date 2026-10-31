@@ -5,10 +5,18 @@
  * Security: the file is untrusted content. The iframe is sandboxed WITHOUT
  * `allow-same-origin`, so it gets an opaque origin and can never reach the
  * webui's cookies, storage or /api. Scripts may run (boards are interactive),
- * but an injected CSP forbids fetch/XHR/WebSocket connections and form submission, so
- * a rendered page cannot save anything back to the app. It can still make outbound
- * requests (https images/fonts, navigation, popups): the origin is opaque, so only the file's own content is at stake. Links open in a new tab
- * (`allow-popups` + `allow-popups-to-escape-sandbox`, `<base target=_blank>`).
+ * but an injected CSP forbids fetch/XHR/WebSocket connections and form
+ * submission, so a rendered page cannot save anything back to the app. It can
+ * still make outbound requests (https images/fonts, navigation, popups): the
+ * origin is opaque, so only the file's own content is at stake. Links open in
+ * a new tab (`allow-popups` + `allow-popups-to-escape-sandbox`,
+ * `<base target=_blank>`).
+ *
+ * Styles: the srcdoc has no base URL, so a relative `<link rel=stylesheet>`
+ * can never load. With `projectId` + `path` the file's relative stylesheets
+ * are read through the project file API and inlined (see htmlInlineStyles);
+ * the iframe is held until that finishes so it loads once, already styled.
+ * `onPopOut` adds the Pop out control (the modal-nested instance omits it).
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -46,14 +54,19 @@ interface Props {
 
 export function HtmlRenderer({ text, projectId, path, onPopOut }: Props) {
   const [mode, setMode] = useState<"preview" | "source">("preview");
-  const [inlined, setInlined] = useState<{ source: string; path: string; html: string } | null>(null);
+  const [inlined, setInlined] = useState<{
+    source: string;
+    projectId: string;
+    path: string;
+    html: string;
+  } | null>(null);
   const wantsInline = Boolean(projectId && path);
 
   useEffect(() => {
     if (!projectId || !path) return;
     let cancelled = false;
     const done = (html: string) => {
-      if (!cancelled) setInlined({ source: text, path, html });
+      if (!cancelled) setInlined({ source: text, projectId, path, html });
     };
     inlineLinkedStyles(text, path, async (p) => (await fetchFileText(projectId, p)).text)
       .then(done)
@@ -64,11 +77,14 @@ export function HtmlRenderer({ text, projectId, path, onPopOut }: Props) {
   }, [text, projectId, path]);
 
   // Hold the iframe until the stylesheets are inlined: one load, no unstyled
-  // flash, and the page's scripts run once.
-  const ready = !wantsInline || (inlined?.source === text && inlined.path === path);
+  // flash, and the page's scripts run once. A result for ANOTHER project/file
+  // is never shown; when only `text` changed (same project + file) the previous
+  // frame stays up until the fresh result arrives, so it does not flash.
+  const sameTarget = inlined?.projectId === projectId && inlined?.path === path;
+  const showFrame = !wantsInline || sameTarget;
   const srcDoc = useMemo(
-    () => buildHtmlSrcDoc(wantsInline && inlined ? inlined.html : text),
-    [text, inlined, wantsInline],
+    () => buildHtmlSrcDoc(wantsInline && sameTarget && inlined ? inlined.html : text),
+    [text, inlined, wantsInline, sameTarget],
   );
 
   const tab = (value: "preview" | "source", label: string) => (
@@ -86,9 +102,11 @@ export function HtmlRenderer({ text, projectId, path, onPopOut }: Props) {
 
   return (
     <div className="flex h-full flex-col" data-testid="smart-viewer-html">
-      <div role="tablist" className="flex shrink-0 gap-1 border-b border-[var(--color-border,#e0dbd4)] px-2 py-1">
-        {tab("preview", "Preview")}
-        {tab("source", "Source")}
+      <div className="flex shrink-0 items-center gap-1 border-b border-[var(--color-border,#e0dbd4)] px-2 py-1">
+        <div role="tablist" className="flex gap-1">
+          {tab("preview", "Preview")}
+          {tab("source", "Source")}
+        </div>
         {onPopOut && (
           <button
             type="button"
@@ -103,7 +121,7 @@ export function HtmlRenderer({ text, projectId, path, onPopOut }: Props) {
         )}
       </div>
       <div className={`min-h-0 flex-1 ${mode === "preview" ? "overflow-hidden" : "overflow-auto"}`}>
-        {mode === "preview" && !ready ? (
+        {mode === "preview" && !showFrame ? (
           <div className="flex h-full items-center justify-center text-[12px] text-[var(--color-muted,#6b7280)]" data-testid="smart-viewer-html-loading">
             Loading…
           </div>
