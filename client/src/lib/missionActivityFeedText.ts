@@ -183,7 +183,7 @@ export function excerpt(content: string, maxLines = 4, maxChars = 320): string {
 export function explanationExcerpt(content: string, maxLines = 6, maxChars = 600): string {
   const allLines = stripC1Controls(stripBidiOverrides(stripControl(stripAnsi(content))))
     .split("\n")
-    .map((line) => line.replace(/\s+$/, ""));
+    .map((line) => line.trimEnd());
   const lines = allLines.slice(0, maxLines);
   const joined = lines.join("\n").trim();
   if (!joined) return "";
