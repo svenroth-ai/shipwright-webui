@@ -41,7 +41,7 @@ export function SubrunnerRow({
   const canClick = Boolean(id && onSubrunnerClick && (running ? canOpenAgent?.(id!) : true));
   const label = running ? "View" : "Report";
   const aria = running ? "View agent"
-    : failed ? (card.subrunnerEndStatus ? `View failure details (${card.subrunnerEndStatus})` : "View failure details")
+    : failed ? (card.subrunnerEndStatus ? `Report: failure details (${card.subrunnerEndStatus})` : "Report: failure details")
     : card.subrunnerEndStatus ? `View subrunner report (${card.subrunnerEndStatus})` : "View subrunner report";
   const pill = statePill(card);
   const meta = ["Subagent", card.subrunnerType, stateMeta(card)].filter(Boolean).join(" · ");
@@ -49,7 +49,7 @@ export function SubrunnerRow({
     <div className="mc-sub" data-kind="subrunner" data-testid="subrunner-row" data-status={card.subrunnerStatus}>
       <span className="mc-sub-ic"><AgentIcon /></span>
       <div className="mc-sub-main">
-        <span className="mc-sub-t">{card.text}</span>
+        <span className="mc-sub-t" title={card.text}>{card.text}</span>
         <span className="mc-sub-m mc-feed-subrunner-status" data-status={card.subrunnerStatus}>
           {running && <span className="mc-feed-subrunner-dot" aria-hidden="true" />}
           {meta}{running ? "…" : ""}

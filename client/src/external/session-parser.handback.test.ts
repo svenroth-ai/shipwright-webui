@@ -5,7 +5,7 @@
  * Fixture text mirrors REAL on-disk records (measured on a codextender session).
  */
 import { describe, it, expect } from "vitest";
-import { parseSessionJsonl, type HandbackEvent } from "./session-parser";
+import { parseSessionJsonl, toolResults, type HandbackEvent } from "./session-parser";
 import { detectHandback } from "./parsers/handback";
 import { summarizeTranscript } from "../lib/narrator-transcript";
 
@@ -102,6 +102,25 @@ describe("handback extraction details (external code review)", () => {
   // @covers FR-01.66
   it("an empty report still parses (the card must not vanish)", () => {
     expect(detectHandback(["Another Claude session sent a message:", '<agent-message from="a1">', "</agent-message>"].join("\n"))).toMatchObject({ sender: "a1", text: "" });
+  });
+});
+
+describe("review-round fixes", () => {
+  // @covers FR-01.66
+  it("a record that also carries a tool_result block stays user and the tool result still resolves", () => {
+    const mixed = [{ type: "tool_result", tool_use_id: "t1", content: "ok-output" }, { type: "text", text: REAL }];
+    expect(detectHandback(mixed)).toBeNull();
+    const { events } = parseSessionJsonl(line(mixed));
+    expect(events.some((e) => e.kind === "handback")).toBe(false);
+    expect(events[0].kind).toBe("user");
+    expect(toolResults(events[0] as never).map((r) => r.tool_use_id)).toEqual(["t1"]);
+  });
+
+  // @covers FR-01.66
+  it("a leading newline does not leak the English framing in the header-only shape", () => {
+    const h = detectHandback(["", "", "Another Claude session sent a message:", "real body"].join(String.fromCharCode(10)))!;
+    expect(h.text).toBe("real body");
+    expect(h.text).not.toMatch(/Another Claude session/);
   });
 });
 

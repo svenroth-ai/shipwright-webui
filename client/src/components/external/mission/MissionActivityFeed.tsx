@@ -76,7 +76,7 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
       )}
       {feed.cards.length === 0 ? (
         <div className="mc-hero-empty">Waiting — nothing reliable has appeared yet.</div>
-      ) : items.map((item) => {
+      ) : items.map((item, itemIndex) => {
         if (item.type === "result") {
           return (
             <div className="mc-feed-entry" data-entry-kind="result" key="run-result">
@@ -86,7 +86,7 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
         }
         const { card, index } = item;
         // Compare with the previous RENDERED entry (a folded card is no longer the visual neighbour).
-        const prev = items[items.indexOf(item) - 1];
+        const prev = items[itemIndex - 1];
         const previousIsUser = prev ? prev.type === "card" && prev.card.kind === "user" : null;
         // Not just `${kind}-${index}` (doubt-review catch, iterate-2026-09-
         // 05-mission-feed-ux-gaps): a retry/recovery resolution can splice a

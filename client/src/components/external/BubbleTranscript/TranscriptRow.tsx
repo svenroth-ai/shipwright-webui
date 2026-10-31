@@ -103,7 +103,8 @@ function isTurnBoundary(prev: ParsedEvent | null, current: ParsedEvent): boolean
   if (!prev) return false;
   if (prev.kind === current.kind) return false;
   const continuationKinds = new Set(["assistant", "user"]);
-  if (prev.kind === "user" && current.kind === "assistant") return true;
+  // A hand-back is a user-role record: same speaker-change decision as a user event.
+  if ((prev.kind === "user" || prev.kind === "handback") && current.kind === "assistant") return true;
   if (prev.kind === "assistant" && current.kind === "user" && continuationKinds.has("user")) {
     return false;
   }

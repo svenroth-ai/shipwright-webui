@@ -16,10 +16,11 @@ import { normalizeUserTextContent } from "./skill-body";
  *   That "other Claude session" is an agent working inside this same session …
  *
  * The framing is harness boilerplate: hidden. The UI shows its own notice.
- * Detection is any of: leading header phrase, an `<agent-message from="…">`
- * envelope, or the `[Subagent hand-back]` marker. Only TEXT blocks are read
- * (never tool_result content), so quoting this text in a tool output cannot
- * reclassify a record.
+ * Detection needs the header phrase, the `<agent-message from="…">` envelope
+ * or the `[Subagent hand-back]` marker to LEAD the record (envelope: nothing
+ * before it but the one header line); a mention mid-text stays a user message.
+ * Only TEXT blocks are read, and a record that also carries a tool_result block
+ * is never a hand-back (it stays `user` so its tool result still resolves).
  */
 
 export type HandbackOrigin = "subagent" | "session";
@@ -34,6 +35,7 @@ const OVERSIZE_REJECT = 2_000_000;
 const TRAILER = /\n\s*\nThat "other Claude session"[\s\S]*$/;
 
 export function detectHandback(content: unknown): { sender: string; origin: HandbackOrigin; text: string } | null {
+  if (Array.isArray(content) && content.some((b) => (b as { type?: unknown } | null)?.type === "tool_result")) return null;
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
   const text = raw.replace(/\r\n/g, "\n");
@@ -51,9 +53,9 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
     const start = envelope.index + envelope[0].length;
     const end = text.lastIndexOf(ENVELOPE_CLOSE);
     body = text.slice(start, end < start ? undefined : end);
-  } else if (text.trimStart().startsWith(HEADER)) {
-    const nl = text.indexOf("\n");
-    body = nl < 0 ? "" : text.slice(nl + 1);
+  } else if (head.startsWith(HEADER)) {
+    const nl = head.indexOf("\n");
+    body = nl < 0 ? "" : head.slice(nl + 1);
   }
 
   // "subagent" only when the marker opens the body; a quote of it inside another session's text does not count.

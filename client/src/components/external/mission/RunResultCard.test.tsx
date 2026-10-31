@@ -52,6 +52,15 @@ describe("Run result card (V2)", () => {
   });
 
   // @covers FR-01.66
+  it("row statements render inline markdown", () => {
+    const feed: ActivityFeed = { outcome: "x", cards: [{ kind: "test", text: "Ran `vitest` **green**.", commands: [], artifact: "tests", status: "ok" }] };
+    render(<MissionActivityFeed feed={feed} commitArtifact={COMMIT} task={TASK} onArtifactClick={vi.fn()} />);
+    const row = screen.getByTestId("run-result-row");
+    expect(row.querySelector("code")?.textContent).toBe("vitest");
+    expect(row.querySelector("strong")?.textContent).toBe("green");
+  });
+
+  // @covers FR-01.66
   it("every pill is text (a failing test says Failing)", () => {
     render(<MissionActivityFeed feed={{ outcome: "x", cards: [{ kind: "test", text: "", commands: [], artifact: "tests", status: "err" }] }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("Failing")).toBeInTheDocument();
@@ -79,6 +88,15 @@ describe("SubrunnerRow (V2)", () => {
     expect(screen.queryByRole("button")).toBeNull();
     rerender(<SubrunnerRow card={{ ...base, subrunnerStatus: "running" }} onSubrunnerClick={vi.fn()} canOpenAgent={() => true} />);
     expect(screen.getByRole("button")).toHaveTextContent("View");
+  });
+
+  // @covers FR-01.66
+  it("failed row: accessible name contains the visible word Report (label-in-name)", () => {
+    render(<SubrunnerRow card={{ ...base, subrunnerStatus: "failed", subrunnerEndStatus: "killed" }} onSubrunnerClick={vi.fn()} />);
+    const b = screen.getByRole("button");
+    expect(b).toHaveTextContent("Report");
+    expect(b.getAttribute("aria-label")).toContain("Report");
+    expect(screen.getByText("Build M5 desktop-style chat")).toHaveAttribute("title", "Build M5 desktop-style chat");
   });
 
   // @covers FR-01.66

@@ -9,6 +9,7 @@ import type { ActivityCard } from "../../../lib/missionActivityFeed";
 import { resultButtonLabel, resultRowTitle } from "../../../lib/missionActivityFeedResult";
 import { stripDuplicateSentence } from "../../../lib/missionActivityFeedText";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
+import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
 import { ChevronRightIcon, CheckIcon, XIcon } from "./MissionFeedIcons";
 import { mergeStateLabel, pillLabel } from "./MissionActivityFeedCardParts";
 
@@ -55,7 +56,7 @@ export function RunResultCard({
           <Pill status={card.status} label={statusPill(card)} />
           <div className="mc-result-t">
             {resultRowTitle(card.artifact as string)}
-            {card.text && <small>{card.text}</small>}
+            {card.text && <div className="mc-result-sub"><MarkdownChunk content={card.text} /></div>}
           </div>
           <OpenButton artifact={card.artifact as string} onArtifactClick={onArtifactClick} />
         </div>
@@ -65,7 +66,7 @@ export function RunResultCard({
           <Pill status={pr ? (pr.merge === "merged" ? "ok" : "warn") : delivery.status ?? "ok"} label={pr ? mergeStateLabel(pr.merge) : "Completed"} />
           <div className="t">
             {pr?.message ?? (deliveryText || resultRowTitle(delivery.artifact as string))}
-            {pr?.message && deliveryText && <small>{deliveryText}</small>}
+            {pr?.message && deliveryText && <div className="mc-result-sub"><MarkdownChunk content={deliveryText} /></div>}
           </div>
           {pr && pr.prNumber != null && (
             /^https:\/\//.test(pr.prUrl ?? "")

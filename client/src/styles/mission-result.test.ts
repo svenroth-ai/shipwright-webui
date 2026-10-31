@@ -28,6 +28,16 @@ describe("mission-result.css (V2)", () => {
     expect(css).not.toMatch(/animation|transition/);
   });
   // @covers FR-01.66
+  it("the folded PR link is a 36px target (44px on phones) with a focus ring", () => {
+    expect(css).toMatch(/\.mc-result-commit a\.m \{[^}]*min-height: 36px/);
+    expect(css).toMatch(/\.mc-result-commit a\.m \{ min-height: 44px/);
+    expect(css).toMatch(/\.mc-result-commit a\.m:focus-visible/);
+  });
+  // @covers FR-01.66
+  it("a long subagent title wraps to two lines instead of being cut", () => {
+    expect(css).toMatch(/\.mc-sub-t \{[^}]*-webkit-line-clamp: 2[^}]*overflow-wrap: anywhere/);
+  });
+  // @covers FR-01.66
   it("action buttons are at least 36px (44px on phones)", () => {
     expect(css).toMatch(/button.mc-handback-chip {[^}]*min-height: 36px/);
     expect(css).toMatch(/button.mc-handback-chip { min-height: 44px/);
