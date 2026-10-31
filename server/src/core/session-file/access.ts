@@ -1,7 +1,7 @@
 /*
  * Decision core of GET /tasks/:id/session-file: may this task read this path?
  *
- *   project scope — the path lies inside the project root (or the task cwd):
+ *   project scope — the path lies inside the REGISTERED project root (the client-supplied task cwd is never a root):
  *     the existing Smart-Viewer posture (pathGuard + realPathGuard, DO-NOT #10);
  *     a symlink that leaves the root is REJECTED, never retried as "session".
  *   session scope — outside the root, but THIS session evidences the path
@@ -28,7 +28,7 @@ export interface AccessDenial {
 export type AccessDecision = { ok: true; absolute: string; scope: "project" | "session" } | ({ ok: false } & AccessDenial);
 
 export interface AccessArgs {
-  /** Trusted roots: the project root (the task cwd only when the task has no project); existing absolute dirs. */
+  /** Trusted roots: the registered project root only (may be empty); existing absolute dirs. */
   roots: string[];
   requested: string;
   /** Subset of `candidates` the session evidences (evidenceKey()s). */
@@ -80,13 +80,14 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
       return deny(400, "path_traversal", "symlink_escape");
     }
     if (!lexicallyUnder(realRoot, real)) return deny(400, "path_traversal", "symlink_escape");
-    // A broad root (task cwd = home dir) must not turn credential files into "project" files.
-    if (isSensitivePath(path.relative(realRoot, real))) return deny(403, "path_not_evidenced", "sensitive");
+    // Unmistakable secret names stay refused even inside a (possibly broad) project root; ordinary project files are untouched.
+    const relInRoot = path.relative(realRoot, real);
+    if (relInRoot !== "" && isSensitivePath(relInRoot, "project")) return deny(403, "sensitive_location");
     return { ok: true, absolute: real, scope: "project" };
   }
 
   // Outside every root: session evidence required. Sensitive locations never qualify.
-  if (isSensitivePath(absolute)) return deny(403, "path_not_evidenced", "sensitive");
+  if (isSensitivePath(absolute)) return deny(403, "sensitive_location");
   // Evidence FIRST: an unevidenced path never reaches the filesystem (no network-drive touch, no timing oracle).
   const first = await args.findEvidence([absolute]);
   if (!first.found.has(evidenceKey(absolute))) {
@@ -104,7 +105,7 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
     if (!hop.found.has(evidenceKey(real))) return deny(403, "path_not_evidenced", "symlink_target");
   }
   // Residual risk (recorded, accepted): a file REPLACED at an evidenced path is served as-is.
-  if (isSensitivePath(real)) return deny(403, "path_not_evidenced", "sensitive");
+  if (isSensitivePath(real)) return deny(403, "sensitive_location");
   // The real target might sit inside a root that the lexical path did not (a link INTO the project): fine, still evidenced.
   return { ok: true, absolute: real, scope: "session" };
 }

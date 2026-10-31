@@ -1,26 +1,46 @@
 /*
- * Defence in depth for the session-file route: even a path the session
- * evidences is never served when it lives in a credential-bearing location.
+ * Defence in depth for the session-file route: a path that lives in a
+ * credential-bearing location is refused even when the session evidences it.
  * The extension allowlist (MIME_BY_EXTENSION) already refuses most key
- * material; this list covers the text-shaped secrets that slip through it.
- * Applied ONLY to files outside the project (project files keep the Smart
- * Viewer's existing behaviour).
+ * material; these lists cover the text-shaped secrets that slip through it.
+ *
+ *   "project" scope  — a SMALL list of unmistakable secret names, checked on
+ *                      the project-relative path (so ordinary project files such
+ *                      as locales/en/auth.json or .vscode/mcp.json keep working).
+ *   "outside" scope  — the broad list: a file outside the project is only ever
+ *                      served on session evidence, so false positives are cheap.
+ * Best-effort blocklist, not a boundary: the evidence gate is the boundary.
  */
 
-const DENIED_DIRS = new Set([".ssh", ".gnupg", ".aws", ".kube", ".azure", ".docker", ".git", "gh", "gcloud", "terraform.d", ".vault", ".config", ".cargo", ".m2", "configstore", ".vercel", ".netlify", ".supabase", "github cli"]);
-const DENIED_NAMES = new Set([".npmrc", ".netrc", ".pypirc", ".git-credentials", ".credentials.json", "credentials", "known_hosts", "authorized_keys", ".vault-token", "hosts.yml", "application_default_credentials.json", "credentials.tfrc.json", ".claude.json", "mcp.json", "credentials.toml", "auth.json"]);
+type Scope = "project" | "outside";
+
+const PROJECT_DIRS = new Set([".ssh", ".gnupg", ".aws"]);
+const PROJECT_NAMES = new Set([".npmrc", ".netrc", ".pypirc", ".git-credentials", ".credentials.json", ".claude.json", "known_hosts", "authorized_keys"]);
+
+const OUTSIDE_DIRS = new Set([
+  ...PROJECT_DIRS, ".kube", ".azure", ".docker", ".git", "gh", "gcloud", "terraform.d", ".vault", ".config", ".cargo", ".m2",
+  "configstore", ".vercel", ".netlify", ".supabase", "github cli", ".pulumi", ".codex", ".gemini", ".wrangler", ".fly",
+]);
+const OUTSIDE_NAMES = new Set([
+  ...PROJECT_NAMES, "credentials", ".vault-token", "hosts.yml", "application_default_credentials.json", "credentials.tfrc.json",
+  "mcp.json", "credentials.toml", "auth.json", ".yarnrc.yml", "ngrok.yml", "kaggle.json", "oauth_creds.json", "settings.local.json",
+]);
 const KEY_NAME = /^id_(rsa|dsa|ecdsa|ed25519)/;
 
-/** True when `absolute` (any separator style, any case) names a credential-bearing location. */
-export function isSensitivePath(absolute: string): boolean {
-  const parts = absolute
+/** True when `p` (any separator style, any case) names a credential-bearing location in `scope`. */
+export function isSensitivePath(p: string, scope: Scope = "outside"): boolean {
+  const parts = p
     .replaceAll("\x5c", "/")
     .split("/")
     .filter((s) => s.length > 0)
     .map((s) => s.toLowerCase());
-  if (parts.length === 0) return true;
+  if (parts.length === 0) return scope === "outside";
   const base = parts[parts.length - 1]!;
+  const dirs = parts.slice(0, -1);
   if (base.startsWith(".env") || base.endsWith(".env")) return true;
-  if (DENIED_NAMES.has(base) || KEY_NAME.test(base)) return true;
-  return parts.slice(0, -1).some((seg) => DENIED_DIRS.has(seg));
+  if (KEY_NAME.test(base)) return true;
+  if ((scope === "project" ? PROJECT_NAMES : OUTSIDE_NAMES).has(base)) return true;
+  if (dirs.some((seg) => (scope === "project" ? PROJECT_DIRS : OUTSIDE_DIRS).has(seg))) return true;
+  // Claude's own settings carry env blocks with API keys.
+  return scope === "outside" && dirs.includes(".claude") && base.startsWith("settings");
 }

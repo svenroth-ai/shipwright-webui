@@ -26,7 +26,8 @@ const CI = process.platform === "win32";
 export const evidenceKey = (p: string): string => (CI ? p.replace(/\//g, "\\").toLowerCase() : p);
 
 // Before-set: '=' is left out on purpose so `--out=/x/y.md` still evidences /x/y.md.
-const BEFORE_BAD = /[\p{L}\p{N}_\-./\x5c~+@%#$]/u;
+// ')' '}' '*' ':' end shell expressions / remote specs (`$(pwd)/x`, `host:/x`): the path after them is a suffix, not a mention.
+const BEFORE_BAD = /[\p{L}\p{N}_\-./\x5c~+@%#$)}*:]/u;
 // '~', '+', '@', '%', '#', '$', '=' are valid filename characters: they continue a path, never end it.
 // (A space inside a quoted filename stays ambiguous; the extension allowlist bounds that residual.)
 const AFTER_BAD = /[\p{L}\p{N}_\-/\x5c~+@%#$=]/u;
@@ -125,15 +126,26 @@ export interface EvidenceResult {
  */
 let scanQueue: Promise<unknown> = Promise.resolve();
 
+const SCAN_TIMEOUT_MS = 20_000;
+
 export function findSessionEvidence(
   sessionUuid: string,
   loc: JsonlLocation | null,
   candidates: string[],
   deps: EvidenceDeps = {},
 ): Promise<EvidenceResult> {
-  const run = scanQueue.then(() => scanForEvidence(sessionUuid, loc, candidates, deps));
+  const run = scanQueue.then(() => withTimeout(scanForEvidence(sessionUuid, loc, candidates, deps)));
   scanQueue = run.catch(() => undefined);
   return run;
+}
+
+/** A stalled read must not hold the queue forever: give up (fail closed, incomplete) and move on. */
+function withTimeout(p: Promise<EvidenceResult>): Promise<EvidenceResult> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<EvidenceResult>((resolve) => {
+    timer = setTimeout(() => resolve({ found: new Set(), incomplete: true }), SCAN_TIMEOUT_MS);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
 }
 
 async function scanForEvidence(
