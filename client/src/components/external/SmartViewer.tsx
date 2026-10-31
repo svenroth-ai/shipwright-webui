@@ -242,7 +242,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
     }
     if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
-    if (kind === "html") return <HtmlRenderer text={state.text} />;
+    if (kind === "html") return <HtmlRenderer text={state.text} projectId={projectId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;
   })();
@@ -250,7 +250,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
   return (
     <div className="flex h-full flex-col" data-testid="smart-viewer">
       <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
-      {popOut && kind === "markdown" && (
+      {popOut && (kind === "markdown" || kind === "html") && (
         <SmartViewerModal
           open={popoutOpen}
           onOpenChange={setPopoutOpen}
