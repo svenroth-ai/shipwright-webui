@@ -133,76 +133,129 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 5,
+      "findings_count": 6,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
           "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "transient: opt-in tableWrap edit was half-applied when read (fixed in 59e6aae)",
-          "suggestion": null,
+          "file": "client/src/styles/mission-chat.css",
+          "line": 47,
+          "finding": "`.mc-feed-card .mc-table-wrap table { width: max-content; min-width: 100% }` applies on all screen sizes; sentence-length GFM cells never wrap and force sideways scroll even on desktop. Mockup uses width:100%.",
+          "suggestion": "Use width:100% (scope max-content to phones if needed); add a long-prose cell to the E2E fixture.",
           "source": "code-reviewer"
         },
         {
           "severity": "medium",
           "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "phone table width:100% overrides max-content (fixed in b06f9dc)",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "11px Show more under card.detail (fixed 59e6aae)",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "stale comment in FeedCard (fixed)",
-          "suggestion": null,
+          "file": "client/src/styles/mission-chat.css",
+          "line": 34,
+          "finding": "`.mc-feed-card p { margin: 0 0 var(--gap-block) }` (0,1,1) beats `.mc-feed-subrunner-status { margin:0 }` so the running-subrunner status line gets a 12px bottom margin before the View agent button.",
+          "suggestion": "Limit to `.mc-feed-card .markdown-body p` or raise the subrunner rule specificity.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "zebra neutralise rule uncommented (fixed)",
-          "suggestion": null,
+          "file": "client/src/styles/mission-chat.css",
+          "line": 56,
+          "finding": "font-size declared twice for .mc-feed-expand-btn (redundant in .mc-feed-commands .mc-feed-expand-btn).",
+          "suggestion": "Remove the duplicate.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionActivityFeed.tsx",
+          "line": 96,
+          "finding": "data-switch inline ternary hard to read.",
+          "suggestion": "Hoist to a named const.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-chat-scale.test.ts",
+          "line": 27,
+          "finding": "12px floor test scans only mission-chat.css; sub-12px literals remain in mission-operation.css, neutralised only by overrides.",
+          "suggestion": "Extend the test to check overrides exist.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/external/MarkdownText.tsx",
+          "line": 111,
+          "finding": "Generic MarkdownText hardcodes mission class mc-table-wrap (opt-in, no regression).",
+          "suggestion": "Optional neutral class name.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T14:33:37.229328+00:00",
+      "completed_at": "2026-10-31T15:15:12.530684+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "245228de1756f307922163df7d5b9cdc3f4afa40"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "client/src/lib/missionActivityFeedReconcile.ts:116",
+          "line": null,
+          "finding": "Claim under doubt: Rendering displayTextFull||displayText only removes a toggle — missionActivityFeedReconcile.ts:116 rewrites review.text and deletes explanation but leaves a stale textFull, which FeedCard now shows by default instead of the reconciled headline.",
+          "suggestion": "delete review.textFull next to delete review.explanation plus a reducer/FeedCard test.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test evidence",
+          "file": "client/e2e/flows/V1-mission-chat-readability.spec.ts",
+          "line": null,
+          "finding": "Claim under doubt: e2e catches cropped-message regression — A truncated headline without toggle still passes the e2e; only the unit test catches it; spec not @smoke; light scope unasserted.",
+          "suggestion": "Marker at end of first line; assert visible.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "contract",
+          "file": "client/src/components/external/mission/MissionActivityFeedCard.tsx:116",
+          "line": null,
+          "finding": "Claim under doubt: Tables readable on dark — Question prose MarkdownChunk (MissionActivityFeedCard.tsx:116) is not passed tableWrap.",
+          "suggestion": "Pass tableWrap or record as out of scope.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "blast radius",
+          "file": "client/src/styles/mission-operation.css:219",
+          "line": null,
+          "finding": "Claim under doubt: Mission chat only — --body/--muted/--faint lifts apply to every dark .mc-op card; visual baselines are a hard gate.",
+          "suggestion": "Confirm visual workflow passes on PR.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "repair commit",
+          "file": ".shipwright/planning/01-adopted/spec.md",
+          "line": null,
+          "finding": "Claim under doubt: FR sentence accurate — light-teal links only in dark scope; light falls back to accent.",
+          "suggestion": "Wording nit.",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-31T14:33:37.414202+00:00",
-      "disposition": "CSS and presentational TSX only; no migration, async, cross-plugin import or irreversible operation, so Stage 3 does not apply",
-      "recorded_by": "none",
+      "completed_at": "2026-10-31T15:21:18.755456+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -286,16 +339,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T15:01:22.564864+00:00",
-      "disposition": "Stage-1 REJECTED at 3f-bis: shipwright_events.jsonl:1168 hand-edited spec_impact modify->none (behavior-preserving) in commit 6c080986; the change alters FR-01.66 observable behaviour (messages shown in full, toggle removed), precedent M3-M5 recorded modify + spec.md Updates sentence. Code itself passes Scope. Delivery stopped; PR left open.",
+      "completed_at": "2026-10-31T15:12:02.252592+00:00",
+      "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "stage-1-rejected"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
