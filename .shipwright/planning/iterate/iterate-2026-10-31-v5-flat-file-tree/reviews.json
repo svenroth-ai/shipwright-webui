@@ -151,65 +151,47 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 6,
+      "findings_count": 4,
       "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.test.tsx",
+          "line": 202,
+          "finding": "Regex only matches /projects or /projects/; a regression calling useProject('unassigned') would fetch /projects/unassigned and pass.",
+          "suggestion": "Use String(c[0]).includes('/projects').",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/FolderTree.test.tsx",
+          "line": 243,
+          "finding": "Keyboard test fires ArrowDown/ArrowUp without asserting focus.",
+          "suggestion": "Assert document.activeElement.",
+          "source": "code-reviewer"
+        },
         {
           "severity": "medium",
           "category": "correctness",
           "file": "client/src/components/external/useCopyToast.ts",
           "line": 36,
-          "finding": "copy() defers via requestAnimationFrame so clipboard write runs outside the user gesture; likely 'Copy failed' on iOS/WebKit.",
-          "suggestion": "Call navigator.clipboard.writeText synchronously; defer only execCommand fallback.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/src/components/external/FolderTree.tsx",
-          "line": 129,
-          "finding": "copyText without preserveFocus: focus lost to body after execCommand fallback.",
-          "suggestion": "Pass {preserveFocus:true}.",
+          "finding": "Open from earlier pass: rAF-deferred clipboard write (iOS) and focus loss after execCommand fallback.",
+          "suggestion": "Sync clipboard call; preserveFocus.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/FolderTreeRow.tsx",
-          "line": 97,
-          "finding": "'...' button picks menu vs sheet via nativeEvent.pointerType==='mouse'; may show sheet at (0,0) for keyboard/old WebKit. Long-press timer not cleared on unmount; longPressed flag can swallow a click.",
-          "suggestion": "Record pointerType in onPointerDown; useEffect cleanup.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/folderTreePaths.ts",
-          "line": 19,
-          "finding": "Windows root with forward slashes gives mixed separators.",
-          "suggestion": "Normalise root.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/styles/folder-tree.css",
-          "line": 69,
-          "finding": "Sheet lacks safe-area inset; '...' misplaced with folder error; aria-live repeat not announced.",
-          "suggestion": "Minor polish.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "architecture",
-          "file": "client/package.json",
-          "line": 29,
-          "finding": "test:e2e:chromium script is scope creep; test leaks execCommand stub; touch sizing split between two CSS files.",
-          "suggestion": "Follow-up.",
+          "category": "readability",
+          "file": "client/src/components/external/FolderTree.test.tsx",
+          "line": 234,
+          "finding": "Test placed in the wrong describe; globalThis.fetch not restored; Shift+F10 only asserts a menu opens.",
+          "suggestion": "Boy-scout.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T15:58:03.652483+00:00",
+      "completed_at": "2026-10-31T16:09:59.147610+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -219,47 +201,29 @@
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 4,
+      "findings_count": 2,
       "findings": [
         {
           "severity": "medium",
-          "category": "blast radius",
-          "file": "client/src/pages/TaskDetailPage.tsx",
+          "category": "boundary & contract",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.test.tsx:202",
           "line": null,
-          "finding": "Claim under doubt: Files & Terminal not wired so V5 is local — Shared FolderTree: Files & Terminal also gets 15px rows, ignored style, footer, '...' button and menu; Copy Path permanently disabled there (no projectRoot).",
-          "suggestion": "Gate, wire projectRoot, or document. DISPOSITION: in scope per mockup README row 14 (restyle applies in Files & Terminal); Copy Path disabled there is a known limitation reported as follow-up.",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "contract",
-          "file": ".shipwright/planning/01-adopted/spec.md",
-          "line": null,
-          "finding": "Claim under doubt: affected_frs FR-01.66 complete — FR-01.02 owns Files & Terminal tree; not listed.",
-          "suggestion": "Add FR-01.02 clause (follow-up).",
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "concurrency",
-          "file": "client/src/components/external/FolderTreeRow.tsx",
-          "line": null,
-          "finding": "Claim under doubt: clipboard rAF OK on iOS; long-press timer safe — iOS gesture window; timer not cleared on unmount.",
-          "suggestion": "Device test / cleanup (follow-up).",
+          "finding": "Claim under doubt: unassigned test proves no /projects/ request — Regex would not catch /projects/unassigned; production guard (empty id disables useProject via enabled:!!id) is correct today.",
+          "suggestion": "Use includes('/projects'). DISPOSITION: accepted, test-only weakness, no production impact; reported as follow-up.",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
           "category": "blast radius",
-          "file": "shipwright_events.jsonl",
+          "file": "shipwright_bloat_baseline.json:83-87",
           "line": null,
-          "finding": "Claim under doubt: events line is plain append — Line inserted mid-file by merge=union merge.",
-          "suggestion": "Benign merge artifact.",
+          "finding": "Claim under doubt: stale bloat entry harmless — Harmless to CI (checker flags only missing files) but lets FolderTree.tsx regrow to 394 unblocked.",
+          "suggestion": "Lower the entry in a maintainer-confirmed follow-up (sensitive file; editing it tripped the PR Review gate).",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T15:58:03.809602+00:00",
+      "completed_at": "2026-10-31T16:09:59.353069+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -388,7 +352,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T15:58:03.522299+00:00",
+      "completed_at": "2026-10-31T16:09:59.006149+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
