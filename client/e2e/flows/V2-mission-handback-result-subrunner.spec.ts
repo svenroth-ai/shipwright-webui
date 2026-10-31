@@ -85,7 +85,8 @@ test.describe("V2 - hand-back card, Run result card, subrunner row", () => {
     await expect(feed).not.toContainText("FRAMING-MARKER");
     await expect(feed).not.toContainText("Another Claude session");
     await expect(feed.locator('.mc-feed-entry[data-entry-kind="user"] .mc-feed-card')).toHaveCount(1);
-    const style = await card.evaluate((el) => { const s = getComputedStyle(el); return { left: parseFloat(s.borderLeftWidth), color: s.borderLeftColor, edge: el.getBoundingClientRect().x }; });
+    const style = await card.evaluate((el) => { const s = getComputedStyle(el); return { left: parseFloat(s.borderLeftWidth), color: s.borderLeftColor, edge: el.getBoundingClientRect().x, warn: getComputedStyle(el.querySelector(".mc-handback-tag")!).color }; });
+    expect(style.color).toBe(style.warn); // yellow left border == the --warn token (tag text uses it too)
     expect(style.left).toBeGreaterThanOrEqual(3);
     const fb = await feed.boundingBox();
     expect(style.edge).toBeLessThan(fb!.x + 40);
