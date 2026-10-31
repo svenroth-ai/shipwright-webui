@@ -261,9 +261,59 @@ describe("GET /api/external/tasks/:id/session-file", () => {
   });
 
   // @covers FR-01.66
-  it("a task without a project falls back to its cwd as the root", async () => {
-    const r = await get("a.txt", app(true, { projectId: "unassigned", cwd: out }));
+  it("boundary probes: non-ASCII file name, CRLF-terminated and BOM-prefixed transcript", async () => {
+    const uml = path.join(out, "Bericht-üä.md");
+    writeFileSync(uml, "umlaut");
+    writeFileSync(l.sessionPath, "﻿" + jl(say(0, "bom line is torn")).replace(/\n/g, "\r\n") + jl(say(1, `fertig: ${uml}`)).replace(/\n/g, "\r\n"));
+    const r = await get(uml);
     expect(r.status).toBe(200);
-    expect(r.headers.get("x-session-file-scope")).toBe("project");
+    expect(await r.text()).toBe("umlaut");
+  });
+
+  // @covers FR-01.66
+  it("a client-supplied task cwd is NEVER a root, not even for a task without a project", async () => {
+    session(say(1, "nothing"));
+    const unassigned = { projectId: "unassigned", cwd: out };
+    expect((await get("a.txt", app(true, unassigned))).status).toBe(400);
+    expect((await get(path.join(out, "a.txt"), app(true, unassigned))).status).toBe(403);
+  });
+
+  // @covers FR-01.66
+  it("a broad project root cannot serve credential files as project files", async () => {
+    const home = path.join(out, "home");
+    mkdirSync(path.join(home, ".docker"), { recursive: true });
+    mkdirSync(path.join(home, ".claude"), { recursive: true });
+    writeFileSync(path.join(home, ".docker", "config.json"), "{}");
+    writeFileSync(path.join(home, ".claude", "mcp.json"), "{}");
+    writeFileSync(path.join(home, "notes.md"), "ok");
+    const a = createSessionFileRouter({
+      store: { get: () => ({ taskId: "t1", sessionUuid: SESSION, projectId: "p", cwd: home }) } as never,
+      watcher: new SessionWatcher({ projectsDir: l.projectsDir }),
+      getProjectById: () => ({ id: "p", name: "p", path: home }),
+      infoDeps: { noMemo: true },
+    });
+    expect((await get(".docker/config.json", a)).status).toBe(403);
+    expect((await get(".claude/mcp.json", a)).status).toBe(403);
+    expect((await get("notes.md", a)).status).toBe(200);
+  });
+
+  // @covers FR-01.66
+  it("command output and injected meta records are not evidence", async () => {
+    const t = path.join(out, "a.txt");
+    session(user(1, `<bash-stdout>${t}</bash-stdout>`));
+    expect((await get(t)).status).toBe(403);
+    session({ ...user(1, `see ${t}`), isMeta: true });
+    expect((await get(t)).status).toBe(403);
+    session({ ...user(1, `summary ${t}`), isCompactSummary: true });
+    expect((await get(t)).status).toBe(403);
+    session(user(1, `<bash-stdout>x</bash-stdout> but I mean ${t}`));
+    expect((await get(t)).status).toBe(200);
+  });
+
+  // @covers FR-01.66
+  it("a '+' or '@' directly before the path does not evidence the shorter suffix path", async () => {
+    const t = path.join(out, "a.txt");
+    session(say(1, `/srv/c+${t}`));
+    expect((await get(t)).status).toBe(403);
   });
 });

@@ -50,12 +50,11 @@ export function createSessionFileRouter(deps: SessionFileRouterDeps): Hono {
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "task_not_found" }, 404);
 
-    // Only the project root is trusted outright. The task cwd stands in ONLY for a task with no
-    // resolvable project: a cwd may be a home dir or an ancestor of the project.
+    // Only the registered project root is trusted outright. The task cwd is client-supplied at task
+    // creation (it may be a home dir or a drive root), so it is NEVER a root: a task without a
+    // resolvable project gets session-evidenced absolute paths only.
     const projectDir = await existingDir(deps.getProjectById?.(task.projectId)?.path);
-    const roots: string[] = [];
-    const root = projectDir ?? (await existingDir(task.cwd));
-    if (root) roots.push(root);
+    const roots: string[] = projectDir ? [projectDir] : [];
 
     const decision = await decideSessionFileAccess({
       roots,

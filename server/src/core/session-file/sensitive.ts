@@ -7,8 +7,8 @@
  * Viewer's existing behaviour).
  */
 
-const DENIED_DIRS = new Set([".ssh", ".gnupg", ".aws", ".kube", ".azure", ".docker", ".git"]);
-const DENIED_NAMES = new Set([".npmrc", ".netrc", ".pypirc", ".git-credentials", ".credentials.json", "credentials", "known_hosts", "authorized_keys"]);
+const DENIED_DIRS = new Set([".ssh", ".gnupg", ".aws", ".kube", ".azure", ".docker", ".git", "gh", "gcloud", "terraform.d", ".vault", ".config", ".cargo", ".m2", "configstore", ".vercel", ".netlify", ".supabase", "github cli"]);
+const DENIED_NAMES = new Set([".npmrc", ".netrc", ".pypirc", ".git-credentials", ".credentials.json", "credentials", "known_hosts", "authorized_keys", ".vault-token", "hosts.yml", "application_default_credentials.json", "credentials.tfrc.json", ".claude.json", "mcp.json", "credentials.toml", "auth.json"]);
 const KEY_NAME = /^id_(rsa|dsa|ecdsa|ed25519)/;
 
 /** True when `absolute` (any separator style, any case) names a credential-bearing location. */

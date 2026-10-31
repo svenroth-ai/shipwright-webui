@@ -25,7 +25,8 @@ const CI = process.platform === "win32";
 /** Comparison key: Windows paths are case-insensitive and may use either slash. */
 export const evidenceKey = (p: string): string => (CI ? p.replace(/\//g, "\\").toLowerCase() : p);
 
-const BEFORE_BAD = /[\p{L}\p{N}_\-./\x5c~]/u;
+// Before-set: '=' is left out on purpose so `--out=/x/y.md` still evidences /x/y.md.
+const BEFORE_BAD = /[\p{L}\p{N}_\-./\x5c~+@%#$]/u;
 // '~', '+', '@', '%', '#', '$', '=' are valid filename characters: they continue a path, never end it.
 // (A space inside a quoted filename stays ambiguous; the extension allowlist bounds that residual.)
 const AFTER_BAD = /[\p{L}\p{N}_\-/\x5c~+@%#$=]/u;
@@ -57,17 +58,34 @@ function collectStrings(v: unknown, out: string[], depth = 0): void {
   else if (v && typeof v === "object") for (const x of Object.values(v)) collectStrings(x, out, depth + 1);
 }
 
-/** Text a user could have SEEN or the assistant DID: chat text + tool_use inputs. */
+const OUTPUT_SECTIONS = ["bash-stdout", "bash-stderr", "local-command-stdout", "local-command-stderr"];
+
+/** Drop `<name>…</name>` sections (command output echoed into user records) by plain string search. */
+function stripSections(text: string, names: string[]): string {
+  let out = text;
+  for (const name of names) {
+    const open = `<${name}>`;
+    const close = `</${name}>`;
+    for (let s = out.indexOf(open); s !== -1; s = out.indexOf(open)) {
+      const e = out.indexOf(close, s);
+      out = out.slice(0, s) + (e === -1 ? "" : out.slice(e + close.length));
+    }
+  }
+  return out;
+}
+
+/** Text a user could have SEEN or the assistant DID: chat text + tool_use inputs. Never command output or injected meta. */
 function evidenceStrings(rec: Record<string, unknown>): string[] {
   if (rec.type !== "user" && rec.type !== "assistant") return [];
+  if (rec.isMeta === true || rec.isCompactSummary === true) return [];
   const msg = rec.message as Record<string, unknown> | undefined;
   const content = msg?.content;
   const out: string[] = [];
-  if (typeof content === "string") out.push(content);
+  if (typeof content === "string") out.push(stripSections(content, OUTPUT_SECTIONS));
   else if (Array.isArray(content)) {
     for (const b of content as Record<string, unknown>[]) {
       if (!b || typeof b !== "object") continue;
-      if (b.type === "text" && typeof b.text === "string") out.push(b.text);
+      if (b.type === "text" && typeof b.text === "string") out.push(stripSections(b.text, OUTPUT_SECTIONS));
       else if (b.type === "tool_use") collectStrings(b.input, out);
     }
   }
@@ -100,11 +118,29 @@ export interface EvidenceResult {
   incomplete: boolean;
 }
 
-export async function findSessionEvidence(
+/**
+ * Scans are serialized process-wide: each is synchronous JSON work over up to 48 MB, and a burst of
+ * concurrent requests must queue rather than starve the event loop (terminal WS, transcript polls).
+ * A promise chain, not a cache - nothing is remembered between requests (CLAUDE.md rule 4).
+ */
+let scanQueue: Promise<unknown> = Promise.resolve();
+
+export function findSessionEvidence(
   sessionUuid: string,
   loc: JsonlLocation | null,
   candidates: string[],
   deps: EvidenceDeps = {},
+): Promise<EvidenceResult> {
+  const run = scanQueue.then(() => scanForEvidence(sessionUuid, loc, candidates, deps));
+  scanQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function scanForEvidence(
+  sessionUuid: string,
+  loc: JsonlLocation | null,
+  candidates: string[],
+  deps: EvidenceDeps,
 ): Promise<EvidenceResult> {
   const found = new Set<string>();
   let incomplete = false;

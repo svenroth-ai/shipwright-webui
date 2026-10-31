@@ -49,7 +49,7 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
   if (!requested) return deny(400, "path_required");
   if (requested.length > MAX_PATH_CHARS || requested.includes("\0")) return deny(400, "invalid_path");
   // UNC / device namespaces would reach network shares and raw devices.
-  if (process.platform === "win32" ? /^[/\x5c]{2}/.test(requested) : false) return deny(400, "invalid_path", "unc_or_device");
+  if (process.platform === "win32" && /^[/\x5c]{2}/.test(requested)) return deny(400, "invalid_path", "unc_or_device");
   // A foreign drive-letter path is meaningless on a POSIX host (it would resolve as a relative name).
   if (process.platform !== "win32" && path.win32.isAbsolute(requested)) return deny(400, "invalid_path", "foreign_absolute");
 
@@ -80,23 +80,29 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
       return deny(400, "path_traversal", "symlink_escape");
     }
     if (!lexicallyUnder(realRoot, real)) return deny(400, "path_traversal", "symlink_escape");
+    // A broad root (task cwd = home dir) must not turn credential files into "project" files.
+    if (isSensitivePath(path.relative(realRoot, real))) return deny(403, "path_not_evidenced", "sensitive");
     return { ok: true, absolute: real, scope: "project" };
   }
 
   // Outside every root: session evidence required. Sensitive locations never qualify.
   if (isSensitivePath(absolute)) return deny(403, "path_not_evidenced", "sensitive");
-  let real: string | null = null;
+  // Evidence FIRST: an unevidenced path never reaches the filesystem (no network-drive touch, no timing oracle).
+  const first = await args.findEvidence([absolute]);
+  if (!first.found.has(evidenceKey(absolute))) {
+    return deny(403, "path_not_evidenced", first.incomplete ? "evidence_window_truncated" : undefined);
+  }
+  let real: string;
   try {
     real = await realpath(absolute);
   } catch {
-    real = null;
+    return deny(404, "not_found");
   }
-  const candidates = real && evidenceKey(real) !== evidenceKey(absolute) ? [absolute, real] : [absolute];
-  const { found, incomplete } = await args.findEvidence(candidates);
-  if (!found.has(evidenceKey(absolute))) return deny(403, "path_not_evidenced", incomplete ? "evidence_window_truncated" : undefined);
-  if (!real) return deny(404, "not_found");
   // A symlink/junction hop: the session must have named where it really leads.
-  if (candidates.length === 2 && !found.has(evidenceKey(real))) return deny(403, "path_not_evidenced", "symlink_target");
+  if (evidenceKey(real) !== evidenceKey(absolute)) {
+    const hop = await args.findEvidence([real]);
+    if (!hop.found.has(evidenceKey(real))) return deny(403, "path_not_evidenced", "symlink_target");
+  }
   // Residual risk (recorded, accepted): a file REPLACED at an evidenced path is served as-is.
   if (isSensitivePath(real)) return deny(403, "path_not_evidenced", "sensitive");
   // The real target might sit inside a root that the lexical path did not (a link INTO the project): fine, still evidenced.
