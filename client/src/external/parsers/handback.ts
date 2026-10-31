@@ -30,6 +30,8 @@ const ENVELOPE_OPEN = /<agent-message\s+from="([^"]*)"\s*>/;
 const ENVELOPE_CLOSE = "</agent-message>";
 const REPORT_FOLLOWS = "The report follows:";
 const OVERSIZE_REJECT = 2_000_000;
+/** The harness's closing paragraph after the envelope ("That "other Claude session" is an agent …"). */
+const TRAILER = /\n\s*\nThat "other Claude session"[\s\S]*$/;
 
 export function detectHandback(content: unknown): { sender: string; origin: HandbackOrigin; text: string } | null {
   const raw = normalizeUserTextContent(content);
@@ -54,7 +56,11 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
     const followsAt = body.indexOf(REPORT_FOLLOWS, markerAt);
     body = followsAt >= 0 ? body.slice(followsAt + REPORT_FOLLOWS.length) : body.slice(markerAt + MARKER.length);
     // The harness indents every report line by two spaces; undo that.
-    body = body.replace(/^\n/, "").replace(/^ {2}/gm, "");
+    // Only when EVERY non-blank line carries it, so a differently indented report is left intact.
+    body = body.replace(/^\n/, "");
+    const lines = body.split("\n").filter((l) => l.trim());
+    if (lines.length > 0 && lines.every((l) => l.startsWith("  "))) body = body.replace(/^ {2}/gm, "");
   }
+  body = body.replace(TRAILER, "");
   return { sender: envelope?.[1] ?? "", origin: isMarked ? "subagent" : "session", text: body.trim() };
 }

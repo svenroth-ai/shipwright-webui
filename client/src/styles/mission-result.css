@@ -13,7 +13,7 @@
 .mc-handback-h b { color: var(--ink); font-weight: 600; }
 .mc-handback-tag { font-size: var(--fs-eyebrow, 12px); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; background: var(--warn-tint); border: 1px solid var(--warn-line); color: var(--warn); }
 .mc-handback-chip { font-family: var(--mono); font-size: var(--fs-small, 13px); padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--link, var(--accent)); }
-button.mc-handback-chip { cursor: pointer; }
+button.mc-handback-chip { cursor: pointer; display: inline-flex; align-items: center; min-height: 36px; }
 button.mc-handback-chip:hover { border-color: var(--link, var(--accent)); background: var(--accent-tint); }
 button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus); }
 .mc-handback-chip[data-static="true"] { color: var(--muted); }
@@ -59,5 +59,6 @@ button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus);
   .mc-result-row .mc-result-t { grid-area: t; }
   .mc-result-row .mc-result-btn { grid-area: btn; width: 100%; justify-content: center; min-height: 44px; }
   .mc-sub .mc-result-btn, .mc-result-commit .mc-result-btn { min-height: 44px; }
+  button.mc-handback-chip { min-height: 44px; }
   .mc-result-commit { flex-wrap: wrap; }
 }

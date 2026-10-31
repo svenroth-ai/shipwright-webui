@@ -30,6 +30,20 @@ describe("groupRunResult (V2)", () => {
     expect(items.every((i) => i.type === "card")).toBe(true);
   });
 
+  it("only the LAST delivery closes the result; an earlier one and a truncated (textFull) row stay normal cards", () => {
+    const items = groupRunResult([
+      card({ kind: "delivery", text: "Phase done", artifact: "phase" }),
+      card({ kind: "test", text: "cut…", textFull: "cut in full", artifact: "tests", status: "ok" }),
+      card({ kind: "review", text: "ok", artifact: "review", status: "ok" }),
+      card({ kind: "delivery", text: "Merged", artifact: "commit" }),
+    ]);
+    expect(items.map((i) => i.type)).toEqual(["card", "card", "result"]);
+    const result = items[2];
+    if (result.type !== "result") throw new Error("expected result");
+    expect(result.rows.map((r) => r.artifact)).toEqual(["review"]);
+    expect(result.delivery?.artifact).toBe("commit");
+  });
+
   it("returns plain card items when nothing folds", () => {
     expect(groupRunResult([card({ text: "a" }), card({ text: "b" })]).map((i) => i.type)).toEqual(["card", "card"]);
   });

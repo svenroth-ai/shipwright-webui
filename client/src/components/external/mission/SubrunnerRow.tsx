@@ -20,6 +20,14 @@ function stateMeta(card: ActivityCard): string {
   return `${verb} ${elapsed}`;
 }
 
+/** The state as a TEXT pill label (never colour alone). */
+function statePill(card: ActivityCard): { label: string; tone: "ok" | "err" | "warn" } {
+  if (card.subrunnerStatus === "running") return { label: "Running", tone: "warn" };
+  if (card.subrunnerEndStatus === "killed") return { label: "Killed", tone: "err" };
+  if (card.subrunnerEndStatus === "stopped") return { label: "Stopped", tone: "warn" };
+  return card.subrunnerStatus === "failed" ? { label: "Failed", tone: "err" } : { label: "Done", tone: "ok" };
+}
+
 export function SubrunnerRow({
   card, onSubrunnerClick, canOpenAgent,
 }: {
@@ -35,6 +43,7 @@ export function SubrunnerRow({
   const aria = running ? "View agent"
     : failed ? (card.subrunnerEndStatus ? `View failure details (${card.subrunnerEndStatus})` : "View failure details")
     : card.subrunnerEndStatus ? `View subrunner report (${card.subrunnerEndStatus})` : "View subrunner report";
+  const pill = statePill(card);
   const meta = ["Subagent", card.subrunnerType, stateMeta(card)].filter(Boolean).join(" · ");
   return (
     <div className="mc-sub" data-kind="subrunner" data-testid="subrunner-row" data-status={card.subrunnerStatus}>
@@ -46,6 +55,7 @@ export function SubrunnerRow({
           {meta}{running ? "…" : ""}
         </span>
       </div>
+      <span className="mc-pill" data-status={pill.tone} data-testid="subrunner-pill">{pill.label}</span>
       {canClick && (
         <button type="button" className="mc-result-btn" aria-label={aria} onClick={() => onSubrunnerClick!(id!)}>
           {label}<ChevronRightIcon />

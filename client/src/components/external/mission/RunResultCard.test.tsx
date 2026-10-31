@@ -65,6 +65,7 @@ describe("SubrunnerRow (V2)", () => {
     render(<SubrunnerRow card={{ ...base, subrunnerStatus: "done", subrunnerEndedAt: "2026-10-31T10:44:00Z" }} onSubrunnerClick={open} />);
     expect(screen.getByText("Build M5 desktop-style chat")).toBeInTheDocument();
     expect(screen.getByText("Subagent · sub-iterate-runner · finished in 44 min")).toBeInTheDocument();
+    expect(screen.getByTestId("subrunner-pill")).toHaveTextContent("Done");
     expect(screen.getByRole("button")).toHaveTextContent("Report");
     await userEvent.click(screen.getByRole("button", { name: "View subrunner report" }));
     expect(open).toHaveBeenCalledWith("ag1");
@@ -81,6 +82,13 @@ describe("SubrunnerRow (V2)", () => {
   it("failed/killed say so in words", () => {
     render(<SubrunnerRow card={{ ...base, subrunnerStatus: "failed", subrunnerEndStatus: "killed", subrunnerEndedAt: "2026-10-31T10:05:00Z" }} onSubrunnerClick={vi.fn()} />);
     expect(screen.getByText(/killed after 5 min/)).toBeInTheDocument();
+    expect(screen.getByTestId("subrunner-pill")).toHaveTextContent("Killed");
+  });
+
+  it("an unparseable end time degrades to the bare verb (no throw, no NaN)", () => {
+    render(<SubrunnerRow card={{ ...base, subrunnerStatus: "done", subrunnerEndedAt: "not-a-date" }} />);
+    expect(screen.getByText("Subagent · sub-iterate-runner · finished")).toBeInTheDocument();
+    expect(screen.getByTestId("subrunner-pill")).toHaveTextContent("Done");
   });
 
   it("formatElapsed handles missing/invalid and hours", () => {

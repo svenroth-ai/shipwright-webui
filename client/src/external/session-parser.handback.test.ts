@@ -81,3 +81,16 @@ describe("parseSessionJsonl — handback", () => {
     expect(parseSessionJsonl(line("hello")).events[0].kind).toBe("user");
   });
 });
+
+describe("handback extraction details (external code review)", () => {
+  it("drops the harness trailer in the header-only shape too, and keeps an unevenly indented report intact", () => {
+    const withTrailer = ["Another Claude session sent a message:", "body line", "", 'That "other Claude session" is an agent working inside this same session.'].join("\n");
+    expect(detectHandback(withTrailer)?.text).toBe("body line");
+    const uneven = ["Another Claude session sent a message:", '<agent-message from="a1">', `${FRAMING}  first`, "second not indented", "</agent-message>"].join("\n");
+    expect(detectHandback(uneven)?.text).toBe("first\nsecond not indented");
+  });
+
+  it("an empty report still parses (the card must not vanish)", () => {
+    expect(detectHandback(["Another Claude session sent a message:", '<agent-message from="a1">', "</agent-message>"].join("\n"))).toMatchObject({ sender: "a1", text: "" });
+  });
+});

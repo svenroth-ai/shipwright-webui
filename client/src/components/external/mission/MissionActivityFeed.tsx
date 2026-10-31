@@ -60,9 +60,9 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
   // `visible` rides in the dep string (not a separate effect) so switching
   // TO this compact panel re-pins to bottom too — see the prop's own doc
   // comment for why the mount-time re-pin alone is a no-op on a phone.
-  useAutoScroll(scrollRef, `${feed.cards.length}:${visible}`);
   // V2: the evidence-only "Open tests/requirement/…" cards fold into one "Run result" card.
   const items = useMemo(() => groupRunResult(feed.cards), [feed.cards]);
+  useAutoScroll(scrollRef, `${feed.cards.length}:${items.length}:${visible}`);
 
   return <section className="mc-op mc-feed" data-testid="operation-card" data-live="true">
     <header className="mc-feed-pinned">

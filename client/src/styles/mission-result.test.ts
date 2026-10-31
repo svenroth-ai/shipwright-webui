@@ -25,6 +25,8 @@ describe("mission-result.css (V2)", () => {
     expect(css).not.toMatch(/animation|transition/);
   });
   it("action buttons are at least 36px (44px on phones)", () => {
+    expect(css).toMatch(/button.mc-handback-chip {[^}]*min-height: 36px/);
+    expect(css).toMatch(/button.mc-handback-chip { min-height: 44px/);
     expect(css).toMatch(/\.mc-result-btn \{[^}]*min-height: 36px/);
     expect(css).toMatch(/min-height: 44px/);
   });

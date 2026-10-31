@@ -21,16 +21,20 @@ export type FeedItem =
   | { type: "card"; card: ActivityCard; index: number }
   | { type: "result"; rows: ActivityCard[]; delivery: ActivityCard | null };
 
-function isEvidenceOnly(card: ActivityCard): boolean {
+function isEvidenceOnly(card: ActivityCard, isLastDelivery: boolean): boolean {
   if (!card.artifact) return false;
   if (card.commands.length > 0 || card.detail || card.question || card.explanation) return false;
-  if (card.kind === "delivery") return card.artifact === "commit" || card.artifact === "phase";
+  // Only the LAST delivery is the run result's closing row; an earlier one (e.g. a phase) stays a normal card.
+  if (card.kind === "delivery") return isLastDelivery && (card.artifact === "commit" || card.artifact === "phase");
+  // A truncated statement (textFull) has no expansion control in a row - keep it a normal card.
+  if (card.textFull) return false;
   return (card.kind === "test" || card.kind === "spec" || card.kind === "review") && ROW_ORDER.includes(card.artifact);
 }
 
 export function groupRunResult(cards: readonly ActivityCard[]): FeedItem[] {
   const folded = new Set<number>();
-  cards.forEach((card, i) => { if (isEvidenceOnly(card)) folded.add(i); });
+  const lastDelivery = cards.map((c) => c.kind).lastIndexOf("delivery");
+  cards.forEach((card, i) => { if (isEvidenceOnly(card, i === lastDelivery)) folded.add(i); });
   if (folded.size === 0) return cards.map((card, index) => ({ type: "card", card, index }));
   const members = [...folded].map((i) => cards[i]);
   const rows = members

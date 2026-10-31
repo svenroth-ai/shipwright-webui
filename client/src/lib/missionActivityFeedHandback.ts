@@ -10,7 +10,7 @@ import { explanationExcerpt } from "./missionActivityFeedText";
 import type { ActivityCard } from "./missionActivityFeedTypes";
 
 export function buildHandbackCard(event: HandbackEvent, cards: readonly ActivityCard[]): ActivityCard | null {
-  if (!event.text.trim()) return null;
+  // An empty report still shows the card: the "not a message from you" notice must not vanish.
   const dispatch = event.sender
     ? cards.find((c) => c.kind === "subrunner" && c.subrunnerId === event.sender)
     : undefined;
