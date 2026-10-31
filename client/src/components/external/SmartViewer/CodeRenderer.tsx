@@ -18,6 +18,8 @@
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import { common } from "lowlight";
+import { WrapToggleBar, useWrapLines } from "./WrapToggle";
+
 
 const EXT_TO_LANG: Record<string, string> = {
   ts: "typescript",
@@ -55,6 +57,7 @@ interface Props {
 }
 
 export function CodeRenderer({ text, extension }: Props) {
+  const { wrap, toggleWrap } = useWrapLines();
   const lang = EXT_TO_LANG[extension.toLowerCase()] ?? "plaintext";
   // react-markdown is the simplest reliable path to rehype-highlight in a
   // React tree. We wrap the file content in a fenced code block so the
@@ -68,7 +71,9 @@ export function CodeRenderer({ text, extension }: Props) {
       data-testid="smart-viewer-code"
       data-extension={extension}
       data-language={lang}
+      data-wrap={wrap ? "true" : "false"}
     >
+      <WrapToggleBar wrap={wrap} onToggle={toggleWrap} />
       <ReactMarkdown
         rehypePlugins={[
           [

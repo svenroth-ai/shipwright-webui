@@ -203,6 +203,7 @@ test.describe("Triage compliance file viewer", () => {
     await expect(page.getByTestId("triage-file-panel-close")).toBeInViewport();
   });
 
+  // @covers FR-01.02
   test("a long, wide .py file scrolls both vertically and horizontally instead of being clipped (iterate-2026-08-30-triage-file-viewer-followups)", async ({
     page,
     request,
@@ -218,6 +219,8 @@ test.describe("Triage compliance file viewer", () => {
       { "long_module.py": LONG_PY_BODY },
     ));
 
+    // Wrap lines is on by default (V7); this test measures the RAW, unwrapped form's horizontal scroll.
+    await page.addInitScript(() => window.localStorage.setItem("shipwright:viewer-wrap-lines", "false"));
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0004")).toBeVisible({ timeout: 15000 });
     await page.getByTestId("triage-item-trg-fv0004").click();

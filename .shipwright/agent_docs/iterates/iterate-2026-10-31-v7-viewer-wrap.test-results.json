@@ -1,0 +1,91 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-31-v7-viewer-wrap",
+    "date": "2026-10-31",
+    "unit": {
+      "status": "passed",
+      "passed": 4574,
+      "skipped": 0,
+      "total": 4574
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "skipped": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "skipped": 0,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/smartviewer-code-wrap.spec.ts --reporter=line",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style-v2--V7\\.shipwright\\runs\\iterate-2026-10-31-v7-viewer-wrap\\surface_verification.log",
+      "timestamp": "2026-10-31T14:29:55.494Z",
+      "attempts": 1
+    },
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "code wraps by default",
+          "disposition": "tested",
+          "evidence": "smartviewer-code-wrap.spec.ts + SmartViewer.test.tsx PASSED"
+        },
+        {
+          "behavior": "toggle flips aria-pressed and persists",
+          "disposition": "tested",
+          "evidence": "SmartViewer.test.tsx wrap toggle tests PASSED; E2E reload"
+        },
+        {
+          "behavior": "13px/1.6 code",
+          "disposition": "tested",
+          "evidence": "E2E computed style 13px/20.8px PASSED"
+        },
+        {
+          "behavior": "toggle reachable when scrolled sideways",
+          "disposition": "tested",
+          "evidence": "E2E toBeInViewport PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-10-31-v7-viewer-wrap",
+    "commit": "35f3b01f5fa1bd4a7884d90b88fbb709ebb263ad",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

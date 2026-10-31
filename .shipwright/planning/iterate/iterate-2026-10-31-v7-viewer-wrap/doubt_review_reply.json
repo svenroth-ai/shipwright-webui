@@ -1,0 +1,31 @@
+{
+ "stage": "doubt",
+ "gating": "advisory-must-address",
+ "verdict": "PASS",
+ "doubts": [
+  {
+   "severity": "high",
+   "claim_under_doubt": "Existing E2E triage-file-viewer.spec.ts:240 expects horizontal scroll but wrap is now the default [fixed: the test sets shipwright:viewer-wrap-lines=false via addInitScript; ran green]"
+  },
+  {
+   "severity": "high",
+   "claim_under_doubt": "text-indent each-line may be unsupported in Chromium [rebutted: real-Chromium geometry assertion passes; now additionally guarded by @supports so unsupported browsers wrap flush instead of shifting]"
+  },
+  {
+   "severity": "medium",
+   "claim_under_doubt": "Hang is measured from column 0, not from a line's own indentation [accepted and documented in the CSS comment]"
+  },
+  {
+   "severity": "medium",
+   "claim_under_doubt": "Toggle focus ring invisible in forced-colors mode [fixed: outline 2px solid transparent]"
+  },
+  {
+   "severity": "low",
+   "claim_under_doubt": "Preference read once at mount so two open viewers can disagree until remount [accepted: applies to newly opened views]"
+  },
+  {
+   "severity": "low",
+   "claim_under_doubt": "Re-layout cost when resizing a near-cap file in wrap mode [accepted; 1 MB cap]"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+{"section":"V7-viewer-wrap","verdict":"PASS","review":[
+{"severity":"low","category":"readability","file":"client/src/components/external/SmartViewer/CodeRenderer.tsx","line":23,"finding":"Dead re-export of WRAP_STORAGE_KEY (no importers).","suggestion":"Delete it."},
+{"severity":"low","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":36,"finding":".sv-code-bar sets light tokens but reads --card from the page; a dark --card scope would give dark-on-dark (latent, no current consumer).","suggestion":"Also set --card: #fff in the bar's tokens."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/SmartViewer/WrapToggle.tsx","line":13,"finding":"Preference read once at mount; two open viewers can show stale state until remount.","suggestion":"Optional: storage event / shared store."},
+{"severity":"low","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":24,"finding":"Browsers without text-indent: each-line drop the declaration; wrapping still works, indent degrades to a plain 2ch shift; acceptable.","suggestion":"None required."}
+],"notes":"Specificity, other CodeRenderer consumers, DO-NOT #24 (not column-flex), accessibility and storage handling verified."}

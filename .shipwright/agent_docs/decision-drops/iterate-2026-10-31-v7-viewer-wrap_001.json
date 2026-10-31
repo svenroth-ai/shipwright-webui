@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-31-v7-viewer-wrap",
+  "date": "2026-10-31",
+  "section": "Iterate — change: smart viewer code wrap",
+  "title": "Smart Viewer code wraps by default with per-browser toggle",
+  "context": "Long code lines forced horizontal scrolling in the Smart Viewer; Board 9 asks for wrapping and 13px/1.6 code.",
+  "decision": "CodeRenderer wraps by default (pre-wrap, overflow-wrap:anywhere), Wrap lines toggle remembered in localStorage, CSS in styles/smart-viewer-code.css.",
+  "consequences": "One localStorage key; no line numbers exist so no hanging indent was added (declared deviation). Viewer background stays the github-dark theme color, not #1f2937.",
+  "rationale": "Smallest change meeting Board 9; per-line rows for line numbers would add standing markup cost.",
+  "rejected": "CSS-only wrap without toggle; per-line DOM rows with line-number gutter.",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}

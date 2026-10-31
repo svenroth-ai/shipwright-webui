@@ -1,0 +1,114 @@
+/* V7: Smart Viewer code — wrap lines by default, toggle, 13px/1.6.
+ * Specificity note: this file @imports BEFORE index.css's own rules, so the
+ * selectors carry the [data-wrap] attribute to out-rank `.smart-viewer-code pre`
+ * (width:max-content) and highlight.js github-dark `pre code.hljs`
+ * (overflow-x:auto). The dark code background comes from that theme. */
+.smart-viewer-code[data-wrap] pre code {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.smart-viewer-code[data-wrap] pre {
+  line-height: 1.6;
+}
+.smart-viewer-code[data-wrap="true"] pre,
+.smart-viewer-code[data-wrap="true"] pre code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+/* Hanging indent: every logical line starts flush, wrapped continuation
+ * rows sit 2ch to the right (measured from column 0, not from a line's own
+ * indentation). Only where the browser knows `each-line`; elsewhere the code
+ * simply wraps flush instead of shifting every row. */
+.smart-viewer-code[data-wrap="true"] pre code { display: block; }
+@supports (text-indent: 1em each-line) {
+  .smart-viewer-code[data-wrap="true"] pre code {
+    padding-left: calc(1em + 2ch); /* keeps the theme's 1em gutter, plus the hang */
+    text-indent: -2ch each-line;
+  }
+}
+.smart-viewer-code[data-wrap="true"] pre {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.smart-viewer-code[data-wrap="false"] pre,
+.smart-viewer-code[data-wrap="false"] pre code {
+  white-space: pre;
+}
+
+.sv-code-bar {
+  position: sticky;
+  top: 0;
+  left: 0; /* stays reachable when raw (unwrapped) code is scrolled sideways */
+  z-index: 1;
+  /* Self-sufficient light tokens: .on-photo hosts flip --ink/--line/--accent to white. */
+  --ink: #1c1917;
+  --line: #e7e5e4;
+  --card: #ffffff;
+  --accent: #0e7a6b;
+  --accent-tint: #e6f3f0;
+  --accent-line: #9fd3ca;
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.sv-wrap-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sv-wrap-toggle[aria-pressed="true"] {
+  background: var(--accent-tint, var(--inset));
+  border-color: var(--accent-line, var(--line));
+  color: var(--accent, var(--ink));
+}
+.sv-wrap-toggle:focus-visible { outline: 2px solid transparent; /* visible in forced-colors */ box-shadow: var(--focus); }
+@media (pointer: coarse) { .sv-wrap-toggle { min-height: 44px; } }
+
+/* Plain-text view (TextRenderer): same wrap preference, 13px/1.6, gutter line
+ * numbers on the first visual row only, continuation rows hang 2ch. */
+.smart-viewer-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.smart-viewer-text .sv-text-line {
+  display: grid;
+  grid-template-columns: 3.5ch 1fr;
+  column-gap: 14px;
+}
+.smart-viewer-text .sv-text-ln {
+  align-self: start; /* the number sits on the first visual row only */
+}
+.smart-viewer-text .sv-text-body {
+  min-width: 0;
+}
+.smart-viewer-text[data-wrap="true"] {
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.smart-viewer-text[data-wrap="true"] .sv-text-body {
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+.smart-viewer-text[data-wrap="false"] {
+  width: max-content;
+  min-width: 100%;
+  white-space: pre;
+}
