@@ -1,7 +1,7 @@
 import { extractAskUserPayload } from "../lib/askUserPayload";
 import { detectSlashCommand } from "./parsers/slash-command";
 import { detectStopHook } from "./parsers/stop-hook";
-import { detectHandback, type HandbackOrigin } from "./parsers/handback";
+import { dedupeHandbacks, detectHandback, handbackFromAttachment, type HandbackOrigin } from "./parsers/handback";
 import { extractSkillBody } from "./parsers/skill-body";
 
 export { extractSkillBody };
@@ -321,7 +321,7 @@ export function parseSessionJsonl(content: string): ParseResult {
     }
     events.push(parseOne(raw));
   }
-  return { events, malformedLines: malformed };
+  return { events: dedupeHandbacks(events), malformedLines: malformed };
 }
 
 function parseOne(raw: Record<string, unknown>): ParsedEvent {
@@ -379,8 +379,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
         kind: "assistant",
         content: (raw.message as { content?: unknown } | undefined)?.content ?? raw.message,
       };
-    case "attachment":
-      return { ...base, kind: "attachment", attachment: raw.attachment };
+    case "attachment": { const hb = handbackFromAttachment(raw.attachment); return hb ? { ...base, kind: "handback", ...hb } : { ...base, kind: "attachment", attachment: raw.attachment }; }
     case "queue-operation":
       return {
         ...base,

@@ -38,6 +38,9 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
   if (Array.isArray(content) && content.some((b) => (b as { type?: unknown } | null)?.type === "tool_result")) return null;
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
+  // Cheap early exit (before any replace/regex): a real hand-back LEADS with the header, the marker or the envelope.
+  const lead = raw.trimStart();
+  if (!lead.startsWith(HEADER) && !lead.startsWith(MARKER) && !lead.startsWith("<agent-message")) return null;
   const text = raw.replace(/\r\n/g, "\n");
   // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that
   // merely quotes the marker or the envelope mid-text stays a user message with its text intact.
@@ -70,6 +73,33 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
     const lines = body.split("\n").filter((l) => l.trim());
     if (lines.length > 0 && lines.every((l) => l.startsWith("  "))) body = body.replace(/^ {2}/gm, "");
   }
-  body = body.replace(TRAILER, "");
+  // The harness's closing paragraph trails the header-only shape; inside an envelope it is outside the body already.
+  if (!envelope) body = body.replace(TRAILER, "");
   return { sender: envelope?.[1] ?? "", origin: isMarked ? "subagent" : "session", text: body.trim() };
+}
+
+export type Handback = NonNullable<ReturnType<typeof detectHandback>>;
+
+/**
+ * The second real delivery shape (measured: 36 of 165 hand-backs): a `queued_command` ATTACHMENT whose `prompt`
+ * is the envelope itself (`<agent-message from="…">\n[Subagent hand-back] …`). It is the same message as the
+ * user-role record, so it goes through the same detector; any other attachment is left alone.
+ */
+export function handbackFromAttachment(attachment: unknown): Handback | null {
+  if (!attachment || typeof attachment !== "object") return null;
+  const a = attachment as { type?: unknown; prompt?: unknown };
+  return a.type === "queued_command" && typeof a.prompt === "string" ? detectHandback(a.prompt) : null;
+}
+
+/** Drops a hand-back already seen from the same sender with the same text (it can arrive as BOTH a user record and an attachment). */
+export function dedupeHandbacks<T extends { kind: string }>(events: T[]): T[] {
+  const seen = new Set<string>();
+  return events.filter((e) => {
+    const h = e as unknown as { sender?: string; text?: string };
+    if (e.kind !== "handback" || !h.sender || !h.text) return true;
+    const key = `${h.sender}\u0000${h.text}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

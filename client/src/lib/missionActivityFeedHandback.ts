@@ -10,6 +10,8 @@ import { explanationExcerpt } from "./missionActivityFeedText";
 import type { ActivityCard } from "./missionActivityFeedTypes";
 
 export function buildHandbackCard(event: HandbackEvent, cards: readonly ActivityCard[]): ActivityCard | null {
+  // The same message can arrive as a user record AND a queued_command attachment: show it once.
+  if (event.sender && cards.some((c) => c.kind === "handback" && c.handbackSender === event.sender && c.text === explanationExcerpt(event.text, Infinity, Infinity))) return null;
   // An empty report still shows the card: the "not a message from you" notice must not vanish.
   const dispatch = event.sender
     ? cards.find((c) => c.kind === "subrunner" && c.subrunnerId === event.sender)

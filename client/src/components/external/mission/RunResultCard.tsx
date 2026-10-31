@@ -13,12 +13,6 @@ import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
 import { ChevronRightIcon, CheckIcon, XIcon } from "./MissionFeedIcons";
 import { mergeStateLabel, pillLabel } from "./MissionActivityFeedCardParts";
 
-function statusPill(card: ActivityCard): string {
-  const label = pillLabel(card);
-  if (label) return label;
-  return card.status === "ok" ? "Done" : card.status === "err" ? "Failed" : card.status === "warn" ? "Needs attention" : "Pending";
-}
-
 function Pill({ status, label }: { status?: ActivityCard["status"]; label: string }) {
   return (
     <span className="mc-pill" data-status={status ?? "none"}>
@@ -49,11 +43,11 @@ export function RunResultCard({
   const pr = delivery && delivery.artifact === "commit" ? commitArtifact?.detail : null;
   const deliveryText = delivery ? stripDuplicateSentence(delivery.textFull || delivery.text, pr?.message ? `Merged as "${pr.message}".` : null) : "";
   return (
-    <section className="mc-result" data-testid="run-result-card" aria-label="Run result">
-      <div className="mc-result-h">Run result</div>
+    <section className="mc-result" data-testid="run-result-card" aria-label={delivery ? "Run result" : "Evidence"}>
+      <div className="mc-result-h">{delivery ? "Run result" : "Evidence"}</div>
       {rows.map((card, i) => (
         <div className="mc-result-row" data-testid="run-result-row" data-artifact={card.artifact} key={`${card.artifact}-${i}`}>
-          <Pill status={card.status} label={statusPill(card)} />
+          {pillLabel(card) ? <Pill status={card.status} label={pillLabel(card) as string} /> : <span className="mc-pill-slot" aria-hidden="true" />}
           <div className="mc-result-t">
             {resultRowTitle(card.artifact as string)}
             {card.text && <div className="mc-result-sub"><MarkdownChunk content={card.text} /></div>}

@@ -35,10 +35,11 @@ export function groupRunResult(cards: readonly ActivityCard[]): FeedItem[] {
   const folded = new Set<number>();
   const lastDelivery = cards.map((c) => c.kind).lastIndexOf("delivery");
   cards.forEach((card, i) => { if (isEvidenceOnly(card, i === lastDelivery)) folded.add(i); });
-  // Only the LATEST card per artifact joins the result; an earlier one (e.g. a superseded failing test run)
-  // stays where it happened so the result never shows two competing verdicts for one target.
+  // Only the LATEST card per artifact (over ALL cards, folded or not) may join the result, and only if it can
+  // fold itself: a superseded failing run stays where it happened, and a newer card that carries its own
+  // commands/detail keeps the artifact out of the result - never two competing verdicts for one target.
   const latestByArtifact = new Map<string, number>();
-  for (const i of folded) if (cards[i].kind !== "delivery") latestByArtifact.set(cards[i].artifact as string, i);
+  cards.forEach((c, i) => { if (c.artifact && c.kind !== "delivery") latestByArtifact.set(c.artifact, i); });
   for (const i of [...folded]) {
     if (cards[i].kind !== "delivery" && latestByArtifact.get(cards[i].artifact as string) !== i) folded.delete(i);
   }

@@ -90,3 +90,17 @@ describe("groupRunResult - latest per artifact", () => {
     expect(result.rows.map((r) => r.status)).toEqual(["ok"]);
   });
 });
+
+describe("groupRunResult - superseded artifacts (V2 doubt review)", () => {
+  // @covers FR-01.66
+  it("a newer card with its own commands keeps the artifact out of the result; the older failing row is not shown", () => {
+    const items = groupRunResult([
+      card({ kind: "test", artifact: "tests", status: "err", text: "failing" }),
+      card({ kind: "test", artifact: "tests", status: "ok", commands: [{ tool: "Bash", command: "npm test" } as never] }),
+      card({ kind: "review", artifact: "review", status: "ok", text: "reviewed" }),
+    ]);
+    const result = items.find((i) => i.type === "result");
+    expect(result && result.type === "result" ? result.rows.map((r) => r.artifact) : []).toEqual(["review"]);
+    expect(items.filter((i) => i.type === "card")).toHaveLength(2);
+  });
+});

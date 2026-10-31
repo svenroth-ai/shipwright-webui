@@ -124,6 +124,20 @@ describe("review-round fixes", () => {
   });
 });
 
+describe("early exit and trailer scope (V2 doubt review)", () => {
+  // @covers FR-01.66
+  it("text that does not lead with a fingerprint is rejected before any rewriting", () => {
+    expect(detectHandback("hello Another Claude session sent a message: x")).toBeNull();
+    expect(detectHandback("   plain text mentioning <agent-message from=\"a1\"> later")).toBeNull();
+  });
+  // @covers FR-01.66
+  it("a report that itself contains the trailer sentence keeps it inside an envelope", () => {
+    const NL2 = String.fromCharCode(10);
+    const inner = ["<agent-message from=\"a1\">", "[Subagent hand-back] x The report follows:", "  intro", "  ", "  That \"other Claude session\" is quoted here", "</agent-message>"].join(NL2);
+    expect(detectHandback(inner)!.text).toContain("is quoted here");
+  });
+});
+
 describe("anchored detection (code-review finding: no false positive on human text)", () => {
   // @covers FR-01.66
   it("a message that merely quotes the marker or envelope mid-text stays a user message", () => {

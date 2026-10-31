@@ -3,6 +3,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MissionActivityFeed } from "./MissionActivityFeed";
 import { SubrunnerRow } from "./SubrunnerRow";
+import { RunResultCard } from "./RunResultCard";
+import type { ActivityCard } from "../../../lib/missionActivityFeedTypes";
 import { formatElapsed } from "./MissionActivityFeedCardParts";
 import type { ActivityFeed } from "../../../lib/missionActivityFeed";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
@@ -58,6 +60,18 @@ describe("Run result card (V2)", () => {
     const row = screen.getByTestId("run-result-row");
     expect(row.querySelector("code")?.textContent).toBe("vitest");
     expect(row.querySelector("strong")?.textContent).toBe("green");
+  });
+
+  // @covers FR-01.66
+  it("no pill when the card has no verdict label, and the card is titled Evidence until there is a delivery", () => {
+    const rows: ActivityCard[] = [{ kind: "implement", text: "x", commands: [], artifact: "tests" }];
+    const { rerender } = render(<RunResultCard rows={rows} delivery={null} commitArtifact={null} />);
+    expect(screen.getByTestId("run-result-card")).toHaveAttribute("aria-label", "Evidence");
+    expect(screen.getByText("Evidence")).toBeInTheDocument();
+    expect(screen.queryByText(/Pending|Needs attention/)).toBeNull();
+    expect(screen.getByTestId("run-result-row").querySelector(".mc-pill")).toBeNull();
+    rerender(<RunResultCard rows={rows} delivery={{ kind: "delivery", text: "Done.", commands: [], artifact: "commit" }} commitArtifact={null} />);
+    expect(screen.getByTestId("run-result-card")).toHaveAttribute("aria-label", "Run result");
   });
 
   // @covers FR-01.66

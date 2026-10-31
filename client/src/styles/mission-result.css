@@ -24,6 +24,7 @@ button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus);
 .mc-result { border: 1px solid var(--line-strong); border-radius: 12px; background: var(--card); overflow: hidden; color: var(--body); }
 .mc-result-h { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: var(--fs-eyebrow, 12px); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .mc-result-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 11px 16px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.mc-pill-slot { display: block; }
 .mc-result-row:last-child { border-bottom: 0; }
 .mc-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-small, 13px); font-weight: 600; white-space: nowrap; background: var(--line); border: 1px solid var(--line-strong); color: var(--muted); }
 .mc-pill[data-status="ok"] { background: var(--ok-tint); border-color: var(--ok-line); color: var(--ok); }
@@ -58,6 +59,7 @@ button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus);
 @media (max-width: 640px) {
   .mc-result-row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "pill t" "btn btn"; gap: 8px 12px; padding: 12px 14px; }
   .mc-result-row .mc-pill { grid-area: pill; }
+  .mc-pill-slot { display: none; }
   .mc-result-row .mc-result-t { grid-area: t; }
   .mc-result-row .mc-result-btn { grid-area: btn; width: 100%; justify-content: center; min-height: 44px; }
   .mc-sub .mc-result-btn, .mc-result-commit .mc-result-btn { min-height: 44px; }
