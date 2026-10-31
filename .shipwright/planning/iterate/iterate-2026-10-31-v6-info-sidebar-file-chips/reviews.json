@@ -61,67 +61,111 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 4,
+      "findings_count": 5,
       "findings": [
         {
           "severity": "low",
           "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "A stale chip request can replay when returning to a previously visited task (MissionBody has no key); reopens last file and uncollapses sidebar.",
-          "suggestion": "Clear asked on task change or skip repeated nonces.",
+          "file": "client/src/hooks/useMissionFileOpen.ts",
+          "line": 37,
+          "finding": "The cwd fix is unit-tested in the pure resolver only; no test asserts that fileOpen.cwd reaches chips.",
+          "suggestion": "Add a hook assertion and a FileChip test with a cwd. Accepted as follow-up.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "Chat chips have no project-still-loading guard; absolute inside-project paths may open as outside until the project loads.",
-          "suggestion": "Expose a ready flag.",
+          "file": "client/src/lib/viewerTarget.test.ts",
+          "line": 2945,
+          "finding": "The <root>/.worktrees/<name> cwd case is untested.",
+          "suggestion": "Add a case. Accepted as follow-up.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "architecture",
-          "file": null,
-          "line": null,
-          "finding": "fetchTextFile.ts and externalApi.ts import each other (call-time use only).",
-          "suggestion": "Move shared symbols to a leaf module.",
+          "file": "client/src/lib/fetchTextFile.ts",
+          "line": 7,
+          "finding": "Call-time import cycle with externalApi.ts (safe).",
+          "suggestion": "Optional leaf module.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "Focus returns to the Agents window opener after a chip click closes it.",
-          "suggestion": "Acceptable.",
+          "file": "client/src/components/external/mission/MissionBody.tsx",
+          "line": 76,
+          "finding": "MissionBody.tsx is at exactly 300 lines.",
+          "suggestion": "Extract on the next change.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/SmartViewer/OutsideProjectHeader.tsx",
+          "line": 38,
+          "finding": "role=status span sits inside a button, may not be announced reliably.",
+          "suggestion": "Separate visually hidden status span. Accepted as follow-up.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T21:59:11.803637+00:00",
+      "completed_at": "2026-10-31T22:27:34.674337+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "32307c648db62bc243ac6c8cfa4407d5724655ad"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/hooks/useMissionFileOpen.ts:37",
+          "line": null,
+          "finding": "Claim under doubt: relative chat paths resolve against the folder the session works in — task.cwd is the folder the session was LAUNCHED in; a later in-session cd into a worktree is not tracked, and a subfolder-launched session whose model writes repo-root-relative paths resolves one level too deep. ADDRESSED IN WRITING: accepted as a documented approximation - task.cwd is the cwd Claude itself records for the session, per-event cwd is not exposed by the parser, the chip tooltip shows the full resolved path, wrong guesses fail closed (404/403) or show the project copy with its full path visible. Follow-up: use per-event cwd if the parser exposes it.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/lib/viewerTarget.ts:110",
+          "line": null,
+          "finding": "Claim under doubt: every relative chip opens — A relative chip in a task whose folder is outside the root fails with 403 path_not_evidenced. ADDRESSED: accepted as a safe failure.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/lib/viewerTarget.ts:74",
+          "line": null,
+          "finding": "Claim under doubt: parseFileRef rejects odd names — Drive-relative names like D:notes.md pass parseFileRef (server pathGuard rejects drive_change). ADDRESSED: accepted, server is the authority; follow-up to reject drive-relative names.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "blast radius",
+          "file": "client/src/components/external/MarkdownText.tsx:120",
+          "line": null,
+          "finding": "Claim under doubt: link chips are not deceptive — Link chips show the markdown link text, so an injected assistant link can name a different target. ADDRESSED: accepted - V4 already counts assistant chat text as evidence, credential deny-list applies, tooltip/aria-label/header show the full path; follow-up to show the target name when it differs.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-31T21:58:53.991276+00:00",
-      "disposition": "closed by reason_code diff-below-threshold",
-      "recorded_by": "none",
+      "completed_at": "2026-10-31T22:27:34.861573+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -218,14 +262,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T21:59:11.594625+00:00",
+      "completed_at": "2026-10-31T22:27:34.483258+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "32307c648db62bc243ac6c8cfa4407d5724655ad"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
