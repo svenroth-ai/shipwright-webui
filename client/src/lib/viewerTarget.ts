@@ -48,7 +48,8 @@ export function parseFileRef(raw: string, opts: { decode?: boolean } = {}): File
   if (!s || s.length > 1024 || BAD_CHARS.test(s) || s.startsWith("#")) return null;
   let decode = opts.decode === true;
   if (/^file:\/\//i.test(s)) {
-    s = s.replace(/^file:\/\/\/?/i, "");
+    if (!/^file:\/\/\//i.test(s)) return null; // a host/authority (UNC share) is never a local file
+    s = s.replace(/^file:\/\/\//i, "");
     if (!WIN_ABS.test(s)) s = `/${s}`;
     decode = true;
   } else if (SCHEME.test(s) && !WIN_ABS.test(s)) {
@@ -73,6 +74,8 @@ export function parseFileRef(raw: string, opts: { decode?: boolean } = {}): File
   if (!abs) {
     s = s.replace(/\\/g, "/").replace(/^(\.\/)+/, "");
     if (s.split("/").some((seg) => seg === ".." || seg === "." || seg === "")) return null;
+  } else if (s.split(SEP).some((seg) => seg === ".." || seg === ".")) {
+    return null; // absolute traversal is never a chip either
   }
   const name = s.split(SEP).pop() ?? "";
   if (!HAS_EXT.test(name)) return null;

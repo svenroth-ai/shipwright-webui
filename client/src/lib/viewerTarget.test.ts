@@ -33,6 +33,9 @@ describe("parseFileRef", () => {
       "a/../b.ts",
       "\\\\server\\share\\a.txt",
       "src/folder",
+      "/tmp/../secret.md",
+      "C:\\dev\\app\\..\\secret.md",
+      "file://server/share/a.txt",
       "run the tests.ts now",
       "",
     ]) {

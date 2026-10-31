@@ -53,6 +53,20 @@ describe("chat file chips (MarkdownText + FileOpenContext)", () => {
     expect(screen.getAllByTestId("mc-file")).toHaveLength(1); // only the absolute one without a project
   });
 
+  it("keeps absolute Windows / file:/// links (react-markdown would blank them) and chips them", () => {
+    const open = renderMd("[notes](C:/notes/spec.md) and [url](file:///D:/x/y.md)");
+    const chips = screen.getAllByTestId("mc-file");
+    expect(chips).toHaveLength(2);
+    fireEvent.click(chips[0]);
+    expect(open).toHaveBeenLastCalledWith({ path: "C:/notes/spec.md", outside: true });
+    expect(chips[0]).toHaveAttribute("title", "C:/notes/spec.md");
+  });
+
+  it("never chips an unlabelled fenced block that only contains a path", () => {
+    renderMd("```\nsrc/a.ts\n```");
+    expect(screen.queryByTestId("mc-file")).toBeNull();
+  });
+
   it("renders plain markdown (no chips) outside any provider", () => {
     render(<MarkdownText text="`src/a.ts`" />);
     expect(screen.queryByTestId("mc-file")).toBeNull();

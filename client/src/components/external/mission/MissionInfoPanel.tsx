@@ -40,7 +40,7 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
   const projectQ = useProject(unassigned ? "" : task.projectId);
   const projectRoot = projectQ.data?.path ?? null;
   // inside/outside is only known once the project has loaded (or there is none)
-  const rootReady = unassigned || !projectQ.isPending;
+  const rootReady = unassigned || projectQ.isSuccess;
   const info = q.data?.status === "ok" ? q.data.info : null;
   // After a failed refetch the cached On/Off may be stale (session ended): show Unknown.
   const remote: boolean | null = info && !q.isError ? info.remoteControl.active : null;

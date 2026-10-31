@@ -13,13 +13,14 @@
  */
 
 import { useMemo, useState, type ReactNode } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { FileChip } from "./FileChip";
 import { useFileTarget } from "./FileOpenContext";
+import { parseFileRef } from "../../lib/viewerTarget";
 
 const MAX_CODE_LINES = 200;
 const MAX_LINE_LENGTH = 2000;
@@ -89,11 +90,19 @@ const REACT_MARKDOWN_COMPONENTS = {
   },
 };
 
+// react-markdown blanks hrefs with unknown schemes (`C:/x.md`, `file:///x.md`); keep the ones
+// that are file references so MarkdownLink can chip them (everything else: default policy).
+function keepFileRefUrl(url: string): string {
+  return /^(file:\/\/\/|[A-Za-z]:[\\/])/i.test(url) && parseFileRef(url, { decode: true }) ? url : defaultUrlTransform(url);
+}
+
 // Inside a FileOpenContext (Mission tab) an inline-code path or a link to a file
 // becomes a clickable `.mc-file` chip; elsewhere both render exactly as before.
 function InlineCode({ children, ...rest }: { children?: ReactNode }) {
-  const target = useFileTarget(childrenToString(children));
-  if (target) return <FileChip target={target} title={childrenToString(children)} />;
+  const text = childrenToString(children);
+  // An unlabelled fenced block also lands here; unlike inline code it ends in a newline.
+  const target = useFileTarget(text.includes("\n") ? "" : text);
+  if (target) return <FileChip target={target} title={text} />;
   return (
     <code className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]" {...rest}>
       {children}
@@ -105,7 +114,7 @@ function MarkdownLink(props: { children?: ReactNode; href?: string }) {
   const target = useFileTarget(props.href ?? "", true);
   if (target) {
     const label = childrenToString(props.children);
-    return <FileChip target={target} label={label || undefined} title={props.href} />;
+    return <FileChip target={target} label={label || undefined} />;
   }
   return (
     <a
@@ -143,6 +152,7 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   return (
     <div className="markdown-body text-sm leading-relaxed" data-testid="markdown-body">
       <ReactMarkdown
+        urlTransform={keepFileRefUrl}
         remarkPlugins={REMARK_PLUGINS}
         // rehype-plugins' type in react-markdown v10 is mildly loose;
         // the tuple form is accepted at runtime. Cast to satisfy the
