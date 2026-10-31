@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "# Review: V1 Chat Readability Mini-Plan\n\n**Category: edge-case**\n**Severity: medium**\n**Finding:** Removing `Show more` on agent messages means very long agent responses (multi-thousand-token outputs, large code blocks) render fully in the feed with no escape hatch. Combined with (a) keeping truncation only for tool-call raw data, this can produce extremely tall DOM nodes that hurt scroll performance in long missions.\n**Suggestion:** Confirm a pragmatic ceiling: preserve expand-collapse for messages beyond some large length (e.g. >2000 chars) or at minimum verify scroll performance with a long-mission fixture. If product intent is truly \"always full,\" note it explicitly so the perf tradeoff is a decision, not an accident.\n\n**Category: risk**\n**Severity: medium**\n**Finding:** Step 2 (`data-switch` on speaker change) \u2014 the speaker-change detection needs a stable definition of \"speaker.\" If entries include system/agent/tool rows interleaved between user rows, does a tool line between two agent messages count as a switch? Ambiguous semantics will show up as inconsistent 28px vs 36px gaps that are hard to debug visually.\n**Suggestion:** Define speaker as user vs non-user (the plan implies this) and add a unit test asserting gap classes on representative sequences: user\u2192agent, agent\u2192tool, tool\u2192agent, agent\u2192user.\n\n**Category: dependency**\n**Severity: medium**\n**Finding:** The plan hardcodes hex values in `mission-operation.css` dark scope (`--body #d9d6d0` etc.) while the spec bans hardcoded colors outside tokens. Putting hex values in a component-level CSS file is borderline \u2014 it depends on how the repo's `no-hardcoded-colors` test defines \"tokens.\" If the test scans all CSS files for hex literals (with a whitelist), this will fail or need a whitelist entry.\n**Suggestion:** Check whether these belong in the global dark-theme token block rather than `mission-operation.css`. If the test permits locally-scoped tokens, fine \u2014 but verify before merge rather than discovering it in CI.\n\n**Category: edge-case**\n**Severity: medium**\n**Finding:** Table wrapper (`.mc-table-wrap`) and zebra rows: GFM tables in chat can be very wide (agent-generated comparison tables). A wrapping div alone doesn't guarantee horizontal scroll on narrow viewports; also, if `MarkdownText` is used outside mission chat (e.g. other markdown surfaces), the new wrapper and the removed white-header source (`index.css .markdown-body table th`) will change rendering there too.\n**Suggestion:** (1) Add `overflow-x: auto` to `.mc-table-wrap`. (2) Audit other usages of `.markdown-body` \u2014 the fix at step 5 touches shared styles; if other pages relied on the white header, scope the change or confirm it's acceptable globally.\n\n**Category: risk**\n**Severity: low**\n**Finding:** Link teal `#7fdcca` is specified for \"links in the chat,\" but step 4 sets `--link` in the dark scope only. Light-mode chat links presumably keep an existing color \u2014 verify the mockup (Board rows referenced) actually specifies a light-mode link treatment, or the change is dark-only by design.\n**Suggestion:** Confirm light-mode link styling explicitly in the mockup; if unspecified, state \"light mode unchanged\" in the PR description to avoid churn later.\n\n**Category: approach**\n**Severity: low**\n**Finding:** Acceptance criteria are entirely \"TBD.\" For a change this visual, that's the biggest gap \u2014 the mini-plan describes what was done, not what verifies it.\n**Suggestion:** Before merge, write concrete ACs: contrast ratios for the new token lifts (the new `--faint #8f8981` on the dark background is the riskiest \u2014 compute WCAG ratio and confirm \u22654.5:1 for body, or accept it's decorative-only), 12px floor verified programmatically (the planned `mission-chat-scale.test.ts` covers this \u2014 good), and visual baseline runs for both themes.\n\n**Category: edge-case**\n**Severity: low**\n**Finding:** Unbounded full messages also affect any code that measured or assumed truncated card heights (virtualization, scroll-to-bottom logic, screenshot baselines). Screenshot baselines will all churn \u2014 the spec already notes Linux-only baselines via workflow, which is handled, but scroll-to-latest behavior on long messages should get a manual pass.\n**Suggestion:** Sanity-check auto-scroll-to-bottom behavior with a long agent message and a fresh turn.\n\n---\n\n**Overall:** The approach is sound and appropriately scoped \u2014 direct, token-driven, with the right instinct to keep `Show more` for raw tool data only. The main gaps are the TBD acceptance criteria, the contrast risk on `--faint`, and the shared-markdown-style blast radius from step 5.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** Speaker detection treats every non-user entry as the same speaker. Tool events or status entries between messages could therefore receive the 36px gap or prevent it from appearing where intended.  \n   **Suggestion:** Define spacing around actual message turns, and test user \u2192 agent, agent \u2192 user, and messages interleaved with tool/status entries.\n\n2. **Category: risk \u00b7 Severity: medium**  \n   **Finding:** Adding a wrapper in the shared `MarkdownText` renderer affects consumers beyond mission chat. It may break existing direct-child table selectors or overflow behavior.  \n   **Suggestion:** Check shared renderer consumers and selectors. Scope the table skin to mission chat, give the wrapper horizontal overflow for wide tables, and verify both themes and narrow layouts.\n\n3. **Category: approach \u00b7 Severity: medium**  \n   **Finding:** Keeping expansion for every `card.detail` assumes that field always contains raw tool output. The specification permits truncation only for tool-call raw data; narrative details could remain collapsed unintentionally.  \n   **Suggestion:** Confirm the field\u2019s producers and gate expansion by content type. Cover long user text, agent explanations, answers, narrative details, and raw tool output in tests.\n\n4. **Category: dependency \u00b7 Severity: medium**  \n   **Finding:** The stated verification does not cover the required visual checks or several explicit repository constraints. Token tests alone cannot establish rendered spacing, readable tables, or the absence of smaller text inherited from other styles.  \n   **Suggestion:** Add explicit acceptance criteria and run the repository\u2019s required checks for file length, hardcoded colors, and applicable reset/motion rules. Validate Boards 1 and 10 in both themes, and run visual baselines through the Linux workflow without committing derived snapshots.\n\nThe approach is broadly sound, but these scope and verification gaps should be resolved before merging. Filesystem access was blocked by policy, so this review assesses the supplied plan rather than verified code or mockup contents.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v1-chat-readability",
+    "at": "2026-10-31T14:28:27.887748+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

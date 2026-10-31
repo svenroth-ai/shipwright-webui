@@ -35,4 +35,32 @@ test.describe("SmartViewer HTML rendering (FR-01.02)", () => {
     await expect(page.getByTestId("smart-viewer-html-frame")).toHaveCount(0);
     await expect(page.getByTestId("smart-viewer-html")).toContainText("<h1");
   });
+
+  // Regression: a relative <link rel=stylesheet> never loaded in the srcdoc
+  // iframe, so a mockup rendered unstyled. It must now be inlined and applied,
+  // in the inline pane AND in the pop-out modal (which has no pop-out of its own).
+  test("applies a relative stylesheet and offers a pop-out (inline + modal)", async ({ page }) => {
+    await page.route("**/api/external/projects/**/file**", (route) => {
+      const path = new URL(route.request().url()).searchParams.get("path") ?? "";
+      if (path.endsWith("mockup.css")) {
+        return route.fulfill({ status: 200, contentType: "text/css", body: "#t{color:rgb(255,0,0)}" });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "text/html; charset=utf-8",
+        body: "<!DOCTYPE html><html><head><link rel='stylesheet' href='mockup.css'></head><body><h1 id='t'>Styled</h1></body></html>",
+      });
+    });
+    await page.goto("/preview?projectId=proj-x&path=design/index.html");
+
+    const red = "rgb(255, 0, 0)";
+    const inline = page.frameLocator('[data-testid="smart-viewer-html-frame"]').first();
+    await expect(inline.locator("#t")).toHaveCSS("color", red, { timeout: 5000 });
+
+    await page.getByTestId("smart-viewer-popout").click();
+    const modal = page.getByTestId("smart-viewer-modal");
+    await expect(modal).toBeVisible();
+    await expect(modal.frameLocator('[data-testid="smart-viewer-html-frame"]').locator("#t")).toHaveCSS("color", red);
+    await expect(modal.getByTestId("smart-viewer-popout")).toHaveCount(0);
+  });
 });

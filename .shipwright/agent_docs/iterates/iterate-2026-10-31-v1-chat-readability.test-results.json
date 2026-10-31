@@ -1,0 +1,84 @@
+{
+  "last_updated": "2026-09-19",
+  "iterate_latest": {
+    "run_id": "iterate-2026-10-31-v1-chat-readability",
+    "date": "2026-10-31",
+    "unit": {
+      "status": "passed",
+      "passed": 4578,
+      "skipped": 0,
+      "total": 4578
+    },
+    "integration": {
+      "status": "not_run"
+    },
+    "pgtap": {
+      "status": "not_run"
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 2,
+      "skipped": 0,
+      "total": 2
+    },
+    "design_fidelity": {
+      "status": "not_run"
+    },
+    "smoke": {
+      "status": "not_run"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "agent/user message text renders in full, no Show more",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeedCard.test.tsx full messages tests + V1-mission-chat-readability.spec.ts PASSED"
+        },
+        {
+          "behavior": "Show more kept for raw tool detail",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeedCard.test.tsx detailFull test PASSED"
+        },
+        {
+          "behavior": "speaker-change data-switch marker",
+          "disposition": "tested",
+          "evidence": "MissionActivityFeed.test.tsx speaker-change spacing marker PASSED"
+        },
+        {
+          "behavior": "type scale floor, tokens, dark lifts, contrast",
+          "disposition": "tested",
+          "evidence": "mission-chat-scale.test.ts PASSED"
+        },
+        {
+          "behavior": "GFM table wrapped, dark header, teal underlined links, 15px, 28/36 gaps in real browser",
+          "disposition": "tested",
+          "evidence": "V1-mission-chat-readability.spec.ts PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
+        "untested_testable": 0
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/b095ba40-df42-4a4f-a6c1-07f0d716cb9a/scratchpad/run-v1.mjs",
+      "exit_code": 0,
+      "tests_run": 2,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\campaign-mission-desktop-style-v2--V1\\.shipwright\\runs\\iterate-2026-10-31-v1-chat-readability\\surface_verification.log",
+      "timestamp": "2026-10-31T14:45:25.496Z",
+      "attempts": 2
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-09-19-fix-wizard-plan-card-white-text",
+    "commit": "518e204d2f9af2573189699781a2ba29ecb21205",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}
