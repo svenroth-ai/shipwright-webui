@@ -68,29 +68,34 @@ describe("FeedCard — card.text renders real markdown, not just inert HTML", ()
   });
 });
 
-describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie croppen)", () => {
-  it("shows a Show more toggle and reveals textFull only when it differs from the truncated text", () => {
+describe("FeedCard — full messages, Show more only for raw tool data (V1)", () => {
+  it("never shows a Show more toggle for a short message", () => {
     renderCard({ kind: "implement", text: "Short headline.", commands: [] });
     expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
   });
 
-  it("expands card.textFull in place when Show more is clicked, and collapses back on a second click", async () => {
-    const user = userEvent.setup();
+  it("renders card.textFull in full straight away, with no toggle", () => {
     renderCard({ kind: "implement", text: "Truncated headline…", textFull: "Truncated headline, but the whole real sentence continues here.", commands: [] });
-    expect(screen.getByText("Truncated headline…")).toBeInTheDocument();
-    expect(screen.queryByText(/whole real sentence/)).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Show more" }));
     expect(screen.getByText(/whole real sentence/)).toBeInTheDocument();
     expect(screen.queryByText("Truncated headline…")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Show less" }));
-    expect(screen.getByText("Truncated headline…")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show (more|less)/ })).not.toBeInTheDocument();
   });
 
-  it("expands card.explanationFull in place when Show more is clicked", async () => {
-    const user = userEvent.setup();
+  it("renders a user message's full text with no toggle", () => {
+    renderCard({ kind: "user", text: "Please fix…", textFull: "Please fix the whole thing, including the long tail of the request.", commands: [] });
+    expect(screen.getByText(/long tail of the request/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show (more|less)/ })).not.toBeInTheDocument();
+  });
+
+  it("renders card.explanationFull in full with no toggle", () => {
     renderCard({ kind: "investigate", text: "Checking the auth guard.", commands: [], explanation: "It reads the cookie…", explanationFull: "It reads the cookie, then falls back to the legacy header, and finally denies the request." });
-    await user.click(screen.getByRole("button", { name: "Show more" }));
     expect(screen.getByText(/falls back to the legacy header/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show (more|less)/ })).not.toBeInTheDocument();
+  });
+
+  it("wraps a GFM table in the .mc-table-wrap scroller", () => {
+    const { container } = renderCard({ kind: "implement", text: ["| a | b |", "|---|---|", "| 1 | 2 |"].join("\n"), commands: [] });
+    expect(container.querySelector(".mc-table-wrap > table")).not.toBeNull();
   });
 
   it("expands card.detailFull in place when Show more is clicked (a card's detail)", async () => {
@@ -100,8 +105,7 @@ describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie 
     expect(screen.getByText(/line five/)).toBeInTheDocument();
   });
 
-  it("expands question.answerFull in place, next to the Answer: label", async () => {
-    const user = userEvent.setup();
+  it("renders question.answerFull in full next to the Answer: label, no toggle", () => {
     renderCard({
       kind: "user-input",
       text: "A decision is needed.",
@@ -109,8 +113,8 @@ describe("FeedCard — click-to-expand for untruncated fields (issue #2/#4: nie 
       question: { text: "Which approach?", options: [], resolved: true, answer: "Short excerpt…", answerFull: "Short excerpt of a much longer free-text answer the user actually gave." },
     });
     expect(screen.getByText("Answer:")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Show more" }));
     expect(screen.getByText(/much longer free-text answer/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show (more|less)/ })).not.toBeInTheDocument();
   });
 });
 

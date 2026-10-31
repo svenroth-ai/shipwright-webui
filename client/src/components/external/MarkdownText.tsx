@@ -86,6 +86,16 @@ const REACT_MARKDOWN_COMPONENTS = {
   p(props: { children?: ReactNode }) {
     return <p className="my-1.5 break-words">{props.children}</p>;
   },
+  // GFM tables sit in a scroll wrapper so the chat can frame/skin them
+  // (`.mc-table-wrap`, mission-chat.css) without touching other consumers.
+  table(props: { children?: ReactNode; node?: unknown }) {
+    const { node: _node, ...rest } = props;
+    return (
+      <div className="mc-table-wrap">
+        <table {...rest} />
+      </div>
+    );
+  },
   a(props: { children?: ReactNode; href?: string }) {
     return (
       <a
