@@ -76,3 +76,10 @@
 .mc-ask-opt-label { font-size: 13.5px; font-weight: 600; color: var(--ink); }
 .mc-ask-opt-desc { font-size: 12.5px; color: var(--muted); }
 .mc-feed-card .mc-ask-note { margin: 8px 0 0; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+
+/* V6: file chips (.mc-file) — paths in the chat that open the Smart Viewer */
+.mc-file { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px 0 6px; border-radius: 7px; border: 1px solid var(--accent-line); background: var(--accent-tint); color: var(--link, var(--accent)); font-family: var(--font-mono, ui-monospace, monospace); font-size: .9em; line-height: 1.6; cursor: pointer; vertical-align: baseline; max-width: 100%; }
+.mc-file:hover { border-color: var(--link, var(--accent)); color: var(--link-hover, var(--link, var(--accent))); }
+.mc-file:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-file svg { flex-shrink: 0; }
+.mc-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

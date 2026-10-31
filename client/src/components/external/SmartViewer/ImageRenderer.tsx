@@ -9,15 +9,18 @@ import { useState } from "react";
 import { ImageIcon } from "lucide-react";
 
 import { fileUrl } from "../../../lib/externalApi";
+import { sessionFileUrl } from "../../../lib/sessionFileApi";
 
 interface Props {
   projectId: string;
   path: string;
+  /** Outside-project file: served by the task-scoped session-file route. */
+  sessionTaskId?: string;
 }
 
-export function ImageRenderer({ projectId, path }: Props) {
+export function ImageRenderer({ projectId, path, sessionTaskId }: Props) {
   const [broken, setBroken] = useState(false);
-  const src = fileUrl(projectId, path);
+  const src = sessionTaskId ? sessionFileUrl(sessionTaskId, path) : fileUrl(projectId, path);
   if (broken) {
     return (
       <div

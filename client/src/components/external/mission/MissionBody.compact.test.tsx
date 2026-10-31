@@ -12,6 +12,7 @@ vi.mock("../../../hooks/useMissionAgents", () => ({
   useMissionAgents: () => ({ agents: [], runningCount: 0, open: false, selectedId: null, loading: false, failed: false, setOpen: () => {}, select: () => {}, openFor: () => false, canOpen: () => false, refresh: () => {} }),
 }));
 vi.mock("./MissionInfoSidebar", () => ({ MissionInfoSidebar: () => null }));
+vi.mock("../../../hooks/useMissionFileOpen", () => ({ useMissionFileOpen: () => ({ fileOpen: { projectRoot: null, open: () => {} }, request: null }) }));
 vi.mock("../../../hooks/useMissionState", () => ({
   useMissionState: () => missionStateMock(),
 }));

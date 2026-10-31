@@ -18,6 +18,8 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
+import { FileChip } from "./FileChip";
+import { useFileTarget } from "./FileOpenContext";
 
 const MAX_CODE_LINES = 200;
 const MAX_LINE_LENGTH = 2000;
@@ -57,14 +59,7 @@ const REACT_MARKDOWN_COMPONENTS = {
     // collapse marker.
     const isFenced = typeof className === "string" && /\blanguage-/.test(className);
     if (!isFenced) {
-      return (
-        <code
-          className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]"
-          {...rest}
-        >
-          {children}
-        </code>
-      );
+      return <InlineCode {...rest}>{children}</InlineCode>;
     }
     const text = childrenToString(children);
     // 2026-04-23 — iterate-20260423-mermaid-in-markdown (FR-03.02).
@@ -88,17 +83,39 @@ const REACT_MARKDOWN_COMPONENTS = {
   p(props: { children?: ReactNode }) {
     return <p className="my-1.5 break-words">{props.children}</p>;
   },
-  a(props: { children?: ReactNode; href?: string }) {
-    return (
-      <a
-        {...props}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
-      />
-    );
+  a(props: { children?: ReactNode; href?: string; node?: unknown }) {
+    const { node: _node, ...rest } = props;
+    return <MarkdownLink {...rest} />;
   },
 };
+
+// Inside a FileOpenContext (Mission tab) an inline-code path or a link to a file
+// becomes a clickable `.mc-file` chip; elsewhere both render exactly as before.
+function InlineCode({ children, ...rest }: { children?: ReactNode }) {
+  const target = useFileTarget(childrenToString(children));
+  if (target) return <FileChip target={target} title={childrenToString(children)} />;
+  return (
+    <code className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]" {...rest}>
+      {children}
+    </code>
+  );
+}
+
+function MarkdownLink(props: { children?: ReactNode; href?: string }) {
+  const target = useFileTarget(props.href ?? "", true);
+  if (target) {
+    const label = childrenToString(props.children);
+    return <FileChip target={target} label={label || undefined} title={props.href} />;
+  }
+  return (
+    <a
+      {...props}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
+    />
+  );
+}
 
 // Opt-in (chat feed only): GFM tables sit in a scroll wrapper the chat can
 // frame/skin (`.mc-table-wrap`, mission-chat.css). Other consumers keep the

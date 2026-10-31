@@ -34,6 +34,9 @@ import { VideoRenderer } from "./SmartViewer/VideoRenderer";
 import { HtmlRenderer } from "./SmartViewer/HtmlRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { useDocNavigation } from "./SmartViewer/useDocNavigation";
+import { OutsideProjectHeader } from "./SmartViewer/OutsideProjectHeader";
+import { TooLargeNotice } from "./SmartViewer/TooLargeNotice";
+import { fetchSessionFileText } from "../../lib/sessionFileApi";
 
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "html" | "unknown";
 
@@ -70,9 +73,26 @@ interface Props {
   /** Show the pop-out control (default). Set false for the modal-nested
    *  instance so the expanded view renders no further pop-out button. */
   popOut?: boolean;
+  /** Set for a file OUTSIDE the project (V6): `path` is then absolute and is
+   *  served by the task-scoped session-file route; a header names the scope. */
+  sessionTaskId?: string;
 }
 
-export function SmartViewer({ projectId, path, popOut = true }: Props) {
+export function SmartViewer({ projectId, path, popOut = true, sessionTaskId }: Props) {
+  if (path && sessionTaskId) {
+    return (
+      <div className="flex h-full flex-col">
+        <OutsideProjectHeader path={path} />
+        <div className="min-h-0 flex-1">
+          <SmartViewerBody projectId={projectId} path={path} popOut={popOut} sessionTaskId={sessionTaskId} />
+        </div>
+      </div>
+    );
+  }
+  return <SmartViewerBody projectId={projectId} path={path} popOut={popOut} />;
+}
+
+function SmartViewerBody({ projectId, path, popOut = true, sessionTaskId }: Props) {
   if (!path) {
     return (
       <div
@@ -100,7 +120,7 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
         data-testid="smart-viewer"
       >
         <div className="min-h-0 flex-1">
-          <MediaRenderer projectId={projectId} path={path} />
+          <MediaRenderer projectId={projectId} path={path} sessionTaskId={sessionTaskId} />
         </div>
       </div>
     );
@@ -126,10 +146,11 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
     );
   }
 
-  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} popOut={popOut} />;
+  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} popOut={popOut} sessionTaskId={sessionTaskId} />;
 }
 
 interface TextProps {
+  sessionTaskId?: string;
   projectId: string;
   path: string;
   kind: Exclude<SmartViewerKind, "image" | "unknown">;
@@ -137,8 +158,10 @@ interface TextProps {
   popOut: boolean;
 }
 
-function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
+function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId }: TextProps) {
   const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
+  // An outside file has no project root: no cross-file nav, edit or sibling-stylesheet inlining.
+  const scopedProjectId = sessionTaskId ? undefined : projectId;
   const [popoutOpen, setPopoutOpen] = useState(false);
   // Bumped after a successful in-app markdown edit so the preview re-fetches.
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -152,7 +175,10 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    fetchFileText(projectId, nav.effectivePath)
+    (sessionTaskId
+      ? fetchSessionFileText(sessionTaskId, nav.effectivePath)
+      : fetchFileText(projectId, nav.effectivePath)
+    )
       .then((res) => {
         if (cancelled) return;
         setState({ status: "ok", text: res.text, size: res.size });
@@ -181,7 +207,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
     };
     // reloadNonce forces a fresh fetch after an in-app save; the `cancelled`
     // guard above discards any overlapping in-flight response (review #10).
-  }, [projectId, nav.effectivePath, reloadNonce]);
+  }, [projectId, sessionTaskId, nav.effectivePath, reloadNonce]);
 
   const inner = (() => {
     if (state.status === "loading") {
@@ -196,35 +222,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
       );
     }
     if (state.status === "too_large") {
-      const mb = (state.maxBytes / (1024 * 1024)).toFixed(1);
-      return (
-        <div
-          className="flex h-full items-center justify-center p-6"
-          data-testid="smart-viewer-too-large"
-        >
-          <div
-            className="flex max-w-md flex-col items-start gap-2 rounded-md border border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] p-4 text-[12px]"
-            style={{ color: "var(--color-text, #1a1a1a)" }}
-          >
-            <div className="flex items-center gap-2 font-medium">
-              <AlertCircle
-                size={14}
-                style={{ color: "var(--color-warning, #D97706)" }}
-                aria-hidden="true"
-              />
-              File too large to preview inline
-            </div>
-            <div style={{ color: "var(--color-muted, #6b7280)" }}>
-              {state.source === "client"
-                ? `Preview cap is ${mb} MB for text / markdown / code.`
-                : `Server cap is ${mb} MB.`}
-            </div>
-            <code className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11px]">
-              {nav.effectivePath}
-            </code>
-          </div>
-        </div>
-      );
+      return <TooLargeNotice maxBytes={state.maxBytes} source={state.source} path={nav.effectivePath} />;
     }
     if (state.status === "error") {
       return (
@@ -240,9 +238,9 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={sessionTaskId ? undefined : nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
-    if (kind === "html") return <HtmlRenderer text={state.text} projectId={projectId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
+    if (kind === "html") return <HtmlRenderer text={state.text} projectId={scopedProjectId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;
   })();
@@ -256,6 +254,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
           onOpenChange={setPopoutOpen}
           projectId={projectId}
           path={nav.effectivePath}
+          sessionTaskId={sessionTaskId}
         />
       )}
     </div>
