@@ -9,6 +9,8 @@
  *   200 { status: "ok", info }       200 { status: "missing" } (no JSONL yet)
  *   404 task unknown
  *
+ * GET /api/external/tasks/:id/session-file?path= - see ../session-file/routes.ts.
+ *
  * GET /api/external/tasks/:id/subagents/:agentId/transcript — the agent's own
  * JSONL tail (M4 Agents window): 200 { status: "ok", content, truncated,
  * sizeBytes } | { status: "missing" }; 400 malformed agentId; 404 task unknown.
@@ -19,11 +21,15 @@ import { Hono } from "hono";
 import type { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 import type { SessionWatcher } from "../../core/session-watcher.js";
 import { readSessionInfo, type SessionInfoDeps } from "../../core/session-info/session-info.js";
+import type { ExternalRouteProjectView } from "../_shared/helpers.js";
+import { createSessionFileRouter } from "../session-file/routes.js";
 import { AGENT_ID_RE, readSubagentTranscript } from "../../core/session-info/subagent-transcript.js";
 
 export interface SessionInfoRouterDeps {
   store: SdkSessionsStore;
   watcher: SessionWatcher;
+  /** Project lookup for the mounted session-file route (V4); absent = no trusted root: only session-evidenced absolute paths are served (the task cwd is never a root). */
+  getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
   /** Test seam (sessions dir, pid probe, clock). */
   infoDeps?: SessionInfoDeps;
 }
@@ -54,6 +60,9 @@ export function createSessionInfoRouter(deps: SessionInfoRouterDeps): Hono {
     if (!loc) return c.json({ status: "missing" });
     return c.json(await readSubagentTranscript(loc.path, agentId));
   });
+
+  // V4 - GET /tasks/:id/session-file: project file OR a file this session evidences (core/session-file/).
+  app.route("/", createSessionFileRouter({ store, watcher, getProjectById: deps.getProjectById, infoDeps: deps.infoDeps }));
 
   return app;
 }
