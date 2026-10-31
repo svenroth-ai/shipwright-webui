@@ -18,6 +18,7 @@ import {
   type MissionSidebarSegment,
 } from "../../../hooks/useMissionSidebar";
 import { UNASSIGNED_PROJECT_ID } from "../../../lib/projectIds";
+import { useProject } from "../../../hooks/useProjects";
 import { FolderTree } from "../FolderTree";
 import { SmartViewer } from "../SmartViewer";
 import { MissionInfoPanel } from "./MissionInfoPanel";
@@ -39,6 +40,8 @@ const OPTIONS = [
 export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
   const layout = useMissionSidebar();
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
+  const project = useProject(unassigned ? "" : task.projectId).data;
+  const projectRoot = project?.path ?? null;
   const [path, setPath] = useState<string | null>(null);
   const drag = useRef<{ x: number; w: number } | null>(null);
   // In-progress drag width: committed (and persisted) once, on release.
@@ -143,7 +146,7 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
         <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
           {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={open} active={visible} />}
           {seg === "folders" && visible && (
-            <FolderTree projectId={task.projectId} selectedPath={path} onSelect={open} />
+            <FolderTree flat projectId={task.projectId} selectedPath={path} onSelect={open} projectRoot={projectRoot} label={project?.name ?? null} />
           )}
           {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={path} />}
         </div>
