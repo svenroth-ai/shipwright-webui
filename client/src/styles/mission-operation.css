@@ -216,7 +216,8 @@
   background: #131110;
   border: 1px solid rgba(255, 255, 255, .14);
   box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .5), var(--sh-photo);
-  --ink: #f2f0ec; --body: #c9c7c1; --muted: #8a827a; --faint: #6b645d;
+  --ink: #f2f0ec; --body: #d9d6d0; --muted: #a9a39b; --faint: #8f8981;
+  --link: #7fdcca; --link-hover: #a6ebde; --thead: #2d2a28;
   --line: rgba(255, 255, 255, .14); --line-strong: rgba(255, 255, 255, .24);
   --card: #1a1817;
   --ok: #3fbf9a; --ok-tint: rgba(63, 191, 154, .16); --ok-line: rgba(63, 191, 154, .4);

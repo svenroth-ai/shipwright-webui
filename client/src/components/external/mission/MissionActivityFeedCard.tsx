@@ -1,7 +1,9 @@
 /**
  * Single-card rendering for `MissionActivityFeed.tsx`, split out at the 300-line
- * convention. EVERY `*Full` field gets a click-to-expand toggle ("Nie croppen",
- * iterate-2026-09-05) — text, explanation, detail, answer and command. */
+ * convention. Agent/user message text, explanation and answer render IN FULL
+ * (campaign mission-desktop-style-v2 V1: "Show more" on a chat message is
+ * pointless); only raw tool output (`detail`, command chips) keeps a
+ * click-to-expand toggle. */
 import { useState } from "react";
 import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
 import { AnswerInTerminalButton } from "../BubbleTranscript/AnswerInTerminalButton";
@@ -35,10 +37,7 @@ export function FeedCard({
   commitArtifact: CommitArtifact | null;
   task: ExternalTask;
 }) {
-  const [textExpanded, setTextExpanded] = useState(false);
-  const [explanationExpanded, setExplanationExpanded] = useState(false);
   const [detailExpanded, setDetailExpanded] = useState(false);
-  const [answerExpanded, setAnswerExpanded] = useState(false);
 
   const pill = pillLabel(card);
   // Gate on artifact === "commit", not just kind === "delivery" (code review
@@ -61,7 +60,7 @@ export function FeedCard({
   // Local PR-review preflight (BLOCK, 2026-09-26): `displayText` alone misses
   // the case where card.text IS the whole duplicate sentence (strips to "")
   // but card.textFull carries real narration beyond it — that content must
-  // stay reachable via the expand toggle rather than disappearing along with
+  // stay visible (text now renders in full) rather than disappearing along with
   // the duplicate-only short text.
   // An answered question renders as per-question answer cards (M5): the templated
   // "input was received" sentence adds nothing there, and the legacy block is replaced.
@@ -87,12 +86,7 @@ export function FeedCard({
           safe markdown path as the rest of the transcript, never a raw <p>.
           `showText` (not bare `card.text`) additionally suppresses only the
           EXACT PR-title-duplicate sentence — see `prDuplicateText` above. */}
-      {showText && (
-        <>
-          <MarkdownChunk content={textExpanded && displayTextFull ? displayTextFull : displayText} />
-          {card.textFull && <ExpandToggle expanded={textExpanded} onToggle={() => setTextExpanded((v) => !v)} />}
-        </>
-      )}
+      {showText && <MarkdownChunk tableWrap content={displayTextFull || displayText} />}
 
       {/* card.explanation is one turn's own words beyond its headline — not
           always the card's own tool-calling turn (FR-01.68 (S), amended
@@ -107,8 +101,7 @@ export function FeedCard({
           of proportion (`remark-breaks` absent, `MarkdownText` SHARED). */}
       {card.explanation && (
         <div className="mc-feed-explanation">
-          <MarkdownChunk content={explanationExpanded && card.explanationFull ? card.explanationFull : card.explanation} />
-          {card.explanationFull && <ExpandToggle expanded={explanationExpanded} onToggle={() => setExplanationExpanded((v) => !v)} />}
+          <MarkdownChunk tableWrap content={card.explanationFull || card.explanation} />
         </div>
       )}
 
@@ -142,8 +135,7 @@ export function FeedCard({
             // als antwort markiert") — same never-crop contract as the rest.
             <div className="mc-feed-qa-answer">
               <span className="mc-feed-qa-answer-label">Answer:</span>{" "}
-              {answerExpanded && card.question.answerFull ? card.question.answerFull : card.question.answer}
-              {card.question.answerFull && <ExpandToggle expanded={answerExpanded} onToggle={() => setAnswerExpanded((v) => !v)} />}
+              {card.question.answerFull || card.question.answer}
             </div>
           ) : null}
         </div>

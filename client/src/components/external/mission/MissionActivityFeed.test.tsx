@@ -155,7 +155,8 @@ describe("MissionActivityFeed", () => {
   // Local PR-review preflight (BLOCK, 2026-09-26): card.text can strip to ""
   // (it IS the duplicate sentence) while card.textFull has real narration
   // beyond it — that content must stay reachable via the expand toggle.
-  it("keeps textFull's non-duplicate narration reachable via the expand toggle when card.text strips to empty", () => {
+  // @covers FR-01.66
+  it("keeps textFull's non-duplicate narration visible in full (no toggle) when card.text strips to empty", () => {
     render(<MissionActivityFeed feed={{
       outcome: "Completed run",
       cards: [{
@@ -167,8 +168,7 @@ describe("MissionActivityFeed", () => {
       }],
     }} commitArtifact={COMMIT_ARTIFACT} task={TASK} />);
     expect(screen.queryByText('Merged as "fix(mission): real content in every card kind".')).not.toBeInTheDocument();
-    const toggle = screen.getByRole("button", { name: /show more/i });
-    fireEvent.click(toggle);
+    expect(screen.queryByRole("button", { name: /show more/i })).not.toBeInTheDocument();
     expect(screen.getByText("Also cleaned up two stale branches.")).toBeInTheDocument();
   });
 
@@ -266,5 +266,22 @@ describe("MissionActivityFeed", () => {
     } finally {
       if (restore) Object.defineProperty(HTMLElement.prototype, "scrollHeight", restore);
     }
+  });
+});
+
+describe("MissionActivityFeed — speaker-change spacing marker (V1)", () => {
+  // @covers FR-01.66
+  it("marks an entry data-switch only when the speaker flips between user and non-user", () => {
+    const { container } = render(<MissionActivityFeed feed={{
+      outcome: "In progress",
+      cards: [
+        { kind: "user", text: "Do it", commands: [] },
+        { kind: "implement", text: "On it", commands: [] },
+        { kind: "review", text: "Checked", commands: [] },
+        { kind: "user", text: "Thanks", commands: [] },
+      ],
+    }} commitArtifact={null} task={TASK} />);
+    const flags = Array.from(container.querySelectorAll(".mc-feed-entry")).map((e) => e.getAttribute("data-switch"));
+    expect(flags).toEqual([null, "true", null, "true"]);
   });
 });
