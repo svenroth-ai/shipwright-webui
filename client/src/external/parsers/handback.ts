@@ -37,9 +37,14 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
   const text = raw.replace(/\r\n/g, "\n");
-  const envelope = ENVELOPE_OPEN.exec(text);
-  const isMarked = text.includes(MARKER);
-  if (!text.trimStart().startsWith(HEADER) && !envelope && !isMarked) return null;
+  // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that
+  // merely quotes the marker or the envelope mid-text stays a user message with its text intact.
+  const head = text.trimStart();
+  const found = ENVELOPE_OPEN.exec(text);
+  // The envelope counts only when it LEADS the record: nothing before it, or just the one header line.
+  const before = found ? text.slice(0, found.index).trim() : "";
+  const envelope = found && (before === "" || (before.startsWith(HEADER) && !before.includes("\n"))) ? found : null;
+  if (!head.startsWith(HEADER) && !envelope && !head.startsWith(MARKER)) return null;
 
   let body = text;
   if (envelope) {
@@ -51,7 +56,9 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
     body = nl < 0 ? "" : text.slice(nl + 1);
   }
 
-  const markerAt = body.indexOf(MARKER);
+  // "subagent" only when the marker opens the body; a quote of it inside another session's text does not count.
+  const isMarked = body.trimStart().startsWith(MARKER);
+  const markerAt = isMarked ? body.indexOf(MARKER) : -1;
   if (markerAt >= 0) {
     const followsAt = body.indexOf(REPORT_FOLLOWS, markerAt);
     body = followsAt >= 0 ? body.slice(followsAt + REPORT_FOLLOWS.length) : body.slice(markerAt + MARKER.length);

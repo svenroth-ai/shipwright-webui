@@ -85,6 +85,9 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
           );
         }
         const { card, index } = item;
+        // Compare with the previous RENDERED entry (a folded card is no longer the visual neighbour).
+        const prev = items[items.indexOf(item) - 1];
+        const previousIsUser = prev ? prev.type === "card" && prev.card.kind === "user" : null;
         // Not just `${kind}-${index}` (doubt-review catch, iterate-2026-09-
         // 05-mission-feed-ux-gaps): a retry/recovery resolution can splice a
         // card out of the middle of this array between polls, shifting
@@ -105,7 +108,7 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
         // "remounts a card that changes kind" in `MissionActivityFeed.test.tsx`.
         const key = `${card.kind}-${card.timestamp ?? ""}-${card.commands[0] ?? ""}-${index}`;
         return (
-          <div className="mc-feed-entry" data-entry-kind={card.kind} data-switch={index > 0 && (card.kind === "user") !== (feed.cards[index - 1].kind === "user") ? "true" : undefined} key={key}>
+          <div className="mc-feed-entry" data-entry-kind={card.kind} data-switch={previousIsUser !== null && (card.kind === "user") !== previousIsUser ? "true" : undefined} key={key}>
             <FeedCard card={card} onArtifactClick={onArtifactClick} onSubrunnerClick={onSubrunnerClick} canOpenAgent={canOpenAgent} commitArtifact={commitArtifact} task={task} />
           </div>
         );

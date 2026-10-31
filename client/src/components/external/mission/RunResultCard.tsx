@@ -62,12 +62,16 @@ export function RunResultCard({
       ))}
       {delivery && (
         <div className="mc-result-commit" data-testid="run-result-delivery">
-          <Pill status="ok" label={pr ? mergeStateLabel(pr.merge) : "Completed"} />
+          <Pill status={pr ? (pr.merge === "merged" ? "ok" : "warn") : delivery.status ?? "ok"} label={pr ? mergeStateLabel(pr.merge) : "Completed"} />
           <div className="t">
             {pr?.message ?? (deliveryText || resultRowTitle(delivery.artifact as string))}
             {pr?.message && deliveryText && <small>{deliveryText}</small>}
           </div>
-          {pr && (pr.prNumber != null) && <span className="m">#{pr.prNumber}</span>}
+          {pr && pr.prNumber != null && (
+            /^https:\/\//.test(pr.prUrl ?? "")
+              ? <a className="m" href={pr.prUrl ?? undefined} target="_blank" rel="noopener noreferrer">#{pr.prNumber}</a>
+              : <span className="m">#{pr.prNumber}</span>
+          )}
           <OpenButton artifact={delivery.artifact as string} onArtifactClick={onArtifactClick} />
         </div>
       )}

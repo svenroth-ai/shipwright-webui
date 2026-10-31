@@ -94,3 +94,17 @@ describe("handback extraction details (external code review)", () => {
     expect(detectHandback(["Another Claude session sent a message:", '<agent-message from="a1">', "</agent-message>"].join("\n"))).toMatchObject({ sender: "a1", text: "" });
   });
 });
+
+describe("anchored detection (code-review finding: no false positive on human text)", () => {
+  it("a message that merely quotes the marker or envelope mid-text stays a user message", () => {
+    const quoting = 'Here is what the subagent said: [Subagent hand-back] it merged. Also <agent-message from="x"> was odd.';
+    expect(detectHandback(quoting)).toBeNull();
+    expect(parseSessionJsonl(line(quoting)).events[0].kind).toBe("user");
+    expect(detectHandback("see this\n<agent-message from=\"x\">\nbody\n</agent-message>")).toBeNull();
+  });
+
+  it("origin is subagent only when the marker opens the body", () => {
+    const quoted = ["Another Claude session sent a message:", '<agent-message from="a1">', "I mention [Subagent hand-back] in passing.", "</agent-message>"].join("\n");
+    expect(detectHandback(quoted)).toMatchObject({ origin: "session", text: "I mention [Subagent hand-back] in passing." });
+  });
+});

@@ -14,10 +14,11 @@ export function buildHandbackCard(event: HandbackEvent, cards: readonly Activity
   const dispatch = event.sender
     ? cards.find((c) => c.kind === "subrunner" && c.subrunnerId === event.sender)
     : undefined;
-  const bounded = explanationExcerpt(event.text, Infinity, Infinity);
+  // Sanitising only: the whole report is shown (no "Show more" on chat messages), so no length limit.
+  const full = explanationExcerpt(event.text, Infinity, Infinity);
   return {
     kind: "handback",
-    text: bounded,
+    text: full,
     commands: [],
     timestamp: event.timestamp,
     handbackSender: event.sender,

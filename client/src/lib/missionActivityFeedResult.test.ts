@@ -70,3 +70,17 @@ describe("deriveActivityFeed - hand-back and subrunner metadata (V2)", () => {
     expect(sub).toMatchObject({ subrunnerType: "general-purpose", subrunnerStatus: "done", subrunnerEndedAt: "2026-10-31T10:44:00Z" });
   });
 });
+
+describe("groupRunResult - latest per artifact", () => {
+  it("folds only the latest card per artifact; the superseded one stays where it happened", () => {
+    const items = groupRunResult([
+      card({ kind: "test", text: "failed", artifact: "tests", status: "err" }),
+      card({ kind: "implement", text: "fixed it" }),
+      card({ kind: "test", text: "passes", artifact: "tests", status: "ok" }),
+    ]);
+    expect(items.map((i) => i.type)).toEqual(["card", "card", "result"]);
+    const result = items[2];
+    if (result.type !== "result") throw new Error("expected result");
+    expect(result.rows.map((r) => r.status)).toEqual(["ok"]);
+  });
+});
