@@ -142,7 +142,8 @@ describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
     await waitFor(() => screen.getByTestId("folder-tree-row-.git"));
     const ignoredRow = screen.getByTestId("folder-tree-row-.git");
     expect(ignoredRow.getAttribute("data-ignored")).toBe("true");
-    expect(ignoredRow.className).toContain("opacity-60");
+    expect(ignoredRow.className).toContain("ignored");
+    expect(ignoredRow.className).not.toContain("opacity-60");
     expect(ignoredRow.className).toContain("italic");
   });
 

@@ -112,7 +112,7 @@ export function FolderTreeRow({ row, selected, tabbable, loading, error, onActiv
         data-kind={row.kind}
         data-selected={selected || undefined}
         tabIndex={tabbable ? 0 : -1}
-        className={`ft-tree-row ft-node ${row.ignored ? "ignored italic opacity-60" : ""} ${selected ? "sel" : ""}`}
+        className={`ft-tree-row ft-node ${row.ignored ? "ignored italic" : ""} ${selected ? "sel" : ""}`}
         style={{ paddingLeft: `${8 + row.depth * 14}px` }}
       >
         <span className="ft-tree-chev flex w-3 shrink-0 items-center justify-center">
