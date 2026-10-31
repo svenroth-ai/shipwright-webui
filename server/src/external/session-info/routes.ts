@@ -28,7 +28,7 @@ import { AGENT_ID_RE, readSubagentTranscript } from "../../core/session-info/sub
 export interface SessionInfoRouterDeps {
   store: SdkSessionsStore;
   watcher: SessionWatcher;
-  /** Project lookup for the mounted session-file route (V4); absent = task cwd is the root. */
+  /** Project lookup for the mounted session-file route (V4); absent = no trusted root: only session-evidenced absolute paths are served (the task cwd is never a root). */
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
   /** Test seam (sessions dir, pid probe, clock). */
   infoDeps?: SessionInfoDeps;

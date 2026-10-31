@@ -16,7 +16,7 @@
 import { realpath } from "node:fs/promises";
 import path from "node:path";
 
-import { pathGuard } from "../path-guard.js";
+import { pathGuard, realPathGuard } from "../path-guard.js";
 import { evidenceKey } from "./evidence.js";
 import { isSensitivePath } from "./sensitive.js";
 
@@ -38,10 +38,13 @@ export interface AccessArgs {
 const deny = (status: AccessDenial["status"], error: string, detail?: string): AccessDecision => ({ ok: false, status, error, detail });
 export const MAX_PATH_CHARS = 4096;
 
-function lexicallyUnder(root: string, abs: string): boolean {
-  if (process.platform === "win32" && root.slice(0, 2).toLowerCase() !== abs.slice(0, 2).toLowerCase()) return false;
-  const rel = path.relative(root, abs);
-  return !(rel === ".." || rel.startsWith(".." + path.sep) || rel.startsWith("../") || path.isAbsolute(rel));
+/**
+ * The registered root that lexically contains `abs`, decided by the shared pathGuard (DO-NOT #10) on the
+ * root-relative form: a sibling prefix, `..` hop, other drive (or UNC) all come back !ok. Selection only; the
+ * authorising check is realPathGuard below.
+ */
+function containingRoot(roots: string[], abs: string): string | undefined {
+  return roots.find((r) => pathGuard(r, path.relative(path.resolve(r), abs)).ok);
 }
 
 export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessDecision> {
@@ -64,26 +67,27 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
     absolute = g.absolute;
   }
 
-  const root = roots.find((r) => lexicallyUnder(path.resolve(r), absolute));
+  const root = containingRoot(roots, absolute);
   if (root) {
-    let real: string;
-    try {
-      real = await realpath(absolute);
-    } catch (err) {
-      return (err as NodeJS.ErrnoException)?.code === "ENOENT" ? deny(404, "not_found") : deny(400, "path_traversal", "symlink_escape");
-    }
-    // Validate the SAME resolution we return (a second realpath inside a guard could see a swapped link).
     let realRoot: string;
     try {
       realRoot = await realpath(root);
     } catch {
       return deny(400, "path_traversal", "symlink_escape");
     }
-    if (!lexicallyUnder(realRoot, real)) return deny(400, "path_traversal", "symlink_escape");
+    // The shared symlink-aware guard (DO-NOT #10, not a re-implementation). It returns the very resolution we
+    // serve, validated against the same realRoot used below (no second realpath that could see a swapped link).
+    const real = realPathGuard(root, absolute, realRoot);
+    if (!real.ok) {
+      // The guard folds "missing" into symlink_escape; only a path that does not exist at all is a 404.
+      return (await realpath(absolute).then(() => false, (err: NodeJS.ErrnoException) => err?.code === "ENOENT"))
+        ? deny(404, "not_found")
+        : deny(400, "path_traversal", "symlink_escape");
+    }
     // Unmistakable secret names stay refused even inside a (possibly broad) project root; ordinary project files are untouched.
-    const relInRoot = path.relative(realRoot, real);
+    const relInRoot = path.relative(realRoot, real.absolute);
     if (relInRoot !== "" && isSensitivePath(relInRoot, "project")) return deny(403, "sensitive_location");
-    return { ok: true, absolute: real, scope: "project" };
+    return { ok: true, absolute: real.absolute, scope: "project" };
   }
 
   // Outside every root: session evidence required. Sensitive locations never qualify.
