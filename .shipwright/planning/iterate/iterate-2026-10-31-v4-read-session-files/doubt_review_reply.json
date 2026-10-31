@@ -1,8 +1,57 @@
-{"stage":"doubt","gating":"advisory-must-address","verdict":"PASS","review":[
-{"severity":"medium","file":"server/src/core/session-file/evidence.ts","line":"142-156","objection":"Scan timeout does not cancel the scan; queue and pendingScans cap stop holding under slow scans (DoS)."},
-{"severity":"medium","file":"server/src/core/session-file/evidence.ts","line":"79-94","objection":"user records carry CLI-injected text (system-reminder, task-notification, command-stdout wrappers) that counts as user intent / evidence."},
-{"severity":"medium","file":"server/src/core/session-file/access.ts","line":"117-138","objection":"Evidence boundary is driven by prompt injection (any tool_use/assistant mention); outside denylist misses service-account*.json, client_secret*.json, token.json, secrets.json, ConsoleHost_history.txt."},
-{"severity":"low","file":"server/src/core/session-file/access.ts","line":"91-114","objection":"Hardlink inside the project root to a credential file passes the project-scope denylist."},
-{"severity":"low","file":"server/src/core/session-file/safe-read.ts","line":"43-48","objection":"Windows has no O_NOFOLLOW; narrow ancestor-swap window (swap during open+lstat, restore before realpath)."},
-{"severity":"low","file":"server/src/core/session-file/access.ts","line":"100-108","objection":"Windows device names (COM1, CONIN$) reach realpath/CreateFileW before the extension allowlist."}
-],"unbroken":["symlink/junction escape incl. dangling, no existence oracle","case/8.3/trailing-dot/ADS spellings","UNC/device namespaces","session-scope symlink hop","cross-task leakage","whole-path matching","tool_result/attachments/isMeta/compact skipped","XSS via inline open (CSP sandbox + nosniff, text/plain for html/js)","FIFO/blocking open","error detail disclosure"],"summary":"No path or link escape found. Six advisory objections; disposition recorded in the implementer follow-up commit."}
+{
+ "stage": "doubt",
+ "gating": "advisory-must-address",
+ "verdict": "PASS",
+ "review": [
+  {
+   "severity": "medium",
+   "file": "server/src/core/session-file/evidence.ts",
+   "line": "142-156",
+   "objection": "Scan timeout does not cancel the scan; queue and pendingScans cap stop holding under slow scans (DoS)."
+  },
+  {
+   "severity": "medium",
+   "file": "server/src/core/session-file/evidence.ts",
+   "line": "79-94",
+   "objection": "user records carry CLI-injected text (system-reminder, task-notification, command-stdout wrappers) that counts as user intent / evidence."
+  },
+  {
+   "severity": "medium",
+   "file": "server/src/core/session-file/access.ts",
+   "line": "117-138",
+   "objection": "Evidence boundary is driven by prompt injection (any tool_use/assistant mention); outside denylist misses service-account*.json, client_secret*.json, token.json, secrets.json, ConsoleHost_history.txt."
+  },
+  {
+   "severity": "low",
+   "file": "server/src/core/session-file/access.ts",
+   "line": "91-114",
+   "objection": "Hardlink inside the project root to a credential file passes the project-scope denylist."
+  },
+  {
+   "severity": "low",
+   "file": "server/src/core/session-file/safe-read.ts",
+   "line": "43-48",
+   "objection": "Windows has no O_NOFOLLOW; narrow ancestor-swap window (swap during open+lstat, restore before realpath)."
+  },
+  {
+   "severity": "low",
+   "file": "server/src/core/session-file/access.ts",
+   "line": "100-108",
+   "objection": "Windows device names (COM1, CONIN$) reach realpath/CreateFileW before the extension allowlist."
+  }
+ ],
+ "unbroken": [
+  "symlink/junction escape incl. dangling, no existence oracle",
+  "case/8.3/trailing-dot/ADS spellings",
+  "UNC/device namespaces",
+  "session-scope symlink hop",
+  "cross-task leakage",
+  "whole-path matching",
+  "tool_result/attachments/isMeta/compact skipped",
+  "XSS via inline open (CSP sandbox + nosniff, text/plain for html/js)",
+  "FIFO/blocking open",
+  "error detail disclosure"
+ ],
+ "summary": "No path or link escape found. Six advisory objections; disposition recorded in the implementer follow-up commit.",
+ "dispositions": "Verified at 2ce9ce32 by the doubt reviewer: scan slot held until the scan settles (resolved); CLI wrappers and tool-answering user records are no longer evidence (resolved); cloud credential names denied, assistant-mention evidence kept by spec and recorded as accepted risk (prompt injection can widen evidence); hardlink-in-project accepted (same posture as /projects/:id/file); realpath before and after lstat (resolved); Windows device names refused, extra spellings (COM1\\., trailing space) closed in the follow-up commit."
+}

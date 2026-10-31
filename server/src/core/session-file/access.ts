@@ -38,7 +38,7 @@ export interface AccessArgs {
 const deny = (status: AccessDenial["status"], error: string, detail?: string): AccessDecision => ({ ok: false, status, error, detail });
 export const MAX_PATH_CHARS = 4096;
 const BACKSLASH = String.fromCharCode(92);
-const WIN_DEVICE = /^(con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$)(\..*)?$/i;
+const WIN_DEVICE = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³]|conin\$|conout\$)[. ]*(\..*)?$/i;
 
 /**
  * The registered root that lexically contains `abs`, decided by the shared pathGuard (DO-NOT #10) on the
@@ -86,6 +86,7 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
   }
 
   let absolute: string;
+  const deviceLike = (p: string) => process.platform === "win32" && WIN_DEVICE.test(path.win32.basename(p));
   if (path.isAbsolute(requested)) {
     absolute = path.resolve(requested);
   } else {
@@ -96,6 +97,7 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
     absolute = g.absolute;
   }
 
+  if (deviceLike(absolute)) return deny(400, "invalid_path", "device_name"); // spellings like "COM1\." only surface after resolve
   const root = containingRoot(roots, absolute);
   if (root) {
     let realRoot: string;
