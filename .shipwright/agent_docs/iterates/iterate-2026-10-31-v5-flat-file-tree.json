@@ -1,0 +1,78 @@
+{
+  "run_id": "iterate-2026-10-31-v5-flat-file-tree",
+  "date": "2026-10-31T14:52:28.967811Z",
+  "event_at": "2026-10-31T14:47:54.238495+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-mission-desktop-style-v2--V5",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-31-v5-flat-file-tree",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Right-click a row opens a menu with Open in Viewer / Copy Path / Copy Relative Path and no shortcut hints",
+        "disposition": "tested",
+        "evidence": "FolderTreeMenu.test.tsx + V5-flat-file-tree-context-menu.spec.ts (real Chromium)"
+      },
+      {
+        "behavior": "Copy Relative Path copies the forward-slash project-relative path; Copy Path the absolute path (Windows root keeps backslashes); clipboard round-trip",
+        "disposition": "tested",
+        "evidence": "FolderTreeMenu.test.tsx folderTreePaths + E2E navigator.clipboard.readText"
+      },
+      {
+        "behavior": "Copy Path disabled without a project root; Copy failed toast when the clipboard rejects",
+        "disposition": "tested",
+        "evidence": "FolderTreeMenu.test.tsx edge cases"
+      },
+      {
+        "behavior": "Touch: ... button opens a bottom sheet with >=48px items; Esc closes",
+        "disposition": "tested",
+        "evidence": "V5 E2E touch test"
+      },
+      {
+        "behavior": "Click on file opens it directly; click on folder expands; flat tree has no card chrome, 15px font, >=28px rows",
+        "disposition": "tested",
+        "evidence": "V5 E2E + FolderTree.test.tsx"
+      },
+      {
+        "behavior": "Ignored entries italic + muted; Show ignored entries saved per project",
+        "disposition": "tested",
+        "evidence": "FolderTree.test.tsx (existing, kept green)"
+      },
+      {
+        "behavior": "Long-press timer vs native contextmenu race on touch devices; iOS callout",
+        "disposition": "untestable",
+        "reason_code": "requires-physical-device",
+        "reason": "needs a physical touch device; handled by ignoring touch/pen contextmenu and user-select/touch-callout CSS"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "npm.cmd --prefix client run test:e2e:chromium -- --reporter=list,json C:/01_Development/shipwright-webui/.worktrees/campaign-mission-desktop-style-v2--V5/client/e2e/flows/V5-flat-file-tree-context-menu.spec.ts",
+    "exit_code": 0,
+    "tests_run": 2,
+    "evidence_path": ".shipwright/runs/iterate-2026-10-31-v5-flat-file-tree/surface_verification.log",
+    "timestamp": "2026-10-31T14:51:50.348Z",
+    "attempts": 1
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

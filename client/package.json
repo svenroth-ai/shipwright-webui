@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
     "test:e2e": "node e2e/isolated-stack.mjs --project=chromium --project=mobile-chromium --project=schema-isolated",
+    "test:e2e:chromium": "node e2e/isolated-stack.mjs --project=chromium",
     "test:e2e:smoke": "node e2e/isolated-stack.mjs --project=chromium --grep @smoke",
     "test:e2e:quarantine": "node e2e/live-quarantine.mjs",
     "test:e2e:harness": "node --test scripts/isolated-stack.node-test.mjs",
