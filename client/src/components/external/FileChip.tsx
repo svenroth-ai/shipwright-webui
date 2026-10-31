@@ -18,13 +18,15 @@ interface Props {
 export function FileChip({ target, label }: Props) {
   const ctx = useFileOpen();
   const text = label ?? `${baseName(target.path)}${target.line ? `:${target.line}` : ""}`;
+  const full = fullPathOf(target, ctx?.projectRoot ?? null);
   return (
     <button
       type="button"
       className="mc-file"
       data-testid="mc-file"
       data-outside={target.outside ? "true" : undefined}
-      title={fullPathOf(target, ctx?.projectRoot ?? null)}
+      title={full}
+      aria-label={`Open ${full}`}
       onClick={() => ctx?.open(target)}
     >
       <FileText size={14} aria-hidden="true" />

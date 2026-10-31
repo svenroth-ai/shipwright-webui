@@ -92,8 +92,9 @@ const REACT_MARKDOWN_COMPONENTS = {
 
 // react-markdown blanks hrefs with unknown schemes (`C:/x.md`, `file:///x.md`); keep the ones
 // that are file references so MarkdownLink can chip them (everything else: default policy).
-function keepFileRefUrl(url: string): string {
-  return /^(file:\/\/\/|[A-Za-z]:[\\/])/i.test(url) && parseFileRef(url, { decode: true }) ? url : defaultUrlTransform(url);
+function keepFileRefUrl(url: string, key: string): string {
+  // hrefs only: an image `src` of file:///... stays blanked (the browser must never be pointed at the disk)
+  return key === "href" && /^(file:\/\/\/|[A-Za-z]:[\\/])/i.test(url) && parseFileRef(url, { decode: true }) ? url : defaultUrlTransform(url);
 }
 
 // Inside a FileOpenContext (Mission tab) an inline-code path or a link to a file
@@ -154,7 +155,8 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   // returns the original reference — useMemo makes the behaviour explicit
   // and guarantees stability for the long-line branch too.
   const capped = useMemo(() => capLineLengths(text), [text]);
-  const chips = useFileOpen() !== null; // keep file-looking hrefs only where they can become chips
+  const ctx = useFileOpen();
+  const chips = ctx !== null && ctx.ready !== false; // keep file-looking hrefs only where they can become chips
 
   return (
     <div className="markdown-body text-sm leading-relaxed" data-testid="markdown-body">

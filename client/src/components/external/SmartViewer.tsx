@@ -213,9 +213,10 @@ function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId, lin
     return () => {
       cancelled = true;
     };
+    // focusKey: re-opening the same file from a chip refetches (the file may have changed);
     // reloadNonce forces a fresh fetch after an in-app save; the `cancelled`
     // guard above discards any overlapping in-flight response (review #10).
-  }, [projectId, sessionTaskId, nav.effectivePath, reloadNonce]);
+  }, [projectId, sessionTaskId, nav.effectivePath, reloadNonce, focusKey]);
 
   const inner = (() => {
     if (state.status === "loading") {

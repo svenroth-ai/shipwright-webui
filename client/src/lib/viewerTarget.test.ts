@@ -53,6 +53,26 @@ describe("resolveViewerTarget", () => {
     expect(resolveViewerTarget({ path: "D:\\other\\x.md", line: 4 }, ROOT)).toEqual({ path: "D:\\other\\x.md", outside: true, line: 4 });
     expect(resolveViewerTarget({ path: "/tmp/x.json" }, null)).toEqual({ path: "/tmp/x.json", outside: true });
   });
+  it("relative path is relative to the SESSION cwd (subfolder task, iterate worktree), not the project root", () => {
+    const sub = ROOT + "\\client";
+    expect(resolveViewerTarget({ path: "src/lib/x.ts", line: 3 }, ROOT, sub)).toEqual({ path: "client/src/lib/x.ts", outside: false, line: 3 });
+    // a worktree task: its files are NOT the main tree's copy -> served via the session route, absolute
+    const wt = "C:\\dev\\app-wt\\iter-1";
+    expect(resolveViewerTarget({ path: "src/a.ts" }, ROOT, wt)).toEqual({ path: wt + "\\src\\a.ts", outside: true });
+    // no project (unassigned) but a cwd: an absolute session-route target
+    expect(resolveViewerTarget({ path: "notes/a.md" }, null, "/home/u/work")).toEqual({ path: "/home/u/work/notes/a.md", outside: true });
+    // cwd outside the root
+    expect(resolveViewerTarget({ path: "a.ts" }, ROOT, "D:\\elsewhere")).toEqual({ path: "D:\\elsewhere\\a.ts", outside: true });
+    // absolute paths are unchanged by cwd
+    expect(resolveViewerTarget({ path: "C:\\dev\\app\\src\\a.ts" }, ROOT, sub)).toEqual({ path: "src/a.ts", outside: false });
+  });
+  it("decoded and drive-stream tricks never become chips", () => {
+    expect(parseFileRef("docs/a%0Ab.md", { decode: true })).toBeNull();
+    expect(parseFileRef("docs/a%00.md", { decode: true })).toBeNull();
+    expect(parseFileRef("C:\\dev\\app\\a.txt:hidden")).toBeNull();
+    expect(parseFileRef("src/a.ts:stream:$DATA")).toBeNull();
+    expect(parseFileRef("C:\\dev\\app\\a.ts:12")).toEqual({ path: "C:\\dev\\app\\a.ts", line: 12 });
+  });
   it("relative path needs a project root", () => {
     expect(resolveViewerTarget({ path: "src/a.ts" }, ROOT)).toEqual({ path: "src/a.ts", outside: false });
     expect(resolveViewerTarget({ path: "src/a.ts" }, null)).toBeNull();

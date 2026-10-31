@@ -32,6 +32,7 @@ const SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 const LINE_SUFFIX = /(?::(\d+)(?::\d+)?|#L(\d+)(?:-L?\d+)?)$/;
 const HAS_EXT = /\.[A-Za-z][A-Za-z0-9]{0,7}$/;
 const BAD_CHARS = /[*?<>|"\n\r\0]/;
+const WIN_DRIVE = /^[A-Za-z]:/;
 const UNC = /^[\\/]{2}/;
 const SEP = /[\\/]/;
 // A bare `console.log` / `process.env` is code, not a file: separator-less names
@@ -58,6 +59,7 @@ export function parseFileRef(raw: string, opts: { decode?: boolean } = {}): File
   if (decode) {
     try {
       s = decodeURIComponent(s);
+      if (BAD_CHARS.test(s)) return null; // %00 / %0A decode into what the raw check rejects
     } catch {
       return null;
     }
@@ -69,6 +71,7 @@ export function parseFileRef(raw: string, opts: { decode?: boolean } = {}): File
     s = s.slice(0, m.index);
   }
   if (UNC.test(s)) return null; // UNC / device namespaces
+  if ((WIN_DRIVE.test(s) ? s.slice(2) : s).includes(":")) return null; // NTFS alternate data streams
   const abs = isAbsolutePath(s);
   if (!abs && !decode && /\s/.test(s)) return null; // spaces only via an (encoded) link href
   if (!abs) {
@@ -93,17 +96,24 @@ export function targetForAbsolute(abs: string, projectRoot: string | null, line?
   return line ? { ...t, line } : t;
 }
 
-/** File reference -> target; null when it cannot be located (relative path, no project). */
-export function resolveViewerTarget(ref: FileRef, projectRoot: string | null): ViewerTarget | null {
+/**
+ * File reference -> target; null when it cannot be located. A RELATIVE path is relative to the
+ * directory the session ran in (`cwd` — the model writes paths from there, which for an iterate
+ * worktree or a subfolder task is not the project root); without a cwd it falls back to the root.
+ */
+export function resolveViewerTarget(ref: FileRef, projectRoot: string | null, cwd: string | null = null): ViewerTarget | null {
   if (isAbsolutePath(ref.path)) return targetForAbsolute(ref.path, projectRoot, ref.line);
-  if (!projectRoot) return null;
-  return ref.line ? { path: ref.path, outside: false, line: ref.line } : { path: ref.path, outside: false };
+  const base = cwd || projectRoot;
+  if (!base) return null;
+  const back = base.includes("\\") && !base.includes("/");
+  const rel = back ? ref.path.replace(/\//g, "\\") : ref.path;
+  return targetForAbsolute(`${base.replace(/[\\/]+$/, "")}${back ? "\\" : "/"}${rel}`, projectRoot, ref.line);
 }
 
 /** Convenience for renderers: raw text -> target. */
-export function targetFromText(raw: string, projectRoot: string | null, opts?: { decode?: boolean }): ViewerTarget | null {
+export function targetFromText(raw: string, projectRoot: string | null, opts?: { decode?: boolean; cwd?: string | null }): ViewerTarget | null {
   const ref = parseFileRef(raw, opts);
-  return ref ? resolveViewerTarget(ref, projectRoot) : null;
+  return ref ? resolveViewerTarget(ref, projectRoot, opts?.cwd ?? null) : null;
 }
 
 /** The full filesystem path a target stands for: outside targets are already absolute;

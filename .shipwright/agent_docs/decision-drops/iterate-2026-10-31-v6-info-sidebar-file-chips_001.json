@@ -5,7 +5,7 @@
   "title": "One client resolver opens every file (project route or session-file route)",
   "context": "Outputs outside the project were inert and chat paths were plain text, so users could not look at files the assistant wrote or named.",
   "decision": "A pure client resolver maps a path to a project-relative target or an absolute outside target; Outputs rows and chat chips share it. Outside files use the task-scoped session-file route and get an Outside project header.",
-  "consequences": "No new server surface; chips exist only inside the Mission provider. :line is parsed but the viewer does not scroll to it yet.",
+  "consequences": "No new server surface; chips exist only inside the Mission provider. :line now scrolls to and marks the line in code/text kinds; rendered kinds (markdown/html/mermaid) ignore it. Relative chat paths resolve against task.cwd, not the project root.",
   "rationale": "The session-file route (V4) already owns access control, so the client only picks the route and labels the scope; markdown consults an optional context so other consumers are unchanged.",
   "rejected": "Routing every file through the session-file route (couples ordinary project viewing to session evidence); leaving outside files inert.",
   "commit": "",

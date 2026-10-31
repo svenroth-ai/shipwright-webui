@@ -82,6 +82,16 @@ describe("chat file chips (MarkdownText + FileOpenContext)", () => {
     expect(screen.queryByTestId("mc-file")).toBeNull();
   });
 
+  it("keeps file links as chips (aria-label = full path) but blanks a file:/// image src", () => {
+    const { container } = render(
+      <FileOpenContext.Provider value={{ projectRoot: ROOT, open: vi.fn() }}>
+        <MarkdownText text={"[spec](docs/a.md) ![pic](file:///D:/x/y.png)"} />
+      </FileOpenContext.Provider>,
+    );
+    expect(screen.getByTestId("mc-file")).toHaveAttribute("aria-label", "Open " + ROOT + "\\docs\\a.md");
+    expect(container.querySelector("img")?.getAttribute("src") ?? "").toBe("");
+  });
+
   it("never chips an unlabelled fenced block that only contains a path", () => {
     renderMd("```\nsrc/a.ts\n```");
     expect(screen.queryByTestId("mc-file")).toBeNull();
@@ -123,6 +133,13 @@ describe("SmartViewer for a file outside the project", () => {
     expect(decodeURIComponent(url)).toContain("D:\\other\\mockup.css");
     fireEvent.click(screen.getByTestId("smart-viewer-copy-path"));
     expect(writeText).toHaveBeenCalledWith("D:\\other\\mockup.css");
+  });
+
+  it("Copy path reports a clipboard failure instead of staying silent", async () => {
+    Object.defineProperty(navigator, "clipboard", { value: { writeText: vi.fn(async () => { throw new Error("denied"); }) }, configurable: true });
+    render(<SmartViewer projectId="p1" path={"D:\\other\\a.css"} sessionTaskId="t1" />);
+    fireEvent.click(screen.getByTestId("smart-viewer-copy-path"));
+    await waitFor(() => expect(screen.getByTestId("smart-viewer-copy-path")).toHaveTextContent("Copy failed"));
   });
 
   it("a project file shows no outside header", async () => {
