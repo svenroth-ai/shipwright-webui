@@ -1,0 +1,44 @@
+{
+ "review": [
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "client/src/components/external/SmartViewer/htmlInlineStyles.ts",
+   "line": 40,
+   "finding": "Tag matching ignores context: a <link> inside an HTML comment, a <script> string or a <textarea> is also fetched and rewritten; a quoted attribute containing '>' truncates the match; replacement is split/join over the whole document.",
+   "suggestion": "Single html.replace(LINK_TAG, cb) pass; skip comments/raw-text elements."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "client/src/components/external/SmartViewer/htmlInlineStyles.ts",
+   "line": 47,
+   "finding": "Relative @import / url() inside the inlined CSS stay relative and cannot load in the opaque-origin srcdoc.",
+   "suggestion": "Document the limit in the header comment, or inline one-level @import."
+  },
+  {
+   "severity": "low",
+   "category": "performance",
+   "file": "client/src/components/external/SmartViewer/htmlInlineStyles.ts",
+   "line": 42,
+   "finding": "Promise.all over every distinct <link> is unbounded.",
+   "suggestion": "Cap the number of inlined links (e.g. 20) or limit concurrency."
+  },
+  {
+   "severity": "low",
+   "category": "readability",
+   "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+   "line": 76,
+   "finding": "Loading state returns on every text change: the iframe unmounts for a 'Loading...' frame and remounts, resetting page scripts and scroll.",
+   "suggestion": "Keep the previous iframe until the new inlined result arrives."
+  },
+  {
+   "severity": "low",
+   "category": "accessibility",
+   "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+   "line": 97,
+   "finding": "Pop-out button sits inside role=tablist but is not a tab (invalid ARIA).",
+   "suggestion": "Move the button outside the tablist element."
+  }
+ ]
+}

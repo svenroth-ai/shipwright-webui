@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-31-v1-chat-readability",
+  "date": "2026-10-31",
+  "section": "Iterate — change: Mission chat readability",
+  "title": "Full chat messages, readable scale, dark tables, teal links",
+  "context": "Mission chat hid agent/user text behind Show more, used 14px/tight gaps, showed white GFM table headers on the dark card and browser-blue links.",
+  "decision": "Render full text; keep Show more only for raw tool output; add chat scale tokens (15/13/12px, 28/36/12px gaps), dark token lifts, --link/--thead tokens; GFM tables wrapped in .mc-table-wrap via opt-in MarkdownText tableWrap prop.",
+  "consequences": "Long messages render unbounded (no cap). Other MarkdownText consumers keep bare tables. Light scope links fall back to --accent.",
+  "rationale": "CSS plus small TSX is the smallest change; opt-in wrapper avoids altering SmartViewer/Inbox DOM.",
+  "rejected": "New chat renderer; global table wrapper in MarkdownText; capping message length.",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

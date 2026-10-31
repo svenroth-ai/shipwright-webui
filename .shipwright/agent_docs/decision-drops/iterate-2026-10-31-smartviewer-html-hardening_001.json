@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-31-smartviewer-html-hardening",
+  "date": "2026-10-31",
+  "section": "Iterate — change: SmartViewer HTML stylesheet inlining hardening",
+  "title": "Inline only .css stylesheets, with linear masking and a time box; cover the HTML viewer with an E2E regression",
+  "context": "#551 inlined an .html file's relative stylesheets so the SmartViewer shows it styled, but shipped after one code review and without E2E. The full cascade (spec, code, doubt, external) found that ANY relative href was fetched into a scripted iframe, so project text files such as .env were readable and exfiltratable, and that the regex masking was quadratic on unclosed markup.",
+  "decision": "Fetch only .css hrefs outside dot segments; mask comments and raw-text elements with a linear indexOf scanner; quote-aware link regex; keep media, skip alternate/disabled, cap 20 links, 5 s timeout per fetch. Hold the iframe until inlined and key the result on project+path (previous frame kept on text-only change); pop-out moved out of the tablist. Add an E2E regression, verified red on the old code, plus unit tests.",
+  "consequences": "A page linking a non-.css or dot-path stylesheet, or using relative @import/url() inside CSS, renders partly unstyled (documented limit). The sandbox and CSP are unchanged; the read path from an opened page is now limited to project .css files.",
+  "rationale": "The HTML is untrusted and runs scripts, so every file the viewer fetches for it is readable by it; a closed extension allowlist closes the exfiltration path without touching the sandbox or CSP.",
+  "rejected": "Allowing same-origin or relaxing the CSP (breaks the opaque-origin guarantee); an HTML-parser dependency (heavier than a linear scanner for a viewer); a secrets denylist (an allowlist is simpler and safer).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
