@@ -154,7 +154,7 @@ export function createExternalRoutes(args: CreateExternalRoutesArgs) {
   );
   // CLAUDE.md rule 4 — STATELESS byte-offset; multi-tab works by construction.
   app.route("/", createTranscriptRouter({ store, watcher, ptyManager }));
-  app.route("/", createSessionInfoRouter({ store, watcher }));
+  app.route("/", createSessionInfoRouter({ store, watcher, getProjectById }));
   // Inbox shares the derive cache + negative cache via ./inbox/_cache.ts.
   app.route("/", createInboxRouter({ store, watcher, ptyManager, codexWatcher }));
   // CLAUDE.md rule 12 — run-config is a READ-ONLY observer; no mutation.

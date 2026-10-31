@@ -1,0 +1,9 @@
+{"items":[
+{"name":"spec_compliance","verdict":"pass","note":"Read-only GET /tasks/:id/session-file: project root via path-guard+realpath, outside only with session evidence (Output, chat, tool call), size cap, MIME allowlist, NUL sniff, no listing, symlink escapes rejected, stateless bounded scan, docs token."},
+{"name":"error_handling","verdict":"pass","note":"Typed 400/403/404/413/415/500 answers; unreadable session or scan timeout fails closed (incomplete); queue survives rejections."},
+{"name":"security_basics","verdict":"pass","note":"Evidence before realpath, single resolution for project check, handle-based single open, UNC/foreign drive rejected, credential denylist, no cwd root; residuals recorded (replaced file, hardlink, quoted spaces)."},
+{"name":"test_quality","verdict":"pass","note":"62 tests with real temp dirs/junctions and synthetic JSONL: traversal, symlink, unevidenced, each evidence source, tool_result/meta/bash output excluded, boundaries, sensitive names, 413/415, session binding, Windows case."},
+{"name":"performance_basics","verdict":"pass","note":"Serialized scans with 20s timeout, prefilter by basename, positional newest-48MB window; no memo (documented)."},
+{"name":"naming_structure","verdict":"pass","note":"core/session-file/{access,evidence,safe-read,sensitive}, external/session-file/routes; all files under 300 lines; routes.ts bloat baseline unchanged (mount via session-info router)."},
+{"name":"affected_boundaries","verdict":"pass","note":"Boundary = session JSONL (producer Claude, consumer evidence scan) round-tripped with synthetic JSONL incl. CRLF, BOM, non-ASCII; filesystem boundary probed with real junctions."},
+{"name":"test_hygiene_probe","verdict":"pass","note":"scan_test_hygiene.py --diff: no findings."}]}

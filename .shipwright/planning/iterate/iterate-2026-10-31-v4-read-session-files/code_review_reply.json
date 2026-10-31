@@ -1,0 +1,22 @@
+{
+ "section": "V4-read-session-files-server",
+ "verdict": "PASS",
+ "review": [
+  {
+   "severity": "low",
+   "category": "performance",
+   "file": "server/src/core/session-file/evidence.ts",
+   "line": 150,
+   "finding": "Accepted residual risk: a scan that hits the 20 s timeout is not aborted; the queue moves on while the stalled read continues and pendingScans is already decremented, so stalled scans on a hung share can pile up beyond the cap.",
+   "suggestion": "Follow-up: pass an AbortSignal into scanLines and abort on timeout, or hold the pendingScans slot until the scan settles."
+  },
+  {
+   "severity": "low",
+   "category": "correctness",
+   "file": "server/src/core/session-file/access.ts",
+   "line": 82,
+   "finding": "Final POSIX check (head 647f0d67): foreign-absolute guard was fixed for Linux CI; drive-form regex tightened to /^[A-Za-z]:([/\\]|$)/; CRED_JSON limited to outside scope (project scope keeps the small list). Nothing blocking."
+  }
+ ],
+ "notes": "Round 3 on head 223c3ebe (opus), after two REJECT rounds whose findings were fixed: native canonical path is the only authorised path (subst/mapped/8.3 safe), credential denylist on the canonical relative path, no existence oracle through links, .git config/config.worktree refused under any .git, ENOTDIR handled, scan backlog capped. Nothing blocking."
+}

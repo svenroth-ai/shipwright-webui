@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-31-v4-read-session-files",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:49:46.361067+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "\"A path mentioned in a chat message\" is a very permissive evidence source. Assistant text frequently quotes paths echoed from tool output or speculative exploration (e.g. an assistant mentioning `/home/user/.ssh/id_ed25519` in passing makes that key readable). Also, a user pasting logs or error output into chat implicitly evidences every path contained in it.",
+          "suggestion": "Restrict textual evidence to user-authored message content only, or require the mention to appear in a tool_use input path field or structured Write/Edit output (already covered separately). At minimum, apply the sensitive denylist before the evidence check for chat-mentioned paths (the plan does denylist-first — confirm that ordering holds for all evidence sources) and document the threat model explicitly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The \"bounded positional scanLines pass\" over the session JSONL can miss evidence that falls outside the scanned bound, producing intermittent 403s (works for short sessions, fails for long ones). This is also a correctness/perf tension: without an offset cache (per rule 4), every request potentially rescans a growing file.",
+          "suggestion": "Define the bound explicitly (e.g. \"whole file up to N MB, then error 403 with a diagnostic\") and make the limit generous or config-driven; document the false-negative behavior. Consider scanning the whole file but streaming with a hard byte cap rather than a line/window heuristic.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "O_NOFOLLOW` only guards the final path component. An evidenced path like `/tmp/eviDir/target` where `eviDir` is a symlink to `~/.ssh` would pass the pre-check realpath (realpath resolves it) — but the realpath is then checked, and the plan does check the realpath against evidence too. The remaining race is swap between realpath check and open; the dev/ino agreement check mitigates this on POSIX but the lstat-vs-open TOCTOU window still exists on Windows junctions.",
+          "suggestion": "Ensure the dev/ino (or fileid on Windows) check compares against the realpath-resolved target, not the lexical path, and rejects on mismatch. This appears planned; make it a named test case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Session evidence is immutable once written — a path evidenced at message 5 remains readable for the session even if the file is later replaced by a symlink to something sensitive. The open-time checks catch symlink targets, but a file replacement (same path, now a different file with sensitive content) would still be served.",
+          "suggestion": "Acceptable residual risk for a read-only viewer, but note it in the route docs so it's a recorded decision, not an oversight.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Evidence check happens per request with no memoization; for a viewer that may issue repeated requests for the same file (syntax highlighting, range reads if added later), each request redoes realpath + evidence scan.",
+          "suggestion": "Fine at this scope — don't add caching to work around it (rule 4 forbids transcript-offset caching anyway). Just verify the route sets an ETag (planned) so the client can short-circuit.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Windows case-insensitive matching and drive-letter handling requires careful normalization (e.g. `C:\\foo` vs `c:/foo` vs `/mnt/c` style). The plan mentions it but tests must cover mixed-separator and case-variant evidence paths.",
+          "suggestion": "Add an explicit test matrix for separator/case variants in the evidence matcher; normalize both sides to a canonical form in one place.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "MIME allowlist mirrors the project-file route; if the allowlist is narrow (text-ish types), evidenced non-project files of common types (e.g. `.csv`, `.log` if not already listed) may 415 unexpectedly.",
+          "suggestion": "Confirm the allowlist covers the types the Smart Viewer already handles; reuse the exact same module rather than a copy to avoid divergence.  Overall: the design is sound and shows strong awareness of the real attack surface (traversal, symlinks, sensitive files, FS races). The main thing to tighten before shipping is the breadth of chat-message evidence and the bounded-scan false-negative behavior; everything else is refinement.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "Adding the task cwd as an independently trusted root expands access beyond the specification. A task started from a home directory or ancestor of the project could read unevidenced files there, bypassing the outside-root sensitive-file checks.",
+          "suggestion": "Trust only the canonical project root automatically. Use task cwd to resolve relative evidence if needed, but require session evidence for any resulting path outside the project.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "The proposed open/check sequence does not fully address ancestor-directory races. `O_NOFOLLOW` protects the final path component; an ancestor can be replaced with a symlink between authorization and opening. Comparing the handle’s dev/ino with a subsequent `lstat` can still pass when both resolve through the replacement.",
+          "suggestion": "Verify that the opened handle resolves to the authorized canonical target using a platform-supported mechanism, or traverse through anchored directory handles that prevent ancestor substitution. Fail closed where the guarantee is unavailable, and add a race test covering an ancestor replacement.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not specify how the task ID selects and authorizes this session’s transcript. Including subagent outputs also needs an explicit session relationship; evidence from a previous task session or unrelated transcript would grant unintended file access.",
+          "suggestion": "Reuse the existing task authorization boundary and bind evidence lookup to the task’s current session identity. Include only verified descendants of that session. Test another task’s transcript, a replaced session, and unrelated subagent evidence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "A bounded transcript scan can silently lose valid evidence as the conversation grows. The plan does not define whether older mentions remain eligible or how incomplete scans affect responses. This can make the same file alternate between accessible and forbidden without any relevant session change.",
+          "suggestion": "Define the evidence window explicitly. If evidence must persist throughout the session, scan backward in bounded positional chunks without an offset cache. If a total scan limit is necessary, distinguish an incomplete evidence search from a confirmed lack of evidence and test long transcripts.  The route is a reasonable, contained approach, but the trusted-root expansion and file-handle authorization need correction before implementation. Session binding and evidence-window behavior should also be made explicit in the acceptance criteria.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T14:31:15.017460+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] **Findings**\n\n1. **Category: security — Severity: medium**\n   **Finding:** \"A path mentioned in a chat message\" is a very permissive evidence source. Assistant text frequently quotes paths echoed from tool output or speculative exploration (e.g. an assistant mentioning `/home/user/.ssh/id_ed25519` in passing makes that key readable). Also, a user pasting logs or error output into chat implicitly evidences every path contained in it.\n   **Suggestion:** Restrict textual evidence to user-authored message content only, or require the mention to appear in a tool_use input path field or structured Write/Edit output (already covered separately). At minimum, apply the sensitive denylist *before* the evidence check for chat-mentioned paths (the plan does denylist-first — confirm that ordering holds for all evidence sources) and document the threat model explicitly.\n\n2. **Category: edge-case — Severity: medium**\n   **Finding:** The \"bounded positional scanLines pass\" over the session JSONL can miss evidence that falls outside the scanned bound, producing intermittent 403s (works for short sessions, fails for long ones). This is also a correctness/perf tension: without an offset cache (per rule 4), every request potentially rescans a growing file.\n   **Suggestion:** Define the bound explicitly (e.g. \"whole file up to N MB, then error 403 with a diagnostic\") and make the limit generous or config-driven; document the false-negative behavior. Consider scanning the whole file but streaming with a hard byte cap rather than a line/window heuristic.\n\n3. **Category: security — Severity: low**\n   **Finding:** `O_NOFOLLOW` only guards the final path component. An evidenced path like `/tmp/eviDir/target` where `eviDir` is a symlink to `~/.ssh` would pass the pre-check realpath (realpath resolves it) — but the realpath *is* then checked, and the plan does check the realpath against evidence too. The remaining race is swap between realpath check and open; the dev/ino agreement […truncated]\n\n[openai] 1. **Category: security · Severity: high**  \n   **Finding:** Adding the task cwd as an independently trusted root expands access beyond the specification. A task started from a home directory or ancestor of the project could read unevidenced files there, bypassing the outside-root sensitive-file checks.  \n   **Suggestion:** Trust only the canonical project root automatically. Use task cwd to resolve relative evidence if needed, but require session evidence for any resulting path outside the project.\n\n2. **Category: security · Severity: high**  \n   **Finding:** The proposed open/check sequence does not fully address ancestor-directory races. `O_NOFOLLOW` protects the final path component; an ancestor can be replaced with a symlink between authorization and opening. Comparing the handle’s dev/ino with a subsequent `lstat` can still pass when both resolve through the replacement.  \n   **Suggestion:** Verify that the opened handle resolves to the authorized canonical target using a platform-supported mechanism, or traverse through anchored directory handles that prevent ancestor substitution. Fail closed where the guarantee is unavailable, and add a race test covering an ancestor replacement.\n\n3. **Category: dependency · Severity: high**  \n   **Finding:** The plan does not specify how the task ID selects and authorizes **this session’s** transcript. Including subagent outputs also needs an explicit session relationship; evidence from a previous task session or unrelated transcript would grant unintended file access.  \n   **Suggestion:** Reuse the existing task authorization boundary and bind evidence lookup to the task’s current session identity. Include only verified descendants of that session. Test another task’s transcript, a replaced session, and unrelated subagent evidence.\n\n4. **Category: edge-case · Severity: medium**  \n   **Finding:** A bounded transcript scan can silently lose valid evidence as the conversation grows. The plan does not define whet […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      },
+      "model_tier": "opus"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "server/src/core/session-file/evidence.ts",
+          "line": 150,
+          "finding": "Accepted residual risk: a scan that hits the 20 s timeout is not aborted; the queue moves on while the stalled read continues and pendingScans is already decremented, so stalled scans on a hung share can pile up beyond the cap.",
+          "suggestion": "Follow-up: pass an AbortSignal into scanLines and abort on timeout, or hold the pendingScans slot until the scan settles.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/session-file/access.ts",
+          "line": 82,
+          "finding": "Final POSIX check (head 647f0d67): foreign-absolute guard was fixed for Linux CI; drive-form regex tightened to /^[A-Za-z]:([/\\]|$)/; CRED_JSON limited to outside scope (project scope keeps the small list). Nothing blocking.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T21:04:04.494979+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "transport": "agent",
+      "verdict": "pass",
+      "reviewed_commit": "0debcb7f6345cbebae36287dcbaa6100bf894717"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Scan timeout does not cancel the scan; queue and pendingScans cap stop holding under slow scans (DoS). [server/src/core/session-file/evidence.ts:142-156]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "user records carry CLI-injected text (system-reminder, task-notification, command-stdout wrappers) that counts as user intent / evidence. [server/src/core/session-file/evidence.ts:79-94]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Evidence boundary is driven by prompt injection (any tool_use/assistant mention); outside denylist misses service-account*.json, client_secret*.json, token.json, secrets.json, ConsoleHost_history.txt. [server/src/core/session-file/access.ts:117-138]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Hardlink inside the project root to a credential file passes the project-scope denylist. [server/src/core/session-file/access.ts:91-114]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Windows has no O_NOFOLLOW; narrow ancestor-swap window (swap during open+lstat, restore before realpath). [server/src/core/session-file/safe-read.ts:43-48]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Windows device names (COM1, CONIN$) reach realpath/CreateFileW before the extension allowlist. [server/src/core/session-file/access.ts:100-108]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T21:04:04.614340+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "transport": "agent",
+      "verdict": "pass",
+      "reviewed_commit": "0debcb7f6345cbebae36287dcbaa6100bf894717"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec |",
+          "file": null,
+          "line": null,
+          "finding": "move the empty-roots check so it only applies to the relative-path/project-scope branch; absolute evidenced paths should still be evaluated.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec |",
+          "file": null,
+          "line": null,
+          "finding": "fall back to cwd only when `getProjectById` returns undefined (no project), not when the project's path merely fails `stat`.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "map EPERM/EACCES on a path already realpath'd to `not_a_file` (or have the route treat it as 400) — at minimum confirm behavior on Windows.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "security",
+          "file": "server/src/core/session-file/access.ts",
+          "line": 77,
+          "finding": "Project authorization checks a different filesystem resolution from the path it returns. `realpath(absolute)` captures one target, then `realPathGuard(root, absolute)` resolves the original path again. If a symlink points outside the project during the first resolution and inside during the guard, the function returns the unchecked outside target. The subsequent safe reader accepts that canonical target.",
+          "suggestion": "Resolve once and validate that exact resolved target against the canonical project root using `path.relative`. Return only the target that passed that check.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "server/src/core/session-file/evidence.ts",
+          "line": 29,
+          "finding": "The whole-path matcher accepts valid filename characters as delimiters. For example, mentioning only `/tmp/report.txt~` evidences `/tmp/report.txt`, because `~` is absent from `AFTER_BAD`. Thus a session mentioning one file can authorize reading a different, unevidenced file.",
+          "suggestion": "Use explicit path token boundaries with defined quoting and punctuation handling, and compare complete extracted paths. Add negative tests for suffixes such as `~`, `+`, and spaces within quoted filenames.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/session-file/access.ts",
+          "line": 47,
+          "finding": "An empty root list prevents all access before session evidence is considered. If the project directory and task cwd no longer exist, an existing outside file explicitly evidenced by the session returns `project_path_unavailable`. The specification permits an absolute file through session evidence independently of project containment.",
+          "suggestion": "Require a root only when resolving relative input. For absolute input, continue through the session evidence checks when no project root is available.  Ship-with-fixes. The implementation covers many required cases, but the authorization race and incomplete path matching need correction before shipping. Execution was unavailable in this review environment, so these findings are based on the supplied diff.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T14:36:57.066741+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review\n\nThe change is well-structured, security-conscious, and closely follows the spec: path-guard posture for project files, session-evidence rule for outside files, sensitive-path denylist, single-open capped reads, whole-path matching, stateless scanning, and genuinely behavioral tests (traversal, symlink, unevidenced, credentials, cross-session isolation, Windows paths). Findings below are refinements, not blockers.\n\n### Findings\n\n- **Category: spec | Severity: medium**\n  `server/src/core/session-file/access.ts:53` — `if (roots.length === 0) return deny(400, \"project_path_unavailable\")` bails out before the session-evidence branch. The spec says a path is allowed if inside the root **OR** evidenced by the session; when the project dir and cwd are both unresolvable, an evidenced outside file is still rejected with 400. Session scope should not depend on a resolvable root.\n  *Suggestion:* move the empty-roots check so it only applies to the relative-path/project-scope branch; absolute evidenced paths should still be evaluated.\n\n- **Category: spec | Severity: low**\n  `server/src/external/session-file/routes.ts:69` — `projectDir ?? await existingDir(task.cwd)`: a task **with** a project whose directory no longer exists silently falls back to trusting the task cwd as root. The spec/comment says the cwd stands in only for a task with *no resolvable project*; a stale project path quietly widens the trusted root (the cwd could be a home dir, as the comment itself warns).\n  *Suggestion:* fall back to cwd only when `getProjectById` returns undefined (no project), not when the project's path merely fails `stat`.\n\n- **Category: edge-case | Severity: low**\n  `server/src/core/session-file/safe-read.ts:22-28` — On Windows, `open()` on a directory may fail with EPERM/EACCES rather than EISDIR, mapping to `{ kind: \"error\" }` → 500 for an evidenced directory, whereas the spec/posture says directories are simply not served (400-class). The existing test (\"an evide […truncated]\n\n[openai] - Category: security\n- Severity: high\n- File: server/src/core/session-file/access.ts:77\n- Finding: Project authorization checks a different filesystem resolution from the path it returns. `realpath(absolute)` captures one target, then `realPathGuard(root, absolute)` resolves the original path again. If a symlink points outside the project during the first resolution and inside during the guard, the function returns the unchecked outside target. The subsequent safe reader accepts that canonical target.\n- Suggestion: Resolve once and validate that exact resolved target against the canonical project root using `path.relative`. Return only the target that passed that check.\n\n- Category: security\n- Severity: medium\n- File: server/src/core/session-file/evidence.ts:29\n- Finding: The whole-path matcher accepts valid filename characters as delimiters. For example, mentioning only `/tmp/report.txt~` evidences `/tmp/report.txt`, because `~` is absent from `AFTER_BAD`. Thus a session mentioning one file can authorize reading a different, unevidenced file.\n- Suggestion: Use explicit path token boundaries with defined quoting and punctuation handling, and compare complete extracted paths. Add negative tests for suffixes such as `~`, `+`, and spaces within quoted filenames.\n\n- Category: spec\n- Severity: medium\n- File: server/src/core/session-file/access.ts:47\n- Finding: An empty root list prevents all access before session evidence is considered. If the project directory and task cwd no longer exist, an existing outside file explicitly evidenced by the session returns `project_path_unavailable`. The specification permits an absolute file through session evidence independently of project containment.\n- Suggestion: Require a root only when resolving relative input. For absolute input, continue through the session evidence checks when no project root is available.\n\nShip-with-fixes. The implementation covers many required cases, but the authorization race and incomplete p […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:04:04.361967+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "transport": "agent",
+      "verdict": "pass",
+      "reviewed_commit": "0debcb7f6345cbebae36287dcbaa6100bf894717"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:31:15.476676+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:31:16.034061+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

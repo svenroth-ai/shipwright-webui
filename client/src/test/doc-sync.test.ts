@@ -214,6 +214,8 @@ const REQUIRED_TOKENS = [
   '_lead',
   'leadQuestionApi',
   'LeadQuestionCard',
+  // iterate-2026-10-31-v4-read-session-files — session-evidenced file read route
+  'session-file',
 ] as const;
 
 let claudeMd = '';
