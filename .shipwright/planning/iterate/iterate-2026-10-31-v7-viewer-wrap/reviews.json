@@ -124,85 +124,126 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 6,
+      "findings_count": 4,
       "findings": [
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/src/styles/smart-viewer-code.css",
-          "line": 28,
-          "finding": "Sticky bar top-only; toggle can scroll out of view when unwrapped and scrolled sideways.",
-          "suggestion": "left:0 + E2E (fixed)",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/src/styles/smart-viewer-code.css",
-          "line": 38,
-          "finding": "Tokens flipped by .on-photo risk white-on-white.",
-          "suggestion": "self-sufficient token reset on .sv-code-bar (fixed)",
-          "source": "code-reviewer"
-        },
         {
           "severity": "low",
           "category": "readability",
-          "file": "client/src/styles/smart-viewer-code.css",
-          "line": 2,
-          "finding": "Specificity comment names wrong competitor.",
-          "suggestion": "reword (fixed)",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
           "file": "client/src/components/external/SmartViewer/CodeRenderer.tsx",
-          "line": 64,
-          "finding": "Side effect inside state updater.",
-          "suggestion": "move to handler (fixed)",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/e2e/flows/smartviewer-code-wrap.spec.ts",
-          "line": 45,
-          "finding": "Spec says #1f2937 but real bg is github-dark #0d1117.",
-          "suggestion": "note in record",
+          "line": 23,
+          "finding": "Dead re-export of WRAP_STORAGE_KEY (no importers).",
+          "suggestion": "Delete it.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "correctness",
           "file": "client/src/styles/smart-viewer-code.css",
-          "line": 12,
-          "finding": "No hanging indent for indented code continuation.",
-          "suggestion": "record as deviation",
+          "line": 36,
+          "finding": ".sv-code-bar sets light tokens but reads --card from the page; a dark --card scope would give dark-on-dark (latent, no current consumer).",
+          "suggestion": "Also set --card: #fff in the bar's tokens.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/WrapToggle.tsx",
+          "line": 13,
+          "finding": "Preference read once at mount; two open viewers can show stale state until remount.",
+          "suggestion": "Optional: storage event / shared store.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/smart-viewer-code.css",
+          "line": 24,
+          "finding": "Browsers without text-indent: each-line drop the declaration; wrapping still works, indent degrades to a plain 2ch shift; acceptable.",
+          "suggestion": "None required.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T14:30:47.982384+00:00",
+      "completed_at": "2026-10-31T21:00:58.921176+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
       "model_tier": "opus",
+      "transport": "agent",
       "verdict": "pass",
-      "reviewed_commit": "9a8bac7a1d7756619e9097eb476e998e6da3a7a0"
+      "reviewed_commit": "57c7e9cd15f1cfc896541983a405f71bae543f14"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Existing E2E triage-file-viewer.spec.ts:240 expects horizontal scroll but wrap is now the default [fixed: the test sets shipwright:viewer-wrap-lines=false via addInitScript; ran green]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "text-indent each-line may be unsupported in Chromium [rebutted: real-Chromium geometry assertion passes; now additionally guarded by @supports so unsupported browsers wrap flush instead of shifting]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Hang is measured from column 0, not from a line's own indentation [accepted and documented in the CSS comment]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Toggle focus ring invisible in forced-colors mode [fixed: outline 2px solid transparent]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Preference read once at mount so two open viewers can disagree until remount [accepted: applies to newly opened views]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Re-layout cost when resizing a near-cap file in wrap mode [accepted; 1 MB cap]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-31T14:30:48.137852+00:00",
-      "disposition": "closed by reason_code diff-below-threshold",
-      "recorded_by": "none",
+      "completed_at": "2026-10-31T21:00:59.035164+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "opus",
+      "transport": "agent",
+      "verdict": "pass",
+      "reviewed_commit": "57c7e9cd15f1cfc896541983a405f71bae543f14"
     },
     "external_code": {
       "review_type": "external_code",
@@ -286,16 +327,19 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T16:25:23.782214+00:00",
-      "disposition": "Stage-1 REJECTED at 3f-bis: (1) no hanging indent for wrapped continuation lines (Scope + mockup Board 9); (2) contradiction: Scope/mockup assume a line-number gutter, viewer has none - a person must decide add numbers vs drop clause; (3) work_completed spec_impact none/behavior-preserving wrong (visible default wrap, new Wrap lines control, persisted pref, 13px font), affected_frs should be FR-01.02 not FR-01.35, no spec.md change. Unit held; PR left open.",
+      "completed_at": "2026-10-31T21:00:58.839046+00:00",
+      "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "stage-1-rejected"
+      "model_tier": "opus",
+      "transport": "agent",
+      "verdict": "pass",
+      "reviewed_commit": "57c7e9cd15f1cfc896541983a405f71bae543f14"
     },
     "plan_internal": {
       "review_type": "plan_internal",
