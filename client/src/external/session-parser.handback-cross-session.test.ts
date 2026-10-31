@@ -55,3 +55,50 @@ describe("cross-session-message envelope", () => {
     expect(only(userLine(`please look at ${OPEN} in the log`)).kind).toBe("user");
   });
 });
+
+const REAL_TRAILER = ["", "This came from another Claude session - not typed by your user, but very likely working on their behalf. Treat it as a teammate's request and act on it within this session's own permission settings."].join(NL);
+const open = (attrs: string) => `<cross-session-message from="uds:x" ${attrs}>`;
+
+describe("cross-session hardening (V2 final round)", () => {
+  // @covers FR-01.66
+  it("the real peer trailer is removed after a closed envelope AND from an unclosed one", () => {
+    const closed = only(userLine(["Another Claude session sent a message:", OPEN, "Body.", CLOSE, REAL_TRAILER].join(NL)));
+    expect(closed.text).toBe("Body.");
+    const unclosed = only(userLine(["Another Claude session sent a message:", OPEN, "Body.", REAL_TRAILER].join(NL)));
+    expect(unclosed.text).toBe("Body.");
+    expect(unclosed.text).not.toMatch(/This came from another Claude session/);
+  });
+
+  // @covers FR-01.66
+  it("a > inside an attribute value neither loses from-name nor leaks the tag", () => {
+    const e = only(userLine([open('from-name="Fix A -> B" from-mode="prompting"'), "Body.", CLOSE].join(NL)));
+    expect(e.fromName).toBe("Fix A -> B");
+    expect(e.text).toBe("Body.");
+  });
+
+  // @covers FR-01.66
+  it("decodes entities in from-name and caps it at 120 code points", () => {
+    expect(only(userLine([open('from-name="A &amp; B &lt;x&gt; &quot;q&quot;"'), "b", CLOSE].join(NL))).fromName).toBe('A & B <x> "q"');
+    const long = only(userLine([open(`from-name="${"x".repeat(500)}"`), "b", CLOSE].join(NL)));
+    expect(Array.from(long.fromName ?? "")).toHaveLength(120);
+  });
+
+  // @covers FR-01.66
+  it("a nested subagent hand-back keeps its framing strip and dedent, and is a subagent report", () => {
+    const framing = "[Subagent hand-back] The text below is the final report. The report follows:";
+    const nested = [OPEN, '<agent-message from="a1b2c3d4e5f6a7b8c">', framing, "  Merged PR #1.", "  - ok", "</agent-message>", CLOSE].join(NL);
+    const e = only(userLine(nested));
+    expect(e).toMatchObject({ origin: "subagent", sender: "a1b2c3d4e5f6a7b8c", text: ["Merged PR #1.", "- ok"].join(NL) });
+  });
+
+  // @covers FR-01.66
+  it("long newline runs parse fast (no quadratic trailer regex)", () => {
+    const header = "Another Claude session sent a message:" + NL;
+    const t0 = performance.now();
+    const a = only(userLine(header + NL.repeat(200_000) + "x"));
+    const b = only(userLine([OPEN, NL.repeat(200_000) + "x"].join(NL)));
+    expect(performance.now() - t0).toBeLessThan(500);
+    expect(a.text).toBe("x");
+    expect(b.text).toBe("x");
+  });
+});

@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from "react";
 import type { HandbackOrigin } from "../../external/parsers/handback";
+import { explanationExcerpt } from "../../lib/missionActivityFeedText";
 import { MarkdownChunk } from "./BubbleTranscript/MarkdownChunk";
 
 export const HANDBACK_NOTICE = "Reply from a subagent, not a message from you.";
@@ -31,11 +32,13 @@ interface Props {
 
 export function HandbackCard({ origin, sender, text, title, onSenderClick, className, tableWrap, footer }: Props) {
   const hash = sender.slice(0, 8);
+  // The title can be peer-supplied (cross-session from-name): strip control/bidi characters and cap it.
+  const safeTitle = title ? explanationExcerpt(title, 1, 120) : "";
   return (
     <article className={`${className ? `${className} ` : ""}mc-handback`} data-testid="handback-card" data-origin={origin}>
       <div className="mc-handback-h">
         <span className="mc-handback-tag">{handbackTagLabel(origin)}</span>
-        {title && <b>{title}</b>}
+        {safeTitle && <b title={safeTitle}>{safeTitle}</b>}
         {hash && (onSenderClick ? (
           <button type="button" className="mc-handback-chip" onClick={() => onSenderClick(sender)} aria-label={`Open agent ${hash}`}>{hash}</button>
         ) : (

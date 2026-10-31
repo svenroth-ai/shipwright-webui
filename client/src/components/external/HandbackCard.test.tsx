@@ -34,3 +34,13 @@ describe("HandbackCard (V2)", () => {
     expect(screen.queryByTestId("bubble-user")).toBeNull();
   });
 });
+
+describe("HandbackCard title sanitising (V2 final round)", () => {
+  // @covers FR-01.66
+  it("strips bidi overrides and caps a peer-supplied title", () => {
+    render(<HandbackCard origin="session" sender="" text="body" title={"evil\u202Egnp.txt" + "y".repeat(300)} />);
+    const b = screen.getByTestId("handback-card").querySelector("b")!;
+    expect(b.textContent).not.toContain("\u202E");
+    expect(Array.from(b.textContent ?? "").length).toBeLessThanOrEqual(121);
+  });
+});

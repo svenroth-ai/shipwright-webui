@@ -29,15 +29,33 @@ const HEADER = "Another Claude session sent a message";
 const MARKER = "[Subagent hand-back]";
 const ENVELOPE_OPEN = /<agent-message\s+from="([^"]*)"\s*>/;
 const ENVELOPE_CLOSE = "</agent-message>";
+/** Quote-aware and linear: attribute values may contain `>` (from-name="Fix A -> B"). */
+const CROSS_OPEN = /<cross-session-message\b((?:\s+[\w-]+="[^"]*")*)\s*>/;
+const CROSS_CLOSE = "</cross-session-message>";
 const REPORT_FOLLOWS = "The report follows:";
 const OVERSIZE_REJECT = 2_000_000;
-/** The harness's closing paragraph after the envelope ("That "other Claude session" is an agent …"). */
-const TRAILER = /\n\s*\nThat "other Claude session"[\s\S]*$/;
+/** Envelopes must LEAD the record, so only this much is searched for an opening tag (header line + tag). */
+const LEAD_WINDOW = 4096;
+const TITLE_MAX = 120;
+/** The harness's closing paragraphs (subagent / peer session): "That "other Claude session" is …", "This came from another Claude session …". */
+const TRAILER_STARTS = ['\nThat "other Claude session"', "\nThis came from another Claude session"];
 
 export interface Handback { sender: string; origin: HandbackOrigin; text: string; fromName?: string }
 
-const CROSS_OPEN = /<cross-session-message\b([^>]*)>/;
-const CROSS_CLOSE = "</cross-session-message>";
+/**
+ * Cuts the harness's closing paragraph. lastIndexOf + a check of the short slice before it for a blank line:
+ * no regex with overlapping whitespace/newline classes (that backtracked quadratically on long newline runs).
+ */
+function stripTrailer(body: string): string {
+  let cut = -1;
+  for (const start of TRAILER_STARTS) {
+    const at = body.lastIndexOf(start);
+    if (at < 0) continue;
+    const before = body.slice(Math.max(0, at - 64), at);
+    if (/\n[ \t]*$/.test(before) && (cut < 0 || at < cut)) cut = at;
+  }
+  return cut < 0 ? body : body.slice(0, cut).trimEnd();
+}
 
 /** The record LEADS with this match: nothing before it, or just the one header line. */
 function leadsRecord(text: string, index: number): boolean {
@@ -45,26 +63,50 @@ function leadsRecord(text: string, index: number): boolean {
   return before === "" || (before.startsWith(HEADER) && !before.includes("\n"));
 }
 
+function decodeEntities(v: string): string {
+  return v.replace(/&(amp|quot|lt|gt|apos);/g, (_, e: string) => ({ amp: "&", quot: '"', lt: "<", gt: ">", apos: "'" })[e] as string);
+}
+
+/**
+ * A subagent report body: "[Subagent hand-back] <framing> The report follows:" then every report line
+ * indented by two spaces. Returns the cleaned report, or null when the body does not open with the marker
+ * ("subagent" only when the marker opens the body; a quote of it inside another session's text does not count).
+ */
+function unwrapReport(body: string): string | null {
+  if (!body.trimStart().startsWith(MARKER)) return null;
+  const markerAt = body.indexOf(MARKER);
+  const followsAt = body.indexOf(REPORT_FOLLOWS, markerAt);
+  let out = followsAt >= 0 ? body.slice(followsAt + REPORT_FOLLOWS.length) : body.slice(markerAt + MARKER.length);
+  // The harness indents every report line by two spaces; undo that, but only when EVERY non-blank line carries it.
+  out = out.replace(/^\n/, "");
+  const lines = out.split("\n").filter((l) => l.trim());
+  if (lines.length > 0 && lines.every((l) => l.startsWith("  "))) out = out.replace(/^ {2}/gm, "");
+  return out;
+}
+
 /**
  * Third real envelope: `<cross-session-message from="uds:…" from-name="…" from-mode="…">…</cross-session-message>`,
- * sometimes wrapping a nested `<agent-message from="…">`. Tags are hidden; from-name becomes the card title and the
- * nested agent id the sender. Always origin "session" (a peer session spoke, not our subagent).
+ * sometimes wrapping a nested `<agent-message from="…">` (itself possibly a subagent hand-back). Tags are hidden;
+ * from-name becomes the card title and the nested agent id the sender.
  */
 function fromCrossSession(text: string, open: RegExpExecArray): Handback {
   const start = open.index + open[0].length;
   const end = text.lastIndexOf(CROSS_CLOSE);
-  let body = text.slice(start, end < start ? undefined : end).trim();
-  if (end < start) body = body.replace(TRAILER, "").trim();
+  let body = text.slice(start, end < start ? undefined : end);
+  if (end < start) body = stripTrailer(body);
+  body = body.trim();
   let sender = "";
-  const nested = ENVELOPE_OPEN.exec(body);
+  const nested = ENVELOPE_OPEN.exec(body.slice(0, LEAD_WINDOW));
   if (nested && body.slice(0, nested.index).trim() === "") {
     sender = nested[1];
     const from = nested.index + nested[0].length;
     const close = body.lastIndexOf(ENVELOPE_CLOSE);
-    body = body.slice(from, close < from ? undefined : close).trim();
+    body = body.slice(from, close < from ? undefined : close);
   }
-  const fromName = /from-name="([^"]*)"/.exec(open[1])?.[1];
-  return { sender, origin: "session", text: body, ...(fromName ? { fromName } : {}) };
+  const report = unwrapReport(body);
+  const rawName = /\sfrom-name="([^"]*)"/.exec(open[1])?.[1];
+  const fromName = rawName ? Array.from(decodeEntities(rawName).replace(/\s+/g, " ").trim()).slice(0, TITLE_MAX).join("") : "";
+  return { sender, origin: report != null ? "subagent" : "session", text: (report ?? body).trim(), ...(fromName ? { fromName } : {}) };
 }
 
 export function detectHandback(content: unknown): Handback | null {
@@ -78,12 +120,12 @@ export function detectHandback(content: unknown): Handback | null {
   // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that
   // merely quotes the marker or the envelope mid-text stays a user message with its text intact.
   const head = text.trimStart();
-  const cross = CROSS_OPEN.exec(text);
+  // Opening tags are searched in a bounded prefix only: an envelope must lead the record.
+  const window = text.slice(0, LEAD_WINDOW + (text.length - head.length));
+  const cross = CROSS_OPEN.exec(window);
   if (cross && leadsRecord(text, cross.index)) return fromCrossSession(text, cross);
-  const found = ENVELOPE_OPEN.exec(text);
-  // The envelope counts only when it LEADS the record: nothing before it, or just the one header line.
-  const before = found ? text.slice(0, found.index).trim() : "";
-  const envelope = found && (before === "" || (before.startsWith(HEADER) && !before.includes("\n"))) ? found : null;
+  const found = ENVELOPE_OPEN.exec(window);
+  const envelope = found && leadsRecord(text, found.index) ? found : null;
   if (!head.startsWith(HEADER) && !envelope && !head.startsWith(MARKER)) return null;
 
   let body = text;
@@ -95,24 +137,11 @@ export function detectHandback(content: unknown): Handback | null {
     const nl = head.indexOf("\n");
     body = nl < 0 ? "" : head.slice(nl + 1);
   }
-
-  // "subagent" only when the marker opens the body; a quote of it inside another session's text does not count.
-  const isMarked = body.trimStart().startsWith(MARKER);
-  const markerAt = isMarked ? body.indexOf(MARKER) : -1;
-  if (markerAt >= 0) {
-    const followsAt = body.indexOf(REPORT_FOLLOWS, markerAt);
-    body = followsAt >= 0 ? body.slice(followsAt + REPORT_FOLLOWS.length) : body.slice(markerAt + MARKER.length);
-    // The harness indents every report line by two spaces; undo that.
-    // Only when EVERY non-blank line carries it, so a differently indented report is left intact.
-    body = body.replace(/^\n/, "");
-    const lines = body.split("\n").filter((l) => l.trim());
-    if (lines.length > 0 && lines.every((l) => l.startsWith("  "))) body = body.replace(/^ {2}/gm, "");
-  }
-  // The harness's closing paragraph trails the header-only shape; inside an envelope it is outside the body already.
-  if (!envelope) body = body.replace(TRAILER, "");
-  return { sender: envelope?.[1] ?? "", origin: isMarked ? "subagent" : "session", text: body.trim() };
+  // The closing paragraph trails the header-only shape; inside an envelope it is outside the body already.
+  if (!envelope) body = stripTrailer(body);
+  const report = unwrapReport(body);
+  return { sender: envelope?.[1] ?? "", origin: report != null ? "subagent" : "session", text: (report ?? body).trim() };
 }
-
 
 /**
  * The second real delivery shape (measured: 36 of 165 hand-backs): a `queued_command` ATTACHMENT whose `prompt`
