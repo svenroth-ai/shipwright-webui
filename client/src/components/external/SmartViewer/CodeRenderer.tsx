@@ -18,7 +18,7 @@
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import { common } from "lowlight";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { getStored, setStored } from "../../../lib/localStorage";
 
 /** Per-browser memory of the "Wrap lines" toggle (default: wrap). */
@@ -61,12 +61,11 @@ interface Props {
 
 export function CodeRenderer({ text, extension }: Props) {
   const [wrap, setWrap] = useState<boolean>(() => getStored<boolean>(WRAP_STORAGE_KEY, true) !== false);
-  const toggleWrap = useCallback(() => {
-    setWrap((prev) => {
-      setStored(WRAP_STORAGE_KEY, !prev);
-      return !prev;
-    });
-  }, []);
+  const toggleWrap = () => {
+    const next = !wrap;
+    setWrap(next);
+    setStored(WRAP_STORAGE_KEY, next);
+  };
   const lang = EXT_TO_LANG[extension.toLowerCase()] ?? "plaintext";
   // react-markdown is the simplest reliable path to rehype-highlight in a
   // React tree. We wrap the file content in a fenced code block so the

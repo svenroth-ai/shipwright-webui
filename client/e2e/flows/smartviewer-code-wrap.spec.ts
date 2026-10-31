@@ -43,6 +43,10 @@ test.describe("SmartViewer code wrap (V7)", () => {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
     await expect.poll(() => pane.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true);
 
+    // Toggle stays reachable after scrolling the raw code sideways.
+    await pane.evaluate((el) => { el.scrollLeft = el.scrollWidth; });
+    await expect(toggle).toBeInViewport();
+
     // Remembered across reload.
     await page.reload();
     await expect(page.getByRole("button", { name: "Wrap lines" })).toHaveAttribute("aria-pressed", "false");

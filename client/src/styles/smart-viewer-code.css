@@ -1,7 +1,8 @@
 /* V7: Smart Viewer code — wrap lines by default, toggle, 13px/1.6.
- * Specificity note: these files @import BEFORE index.css's own rules, so the
- * selectors carry the [data-wrap] attribute to out-rank `.markdown-body pre code`
- * (font-size:100%) and `.smart-viewer-code pre` (width:max-content). */
+ * Specificity note: this file @imports BEFORE index.css's own rules, so the
+ * selectors carry the [data-wrap] attribute to out-rank `.smart-viewer-code pre`
+ * (width:max-content) and highlight.js github-dark `pre code.hljs`
+ * (overflow-x:auto). The dark code background comes from that theme. */
 .smart-viewer-code[data-wrap] pre code {
   font-size: 13px;
   line-height: 1.6;
@@ -28,7 +29,14 @@
 .sv-code-bar {
   position: sticky;
   top: 0;
+  left: 0; /* stays reachable when raw (unwrapped) code is scrolled sideways */
   z-index: 1;
+  /* Self-sufficient light tokens: .on-photo hosts flip --ink/--line/--accent to white. */
+  --ink: #1c1917;
+  --line: #e7e5e4;
+  --accent: #0e7a6b;
+  --accent-tint: #e6f3f0;
+  --accent-line: #9fd3ca;
   display: flex;
   justify-content: flex-end;
   padding: 6px 10px;
