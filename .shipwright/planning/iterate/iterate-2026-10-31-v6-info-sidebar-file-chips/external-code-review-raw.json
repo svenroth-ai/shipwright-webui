@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:95\n- Finding: Unlabelled fenced code blocks can become file chips. The code renderer identifies fences only by a `language-*` class, so a fence containing just `src/a.ts` reaches `InlineCode`; trimming then recognizes it as a file. This violates the requirement that fenced code stay untouched.\n- Suggestion: Distinguish inline code from block code using the surrounding AST or a dedicated `pre` renderer. Add a test for a fenced path without a language label.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/viewerTarget.ts:72\n- Finding: Traversal rejection applies only to relative paths. Absolute references such as `/tmp/../secret.md` and `C:\\dev\\app\\..\\secret.md` become clickable chips, despite the explicit requirement to leave traversal untouched. Depending on root matching, these can also be misclassified as project files and fail when opened.\n- Suggestion: Reject `.` and `..` path segments for both absolute and relative references before resolving the target. Test both Windows and POSIX absolute traversal.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:105\n- Finding: Absolute Windows and `file://` markdown links do not reliably reach this parser. ReactMarkdown\u2019s default URL transformation strips unsupported schemes such as `C:` and `file:`, so `props.href` is already empty for links such as `[notes](C:/notes/spec.md)`. The pure parser tests bypass that transformation and therefore miss the broken consumer chain.\n- Suggestion: Provide a narrowly scoped URL transformation that preserves supported file references for chip recognition while retaining safe handling of other schemes. Test these links through `MarkdownText`, including outside-provider behavior.\n\nShip-with-fixes: the main sidebar and viewer wiring is implemented, but file recognition still violates explicit acceptance criteria and misses supported absolute markdown links. Execution was unavailable in this review environment, so these findings are based on the supplied diff.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "Findings:\n\n- Category: security / spec\n  Severity: medium\n  File: client/src/lib/viewerTarget.ts:60-66 (`parseFileRef`, `file://` branch)\n  Finding: The `file://` handler rewrites `file://server/share/a.txt` (a UNC host form) to `/server/share/a.txt`, which `isAbsolutePath` accepts \u2014 so a UNC file URL becomes a clickable chip, contradicting the spec's \"UNC stays untouched\" hygiene requirement. Same for `file://docs/a.md` becoming the absolute path `/docs/a.md`.\n  Suggestion: Reject `file://` URLs whose authority is non-empty (anything other than `file:///`), and only accept `file:///` with a drive letter or POSIX absolute path.\n\n- Category: bug\n  Severity: low\n  File: client/src/components/external/MarkdownText.tsx (`MarkdownLink`, `title={props.href}`)\n  Finding: For markdown-link chips the tooltip is the raw, still-percent-encoded href (e.g. `docs/spec%20v2.md`) rather than the decoded path the chip will open \u2014 inconsistent with the backtick chip behavior (`title` = resolved path) and mildly misleading.\n  Suggestion: Use `target.path` (already decoded by `parseFileRef`) as the default tooltip in `MarkdownLink` too.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/mission/MissionInfoPanel.tsx (`rootReady = unassigned || !projectQ.isPending`)\n  Finding: If the project query *errors*, `isPending` is false with `projectRoot` null, so every inside-project output is classified as `outside: true` and opened through the session-file route with the absolute path. It still works (the session route allows inside files), but rows are tagged \"outside project\" wrongly and the tooltip/label semantics degrade.\n  Suggestion: Treat a failed project query as not-ready (`rootReady = unassigned || projectQ.isSuccess`), keeping rows disabled rather than mislabeled.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/V6-info-sidebar-file-chips.spec.ts (image test at bottom of the \"chip re-opens\u2026\" test)\n  Finding: The \"outside image through the session route\" check fetches the URL directly with `page.request` instead of driving the UI (the image is never listed in outputs or referenced by a chip), so a regression where `ImageRenderer` ignores `sessionTaskId` and hits the project route would still pass this test. The unit test for `MediaRenderer`/`ImageRenderer` forwarding is also not present in the diff.\n  Suggestion: Seed the image as an output (or chip) and assert the rendered `<img>` loads via the session URL, and/or add a unit test that `ImageRenderer`/`VideoRenderer` receive and use `sessionTaskId`.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/lib/viewerTarget.ts (`LINE_SUFFIX`)\n  Finding: A bare filename like `notes.md` followed by a timestamp `notes.md:1030` is parsed as `notes.md` + line 1030 and becomes a chip; conversely a legit path whose name ends in something like `#L1` style is rare, but the timestamp case is common in agent logs and silently opens the wrong \"line\" \u2014 cosmetic only since `line` is informational. Not blocking, just noting the heuristic can misfire on `name.md:NNNN` timestamps.\n  Suggestion: Optionally cap accepted line numbers (e.g. \u2264 100000) or only honor `:line` when the text came from a backtick/link context that suggests a code reference.\n\nEverything else checks out against the ACs: tabs drop `ft-seg`, three cards with the 12px/600/uppercase `--body` eyebrow and Refresh in the first heading, \"Show all N\", 40px full-width output rows with disabled-while-loading, inside\u2192project route / outside\u2192session route with tag+tooltip, chips gated on `FileOpenContext` (plain markdown untouched, verified by the \"outside any provider\" test), unassigned tasks get Info+Viewer with session-file outputs, pop-out keeps `sessionTaskId`, and the 403-on-unevidenced-path guarantee is covered by a real-server e2e test. No server code was touched, and the path still flows through `encodeURIComponent` before hitting the route.\n\nOverall: solid, spec-complete implementation with real-browser coverage of the full consumer chain; the file:// UNC bypass and the rootReady-on-error mislabeling are worth fixing first.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v6-info-sidebar-file-chips",
+    "at": "2026-10-31T21:47:05.298787+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

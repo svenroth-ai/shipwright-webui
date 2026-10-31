@@ -6,7 +6,7 @@
  * card is the "Info" tab panel (no splitter / collapse).
  */
 
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
@@ -18,6 +18,7 @@ import {
   type MissionSidebarSegment,
 } from "../../../hooks/useMissionSidebar";
 import { UNASSIGNED_PROJECT_ID } from "../../../lib/projectIds";
+import type { ViewerTarget } from "../../../lib/viewerTarget";
 import { useProject } from "../../../hooks/useProjects";
 import { FolderTree } from "../FolderTree";
 import { SmartViewer } from "../SmartViewer";
@@ -29,6 +30,9 @@ interface Props {
   compact: boolean;
   /** Compact: false while the Info tab is not the selected one. */
   visible?: boolean;
+  /** Open a file in the Viewer from outside (chat chips): the nonce makes a repeat of the
+   *  same target re-open the Viewer after the user switched away. */
+  request?: { target: ViewerTarget; nonce: number } | null;
 }
 
 const OPTIONS = [
@@ -37,21 +41,33 @@ const OPTIONS = [
   { value: "viewer" as const, label: "Viewer", testId: "mission-side-seg-viewer" },
 ];
 
-export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
+export function MissionInfoSidebar({ task, compact, visible = true, request = null }: Props) {
   const layout = useMissionSidebar();
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
   const project = useProject(unassigned ? "" : task.projectId).data;
   const projectRoot = project?.path ?? null;
-  const [path, setPath] = useState<string | null>(null);
+  const [target, setTarget] = useState<ViewerTarget | null>(null);
+  const [focusKey, setFocusKey] = useState(0);
   const drag = useRef<{ x: number; w: number } | null>(null);
   // In-progress drag width: committed (and persisted) once, on release.
   const dragW = useRef<number | null>(null);
   const [liveW, setLiveW] = useState<number | null>(null);
 
-  const open = (p: string) => {
-    setPath(p);
+  const openTarget = (t: ViewerTarget) => {
+    setTarget(t);
     layout.setSegment("viewer");
   };
+  const open = (p: string) => openTarget({ path: p, outside: false });
+
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+  useEffect(() => {
+    if (!request) return;
+    setTarget(request.target);
+    setFocusKey(request.nonce);
+    layoutRef.current.setSegment("viewer");
+    layoutRef.current.setCollapsed(false);
+  }, [request]);
 
   if (!compact && layout.collapsed) {
     return (
@@ -92,9 +108,9 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
     e.preventDefault();
   };
 
-  // An unassigned task has no project root: Folders/Viewer have nothing to browse.
-  const options = unassigned ? OPTIONS.slice(0, 1) : OPTIONS;
-  const seg: MissionSidebarSegment = unassigned ? "info" : layout.segment;
+  // An unassigned task has no project root to browse (no Folders), but session files still open.
+  const options = unassigned ? OPTIONS.filter((o) => o.value !== "folders") : OPTIONS;
+  const seg: MissionSidebarSegment = unassigned && layout.segment === "folders" ? "info" : layout.segment;
 
   return (
     <>
@@ -127,9 +143,8 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
           <MissionSegmented
             options={options}
             value={seg}
-            onChange={(v) => { if (!unassigned) layout.setSegment(v); }}
+            onChange={layout.setSegment}
             ariaLabel="Info sidebar sections"
-            variant="ft-seg"
           />
           {!compact && (
             <button
@@ -144,11 +159,11 @@ export function MissionInfoSidebar({ task, compact, visible = true }: Props) {
           )}
         </div>
         <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
-          {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={open} active={visible} />}
+          {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} />}
           {seg === "folders" && visible && (
-            <FolderTree flat projectId={task.projectId} selectedPath={path} onSelect={open} projectRoot={projectRoot} label={project?.name ?? null} />
+            <FolderTree flat projectId={task.projectId} selectedPath={target?.outside ? null : (target?.path ?? null)} onSelect={open} projectRoot={projectRoot} label={project?.name ?? null} />
           )}
-          {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={path} />}
+          {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} line={target?.line} focusKey={focusKey} />}
         </div>
       </aside>
     </>

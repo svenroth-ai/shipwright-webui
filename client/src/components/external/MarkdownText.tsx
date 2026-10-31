@@ -12,12 +12,15 @@
  * gets re-rendered. Only assistant text goes through markdown.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
-import ReactMarkdown from "react-markdown";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
+import { FileChip } from "./FileChip";
+import { useFileOpen, useFileTarget } from "./FileOpenContext";
+import { parseFileRef } from "../../lib/viewerTarget";
 
 const MAX_CODE_LINES = 200;
 const MAX_LINE_LENGTH = 2000;
@@ -57,14 +60,7 @@ const REACT_MARKDOWN_COMPONENTS = {
     // collapse marker.
     const isFenced = typeof className === "string" && /\blanguage-/.test(className);
     if (!isFenced) {
-      return (
-        <code
-          className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]"
-          {...rest}
-        >
-          {children}
-        </code>
-      );
+      return <InlineCode {...rest}>{children}</InlineCode>;
     }
     const text = childrenToString(children);
     // 2026-04-23 — iterate-20260423-mermaid-in-markdown (FR-03.02).
@@ -88,17 +84,54 @@ const REACT_MARKDOWN_COMPONENTS = {
   p(props: { children?: ReactNode }) {
     return <p className="my-1.5 break-words">{props.children}</p>;
   },
-  a(props: { children?: ReactNode; href?: string }) {
-    return (
+  a(props: { children?: ReactNode; href?: string; node?: unknown }) {
+    const { node: _node, ...rest } = props;
+    return <MarkdownLink {...rest} />;
+  },
+};
+
+// react-markdown blanks hrefs with unknown schemes (`C:/x.md`, `file:///x.md`); keep the ones
+// that are file references so MarkdownLink can chip them (everything else: default policy).
+function keepFileRefUrl(url: string, key: string): string {
+  // hrefs only: an image `src` of file:///... stays blanked (the browser must never be pointed at the disk)
+  return key === "href" && /^(file:\/\/\/|[A-Za-z]:[\\/])/i.test(url) && parseFileRef(url, { decode: true }) ? url : defaultUrlTransform(url);
+}
+
+// Inside a FileOpenContext (Mission tab) an inline-code path or a link to a file
+// becomes a clickable `.mc-file` chip; elsewhere both render exactly as before.
+// A chip is a <button>: never nest it inside a real link (invalid + a11y).
+const InsideLinkContext = createContext(false);
+
+function InlineCode({ children, ...rest }: { children?: ReactNode }) {
+  const text = childrenToString(children);
+  const insideLink = useContext(InsideLinkContext);
+  // An unlabelled fenced block also lands here; unlike inline code it ends in a newline.
+  const target = useFileTarget(text.includes("\n") || insideLink ? "" : text);
+  if (target) return <FileChip target={target} />;
+  return (
+    <code className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]" {...rest}>
+      {children}
+    </code>
+  );
+}
+
+function MarkdownLink(props: { children?: ReactNode; href?: string }) {
+  const target = useFileTarget(props.href ?? "", true);
+  if (target) {
+    const label = childrenToString(props.children);
+    return <FileChip target={target} label={label || undefined} />;
+  }
+  return (
+    <InsideLinkContext.Provider value={true}>
       <a
         {...props}
         target="_blank"
         rel="noopener noreferrer"
         className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
       />
-    );
-  },
-};
+    </InsideLinkContext.Provider>
+  );
+}
 
 // Opt-in (chat feed only): GFM tables sit in a scroll wrapper the chat can
 // frame/skin (`.mc-table-wrap`, mission-chat.css). Other consumers keep the
@@ -122,10 +155,13 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   // returns the original reference — useMemo makes the behaviour explicit
   // and guarantees stability for the long-line branch too.
   const capped = useMemo(() => capLineLengths(text), [text]);
+  const ctx = useFileOpen();
+  const chips = ctx !== null && ctx.ready !== false; // keep file-looking hrefs only where they can become chips
 
   return (
     <div className="markdown-body text-sm leading-relaxed" data-testid="markdown-body">
       <ReactMarkdown
+        urlTransform={chips ? keepFileRefUrl : undefined}
         remarkPlugins={REMARK_PLUGINS}
         // rehype-plugins' type in react-markdown v10 is mildly loose;
         // the tuple form is accepted at runtime. Cast to satisfy the

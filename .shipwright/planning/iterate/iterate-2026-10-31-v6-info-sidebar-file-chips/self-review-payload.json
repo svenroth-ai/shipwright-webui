@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"All eight derived acceptance criteria are implemented and covered by unit tests, a CSS class fence and a real-browser smoke; deviations (no :line scroll, BubbleTranscript untouched) are listed in the mini plan."},
+{"name":"Error Handling","verdict":"pass","note":"Unresolvable/unevidenced files surface the viewer's existing error state; parseFileRef rejects malformed or decode-failing input with null; clipboard failures are swallowed."},
+{"name":"Security Basics","verdict":"pass","note":"No new server surface: access stays with the V4 session-file route and core/path-guard.ts (403 for unevidenced paths verified in E2E); chips are text-only, markdown stays free of raw HTML; traversal and UNC refs never become chips."},
+{"name":"Test Quality","verdict":"pass","note":"viewerTarget, FileChip/MarkdownText/SmartViewer-outside, MissionInfoSidebar and mission-sidebar.css fence plus 5 Playwright tests incl. a real outside file, outside image and the 403 case; full client vitest (513 files) green."},
+{"name":"Performance Basics","verdict":"pass","note":"Chip resolution is a pure per-render string parse; the context value is memoized; no extra polling or requests besides on-click viewer fetches."},
+{"name":"Naming & Structure","verdict":"pass","note":"New modules are small and single-purpose (viewerTarget, sessionFileApi, FileChip, FileOpenContext, MissionInfoOutputs, OutsideProjectHeader, TooLargeNotice, useMissionFileOpen); SmartViewer.tsx and MissionBody.tsx kept at/below their bloat ceiling."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Producer = session-file route (bytes + MIME + 403/404), consumer = fetchSessionFileText/img src; round trip exercised end to end in the isolated-stack Playwright spec with a real file outside the project root."}
+]}

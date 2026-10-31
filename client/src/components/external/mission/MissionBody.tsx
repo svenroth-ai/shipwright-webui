@@ -23,6 +23,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { FileOpenContext } from "../FileOpenContext";
+import { useMissionFileOpen } from "../../../hooks/useMissionFileOpen";
+
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { CommitArtifact } from "../../../lib/missionContextApi";
 import { useMissionLive } from "../../../hooks/useMissionLive";
@@ -73,7 +76,6 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   const activityTabRef = useRef<HTMLButtonElement | null>(null);
   const detailTabRef = useRef<HTMLButtonElement | null>(null);
   const focusFrameRef = useRef<number | null>(null);
-
   useEffect(() => () => {
     if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
   }, []);
@@ -111,6 +113,9 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     context,
   });
   const agents = useMissionAgents(task.taskId, task.state, model.feed.cards);
+  // V6: a chat file chip opens the Viewer in the info sidebar (not behind the Agents window).
+  const showViewer = useCallback(() => { setCompactPanel("info"); agents.setOpen(false); }, [agents.setOpen]);
+  const { fileOpen, request: viewerRequest } = useMissionFileOpen(task, showViewer);
   // A work-completed run can truthfully be terminal before its commit/PR has
   // been recorded. The final feed card still opens that delivery detail (which
   // explains the missing receipt) even though hide-empty omits it from the rail.
@@ -203,6 +208,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     // (`.scene-fore`) — so the PAGE scrolls instead of each card scrolling
     // internally (iterate-2026-07-23-mission-viewer-scroll-popout; broken
     // since the three-card shell #271).
+    <FileOpenContext.Provider value={fileOpen}>
     <div className="flex min-h-0 flex-1 flex-col" data-testid="task-detail-mission">
       {compact && (
         <MissionCompactTabs
@@ -285,9 +291,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           hidden={compact && compactPanel !== "info"}
           data-testid="mission-panel-info"
         >
-          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} />
+          <MissionInfoSidebar key={task.taskId} task={task} compact={compact} visible={!compact || compactPanel === "info"} request={viewerRequest} />
         </div>
       </div>
     </div>
+    </FileOpenContext.Provider>
   );
 }

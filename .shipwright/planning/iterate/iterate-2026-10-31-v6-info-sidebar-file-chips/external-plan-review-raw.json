@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Findings\n\n**1. Category: security \u2014 Severity: medium**\nChip recognition for chat messages is heuristic (inline-code paths, markdown links, absolute or relative). The spec says URLs/traversal/UNC stay untouched, but the plan doesn't state *how* the classifier rejects them \u2014 a relative path like `../../secrets.txt` must not become a session-route chip that fetches via the unevidenced-path route. Note: the V4 route returns 403 for unevidenced paths, so the guard holds server-side \u2014 this is a UX/polish risk (broken chip), not a data-exposure risk. Still, the test list should include a traversal chip case explicitly, not just the 403 E2E.\n\n**2. Category: edge-case \u2014 Severity: medium**\nChat messages are rendered before the project root is known or when it changes mid-session. The plan handles \"project loading \u2192 Outputs rows disabled\" but not chips: what does `resolveViewerTarget` do with a relative path while projectRoot is undefined? Decide now: render as plain code (no chip) until root is known, and note that already-rendered messages won't retroactively chipify. If the plan expects retroactive re-resolution, that requires a re-render trigger \u2014 a message-level `useMemo` keyed on projectRoot is the cheap fix; say so.\n\n**3. Category: risk \u2014 Severity: medium**\nRefactoring `MarkdownText` InlineCode/MarkdownLink to consult a `FileOpenContext` touches *all* markdown rendering under the Mission provider. The fence is \"outside the Mission provider renders as before\" \u2014 verify the context is genuinely absent there (default null \u2192 original behavior) and add the promised unit test for the BubbleTranscript path. A subtle regression here changes every chat bubble, not just the new chips.\n\n**4. Category: edge-case \u2014 Severity: low**\n`:line`/`#L` is parsed but the viewer doesn't scroll \u2014 acceptable deviation, but ensure the line info isn't *dropped* on the way to the viewer (keep it in the chip state so a later iterate can use it) rather than parsing and discarding.\n\n**5. Category: risk \u2014 Severity: low**\nThe `request`-nonce mechanism (MissionBody \u2192 sidebar switches segment and uncollapses) is a hand-rolled event bus. With two consumers (Outputs rows, chips) and re-entrancy (click chip while Viewer already open), make sure a repeated click on the same file re-opens/refreshes rather than being swallowed by an unchanged nonce. Include the `Date.now()`/counter in the payload, and cover \"click same file twice\" in the E2E.\n\n**6. Category: dependency \u2014 Severity: low**\n`sessionFileApi` + SmartViewer pass-through touches Image/Video/Modal/pop-out. The pop-out (\"keeps the source\") means the pop-out window needs access to the session route \u2014 confirm the pop-out is same-origin and carries the task/session ID; if the pop-out is a fresh route, the session context must be reconstructible there. Not addressed in the plan.\n\n**7. Category: edge-case \u2014 Severity: low**\nNon-existent project file \u2192 viewer error state is an accepted deviation, but the *outside* case has an asymmetric failure: an evidenced path that has since been deleted returns 404/403 from the session route. Ensure the viewer's error state distinguishes \"file gone\" from \"not permitted\" so users aren't told a security error occurred for a stale file.\n\n## Overall assessment\n\nSound, well-scoped plan with a sensible pure-function core (`viewerTarget.ts`) and correct deference to the existing server-side authority. The main revisions needed are clarifying chip resolution timing relative to projectRoot availability and hardening the MarkdownText refactor fence with explicit tests.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: approach \u00b7 Severity: medium**  \n   **Finding:** The opening flow only describes switching the sidebar to Viewer and uncollapsing it. It does not cover the required compact layout behavior or unassigned tasks, where Folders must be absent and Outputs must use session files. A missing project root must also distinguish \u201cstill loading\u201d from \u201cunassigned.\u201d\n   **Suggestion:** Explicitly handle those states in `useMissionFileOpen` and the sidebar. Add browser coverage for opening a chip from a collapsed sidebar, another segment, compact layout, and an unassigned task.\n\n2. **Category: risk \u00b7 Severity: medium**  \n   **Finding:** Adding `sessionTaskId` to `SmartViewer` does not clearly establish how the file\u2019s source survives every consumer. Text fetching may work while image/video URLs, HTML previews, or pop-outs still use project routes. Outside files must also bypass existing cross-file navigation, editing, and stylesheet inlining.\n   **Suggestion:** Carry an explicit project/session target through the viewer and its media, preview, and pop-out paths. Use that target to select URLs and available capabilities. Extend the browser smoke beyond text to verify media, HTML, and pop-out source preservation.\n\n3. **Category: edge-case \u00b7 Severity: medium**  \n   **Finding:** The parsing and resolution contract is underspecified for relative references and Windows paths. Drive-letter colons must survive optional line parsing, and relative paths need a defined base when the project is loading or the task is unassigned. Overbroad matching could also turn ordinary code identifiers into chips.\n   **Suggestion:** Define these rules before implementing `parseFileRef`: use the project root for relative references when available, leave unresolved references unchanged, and parse line suffixes independently of drive prefixes. Include focused cases for Windows paths, `:line`/`#L`, URLs, `console.log`, traversal, UNC, and fenced code.\n\nThe approach is broadly sound and keeps server authorization in the right place. Clarify the target propagation and sidebar/resolution states above before implementation; these are required behaviors rather than optional refinements.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v6-info-sidebar-file-chips",
+    "at": "2026-10-31T21:44:03.299100+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

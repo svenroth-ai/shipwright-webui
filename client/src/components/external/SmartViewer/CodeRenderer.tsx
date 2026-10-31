@@ -15,10 +15,12 @@
  * never hand rehype a language it can't resolve.
  */
 
+import { useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import { common } from "lowlight";
 import { WrapToggleBar, useWrapLines } from "./WrapToggle";
+import { LineMarkBand, locateCodeLine, useLineFocus } from "./useLineFocus";
 
 
 const EXT_TO_LANG: Record<string, string> = {
@@ -54,10 +56,15 @@ const EXT_TO_LANG: Record<string, string> = {
 interface Props {
   text: string;
   extension: string;
+  /** 1-based line to scroll to and mark (a `File.ts:98` chip); focusKey re-fires it. */
+  line?: number;
+  focusKey?: number;
 }
 
-export function CodeRenderer({ text, extension }: Props) {
+export function CodeRenderer({ text, extension, line, focusKey }: Props) {
   const { wrap, toggleWrap } = useWrapLines();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const mark = useLineFocus(hostRef, locateCodeLine, line, focusKey, text, wrap);
   const lang = EXT_TO_LANG[extension.toLowerCase()] ?? "plaintext";
   // react-markdown is the simplest reliable path to rehype-highlight in a
   // React tree. We wrap the file content in a fenced code block so the
@@ -66,7 +73,8 @@ export function CodeRenderer({ text, extension }: Props) {
   const fenced = "```" + lang + "\n" + text + "\n```\n";
   return (
     <div
-      className="smart-viewer-code h-full overflow-auto"
+      ref={hostRef}
+      className="smart-viewer-code relative h-full overflow-auto"
       style={{ background: "var(--color-surface, #ffffff)" }}
       data-testid="smart-viewer-code"
       data-extension={extension}
@@ -84,6 +92,7 @@ export function CodeRenderer({ text, extension }: Props) {
       >
         {fenced}
       </ReactMarkdown>
+      <LineMarkBand mark={mark} line={line} />
     </div>
   );
 }

@@ -112,3 +112,15 @@
   min-width: 100%;
   white-space: pre;
 }
+
+/* V6: the line a `File.ts:98` chip opened the viewer at. Token tint + accent bar, drawn over the
+ * line (pointer-events: none); self-sufficient tokens like .sv-code-bar (.on-photo flips --accent). */
+.sv-line-mark {
+  --accent: #0e7a6b;
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}

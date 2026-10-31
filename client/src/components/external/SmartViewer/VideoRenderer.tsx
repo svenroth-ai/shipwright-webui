@@ -12,15 +12,18 @@ import { useState } from "react";
 import { Film } from "lucide-react";
 
 import { mediaUrl } from "../../../lib/mediaApi";
+import { sessionFileUrl } from "../../../lib/sessionFileApi";
 
 interface Props {
   projectId: string;
   path: string;
+  /** Outside-project file: served by the task-scoped session-file route. */
+  sessionTaskId?: string;
 }
 
-export function VideoRenderer({ projectId, path }: Props) {
+export function VideoRenderer({ projectId, path, sessionTaskId }: Props) {
   const [broken, setBroken] = useState(false);
-  const src = mediaUrl(projectId, path);
+  const src = sessionTaskId ? sessionFileUrl(sessionTaskId, path) : mediaUrl(projectId, path);
   if (broken) {
     return (
       <div
