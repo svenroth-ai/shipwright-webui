@@ -1,0 +1,503 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-31-v5-flat-file-tree",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:36:10.829871+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The 1px virtual trigger + Radix DropdownMenu for the pointer context menu is fiddly. Radix ContextMenu (which the spec explicitly says \"use existing ContextMenu patterns\") handles anchoring at the cursor natively — the virtual-trigger hack reinvents what ContextMenu already does.",
+          "suggestion": "Use Radix `ContextMenu.Root/Trigger` on the row for pointer, and only the Dialog bottom sheet for touch. Drop the virtual trigger entirely. This is simpler and matches existing app patterns.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The 500ms custom long-press handler duplicates touch behavior Radix ContextMenu already provides (it supports long-press on touch to open).",
+          "suggestion": "If you switch to Radix ContextMenu, test its built-in long-press first; keep the \"...\" button as the explicit touch affordance regardless (good accessibility).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "\"Copy Relative Path relative to project folder\" is undefined for entries outside the project root (e.g., entries shown via search results, or a tree rendered without `projectRoot`). Falling back to the absolute path silently, or computing `../../..` style paths, both leak wrong data to the clipboard.",
+          "suggestion": "Define behavior explicitly: if the entry isn't under `projectRoot`, disable/hide \"Copy Relative Path\" (or copy the absolute path and note it in the toast). Add a test for this case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Clipboard `navigator.clipboard.writeText` can fail (non-secure context, document not focused, permissions) — the textarea fallback is mentioned but should also cover the toast (success vs. failure message) and not throw unhandled.",
+          "suggestion": "Ensure the helper returns success/failure and the toast reflects it (\"Path copied\" vs. \"Copy failed\").",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The \"flat\" prop plus font/row-height changes affect the existing FolderTree consumers (MissionInfoSidebar today) — the plan changes shared styling to 15px/28px unconditionally in folderTree.css while also keeping the component \"reusable with props\". A global CSS import changing row height will restyle every existing tree instance, which may be intended per mockup but is a visual regression risk for any consumer that isn't the Mission Folders segment.",
+          "suggestion": "Verify all current FolderTree usages are supposed to get the new 15px/28px treatment; if only some, scope the style via the `flat` prop or a variant class rather than rewriting the base styles.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Acceptance criteria are \"TBD\" — nothing in the plan pins down the footer \"Show ignored entries\" persistence (per project), which requires a settings/storage mechanism that isn't mentioned in the mini-plan at all.",
+          "suggestion": "Identify where per-project persisted settings live in the app (useProject? localStorage keyed by project?) and include it; otherwise this spec item silently ships unimplemented.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Right-click on a row that is also selectable/expandable: interaction between context menu open, focus return, and keyboard navigation state (focus index) isn't specified beyond \"focus returns to the row.\"",
+          "suggestion": "Make sure the context-menu'd row becomes the focused/active row on open so subsequent arrow keys continue from there — trivial but commonly missed.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No meaningful security surface: clipboard write of paths the user already sees. Only note — absolute paths copied to clipboard could contain usernames (e.g., `C:\\Users\\me\\...`) which users paste into shared chats; that's a user decision, not a vulnerability.",
+          "suggestion": "No action needed; relative-path option already mitigates.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan omits saving “Show ignored entries” per project, an explicit requirement.",
+          "suggestion": "Use the existing project preference mechanism, define the default, and verify that toggling persists across reloads without affecting other projects.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "A DropdownMenu positioned through a fixed 1px trigger adds custom positioning and focus behavior where the specification calls for a context menu. The absence of `react-context-menu` does not establish whether Radix ContextMenu is available.",
+          "suggestion": "Check the existing Radix ContextMenu pattern first and reuse it. If DropdownMenu is necessary, explicitly cover viewport collision, scrolling, keyboard placement, and focus restoration to the originating row.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The 500ms long press lacks cancellation and event-handling details. Scrolling could open the sheet, and releasing a long press could also trigger file opening or folder expansion. The row’s separate selection and overflow controls also need clear keyboard semantics.",
+          "suggestion": "Cancel on movement, pointer cancellation, and unmount; suppress the subsequent click after a recognized long press. Keep the overflow button outside the row button and verify that its activation does not trigger the row action.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The path and clipboard helper has no stated contract for relative versus absolute tree paths, Windows separators, missing `projectRoot`, or clipboard failure. This could produce incorrect copied paths or announce success when copying failed.",
+          "suggestion": "Establish the tree’s existing path representation before implementing conversion. Test Windows drive and UNC roots, trailing separators, and nested paths; normalize relative output to forward slashes. Show “Path copied” only after confirmed success and provide failure feedback.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "The proposed tests focus on the extracted menu, while the change also affects shared tree interactions and styling. Files & Terminal receives a font change despite being deferred, and its exposure to the other global tree styles is unclear.",
+          "suggestion": "Scope the intended visual changes explicitly and add focused integration coverage for direct file opening, folder expansion, keyboard navigation, touch menu behavior, and project preference persistence. Define these as acceptance criteria before implementation.  The approach is broadly sound, and the component split is reasonable. It needs explicit preference persistence, a firmer menu implementation choice, and interaction and path-handling coverage before proceeding.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T14:35:54.646388+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category: approach — Severity: medium**\n**Finding:** The 1px virtual trigger + Radix DropdownMenu for the pointer context menu is fiddly. Radix ContextMenu (which the spec explicitly says \"use existing ContextMenu patterns\") handles anchoring at the cursor natively — the virtual-trigger hack reinvents what ContextMenu already does.\n**Suggestion:** Use Radix `ContextMenu.Root/Trigger` on the row for pointer, and only the Dialog bottom sheet for touch. Drop the virtual trigger entirely. This is simpler and matches existing app patterns.\n\n**Category: approach — Severity: low**\n**Finding:** The 500ms custom long-press handler duplicates touch behavior Radix ContextMenu already provides (it supports long-press on touch to open).\n**Suggestion:** If you switch to Radix ContextMenu, test its built-in long-press first; keep the \"...\" button as the explicit touch affordance regardless (good accessibility).\n\n**Category: edge-case — Severity: medium**\n**Finding:** \"Copy Relative Path relative to project folder\" is undefined for entries *outside* the project root (e.g., entries shown via search results, or a tree rendered without `projectRoot`). Falling back to the absolute path silently, or computing `../../..` style paths, both leak wrong data to the clipboard.\n**Suggestion:** Define behavior explicitly: if the entry isn't under `projectRoot`, disable/hide \"Copy Relative Path\" (or copy the absolute path and note it in the toast). Add a test for this case.\n\n**Category: edge-case — Severity: low**\n**Finding:** Clipboard `navigator.clipboard.writeText` can fail (non-secure context, document not focused, permissions) — the textarea fallback is mentioned but should also cover the toast (success vs. failure message) and not throw unhandled.\n**Suggestion:** Ensure the helper returns success/failure and the toast reflects it (\"Path copied\" vs. \"Copy failed\").\n\n**Category: risk — Severity: medium**\n**Finding:** The \"flat\" prop plus font/row-height changes af […truncated]\n\n[openai] 1. **Category: dependency · Severity: medium**  \n   **Finding:** The plan omits saving “Show ignored entries” per project, an explicit requirement.  \n   **Suggestion:** Use the existing project preference mechanism, define the default, and verify that toggling persists across reloads without affecting other projects.\n\n2. **Category: approach · Severity: medium**  \n   **Finding:** A DropdownMenu positioned through a fixed 1px trigger adds custom positioning and focus behavior where the specification calls for a context menu. The absence of `react-context-menu` does not establish whether Radix ContextMenu is available.  \n   **Suggestion:** Check the existing Radix ContextMenu pattern first and reuse it. If DropdownMenu is necessary, explicitly cover viewport collision, scrolling, keyboard placement, and focus restoration to the originating row.\n\n3. **Category: edge-case · Severity: medium**  \n   **Finding:** The 500ms long press lacks cancellation and event-handling details. Scrolling could open the sheet, and releasing a long press could also trigger file opening or folder expansion. The row’s separate selection and overflow controls also need clear keyboard semantics.  \n   **Suggestion:** Cancel on movement, pointer cancellation, and unmount; suppress the subsequent click after a recognized long press. Keep the overflow button outside the row button and verify that its activation does not trigger the row action.\n\n4. **Category: edge-case · Severity: medium**  \n   **Finding:** The path and clipboard helper has no stated contract for relative versus absolute tree paths, Windows separators, missing `projectRoot`, or clipboard failure. This could produce incorrect copied paths or announce success when copying failed.  \n   **Suggestion:** Establish the tree’s existing path representation before implementing conversion. Test Windows drive and UNC roots, trailing separators, and nested paths; normalize relative output to forward slashes. Show “Path copied” onl […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "FolderTree.tsx",
+          "line": null,
+          "finding": "Focus-return race after menu close steals focus from outside clicks; second right-click can dismiss new menu.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "folder-tree.css",
+          "line": null,
+          "finding": "Shared density rules also restyle Files & Terminal tree (intended by spec; visual baselines may shift).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "folder-tree.css",
+          "line": null,
+          "finding": "Hardcoded colors in new CSS.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "FolderTreeRow.tsx",
+          "line": null,
+          "finding": "Mouse click on ... opens the touch sheet.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "folder-tree.css",
+          "line": null,
+          "finding": "Focus ring clipped by scroll container.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "FolderTreeMenu.tsx",
+          "line": null,
+          "finding": "aria-labelledby on empty trigger may leave menu unnamed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "FolderTreeRow.tsx",
+          "line": null,
+          "finding": "Long-press guard when contextmenu is a MouseEvent.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "FolderTree.tsx",
+          "line": null,
+          "finding": "setTimeout inside setState updater.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "FolderTreeRow.tsx",
+          "line": null,
+          "finding": "Double dimming of ignored rows.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "folderTreePaths.ts",
+          "line": null,
+          "finding": "relativeTreePath identity helper.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T14:42:28.034722+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "6ae4ea3319ac483b1eb964c2856613d805ad551d"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: keyboard path opens exactly one menu — Windows Menu key fires native contextmenu on keyup; content lacks preventDefault",
+          "suggestion": "add onContextMenu preventDefault on content (fixed)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: rAF-deferred copy keeps the gesture on iOS/WebKit — same rAF pattern as lib/clipboard.ts consumers; unverified on real iOS",
+          "suggestion": "real-device check (not possible here; disclosed)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: unmount during copy is safe — toast timer started after unmount",
+          "suggestion": "mounted ref (fixed)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: retargeting an open menu re-anchors — Root not keyed",
+          "suggestion": "key Root by target (fixed)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: mouse ... click always opens anchored menu — pointerType undefined on click in some engines",
+          "suggestion": "accepted: degrades to sheet",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Open in Viewer routes folders vs files — relookup ignored target.kind",
+          "suggestion": "pass kind (fixed)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: toast positioned correctly in both variants — .ft-card lacks position:relative",
+          "suggestion": "add .ft-files relative (fixed)",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: keyboard-opened menu immediately navigable — no highlighted item until ArrowDown",
+          "suggestion": "accepted",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T14:47:46.379607+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "afe84c8b523a42eb880e72f92ed35fc15bc1dd8e"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/FolderTreeMenu.tsx:56–63 (DropdownMenu path)",
+          "line": null,
+          "finding": "The pointer context menu is anchored on an invisible 1px fixed `<span>` positioned at `left: target.x, top: target.y`. On the last rows of the tree this anchors the menu below the cursor with no collision handling specified (`avoidCollisions` default true helps, but `side=\"bottom\"` fixed). More concretely, on `closeMenu` the span unmounts together with `target=null` in the same render — Radix's `onOpenChange(false)` fires after `target` has already been set to null, so `FolderTreeMenu` returns `null` mid-close, which can drop Radix's exit animation and, more importantly, skip `onCloseAutoFocus`/focus restoration ordering. The `closeMenu` setTimeout partially papers over this but the component can be unmounted before Radix finishes its close lifecycle.",
+          "suggestion": "Keep `target` non-null through Radix's close (e.g. separate `open` boolean from `target` data, or delay nulling `target` a frame after `onOpenChange(false)`).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/FolderTreeRow.tsx:84–99",
+          "line": null,
+          "finding": "Long-press vs. native contextmenu race on Android: the long-press timer fires at 500 ms and opens the bottom sheet; the browser's native `contextmenu` event also fires around the same time. In `onContextMenu`, `if (longPressed.current) return;` is checked, but if the native event arrives before the timer callback (or the timer is a tick late), both the dropdown (`sheet=false`) and the sheet (`sheet=true`) open — and since they share one `menu` state, whichever state write lands last wins, which may be the wrong surface.",
+          "suggestion": "Have the native `contextmenu` handler on touch pointers always defer to the long-press path (e.g. check `e.pointerType` via a stored last pointer type, or always `preventDefault` and rely solely on the timer for touch).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": 43,
+          "finding": "useProject(unassigned ? \"\" : task.projectId)` — passing an empty-string project id to `useProject` for unassigned tasks will issue a request to something like `/api/projects/` (or `/api/projects/%20`) producing a 404/erroneous fetch every time the sidebar mounts for an unassigned task. The intent was clearly \"no root for unassigned\", but the hook still runs.",
+          "suggestion": "Check the `useProjects` hook's guard; if it fetches for any non-undefined id, pass `null`/skip via the hook's supported \"disabled\" argument, or gate `projectRoot` behind `!unassigned`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/external/folderTreePaths.ts",
+          "line": 16,
+          "finding": "absoluteTreePath` separator heuristic: a POSIX root that happens to contain a backslash (legal in Unix filenames) or a Windows path like `C:/mixed/root` (forward slashes on Windows, e.g. from `path.posix`-joined config) picks `/`, producing forward-slash \"absolute\" paths on Windows. Also `projectRoot.replace(/[\\\\/]+$/, \"\")` on the root `\"/\"` yields `\"\"`, and a UNC root `\\\\server\\share` keeps only one `\\\\`… the join then produces `\\server\\share\\rel`? No — the leading `\\\\` survives the trailing-strip, that case is fine, but `/`-styled Windows roots are not.",
+          "suggestion": "Detect Windows roots by drive-letter prefix (`/^[A-Za-z]:/`) or trailing separator rather than \"contains `\\` and not `/`\".",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/src/components/external/FolderTreeMenu.test.tsx (whole file)",
+          "line": null,
+          "finding": "Test coverage gaps that would let a broken implementation pass: (1) every mocked tree contains only a single file — the folder path (expand on click, `Copy Path` on a dir, the separator-after-\"Open in Viewer\" logic, ArrowRight/Left) is never exercised; (2) no test of Esc closing the menu, Shift+F10 opening it, or arrow-key navigation; (3) no test that `projectRoot=null` still offers Copy Relative but a sensible Copy Path; (4) the `folderTreePaths` separator test only covers clean cases. The current tests would pass even if dir rows opened the menu with wrong items or Esc didn't close it.",
+          "suggestion": "Add a directory-entry mock and tests for Esc, Shift+F10, and dir-row copy.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/styles/folder-tree.css:8–11 + FolderTree.tsx (toast render)",
+          "line": null,
+          "finding": ".ft-toast` is `position: absolute` but its containing block is only positioned if `.ft-card` (the non-flat variant) sets `position: relative`; in the `flat` variant the pane wrapper (`.ft-flat`, unstyled) may not be a positioning context, so the toast anchors to the nearest positioned ancestor (possibly the whole sidebar) — it could render far from the tree or clipped.",
+          "suggestion": "Add `position: relative` to the flat container class (or `.ft-flat`) in folder-tree.css.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/FolderTreeRow.tsx:100–146",
+          "line": null,
+          "finding": "The `...` (\"more\") button is `tabIndex={-1}` and has no keyboard entry point other than the row's ContextMenu/F10 handler — fine — but it is also `display:none` on fine-pointer devices until row hover/focus-within. Users navigating with Tab reach the row button, and focus-within reveals the `...` button mid-tab-order, causing the visible UI to shift during tabbing; also the touch-only \"always present\" rule means hybrid devices (touchscreen laptop with mouse) show 44px rows only under `(pointer: coarse)`.",
+          "suggestion": "Acceptable per spec; only note that tab-order shift on focus-within may confuse keyboard users — consider hiding the more button from tab order entirely (`tabIndex={-1}` is already set, so this is cosmetic; no change required).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/components/external/FolderTree.tsx:149 (keydown) + FolderTreeMenu.tsx",
+          "line": null,
+          "finding": "Spec says \"Keyboard: arrows + Enter, Esc closes\" — Esc for the dropdown/sheet is delegated to Radix, which works, but the row-level keydown removed the ArrowLeft \"focus parent when collapsed\" behavior that the old header comment documented and the old code implemented (\"ArrowLeft collapses (or focuses parent)\"). V5 spec doesn't explicitly require it, so this is a minor behavioral regression for keyboard users.",
+          "suggestion": "Restore the ArrowLeft-on-collapsed-dir → focus-parent behavior.  Overall assessment: Ship-with-fixes — the core V5 features (flat tree, context menu, copy paths, sheet, toast) are implemented and reasonably tested, but the long-press/contextmenu race, the unassigned-project `useProject(\"\")` fetch, the toast positioning in flat mode, and the missing folder-path test coverage should be addressed first.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/folderTreePaths.ts",
+          "line": 14,
+          "finding": "When `projectRoot` is unavailable, “Copy Path” silently copies a relative path and reports “Path copied.” This affects existing callers that omit the new optional prop and the Mission sidebar while project metadata is loading or fails to load.",
+          "suggestion": "Disable “Copy Path” until an absolute project root is available, and supply the root from every caller exposing this action.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/components/external/folderTreePaths.ts",
+          "line": 9,
+          "finding": "Replacing every backslash corrupts valid Unix filenames. A file literally named `a\\b.txt` is copied as `a/b.txt`, referring to a different filesystem location. Both copy actions use this conversion.",
+          "suggestion": "Preserve the tree’s existing forward-slash separators and literal filename characters. When constructing Windows paths, convert only the separators between tree path segments.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "client/src/styles/folder-tree.css",
+          "line": 36,
+          "finding": "The “Show ignored entries” control has no 44px minimum target on coarse pointers. Its label remains approximately 29px tall, so this interactive footer misses the explicit touch-target requirement.",
+          "suggestion": "Give the footer label a minimum height of 44px under the coarse-pointer media query.  The change largely implements the requested interactions, but needs specific fixes before shipping, particularly to ensure “Copy Path” reliably returns an absolute path. The tests cover basic successful interactions but do not catch the missing-root or literal-backslash cases.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T14:35:55.082981+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] **Findings**\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/external/FolderTreeMenu.tsx:56–63 (DropdownMenu path)\n  Finding: The pointer context menu is anchored on an invisible 1px fixed `<span>` positioned at `left: target.x, top: target.y`. On the last rows of the tree this anchors the menu *below* the cursor with no collision handling specified (`avoidCollisions` default true helps, but `side=\"bottom\"` fixed). More concretely, on `closeMenu` the span unmounts together with `target=null` in the same render — Radix's `onOpenChange(false)` fires *after* `target` has already been set to null, so `FolderTreeMenu` returns `null` mid-close, which can drop Radix's exit animation and, more importantly, skip `onCloseAutoFocus`/focus restoration ordering. The `closeMenu` setTimeout partially papers over this but the component can be unmounted before Radix finishes its close lifecycle.\n  Suggestion: Keep `target` non-null through Radix's close (e.g. separate `open` boolean from `target` data, or delay nulling `target` a frame after `onOpenChange(false)`).\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/external/FolderTreeRow.tsx:84–99\n  Finding: Long-press vs. native contextmenu race on Android: the long-press timer fires at 500 ms and opens the bottom sheet; the browser's native `contextmenu` event also fires around the same time. In `onContextMenu`, `if (longPressed.current) return;` is checked, but if the native event arrives *before* the timer callback (or the timer is a tick late), both the dropdown (`sheet=false`) and the sheet (`sheet=true`) open — and since they share one `menu` state, whichever state write lands last wins, which may be the wrong surface.\n  Suggestion: Have the native `contextmenu` handler on touch pointers always defer to the long-press path (e.g. check `e.pointerType` via a stored last pointer type, or always `preventDefault` and rely solely on the timer for touch).\n\n- Category: bug\n  Severity: med […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/components/external/folderTreePaths.ts:14\n- Finding: When `projectRoot` is unavailable, “Copy Path” silently copies a relative path and reports “Path copied.” This affects existing callers that omit the new optional prop and the Mission sidebar while project metadata is loading or fails to load.\n- Suggestion: Disable “Copy Path” until an absolute project root is available, and supply the root from every caller exposing this action.\n\n- Category: edge-case\n- Severity: medium\n- File: client/src/components/external/folderTreePaths.ts:9\n- Finding: Replacing every backslash corrupts valid Unix filenames. A file literally named `a\\b.txt` is copied as `a/b.txt`, referring to a different filesystem location. Both copy actions use this conversion.\n- Suggestion: Preserve the tree’s existing forward-slash separators and literal filename characters. When constructing Windows paths, convert only the separators between tree path segments.\n\n- Category: spec\n- Severity: low\n- File: client/src/styles/folder-tree.css:36\n- Finding: The “Show ignored entries” control has no 44px minimum target on coarse pointers. Its label remains approximately 29px tall, so this interactive footer misses the explicit touch-target requirement.\n- Suggestion: Give the footer label a minimum height of 44px under the coarse-pointer media query.\n\nThe change largely implements the requested interactions, but needs specific fixes before shipping, particularly to ensure “Copy Path” reliably returns an absolute path. The tests cover basic successful interactions but do not catch the missing-root or literal-backslash cases.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:35:47.401372+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "6ae4ea3319ac483b1eb964c2856613d805ad551d"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:35:55.542734+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:35:55.958594+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

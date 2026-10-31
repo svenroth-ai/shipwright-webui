@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-31-v5-flat-file-tree",
+  "date": "2026-10-31",
+  "section": "Iterate - feature: flat file tree + row context menu (V5)",
+  "title": "Shared FileTree: flat variant and row context menu on existing Radix primitives",
+  "context": "Mission Folders needed a flat tree and a row menu (Open in Viewer, Copy Path, Copy Relative Path); @radix-ui/react-context-menu is not installed.",
+  "decision": "FolderTree gains flat/projectRoot/label props; pointer menu = Radix DropdownMenu anchored by a body-portalled virtual 1px trigger, touch = Dialog bottom sheet (48px items); clipboard via lib/clipboard deferred a frame after close.",
+  "consequences": "No new dependency or server route. Files & Terminal inherits menu + 15px font; its Copy Path is disabled until it passes projectRoot. FolderTree.tsx shrank 394 to 285 lines.",
+  "rationale": "Reuses installed primitives. Portalling the anchor is required because glass cards use backdrop-filter, which re-bases position:fixed (found by real-browser E2E).",
+  "rejected": "Adding react-context-menu (new dependency); copying relative path when no project root is known (mislabelled copy); hiding Open in Viewer for folders (spec lists it for every row; folder expands).",
+  "commit": "",
+  "architecture_impact": "none",
+  "spec_ref": ""
+}
