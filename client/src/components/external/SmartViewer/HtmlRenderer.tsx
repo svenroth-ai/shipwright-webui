@@ -11,9 +11,12 @@
  * (`allow-popups` + `allow-popups-to-escape-sandbox`, `<base target=_blank>`).
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink } from "lucide-react";
 
+import { fetchFileText } from "../../../lib/externalApi";
 import { CodeRenderer } from "./CodeRenderer";
+import { inlineLinkedStyles } from "./htmlInlineStyles";
 
 const CSP =
   "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; " +
@@ -34,11 +37,39 @@ export function buildHtmlSrcDoc(text: string): string {
 
 interface Props {
   text: string;
+  /** With `path`: relative stylesheets are loaded from the project and inlined. */
+  projectId?: string;
+  path?: string;
+  /** Open the centered in-app pop-out modal (omitted inside the modal). */
+  onPopOut?: () => void;
 }
 
-export function HtmlRenderer({ text }: Props) {
+export function HtmlRenderer({ text, projectId, path, onPopOut }: Props) {
   const [mode, setMode] = useState<"preview" | "source">("preview");
-  const srcDoc = useMemo(() => buildHtmlSrcDoc(text), [text]);
+  const [inlined, setInlined] = useState<{ source: string; path: string; html: string } | null>(null);
+  const wantsInline = Boolean(projectId && path);
+
+  useEffect(() => {
+    if (!projectId || !path) return;
+    let cancelled = false;
+    const done = (html: string) => {
+      if (!cancelled) setInlined({ source: text, path, html });
+    };
+    inlineLinkedStyles(text, path, async (p) => (await fetchFileText(projectId, p)).text)
+      .then(done)
+      .catch(() => done(text));
+    return () => {
+      cancelled = true;
+    };
+  }, [text, projectId, path]);
+
+  // Hold the iframe until the stylesheets are inlined: one load, no unstyled
+  // flash, and the page's scripts run once.
+  const ready = !wantsInline || (inlined?.source === text && inlined.path === path);
+  const srcDoc = useMemo(
+    () => buildHtmlSrcDoc(wantsInline && inlined ? inlined.html : text),
+    [text, inlined, wantsInline],
+  );
 
   const tab = (value: "preview" | "source", label: string) => (
     <button
@@ -58,9 +89,25 @@ export function HtmlRenderer({ text }: Props) {
       <div role="tablist" className="flex shrink-0 gap-1 border-b border-[var(--color-border,#e0dbd4)] px-2 py-1">
         {tab("preview", "Preview")}
         {tab("source", "Source")}
+        {onPopOut && (
+          <button
+            type="button"
+            onClick={onPopOut}
+            className="ml-auto inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11px] font-medium text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
+            data-testid="smart-viewer-popout"
+            title="Expand to a larger view"
+          >
+            <ExternalLink size={12} aria-hidden="true" />
+            Pop out
+          </button>
+        )}
       </div>
       <div className={`min-h-0 flex-1 ${mode === "preview" ? "overflow-hidden" : "overflow-auto"}`}>
-        {mode === "preview" ? (
+        {mode === "preview" && !ready ? (
+          <div className="flex h-full items-center justify-center text-[12px] text-[var(--color-muted,#6b7280)]" data-testid="smart-viewer-html-loading">
+            Loading…
+          </div>
+        ) : mode === "preview" ? (
           <iframe
             title="HTML preview"
             sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { HtmlRenderer, buildHtmlSrcDoc } from "./HtmlRenderer";
@@ -31,6 +31,15 @@ describe("HtmlRenderer", () => {
     const doc = buildHtmlSrcDoc("<!DOCTYPE html><html><body>x</body></html>");
     expect(doc.startsWith("<!DOCTYPE html><meta http-equiv=\"Content-Security-Policy\"")).toBe(true);
     expect(doc.indexOf("<html>")).toBeGreaterThan(doc.indexOf("Content-Security-Policy"));
+  });
+
+  it("shows a pop-out button only when onPopOut is given", () => {
+    const onPopOut = vi.fn();
+    const { rerender } = render(<HtmlRenderer text="<p>x</p>" onPopOut={onPopOut} />);
+    fireEvent.click(screen.getByTestId("smart-viewer-popout"));
+    expect(onPopOut).toHaveBeenCalledOnce();
+    rerender(<HtmlRenderer text="<p>x</p>" />);
+    expect(screen.queryByTestId("smart-viewer-popout")).toBeNull();
   });
 
   it("toggles to Source", () => {
