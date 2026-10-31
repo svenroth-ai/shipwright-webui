@@ -76,9 +76,6 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   const activityTabRef = useRef<HTMLButtonElement | null>(null);
   const detailTabRef = useRef<HTMLButtonElement | null>(null);
   const focusFrameRef = useRef<number | null>(null);
-  const showInfoPanel = useCallback(() => setCompactPanel("info"), []);
-  // V6: chat file chips open the Smart Viewer in the info sidebar.
-  const { fileOpen, request: viewerRequest } = useMissionFileOpen(task, showInfoPanel);
   useEffect(() => () => {
     if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
   }, []);
@@ -116,6 +113,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     context,
   });
   const agents = useMissionAgents(task.taskId, task.state, model.feed.cards);
+  const closeAgents = agents.setOpen;
+  // V6: a chat file chip opens the Viewer in the info sidebar (not behind the Agents window).
+  const showViewer = useCallback(() => { setCompactPanel("info"); closeAgents(false); }, [closeAgents]);
+  const { fileOpen, request: viewerRequest } = useMissionFileOpen(task, showViewer);
   // A work-completed run can truthfully be terminal before its commit/PR has
   // been recorded. The final feed card still opens that delivery detail (which
   // explains the missing receipt) even though hide-empty omits it from the rail.

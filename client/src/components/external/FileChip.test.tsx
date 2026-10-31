@@ -62,6 +62,14 @@ describe("chat file chips (MarkdownText + FileOpenContext)", () => {
     expect(chips[0]).toHaveAttribute("title", "C:/notes/spec.md");
   });
 
+  it("does not nest a chip button inside a real link whose label is a path", () => {
+    renderMd("[`src/a.ts`](https://github.com/o/r/blob/main/src/a.ts)");
+    const link = screen.getByRole("link");
+    expect(link.querySelector("button")).toBeNull();
+    expect(screen.queryByTestId("mc-file")).toBeNull();
+    expect(link).toHaveTextContent("src/a.ts");
+  });
+
   it("never chips an unlabelled fenced block that only contains a path", () => {
     renderMd("```\nsrc/a.ts\n```");
     expect(screen.queryByTestId("mc-file")).toBeNull();

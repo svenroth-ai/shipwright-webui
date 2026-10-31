@@ -29,8 +29,8 @@ export function MissionInfoOutputs({ paths, projectRoot, rootReady, emptyText, o
   const shown = showAll ? paths : paths.slice(0, OUTPUTS_PREVIEW);
   return (
     <section className="env-sec" aria-labelledby="env-h-outputs" data-testid="env-outputs">
-      <h4 id="env-h-outputs" className="env-h">
-        <span>Outputs</span>
+      <h4 className="env-h">
+        <span id="env-h-outputs">Outputs</span>
         {paths.length > 0 ? (
           <span className="env-count" data-testid="env-outputs-count">
             {paths.length} {paths.length === 1 ? "file" : "files"}

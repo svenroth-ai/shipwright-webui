@@ -172,7 +172,7 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
     await expect(page.getByTestId("smart-viewer-outside-tag")).toBeVisible();
     await page.screenshot({ path: path.join(process.env.V6_SHOTS ?? outsideDir, "v6-chip-outside.png") });
     await page.getByTestId("smart-viewer-copy-path").click();
-    await expect(page.getByTestId("smart-viewer-copy-path")).toContainText(/Copied|Copy path/);
+    await expect(page.getByTestId("smart-viewer-copy-path")).toContainText("Copied");
 
     await chips.nth(1).click();
     await expect(page.getByTestId("mission-side-body-viewer")).toContainText(INSIDE_BODY);

@@ -11,7 +11,7 @@
 /* V6: three groups = three cards (white 72% on the glass, 1px line, 12px radius), one heading
    step (12px/600/uppercase, --body = the dark eyebrow tone), one row grid (>=38px, 14px values). */
 .env-panel { display: grid; gap: 12px; align-content: start; }
-.env-sec { background: rgba(255, 255, 255, .72); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 8px; }
+.env-sec { background: color-mix(in srgb, var(--card) 72%, transparent); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px 8px; }
 .env-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--body); }
 .env-h .env-count, .env-refresh { font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; }
 .env-count { color: var(--muted); }

@@ -20,16 +20,21 @@ export interface ViewerRequest {
 export function useMissionFileOpen(task: ExternalTask, onOpened: () => void) {
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
   const projectRoot = useProject(unassigned ? "" : task.projectId).data?.path ?? null;
-  const [request, setRequest] = useState<ViewerRequest | null>(null);
+  // Remembers which task asked, so a request never leaks into the next task's sidebar.
+  const [asked, setAsked] = useState<(ViewerRequest & { taskId: string }) | null>(null);
+  const request = useMemo<ViewerRequest | null>(
+    () => (asked && asked.taskId === task.taskId ? { target: asked.target, nonce: asked.nonce } : null),
+    [asked, task.taskId],
+  );
   const fileOpen = useMemo<FileOpenValue>(
     () => ({
       projectRoot,
       open: (target) => {
-        setRequest((prev) => ({ target, nonce: (prev?.nonce ?? 0) + 1 }));
+        setAsked((prev) => ({ taskId: task.taskId, target, nonce: (prev?.nonce ?? 0) + 1 }));
         onOpened();
       },
     }),
-    [projectRoot, onOpened],
+    [projectRoot, onOpened, task.taskId],
   );
   return { fileOpen, request };
 }

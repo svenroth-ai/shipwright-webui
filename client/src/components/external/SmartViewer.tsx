@@ -38,6 +38,9 @@ import { OutsideProjectHeader } from "./SmartViewer/OutsideProjectHeader";
 import { TooLargeNotice } from "./SmartViewer/TooLargeNotice";
 import { fetchSessionFileText } from "../../lib/sessionFileApi";
 
+/** Outside files have no project to navigate: swallow relative-link clicks (no full page load). */
+const NO_DOC_NAV = () => undefined;
+
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "html" | "unknown";
 
 const MARKDOWN_EXTS = new Set(["md", "markdown"]);
@@ -238,7 +241,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId }: T
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={sessionTaskId ? undefined : nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={sessionTaskId ? NO_DOC_NAV : nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "html") return <HtmlRenderer text={state.text} projectId={scopedProjectId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;

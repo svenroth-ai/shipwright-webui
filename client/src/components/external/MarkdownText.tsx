@@ -12,14 +12,14 @@
  * gets re-rendered. Only assistant text goes through markdown.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { FileChip } from "./FileChip";
-import { useFileTarget } from "./FileOpenContext";
+import { useFileOpen, useFileTarget } from "./FileOpenContext";
 import { parseFileRef } from "../../lib/viewerTarget";
 
 const MAX_CODE_LINES = 200;
@@ -98,10 +98,14 @@ function keepFileRefUrl(url: string): string {
 
 // Inside a FileOpenContext (Mission tab) an inline-code path or a link to a file
 // becomes a clickable `.mc-file` chip; elsewhere both render exactly as before.
+// A chip is a <button>: never nest it inside a real link (invalid + a11y).
+const InsideLinkContext = createContext(false);
+
 function InlineCode({ children, ...rest }: { children?: ReactNode }) {
   const text = childrenToString(children);
+  const insideLink = useContext(InsideLinkContext);
   // An unlabelled fenced block also lands here; unlike inline code it ends in a newline.
-  const target = useFileTarget(text.includes("\n") ? "" : text);
+  const target = useFileTarget(text.includes("\n") || insideLink ? "" : text);
   if (target) return <FileChip target={target} title={text} />;
   return (
     <code className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]" {...rest}>
@@ -117,12 +121,14 @@ function MarkdownLink(props: { children?: ReactNode; href?: string }) {
     return <FileChip target={target} label={label || undefined} />;
   }
   return (
-    <a
-      {...props}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
-    />
+    <InsideLinkContext.Provider value={true}>
+      <a
+        {...props}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
+      />
+    </InsideLinkContext.Provider>
   );
 }
 
@@ -148,11 +154,12 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   // returns the original reference — useMemo makes the behaviour explicit
   // and guarantees stability for the long-line branch too.
   const capped = useMemo(() => capLineLengths(text), [text]);
+  const chips = useFileOpen() !== null; // keep file-looking hrefs only where they can become chips
 
   return (
     <div className="markdown-body text-sm leading-relaxed" data-testid="markdown-body">
       <ReactMarkdown
-        urlTransform={keepFileRefUrl}
+        urlTransform={chips ? keepFileRefUrl : undefined}
         remarkPlugins={REMARK_PLUGINS}
         // rehype-plugins' type in react-markdown v10 is mildly loose;
         // the tuple form is accepted at runtime. Cast to satisfy the
