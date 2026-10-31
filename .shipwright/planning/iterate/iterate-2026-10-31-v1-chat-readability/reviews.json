@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-31-v1-chat-readability",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:33:17.148411+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Removing `Show more` on agent messages means very long agent responses (multi-thousand-token outputs, large code blocks) render fully in the feed with no escape hatch. Combined with (a) keeping truncation only for tool-call raw data, this can produce extremely tall DOM nodes that hurt scroll performance in long missions.",
+          "suggestion": "Confirm a pragmatic ceiling: preserve expand-collapse for messages beyond some large length (e.g. >2000 chars) or at minimum verify scroll performance with a long-mission fixture. If product intent is truly \"always full,\" note it explicitly so the perf tradeoff is a decision, not an accident.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Step 2 (`data-switch` on speaker change) — the speaker-change detection needs a stable definition of \"speaker.\" If entries include system/agent/tool rows interleaved between user rows, does a tool line between two agent messages count as a switch? Ambiguous semantics will show up as inconsistent 28px vs 36px gaps that are hard to debug visually.",
+          "suggestion": "Define speaker as user vs non-user (the plan implies this) and add a unit test asserting gap classes on representative sequences: user→agent, agent→tool, tool→agent, agent→user.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan hardcodes hex values in `mission-operation.css` dark scope (`--body #d9d6d0` etc.) while the spec bans hardcoded colors outside tokens. Putting hex values in a component-level CSS file is borderline — it depends on how the repo's `no-hardcoded-colors` test defines \"tokens.\" If the test scans all CSS files for hex literals (with a whitelist), this will fail or need a whitelist entry.",
+          "suggestion": "Check whether these belong in the global dark-theme token block rather than `mission-operation.css`. If the test permits locally-scoped tokens, fine — but verify before merge rather than discovering it in CI.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Table wrapper (`.mc-table-wrap`) and zebra rows: GFM tables in chat can be very wide (agent-generated comparison tables). A wrapping div alone doesn't guarantee horizontal scroll on narrow viewports; also, if `MarkdownText` is used outside mission chat (e.g. other markdown surfaces), the new wrapper and the removed white-header source (`index.css .markdown-body table th`) will change rendering there too.",
+          "suggestion": "(1) Add `overflow-x: auto` to `.mc-table-wrap`. (2) Audit other usages of `.markdown-body` — the fix at step 5 touches shared styles; if other pages relied on the white header, scope the change or confirm it's acceptable globally.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Link teal `#7fdcca` is specified for \"links in the chat,\" but step 4 sets `--link` in the dark scope only. Light-mode chat links presumably keep an existing color — verify the mockup (Board rows referenced) actually specifies a light-mode link treatment, or the change is dark-only by design.",
+          "suggestion": "Confirm light-mode link styling explicitly in the mockup; if unspecified, state \"light mode unchanged\" in the PR description to avoid churn later.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Acceptance criteria are entirely \"TBD.\" For a change this visual, that's the biggest gap — the mini-plan describes what was done, not what verifies it.",
+          "suggestion": "Before merge, write concrete ACs: contrast ratios for the new token lifts (the new `--faint #8f8981` on the dark background is the riskiest — compute WCAG ratio and confirm ≥4.5:1 for body, or accept it's decorative-only), 12px floor verified programmatically (the planned `mission-chat-scale.test.ts` covers this — good), and visual baseline runs for both themes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Unbounded full messages also affect any code that measured or assumed truncated card heights (virtualization, scroll-to-bottom logic, screenshot baselines). Screenshot baselines will all churn — the spec already notes Linux-only baselines via workflow, which is handled, but scroll-to-latest behavior on long messages should get a manual pass.",
+          "suggestion": "Sanity-check auto-scroll-to-bottom behavior with a long agent message and a fresh turn.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Speaker detection treats every non-user entry as the same speaker. Tool events or status entries between messages could therefore receive the 36px gap or prevent it from appearing where intended.",
+          "suggestion": "Define spacing around actual message turns, and test user → agent, agent → user, and messages interleaved with tool/status entries.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Adding a wrapper in the shared `MarkdownText` renderer affects consumers beyond mission chat. It may break existing direct-child table selectors or overflow behavior.",
+          "suggestion": "Check shared renderer consumers and selectors. Scope the table skin to mission chat, give the wrapper horizontal overflow for wide tables, and verify both themes and narrow layouts.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "Keeping expansion for every `card.detail` assumes that field always contains raw tool output. The specification permits truncation only for tool-call raw data; narrative details could remain collapsed unintentionally.",
+          "suggestion": "Confirm the field’s producers and gate expansion by content type. Cover long user text, agent explanations, answers, narrative details, and raw tool output in tests.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The stated verification does not cover the required visual checks or several explicit repository constraints. Token tests alone cannot establish rendered spacing, readable tables, or the absence of smaller text inherited from other styles.",
+          "suggestion": "Add explicit acceptance criteria and run the repository’s required checks for file length, hardcoded colors, and applicable reset/motion rules. Validate Boards 1 and 10 in both themes, and run visual baselines through the Linux workflow without committing derived snapshots.  The approach is broadly sound, but these scope and verification gaps should be resolved before merging. Filesystem access was blocked by policy, so this review assesses the supplied plan rather than verified code or mockup contents.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T14:33:05.421148+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] # Review: V1 Chat Readability Mini-Plan\n\n**Category: edge-case**\n**Severity: medium**\n**Finding:** Removing `Show more` on agent messages means very long agent responses (multi-thousand-token outputs, large code blocks) render fully in the feed with no escape hatch. Combined with (a) keeping truncation only for tool-call raw data, this can produce extremely tall DOM nodes that hurt scroll performance in long missions.\n**Suggestion:** Confirm a pragmatic ceiling: preserve expand-collapse for messages beyond some large length (e.g. >2000 chars) or at minimum verify scroll performance with a long-mission fixture. If product intent is truly \"always full,\" note it explicitly so the perf tradeoff is a decision, not an accident.\n\n**Category: risk**\n**Severity: medium**\n**Finding:** Step 2 (`data-switch` on speaker change) — the speaker-change detection needs a stable definition of \"speaker.\" If entries include system/agent/tool rows interleaved between user rows, does a tool line between two agent messages count as a switch? Ambiguous semantics will show up as inconsistent 28px vs 36px gaps that are hard to debug visually.\n**Suggestion:** Define speaker as user vs non-user (the plan implies this) and add a unit test asserting gap classes on representative sequences: user→agent, agent→tool, tool→agent, agent→user.\n\n**Category: dependency**\n**Severity: medium**\n**Finding:** The plan hardcodes hex values in `mission-operation.css` dark scope (`--body #d9d6d0` etc.) while the spec bans hardcoded colors outside tokens. Putting hex values in a component-level CSS file is borderline — it depends on how the repo's `no-hardcoded-colors` test defines \"tokens.\" If the test scans all CSS files for hex literals (with a whitelist), this will fail or need a whitelist entry.\n**Suggestion:** Check whether these belong in the global dark-theme token block rather than `mission-operation.css`. If the test permits locally-scoped tokens, fine — but verify before merge rather than d […truncated]\n\n[openai] 1. **Category: edge-case · Severity: medium**  \n   **Finding:** Speaker detection treats every non-user entry as the same speaker. Tool events or status entries between messages could therefore receive the 36px gap or prevent it from appearing where intended.  \n   **Suggestion:** Define spacing around actual message turns, and test user → agent, agent → user, and messages interleaved with tool/status entries.\n\n2. **Category: risk · Severity: medium**  \n   **Finding:** Adding a wrapper in the shared `MarkdownText` renderer affects consumers beyond mission chat. It may break existing direct-child table selectors or overflow behavior.  \n   **Suggestion:** Check shared renderer consumers and selectors. Scope the table skin to mission chat, give the wrapper horizontal overflow for wide tables, and verify both themes and narrow layouts.\n\n3. **Category: approach · Severity: medium**  \n   **Finding:** Keeping expansion for every `card.detail` assumes that field always contains raw tool output. The specification permits truncation only for tool-call raw data; narrative details could remain collapsed unintentionally.  \n   **Suggestion:** Confirm the field’s producers and gate expansion by content type. Cover long user text, agent explanations, answers, narrative details, and raw tool output in tests.\n\n4. **Category: dependency · Severity: medium**  \n   **Finding:** The stated verification does not cover the required visual checks or several explicit repository constraints. Token tests alone cannot establish rendered spacing, readable tables, or the absence of smaller text inherited from other styles.  \n   **Suggestion:** Add explicit acceptance criteria and run the repository’s required checks for file length, hardcoded colors, and applicable reset/motion rules. Validate Boards 1 and 10 in both themes, and run visual baselines through the Linux workflow without committing derived snapshots.\n\nThe approach is broadly sound, but these scope and verification gaps sho […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "transient: opt-in tableWrap edit was half-applied when read (fixed in 59e6aae)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "phone table width:100% overrides max-content (fixed in b06f9dc)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "11px Show more under card.detail (fixed 59e6aae)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": null,
+          "line": null,
+          "finding": "stale comment in FeedCard (fixed)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": null,
+          "line": null,
+          "finding": "zebra neutralise rule uncommented (fixed)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T14:33:37.229328+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "245228de1756f307922163df7d5b9cdc3f4afa40"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:33:37.414202+00:00",
+      "disposition": "CSS and presentational TSX only; no migration, async, cross-plugin import or irreversible operation, so Stage 3 does not apply",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "regression |",
+          "file": "client/src/components/external/MarkdownText.tsx:89-97` The table wrapper is applied unconditionally in the shared `MarkdownText` component, so every consumer of markdown rendering (BubbleTranscript and anything else) now gets tables wrapped in a `<div class=\"mc-table-wrap\">`. The comment claims \"without touching other consumers,\" but the wrapper DOM change is global — existing CSS in  […truncated]",
+          "line": null,
+          "finding": "gate the wrapper (e.g., a context/prop from the mission chat path) or verify and snapshot-test the other MarkdownText consumers.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec |",
+          "file": "client/src/styles/mission-chat.css:14-19` and `mission-operation.css:219-220` Hardcoded hex values (`--thead-fallback: #f5f5f4`, `--link: #7fdcca`, `--link-hover: #a6ebde`, `--thead: #2d2a28`) sit outside the established token layer the repo's `no-hardcoded-colors` test guards. The operation CSS already had literals, but the new `--thead-fallback` in mission-chat.css is a fresh hardco […truncated]",
+          "line": null,
+          "finding": "hoist these into the shared token file (or wherever the existing dark tokens live) so the no-hardcoded-colors check passes.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": "client/src/styles/mission-chat.css:23-25, 32-36` The new scale/spacing custom properties (`--fs-chat`, `--gap-block`, etc.) are defined only on `.mc-op`, but consumers like `.mc-feed-card`, `.mc-ask-question` are styled with `var(--fs-chat)` / `var(--gap-block)` without fallbacks. Anywhere these classes render outside a `.mc-op` subtree (tests, storybook, other surfaces that previousl […truncated]",
+          "line": null,
+          "finding": "add fallbacks (`var(--fs-chat, 15px)`) or define the tokens on a scope that provably contains every consumer.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec |",
+          "file": "client/src/styles/mission-chat.css:41` Spec says chat links are \"light teal #7fdcca, underlined\". In light theme `--link` is undefined, so links fall back to `var(--info)` — light-mode chat links are not teal. This may be deliberate (teal on white is ~1.9:1 contrast), but it's a spec deviation with no record.",
+          "line": null,
+          "finding": "either define a light-scope `--link` that meets contrast and note the deviation, or document the fallback choice.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/src/styles/mission-chat-scale.test.ts:20-28` The scale test greps the CSS source for token declarations and single-selector patterns; it would pass if the tokens were declared but never actually applied to the right elements (e.g., if `.mc-feed-card` were renamed). It validates the stylesheet text, not rendered behavior.",
+          "line": null,
+          "finding": "acceptable as a guard, but pair with at least one DOM-level assertion (e.g., computed style on a rendered feed) or visual baseline per repo rules; also note the spec requires visual baselines and none are included in this diff.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "client/src/styles/mission-chat.css:49` `.mc-feed-card .mc-table-wrap tr:nth-child(2n) { background: transparent; }` is dead/contradictory next to the `td` zebra rule on the line above (td background wins visually, so zebra still works, but this rule reads as if it cancels zebra and will confuse future edits).",
+          "line": null,
+          "finding": "delete the rule or comment why `tr` background must stay transparent.  What's sound: the toggle removal for text/explanation/answer is correctly implemented and the retained `detailFull` toggle matches \"Show more only for raw tool data\"; the `data-switch` logic and its test are correct; contrast math in the test checks out (faint #8f8981 on #1a1817 ≈ 5.1:1); test updates genuinely verify the new no-toggle behavior (a regression to the old toggle implementation would fail them).  Overall: the core behavior change is correct and well-tested, but the global MarkdownText table wrapper, the unscoped custom properties, and the hardcoded colors should be fixed before merge — ship-with-fixes.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/styles/mission-chat.css",
+          "line": 41,
+          "finding": "The requested teal link color is only defined in the dark scope. Light chat falls back to `--info`, so it does not receive the specified `#7fdcca` link color. The new test checks the dark token and underline declaration but does not validate light-theme behavior.",
+          "suggestion": "Define the link token for both chat themes and add a theme-aware check that verifies the computed link color and underline.  Ship-with-fixes: the full-message rendering changes look sound, but light-theme links remain incomplete. Review was limited to the supplied diff because local command execution was blocked; the mockup and runtime checks could not be verified.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T14:33:06.065452+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] **Findings**\n\n- Category: regression | Severity: medium\n  File: `client/src/components/external/MarkdownText.tsx:89-97`\n  The table wrapper is applied unconditionally in the shared `MarkdownText` component, so **every** consumer of markdown rendering (BubbleTranscript and anything else) now gets tables wrapped in a `<div class=\"mc-table-wrap\">`. The comment claims \"without touching other consumers,\" but the wrapper DOM change is global — existing CSS in other consumers that targets `table` via sibling/child combinators, or `td > *` selectors, can break; a `<div>` inside a `<li>` containing a table also changes layout in lists.\n  Suggestion: gate the wrapper (e.g., a context/prop from the mission chat path) or verify and snapshot-test the other MarkdownText consumers.\n\n- Category: spec | Severity: medium\n  File: `client/src/styles/mission-chat.css:14-19` and `mission-operation.css:219-220`\n  Hardcoded hex values (`--thead-fallback: #f5f5f4`, `--link: #7fdcca`, `--link-hover: #a6ebde`, `--thead: #2d2a28`) sit outside the established token layer the repo's `no-hardcoded-colors` test guards. The operation CSS already had literals, but the new `--thead-fallback` in mission-chat.css is a fresh hardcoded color introduced by this diff.\n  Suggestion: hoist these into the shared token file (or wherever the existing dark tokens live) so the no-hardcoded-colors check passes.\n\n- Category: edge-case | Severity: medium\n  File: `client/src/styles/mission-chat.css:23-25, 32-36`\n  The new scale/spacing custom properties (`--fs-chat`, `--gap-block`, etc.) are defined only on `.mc-op`, but consumers like `.mc-feed-card`, `.mc-ask-question` are styled with `var(--fs-chat)` / `var(--gap-block)` **without fallbacks**. Anywhere these classes render outside a `.mc-op` subtree (tests, storybook, other surfaces that previously relied on the literal `14px`/`16px`), the declarations become invalid-at-computed-value-time and font-size/margins silently unset (font falls back to inher […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/styles/mission-chat.css:41\n- Finding: The requested teal link color is only defined in the dark scope. Light chat falls back to `--info`, so it does not receive the specified `#7fdcca` link color. The new test checks the dark token and underline declaration but does not validate light-theme behavior.\n- Suggestion: Define the link token for both chat themes and add a theme-aware check that verifies the computed link color and underline.\n\nShip-with-fixes: the full-message rendering changes look sound, but light-theme links remain incomplete. Review was limited to the supplied diff because local command execution was blocked; the mockup and runtime checks could not be verified.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:33:37.088998+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "59e6aae9682a8928cef105012a1b16a5d6291b16"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:33:06.620933+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:33:06.815726+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}
