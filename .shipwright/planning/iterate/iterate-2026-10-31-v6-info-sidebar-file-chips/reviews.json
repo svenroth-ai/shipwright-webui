@@ -110,7 +110,7 @@
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T22:27:34.674337+00:00",
+      "completed_at": "2026-10-31T22:36:46.250027+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -160,7 +160,7 @@
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T22:27:34.861573+00:00",
+      "completed_at": "2026-10-31T22:36:46.436163+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -262,7 +262,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T22:27:34.483258+00:00",
+      "completed_at": "2026-10-31T22:36:46.050526+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
