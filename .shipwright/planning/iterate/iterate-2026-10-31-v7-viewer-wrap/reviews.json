@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-31-v7-viewer-wrap",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:31:02.105632+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The spec explicitly requires \"Line numbers stay aligned with wrapped rows,\" but the mini-plan punts entirely (\"the live viewer has none; not added\"). That's a spec contradiction, not a judgment call — either the spec line is stale (should be removed/annotated) or line numbers exist and must be handled. Shipping this ambiguity means the acceptance review will fail on that criterion.",
+          "suggestion": "Resolve before implementation: confirm with spec owner whether line numbers are in scope. If out of scope, strike the requirement from the spec so the change is internally consistent.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "\"Continuation lines hang under the code\" implies hanging indent (wrapped text indented to clear the line-number gutter or marker). With no line numbers, what exactly hangs? If the intent is that wrapped lines should be visually distinct (e.g., padding-left on continuation via text-indent trick), the CSS plan (`pre-wrap + overflow-wrap:anywhere`) does not implement any hanging behavior. `text-indent: -Npx; padding-left: Npx` on the code element is the usual technique.",
+          "suggestion": "Clarify what \"hang\" means against the mockup (Board 9, README row 15) and implement it explicitly, or delete the phrase. Also note `overflow-wrap: anywhere` on `pre` differs from `break-word` — `anywhere` affects min-content sizing, which matters if any flex/grid parent sizes the code block; verify against the sticky-bar layout.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Per-browser persistence via localStorage means the default (`true`) only applies to first-time visitors; returning users who previously never touched the toggle still get `true` — fine — but the spec says \"remembered per browser,\" which the plan matches. However, there's no mention of what happens if the stored value is corrupted or a legacy key exists.",
+          "suggestion": "Minor: validate the stored value is the string `\"true\"`/`\"false\"` rather than truthy-parsing anything non-empty.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Setting `13px/1.6` on `.smart-viewer-code pre code` while `.markdown-body pre code {font-size:100%}` exists creates a specificity/inheritance interaction. If SmartViewer content is ever rendered inside `.markdown-body`, the 100% rule may override or compound. The plan relies on `data-wrap` scoping but the font-size rule is unconditional on `[data-wrap] pre code` — meaning the off state also gets 13px? Spec says \"code size 13px/1.6\" unconditionally, so that's likely intended, but the CSS selector `[data-wrap] pre code -> 13px/1.6` reads as though it only applies when `data-wrap` is present (it always is, so it works, but it's confusing).",
+          "suggestion": "Apply the font rule to `.smart-viewer-code pre code` unconditionally, decoupled from the `data-wrap=\"true\"/\"false\"` rules, and comment the intent.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "New CSS file imported via index.css — fine, but verify the existing `.smart-viewer-code` styles (the `max-content` rule mentioned) live somewhere the new file can coexist with without load-order surprises. If `data-wrap=\"false\"` relies on \"existing max-content rule stays,\" the new stylesheet must not accidentally override `overflow-x: auto` in the off state.",
+          "suggestion": "In the off-state block, explicitly set `overflow-x: auto` rather than relying on the old rule surviving.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "over-production",
+          "file": null,
+          "line": null,
+          "finding": "Overall the plan is appropriately lean — a toggle, an attribute, one CSS file, targeted tests. No unnecessary abstraction. The one marginal item is a separate CSS file for what is ~15 lines; if the project already styles SmartViewer in index.css, appending there would be simpler, but a separate file is defensible if index.css is large.",
+          "suggestion": "Optional: co-locate styles if index.css already holds the other smart-viewer rules.",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No new attack surface — a boolean persisted to localStorage with try/catch, no injection vectors. CSS selectors are static.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Wrap mode retains the existing `max-content` rule, but `width: auto` alone may not constrain the element responsible for horizontal overflow. Long lines could still expand the viewer, particularly inside flex or grid layouts.",
+          "suggestion": "Check which element owns `max-content` and override it in wrap mode. Ensure the viewer can shrink within its container. Verify long unbroken strings and indented code at narrow widths in the browser test.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The proposed font rule targets descendant `pre code` elements, while the specification explicitly identifies `.smart-viewer-code` and an existing Markdown override. Correct sizing depends on the actual markup and CSS cascade.",
+          "suggestion": "Target the actual rendered code element and assert computed `font-size: 13px` and `line-height: 20.8px` in the browser test. A CSS class fence test alone cannot establish this.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Persistence tests are mentioned, but the default and failure behavior are unspecified. Missing or invalid stored values and blocked storage must preserve the default wrapped view without breaking the toggle.",
+          "suggestion": "Define explicit boolean parsing, initialize state from storage, and test saved `false`, reload persistence, and throwing storage access.  The approach is proportionate and sound. These are implementation and validation refinements; the browser test should demonstrate wrapping, restored horizontal scrolling, and the final typography.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-31T14:30:47.294919+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review Findings\n\n**Category: approach — Severity: medium**\n**Finding:** The spec explicitly requires \"Line numbers stay aligned with wrapped rows,\" but the mini-plan punts entirely (\"the live viewer has none; not added\"). That's a spec contradiction, not a judgment call — either the spec line is stale (should be removed/annotated) or line numbers exist and must be handled. Shipping this ambiguity means the acceptance review will fail on that criterion.\n**Suggestion:** Resolve before implementation: confirm with spec owner whether line numbers are in scope. If out of scope, strike the requirement from the spec so the change is internally consistent.\n\n**Category: edge-case — Severity: medium**\n**Finding:** \"Continuation lines hang under the code\" implies hanging indent (wrapped text indented to clear the line-number gutter or marker). With no line numbers, what exactly hangs? If the intent is that wrapped lines should be visually distinct (e.g., padding-left on continuation via text-indent trick), the CSS plan (`pre-wrap + overflow-wrap:anywhere`) does not implement any hanging behavior. `text-indent: -Npx; padding-left: Npx` on the code element is the usual technique.\n**Suggestion:** Clarify what \"hang\" means against the mockup (Board 9, README row 15) and implement it explicitly, or delete the phrase. Also note `overflow-wrap: anywhere` on `pre` differs from `break-word` — `anywhere` affects min-content sizing, which matters if any flex/grid parent sizes the code block; verify against the sticky-bar layout.\n\n**Category: edge-case — Severity: low**\n**Finding:** Per-browser persistence via localStorage means the default (`true`) only applies to first-time visitors; returning users who previously never touched the toggle still get `true` — fine — but the spec says \"remembered per browser,\" which the plan matches. However, there's no mention of what happens if the stored value is corrupted or a legacy key exists.\n**Suggestion:** Minor: validate the store […truncated]\n\n[openai] 1. **Category: risk · Severity: medium**  \n   **Finding:** Wrap mode retains the existing `max-content` rule, but `width: auto` alone may not constrain the element responsible for horizontal overflow. Long lines could still expand the viewer, particularly inside flex or grid layouts.  \n   **Suggestion:** Check which element owns `max-content` and override it in wrap mode. Ensure the viewer can shrink within its container. Verify long unbroken strings and indented code at narrow widths in the browser test.\n\n2. **Category: approach · Severity: low**  \n   **Finding:** The proposed font rule targets descendant `pre code` elements, while the specification explicitly identifies `.smart-viewer-code` and an existing Markdown override. Correct sizing depends on the actual markup and CSS cascade.  \n   **Suggestion:** Target the actual rendered code element and assert computed `font-size: 13px` and `line-height: 20.8px` in the browser test. A CSS class fence test alone cannot establish this.\n\n3. **Category: edge-case · Severity: low**  \n   **Finding:** Persistence tests are mentioned, but the default and failure behavior are unspecified. Missing or invalid stored values and blocked storage must preserve the default wrapped view without breaking the toggle.  \n   **Suggestion:** Define explicit boolean parsing, initialize state from storage, and test saved `false`, reload persistence, and throwing storage access.\n\nThe approach is proportionate and sound. These are implementation and validation refinements; the browser test should demonstrate wrapping, restored horizontal scrolling, and the final typography.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "approve"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/styles/smart-viewer-code.css",
+          "line": 28,
+          "finding": "Sticky bar top-only; toggle can scroll out of view when unwrapped and scrolled sideways.",
+          "suggestion": "left:0 + E2E (fixed)",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/styles/smart-viewer-code.css",
+          "line": 38,
+          "finding": "Tokens flipped by .on-photo risk white-on-white.",
+          "suggestion": "self-sufficient token reset on .sv-code-bar (fixed)",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/styles/smart-viewer-code.css",
+          "line": 2,
+          "finding": "Specificity comment names wrong competitor.",
+          "suggestion": "reword (fixed)",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/SmartViewer/CodeRenderer.tsx",
+          "line": 64,
+          "finding": "Side effect inside state updater.",
+          "suggestion": "move to handler (fixed)",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/smartviewer-code-wrap.spec.ts",
+          "line": 45,
+          "finding": "Spec says #1f2937 but real bg is github-dark #0d1117.",
+          "suggestion": "note in record",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/smart-viewer-code.css",
+          "line": 12,
+          "finding": "No hanging indent for indented code continuation.",
+          "suggestion": "record as deviation",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T14:30:47.982384+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "9a8bac7a1d7756619e9097eb476e998e6da3a7a0"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:30:48.137852+00:00",
+      "disposition": "closed by reason_code diff-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec |",
+          "file": "client/src/styles/smart-viewer-code.css:18-26 — The spec explicitly requires \"continuation lines hang under the code\" (hanging indent for wrapped rows). The wrapped-state rules set `pre-wrap` / `overflow-wrap: anywhere` but no `text-indent`/`padding-left` hanging-indent mechanism, so wrapped continuations start flush at the left edge.",
+          "line": null,
+          "finding": "Add e.g. `.smart-viewer-code[data-wrap=\"true\"] pre code { padding-left: 2ch; text-indent: -2ch; }` (or equivalent) so wrapped continuations align under the code column.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test |",
+          "file": "client/e2e/flows/smartviewer-code-wrap.spec.ts:31 — The E2E asserts the code background is `rgb(13, 17, 23)` (#0d1117), but the spec says \"Viewer background stays dark (#1f2937)\" (rgb(31,41,55)). Either the E2E will fail against the current viewer, or it would pass while the spec-mandated color is wrong — in both cases the assertion doesn't validate the spec.",
+          "line": null,
+          "finding": "Assert the actual current viewer background color (or a spec-consistent value) in the E2E.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec |",
+          "file": "client/src/styles/smart-viewer-code.css (whole file) — Spec requires \"Line numbers stay aligned with wrapped rows,\" but nothing in the diff shows line numbers being rendered or verified. If line numbers are rendered as a separate column (rather than inline in the same `pre`), `pre-wrap` alone would not keep them aligned across wrapped rows, and no test covers this.",
+          "line": null,
+          "finding": "If line numbers exist as a separate gutter, render them per-row (or inline) and add an assertion that a wrapped row's number still aligns; otherwise document why the current rendering satisfies this.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug |",
+          "file": "client/src/components/external/SmartViewer/CodeRenderer.tsx:65-70 — `setStored` is called inside the `setWrap` state-updater. React may invoke updaters more than once (StrictMode/concurrent rendering), and performing side effects in updaters is unsupported behavior. It happens to be idempotent here, so impact is limited, but it's a latent correctness hazard.",
+          "line": null,
+          "finding": "Compute the next value in the handler (`setWrap(prev => { ... })` → read current state or use a ref) and call `setStored` outside the updater.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test |",
+          "file": "client/src/components/external/SmartViewer.test.tsx:250-252 — `localStorage` is cleared only in `beforeEach` of the new describe block; there's no `afterEach` cleanup, so `\"false\"` written by the first test leaks into any later suite in the same file/session that reads `shipwright:viewer-wrap-lines`. Also, the wrap/persist test only checks the localStorage value, not that the CSS/attr […truncated]",
+          "line": null,
+          "finding": "Clear the key in an `afterEach` (or the file-wide `beforeEach`) so state doesn't leak across suites.  Overall: the core feature (wrap by default, toggle with aria-pressed + localStorage persistence, 13px/1.6, class-fence + E2E coverage) is implemented and reasonably tested, but the hanging-indent requirement is missing and the E2E background assertion contradicts the spec — ship-with-fixes.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/styles/smart-viewer-code.css",
+          "line": 12,
+          "finding": "pre-wrap` preserves indentation on the first visual line only. Wrapped continuations start at the left edge of the code block, so indented source does not get the hanging continuation alignment required by the spec.",
+          "suggestion": "Render logical lines with a continuation indentation strategy, keeping any line-number gutter separate so each number stays aligned with its wrapped row.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "client/e2e/flows/smartviewer-code-wrap.spec.ts",
+          "line": 25,
+          "finding": "The wrapped-state assertions do not establish that the long line actually wraps or remains fully visible. Clipped content can have no horizontal overflow and report `white-space: pre-wrap`, so the test can pass despite a broken layout. It also never checks continuation or line-number alignment.",
+          "suggestion": "Assert that the long logical line occupies multiple visual rows and its content is visible. Add geometry checks for continuation alignment and the corresponding line number.  Overall assessment: ship-with-fixes. The toggle and persistence wiring look reasonable, but hanging continuation layout is missing and the browser test does not validate the required alignment.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-31T14:30:48.282428+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: spec | Severity: medium\n  File: client/src/styles/smart-viewer-code.css:18-26 — The spec explicitly requires \"continuation lines hang under the code\" (hanging indent for wrapped rows). The wrapped-state rules set `pre-wrap` / `overflow-wrap: anywhere` but no `text-indent`/`padding-left` hanging-indent mechanism, so wrapped continuations start flush at the left edge.\n  Suggestion: Add e.g. `.smart-viewer-code[data-wrap=\"true\"] pre code { padding-left: 2ch; text-indent: -2ch; }` (or equivalent) so wrapped continuations align under the code column.\n\n- Category: test | Severity: medium\n  File: client/e2e/flows/smartviewer-code-wrap.spec.ts:31 — The E2E asserts the code background is `rgb(13, 17, 23)` (#0d1117), but the spec says \"Viewer background stays dark (#1f2937)\" (rgb(31,41,55)). Either the E2E will fail against the current viewer, or it would pass while the spec-mandated color is wrong — in both cases the assertion doesn't validate the spec.\n  Suggestion: Assert the actual current viewer background color (or a spec-consistent value) in the E2E.\n\n- Category: spec | Severity: low\n  File: client/src/styles/smart-viewer-code.css (whole file) — Spec requires \"Line numbers stay aligned with wrapped rows,\" but nothing in the diff shows line numbers being rendered or verified. If line numbers are rendered as a separate column (rather than inline in the same `pre`), `pre-wrap` alone would not keep them aligned across wrapped rows, and no test covers this.\n  Suggestion: If line numbers exist as a separate gutter, render them per-row (or inline) and add an assertion that a wrapped row's number still aligns; otherwise document why the current rendering satisfies this.\n\n- Category: bug | Severity: low\n  File: client/src/components/external/SmartViewer/CodeRenderer.tsx:65-70 — `setStored` is called inside the `setWrap` state-updater. React may invoke updaters more than once (StrictMode/concurrent rendering), and performing side effects in up […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/styles/smart-viewer-code.css:12\n- Finding: `pre-wrap` preserves indentation on the first visual line only. Wrapped continuations start at the left edge of the code block, so indented source does not get the hanging continuation alignment required by the spec.\n- Suggestion: Render logical lines with a continuation indentation strategy, keeping any line-number gutter separate so each number stays aligned with its wrapped row.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/flows/smartviewer-code-wrap.spec.ts:25\n- Finding: The wrapped-state assertions do not establish that the long line actually wraps or remains fully visible. Clipped content can have no horizontal overflow and report `white-space: pre-wrap`, so the test can pass despite a broken layout. It also never checks continuation or line-number alignment.\n- Suggestion: Assert that the long logical line occupies multiple visual rows and its content is visible. Add geometry checks for continuation alignment and the corresponding line number.\n\nOverall assessment: ship-with-fixes. The toggle and persistence wiring look reasonable, but hanging continuation layout is missing and the browser test does not validate the required alignment.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:30:47.815021+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "e8c48b493845e748277e6b21c5f2b2df0129456c"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:30:47.551420+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T14:30:47.682945+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

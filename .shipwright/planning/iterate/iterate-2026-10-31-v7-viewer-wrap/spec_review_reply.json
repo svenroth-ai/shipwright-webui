@@ -1,0 +1,1 @@
+{"stage": "spec-compliance", "verdict": "PASS", "spec_citations": [], "summary": "PASS. Wrap default, pre-wrap+overflow-wrap:anywhere, aria-pressed toggle persisted via try/catch-wrapped localStorage, 13px/1.6, dark bg unchanged, English strings, class fence + E2E present. Declared deviation: live viewer has no line numbers, none added."}

@@ -1,0 +1,8 @@
+{"items":[
+{"name":"spec_compliance","verdict":"pass","note":"Wrap default, toggle, 13px/1.6 per Board 9; line numbers absent in live viewer so none added (declared)."},
+{"name":"error_handling","verdict":"pass","note":"localStorage access goes through getStored/setStored, which swallow errors; default wrap on failure."},
+{"name":"security_basics","verdict":"pass","note":"No new input surface; one boolean in localStorage."},
+{"name":"test_quality","verdict":"pass","note":"Vitest toggle/persist/stored-false + CSS fence; Playwright asserts computed 13px/20.8px, multi-row wrap, raw scroll, reload persistence, toggle reachable."},
+{"name":"performance_basics","verdict":"pass","note":"No added work on render path."},
+{"name":"naming_structure","verdict":"pass","note":"New styles/smart-viewer-code.css (<300 lines); index.css only gains an import."},
+{"name":"affected_boundaries","verdict":"pass","note":"Only boundary is the localStorage boolean shipwright:viewer-wrap-lines; round-tripped via reload in E2E."}]}

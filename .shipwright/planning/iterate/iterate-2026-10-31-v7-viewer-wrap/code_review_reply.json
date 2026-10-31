@@ -1,0 +1,7 @@
+{"section":"V7-viewer-wrap-code-size","review":[
+{"severity":"medium","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":28,"finding":"Sticky bar top-only; toggle can scroll out of view when unwrapped and scrolled sideways.","suggestion":"left:0 + E2E (fixed)"},
+{"severity":"medium","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":38,"finding":"Tokens flipped by .on-photo risk white-on-white.","suggestion":"self-sufficient token reset on .sv-code-bar (fixed)"},
+{"severity":"low","category":"readability","file":"client/src/styles/smart-viewer-code.css","line":2,"finding":"Specificity comment names wrong competitor.","suggestion":"reword (fixed)"},
+{"severity":"low","category":"correctness","file":"client/src/components/external/SmartViewer/CodeRenderer.tsx","line":64,"finding":"Side effect inside state updater.","suggestion":"move to handler (fixed)"},
+{"severity":"low","category":"correctness","file":"client/e2e/flows/smartviewer-code-wrap.spec.ts","line":45,"finding":"Spec says #1f2937 but real bg is github-dark #0d1117.","suggestion":"note in record"},
+{"severity":"low","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":12,"finding":"No hanging indent for indented code continuation.","suggestion":"record as deviation"}]}

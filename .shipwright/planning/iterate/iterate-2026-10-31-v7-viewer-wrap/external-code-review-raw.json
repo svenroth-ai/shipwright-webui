@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "Findings:\n\n- Category: spec | Severity: medium\n  File: client/src/styles/smart-viewer-code.css:18-26 \u2014 The spec explicitly requires \"continuation lines hang under the code\" (hanging indent for wrapped rows). The wrapped-state rules set `pre-wrap` / `overflow-wrap: anywhere` but no `text-indent`/`padding-left` hanging-indent mechanism, so wrapped continuations start flush at the left edge.\n  Suggestion: Add e.g. `.smart-viewer-code[data-wrap=\"true\"] pre code { padding-left: 2ch; text-indent: -2ch; }` (or equivalent) so wrapped continuations align under the code column.\n\n- Category: test | Severity: medium\n  File: client/e2e/flows/smartviewer-code-wrap.spec.ts:31 \u2014 The E2E asserts the code background is `rgb(13, 17, 23)` (#0d1117), but the spec says \"Viewer background stays dark (#1f2937)\" (rgb(31,41,55)). Either the E2E will fail against the current viewer, or it would pass while the spec-mandated color is wrong \u2014 in both cases the assertion doesn't validate the spec.\n  Suggestion: Assert the actual current viewer background color (or a spec-consistent value) in the E2E.\n\n- Category: spec | Severity: low\n  File: client/src/styles/smart-viewer-code.css (whole file) \u2014 Spec requires \"Line numbers stay aligned with wrapped rows,\" but nothing in the diff shows line numbers being rendered or verified. If line numbers are rendered as a separate column (rather than inline in the same `pre`), `pre-wrap` alone would not keep them aligned across wrapped rows, and no test covers this.\n  Suggestion: If line numbers exist as a separate gutter, render them per-row (or inline) and add an assertion that a wrapped row's number still aligns; otherwise document why the current rendering satisfies this.\n\n- Category: bug | Severity: low\n  File: client/src/components/external/SmartViewer/CodeRenderer.tsx:65-70 \u2014 `setStored` is called inside the `setWrap` state-updater. React may invoke updaters more than once (StrictMode/concurrent rendering), and performing side effects in updaters is unsupported behavior. It happens to be idempotent here, so impact is limited, but it's a latent correctness hazard.\n  Suggestion: Compute the next value in the handler (`setWrap(prev => { ... })` \u2192 read current state or use a ref) and call `setStored` outside the updater.\n\n- Category: test | Severity: low\n  File: client/src/components/external/SmartViewer.test.tsx:250-252 \u2014 `localStorage` is cleared only in `beforeEach` of the new describe block; there's no `afterEach` cleanup, so `\"false\"` written by the first test leaks into any later suite in the same file/session that reads `shipwright:viewer-wrap-lines`. Also, the wrap/persist test only checks the localStorage value, not that the CSS/attr change actually alters rendering \u2014 acceptable at unit level, but the E2E covers it.\n  Suggestion: Clear the key in an `afterEach` (or the file-wide `beforeEach`) so state doesn't leak across suites.\n\nOverall: the core feature (wrap by default, toggle with aria-pressed + localStorage persistence, 13px/1.6, class-fence + E2E coverage) is implemented and reasonably tested, but the hanging-indent requirement is missing and the E2E background assertion contradicts the spec \u2014 ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/styles/smart-viewer-code.css:12\n- Finding: `pre-wrap` preserves indentation on the first visual line only. Wrapped continuations start at the left edge of the code block, so indented source does not get the hanging continuation alignment required by the spec.\n- Suggestion: Render logical lines with a continuation indentation strategy, keeping any line-number gutter separate so each number stays aligned with its wrapped row.\n\n- Category: test\n- Severity: medium\n- File: client/e2e/flows/smartviewer-code-wrap.spec.ts:25\n- Finding: The wrapped-state assertions do not establish that the long line actually wraps or remains fully visible. Clipped content can have no horizontal overflow and report `white-space: pre-wrap`, so the test can pass despite a broken layout. It also never checks continuation or line-number alignment.\n- Suggestion: Assert that the long logical line occupies multiple visual rows and its content is visible. Add geometry checks for continuation alignment and the corresponding line number.\n\nOverall assessment: ship-with-fixes. The toggle and persistence wiring look reasonable, but hanging continuation layout is missing and the browser test does not validate the required alignment.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v7-viewer-wrap",
+    "at": "2026-10-31T14:27:31.575661+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

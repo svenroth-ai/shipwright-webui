@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Review Findings\n\n**Category: approach \u2014 Severity: medium**\n**Finding:** The spec explicitly requires \"Line numbers stay aligned with wrapped rows,\" but the mini-plan punts entirely (\"the live viewer has none; not added\"). That's a spec contradiction, not a judgment call \u2014 either the spec line is stale (should be removed/annotated) or line numbers exist and must be handled. Shipping this ambiguity means the acceptance review will fail on that criterion.\n**Suggestion:** Resolve before implementation: confirm with spec owner whether line numbers are in scope. If out of scope, strike the requirement from the spec so the change is internally consistent.\n\n**Category: edge-case \u2014 Severity: medium**\n**Finding:** \"Continuation lines hang under the code\" implies hanging indent (wrapped text indented to clear the line-number gutter or marker). With no line numbers, what exactly hangs? If the intent is that wrapped lines should be visually distinct (e.g., padding-left on continuation via text-indent trick), the CSS plan (`pre-wrap + overflow-wrap:anywhere`) does not implement any hanging behavior. `text-indent: -Npx; padding-left: Npx` on the code element is the usual technique.\n**Suggestion:** Clarify what \"hang\" means against the mockup (Board 9, README row 15) and implement it explicitly, or delete the phrase. Also note `overflow-wrap: anywhere` on `pre` differs from `break-word` \u2014 `anywhere` affects min-content sizing, which matters if any flex/grid parent sizes the code block; verify against the sticky-bar layout.\n\n**Category: edge-case \u2014 Severity: low**\n**Finding:** Per-browser persistence via localStorage means the default (`true`) only applies to first-time visitors; returning users who previously never touched the toggle still get `true` \u2014 fine \u2014 but the spec says \"remembered per browser,\" which the plan matches. However, there's no mention of what happens if the stored value is corrupted or a legacy key exists.\n**Suggestion:** Minor: validate the stored value is the string `\"true\"`/`\"false\"` rather than truthy-parsing anything non-empty.\n\n**Category: risk \u2014 Severity: low**\n**Finding:** Setting `13px/1.6` on `.smart-viewer-code pre code` while `.markdown-body pre code {font-size:100%}` exists creates a specificity/inheritance interaction. If SmartViewer content is ever rendered inside `.markdown-body`, the 100% rule may override or compound. The plan relies on `data-wrap` scoping but the font-size rule is unconditional on `[data-wrap] pre code` \u2014 meaning the *off* state also gets 13px? Spec says \"code size 13px/1.6\" unconditionally, so that's likely intended, but the CSS selector `[data-wrap] pre code -> 13px/1.6` reads as though it only applies when `data-wrap` is present (it always is, so it works, but it's confusing).\n**Suggestion:** Apply the font rule to `.smart-viewer-code pre code` unconditionally, decoupled from the `data-wrap=\"true\"/\"false\"` rules, and comment the intent.\n\n**Category: dependency \u2014 Severity: low**\n**Finding:** New CSS file imported via index.css \u2014 fine, but verify the existing `.smart-viewer-code` styles (the `max-content` rule mentioned) live somewhere the new file can coexist with without load-order surprises. If `data-wrap=\"false\"` relies on \"existing max-content rule stays,\" the new stylesheet must not accidentally override `overflow-x: auto` in the off state.\n**Suggestion:** In the off-state block, explicitly set `overflow-x: auto` rather than relying on the old rule surviving.\n\n**Category: over-production \u2014 Severity: low**\n**Finding:** Overall the plan is appropriately lean \u2014 a toggle, an attribute, one CSS file, targeted tests. No unnecessary abstraction. The one marginal item is a separate CSS file for what is ~15 lines; if the project already styles SmartViewer in index.css, appending there would be simpler, but a separate file is defensible if index.css is large.\n**Suggestion:** Optional: co-locate styles if index.css already holds the other smart-viewer rules.\n\n**Category: security \u2014 Severity: none**\n**Finding:** No new attack surface \u2014 a boolean persisted to localStorage with try/catch, no injection vectors. CSS selectors are static.\n\n## Overall Assessment\n\nThe approach is sound and proportionate; the blocking issue is the internal contradiction on line numbers (spec requires alignment, plan drops them) plus the undefined \"hang\" behavior \u2014 resolve those two and this is ready. Font-size rule placement is a small cleanup.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: risk \u00b7 Severity: medium**  \n   **Finding:** Wrap mode retains the existing `max-content` rule, but `width: auto` alone may not constrain the element responsible for horizontal overflow. Long lines could still expand the viewer, particularly inside flex or grid layouts.  \n   **Suggestion:** Check which element owns `max-content` and override it in wrap mode. Ensure the viewer can shrink within its container. Verify long unbroken strings and indented code at narrow widths in the browser test.\n\n2. **Category: approach \u00b7 Severity: low**  \n   **Finding:** The proposed font rule targets descendant `pre code` elements, while the specification explicitly identifies `.smart-viewer-code` and an existing Markdown override. Correct sizing depends on the actual markup and CSS cascade.  \n   **Suggestion:** Target the actual rendered code element and assert computed `font-size: 13px` and `line-height: 20.8px` in the browser test. A CSS class fence test alone cannot establish this.\n\n3. **Category: edge-case \u00b7 Severity: low**  \n   **Finding:** Persistence tests are mentioned, but the default and failure behavior are unspecified. Missing or invalid stored values and blocked storage must preserve the default wrapped view without breaking the toggle.  \n   **Suggestion:** Define explicit boolean parsing, initialize state from storage, and test saved `false`, reload persistence, and throwing storage access.\n\nThe approach is proportionate and sound. These are implementation and validation refinements; the browser test should demonstrate wrapping, restored horizontal scrolling, and the final typography.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v7-viewer-wrap",
+    "at": "2026-10-31T14:26:06.854705+00:00"
+  },
+  "verdicts": {
+    "glm": "revise",
+    "openai": "approve"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=approve"
+  }
+}
