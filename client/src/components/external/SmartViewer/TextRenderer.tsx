@@ -7,18 +7,26 @@
  * styles/smart-viewer-code.css.
  */
 
+import { useRef } from "react";
+
 import { WrapToggleBar, useWrapLines } from "./WrapToggle";
+import { LineMarkBand, locateTextLine, useLineFocus } from "./useLineFocus";
 
 interface Props {
   text: string;
   "data-testid"?: string;
+  /** 1-based line to scroll to and mark (a `File.ts:98` chip); focusKey re-fires it. */
+  line?: number;
+  focusKey?: number;
 }
 
-export function TextRenderer({ text, ...rest }: Props) {
+export function TextRenderer({ text, line, focusKey, ...rest }: Props) {
   const testId = rest["data-testid"] ?? "smart-viewer-text";
   const { wrap, toggleWrap } = useWrapLines();
+  const hostRef = useRef<HTMLDivElement>(null);
+  const mark = useLineFocus(hostRef, locateTextLine, line, focusKey, text, wrap);
   return (
-    <div className="smart-viewer-text-host h-full overflow-auto" data-wrap={wrap ? "true" : "false"} data-testid="smart-viewer-text-host">
+    <div ref={hostRef} className="smart-viewer-text-host relative h-full overflow-auto" data-wrap={wrap ? "true" : "false"} data-testid="smart-viewer-text-host">
       <WrapToggleBar wrap={wrap} onToggle={toggleWrap} />
       <pre
         className="smart-viewer-text p-4"
@@ -39,6 +47,7 @@ export function TextRenderer({ text, ...rest }: Props) {
           </span>
         ))}
       </pre>
+      <LineMarkBand mark={mark} line={line} />
     </div>
   );
 }

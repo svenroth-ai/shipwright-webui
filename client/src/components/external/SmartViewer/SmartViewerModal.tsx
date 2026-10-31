@@ -24,9 +24,11 @@ interface Props {
   projectId: string;
   /** Project-root-relative POSIX path of the file to preview. */
   path: string;
+  /** Outside-project file (V6): `path` is absolute, served by the session-file route. */
+  sessionTaskId?: string;
 }
 
-export function SmartViewerModal({ open, onOpenChange, projectId, path }: Props) {
+export function SmartViewerModal({ open, onOpenChange, projectId, path, sessionTaskId }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -63,7 +65,7 @@ export function SmartViewerModal({ open, onOpenChange, projectId, path }: Props)
             </Dialog.Close>
           </div>
           <div className="min-h-0 flex-1 overflow-hidden">
-            <SmartViewer projectId={projectId} path={path} popOut={false} />
+            <SmartViewer projectId={projectId} path={path} popOut={false} sessionTaskId={sessionTaskId} />
           </div>
         </Dialog.Content>
       </Dialog.Portal>

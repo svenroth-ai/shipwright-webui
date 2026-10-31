@@ -7,33 +7,27 @@
  * no-session ({status:"missing"}) and ok. No timer: manual Refresh button.
  */
 
-import { useState } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useSessionInfo } from "../../../hooks/useSessionInfo";
 import { useProject } from "../../../hooks/useProjects";
 import { UNASSIGNED_PROJECT_ID } from "../../../lib/projectIds";
-import {
-  baseName,
-  formatTokens,
-  relativeToCwd,
-  shortModel,
-} from "../../../lib/sessionInfoFormat";
-
-const OUTPUTS_PREVIEW = 5;
+import { formatTokens, shortModel } from "../../../lib/sessionInfoFormat";
+import type { ViewerTarget } from "../../../lib/viewerTarget";
+import { MissionInfoOutputs } from "./MissionInfoOutputs";
 
 interface Props {
   task: ExternalTask;
-  onOpenOutput: (relPath: string) => void;
+  onOpenOutput: (target: ViewerTarget) => void;
   /** False while the panel is mounted-but-hidden: no scan is requested for a panel nobody sees. */
   active?: boolean;
 }
 
-function Row({ k, children, testId }: { k: string; children: React.ReactNode; testId: string }) {
+function Row({ k, children, testId, big }: { k: string; children: React.ReactNode; testId: string; big?: boolean }) {
   return (
     <div className="env-row" data-testid={testId}>
       <span className="env-k">{k}</span>
-      <span className="env-v">{children}</span>
+      <span className={big ? "env-v env-big" : "env-v"}>{children}</span>
     </div>
   );
 }
@@ -43,13 +37,15 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
   // The Viewer/FolderTree resolve paths from the PROJECT root, which is not
   // always task.cwd (iterate worktrees, subfolder tasks) — relativize against it.
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
-  const projectRoot = useProject(unassigned ? "" : task.projectId).data?.path ?? null;
+  const projectQ = useProject(unassigned ? "" : task.projectId);
+  const projectRoot = projectQ.data?.path ?? null;
+  // inside/outside is only known once the project has loaded (or there is none)
+  const rootReady = unassigned || projectQ.isSuccess;
   const info = q.data?.status === "ok" ? q.data.info : null;
   // After a failed refetch the cached On/Off may be stale (session ended): show Unknown.
   const remote: boolean | null = info && !q.isError ? info.remoteControl.active : null;
   const missing = q.data?.status === "missing";
   const failed = q.isError;
-  const [showAll, setShowAll] = useState(false);
 
   const host = typeof window === "undefined" ? "" : window.location.hostname;
   const outputs = (() => {
@@ -57,23 +53,12 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
     const seen = new Set<string>();
     return [...info.outputs]
       .sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""))
-      .filter((o) => (seen.has(o.path) ? false : (seen.add(o.path), true)));
+      .filter((o) => (seen.has(o.path) ? false : (seen.add(o.path), true)))
+      .map((o) => o.path);
   })();
-  const shown = showAll ? outputs : outputs.slice(0, OUTPUTS_PREVIEW);
 
   return (
     <div className="env-panel" data-testid="mission-info-panel">
-      <div className="env-toolbar">
-        <button
-          type="button"
-          className="env-more"
-          data-testid="env-refresh"
-          disabled={q.isFetching}
-          onClick={() => void q.refetch()}
-        >
-          {q.isFetching ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
       {failed ? (
         <p className="env-empty" role="status" data-testid="env-error">
           Session info could not be refreshed{info ? " (showing the last known values)" : ""}. Use Refresh to try again.
@@ -84,8 +69,19 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
           No session recorded yet. Info appears once the session has started.
         </p>
       ) : null}
-      <section aria-labelledby="env-h-environment" data-testid="env-environment">
-        <h4 id="env-h-environment" className="env-h">Environment</h4>
+      <section className="env-sec" aria-labelledby="env-h-environment" data-testid="env-environment">
+        <h4 className="env-h">
+          <span id="env-h-environment">Environment</span>
+          <button
+            type="button"
+            className="env-refresh"
+            data-testid="env-refresh"
+            disabled={q.isFetching}
+            onClick={() => void q.refetch()}
+          >
+            {q.isFetching ? "Refreshing…" : "Refresh"}
+          </button>
+        </h4>
         <Row k="Computer" testId="env-computer">
           This computer{host && host !== "localhost" ? ` (${host})` : ""}
         </Row>
@@ -103,12 +99,12 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
         </Row>
       </section>
 
-      <section aria-labelledby="env-h-context" data-testid="env-context">
+      <section className="env-sec" aria-labelledby="env-h-context" data-testid="env-context">
         <h4 id="env-h-context" className="env-h">Context</h4>
         {info && (info.context.tokens !== null || info.context.model) ? (
           <>
             {info.context.tokens !== null ? (
-              <Row k="Tokens used" testId="env-tokens">
+              <Row k="Tokens used" testId="env-tokens" big>
                 {formatTokens(info.context.tokens)}
                 {info.context.compactedSince ? (
                   <span className="env-note"> (before compaction)</span>
@@ -126,50 +122,13 @@ export function MissionInfoPanel({ task, onOpenOutput, active = true }: Props) {
         )}
       </section>
 
-      <section aria-labelledby="env-h-outputs" data-testid="env-outputs">
-        <h4 id="env-h-outputs" className="env-h">Outputs</h4>
-        {outputs.length === 0 ? (
-          <p className="env-empty" data-testid="env-outputs-empty">
-            {q.isPending ? "Loading…" : failed || missing ? "—" : "No files written yet."}
-          </p>
-        ) : (
-          <ul className="env-outputs">
-            {shown.map((o) => {
-              const rel = projectRoot ? relativeToCwd(o.path, projectRoot) : null;
-              return (
-                <li key={o.path}>
-                  {rel ? (
-                    <button
-                      type="button"
-                      className="env-output"
-                      title={o.path}
-                      data-testid="env-output"
-                      onClick={() => onOpenOutput(rel)}
-                    >
-                      {baseName(o.path)}
-                    </button>
-                  ) : (
-                    <span className="env-output is-inert" title={o.path} data-testid="env-output-inert">
-                      {baseName(o.path)}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        {outputs.length > OUTPUTS_PREVIEW ? (
-          <button
-            type="button"
-            className="env-more"
-            data-testid="env-outputs-more"
-            aria-expanded={showAll}
-            onClick={() => setShowAll((v) => !v)}
-          >
-            {showAll ? "Show less" : `Show more (${outputs.length - OUTPUTS_PREVIEW})`}
-          </button>
-        ) : null}
-      </section>
+      <MissionInfoOutputs
+        paths={outputs}
+        projectRoot={projectRoot}
+        rootReady={rootReady}
+        emptyText={q.isPending ? "Loading…" : failed || missing ? "—" : "No files written yet."}
+        onOpen={onOpenOutput}
+      />
     </div>
   );
 }

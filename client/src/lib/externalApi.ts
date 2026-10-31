@@ -803,32 +803,7 @@ export async function fetchFileText(
   projectId: string,
   path: string,
 ): Promise<{ text: string; size: number }> {
-  const url = fileUrl(projectId, path);
-  const r = await fetch(url);
-  if (r.status === 413) {
-    let payload: Record<string, unknown> = {};
-    try {
-      payload = (await r.json()) as Record<string, unknown>;
-    } catch {
-      /* swallow */
-    }
-    const maxBytes =
-      typeof payload.maxBytes === "number"
-        ? (payload.maxBytes as number)
-        : 5 * 1024 * 1024;
-    const size =
-      typeof payload.size === "number" ? (payload.size as number) : undefined;
-    throw new FileTooLargeError(maxBytes, "server", size);
-  }
-  if (!r.ok) {
-    throw await decodeApiError(r);
-  }
-  const text = await r.text();
-  const size = text.length;
-  if (size > CLIENT_FILE_TEXT_MAX_BYTES) {
-    throw new FileTooLargeError(CLIENT_FILE_TEXT_MAX_BYTES, "client", size);
-  }
-  return { text, size };
+  return fetchTextFile(fileUrl(projectId, path));
 }
 
 // -----------------------------------------------------------------------------
@@ -836,6 +811,7 @@ export async function fetchFileText(
 // -----------------------------------------------------------------------------
 
 import type { RunConfigResponse } from "./run-config-v2";
+import { fetchTextFile } from "./fetchTextFile";
 
 /**
  * GET /api/external/projects/:projectId/run-config

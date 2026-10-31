@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-31-v6-info-sidebar-file-chips",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:46:47.926948+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The opening flow only describes switching the sidebar to Viewer and uncollapsing it. It does not cover the required compact layout behavior or unassigned tasks, where Folders must be absent and Outputs must use session files. A missing project root must also distinguish “still loading” from “unassigned.”",
+          "suggestion": "Explicitly handle those states in `useMissionFileOpen` and the sidebar. Add browser coverage for opening a chip from a collapsed sidebar, another segment, compact layout, and an unassigned task.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Adding `sessionTaskId` to `SmartViewer` does not clearly establish how the file’s source survives every consumer. Text fetching may work while image/video URLs, HTML previews, or pop-outs still use project routes. Outside files must also bypass existing cross-file navigation, editing, and stylesheet inlining.",
+          "suggestion": "Carry an explicit project/session target through the viewer and its media, preview, and pop-out paths. Use that target to select URLs and available capabilities. Extend the browser smoke beyond text to verify media, HTML, and pop-out source preservation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The parsing and resolution contract is underspecified for relative references and Windows paths. Drive-letter colons must survive optional line parsing, and relative paths need a defined base when the project is loading or the task is unassigned. Overbroad matching could also turn ordinary code identifiers into chips.",
+          "suggestion": "Define these rules before implementing `parseFileRef`: use the project root for relative references when available, leave unresolved references unchanged, and parse line suffixes independently of drive prefixes. Include focused cases for Windows paths, `:line`/`#L`, URLs, `console.log`, traversal, UNC, and fenced code.  The approach is broadly sound and keeps server authorization in the right place. Clarify the target propagation and sidebar/resolution states above before implementation; these are required behaviors rather than optional refinements.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T21:46:30.327704+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: security — Severity: medium**\nChip recognition for chat messages is heuristic (inline-code paths, markdown links, absolute or relative). The spec says URLs/traversal/UNC stay untouched, but the plan doesn't state *how* the classifier rejects them — a relative path like `../../secrets.txt` must not become a session-route chip that fetches via the unevidenced-path route. Note: the V4 route returns 403 for unevidenced paths, so the guard holds server-side — this is a UX/polish risk (broken chip), not a data-exposure risk. Still, the test list should include a traversal chip case explicitly, not just the 403 E2E.\n\n**2. Category: edge-case — Severity: medium**\nChat messages are rendered before the project root is known or when it changes mid-session. The plan handles \"project loading → Outputs rows disabled\" but not chips: what does `resolveViewerTarget` do with a relative path while projectRoot is undefined? Decide now: render as plain code (no chip) until root is known, and note that already-rendered messages won't retroactively chipify. If the plan expects retroactive re-resolution, that requires a re-render trigger — a message-level `useMemo` keyed on projectRoot is the cheap fix; say so.\n\n**3. Category: risk — Severity: medium**\nRefactoring `MarkdownText` InlineCode/MarkdownLink to consult a `FileOpenContext` touches *all* markdown rendering under the Mission provider. The fence is \"outside the Mission provider renders as before\" — verify the context is genuinely absent there (default null → original behavior) and add the promised unit test for the BubbleTranscript path. A subtle regression here changes every chat bubble, not just the new chips.\n\n**4. Category: edge-case — Severity: low**\n`:line`/`#L` is parsed but the viewer doesn't scroll — acceptable deviation, but ensure the line info isn't *dropped* on the way to the viewer (keep it in the chip state so a later iterate can use it) rather than parsing and discarding.\n\n**5 […truncated]\n\n[openai] 1. **Category: approach · Severity: medium**  \n   **Finding:** The opening flow only describes switching the sidebar to Viewer and uncollapsing it. It does not cover the required compact layout behavior or unassigned tasks, where Folders must be absent and Outputs must use session files. A missing project root must also distinguish “still loading” from “unassigned.”\n   **Suggestion:** Explicitly handle those states in `useMissionFileOpen` and the sidebar. Add browser coverage for opening a chip from a collapsed sidebar, another segment, compact layout, and an unassigned task.\n\n2. **Category: risk · Severity: medium**  \n   **Finding:** Adding `sessionTaskId` to `SmartViewer` does not clearly establish how the file’s source survives every consumer. Text fetching may work while image/video URLs, HTML previews, or pop-outs still use project routes. Outside files must also bypass existing cross-file navigation, editing, and stylesheet inlining.\n   **Suggestion:** Carry an explicit project/session target through the viewer and its media, preview, and pop-out paths. Use that target to select URLs and available capabilities. Extend the browser smoke beyond text to verify media, HTML, and pop-out source preservation.\n\n3. **Category: edge-case · Severity: medium**  \n   **Finding:** The parsing and resolution contract is underspecified for relative references and Windows paths. Drive-letter colons must survive optional line parsing, and relative paths need a defined base when the project is loading or the task is unassigned. Overbroad matching could also turn ordinary code identifiers into chips.\n   **Suggestion:** Define these rules before implementing `parseFileRef`: use the project root for relative references when available, leave unresolved references unchanged, and parse line suffixes independently of drive prefixes. Include focused cases for Windows paths, `:line`/`#L`, URLs, `console.log`, traversal, UNC, and fenced code.\n\nThe approach is broadly sound and […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/hooks/useMissionFileOpen.ts",
+          "line": 37,
+          "finding": "The cwd fix is unit-tested in the pure resolver only; no test asserts that fileOpen.cwd reaches chips.",
+          "suggestion": "Add a hook assertion and a FileChip test with a cwd. Accepted as follow-up.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/viewerTarget.test.ts",
+          "line": 2945,
+          "finding": "The <root>/.worktrees/<name> cwd case is untested.",
+          "suggestion": "Add a case. Accepted as follow-up.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/lib/fetchTextFile.ts",
+          "line": 7,
+          "finding": "Call-time import cycle with externalApi.ts (safe).",
+          "suggestion": "Optional leaf module.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionBody.tsx",
+          "line": 76,
+          "finding": "MissionBody.tsx is at exactly 300 lines.",
+          "suggestion": "Extract on the next change.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/SmartViewer/OutsideProjectHeader.tsx",
+          "line": 38,
+          "finding": "role=status span sits inside a button, may not be announced reliably.",
+          "suggestion": "Separate visually hidden status span. Accepted as follow-up.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T22:36:46.250027+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/hooks/useMissionFileOpen.ts:37",
+          "line": null,
+          "finding": "Claim under doubt: relative chat paths resolve against the folder the session works in — task.cwd is the folder the session was LAUNCHED in; a later in-session cd into a worktree is not tracked, and a subfolder-launched session whose model writes repo-root-relative paths resolves one level too deep. ADDRESSED IN WRITING: accepted as a documented approximation - task.cwd is the cwd Claude itself records for the session, per-event cwd is not exposed by the parser, the chip tooltip shows the full resolved path, wrong guesses fail closed (404/403) or show the project copy with its full path visible. Follow-up: use per-event cwd if the parser exposes it.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/lib/viewerTarget.ts:110",
+          "line": null,
+          "finding": "Claim under doubt: every relative chip opens — A relative chip in a task whose folder is outside the root fails with 403 path_not_evidenced. ADDRESSED: accepted as a safe failure.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "client/src/lib/viewerTarget.ts:74",
+          "line": null,
+          "finding": "Claim under doubt: parseFileRef rejects odd names — Drive-relative names like D:notes.md pass parseFileRef (server pathGuard rejects drive_change). ADDRESSED: accepted, server is the authority; follow-up to reject drive-relative names.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "blast radius",
+          "file": "client/src/components/external/MarkdownText.tsx:120",
+          "line": null,
+          "finding": "Claim under doubt: link chips are not deceptive — Link chips show the markdown link text, so an injected assistant link can name a different target. ADDRESSED: accepted - V4 already counts assistant chat text as evidence, credential deny-list applies, tooltip/aria-label/header show the full path; follow-up to show the target name when it differs.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T22:36:46.436163+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security / spec",
+          "file": "client/src/lib/viewerTarget.ts:60-66 (`parseFileRef`, `file://` branch)",
+          "line": null,
+          "finding": "The `file://` handler rewrites `file://server/share/a.txt` (a UNC host form) to `/server/share/a.txt`, which `isAbsolutePath` accepts — so a UNC file URL becomes a clickable chip, contradicting the spec's \"UNC stays untouched\" hygiene requirement. Same for `file://docs/a.md` becoming the absolute path `/docs/a.md`.",
+          "suggestion": "Reject `file://` URLs whose authority is non-empty (anything other than `file:///`), and only accept `file:///` with a drive letter or POSIX absolute path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/external/MarkdownText.tsx (`MarkdownLink`, `title={props.href}`)",
+          "line": null,
+          "finding": "For markdown-link chips the tooltip is the raw, still-percent-encoded href (e.g. `docs/spec%20v2.md`) rather than the decoded path the chip will open — inconsistent with the backtick chip behavior (`title` = resolved path) and mildly misleading.",
+          "suggestion": "Use `target.path` (already decoded by `parseFileRef`) as the default tooltip in `MarkdownLink` too.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/mission/MissionInfoPanel.tsx (`rootReady = unassigned || !projectQ.isPending`)",
+          "line": null,
+          "finding": "If the project query errors, `isPending` is false with `projectRoot` null, so every inside-project output is classified as `outside: true` and opened through the session-file route with the absolute path. It still works (the session route allows inside files), but rows are tagged \"outside project\" wrongly and the tooltip/label semantics degrade.",
+          "suggestion": "Treat a failed project query as not-ready (`rootReady = unassigned || projectQ.isSuccess`), keeping rows disabled rather than mislabeled.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/V6-info-sidebar-file-chips.spec.ts (image test at bottom of the \"chip re-opens…\" test)",
+          "line": null,
+          "finding": "The \"outside image through the session route\" check fetches the URL directly with `page.request` instead of driving the UI (the image is never listed in outputs or referenced by a chip), so a regression where `ImageRenderer` ignores `sessionTaskId` and hits the project route would still pass this test. The unit test for `MediaRenderer`/`ImageRenderer` forwarding is also not present in the diff.",
+          "suggestion": "Seed the image as an output (or chip) and assert the rendered `<img>` loads via the session URL, and/or add a unit test that `ImageRenderer`/`VideoRenderer` receive and use `sessionTaskId`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/viewerTarget.ts (`LINE_SUFFIX`)",
+          "line": null,
+          "finding": "A bare filename like `notes.md` followed by a timestamp `notes.md:1030` is parsed as `notes.md` + line 1030 and becomes a chip; conversely a legit path whose name ends in something like `#L1` style is rare, but the timestamp case is common in agent logs and silently opens the wrong \"line\" — cosmetic only since `line` is informational. Not blocking, just noting the heuristic can misfire on `name.md:NNNN` timestamps.",
+          "suggestion": "Optionally cap accepted line numbers (e.g. ≤ 100000) or only honor `:line` when the text came from a backtick/link context that suggests a code reference.  Everything else checks out against the ACs: tabs drop `ft-seg`, three cards with the 12px/600/uppercase `--body` eyebrow and Refresh in the first heading, \"Show all N\", 40px full-width output rows with disabled-while-loading, inside→project route / outside→session route with tag+tooltip, chips gated on `FileOpenContext` (plain markdown untouched, verified by the \"outside any provider\" test), unassigned tasks get Info+Viewer with session-file outputs, pop-out keeps `sessionTaskId`, and the 403-on-unevidenced-path guarantee is covered by a real-server e2e test. No server code was touched, and the path still flows through `encodeURIComponent` before hitting the route.  Overall: solid, spec-complete implementation with real-browser coverage of the full consumer chain; the file:// UNC bypass and the rootReady-on-error mislabeling are worth fixing first.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/MarkdownText.tsx",
+          "line": 95,
+          "finding": "Unlabelled fenced code blocks can become file chips. The code renderer identifies fences only by a `language-` class, so a fence containing just `src/a.ts` reaches `InlineCode`; trimming then recognizes it as a file. This violates the requirement that fenced code stay untouched.",
+          "suggestion": "Distinguish inline code from block code using the surrounding AST or a dedicated `pre` renderer. Add a test for a fenced path without a language label.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/lib/viewerTarget.ts",
+          "line": 72,
+          "finding": "Traversal rejection applies only to relative paths. Absolute references such as `/tmp/../secret.md` and `C:\\dev\\app\\..\\secret.md` become clickable chips, despite the explicit requirement to leave traversal untouched. Depending on root matching, these can also be misclassified as project files and fail when opened.",
+          "suggestion": "Reject `.` and `..` path segments for both absolute and relative references before resolving the target. Test both Windows and POSIX absolute traversal.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/MarkdownText.tsx",
+          "line": 105,
+          "finding": "Absolute Windows and `file://` markdown links do not reliably reach this parser. ReactMarkdown’s default URL transformation strips unsupported schemes such as `C:` and `file:`, so `props.href` is already empty for links such as `[notes](C:/notes/spec.md)`. The pure parser tests bypass that transformation and therefore miss the broken consumer chain.",
+          "suggestion": "Provide a narrowly scoped URL transformation that preserves supported file references for chip recognition while retaining safe handling of other schemes. Test these links through `MarkdownText`, including outside-provider behavior.  Ship-with-fixes: the main sidebar and viewer wiring is implemented, but file recognition still violates explicit acceptance criteria and misses supported absolute markdown links. Execution was unavailable in this review environment, so these findings are based on the supplied diff.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-10-31T21:58:54.184639+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] Findings:\n\n- Category: security / spec\n  Severity: medium\n  File: client/src/lib/viewerTarget.ts:60-66 (`parseFileRef`, `file://` branch)\n  Finding: The `file://` handler rewrites `file://server/share/a.txt` (a UNC host form) to `/server/share/a.txt`, which `isAbsolutePath` accepts — so a UNC file URL becomes a clickable chip, contradicting the spec's \"UNC stays untouched\" hygiene requirement. Same for `file://docs/a.md` becoming the absolute path `/docs/a.md`.\n  Suggestion: Reject `file://` URLs whose authority is non-empty (anything other than `file:///`), and only accept `file:///` with a drive letter or POSIX absolute path.\n\n- Category: bug\n  Severity: low\n  File: client/src/components/external/MarkdownText.tsx (`MarkdownLink`, `title={props.href}`)\n  Finding: For markdown-link chips the tooltip is the raw, still-percent-encoded href (e.g. `docs/spec%20v2.md`) rather than the decoded path the chip will open — inconsistent with the backtick chip behavior (`title` = resolved path) and mildly misleading.\n  Suggestion: Use `target.path` (already decoded by `parseFileRef`) as the default tooltip in `MarkdownLink` too.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/mission/MissionInfoPanel.tsx (`rootReady = unassigned || !projectQ.isPending`)\n  Finding: If the project query *errors*, `isPending` is false with `projectRoot` null, so every inside-project output is classified as `outside: true` and opened through the session-file route with the absolute path. It still works (the session route allows inside files), but rows are tagged \"outside project\" wrongly and the tooltip/label semantics degrade.\n  Suggestion: Treat a failed project query as not-ready (`rootReady = unassigned || projectQ.isSuccess`), keeping rows disabled rather than mislabeled.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/V6-info-sidebar-file-chips.spec.ts (image test at bottom of the \"chip re-opens…\" test)\n  Finding: The \"outside image throug […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:95\n- Finding: Unlabelled fenced code blocks can become file chips. The code renderer identifies fences only by a `language-*` class, so a fence containing just `src/a.ts` reaches `InlineCode`; trimming then recognizes it as a file. This violates the requirement that fenced code stay untouched.\n- Suggestion: Distinguish inline code from block code using the surrounding AST or a dedicated `pre` renderer. Add a test for a fenced path without a language label.\n\n- Category: spec\n- Severity: medium\n- File: client/src/lib/viewerTarget.ts:72\n- Finding: Traversal rejection applies only to relative paths. Absolute references such as `/tmp/../secret.md` and `C:\\dev\\app\\..\\secret.md` become clickable chips, despite the explicit requirement to leave traversal untouched. Depending on root matching, these can also be misclassified as project files and fail when opened.\n- Suggestion: Reject `.` and `..` path segments for both absolute and relative references before resolving the target. Test both Windows and POSIX absolute traversal.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:105\n- Finding: Absolute Windows and `file://` markdown links do not reliably reach this parser. ReactMarkdown’s default URL transformation strips unsupported schemes such as `C:` and `file:`, so `props.href` is already empty for links such as `[notes](C:/notes/spec.md)`. The pure parser tests bypass that transformation and therefore miss the broken consumer chain.\n- Suggestion: Provide a narrowly scoped URL transformation that preserves supported file references for chip recognition while retaining safe handling of other schemes. Test these links through `MarkdownText`, including outside-provider behavior.\n\nShip-with-fixes: the main sidebar and viewer wiring is implemented, but file recognition still violates explicit acceptance criteria and misses supported  […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T22:36:46.050526+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:46:30.554926+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:46:30.772210+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

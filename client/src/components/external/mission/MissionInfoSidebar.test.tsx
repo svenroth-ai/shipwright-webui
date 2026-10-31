@@ -11,7 +11,9 @@ vi.mock("../FolderTree", () => ({
   ),
 }));
 vi.mock("../SmartViewer", () => ({
-  SmartViewer: ({ path }: { path: string | null }) => <div data-testid="sv-stub">{path ?? "empty"}</div>,
+  SmartViewer: ({ path, sessionTaskId }: { path: string | null; sessionTaskId?: string }) => (
+    <div data-testid="sv-stub" data-session={sessionTaskId}>{path ?? "empty"}</div>
+  ),
 }));
 
 const JSON_HDR = { "content-type": "application/json" };
@@ -67,13 +69,47 @@ describe("MissionInfoSidebar", () => {
     await waitFor(() => expect(screen.getByTestId("env-remote-pill")).toHaveTextContent("On"));
   });
 
-  it("shows 5 outputs, Show more reveals the rest, outside-cwd file is inert", async () => {
+  it("shows 5 outputs, 'Show all N' reveals the rest; an outside-project file is a tagged, clickable row", async () => {
     mount();
     await screen.findAllByTestId("env-output");
     expect(screen.getAllByTestId("env-output")).toHaveLength(5);
+    expect(screen.getByTestId("env-outputs-count")).toHaveTextContent("8 files");
     fireEvent.click(screen.getByTestId("env-outputs-more"));
-    expect(screen.getAllByTestId("env-output")).toHaveLength(7);
-    expect(screen.getAllByTestId("env-output-inert")).toHaveLength(1);
+    expect(screen.getByTestId("env-outputs-more")).toHaveTextContent("Show less");
+    const rows = screen.getAllByTestId("env-output");
+    expect(rows).toHaveLength(8);
+    const outside = rows.filter((r) => r.getAttribute("data-outside") === "true");
+    expect(outside).toHaveLength(1);
+    expect(outside[0]).toHaveAttribute("title", "D:\\other\\x.md");
+    expect(outside[0]).toHaveTextContent("outside project");
+    expect(screen.getAllByTestId("env-output-outside")).toHaveLength(1);
+  });
+
+  it("an outside-project output opens the Viewer through the session-file scope (absolute path + task id)", async () => {
+    mount();
+    fireEvent.click(await screen.findByTestId("env-outputs-more"));
+    const outside = screen.getAllByTestId("env-output").find((r) => r.getAttribute("data-outside") === "true")!;
+    fireEvent.click(outside);
+    const sv = await screen.findByTestId("sv-stub");
+    expect(sv).toHaveTextContent("D:\\other\\x.md");
+    expect(sv).toHaveAttribute("data-session", "t1");
+  });
+
+  it("a chat file chip request opens the Viewer segment and re-opens it for the same target (new nonce)", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const target = { path: "src/a.ts", outside: false };
+    const view = (nonce: number) => (
+      <QueryClientProvider client={qc}>
+        <MissionInfoSidebar task={task} compact={false} request={{ target, nonce }} />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(view(1));
+    expect(await screen.findByTestId("sv-stub")).toHaveTextContent("src/a.ts");
+    expect(screen.getByTestId("sv-stub")).not.toHaveAttribute("data-session");
+    fireEvent.click(screen.getByTestId("mission-side-seg-info"));
+    expect(screen.queryByTestId("sv-stub")).toBeNull();
+    rerender(view(2));
+    expect(await screen.findByTestId("sv-stub")).toHaveTextContent("src/a.ts");
   });
 
   it("clicking an output opens it in the Viewer segment", async () => {
@@ -187,7 +223,7 @@ describe("MissionInfoSidebar", () => {
     expect(screen.queryByTestId("env-tokens")).toBeNull();
   });
 
-  it("an unassigned task offers only Info (no Folders/Viewer) and every output is inert", async () => {
+  it("an unassigned task offers Info + Viewer (no Folders); every output opens as a session file", async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
@@ -196,8 +232,11 @@ describe("MissionInfoSidebar", () => {
     );
     await screen.findByTestId("env-tokens");
     expect(screen.queryByTestId("mission-side-seg-folders")).toBeNull();
-    expect(screen.queryByTestId("mission-side-seg-viewer")).toBeNull();
-    expect(screen.queryAllByTestId("env-output")).toHaveLength(0);
+    expect(screen.getByTestId("mission-side-seg-viewer")).toBeInTheDocument();
+    const rows = screen.getAllByTestId("env-output");
+    expect(rows.every((r) => r.getAttribute("data-outside") === "true")).toBe(true);
+    fireEvent.click(rows[0]);
+    expect(await screen.findByTestId("sv-stub")).toHaveAttribute("data-session", "t1");
     // The empty project id keeps useProject disabled: no /projects/ request at all.
     expect(fetchMock.mock.calls.some((c) => /\/projects\/?(\?|$)/.test(String(c[0])))).toBe(false);
   });
