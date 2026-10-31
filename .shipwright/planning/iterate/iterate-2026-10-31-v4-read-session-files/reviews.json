@@ -380,18 +380,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "completed",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T14:36:57.218875+00:00",
-      "disposition": null,
+      "completed_at": "2026-10-31T15:41:00.297609+00:00",
+      "disposition": "Stage-1 REJECTED at 3f-bis: (1) spec_impact none/behavior-preserving wrong for a new public security-boundary route (affected_frs FR-01.66, @covers tags, no spec.md/FR row); (2) access.ts forks the realpath/containment rule instead of core/path-guard.ts realPathGuard (DO-NOT #10); (3) stale SessionInfoRouterDeps.getProjectById comment says task cwd is the root. Unit held; PR left open.",
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "6c2ca859e22b9f1c66577134fb51566d6a6ccd1c"
+      "reason_code": "stage-1-rejected"
     },
     "plan_internal": {
       "review_type": "plan_internal",
