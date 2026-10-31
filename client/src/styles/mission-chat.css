@@ -44,11 +44,12 @@
 
 /* GFM tables: framed scroller, dark header (light: inset), 2px rule, zebra */
 .mc-feed-card .mc-table-wrap { margin: 0 0 var(--gap-block); overflow-x: auto; border: 1px solid var(--line-strong); border-radius: 10px; }
-.mc-feed-card .mc-table-wrap table { display: table; width: 100%; margin: 0; border-collapse: collapse; font-size: var(--fs-small); line-height: 1.5; }
+.mc-feed-card .mc-table-wrap table { display: table; width: max-content; min-width: 100%; margin: 0; border-collapse: collapse; font-size: var(--fs-small); line-height: 1.5; }
 .mc-feed-card .mc-table-wrap th, .mc-feed-card .mc-table-wrap td { border: 0; border-bottom: 1px solid var(--line); padding: 10px 14px; vertical-align: top; color: var(--body); }
 .mc-feed-card .mc-table-wrap th { background: var(--thead, var(--thead-fallback)); color: var(--ink); font-size: var(--fs-eyebrow); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; text-align: left; border-bottom: 2px solid var(--line-strong); white-space: nowrap; }
 .mc-feed-card .mc-table-wrap tr:last-child td { border-bottom: 0; }
 .mc-feed-card .mc-table-wrap tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--ink) 4%, transparent); }
+/* neutralise the generic .markdown-body tr zebra; ours is on td */
 .mc-feed-card .mc-table-wrap tr:nth-child(2n) { background: transparent; }
 
 /* tool calls: small grey lines, not boxes (13px; raw data lines keep Show more) */
