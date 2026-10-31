@@ -36,6 +36,8 @@ const REHYPE_PLUGINS = [[rehypeHighlight, { detect: true, ignoreMissing: true }]
 
 interface Props {
   text: string;
+  /** Wrap GFM tables in `.mc-table-wrap` (Mission chat only). */
+  tableWrap?: boolean;
 }
 
 // 2026-04-23 — iterate-20260423-mermaid-render-loop-fix.
@@ -86,16 +88,6 @@ const REACT_MARKDOWN_COMPONENTS = {
   p(props: { children?: ReactNode }) {
     return <p className="my-1.5 break-words">{props.children}</p>;
   },
-  // GFM tables sit in a scroll wrapper so the chat can frame/skin them
-  // (`.mc-table-wrap`, mission-chat.css) without touching other consumers.
-  table(props: { children?: ReactNode; node?: unknown }) {
-    const { node: _node, ...rest } = props;
-    return (
-      <div className="mc-table-wrap">
-        <table {...rest} />
-      </div>
-    );
-  },
   a(props: { children?: ReactNode; href?: string }) {
     return (
       <a
@@ -108,7 +100,22 @@ const REACT_MARKDOWN_COMPONENTS = {
   },
 };
 
-export function MarkdownText({ text }: Props) {
+// Opt-in (chat feed only): GFM tables sit in a scroll wrapper the chat can
+// frame/skin (`.mc-table-wrap`, mission-chat.css). Other consumers keep the
+// bare <table> DOM.
+const COMPONENTS_WITH_TABLE_WRAP = {
+  ...REACT_MARKDOWN_COMPONENTS,
+  table(props: { children?: ReactNode; node?: unknown }) {
+    const { node: _node, ...rest } = props;
+    return (
+      <div className="mc-table-wrap">
+        <table {...rest} />
+      </div>
+    );
+  },
+};
+
+export function MarkdownText({ text, tableWrap = false }: Props) {
   // Memoize the capped text so identical input produces the same string
   // reference across re-renders. capLineLengths builds a new string only
   // when lines exceed MAX_LINE_LENGTH, but the short-circuit path already
@@ -124,7 +131,7 @@ export function MarkdownText({ text }: Props) {
         // the tuple form is accepted at runtime. Cast to satisfy the
         // type-check without widening the module-level const.
         rehypePlugins={REHYPE_PLUGINS as never}
-        components={REACT_MARKDOWN_COMPONENTS}
+        components={tableWrap ? COMPONENTS_WITH_TABLE_WRAP : REACT_MARKDOWN_COMPONENTS}
       >
         {capped}
       </ReactMarkdown>

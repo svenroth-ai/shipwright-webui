@@ -60,7 +60,7 @@ export function FeedCard({
   // Local PR-review preflight (BLOCK, 2026-09-26): `displayText` alone misses
   // the case where card.text IS the whole duplicate sentence (strips to "")
   // but card.textFull carries real narration beyond it — that content must
-  // stay reachable via the expand toggle rather than disappearing along with
+  // stay visible (text now renders in full) rather than disappearing along with
   // the duplicate-only short text.
   // An answered question renders as per-question answer cards (M5): the templated
   // "input was received" sentence adds nothing there, and the legacy block is replaced.
@@ -86,7 +86,7 @@ export function FeedCard({
           safe markdown path as the rest of the transcript, never a raw <p>.
           `showText` (not bare `card.text`) additionally suppresses only the
           EXACT PR-title-duplicate sentence — see `prDuplicateText` above. */}
-      {showText && <MarkdownChunk content={displayTextFull || displayText} />}
+      {showText && <MarkdownChunk tableWrap content={displayTextFull || displayText} />}
 
       {/* card.explanation is one turn's own words beyond its headline — not
           always the card's own tool-calling turn (FR-01.68 (S), amended
@@ -101,7 +101,7 @@ export function FeedCard({
           of proportion (`remark-breaks` absent, `MarkdownText` SHARED). */}
       {card.explanation && (
         <div className="mc-feed-explanation">
-          <MarkdownChunk content={card.explanationFull || card.explanation} />
+          <MarkdownChunk tableWrap content={card.explanationFull || card.explanation} />
         </div>
       )}
 

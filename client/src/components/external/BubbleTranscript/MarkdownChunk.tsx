@@ -16,6 +16,7 @@ import { MarkdownText } from "../MarkdownText";
 
 interface Props {
   content: string;
+  tableWrap?: boolean;
 }
 
 /**
@@ -26,6 +27,6 @@ interface Props {
  * otherwise trigger for every visible bubble
  * (iterate-2026-07-23-transcript-incremental-render).
  */
-export const MarkdownChunk = memo(function MarkdownChunk({ content }: Props) {
-  return <MarkdownText text={content} />;
+export const MarkdownChunk = memo(function MarkdownChunk({ content, tableWrap }: Props) {
+  return <MarkdownText text={content} tableWrap={tableWrap} />;
 });

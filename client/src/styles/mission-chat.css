@@ -33,13 +33,14 @@
 .mc-feed-card .markdown-body { font-size: inherit; line-height: inherit; }
 .mc-feed-card .markdown-body p, .mc-feed-card p { margin: 0 0 var(--gap-block); }
 .mc-feed-card .markdown-body p:last-child, .mc-feed-card p:last-child { margin-bottom: 0; }
+.mc-feed-explanation { margin-top: var(--gap-block); }
 .mc-feed-explanation, .mc-feed-qa-answer, .mc-feed-qa-question { font-size: var(--fs-chat); }
 .mc-feed-pill, .mc-feed-qa-opt, .mc-feed-subrunner-status, .mc-feed-pr-title { font-size: var(--fs-small); }
 .mc-feed-pr-meta, .mc-feed-session-start { font-size: var(--fs-eyebrow); }
 
 /* links: light teal, underlined (dark scope sets --link; light falls back) */
-.mc-feed-card a { color: var(--link, var(--info)); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); }
-.mc-feed-card a:hover { color: var(--link-hover, var(--link, var(--info))); text-decoration-color: currentColor; }
+.mc-feed-card a { color: var(--link, var(--accent)); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 50%, transparent); }
+.mc-feed-card a:hover { color: var(--link-hover, var(--link, var(--accent))); text-decoration-color: currentColor; }
 
 /* GFM tables: framed scroller, dark header (light: inset), 2px rule, zebra */
 .mc-feed-card .mc-table-wrap { margin: 0 0 var(--gap-block); overflow-x: auto; border: 1px solid var(--line-strong); border-radius: 10px; }
@@ -52,6 +53,7 @@
 
 /* tool calls: small grey lines, not boxes (13px; raw data lines keep Show more) */
 .mc-feed-commands .mc-feed-chip, .mc-feed-chip-detail pre, .mc-feed-code pre { font-size: var(--fs-small); }
+.mc-feed-expand-btn { font-size: var(--fs-small); }
 .mc-feed-commands .mc-feed-expand-btn { margin-top: 6px; font-size: var(--fs-small); font-weight: 500; color: var(--muted); }
 .mc-feed-commands .mc-feed-expand-btn:hover { color: var(--ink); }
 .mc-feed-commands .mc-feed-chip { border: 0; background: transparent; padding: 1px 0; color: var(--muted); }
