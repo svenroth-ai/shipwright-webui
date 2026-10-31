@@ -127,6 +127,8 @@ export interface EvidenceResult {
 let scanQueue: Promise<unknown> = Promise.resolve();
 
 const SCAN_TIMEOUT_MS = 20_000;
+const MAX_PENDING_SCANS = 8;
+let pendingScans = 0;
 
 export function findSessionEvidence(
   sessionUuid: string,
@@ -134,9 +136,14 @@ export function findSessionEvidence(
   candidates: string[],
   deps: EvidenceDeps = {},
 ): Promise<EvidenceResult> {
+  // Bounded backlog: a burst of unevidenced requests must not queue unbounded full scans (fail closed, incomplete).
+  if (pendingScans >= MAX_PENDING_SCANS) return Promise.resolve({ found: new Set(), incomplete: true });
+  pendingScans++;
   const run = scanQueue.then(() => withTimeout(scanForEvidence(sessionUuid, loc, candidates, deps)));
   scanQueue = run.catch(() => undefined);
-  return run;
+  return run.finally(() => {
+    pendingScans--;
+  });
 }
 
 /** A stalled read must not hold the queue forever: give up (fail closed, incomplete) and move on. */

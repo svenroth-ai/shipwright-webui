@@ -9,7 +9,7 @@
  * text types with NUL bytes answer 415 like any other binary.
  *
  *   400 invalid_path | path_required | path_traversal | not_a_file | project_path_unavailable
- *   403 path_not_evidenced    404 task_not_found | not_found
+ *   403 path_not_evidenced | sensitive_location    404 task_not_found | not_found
  *   413 file_too_large        415 binary_not_previewable    500 file_read_failed
  */
 

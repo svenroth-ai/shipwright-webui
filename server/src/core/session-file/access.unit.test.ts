@@ -76,11 +76,47 @@ describe("decideSessionFileAccess - project scope uses the shared realPathGuard"
   });
 
   // @covers FR-01.66
-  it("a missing project file is 404 and so is a dangling link", async () => {
+  it("a missing project file is 404; a dangling link or one leading out never reveals what exists beyond the project", async () => {
     expect(await decide("nope.md")).toMatchObject({ ok: false, status: 404 });
-    if (link(path.join(out, "gone.txt"), path.join(root, "dangling"), "file")) {
-      expect(await decide("dangling")).toMatchObject({ ok: false, status: 404 });
+    // Junction to a directory that is then removed (works without symlink privilege).
+    const gone = mk("sf-acc-gone-");
+    if (link(gone, path.join(root, "dangling"), "dir")) {
+      rmSync(gone, { recursive: true, force: true });
+      expect(await decide(path.join("dangling", "x.txt"))).toMatchObject({ ok: false, status: 400, detail: "symlink_escape" });
     }
+    // Through a link leaving the project: an existing and a non-existing target answer identically.
+    if (link(out, path.join(root, "lk"), "dir")) {
+      const a = await decide(path.join("lk", "secret.txt"));
+      const b = await decide(path.join("lk", "does-not-exist.txt"));
+      expect(a).toMatchObject({ ok: false, status: 400, detail: "symlink_escape" });
+      expect(b).toEqual(a);
+    }
+  });
+
+  // @covers FR-01.66
+  it("project .git/config is refused (may carry a token); other .git files stay ordinary", async () => {
+    mkdirSync(path.join(root, ".git"));
+    writeFileSync(path.join(root, ".git", "config"), "[remote]");
+    writeFileSync(path.join(root, ".git", "HEAD.md"), "ref");
+    expect(await decide(path.join(".git", "config"))).toMatchObject({ ok: false, status: 403, error: "sensitive_location" });
+    expect(await decide(path.join(".git", "HEAD.md"))).toMatchObject({ ok: true });
+  });
+
+  // @covers FR-01.66
+  it.runIf(process.platform === "win32")("Windows: alternate spellings of a credential dir are judged by the canonical name", async () => {
+    mkdirSync(path.join(root, ".ssh"));
+    writeFileSync(path.join(root, ".ssh", "config.txt"), "h");
+    for (const spelling of [".SSH", ".ssh.", ".ssh "]) {
+      const r = await decide(path.join(spelling, "config.txt"));
+      expect(r.ok === false && (r.error === "sensitive_location" || r.status === 404 || r.status === 400), spelling).toBe(true);
+    }
+    expect(await decide(path.join(".SSH", "config.txt"))).toMatchObject({ ok: false, status: 403, error: "sensitive_location" });
+  });
+
+  // @covers FR-01.66
+  it.runIf(process.platform === "win32")("Windows: wrong filename case or lowercase drive resolves to the canonical file", async () => {
+    const r = await decide(path.join(root.slice(0, 1).toLowerCase() + root.slice(1), "IN.md"));
+    expect(r).toEqual({ ok: true, absolute: path.join(root, "in.md"), scope: "project" });
   });
 
   // @covers FR-01.66

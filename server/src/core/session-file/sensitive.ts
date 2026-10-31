@@ -39,6 +39,8 @@ export function isSensitivePath(p: string, scope: Scope = "outside"): boolean {
   const dirs = parts.slice(0, -1);
   if (base.startsWith(".env") || base.endsWith(".env")) return true;
   if (KEY_NAME.test(base)) return true;
+  // .git/config can carry a token in a remote URL or an extraheader; the rest of .git stays ordinary in project scope.
+  if (scope === "project" && base === "config" && dirs[dirs.length - 1] === ".git") return true;
   if ((scope === "project" ? PROJECT_NAMES : OUTSIDE_NAMES).has(base)) return true;
   if (dirs.some((seg) => (scope === "project" ? PROJECT_DIRS : OUTSIDE_DIRS).has(seg))) return true;
   // Claude's own settings carry env blocks with API keys.

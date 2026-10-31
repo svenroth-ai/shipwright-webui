@@ -204,6 +204,12 @@ describe("GET /api/external/tasks/:id/session-file", () => {
   });
 
   // @covers FR-01.66
+  it.runIf(process.platform === "win32")("Windows: a wrongly-cased project file name and a lowercase drive letter are served (200), not 400", async () => {
+    expect((await get("IN.md")).status).toBe(200);
+    expect((await get(path.join(fx.proj.slice(0, 1).toLowerCase() + fx.proj.slice(1), "in.md"))).status).toBe(200);
+  });
+
+  // @covers FR-01.66
   it.runIf(process.platform === "win32")("Windows evidence is case- and slash-insensitive", async () => {
     session(say(1, path.join(fx.out, "a.txt").toUpperCase().replaceAll(BS, "/")));
     expect((await get(path.join(fx.out, "a.txt"))).status).toBe(200);

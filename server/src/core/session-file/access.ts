@@ -13,7 +13,7 @@
  * path answers 403 whether or not it exists). No directory is ever served.
  */
 
-import { realpath } from "node:fs/promises";
+import { lstat, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import { pathGuard, realPathGuard } from "../path-guard.js";
@@ -47,6 +47,27 @@ function containingRoot(roots: string[], abs: string): string | undefined {
   return roots.find((r) => pathGuard(r, path.relative(path.resolve(r), abs)).ok);
 }
 
+/**
+ * The guard folds "missing" into symlink_escape. 404 only when the deepest EXISTING ancestor still lies inside the
+ * root; a path that hops out through a link answers 400 whether or not its target exists (no existence oracle
+ * outside the project, not even through a dangling link).
+ */
+async function classifyProjectMiss(root: string, realRoot: string, absolute: string): Promise<AccessDecision> {
+  let probe = absolute;
+  for (;;) {
+    try {
+      const real = await realpath(probe);
+      return realPathGuard(root, real, realRoot).ok ? deny(404, "not_found") : deny(400, "path_traversal", "symlink_escape");
+    } catch (err) {
+      // A dangling link (leaf or ancestor) points somewhere we must not describe: treat it as an escape.
+      if (await lstat(probe).then((st) => st.isSymbolicLink(), () => false)) return deny(400, "path_traversal", "symlink_escape");
+      const parent = path.dirname(probe);
+      if ((err as NodeJS.ErrnoException)?.code !== "ENOENT" || parent === probe) return deny(400, "path_traversal", "symlink_escape");
+      probe = parent;
+    }
+  }
+}
+
 export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessDecision> {
   const { roots, requested } = args;
   if (!requested) return deny(400, "path_required");
@@ -75,19 +96,22 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
     } catch {
       return deny(400, "path_traversal", "symlink_escape");
     }
-    // The shared symlink-aware guard (DO-NOT #10, not a re-implementation). It returns the very resolution we
-    // serve, validated against the same realRoot used below (no second realpath that could see a swapped link).
-    const real = realPathGuard(root, absolute, realRoot);
-    if (!real.ok) {
-      // The guard folds "missing" into symlink_escape; only a path that does not exist at all is a 404.
-      return (await realpath(absolute).then(() => false, (err: NodeJS.ErrnoException) => err?.code === "ENOENT"))
-        ? deny(404, "not_found")
-        : deny(400, "path_traversal", "symlink_escape");
+    // The shared symlink-aware guard (DO-NOT #10, not a re-implementation), validated against the same realRoot.
+    if (!realPathGuard(root, absolute, realRoot).ok) return classifyProjectMiss(root, realRoot, absolute);
+    // realPathGuard resolves with the JS realpath (keeps input casing / 8.3 names); safe-read compares against the
+    // NATIVE one. Serve - and run the credential denylist on - the native canonical name, and re-apply the shared
+    // guard to it, so every spelling of a file (case, 8.3, trailing dot) is judged as the file it really is.
+    let canon: string;
+    try {
+      canon = await realpath(absolute);
+    } catch {
+      return classifyProjectMiss(root, realRoot, absolute);
     }
+    if (!realPathGuard(root, canon, realRoot).ok) return deny(400, "path_traversal", "symlink_escape");
     // Unmistakable secret names stay refused even inside a (possibly broad) project root; ordinary project files are untouched.
-    const relInRoot = path.relative(realRoot, real.absolute);
+    const relInRoot = path.relative(realRoot, canon);
     if (relInRoot !== "" && isSensitivePath(relInRoot, "project")) return deny(403, "sensitive_location");
-    return { ok: true, absolute: real.absolute, scope: "project" };
+    return { ok: true, absolute: canon, scope: "project" };
   }
 
   // Outside every root: session evidence required. Sensitive locations never qualify.
