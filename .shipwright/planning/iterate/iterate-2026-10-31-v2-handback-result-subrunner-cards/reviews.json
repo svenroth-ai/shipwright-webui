@@ -133,94 +133,111 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 7,
+      "findings_count": 4,
       "findings": [
         {
           "severity": "medium",
-          "category": "bug",
+          "category": "performance",
+          "file": "client/src/lib/missionActivityFeedText.ts",
+          "line": 186,
+          "finding": "explanationExcerpt still used a trailing-whitespace regex replace (quadratic on a long whitespace run inside one line); hand-backs feed it uncapped input. FIXED after the review in 644e4dad: trimEnd() plus a 200k-space regression test (the reviewer's own prescribed fix; delta is one line + test).",
+          "suggestion": "trimEnd()",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
           "file": "client/src/external/parsers/handback.ts",
-          "line": null,
-          "finding": "Hand-back detection matched the marker/envelope anywhere in the text, so a human message quoting them would be mislabelled and its leading text dropped. FIXED: all fingerprints anchored to the record start; regression tests added.",
-          "suggestion": "Anchor to start.",
+          "line": 141,
+          "finding": "An unclosed <agent-message> followed by the 'That other Claude session' trailer leaves the trailer in the card.",
+          "suggestion": "Mirror fromCrossSession. Accepted as follow-up.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
-          "category": "bug",
+          "category": "correctness",
           "file": "client/src/external/parsers/handback.ts",
-          "line": null,
-          "finding": "origin 'subagent' whenever the marker appears anywhere. FIXED: only when the marker opens the body.",
-          "suggestion": null,
+          "line": 55,
+          "finding": "stripTrailer cuts at the earliest of the two trailer starts; a report quoting one trailer phrase mid-body loses its tail in header-only/unclosed shapes.",
+          "suggestion": "Cut at the nearest-to-end start. Accepted as follow-up.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
-          "category": "regression",
-          "file": "client/src/components/external/mission/RunResultCard.tsx",
-          "line": null,
-          "finding": "Delivery pill always ok/green regardless of merge state. FIXED: merged=ok else warn; no PR uses the card status.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "regression",
-          "file": "client/src/components/external/mission/RunResultCard.tsx",
-          "line": null,
-          "finding": "PR number was not linked once folded. FIXED: rendered as an https link when prUrl is set.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "bug",
-          "file": "client/src/lib/missionActivityFeedResult.ts",
-          "line": null,
-          "finding": "An earlier superseded test card was folded next to the latest. FIXED: only the latest card per artifact folds.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/lib/missionActivityFeedHandback.ts",
-          "line": null,
-          "finding": "Variable named bounded with Infinity limits. FIXED: renamed and commented.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "bug",
-          "file": "client/src/components/external/mission/MissionActivityFeed.tsx",
-          "line": null,
-          "finding": "data-switch compared against the previous raw card, not the previous rendered entry. FIXED.",
-          "suggestion": null,
+          "category": "security",
+          "file": "client/src/external/parsers/handback.ts",
+          "line": 107,
+          "finding": "from-name regex runs over the whole attribute string so an earlier attribute value could be read as a name (harness-written; display only).",
+          "suggestion": "Walk attributes. Accepted as follow-up.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T21:57:20.208113+00:00",
+      "completed_at": "2026-10-31T22:54:21.632207+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "285268d936baae57f3186fb7445c094ec7783431"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/missionActivityFeedText.ts:186",
+          "line": null,
+          "finding": "Claim under doubt: A hostile 2 MB record cannot freeze the page. — explanationExcerpt(...) in client/src/lib/missionActivityFeedText.ts:186 uses a trailing-whitespace regex replace per line (quadratic on a long whitespace run). ADDRESSED IN WRITING: pre-existing helper already fed unbounded subrunner reports, human replies and assistant prose before V2; V2 adds no new reachability class. FIXED afterwards in 644e4dad (trimEnd plus a 200k-space test).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling (semantic merge with V6)",
+          "file": "client/src/components/external/HandbackCard.tsx:77",
+          "line": null,
+          "finding": "Claim under doubt: Hand-back text through the chip-enabled MarkdownText is safe. — Inside MissionBody's FileOpenContext, paths in a peer session's hand-back become file chips that resolve against this task's cwd. ADDRESSED IN WRITING: nothing runs without a click, the viewer is read-only, the V4 evidence gate still applies server-side, the tooltip shows the full path, and peer text is trusted like assistant text (V6 accepted the same reach). Follow-up: switch chips off for origin 'session'.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract (false positive)",
+          "file": "client/src/external/parsers/handback.ts",
+          "line": null,
+          "finding": "Claim under doubt: A human message stays a user bubble. — A free-form human sentence that STARTS with 'Another Claude session sent a message' is reclassified. ADDRESSED: accepted as a documented consequence of the anchored fingerprint (AC1 deviation); real harness records always carry the exact header line. Follow-up: require the exact header line.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "state honesty",
+          "file": "client/src/lib/missionActivityFeedHandback.ts:15",
+          "line": null,
+          "finding": "Claim under doubt: The subrunner pill is honest next to its hand-back. — A hand-back without a task-notification could sit under a Running row. ADDRESSED: real transcripts show the notification follows the hand-back within the same delivery; the row resolves on it. Follow-up if a counter-example appears.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "peer-supplied display strings",
+          "file": "client/src/components/external/HandbackCard.tsx:63",
+          "line": null,
+          "finding": "Claim under doubt: Peer strings are fully sanitised. — Sender chip is the raw from attribute sliced to 8 chars; zero-width characters in from-name not stripped. ADDRESSED: React text only, no markup injection; display-spoofing only. Follow-up: restrict sender charset and strip zero-width characters.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-10-31T21:57:03.007198+00:00",
-      "disposition": "Stage 3 not triggered: render-layer client change, no migration, async, concurrency, cross-plugin or irreversible operation",
-      "recorded_by": "none",
+      "completed_at": "2026-10-31T22:54:21.842109+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -317,14 +334,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T21:50:35.209976+00:00",
+      "completed_at": "2026-10-31T22:54:21.436434+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "285268d936baae57f3186fb7445c094ec7783431"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
