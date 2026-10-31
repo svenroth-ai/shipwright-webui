@@ -1,0 +1,72 @@
+{
+  "run_id": "iterate-2026-10-31-smartviewer-html-hardening",
+  "date": "2026-10-31T14:21:20.044177Z",
+  "event_at": "2026-10-30T18:27:02.293069+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/smartviewer-html-hardening",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-31-smartviewer-html-hardening",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A relative <link rel=stylesheet> of an .html file is applied in a real browser, in the inline pane AND the pop-out modal; the modal shows no nested pop-out",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/smartviewer-html-render.spec.ts 'applies a relative stylesheet and offers a pop-out' PASSED (and verified RED on the pre-#551 code)"
+      },
+      {
+        "behavior": "Only .css files are ever fetched and never from a dot segment (.env, .git/, .hidden/) - a scripted opened page cannot read other project files via rel=stylesheet",
+        "disposition": "tested",
+        "evidence": "htmlInlineStyles.test.ts 'only ever fetches .css files, never dotfiles or dot directories' PASSED"
+      },
+      {
+        "behavior": "Link-shaped text in comments / script / textarea is never rewritten; an unclosed raw-text element masks the rest; masking is linear on 1 MB of unclosed openers (no ReDoS); <style-guide> is not a raw-text opener",
+        "disposition": "tested",
+        "evidence": "htmlInlineStyles.test.ts 'never rewrites link-shaped text', 'unclosed raw-text element', 'stays linear on 1 MB', 'does not treat <style-guide>' PASSED"
+      },
+      {
+        "behavior": "media is preserved on the inlined <style>; alternate/disabled stylesheets are left untouched; at most MAX_LINKS inlined; a '>' inside an attribute does not end the tag",
+        "disposition": "tested",
+        "evidence": "htmlInlineStyles.test.ts 'keeps media...', 'inlines at most MAX_LINKS', 'is quote-aware' PASSED"
+      },
+      {
+        "behavior": "A stalled or failing stylesheet request leaves the original <link> in place (no endless Loading); </style breakout escaped; traversal/root-absolute hrefs clamp to the project root",
+        "disposition": "tested",
+        "evidence": "htmlInlineStyles.test.ts 'leaves the link in place when a stylesheet request stalls', 'cannot be broken out of', 'clamps traversal' PASSED"
+      },
+      {
+        "behavior": "The iframe is held until inlining finishes (one load), never shows another project's or file's styles, keeps the previous frame while only text of the same file changes, falls back to raw html on failure",
+        "disposition": "tested",
+        "evidence": "HtmlRenderer.test.tsx 'holds the iframe...', 'falls back...', 'does not reuse...', 'does not show another project's styles', 'keeps the previous frame' PASSED"
+      },
+      {
+        "behavior": "HTML files get a Pop out button (outside the tablist) that opens the shared modal; absent when onPopOut is omitted",
+        "disposition": "tested",
+        "evidence": "HtmlRenderer.test.tsx 'shows a pop-out button only when onPopOut is given', 'keeps the pop-out button outside the tablist' PASSED + smartviewer-popout-modal.spec.ts PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 0,
+      "untested_testable": 0
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/smartviewer-html-render.spec.ts client/e2e/flows/smartviewer-popout-modal.spec.ts client/e2e/flows/smartviewer-document-render.spec.ts",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": ".shipwright/runs/iterate-2026-10-31-smartviewer-html-hardening/surface_verification.log",
+    "timestamp": "2026-10-31T14:17:54.486Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/components/external/SmartViewer/HtmlRenderer.tsx:75\n- Finding: The cached result and readiness check omit `projectId`. Switching projects while keeping the same HTML text and path immediately renders the previous project\u2019s CSS until the new fetch finishes. This also runs the page\u2019s scripts again when the replacement arrives, violating the requirement to hold the iframe until inlining completes.\n- Suggestion: Include `projectId` in the cached result and readiness comparison.\n\n- Category: regression\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineStyles.ts:47\n- Finding: Replacing every stylesheet link with a bare `<style>` discards its loading conditions. For example, `<link rel=\"stylesheet\" media=\"print\" href=\"print.css\">` now applies print styles to the screen preview. Disabled and alternate stylesheets can likewise become active.\n- Suggestion: Preserve applicable attributes such as `media`, and leave disabled or alternate stylesheets untouched unless their activation behavior is explicitly supported.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineStyles.ts:40\n- Finding: The regex scans raw HTML, including JavaScript strings and comments. A script containing `const template = '<link rel=\"stylesheet\" href=\"mockup.css\">';` is rewritten too; multiline fetched CSS can turn that valid JavaScript string into a syntax error and break the page.\n- Suggestion: Identify actual link elements with an HTML parser or tokenizer that respects raw-text elements and comments. Add a regression test containing a link-shaped string inside a script.\n\nOverall assessment: ship-with-fixes. The diff implements the basic stylesheet and pop-out flows, but cache identity and HTML replacement behavior need correction before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "Overall this diff is solid: the sandbox and CSP are untouched, the `</style` breakout is escaped and tested, traversal is clamped via `resolveDocPath`, and the tests exercise real behavior (holding the iframe, fallback on failure, cache invalidation) rather than just calling the function.\n\nFindings:\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/SmartViewer/htmlInlineStyles.ts:50 (`css.replace(/<\\/style/gi, \"<\\\\/style\")`)\n  Finding: The escape writes a literal backslash into the CSS (`<\\/style`). This is a valid CSS escape for `/`, so rendering is unaffected, but only the literal sequence `</style` (case-insensitive) is escaped. That is actually the only string that terminates a `<style>` element in HTML parsing, so it is safe \u2014 however, if the CSS also contains `<!--`/`-->` in certain script-adjacent positions inside `<style>`, legacy parsing quirks exist in some engines. In practice the injected CSP (`script-src 'unsafe-inline'` is scoped to the srcdoc's own CSP) plus opaque origin makes this non-exploitable; noting only so the assumption is deliberate.\n  Suggestion: None required; optionally also escape `<!--` in CSS as defense-in-depth.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/SmartViewer/htmlInlineStyles.ts:24 (`/<link\\b[^>]*>/gi`)\n  Finding: A `<link>` tag whose attribute value contains `>` (e.g. `href=\"a>b.css\"`) is truncated at the first `>`, so the href won't match and the link is left as-is \u2014 a graceful fallback, not a bug. But a truncated match could theoretically still expose a *partial* href that resolves inside the project, which is still path-clamped. No exploit path.\n  Suggestion: None needed; the failure mode is \"leave unstyled.\"\n\n- Category: bug\n  Severity: low\n  File: client/src/components/external/SmartViewer/HtmlRenderer.tsx:60-74 (useEffect)\n  Finding: When `text` changes, the effect refetches even if the link tags are identical (no memoization on the extracted hrefs). In StrictMode the effect also runs twice, doubling fetches. This is a performance nit, not a correctness issue \u2014 `ready` correctly gates on `inlined.source === text && inlined.path === path`, so no stale render is possible.\n  Suggestion: Optionally key the effect on the extracted link hrefs rather than raw `text` to avoid refetching on unrelated edits.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/smartviewer-html-render.spec.ts:44\n  Finding: The route glob `**/api/external/projects/**/file**` also intercepts the initial HTML file fetch, which is intended, but the test doesn't assert that the CSS request went through the project-file API with a clamped path \u2014 the unit tests cover that, so coverage is adequate overall.\n  Suggestion: None.\n\nRegression risk: `HtmlRenderer`'s new props are all optional and default behavior (no projectId/path) matches the old path exactly; `smart-viewer-popout` testid is shared with markdown, and the modal condition now includes html \u2014 no removed exports (`buildHtmlSrcDoc` retained). Callers are safe.\n\nOverall: ship-as-is; the only findings are low-severity hardening/refinement notes, and spec acceptance criteria (inline + hold iframe, pop-out, sandbox/CSP unchanged, breakout prevention, root confinement) are all implemented and genuinely tested.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-31-smartviewer-html-hardening",
+    "at": "2026-10-31T14:11:55.846329+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}
