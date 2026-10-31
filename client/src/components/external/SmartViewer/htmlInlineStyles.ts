@@ -15,16 +15,19 @@ import { resolveDocPath } from "./useDocNavigation";
 const LINK_TAG = /<link\b[^>]*>/gi;
 const ABSOLUTE_HREF = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
 
-function attr(tag: string, name: string): string | null {
-  const m = new RegExp(`(?:^|\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
+const REL_ATTR = /(?:^|\s)rel\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+const HREF_ATTR = /(?:^|\s)href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i;
+
+function attr(tag: string, re: RegExp): string | null {
+  const m = re.exec(tag);
   return m ? (m[1] ?? m[2] ?? m[3] ?? "") : null;
 }
 
 /** Relative stylesheet href of a `<link>` tag, or null when it is not one. */
 function relativeStylesheetHref(tag: string): string | null {
-  const rel = attr(tag, "rel");
+  const rel = attr(tag, REL_ATTR);
   if (!rel || !/\bstylesheet\b/i.test(rel)) return null;
-  const href = attr(tag, "href")?.trim();
+  const href = attr(tag, HREF_ATTR)?.trim();
   if (!href || ABSOLUTE_HREF.test(href)) return null;
   return href.split(/[?#]/)[0] || null;
 }
