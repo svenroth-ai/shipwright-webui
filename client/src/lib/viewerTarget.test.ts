@@ -44,6 +44,7 @@ describe("parseFileRef", () => {
   });
 });
 
+// @covers FR-01.66
 describe("resolveViewerTarget", () => {
   it("absolute path under the project root becomes a root-relative project path", () => {
     expect(resolveViewerTarget({ path: "c:\\dev\\app\\src\\a.ts" }, ROOT)).toEqual({ path: "src/a.ts", outside: false });

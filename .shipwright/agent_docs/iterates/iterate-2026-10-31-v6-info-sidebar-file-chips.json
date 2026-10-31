@@ -1,0 +1,71 @@
+{
+  "run_id": "iterate-2026-10-31-v6-info-sidebar-file-chips",
+  "date": "2026-10-31T22:00:06.423535Z",
+  "event_at": "2026-10-31T21:59:46.972761+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-mission-desktop-style-v2--V6",
+  "spec": ".shipwright/planning/iterate/campaigns/mission-desktop-style-v2/sub-iterates/V6-info-sidebar-file-chips.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-10-31-v6-info-sidebar-file-chips",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "chat file paths (backtick/link, abs/rel, :line) become mc-file chips; URLs, traversal, UNC, fenced code do not",
+        "disposition": "tested",
+        "evidence": "viewerTarget.test.ts + FileChip.test.tsx PASSED"
+      },
+      {
+        "behavior": "Outputs rows are full-width clickable and open inside AND outside files in the Smart Viewer with the outside tag",
+        "disposition": "tested",
+        "evidence": "MissionInfoSidebar.test.tsx + e2e V6 spec test 2 PASSED"
+      },
+      {
+        "behavior": "Smart Viewer shows Outside project header, full path and Copy path for outside files, served via the session route",
+        "disposition": "tested",
+        "evidence": "FileChip.test.tsx SmartViewer outside + e2e V6 spec test 3 PASSED"
+      },
+      {
+        "behavior": "chip request is task-scoped and reopens the viewer from a collapsed sidebar",
+        "disposition": "tested",
+        "evidence": "useMissionFileOpen.test.tsx + e2e V6 spec test 4 PASSED"
+      },
+      {
+        "behavior": "unevidenced outside file stays 403",
+        "disposition": "tested",
+        "evidence": "e2e V6 spec test 5 PASSED"
+      },
+      {
+        "behavior": "info sidebar is three cards with one heading step and 38/40px rows",
+        "disposition": "tested",
+        "category": "integration",
+        "evidence": "mission-sidebar.test.ts class fence + e2e V6 spec test 1 PASSED"
+      }
+    ],
+    "counts": {
+      "testable": 6,
+      "tested": 6,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 8,
+      "covered_acs": 8
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/V6-info-sidebar-file-chips.spec.ts e2e/flows/M3-mission-info-sidebar.spec.ts",
+    "exit_code": 0,
+    "tests_run": 11,
+    "evidence_path": ".shipwright/runs/iterate-2026-10-31-v6-info-sidebar-file-chips/surface_verification.log",
+    "timestamp": "2026-10-31T22:30:00Z"
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

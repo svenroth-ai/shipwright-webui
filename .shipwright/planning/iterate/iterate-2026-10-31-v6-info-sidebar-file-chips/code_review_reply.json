@@ -1,0 +1,6 @@
+{"section":"V6","verdict":"PASS","review":[
+{"severity":"low","category":"correctness","finding":"A stale chip request can replay when returning to a previously visited task (MissionBody has no key); reopens last file and uncollapses sidebar.","suggestion":"Clear asked on task change or skip repeated nonces."},
+{"severity":"low","category":"correctness","finding":"Chat chips have no project-still-loading guard; absolute inside-project paths may open as outside until the project loads.","suggestion":"Expose a ready flag."},
+{"severity":"low","category":"architecture","finding":"fetchTextFile.ts and externalApi.ts import each other (call-time use only).","suggestion":"Move shared symbols to a leaf module."},
+{"severity":"low","category":"readability","finding":"Focus returns to the Agents window opener after a chip click closes it.","suggestion":"Acceptable."}
+]}

@@ -82,6 +82,7 @@ describe("chat file chips (MarkdownText + FileOpenContext)", () => {
   });
 });
 
+// @covers FR-01.66
 describe("SmartViewer for a file outside the project", () => {
   beforeEach(() => {
     vi.stubGlobal(
