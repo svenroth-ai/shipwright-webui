@@ -78,7 +78,8 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
   // UNC / device namespaces would reach network shares and raw devices.
   if (process.platform === "win32" && /^[/\x5c]{2}/.test(requested)) return deny(400, "invalid_path", "unc_or_device");
   // A foreign drive-letter path is meaningless on a POSIX host (it would resolve as a relative name).
-  if (process.platform !== "win32" && path.win32.isAbsolute(requested)) return deny(400, "invalid_path", "foreign_absolute");
+  // (path.win32.isAbsolute is true for "/tmp/x" too, so match the drive-letter form explicitly.)
+  if (process.platform !== "win32" && /^[A-Za-z]:/.test(requested)) return deny(400, "invalid_path", "foreign_absolute");
 
   // Windows device names would make realpath/CreateFileW touch the device itself.
   if (process.platform === "win32" && WIN_DEVICE.test(path.win32.basename(requested.replaceAll("/", BACKSLASH)))) {
