@@ -15,6 +15,7 @@ describe("HandbackCard (V2)", () => {
     expect(screen.getByText(HANDBACK_NOTICE)).toHaveTextContent("Reply from a subagent, not a message from you.");
   });
 
+  // @covers FR-01.66
   it("labels another session distinctly and makes the chip a button only when openable", async () => {
     const open = vi.fn();
     const { rerender } = render(<HandbackCard origin="session" sender="a20d8407c7" text="hi" />);
@@ -25,6 +26,7 @@ describe("HandbackCard (V2)", () => {
     expect(open).toHaveBeenCalledWith("a20d8407c7");
   });
 
+  // @covers FR-01.66
   it("BubbleTranscript renders a handback event as the card, not a user bubble", () => {
     const event = { kind: "handback" as const, sender: "abc12345678", origin: "subagent" as const, text: "All done." };
     render(<TranscriptRow entry={event} previous={null} resolved={new Set()} toolResultsById={new Map()} visibleToolUseIds={new Set()} allToolUses={[]} isLatest={false} />);

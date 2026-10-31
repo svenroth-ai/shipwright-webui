@@ -187,6 +187,7 @@ describe("FeedCard — card.explanation renders as markdown (reported: a turn's 
 
 // iterate-2026-09-26-mission-tab-subrunner — item 3's primary UI surface.
 describe("FeedCard — subrunner card rendering", () => {
+  // @covers FR-01.66
   it("running: shows the pulsing-dot indicator, no report link", () => {
     renderCard({ kind: "subrunner", text: "Investigate the auth bug", commands: [], subrunnerId: "t1", subrunnerStatus: "running" });
     expect(screen.getByText(/Subagent · running/)).toBeInTheDocument();

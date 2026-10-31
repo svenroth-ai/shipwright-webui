@@ -1,0 +1,12 @@
+{
+  "section": "code-review",
+  "review": [
+    {"severity": "medium", "file": "client/src/external/parsers/handback.ts", "category": "bug", "finding": "Hand-back detection matched the marker/envelope anywhere in the text, so a human message quoting them would be mislabelled and its leading text dropped. FIXED: all fingerprints anchored to the record start; regression tests added.", "suggestion": "Anchor to start."},
+    {"severity": "low", "file": "client/src/external/parsers/handback.ts", "category": "bug", "finding": "origin 'subagent' whenever the marker appears anywhere. FIXED: only when the marker opens the body."},
+    {"severity": "low", "file": "client/src/components/external/mission/RunResultCard.tsx", "category": "regression", "finding": "Delivery pill always ok/green regardless of merge state. FIXED: merged=ok else warn; no PR uses the card status."},
+    {"severity": "low", "file": "client/src/components/external/mission/RunResultCard.tsx", "category": "regression", "finding": "PR number was not linked once folded. FIXED: rendered as an https link when prUrl is set."},
+    {"severity": "low", "file": "client/src/lib/missionActivityFeedResult.ts", "category": "bug", "finding": "An earlier superseded test card was folded next to the latest. FIXED: only the latest card per artifact folds."},
+    {"severity": "low", "file": "client/src/lib/missionActivityFeedHandback.ts", "category": "readability", "finding": "Variable named bounded with Infinity limits. FIXED: renamed and commented."},
+    {"severity": "low", "file": "client/src/components/external/mission/MissionActivityFeed.tsx", "category": "bug", "finding": "data-switch compared against the previous raw card, not the previous rendered entry. FIXED."}
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "run_id": "iterate-2026-10-31-v2-handback-result-subrunner-cards",
+  "date": "2026-10-31T21:58:41.174848Z",
+  "event_at": "2026-10-31T21:58:29.609962+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "keyword",
+  "branch": "iterate/campaign-mission-desktop-style-v2--V2",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-10-31-v2-handback-result-subrunner-cards",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "a user-role hand-back (envelope, marker, header-only) parses to kind handback, framing and trailer dropped",
+        "disposition": "tested",
+        "evidence": "src/external/session-parser.handback.test.ts (detectHandback + parseSessionJsonl) PASSED"
+      },
+      {
+        "behavior": "tool_result content and ordinary or quoting human text never become a hand-back",
+        "disposition": "tested",
+        "evidence": "session-parser.handback.test.ts anchored-detection + tool_result cases PASSED"
+      },
+      {
+        "behavior": "feed emits a handback card (no user card), titled by its dispatch; subrunner carries type + end time",
+        "disposition": "tested",
+        "evidence": "src/lib/missionActivityFeedResult.test.ts deriveActivityFeed case PASSED"
+      },
+      {
+        "behavior": "handback card shows tag, 8-char chip (button only when openable), notice; BubbleTranscript renders it",
+        "disposition": "tested",
+        "evidence": "src/components/external/HandbackCard.test.tsx PASSED"
+      },
+      {
+        "behavior": "evidence-only cards fold into one Run result (latest per artifact, last delivery closes, narrated cards stay)",
+        "disposition": "tested",
+        "evidence": "missionActivityFeedResult.test.ts groupRunResult cases PASSED"
+      },
+      {
+        "behavior": "Run result rows: text pill + one button named after the target, commit last, accessible name Open <artifact>",
+        "disposition": "tested",
+        "evidence": "src/components/external/mission/RunResultCard.test.tsx PASSED"
+      },
+      {
+        "behavior": "subrunner row: type/duration meta in words, state pill, Report/View action",
+        "disposition": "tested",
+        "evidence": "RunResultCard.test.tsx SubrunnerRow cases PASSED"
+      },
+      {
+        "behavior": "narrator never attributes a hand-back to the human",
+        "disposition": "tested",
+        "evidence": "session-parser.handback.test.ts narrator case PASSED"
+      },
+      {
+        "behavior": "styles are token-only, >=12px, 36/44px targets, no animation, imported after mission-chat.css",
+        "disposition": "tested",
+        "evidence": "src/styles/mission-result.test.ts PASSED"
+      },
+      {
+        "behavior": "whole chain JSONL -> parser -> reducer -> DOM in a real browser",
+        "disposition": "tested",
+        "evidence": "e2e/flows/V2-mission-handback-result-subrunner.spec.ts PASSED (chromium)"
+      }
+    ],
+    "counts": {
+      "testable": 10,
+      "tested": 10,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node e2e/isolated-stack.mjs --project=chromium e2e/flows/V2-mission-handback-result-subrunner.spec.ts e2e/flows/mission-subrunner.spec.ts e2e/flows/M4-mission-agents-window.spec.ts e2e/flows/mission-artifacts-s1.spec.ts e2e/flows/mission-feed-transcript-fidelity.spec.ts",
+    "exit_code": 0,
+    "tests_run": 12,
+    "evidence_path": "playwright run output (isolated stack), 12 passed",
+    "timestamp": "2026-10-31T22:30:00Z"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_auth"
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "1. **Category:** dependency \u00b7 **Severity:** medium  \n   **Finding:** Adding `HandbackEvent` changes the parser\u2019s public event union, but the work list only explicitly updates the feed and transcript consumers. The alternative discussion identifies the narrator as another consumer; adding a kind alone does not ensure it handles that kind correctly.  \n   **Suggestion:** Audit all event-kind consumers and exhaustive switches, including the narrator. Add explicit hand-back handling and a regression test proving it is never attributed to the human.\n\n2. **Category:** edge-case \u00b7 **Severity:** medium  \n   **Finding:** The Run result grouping rules do not define boundaries or ordering. Matching evidence lines could accidentally combine results from different runs, cross an intervening question or tool output, or reorder delivery information. \u201cNothing is lost\u201d needs a concrete grouping contract.  \n   **Suggestion:** Group within an explicit run boundary and preserve source order, with commit/PR delivery last within that group. Define behaviour for duplicate targets and missing statuses. Test adjacent runs, intervening narration, partial results, and repeated evidence links.\n\n3. **Category:** risk \u00b7 **Severity:** medium  \n   **Finding:** AC1 requires dropping framing and a trailing paragraph, but does not constrain removal to recognised wrapper structure. Broad text stripping could remove legitimate report content, particularly quoted framing or reports mentioning another session. The three supported envelope formats may also provide different sender information.  \n   **Suggestion:** Parse each recognised envelope explicitly, remove only its known wrapper, and preserve ambiguous content. Use real fixtures for all three formats, missing sender metadata, multiline reports, and wrapper-like text inside the report. Preserve the specified exclusion for `tool_result` content.\n\nThe approach is sound: parser-level classification addresses shared consumers, and the UI changes fit the requested scope. Resolve the consumer audit, grouping contract, and lossless extraction rules before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n**Category: edge-case \u2014 Severity: high**\nDetection by English prose prefixes (\"Another Claude session sent a message\", \"[Subagent hand-back]\") is brittle and locale/format sensitive. Claude's framing text changes between versions; if the prefix ever changes, hand-backs silently degrade back to user bubbles \u2014 the worst failure mode, since it re-introduces the exact bug being fixed with no error surfaced.\n*Suggestion:* Add a test fixture with the *current real* framing text captured verbatim from a live session, and a defensive test asserting unknown/mutated framing still renders safely (even if as user). Consider matching on the `<agent-message from=\"...\">` tag first (structural, stable) and treating the prose prefixes as secondary fallbacks.\n\n**Category: approach \u2014 Severity: medium**\nAC3's folding rule (\"a card with narration, commands, output or a question is NOT folded\") is the riskiest UI logic in the change and is underspecified: which exact marker determines \"Open tests\" vs \"Open requirement\" vs \"Open commit\"? How do you distinguish a pure evidence line from a line that happens to contain one? Misfolding hides a link the user needs.\n*Suggestion:* Enumerate the concrete line shapes to fold in the AC (exact prefixes/regexes), and add a grouping test per shape plus a negative test (mixed card stays unfolded). Also decide explicitly: multiple evidence lines of *different* artifact types in one card \u2014 one Run result card with several rows, or several cards? AC3 implies one card; the plan's \"grouping (render-time only)\" should state it.\n\n**Category: risk \u2014 Severity: medium**\nNew `kind: \"handback\"` propagates to every parser consumer (narrator, BubbleTranscript, search, export, any analytics). The plan covers feed and TranscriptRow, but a new kind in a discriminated union typically breaks exhaustive switches elsewhere in TypeScript (good \u2014 caught at compile time) or silently falls into default branches in JS consumers (bad).\n*Suggestion:* Grep for all `switch`/`if` on the existing kind union before starting; list affected consumers in the plan so none is missed. Verify the narrator handles `handback` explicitly (e.g. \"A subagent reported back\") rather than crashing or defaulting to \"You said\".\n\n**Category: edge-case \u2014 Severity: medium**\nAC1 says \"tool_result content never triggers it\" \u2014 good \u2014 but the plan doesn't state how that's guaranteed. If the detector scans the whole record, tool_result payloads containing hand-back text (a subagent whose own transcript is echoed in a tool result) will reclassify. This is exactly the case where the agent-message tag appears in tool output.\n*Suggestion:* Scope the detector to user-role message text only, and add a negative test: the same hand-back text inside a tool_result must render as tool output, not a handback card.\n\n**Category: approach \u2014 Severity: low**\nAC5's hard line budget (842 \u2192 775) is a smell as an acceptance criterion: the right target is \"handback detection doesn't live in session-parser.ts and the file shrank\", not a specific number. Chasing 775 could pressure deletions of unrelated code under this change's banner.\n*Suggestion:* Reword AC5 as \"handback/skill-body parsing extracted to parsers/; session-parser.ts net shrinks\" \u2014 no numeric gate.\n\n**Category: edge-case \u2014 Severity: low**\nMixed/ambiguous cases: a hand-back immediately followed by actual human text in the same user record; a hand-back whose `<agent-message>` tag lacks `from`; sender hash shorter than 8 chars for the chip. None are addressed.\n*Suggestion:* Decide: unknown sender \u2192 omit chip (or \"unknown\"); human text appended after the framing \u2192 treat whole record as handback with report including the trailing text, or split. One test each.\n\n**Category: security \u2014 Severity: low**\nThe report body renders as markdown. If the hand-back content is attacker-controllable (it ultimately comes from another agent's output), confirm it goes through the same sanitized markdown renderer as other message bodies \u2014 no new raw-HTML path for the new card type.\n*Suggestion:* Reuse the existing message-body markdown component rather than a new renderer in HandbackCard.\n\n**Category: dependency \u2014 Severity: low**\n\"sender chip opens the Agents window when the agent is openable\" implies a lookup from sender hash \u2192 agent registry entry. The plan doesn't mention how that resolution happens or what happens when the agent isn't in the registry (closed/purged sessions).\n*Suggestion:* Specify the fallback (disabled/inert chip) and test it.\n\n## Overall assessment\n\nThe approach is fundamentally sound \u2014 fixing the parser kind rather than the feed reducer is the right call, and the extraction from the bloated parser is justified. The main revisions needed are tightening the detector's failure modes (verbatim fixtures, tool_result scoping, unknown-sender fallbacks) and fully specifying the folding rules for the Run result card before implementation.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v2-handback-result-subrunner-cards",
+    "at": "2026-10-31T21:45:02.873023+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

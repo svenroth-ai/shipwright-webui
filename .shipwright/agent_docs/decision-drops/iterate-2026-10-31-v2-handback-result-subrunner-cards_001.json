@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-10-31-v2-handback-result-subrunner-cards",
+  "date": "2026-10-31",
+  "section": "Iterate - feat: Mission hand-back card, Run result card, subrunner row (V2)",
+  "title": "Hand-back is a parser event kind; Run result is render-time grouping",
+  "context": "A subagent hand-back arrives as a user-role record and rendered as the human's own bubble; the Open-tests/requirement/... lines were five loose links; subrunners looked like evidence lines.",
+  "decision": "Classify hand-backs once in the parser (kind handback) and carry it into the feed as its own card; fold evidence-only cards into one Run result card at render time; render subagents as a distinct row with a text state pill.",
+  "consequences": "All parser consumers (feed, BubbleTranscript, narrator) stop attributing hand-backs to the human. Cards with narration, commands, output, textFull or an earlier delivery stay normal cards, so nothing is hidden.",
+  "rationale": "One parser kind fixes every consumer; grouping at render time leaves deriveActivityFeed output and its many tests untouched. session-parser.ts shrank 842 to 775 lines via extraction (skill-body, handback).",
+  "rejected": "Reclassifying only in the feed reducer (BubbleTranscript and narrator would keep the bug); changing the reducer to emit one result card (breaks every consumer of the cards).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

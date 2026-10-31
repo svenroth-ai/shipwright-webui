@@ -51,6 +51,7 @@ describe("Run result card (V2)", () => {
     expect(onArtifact).toHaveBeenCalledWith("decisions");
   });
 
+  // @covers FR-01.66
   it("every pill is text (a failing test says Failing)", () => {
     render(<MissionActivityFeed feed={{ outcome: "x", cards: [{ kind: "test", text: "", commands: [], artifact: "tests", status: "err" }] }} commitArtifact={null} task={TASK} />);
     expect(screen.getByText("Failing")).toBeInTheDocument();
@@ -71,6 +72,7 @@ describe("SubrunnerRow (V2)", () => {
     expect(open).toHaveBeenCalledWith("ag1");
   });
 
+  // @covers FR-01.66
   it("running: 'running' in words and a View action only when the agent can open", () => {
     const { rerender } = render(<SubrunnerRow card={{ ...base, subrunnerStatus: "running" }} onSubrunnerClick={vi.fn()} canOpenAgent={() => false} />);
     expect(screen.getByTestId("subrunner-row")).toHaveTextContent("running");
@@ -79,18 +81,21 @@ describe("SubrunnerRow (V2)", () => {
     expect(screen.getByRole("button")).toHaveTextContent("View");
   });
 
+  // @covers FR-01.66
   it("failed/killed say so in words", () => {
     render(<SubrunnerRow card={{ ...base, subrunnerStatus: "failed", subrunnerEndStatus: "killed", subrunnerEndedAt: "2026-10-31T10:05:00Z" }} onSubrunnerClick={vi.fn()} />);
     expect(screen.getByText(/killed after 5 min/)).toBeInTheDocument();
     expect(screen.getByTestId("subrunner-pill")).toHaveTextContent("Killed");
   });
 
+  // @covers FR-01.66
   it("an unparseable end time degrades to the bare verb (no throw, no NaN)", () => {
     render(<SubrunnerRow card={{ ...base, subrunnerStatus: "done", subrunnerEndedAt: "not-a-date" }} />);
     expect(screen.getByText("Subagent · sub-iterate-runner · finished")).toBeInTheDocument();
     expect(screen.getByTestId("subrunner-pill")).toHaveTextContent("Done");
   });
 
+  // @covers FR-01.66
   it("formatElapsed handles missing/invalid and hours", () => {
     expect(formatElapsed(undefined, "x")).toBeNull();
     expect(formatElapsed("2026-10-31T10:00:00Z", "2026-10-31T10:00:20Z")).toBe("under 1 min");

@@ -23,6 +23,7 @@ describe("groupRunResult (V2)", () => {
     expect(result.delivery?.artifact).toBe("commit");
   });
 
+  // @covers FR-01.66
   it("keeps a card with real narration/output/commands as a normal card with its own link", () => {
     const withDetail = card({ kind: "test", text: "FAIL", artifact: "tests", status: "err", detail: "1 failed" });
     const withCommands = card({ kind: "spec", text: "x", artifact: "spec", commands: ["Read: spec.md"] });
@@ -30,6 +31,7 @@ describe("groupRunResult (V2)", () => {
     expect(items.every((i) => i.type === "card")).toBe(true);
   });
 
+  // @covers FR-01.66
   it("only the LAST delivery closes the result; an earlier one and a truncated (textFull) row stay normal cards", () => {
     const items = groupRunResult([
       card({ kind: "delivery", text: "Phase done", artifact: "phase" }),
@@ -44,10 +46,12 @@ describe("groupRunResult (V2)", () => {
     expect(result.delivery?.artifact).toBe("commit");
   });
 
+  // @covers FR-01.66
   it("returns plain card items when nothing folds", () => {
     expect(groupRunResult([card({ text: "a" }), card({ text: "b" })]).map((i) => i.type)).toEqual(["card", "card"]);
   });
 
+  // @covers FR-01.66
   it("names rows and buttons after the target", () => {
     expect(resultRowTitle("requirement")).toBe("Requirements");
     expect(["tests", "requirement", "decisions", "review", "commit"].map(resultButtonLabel)).toEqual(["Tests", "Requirement", "Decision", "Review", "Commit"]);
@@ -61,6 +65,7 @@ describe("deriveActivityFeed - hand-back and subrunner metadata (V2)", () => {
   const done = ev({ type: "user", timestamp: "2026-10-31T10:44:00Z", message: { role: "user", content: "<task-notification><task-id>a798d6e7922ba0bd9</task-id><status>completed</status><summary>s</summary><result>R</result></task-notification>" } });
   const hand = ev({ type: "user", timestamp: "2026-10-31T10:44:01Z", message: { role: "user", content: "Another Claude session sent a message:\n<agent-message from=\"a798d6e7922ba0bd9\">\n[Subagent hand-back] x. The report follows:\n  All merged.\n</agent-message>" } });
 
+  // @covers FR-01.66
   it("emits a handback card (not a user card) titled by its dispatch, and records type + end time on the subrunner", () => {
     const feed = deriveActivityFeed(parseSessionJsonl([dispatch, ack, done, hand].join("\n")).events, null);
     expect(feed.cards.some((c) => c.kind === "user")).toBe(false);
@@ -72,6 +77,7 @@ describe("deriveActivityFeed - hand-back and subrunner metadata (V2)", () => {
 });
 
 describe("groupRunResult - latest per artifact", () => {
+  // @covers FR-01.66
   it("folds only the latest card per artifact; the superseded one stays where it happened", () => {
     const items = groupRunResult([
       card({ kind: "test", text: "failed", artifact: "tests", status: "err" }),

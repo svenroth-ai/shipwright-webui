@@ -1,0 +1,11 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "AC1-AC6 each covered by a test; spec-reviewer PASS in round 2."},
+    {"name": "Error Handling", "verdict": "pass", "note": "Detector returns null on non-text/oversize content; elapsed time degrades to the bare verb on bad timestamps; empty report still renders the notice card."},
+    {"name": "Security Basics", "verdict": "pass", "note": "All report/message text goes through MarkdownChunk (no raw HTML); PR link only for https URLs with noopener; read-only on the JSONL."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Real on-disk fixture shapes, negative cases (quoting human text, tool_result, mixed cards), CSS fence, real-browser E2E for all three surfaces."},
+    {"name": "Performance Basics", "verdict": "pass", "note": "Grouping is one memoised O(n) pass per feed; detector is a few string ops per user record."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "New code in small cohesive files (<110 lines); session-parser.ts shrank 842 to 775 via extraction."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "Producer: Claude CLI transcript user-role records; consumer: session-parser then feed/BubbleTranscript/narrator. Probed with real on-disk record shapes (hand-back envelope + trailer) and an E2E through the real JSONL to DOM chain."}
+  ]
+}
