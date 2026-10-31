@@ -108,7 +108,7 @@ test.describe("Mission activity feed — subrunner visibility (Sven's 2026-09-26
     const subrunner = feed.locator('[data-kind="subrunner"]');
     await expect(subrunner).toBeVisible();
     await expect(subrunner).toContainText("Run the migration script");
-    await expect(subrunner.locator(".mc-feed-subrunner-status")).toContainText("Running");
+    await expect(subrunner.locator(".mc-feed-subrunner-status")).toContainText("running");
 
     // The completion notification arrives on a LATER poll — append it to the
     // same JSONL the running card was seeded from, then wait for the reducer
@@ -138,11 +138,12 @@ test.describe("Mission activity feed — subrunner visibility (Sven's 2026-09-26
       const range = document.createRange();
       range.selectNodeContents(textNode);
       const text = range.getBoundingClientRect();
-      return { svgTop: svg.top, svgBottom: svg.bottom, svgRight: svg.right, textTop: text.top, textBottom: text.bottom, textLeft: text.left };
+      return { svgTop: svg.top, svgBottom: svg.bottom, svgLeft: svg.left, textTop: text.top, textBottom: text.bottom, textRight: text.right };
     });
     expect(rows.svgBottom).toBeGreaterThan(rows.textTop);
     expect(rows.svgTop).toBeLessThan(rows.textBottom);
-    expect(rows.textLeft).toBeGreaterThanOrEqual(rows.svgRight);
+    // V2: the chevron trails the label (Report >).
+    expect(rows.svgLeft).toBeGreaterThanOrEqual(rows.textRight - 1);
     await openReport.click();
 
     const panel = page.getByRole("dialog");

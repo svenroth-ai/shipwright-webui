@@ -54,6 +54,7 @@ export function createSubrunnerDispatchCard(
     commands: [],
     subrunnerId: toolId,
     subrunnerStatus: "running",
+    subrunnerType: typeof input?.subagent_type === "string" && input.subagent_type.trim() ? input.subagent_type.trim() : undefined,
     timestamp,
   };
 }
@@ -207,6 +208,7 @@ export function resolveSubrunnerNotification(cards: ActivityCard[], event: TaskN
   // (see above), so it is shown neutrally (not red) and a later final notification overwrites it.
   card.subrunnerStatus = event.status === "failed" || event.status === "killed" ? "failed" : "done";
   card.subrunnerEndStatus = ended ? (event.status as "killed" | "stopped") : undefined;
+  card.subrunnerEndedAt = event.timestamp;
   // Prefer the rich `<result>` report; fall back to the short `<summary>`
   // for a malformed/older envelope that carries no `<result>` at all.
   const raw = event.result || event.summary;

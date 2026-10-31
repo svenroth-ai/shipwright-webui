@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedResult.ts:39\n- Finding: Grouping removes every eligible delivery card but retains only the last one. For example, a feed containing a phase delivery followed by a commit delivery loses the phase statement and its action entirely, because both indices are folded but only the commit survives.\n- Suggestion: Preserve other delivery cards as ordinary feed items, or retain all delivery rows in the result card with the commit last.\n\n- Category: regression\n- Severity: medium\n- File: client/src/components/external/mission/RunResultCard.tsx:58\n- Finding: Result rows render only `card.text`, while grouping also accepts cards with `textFull`. Those cards lose access to their full statement: the grouped renderer has no expansion control and never renders `textFull`.\n- Suggestion: Keep cards with additional `textFull` content outside the group, or provide an expansion control that renders the full text.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/SubrunnerRow.tsx:44\n- Finding: Subrunner status is rendered as plain metadata text, with no status pill. Although the state is readable, this misses the explicit requirement that status always be a text pill.\n- Suggestion: Render the running/finished/failed/killed/stopped state in a visible text pill while retaining the type and elapsed-time metadata.\n\nShip-with-fixes. The main features are implemented, but grouping can discard content and the subrunner status treatment remains incomplete.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "### Findings\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/external/parsers/handback.ts:50-58` (`body.replace(/^ {2}/gm, \"\")`)\n  Finding: The dedent strips exactly two leading spaces from **every** line of the report, including lines inside fenced code blocks or intentionally indented content. A report containing a code sample loses its indentation and can render with wrong semantics (Python, YAML). It also only handles the 2-space harness indent; a 4-space-indented report keeps stray indentation on half the lines.\n  Suggestion: Strip the indent only from lines at the report's base indentation level, or skip dedenting inside fenced code blocks.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/lib/missionActivityFeedHandback.ts:12` (`if (!event.text.trim()) return null;`)\n  Finding: A hand-back whose report body is empty/whitespace is dropped entirely \u2014 no card, no notice. The user gets no signal that a subagent replied at all, and the spec's \"not a message from you\" guarantee silently disappears for that record.\n  Suggestion: Still emit a card with a fallback body (e.g. the notice alone, or \"Empty report\") rather than returning null.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/external/parsers/handback.ts:44-48` (header-only branch)\n  Finding: When the message starts with the header phrase but has **no** `<agent-message>` envelope, `body` is everything after the first newline \u2014 including the English trailer (`That \"other Claude session\" is an agent working inside this same session\u2026`) that the spec says must be hidden. The envelope path handles it; the header-only path doesn't.\n  Suggestion: Also trim a trailing `That \"other Claude session\"\u2026` sentence in the header-only path, or exclude text after a blank-line-separated trailer.\n\n- Category: bug\n  Severity: low\n  File: `client/src/components/external/mission/MissionActivityFeed.tsx:64` (`useAutoScroll(scrollRef, \\`${feed.cards.length}:${visible}\\`)`)\n  Finding: The auto-scroll dependency counts raw cards, but the DOM length is now `items.length` after folding. When a card transitions between evidence-only and narrated between polls (artifact reconciled away), the card count can stay constant while the folded/unfolded render changes row count \u2014 the re-pin signal is missed. Cosmetic (scroll position), not correctness of content.\n  Suggestion: Include `items.length` (or the result-group membership count) in the dependency string.\n\n- Category: test\n  Severity: low\n  File: `client/src/components/external/mission/RunResultCard.test.tsx:60-64`\n  Finding: The `formatElapsed` tests don't cover the negative-delta or invalid-end-timestamp-returning-null path through `SubrunnerRow.stateMeta` (verb with no duration), nor the `ms < 0` branch \u2014 `formatElapsed(undefined, \"x\")` only covers the missing-start case. A regression that made `stateMeta` throw on `NaN` timestamps would pass the suite.\n  Suggestion: Add a SubrunnerRow case with a non-parseable `subrunnerEndedAt` asserting the verb-only meta (e.g. \"finished\").\n\nChecked and found sound: the parser correctly refuses tool_result-only content (so quoting the fingerprint in a tool output can't reclassify a record); the bloat anti-ratchet is satisfied (session-parser.ts 842 \u2192 775, siblings extracted); the Run-result grouping is render-time only so `deriveActivityFeed` consumers keep their contract; the subrunner-status text-only requirement (never colour alone) is met and tested; no chat composer / chat-* testids are introduced. The E2E drives the real JSONL\u2192parser\u2192reducer\u2192DOM chain and asserts absence of framing text, so it would catch a naive implementation. No security issues: hand-back text flows through the same `MarkdownChunk` renderer as all other transcript markdown, no new sinks.\n\nOverall assessment: the change implements all three spec items with strong behavior-level tests; the findings are low-severity edge cases (indentation stripping, empty hand-back, trailer leakage in the header-only shape). Ship-with-fixes at most; the header-only trailer leak is the only one a user is likely to notice.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v2-handback-result-subrunner-cards",
+    "at": "2026-10-31T21:46:55.332540+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

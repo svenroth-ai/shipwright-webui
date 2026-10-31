@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-10-31-v2-handback-result-subrunner-cards",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:57:43.955864+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Add a test fixture with the current real framing text captured verbatim from a live session, and a defensive test asserting unknown/mutated framing still renders safely (even if as user). Consider matching on the `<agent-message from=\"...\">` tag first (structural, stable) and treating the prose prefixes as secondary fallbacks.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Enumerate the concrete line shapes to fold in the AC (exact prefixes/regexes), and add a grouping test per shape plus a negative test (mixed card stays unfolded). Also decide explicitly: multiple evidence lines of different artifact types in one card — one Run result card with several rows, or several cards? AC3 implies one card; the plan's \"grouping (render-time only)\" should state it.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Grep for all `switch`/`if` on the existing kind union before starting; list affected consumers in the plan so none is missed. Verify the narrator handles `handback` explicitly (e.g. \"A subagent reported back\") rather than crashing or defaulting to \"You said\".",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Scope the detector to user-role message text only, and add a negative test: the same hand-back text inside a tool_result must render as tool output, not a handback card.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Reword AC5 as \"handback/skill-body parsing extracted to parsers/; session-parser.ts net shrinks\" — no numeric gate.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Decide: unknown sender → omit chip (or \"unknown\"); human text appended after the framing → treat whole record as handback with report including the trailing text, or split. One test each.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Reuse the existing message-body markdown component rather than a new renderer in HandbackCard.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Specify the fallback (disabled/inert chip) and test it.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "Adding `HandbackEvent` changes the parser’s public event union, but the work list only explicitly updates the feed and transcript consumers. The alternative discussion identifies the narrator as another consumer; adding a kind alone does not ensure it handles that kind correctly.",
+          "suggestion": "Audit all event-kind consumers and exhaustive switches, including the narrator. Add explicit hand-back handling and a regression test proving it is never attributed to the human.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "The Run result grouping rules do not define boundaries or ordering. Matching evidence lines could accidentally combine results from different runs, cross an intervening question or tool output, or reorder delivery information. “Nothing is lost” needs a concrete grouping contract.",
+          "suggestion": "Group within an explicit run boundary and preserve source order, with commit/PR delivery last within that group. Define behaviour for duplicate targets and missing statuses. Test adjacent runs, intervening narration, partial results, and repeated evidence links.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "AC1 requires dropping framing and a trailing paragraph, but does not constrain removal to recognised wrapper structure. Broad text stripping could remove legitimate report content, particularly quoted framing or reports mentioning another session. The three supported envelope formats may also provide different sender information.",
+          "suggestion": "Parse each recognised envelope explicitly, remove only its known wrapper, and preserve ambiguous content. Use real fixtures for all three formats, missing sender metadata, multiline reports, and wrapper-like text inside the report. Preserve the specified exclusion for `tool_result` content.  The approach is sound: parser-level classification addresses shared consumers, and the UI changes fit the requested scope. Resolve the consumer audit, grouping contract, and lossless extraction rules before implementation.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-31T21:46:22.833017+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**Category: edge-case — Severity: high**\nDetection by English prose prefixes (\"Another Claude session sent a message\", \"[Subagent hand-back]\") is brittle and locale/format sensitive. Claude's framing text changes between versions; if the prefix ever changes, hand-backs silently degrade back to user bubbles — the worst failure mode, since it re-introduces the exact bug being fixed with no error surfaced.\n*Suggestion:* Add a test fixture with the *current real* framing text captured verbatim from a live session, and a defensive test asserting unknown/mutated framing still renders safely (even if as user). Consider matching on the `<agent-message from=\"...\">` tag first (structural, stable) and treating the prose prefixes as secondary fallbacks.\n\n**Category: approach — Severity: medium**\nAC3's folding rule (\"a card with narration, commands, output or a question is NOT folded\") is the riskiest UI logic in the change and is underspecified: which exact marker determines \"Open tests\" vs \"Open requirement\" vs \"Open commit\"? How do you distinguish a pure evidence line from a line that happens to contain one? Misfolding hides a link the user needs.\n*Suggestion:* Enumerate the concrete line shapes to fold in the AC (exact prefixes/regexes), and add a grouping test per shape plus a negative test (mixed card stays unfolded). Also decide explicitly: multiple evidence lines of *different* artifact types in one card — one Run result card with several rows, or several cards? AC3 implies one card; the plan's \"grouping (render-time only)\" should state it.\n\n**Category: risk — Severity: medium**\nNew `kind: \"handback\"` propagates to every parser consumer (narrator, BubbleTranscript, search, export, any analytics). The plan covers feed and TranscriptRow, but a new kind in a discriminated union typically breaks exhaustive switches elsewhere in TypeScript (good — caught at compile time) or silently falls into default branches in JS consumers (bad).\n*Suggestion:* Gre […truncated]\n\n[openai] 1. **Category:** dependency · **Severity:** medium  \n   **Finding:** Adding `HandbackEvent` changes the parser’s public event union, but the work list only explicitly updates the feed and transcript consumers. The alternative discussion identifies the narrator as another consumer; adding a kind alone does not ensure it handles that kind correctly.  \n   **Suggestion:** Audit all event-kind consumers and exhaustive switches, including the narrator. Add explicit hand-back handling and a regression test proving it is never attributed to the human.\n\n2. **Category:** edge-case · **Severity:** medium  \n   **Finding:** The Run result grouping rules do not define boundaries or ordering. Matching evidence lines could accidentally combine results from different runs, cross an intervening question or tool output, or reorder delivery information. “Nothing is lost” needs a concrete grouping contract.  \n   **Suggestion:** Group within an explicit run boundary and preserve source order, with commit/PR delivery last within that group. Define behaviour for duplicate targets and missing statuses. Test adjacent runs, intervening narration, partial results, and repeated evidence links.\n\n3. **Category:** risk · **Severity:** medium  \n   **Finding:** AC1 requires dropping framing and a trailing paragraph, but does not constrain removal to recognised wrapper structure. Broad text stripping could remove legitimate report content, particularly quoted framing or reports mentioning another session. The three supported envelope formats may also provide different sender information.  \n   **Suggestion:** Parse each recognised envelope explicitly, remove only its known wrapper, and preserve ambiguous content. Use real fixtures for all three formats, missing sender metadata, multiline reports, and wrapper-like text inside the report. Preserve the specified exclusion for `tool_result` content.\n\nThe approach is sound: parser-level classification addresses shared consumers, and the UI cha […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "performance",
+          "file": "client/src/lib/missionActivityFeedText.ts",
+          "line": 186,
+          "finding": "explanationExcerpt still used a trailing-whitespace regex replace (quadratic on a long whitespace run inside one line); hand-backs feed it uncapped input. FIXED after the review in 644e4dad: trimEnd() plus a 200k-space regression test (the reviewer's own prescribed fix; delta is one line + test).",
+          "suggestion": "trimEnd()",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/external/parsers/handback.ts",
+          "line": 141,
+          "finding": "An unclosed <agent-message> followed by the 'That other Claude session' trailer leaves the trailer in the card.",
+          "suggestion": "Mirror fromCrossSession. Accepted as follow-up.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/external/parsers/handback.ts",
+          "line": 55,
+          "finding": "stripTrailer cuts at the earliest of the two trailer starts; a report quoting one trailer phrase mid-body loses its tail in header-only/unclosed shapes.",
+          "suggestion": "Cut at the nearest-to-end start. Accepted as follow-up.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "client/src/external/parsers/handback.ts",
+          "line": 107,
+          "finding": "from-name regex runs over the whole attribute string so an earlier attribute value could be read as a name (harness-written; display only).",
+          "suggestion": "Walk attributes. Accepted as follow-up.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T22:54:21.632207+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/missionActivityFeedText.ts:186",
+          "line": null,
+          "finding": "Claim under doubt: A hostile 2 MB record cannot freeze the page. — explanationExcerpt(...) in client/src/lib/missionActivityFeedText.ts:186 uses a trailing-whitespace regex replace per line (quadratic on a long whitespace run). ADDRESSED IN WRITING: pre-existing helper already fed unbounded subrunner reports, human replies and assistant prose before V2; V2 adds no new reachability class. FIXED afterwards in 644e4dad (trimEnd plus a 200k-space test).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling (semantic merge with V6)",
+          "file": "client/src/components/external/HandbackCard.tsx:77",
+          "line": null,
+          "finding": "Claim under doubt: Hand-back text through the chip-enabled MarkdownText is safe. — Inside MissionBody's FileOpenContext, paths in a peer session's hand-back become file chips that resolve against this task's cwd. ADDRESSED IN WRITING: nothing runs without a click, the viewer is read-only, the V4 evidence gate still applies server-side, the tooltip shows the full path, and peer text is trusted like assistant text (V6 accepted the same reach). Follow-up: switch chips off for origin 'session'.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract (false positive)",
+          "file": "client/src/external/parsers/handback.ts",
+          "line": null,
+          "finding": "Claim under doubt: A human message stays a user bubble. — A free-form human sentence that STARTS with 'Another Claude session sent a message' is reclassified. ADDRESSED: accepted as a documented consequence of the anchored fingerprint (AC1 deviation); real harness records always carry the exact header line. Follow-up: require the exact header line.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "state honesty",
+          "file": "client/src/lib/missionActivityFeedHandback.ts:15",
+          "line": null,
+          "finding": "Claim under doubt: The subrunner pill is honest next to its hand-back. — A hand-back without a task-notification could sit under a Running row. ADDRESSED: real transcripts show the notification follows the hand-back within the same delivery; the row resolves on it. Follow-up if a counter-example appears.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "peer-supplied display strings",
+          "file": "client/src/components/external/HandbackCard.tsx:63",
+          "line": null,
+          "finding": "Claim under doubt: Peer strings are fully sanitised. — Sender chip is the raw from attribute sliced to 8 chars; zero-width characters in from-name not stripped. ADDRESSED: React text only, no markup injection; display-spoofing only. Follow-up: restrict sender charset and strip zero-width characters.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-10-31T22:54:21.842109+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/external/parsers/handback.ts:50-58` (`body.replace(/^ {2}/gm, \"\")`)",
+          "line": null,
+          "finding": "The dedent strips exactly two leading spaces from every line of the report, including lines inside fenced code blocks or intentionally indented content. A report containing a code sample loses its indentation and can render with wrong semantics (Python, YAML). It also only handles the 2-space harness indent; a 4-space-indented report keeps stray indentation on half the lines.",
+          "suggestion": "Strip the indent only from lines at the report's base indentation level, or skip dedenting inside fenced code blocks.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/lib/missionActivityFeedHandback.ts:12` (`if (!event.text.trim()) return null;`)",
+          "line": null,
+          "finding": "A hand-back whose report body is empty/whitespace is dropped entirely — no card, no notice. The user gets no signal that a subagent replied at all, and the spec's \"not a message from you\" guarantee silently disappears for that record.",
+          "suggestion": "Still emit a card with a fallback body (e.g. the notice alone, or \"Empty report\") rather than returning null.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/external/parsers/handback.ts:44-48` (header-only branch)",
+          "line": null,
+          "finding": "When the message starts with the header phrase but has no `<agent-message>` envelope, `body` is everything after the first newline — including the English trailer (`That \"other Claude session\" is an agent working inside this same session…`) that the spec says must be hidden. The envelope path handles it; the header-only path doesn't.",
+          "suggestion": "Also trim a trailing `That \"other Claude session\"…` sentence in the header-only path, or exclude text after a blank-line-separated trailer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "client/src/components/external/mission/MissionActivityFeed.tsx:64` (`useAutoScroll(scrollRef, \\`${feed.cards.length}:${visible}\\`)`)",
+          "line": null,
+          "finding": "The auto-scroll dependency counts raw cards, but the DOM length is now `items.length` after folding. When a card transitions between evidence-only and narrated between polls (artifact reconciled away), the card count can stay constant while the folded/unfolded render changes row count — the re-pin signal is missed. Cosmetic (scroll position), not correctness of content.",
+          "suggestion": "Include `items.length` (or the result-group membership count) in the dependency string.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/mission/RunResultCard.test.tsx:60-64",
+          "line": null,
+          "finding": "The `formatElapsed` tests don't cover the negative-delta or invalid-end-timestamp-returning-null path through `SubrunnerRow.stateMeta` (verb with no duration), nor the `ms < 0` branch — `formatElapsed(undefined, \"x\")` only covers the missing-start case. A regression that made `stateMeta` throw on `NaN` timestamps would pass the suite.",
+          "suggestion": "Add a SubrunnerRow case with a non-parseable `subrunnerEndedAt` asserting the verb-only meta (e.g. \"finished\").  Checked and found sound: the parser correctly refuses tool_result-only content (so quoting the fingerprint in a tool output can't reclassify a record); the bloat anti-ratchet is satisfied (session-parser.ts 842 → 775, siblings extracted); the Run-result grouping is render-time only so `deriveActivityFeed` consumers keep their contract; the subrunner-status text-only requirement (never colour alone) is met and tested; no chat composer / chat- testids are introduced. The E2E drives the real JSONL→parser→reducer→DOM chain and asserts absence of framing text, so it would catch a naive implementation. No security issues: hand-back text flows through the same `MarkdownChunk` renderer as all other transcript markdown, no new sinks.  Overall assessment: the change implements all three spec items with strong behavior-level tests; the findings are low-severity edge cases (indentation stripping, empty hand-back, trailer leakage in the header-only shape). Ship-with-fixes at most; the header-only trailer leak is the only one a user is likely to notice.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/lib/missionActivityFeedResult.ts",
+          "line": 39,
+          "finding": "Grouping removes every eligible delivery card but retains only the last one. For example, a feed containing a phase delivery followed by a commit delivery loses the phase statement and its action entirely, because both indices are folded but only the commit survives.",
+          "suggestion": "Preserve other delivery cards as ordinary feed items, or retain all delivery rows in the result card with the commit last.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/external/mission/RunResultCard.tsx",
+          "line": 58,
+          "finding": "Result rows render only `card.text`, while grouping also accepts cards with `textFull`. Those cards lose access to their full statement: the grouped renderer has no expansion control and never renders `textFull`.",
+          "suggestion": "Keep cards with additional `textFull` content outside the group, or provide an expansion control that renders the full text.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/SubrunnerRow.tsx",
+          "line": 44,
+          "finding": "Subrunner status is rendered as plain metadata text, with no status pill. Although the state is readable, this misses the explicit requirement that status always be a text pill.",
+          "suggestion": "Render the running/finished/failed/killed/stopped state in a visible text pill while retaining the type and elapsed-time metadata.  Ship-with-fixes. The main features are implemented, but grouping can discard content and the subrunner status treatment remains incomplete.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "codex",
+      "completed_at": "2026-10-31T21:50:43.491319+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ### Findings\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/external/parsers/handback.ts:50-58` (`body.replace(/^ {2}/gm, \"\")`)\n  Finding: The dedent strips exactly two leading spaces from **every** line of the report, including lines inside fenced code blocks or intentionally indented content. A report containing a code sample loses its indentation and can render with wrong semantics (Python, YAML). It also only handles the 2-space harness indent; a 4-space-indented report keeps stray indentation on half the lines.\n  Suggestion: Strip the indent only from lines at the report's base indentation level, or skip dedenting inside fenced code blocks.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/lib/missionActivityFeedHandback.ts:12` (`if (!event.text.trim()) return null;`)\n  Finding: A hand-back whose report body is empty/whitespace is dropped entirely — no card, no notice. The user gets no signal that a subagent replied at all, and the spec's \"not a message from you\" guarantee silently disappears for that record.\n  Suggestion: Still emit a card with a fallback body (e.g. the notice alone, or \"Empty report\") rather than returning null.\n\n- Category: edge-case\n  Severity: low\n  File: `client/src/external/parsers/handback.ts:44-48` (header-only branch)\n  Finding: When the message starts with the header phrase but has **no** `<agent-message>` envelope, `body` is everything after the first newline — including the English trailer (`That \"other Claude session\" is an agent working inside this same session…`) that the spec says must be hidden. The envelope path handles it; the header-only path doesn't.\n  Suggestion: Also trim a trailing `That \"other Claude session\"…` sentence in the header-only path, or exclude text after a blank-line-separated trailer.\n\n- Category: bug\n  Severity: low\n  File: `client/src/components/external/mission/MissionActivityFeed.tsx:64` (`useAutoScroll(scrollRef, \\`${feed.cards.length}:${visible}\\`)`)\n  Finding: The a […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/lib/missionActivityFeedResult.ts:39\n- Finding: Grouping removes every eligible delivery card but retains only the last one. For example, a feed containing a phase delivery followed by a commit delivery loses the phase statement and its action entirely, because both indices are folded but only the commit survives.\n- Suggestion: Preserve other delivery cards as ordinary feed items, or retain all delivery rows in the result card with the commit last.\n\n- Category: regression\n- Severity: medium\n- File: client/src/components/external/mission/RunResultCard.tsx:58\n- Finding: Result rows render only `card.text`, while grouping also accepts cards with `textFull`. Those cards lose access to their full statement: the grouped renderer has no expansion control and never renders `textFull`.\n- Suggestion: Keep cards with additional `textFull` content outside the group, or provide an expansion control that renders the full text.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/SubrunnerRow.tsx:44\n- Finding: Subrunner status is rendered as plain metadata text, with no status pill. Although the state is readable, this misses the explicit requirement that status always be a text pill.\n- Suggestion: Render the running/finished/failed/killed/stopped state in a visible text pill while retaining the type and elapsed-time metadata.\n\nShip-with-fixes. The main features are implemented, but grouping can discard content and the subrunner status treatment remains incomplete.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "approve"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T22:54:21.436434+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:46:23.135794+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-10-31T21:46:23.495950+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

@@ -41,3 +41,15 @@ export function ExpandToggle({ expanded, onToggle }: { expanded: boolean; onTogg
     </button>
   );
 }
+
+/** "44 min" / "1 h 5 min" / "under 1 min" between two ISO timestamps; null when either is missing or unparseable. */
+export function formatElapsed(start?: string, end?: string): string | null {
+  if (!start || !end) return null;
+  const ms = new Date(end).getTime() - new Date(start).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return null;
+  const minutes = Math.round(ms / 60_000);
+  if (minutes < 1) return "under 1 min";
+  if (minutes < 60) return `${minutes} min`;
+  const rest = minutes % 60;
+  return rest ? `${Math.floor(minutes / 60)} h ${rest} min` : `${Math.floor(minutes / 60)} h`;
+}

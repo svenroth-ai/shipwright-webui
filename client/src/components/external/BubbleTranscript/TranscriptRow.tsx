@@ -38,6 +38,7 @@ import { SlashCommandChip } from "../SlashCommandChip";
 import { TaskNotificationChip } from "../TaskNotificationChip";
 import { PrLinkCard } from "./PrLinkCard";
 import { StopHookCard } from "./StopHookCard";
+import { HandbackCard } from "../HandbackCard";
 import { ToolOutputBlock } from "./ToolOutputBlock";
 import {
   AgentNamePill,
@@ -102,7 +103,8 @@ function isTurnBoundary(prev: ParsedEvent | null, current: ParsedEvent): boolean
   if (!prev) return false;
   if (prev.kind === current.kind) return false;
   const continuationKinds = new Set(["assistant", "user"]);
-  if (prev.kind === "user" && current.kind === "assistant") return true;
+  // A hand-back is a user-role record: same speaker-change decision as a user event.
+  if ((prev.kind === "user" || prev.kind === "handback") && current.kind === "assistant") return true;
   if (prev.kind === "assistant" && current.kind === "user" && continuationKinds.has("user")) {
     return false;
   }
@@ -234,6 +236,7 @@ function renderBubble(
   }
   if (event.kind === "skill-body") return <SkillCard skillName={event.skillName} body={event.body} />;
   if (event.kind === "stop-hook") return <StopHookCard gateName={event.gateName} body={event.body} />;
+  if (event.kind === "handback") return <div className="flex justify-start"><HandbackCard origin={event.origin} sender={event.sender} text={event.text} title={event.fromName} /></div>;
   if (event.kind === "file-history-snapshot") {
     const names = fileSnapshotBasenames(event);
     if (names.length === 0) return null;

@@ -4,6 +4,7 @@ import { isCompactionMarker } from "./missionActivityFeedText";
 import { deriveSubrunnerNotificationFromAttachment, resolveSubrunnerNotification } from "./missionActivityFeedSubrunner";
 import { buildUserReplyCard, extractTurnProse, flushPendingNarration, processTurnTools, type PendingNarration, type TurnToolsState } from "./missionActivityFeedTurn";
 import { type WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
+import { buildHandbackCard } from "./missionActivityFeedHandback";
 import { createCardAdder } from "./missionActivityFeedCardFactory";
 import { clearMultiTurnExplanations, reconcileArtifactCards } from "./missionActivityFeedReconcile";
 import { resolveToolResults, type PendingTool } from "./missionActivityFeedResolve";
@@ -101,6 +102,11 @@ export function deriveActivityFeed(
       writtenTestFiles = resolveState.writtenTestFiles;
       continue;
     }
+    if (event.kind === "handback") {
+      const handbackCard = buildHandbackCard(event, cards);
+      if (handbackCard) cards.push(handbackCard);
+      continue;
+    }
     if (event.kind === "task-notification") {
       // A delegated subagent's completion notification — resolves the
       // matching `subrunner` card (dispatched earlier in this same reducer
@@ -121,7 +127,7 @@ export function deriveActivityFeed(
       // are never routed through here, so an agent dispatch is never
       // resolved early at enqueue time.
       const notification = deriveSubrunnerNotificationFromAttachment(event.attachment);
-      if (notification) resolveSubrunnerNotification(cards, notification);
+      if (notification) resolveSubrunnerNotification(cards, { ...notification, timestamp: event.timestamp });
       continue;
     }
     if (event.kind !== "assistant") continue;

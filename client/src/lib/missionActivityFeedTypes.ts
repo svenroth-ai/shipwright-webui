@@ -2,7 +2,7 @@ import type { ArtifactKind } from "./missionContextApi";
 import type { WrittenTestFileTracker } from "./missionActivityFeedAuthoringTrack";
 import type { AskItem } from "./missionAskItems";
 
-export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "system" | "delivery" | "subrunner" | "note";
+export type ActivityKind = "goal" | "investigate" | "spec" | "implement" | "test" | "review" | "user-input" | "user" | "system" | "delivery" | "subrunner" | "note" | "handback";
 
 export interface ActivityQuestion {
   text: string;
@@ -137,6 +137,15 @@ export interface ActivityCard {
    * excerpt / untruncated-counterpart contract as every other `xFull` field. */
   subrunnerReport?: string;
   subrunnerReportFull?: string;
+  /** V2: the dispatch's `subagent_type` (e.g. "sub-iterate-runner"), shown in the subrunner row meta. */
+  subrunnerType?: string;
+  /** V2: timestamp of the resolving notification; with `timestamp` it gives the row's "finished in N min". */
+  subrunnerEndedAt?: string;
+  /** V2, `kind: "handback"` only: the sender agent id (`<agent-message from>`), its origin and the
+   *  description of the matching subrunner dispatch, when known. `text` is the report body. */
+  handbackSender?: string;
+  handbackOrigin?: "subagent" | "session";
+  handbackTitle?: string;
 }
 
 export interface ActivityFeed {

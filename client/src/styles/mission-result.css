@@ -1,0 +1,69 @@
+/* ============================================================================
+   Mission feed: hand-back card, Run result card, subrunner row
+   (campaign mission-desktop-style-v2, V2 - mockup Board 2 + 3).
+   Loaded AFTER mission-chat.css (equal-specificity overrides of .mc-feed-card).
+   Every colour is a token of the surrounding scope (dark .mc-op or light) -
+   no hardcoded colours. Status is always a TEXT pill. No motion of its own
+   (the running dot reuses the existing motion-pulse token rule).
+   ============================================================================ */
+
+/* Hand-back: left card, yellow (warn) left border */
+.mc-handback { border: 1px solid var(--line-strong); border-left: 3px solid var(--warn); border-radius: 10px; background: var(--card); padding: 12px 16px 14px; max-width: 100%; color: var(--body); }
+.mc-handback-h { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 8px; font-size: var(--fs-small, 13px); color: var(--muted); }
+.mc-handback-h b { color: var(--ink); font-weight: 600; min-width: 0; max-width: 100%; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mc-handback-tag { font-size: var(--fs-eyebrow, 12px); font-weight: 600; letter-spacing: .05em; text-transform: uppercase; padding: 1px 8px; border-radius: 999px; background: var(--warn-tint); border: 1px solid var(--warn-line); color: var(--warn); }
+.mc-handback-chip { font-family: var(--mono); font-size: var(--fs-small, 13px); padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line-strong); background: transparent; color: var(--link, var(--accent)); }
+button.mc-handback-chip { cursor: pointer; display: inline-flex; align-items: center; min-height: 36px; }
+button.mc-handback-chip:hover { border-color: var(--link, var(--accent)); background: var(--accent-tint); }
+button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-handback-chip[data-static="true"] { color: var(--muted); }
+.mc-handback-body { font-size: var(--fs-chat, 15px); line-height: 1.6; }
+.mc-handback-notice { margin: 8px 0 0; font-size: var(--fs-small, 13px); color: var(--faint); }
+
+/* Run result: one card, rows of pill | statement | action */
+.mc-result { border: 1px solid var(--line-strong); border-radius: 12px; background: var(--card); overflow: hidden; color: var(--body); }
+.mc-result-h { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); font-size: var(--fs-eyebrow, 12px); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mc-result-row { display: grid; grid-template-columns: 112px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 11px 16px; border-bottom: 1px solid var(--line); min-height: 52px; }
+.mc-pill-slot { display: block; }
+.mc-result-row:last-child { border-bottom: 0; }
+.mc-pill { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-small, 13px); font-weight: 600; white-space: nowrap; background: var(--line); border: 1px solid var(--line-strong); color: var(--muted); }
+.mc-pill[data-status="ok"] { background: var(--ok-tint); border-color: var(--ok-line); color: var(--ok); }
+.mc-pill[data-status="err"] { background: var(--err-tint); border-color: var(--err-line); color: var(--err); }
+.mc-pill[data-status="warn"] { background: var(--warn-tint); border-color: var(--warn-line); color: var(--warn); }
+.mc-pill svg { width: 12px; height: 12px; }
+.mc-result-t { font-size: var(--fs-chat, 15px); color: var(--ink); min-width: 0; overflow-wrap: anywhere; }
+.mc-result-sub { font-size: var(--fs-small, 13px); font-weight: 400; color: var(--muted); }
+.mc-result-sub .markdown-body, .mc-result-sub p { font-size: inherit; color: inherit; margin: 0; }
+.mc-result-btn { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line-strong); background: transparent; color: var(--link, var(--accent)); font: inherit; font-size: var(--fs-small, 13px); font-weight: 600; cursor: pointer; text-decoration: none; }
+.mc-result-btn:hover { border-color: var(--link, var(--accent)); background: var(--accent-tint); }
+.mc-result-btn:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-result-btn svg { width: 13px; height: 13px; }
+.mc-result-commit { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--accent-tint); border-top: 1px solid var(--accent-line); }
+.mc-result-commit .t { flex: 1; min-width: 0; font-weight: 600; color: var(--ink); font-size: var(--fs-chat, 15px); overflow-wrap: anywhere; }
+.mc-result-commit .m { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.mc-result-commit a.m { display: inline-flex; align-items: center; min-height: 36px; padding: 0 6px; border-radius: 6px; text-decoration: underline; text-underline-offset: 3px; }
+.mc-result-commit a.m:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* Subrunner row: agent chip, title, meta, action */
+.mc-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 9px 12px 9px 14px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); min-height: 48px; }
+.mc-sub-ic { width: 26px; height: 26px; border-radius: 7px; background: var(--accent-tint); border: 1px solid var(--accent-line); color: var(--accent); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mc-sub-ic svg { width: 14px; height: 14px; }
+.mc-sub-main { flex: 1; min-width: 0; }
+.mc-sub-t { font-size: var(--fs-chat, 15px); font-weight: 600; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.mc-sub-m { display: block; margin: 0; font-size: var(--fs-small, 13px); font-weight: 400; color: var(--muted); }
+.mc-sub-m.mc-feed-subrunner-status { display: inline-flex; align-items: center; gap: 7px; }
+.mc-sub[data-status="running"] .mc-sub-m { color: var(--warn); }
+.mc-sub[data-status="failed"] .mc-sub-m { color: var(--err); }
+.mc-sub-report { flex-basis: 100%; }
+
+@media (max-width: 640px) {
+  .mc-result-row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "pill t" "btn btn"; gap: 8px 12px; padding: 12px 14px; }
+  .mc-result-row .mc-pill { grid-area: pill; }
+  .mc-pill-slot { display: none; }
+  .mc-result-row .mc-result-t { grid-area: t; }
+  .mc-result-row .mc-result-btn { grid-area: btn; width: 100%; justify-content: center; min-height: 44px; }
+  .mc-sub .mc-result-btn, .mc-result-commit .mc-result-btn { min-height: 44px; }
+  button.mc-handback-chip { min-height: 44px; }
+  .mc-result-commit a.m { min-height: 44px; }
+  .mc-result-commit { flex-wrap: wrap; }
+}
