@@ -43,8 +43,8 @@ export function RunResultCard({
   const pr = delivery && delivery.artifact === "commit" ? commitArtifact?.detail : null;
   const deliveryText = delivery ? stripDuplicateSentence(delivery.textFull || delivery.text, pr?.message ? `Merged as "${pr.message}".` : null) : "";
   return (
-    <section className="mc-result" data-testid="run-result-card" aria-label={delivery ? "Run result" : "Evidence"}>
-      <div className="mc-result-h">{delivery ? "Run result" : "Evidence"}</div>
+    <section className="mc-result" data-testid="run-result-card" aria-label="Run result">
+      <div className="mc-result-h">Run result</div>
       {rows.map((card, i) => (
         <div className="mc-result-row" data-testid="run-result-row" data-artifact={card.artifact} key={`${card.artifact}-${i}`}>
           {pillLabel(card) ? <Pill status={card.status} label={pillLabel(card) as string} /> : <span className="mc-pill-slot" aria-hidden="true" />}

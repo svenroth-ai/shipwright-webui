@@ -63,11 +63,11 @@ describe("Run result card (V2)", () => {
   });
 
   // @covers FR-01.66
-  it("no pill when the card has no verdict label, and the card is titled Evidence until there is a delivery", () => {
+  it("no pill when the card has no verdict label, and the card is always titled Run result", () => {
     const rows: ActivityCard[] = [{ kind: "implement", text: "x", commands: [], artifact: "tests" }];
     const { rerender } = render(<RunResultCard rows={rows} delivery={null} commitArtifact={null} />);
-    expect(screen.getByTestId("run-result-card")).toHaveAttribute("aria-label", "Evidence");
-    expect(screen.getByText("Evidence")).toBeInTheDocument();
+    expect(screen.getByTestId("run-result-card")).toHaveAttribute("aria-label", "Run result");
+    expect(screen.getByText("Run result")).toBeInTheDocument();
     expect(screen.queryByText(/Pending|Needs attention/)).toBeNull();
     expect(screen.getByTestId("run-result-row").querySelector(".mc-pill")).toBeNull();
     rerender(<RunResultCard rows={rows} delivery={{ kind: "delivery", text: "Done.", commands: [], artifact: "commit" }} commitArtifact={null} />);

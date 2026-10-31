@@ -34,17 +34,52 @@ const OVERSIZE_REJECT = 2_000_000;
 /** The harness's closing paragraph after the envelope ("That "other Claude session" is an agent …"). */
 const TRAILER = /\n\s*\nThat "other Claude session"[\s\S]*$/;
 
-export function detectHandback(content: unknown): { sender: string; origin: HandbackOrigin; text: string } | null {
+export interface Handback { sender: string; origin: HandbackOrigin; text: string; fromName?: string }
+
+const CROSS_OPEN = /<cross-session-message\b([^>]*)>/;
+const CROSS_CLOSE = "</cross-session-message>";
+
+/** The record LEADS with this match: nothing before it, or just the one header line. */
+function leadsRecord(text: string, index: number): boolean {
+  const before = text.slice(0, index).trim();
+  return before === "" || (before.startsWith(HEADER) && !before.includes("\n"));
+}
+
+/**
+ * Third real envelope: `<cross-session-message from="uds:…" from-name="…" from-mode="…">…</cross-session-message>`,
+ * sometimes wrapping a nested `<agent-message from="…">`. Tags are hidden; from-name becomes the card title and the
+ * nested agent id the sender. Always origin "session" (a peer session spoke, not our subagent).
+ */
+function fromCrossSession(text: string, open: RegExpExecArray): Handback {
+  const start = open.index + open[0].length;
+  const end = text.lastIndexOf(CROSS_CLOSE);
+  let body = text.slice(start, end < start ? undefined : end).trim();
+  if (end < start) body = body.replace(TRAILER, "").trim();
+  let sender = "";
+  const nested = ENVELOPE_OPEN.exec(body);
+  if (nested && body.slice(0, nested.index).trim() === "") {
+    sender = nested[1];
+    const from = nested.index + nested[0].length;
+    const close = body.lastIndexOf(ENVELOPE_CLOSE);
+    body = body.slice(from, close < from ? undefined : close).trim();
+  }
+  const fromName = /from-name="([^"]*)"/.exec(open[1])?.[1];
+  return { sender, origin: "session", text: body, ...(fromName ? { fromName } : {}) };
+}
+
+export function detectHandback(content: unknown): Handback | null {
   if (Array.isArray(content) && content.some((b) => (b as { type?: unknown } | null)?.type === "tool_result")) return null;
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
   // Cheap early exit (before any replace/regex): a real hand-back LEADS with the header, the marker or the envelope.
   const lead = raw.trimStart();
-  if (!lead.startsWith(HEADER) && !lead.startsWith(MARKER) && !lead.startsWith("<agent-message")) return null;
+  if (!lead.startsWith(HEADER) && !lead.startsWith(MARKER) && !lead.startsWith("<agent-message") && !lead.startsWith("<cross-session-message")) return null;
   const text = raw.replace(/\r\n/g, "\n");
   // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that
   // merely quotes the marker or the envelope mid-text stays a user message with its text intact.
   const head = text.trimStart();
+  const cross = CROSS_OPEN.exec(text);
+  if (cross && leadsRecord(text, cross.index)) return fromCrossSession(text, cross);
   const found = ENVELOPE_OPEN.exec(text);
   // The envelope counts only when it LEADS the record: nothing before it, or just the one header line.
   const before = found ? text.slice(0, found.index).trim() : "";
@@ -78,28 +113,16 @@ export function detectHandback(content: unknown): { sender: string; origin: Hand
   return { sender: envelope?.[1] ?? "", origin: isMarked ? "subagent" : "session", text: body.trim() };
 }
 
-export type Handback = NonNullable<ReturnType<typeof detectHandback>>;
 
 /**
  * The second real delivery shape (measured: 36 of 165 hand-backs): a `queued_command` ATTACHMENT whose `prompt`
  * is the envelope itself (`<agent-message from="…">\n[Subagent hand-back] …`). It is the same message as the
- * user-role record, so it goes through the same detector; any other attachment is left alone.
+ * user-role record, so it goes through the same detector (string or text-block-array prompt); any other attachment is left alone.
+ * Measured on real transcripts: no hand-back ever arrives in BOTH forms, so there is deliberately NO cross-record dedupe
+ * (parsing stays per-line, incremental == whole parse, and genuinely repeated identical reports are kept).
  */
 export function handbackFromAttachment(attachment: unknown): Handback | null {
   if (!attachment || typeof attachment !== "object") return null;
   const a = attachment as { type?: unknown; prompt?: unknown };
-  return a.type === "queued_command" && typeof a.prompt === "string" ? detectHandback(a.prompt) : null;
-}
-
-/** Drops a hand-back already seen from the same sender with the same text (it can arrive as BOTH a user record and an attachment). */
-export function dedupeHandbacks<T extends { kind: string }>(events: T[]): T[] {
-  const seen = new Set<string>();
-  return events.filter((e) => {
-    const h = e as unknown as { sender?: string; text?: string };
-    if (e.kind !== "handback" || !h.sender || !h.text) return true;
-    const key = `${h.sender}\u0000${h.text}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return a.type === "queued_command" ? detectHandback(a.prompt) : null; // prompt: string or text-block array
 }

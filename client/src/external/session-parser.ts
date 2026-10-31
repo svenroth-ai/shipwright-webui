@@ -1,7 +1,7 @@
 import { extractAskUserPayload } from "../lib/askUserPayload";
 import { detectSlashCommand } from "./parsers/slash-command";
 import { detectStopHook } from "./parsers/stop-hook";
-import { dedupeHandbacks, detectHandback, handbackFromAttachment, type HandbackOrigin } from "./parsers/handback";
+import { detectHandback, handbackFromAttachment, type HandbackOrigin } from "./parsers/handback";
 import { extractSkillBody } from "./parsers/skill-body";
 
 export { extractSkillBody };
@@ -275,6 +275,7 @@ export interface HandbackEvent extends BaseEvent {
   origin: HandbackOrigin;
   /** Report text with the harness framing removed. */
   text: string;
+  fromName?: string; // peer session's name (cross-session envelope): the card title
 }
 
 export interface UnknownEvent extends BaseEvent {
@@ -321,7 +322,7 @@ export function parseSessionJsonl(content: string): ParseResult {
     }
     events.push(parseOne(raw));
   }
-  return { events: dedupeHandbacks(events), malformedLines: malformed };
+  return { events, malformedLines: malformed };
 }
 
 function parseOne(raw: Record<string, unknown>): ParsedEvent {

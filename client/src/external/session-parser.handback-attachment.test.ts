@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { parseSessionJsonl } from "./session-parser";
+import { advanceIncrementalParse, EMPTY_INCREMENTAL_PARSE } from "./incremental-session-parse";
 import { filterEventsForRender } from "../components/external/BubbleTranscript/filters";
 import { deriveActivityFeed } from "../lib/missionActivityFeed";
 
@@ -27,14 +28,19 @@ describe("queued_command attachment hand-backs", () => {
   });
 
   // @covers FR-01.66
-  it("shows a hand-back once when it arrives as BOTH a user record and an attachment", () => {
-    const userForm = userLine(PROMPT);
-    const { events } = parseSessionJsonl([userForm, attachmentLine(PROMPT, "2026-10-31T10:00:05Z")].join(NL));
-    expect(events.filter((e) => e.kind === "handback")).toHaveLength(1);
-    // The feed reducer guards too, for events assembled across separately parsed chunks.
-    const a = parseSessionJsonl(userForm).events;
-    const b = parseSessionJsonl(attachmentLine(PROMPT)).events;
-    expect(deriveActivityFeed([...a, ...b], null).cards.filter((c) => c.kind === "handback")).toHaveLength(1);
+  it("accepts a text-block-array prompt like a string prompt", () => {
+    const { events } = parseSessionJsonl(attachmentLine([{ type: "text", text: PROMPT }]));
+    expect(events[0]).toMatchObject({ kind: "handback", sender: "a0972391f7ab095eb" });
+  });
+
+  // @covers FR-01.66
+  it("keeps genuinely repeated identical reports (no cross-record dedupe) and incremental == whole parse", () => {
+    const first = [userLine(PROMPT), userLine(PROMPT)].join(NL) + NL;
+    const second = first + attachmentLine(PROMPT) + NL;
+    const whole = parseSessionJsonl(second).events;
+    expect(whole.filter((e) => e.kind === "handback")).toHaveLength(3);
+    const step = advanceIncrementalParse(advanceIncrementalParse(EMPTY_INCREMENTAL_PARSE, first), second);
+    expect(step.result.events).toEqual(whole);
   });
 
   // @covers FR-01.66

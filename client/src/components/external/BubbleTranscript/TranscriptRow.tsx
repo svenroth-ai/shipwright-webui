@@ -236,7 +236,7 @@ function renderBubble(
   }
   if (event.kind === "skill-body") return <SkillCard skillName={event.skillName} body={event.body} />;
   if (event.kind === "stop-hook") return <StopHookCard gateName={event.gateName} body={event.body} />;
-  if (event.kind === "handback") return <div className="flex justify-start"><HandbackCard origin={event.origin} sender={event.sender} text={event.text} /></div>;
+  if (event.kind === "handback") return <div className="flex justify-start"><HandbackCard origin={event.origin} sender={event.sender} text={event.text} title={event.fromName} /></div>;
   if (event.kind === "file-history-snapshot") {
     const names = fileSnapshotBasenames(event);
     if (names.length === 0) return null;
