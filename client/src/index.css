@@ -13,6 +13,7 @@
 @import "./styles/command-center.css"; /* command palette (glass) + keyboard nav ring + density (A21) */
 @import "./styles/buttons.css";        /* the ONE canonical .btn-primary standard (2026-07-17) */
 @import "./styles/keyboard-fit.css";   /* soft-keyboard fit — shell follows the visual viewport (touch only) */
+@import "./styles/smart-viewer-code.css"; /* Smart Viewer code: wrap toggle + 13px/1.6 (V7) */
 @import "./styles/org.css";            /* Org page — chart + lead card, ported from the approved mockup */
 
 /* Markdown body — GitHub-style rendering conventions (iterate-20260423-chat-livetest-2
@@ -225,6 +226,7 @@
   width: max-content;
   min-width: 100%;
 }
+/* Wrap toggle, 13px/1.6 code and the wrapped state: styles/smart-viewer-code.css (V7). */
 
 /* Horizontal rule — prominent separator. */
 .markdown-body hr {

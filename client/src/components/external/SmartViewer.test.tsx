@@ -15,6 +15,8 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import {
   SmartViewer,
@@ -244,5 +246,33 @@ describe("SmartViewer — image dispatch", () => {
     // The renderer itself does not make a fetch() call — it delegates to
     // the browser's image loader.
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("CodeRenderer wrap toggle (V7)", () => {
+  beforeEach(() => {
+    window.localStorage.removeItem("shipwright:viewer-wrap-lines");
+  });
+
+  it("wraps by default and the toggle flips + persists aria-pressed", async () => {
+    globalThis.fetch = vi.fn(
+      async () => new Response("const x = 1;", { status: 200, headers: { "Content-Type": "text/plain" } }),
+    ) as unknown as typeof fetch;
+    render(<SmartViewer projectId="proj-a" path="src/demo.ts" />);
+    const btn = await screen.findByRole("button", { name: "Wrap lines" });
+    const node = screen.getByTestId("smart-viewer-code");
+    expect(btn.getAttribute("aria-pressed")).toBe("true");
+    expect(node.getAttribute("data-wrap")).toBe("true");
+    fireEvent.click(btn);
+    expect(btn.getAttribute("aria-pressed")).toBe("false");
+    expect(node.getAttribute("data-wrap")).toBe("false");
+    expect(window.localStorage.getItem("shipwright:viewer-wrap-lines")).toBe("false");
+  });
+
+  it("class fence: wrap rules + 13px/1.6 live on .smart-viewer-code", () => {
+    const css = readFileSync(resolve(__dirname, "../../styles/smart-viewer-code.css"), "utf8");
+    expect(css).toMatch(/\[data-wrap="true"\] pre[^{]*\{[^}]*white-space:\s*pre-wrap/);
+    expect(css).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(css).toMatch(/\[data-wrap\] pre code\s*\{[^}]*font-size:\s*13px;[^}]*line-height:\s*1\.6/);
   });
 });
