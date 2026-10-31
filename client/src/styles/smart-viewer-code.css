@@ -17,11 +17,15 @@
   overflow-x: hidden;
 }
 /* Hanging indent: every logical line starts flush, wrapped continuation
- * rows sit 2ch to the right, so they read as part of the line above. */
-.smart-viewer-code[data-wrap="true"] pre code {
-  display: block;
-  padding-left: calc(1em + 2ch); /* keeps the theme's 1em gutter, plus the hang */
-  text-indent: -2ch each-line;
+ * rows sit 2ch to the right (measured from column 0, not from a line's own
+ * indentation). Only where the browser knows `each-line`; elsewhere the code
+ * simply wraps flush instead of shifting every row. */
+.smart-viewer-code[data-wrap="true"] pre code { display: block; }
+@supports (text-indent: 1em each-line) {
+  .smart-viewer-code[data-wrap="true"] pre code {
+    padding-left: calc(1em + 2ch); /* keeps the theme's 1em gutter, plus the hang */
+    text-indent: -2ch each-line;
+  }
 }
 .smart-viewer-code[data-wrap="true"] pre {
   width: auto;
@@ -71,7 +75,7 @@
   border-color: var(--accent-line, var(--line));
   color: var(--accent, var(--ink));
 }
-.sv-wrap-toggle:focus-visible { outline: none; box-shadow: var(--focus); }
+.sv-wrap-toggle:focus-visible { outline: 2px solid transparent; /* visible in forced-colors */ box-shadow: var(--focus); }
 @media (pointer: coarse) { .sv-wrap-toggle { min-height: 44px; } }
 
 /* Plain-text view (TextRenderer): same wrap preference, 13px/1.6, gutter line

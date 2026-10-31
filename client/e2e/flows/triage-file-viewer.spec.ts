@@ -218,6 +218,8 @@ test.describe("Triage compliance file viewer", () => {
       { "long_module.py": LONG_PY_BODY },
     ));
 
+    // Wrap lines is on by default (V7); this test measures the RAW, unwrapped form's horizontal scroll.
+    await page.addInitScript(() => window.localStorage.setItem("shipwright:viewer-wrap-lines", "false"));
     await page.goto("/triage");
     await expect(page.getByTestId("triage-item-trg-fv0004")).toBeVisible({ timeout: 15000 });
     await page.getByTestId("triage-item-trg-fv0004").click();

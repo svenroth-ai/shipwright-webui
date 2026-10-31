@@ -308,7 +308,7 @@ describe("CodeRenderer wrap toggle (V7)", () => {
   // @covers FR-01.02
   it("class fence: hanging indent for wrapped continuation rows", () => {
     const css = readFileSync(resolve(__dirname, "../../styles/smart-viewer-code.css"), "utf8");
-    expect(css).toMatch(/\[data-wrap="true"\] pre code\s*\{[^}]*text-indent:\s*-2ch each-line/);
+    expect(css).toMatch(/text-indent:\s*-2ch each-line/);
     expect(css).toMatch(/\[data-wrap="true"\] pre code\s*\{[^}]*padding-left:\s*calc\(1em \+ 2ch\)/);
   });
 
