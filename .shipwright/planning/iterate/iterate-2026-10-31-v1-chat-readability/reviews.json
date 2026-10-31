@@ -286,18 +286,16 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "completed",
+      "status": "not_run",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T14:33:37.088998+00:00",
-      "disposition": null,
+      "completed_at": "2026-10-31T15:01:22.564864+00:00",
+      "disposition": "Stage-1 REJECTED at 3f-bis: shipwright_events.jsonl:1168 hand-edited spec_impact modify->none (behavior-preserving) in commit 6c080986; the change alters FR-01.66 observable behaviour (messages shown in full, toggle removed), precedent M3-M5 recorded modify + spec.md Updates sentence. Code itself passes Scope. Delivery stopped; PR left open.",
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "59e6aae9682a8928cef105012a1b16a5d6291b16"
+      "reason_code": "stage-1-rejected"
     },
     "plan_internal": {
       "review_type": "plan_internal",
