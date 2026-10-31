@@ -32,6 +32,9 @@ test.describe("SmartViewer code wrap (V7)", () => {
     expect(cs.fs).toBe("13px");
     expect(parseFloat(cs.lh)).toBeCloseTo(20.8, 1);
     expect(cs.ws).toBe("pre-wrap");
+    // The long logical line really occupies several visual rows (not clipped).
+    const rows = await code.evaluate((el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+    expect(rows).toBeGreaterThan(4 + 2);
     // Viewer stays dark.
     expect(await code.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgb(13, 17, 23)");
 
