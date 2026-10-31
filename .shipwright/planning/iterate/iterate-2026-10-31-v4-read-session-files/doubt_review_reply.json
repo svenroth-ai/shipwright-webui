@@ -53,5 +53,31 @@
   "error detail disclosure"
  ],
  "summary": "No path or link escape found. Six advisory objections; disposition recorded in the implementer follow-up commit.",
- "dispositions": "Verified at 2ce9ce32 by the doubt reviewer: scan slot held until the scan settles (resolved); CLI wrappers and tool-answering user records are no longer evidence (resolved); cloud credential names denied, assistant-mention evidence kept by spec and recorded as accepted risk (prompt injection can widen evidence); hardlink-in-project accepted (same posture as /projects/:id/file); realpath before and after lstat (resolved); Windows device names refused, extra spellings (COM1\\., trailing space) closed in the follow-up commit."
+ "dispositions": "Verified at 2ce9ce32 by the doubt reviewer: scan slot held until the scan settles (resolved); CLI wrappers and tool-answering user records are no longer evidence (resolved); cloud credential names denied, assistant-mention evidence kept by spec and recorded as accepted risk (prompt injection can widen evidence); hardlink-in-project accepted (same posture as /projects/:id/file); realpath before and after lstat (resolved); Windows device names refused, extra spellings (COM1\\., trailing space) closed in the follow-up commit.",
+ "doubts": [
+  {
+   "severity": "medium",
+   "claim_under_doubt": "Scan timeout does not cancel the scan; queue and pendingScans cap stop holding under slow scans (DoS). [server/src/core/session-file/evidence.ts:142-156]"
+  },
+  {
+   "severity": "medium",
+   "claim_under_doubt": "user records carry CLI-injected text (system-reminder, task-notification, command-stdout wrappers) that counts as user intent / evidence. [server/src/core/session-file/evidence.ts:79-94]"
+  },
+  {
+   "severity": "medium",
+   "claim_under_doubt": "Evidence boundary is driven by prompt injection (any tool_use/assistant mention); outside denylist misses service-account*.json, client_secret*.json, token.json, secrets.json, ConsoleHost_history.txt. [server/src/core/session-file/access.ts:117-138]"
+  },
+  {
+   "severity": "low",
+   "claim_under_doubt": "Hardlink inside the project root to a credential file passes the project-scope denylist. [server/src/core/session-file/access.ts:91-114]"
+  },
+  {
+   "severity": "low",
+   "claim_under_doubt": "Windows has no O_NOFOLLOW; narrow ancestor-swap window (swap during open+lstat, restore before realpath). [server/src/core/session-file/safe-read.ts:43-48]"
+  },
+  {
+   "severity": "low",
+   "claim_under_doubt": "Windows device names (COM1, CONIN$) reach realpath/CreateFileW before the extension allowlist. [server/src/core/session-file/access.ts:100-108]"
+  }
+ ]
 }

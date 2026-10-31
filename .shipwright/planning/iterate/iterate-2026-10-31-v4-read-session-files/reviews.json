@@ -134,120 +134,40 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 9,
+      "findings_count": 1,
       "findings": [
         {
-          "severity": "high",
-          "category": "security",
-          "file": null,
-          "line": null,
-          "finding": "task cwd became an evidence-free root (home dir / drive root); fixed: only the registered project root is a root, no cwd fallback",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "security",
-          "file": null,
-          "line": null,
-          "finding": "bash-stdout / local-command output, isMeta and compact-summary records counted as evidence; fixed: excluded, regression tests",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "security",
-          "file": null,
-          "line": null,
-          "finding": "before/after boundary sets differed (+ @ % # $); fixed, tests",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
+          "severity": "low",
           "category": "performance",
-          "file": null,
-          "line": null,
-          "finding": "per-request 48MB scan unbounded concurrency; fixed: serialized queue + 20s timeout; no memo (rule 4 spirit), accepted",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "security",
-          "file": null,
-          "line": null,
-          "finding": "denylist gaps; widened, scoped project vs outside",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "file:// prefix not matched; accepted (fail-closed)",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "architecture",
-          "file": null,
-          "line": null,
-          "finding": "lexicallyUnder duplicates path-guard escape rule; accepted, single-resolution reason documented",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "boolean ternary and doc-comment placement; fixed",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "test gaps (safe-read unit, 8.3 names, junction swap race); partly added, ancestor-swap race test not added",
-          "suggestion": null,
+          "file": "server/src/core/session-file/evidence.ts",
+          "line": 150,
+          "finding": "Accepted residual risk: a scan that hits the 20 s timeout is not aborted; the queue moves on while the stalled read continues and pendingScans is already decremented, so stalled scans on a hung share can pile up beyond the cap.",
+          "suggestion": "Follow-up: pass an AbortSignal into scanLines and abort on timeout, or hold the pendingScans slot until the scan settles.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T14:49:36.997781+00:00",
+      "completed_at": "2026-10-31T20:54:42.126441+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
       "model_tier": "opus",
+      "transport": "agent",
       "verdict": "pass",
-      "reviewed_commit": "cc546d4050e9b016c04015cf12d65797a77d74d8"
+      "reviewed_commit": "dc6032586ef1d513d056be58f72ad24795cdcb3d"
     },
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 7,
+      "findings_count": 6,
       "findings": [
         {
-          "severity": "high",
+          "severity": "medium",
           "category": null,
           "file": null,
           "line": null,
-          "finding": "outside the project only with evidence; task.cwd fallback root contradicted it; fixed (no cwd root) + test",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "high",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "command output never evidence; user-string records leaked it; fixed (stripSections, isMeta, isCompactSummary) + tests",
+          "finding": "Scan timeout does not cancel the scan; queue and pendingScans cap stop holding under slow scans (DoS). [server/src/core/session-file/evidence.ts:142-156]",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
@@ -256,7 +176,7 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "denylist covers allowlisted secrets; widened (outside scope broad, project scope small)",
+          "finding": "user records carry CLI-injected text (system-reminder, task-notification, command-stdout wrappers) that counts as user intent / evidence. [server/src/core/session-file/evidence.ts:79-94]",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
@@ -265,16 +185,7 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "per-request scan DoS and realpath-before-evidence; fixed: serialized queue + timeout, evidence before realpath",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "round 2: project-scope denylist false positives (auth.json, hosts.yml); fixed with a small project list + test",
+          "finding": "Evidence boundary is driven by prompt injection (any tool_use/assistant mention); outside denylist misses service-account*.json, client_secret*.json, token.json, secrets.json, ConsoleHost_history.txt. [server/src/core/session-file/access.ts:117-138]",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
@@ -283,7 +194,7 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "NTFS per-directory case sensitivity, hardlinks, replaced file, space in quoted names, shell-prefix suffix matches (partly closed); accepted residuals",
+          "finding": "Hardlink inside the project root to a credential file passes the project-scope denylist. [server/src/core/session-file/access.ts:91-114]",
           "suggestion": null,
           "source": "doubt-reviewer"
         },
@@ -292,20 +203,30 @@
           "category": null,
           "file": null,
           "line": null,
-          "finding": "queue head-of-line blocking; 20s timeout added; client must not retry 403",
+          "finding": "Windows has no O_NOFOLLOW; narrow ancestor-swap window (swap during open+lstat, restore before realpath). [server/src/core/session-file/safe-read.ts:43-48]",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Windows device names (COM1, CONIN$) reach realpath/CreateFileW before the extension allowlist. [server/src/core/session-file/access.ts:100-108]",
           "suggestion": null,
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-10-31T14:49:37.198749+00:00",
+      "completed_at": "2026-10-31T20:54:53.684412+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
       "model_tier": "opus",
+      "transport": "agent",
       "verdict": "pass",
-      "reviewed_commit": "f243704262487baf1800076d4a68452301ee09a6"
+      "reviewed_commit": "dc6032586ef1d513d056be58f72ad24795cdcb3d"
     },
     "external_code": {
       "review_type": "external_code",
@@ -380,16 +301,19 @@
     },
     "spec": {
       "review_type": "spec",
-      "status": "not_run",
+      "status": "completed",
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-10-31T15:41:00.297609+00:00",
-      "disposition": "Stage-1 REJECTED at 3f-bis: (1) spec_impact none/behavior-preserving wrong for a new public security-boundary route (affected_frs FR-01.66, @covers tags, no spec.md/FR row); (2) access.ts forks the realpath/containment rule instead of core/path-guard.ts realPathGuard (DO-NOT #10); (3) stale SessionInfoRouterDeps.getProjectById comment says task cwd is the root. Unit held; PR left open.",
+      "completed_at": "2026-10-31T20:54:42.018452+00:00",
+      "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "stage-1-rejected"
+      "model_tier": "opus",
+      "transport": "agent",
+      "verdict": "pass",
+      "reviewed_commit": "dc6032586ef1d513d056be58f72ad24795cdcb3d"
     },
     "plan_internal": {
       "review_type": "plan_internal",
