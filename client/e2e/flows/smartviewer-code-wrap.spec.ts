@@ -16,6 +16,7 @@ async function open(page: Page) {
 }
 
 test.describe("SmartViewer code wrap (V7)", () => {
+  // @covers FR-01.35
   test("wraps by default, toggles to raw scroll, remembers choice, 13px/1.6", async ({ page }) => {
     await open(page);
     const pane = page.getByTestId("smart-viewer-code");
