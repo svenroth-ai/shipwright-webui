@@ -100,6 +100,9 @@ describe("decideSessionFileAccess - project scope uses the shared realPathGuard"
     writeFileSync(path.join(root, ".git", "HEAD.md"), "ref");
     expect(await decide(path.join(".git", "config"))).toMatchObject({ ok: false, status: 403, error: "sensitive_location" });
     expect(await decide(path.join(".git", "HEAD.md"))).toMatchObject({ ok: true });
+    mkdirSync(path.join(root, ".git", "modules", "sub"), { recursive: true });
+    writeFileSync(path.join(root, ".git", "modules", "sub", "config"), "[remote]");
+    expect(await decide(path.join(".git", "modules", "sub", "config"))).toMatchObject({ ok: false, status: 403, error: "sensitive_location" });
   });
 
   // @covers FR-01.66
@@ -108,7 +111,9 @@ describe("decideSessionFileAccess - project scope uses the shared realPathGuard"
     writeFileSync(path.join(root, ".ssh", "config.txt"), "h");
     for (const spelling of [".SSH", ".ssh.", ".ssh "]) {
       const r = await decide(path.join(spelling, "config.txt"));
-      expect(r.ok === false && (r.error === "sensitive_location" || r.status === 404 || r.status === 400), spelling).toBe(true);
+      // Never served: either judged as the credential dir (403) or not resolvable at all (404/400).
+      expect(r.ok, spelling).toBe(false);
+      if (!r.ok) expect([403, 404, 400], spelling).toContain(r.status);
     }
     expect(await decide(path.join(".SSH", "config.txt"))).toMatchObject({ ok: false, status: 403, error: "sensitive_location" });
   });

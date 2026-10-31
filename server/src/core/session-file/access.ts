@@ -62,7 +62,8 @@ async function classifyProjectMiss(root: string, realRoot: string, absolute: str
       // A dangling link (leaf or ancestor) points somewhere we must not describe: treat it as an escape.
       if (await lstat(probe).then((st) => st.isSymbolicLink(), () => false)) return deny(400, "path_traversal", "symlink_escape");
       const parent = path.dirname(probe);
-      if ((err as NodeJS.ErrnoException)?.code !== "ENOENT" || parent === probe) return deny(400, "path_traversal", "symlink_escape");
+      const code = (err as NodeJS.ErrnoException)?.code;
+      if ((code !== "ENOENT" && code !== "ENOTDIR") || parent === probe) return deny(400, "path_traversal", "symlink_escape");
       probe = parent;
     }
   }
@@ -96,11 +97,9 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
     } catch {
       return deny(400, "path_traversal", "symlink_escape");
     }
-    // The shared symlink-aware guard (DO-NOT #10, not a re-implementation), validated against the same realRoot.
-    if (!realPathGuard(root, absolute, realRoot).ok) return classifyProjectMiss(root, realRoot, absolute);
-    // realPathGuard resolves with the JS realpath (keeps input casing / 8.3 names); safe-read compares against the
-    // NATIVE one. Serve - and run the credential denylist on - the native canonical name, and re-apply the shared
-    // guard to it, so every spelling of a file (case, 8.3, trailing dot) is judged as the file it really is.
+    // Authorise ONLY the native canonical path (the one safe-read compares against, and the same flavour as
+    // realRoot): case, 8.3, subst/mapped-drive and trailing-dot spellings are all judged as the file they really
+    // are, through the shared symlink-aware guard (DO-NOT #10, not a re-implementation).
     let canon: string;
     try {
       canon = await realpath(absolute);
