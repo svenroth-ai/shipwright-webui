@@ -176,6 +176,22 @@ describe("decideSessionFileAccess - session scope", () => {
   });
 
   // @covers FR-01.66
+  it("cloud credential JSON names are refused when evidenced (service-account, client_secret, token.json)", async () => {
+    for (const n of ["service-account-prod.json", "client_secret_123.json", "app-adminsdk-x1.json", "token.json", "ConsoleHost_history.txt"]) {
+      const f = path.join(out, n);
+      writeFileSync(f, "k");
+      expect(await decide(f, evidence(f)), n).toMatchObject({ ok: false, status: 403, error: "sensitive_location" });
+    }
+  });
+
+  // @covers FR-01.66
+  it.runIf(process.platform === "win32")("Windows device names are refused before any filesystem call", async () => {
+    for (const n of ["COM1", "con.txt", "NUL", "CONIN$"]) {
+      expect(await decide(n), n).toMatchObject({ ok: false, status: 400, error: "invalid_path" });
+    }
+  });
+
+  // @covers FR-01.66
   it("a home-style ~ path is never expanded", async () => {
     expect(await decide("~/.ssh/id_rsa")).toMatchObject({ ok: false, status: 404 });
   });

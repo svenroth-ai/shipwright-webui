@@ -59,7 +59,12 @@ function collectStrings(v: unknown, out: string[], depth = 0): void {
   else if (v && typeof v === "object") for (const x of Object.values(v)) collectStrings(x, out, depth + 1);
 }
 
-const OUTPUT_SECTIONS = ["bash-stdout", "bash-stderr", "local-command-stdout", "local-command-stderr"];
+// Command output AND harness-generated wrappers the CLI echoes into user records: none of it is something the
+// user typed or the assistant chose to name (a file or background agent could smuggle a path through them).
+const OUTPUT_SECTIONS = [
+  "bash-stdout", "bash-stderr", "local-command-stdout", "local-command-stderr", "command-stdout", "command-stderr",
+  "system-reminder", "task-notification", "user-prompt-submit-hook", "tool-use-error",
+];
 
 /** Drop `<name>…</name>` sections (command output echoed into user records) by plain string search. */
 function stripSections(text: string, names: string[]): string {
@@ -79,6 +84,8 @@ function stripSections(text: string, names: string[]): string {
 function evidenceStrings(rec: Record<string, unknown>): string[] {
   if (rec.type !== "user" && rec.type !== "assistant") return [];
   if (rec.isMeta === true || rec.isCompactSummary === true) return [];
+  // A user record that answers a tool call (or carries its structured result) is tool output, not a prompt.
+  if (rec.type === "user" && (rec.toolUseResult !== undefined || rec.sourceToolUseID !== undefined)) return [];
   const msg = rec.message as Record<string, unknown> | undefined;
   const content = msg?.content;
   const out: string[] = [];
@@ -139,11 +146,18 @@ export function findSessionEvidence(
   // Bounded backlog: a burst of unevidenced requests must not queue unbounded full scans (fail closed, incomplete).
   if (pendingScans >= MAX_PENDING_SCANS) return Promise.resolve({ found: new Set(), incomplete: true });
   pendingScans++;
-  const run = scanQueue.then(() => withTimeout(scanForEvidence(sessionUuid, loc, candidates, deps)));
-  scanQueue = run.catch(() => undefined);
-  return run.finally(() => {
+  const release = () => {
     pendingScans--;
+  };
+  // The backlog slot is held until the scan itself has stopped, not merely until the caller stopped waiting
+  // (a timed-out scan keeps running, so releasing on timeout would let stalled scans pile up past the cap).
+  const run = scanQueue.then(() => {
+    const scan = scanForEvidence(sessionUuid, loc, candidates, deps);
+    void scan.then(release, release);
+    return withTimeout(scan);
   });
+  scanQueue = run.catch(() => undefined);
+  return run;
 }
 
 /** A stalled read must not hold the queue forever: give up (fail closed, incomplete) and move on. */

@@ -84,6 +84,19 @@ describe("GET /api/external/tasks/:id/session-file (scoping)", () => {
   });
 
   // @covers FR-01.66
+  it("harness-generated wrappers and tool-answering user records are not evidence", async () => {
+    const t = path.join(fx.out, "a.txt");
+    for (const tag of ["system-reminder", "task-notification", "command-stdout", "user-prompt-submit-hook"]) {
+      session(user(1, `<${tag}>${t}</${tag}>`));
+      expect((await get(t)).status, tag).toBe(403);
+    }
+    session({ ...user(1, `echo ${t}`), toolUseResult: { stdout: t } });
+    expect((await get(t)).status).toBe(403);
+    session({ ...user(1, `echo ${t}`), sourceToolUseID: "toolu_1" });
+    expect((await get(t)).status).toBe(403);
+  });
+
+  // @covers FR-01.66
   it("characters that make the match a suffix of something longer do not evidence it", async () => {
     const t = path.join(fx.out, "a.txt");
     const prefixes = process.platform === "win32" ? ["c+", "c@", "c%", "c#", "c$", "(x)"] : ["/srv/c+", "/srv/c@", "/srv/c%", "/srv/c#", "/srv/c$", "$(pwd)", "host:", "${HOME}"];

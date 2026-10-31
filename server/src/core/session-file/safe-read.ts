@@ -43,6 +43,8 @@ export async function readRegularFileCapped(p: string, maxBytes: number): Promis
     const st = await fh.stat({ bigint: true });
     if (!st.isFile()) return { kind: "not_a_file" };
     if (st.size > BigInt(maxBytes)) return { kind: "too_large", size: Number(st.size) };
+    // realpath on BOTH sides of the lstat narrows the swap-and-restore window (no O_NOFOLLOW on Windows).
+    if ((await realpath(p)) !== p) return { kind: "not_a_file" };
     const link = await lstat(p, { bigint: true });
     if (link.isSymbolicLink() || link.dev !== st.dev || link.ino !== st.ino) return { kind: "not_a_file" };
     if ((await realpath(p)) !== p) return { kind: "not_a_file" };

@@ -174,10 +174,10 @@ describe("GET /api/external/tasks/:id/session-file", () => {
 
   // @covers FR-01.66
   it("binary and oversized files get the Smart Viewer's 415 / 413", async () => {
-    writeFileSync(path.join(fx.proj, "nul.txt"), Buffer.from([65, 0, 66]));
+    writeFileSync(path.join(fx.proj, "nulbyte.txt"), Buffer.from([65, 0, 66]));
     writeFileSync(path.join(fx.proj, "blob.bin"), "x");
     writeFileSync(path.join(fx.proj, "big.txt"), Buffer.alloc(5 * 1024 * 1024 + 1, 97));
-    expect((await get("nul.txt")).status).toBe(415);
+    expect((await get("nulbyte.txt")).status).toBe(415);
     expect((await get("blob.bin")).status).toBe(415);
     expect((await get("big.txt")).status).toBe(413);
   });

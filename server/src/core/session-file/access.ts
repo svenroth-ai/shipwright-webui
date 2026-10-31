@@ -37,6 +37,8 @@ export interface AccessArgs {
 
 const deny = (status: AccessDenial["status"], error: string, detail?: string): AccessDecision => ({ ok: false, status, error, detail });
 export const MAX_PATH_CHARS = 4096;
+const BACKSLASH = String.fromCharCode(92);
+const WIN_DEVICE = /^(con|prn|aux|nul|com[0-9]|lpt[0-9]|conin\$|conout\$)(\..*)?$/i;
 
 /**
  * The registered root that lexically contains `abs`, decided by the shared pathGuard (DO-NOT #10) on the
@@ -77,6 +79,11 @@ export async function decideSessionFileAccess(args: AccessArgs): Promise<AccessD
   if (process.platform === "win32" && /^[/\x5c]{2}/.test(requested)) return deny(400, "invalid_path", "unc_or_device");
   // A foreign drive-letter path is meaningless on a POSIX host (it would resolve as a relative name).
   if (process.platform !== "win32" && path.win32.isAbsolute(requested)) return deny(400, "invalid_path", "foreign_absolute");
+
+  // Windows device names would make realpath/CreateFileW touch the device itself.
+  if (process.platform === "win32" && WIN_DEVICE.test(path.win32.basename(requested.replaceAll("/", BACKSLASH)))) {
+    return deny(400, "invalid_path", "device_name");
+  }
 
   let absolute: string;
   if (path.isAbsolute(requested)) {

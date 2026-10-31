@@ -1,8 +1,8 @@
-{"stage":"doubt","doubts":[
-{"severity":"high","claim_under_doubt":"outside the project only with evidence; task.cwd fallback root contradicted it; fixed (no cwd root) + test"},
-{"severity":"high","claim_under_doubt":"command output never evidence; user-string records leaked it; fixed (stripSections, isMeta, isCompactSummary) + tests"},
-{"severity":"medium","claim_under_doubt":"denylist covers allowlisted secrets; widened (outside scope broad, project scope small)"},
-{"severity":"medium","claim_under_doubt":"per-request scan DoS and realpath-before-evidence; fixed: serialized queue + timeout, evidence before realpath"},
-{"severity":"medium","claim_under_doubt":"round 2: project-scope denylist false positives (auth.json, hosts.yml); fixed with a small project list + test"},
-{"severity":"low","claim_under_doubt":"NTFS per-directory case sensitivity, hardlinks, replaced file, space in quoted names, shell-prefix suffix matches (partly closed); accepted residuals"},
-{"severity":"low","claim_under_doubt":"queue head-of-line blocking; 20s timeout added; client must not retry 403"}]}
+{"stage":"doubt","gating":"advisory-must-address","verdict":"PASS","review":[
+{"severity":"medium","file":"server/src/core/session-file/evidence.ts","line":"142-156","objection":"Scan timeout does not cancel the scan; queue and pendingScans cap stop holding under slow scans (DoS)."},
+{"severity":"medium","file":"server/src/core/session-file/evidence.ts","line":"79-94","objection":"user records carry CLI-injected text (system-reminder, task-notification, command-stdout wrappers) that counts as user intent / evidence."},
+{"severity":"medium","file":"server/src/core/session-file/access.ts","line":"117-138","objection":"Evidence boundary is driven by prompt injection (any tool_use/assistant mention); outside denylist misses service-account*.json, client_secret*.json, token.json, secrets.json, ConsoleHost_history.txt."},
+{"severity":"low","file":"server/src/core/session-file/access.ts","line":"91-114","objection":"Hardlink inside the project root to a credential file passes the project-scope denylist."},
+{"severity":"low","file":"server/src/core/session-file/safe-read.ts","line":"43-48","objection":"Windows has no O_NOFOLLOW; narrow ancestor-swap window (swap during open+lstat, restore before realpath)."},
+{"severity":"low","file":"server/src/core/session-file/access.ts","line":"100-108","objection":"Windows device names (COM1, CONIN$) reach realpath/CreateFileW before the extension allowlist."}
+],"unbroken":["symlink/junction escape incl. dangling, no existence oracle","case/8.3/trailing-dot/ADS spellings","UNC/device namespaces","session-scope symlink hop","cross-task leakage","whole-path matching","tool_result/attachments/isMeta/compact skipped","XSS via inline open (CSP sandbox + nosniff, text/plain for html/js)","FIFO/blocking open","error detail disclosure"],"summary":"No path or link escape found. Six advisory objections; disposition recorded in the implementer follow-up commit."}

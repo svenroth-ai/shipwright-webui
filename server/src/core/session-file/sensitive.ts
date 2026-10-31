@@ -23,9 +23,11 @@ const OUTSIDE_DIRS = new Set([
 ]);
 const OUTSIDE_NAMES = new Set([
   ...PROJECT_NAMES, "credentials", ".vault-token", "hosts.yml", "application_default_credentials.json", "credentials.tfrc.json",
-  "mcp.json", "credentials.toml", "auth.json", ".yarnrc.yml", "ngrok.yml", "kaggle.json", "oauth_creds.json", "settings.local.json",
+  "mcp.json", "credentials.toml", "auth.json", ".yarnrc.yml", "ngrok.yml", "kaggle.json", "oauth_creds.json", "settings.local.json", "token.json", "secrets.json", "secret.json", "consolehost_history.txt", "serviceaccount.json",
 ]);
 const KEY_NAME = /^id_(rsa|dsa|ecdsa|ed25519)/;
+// Cloud / OAuth credential files with variable names (service-account-prod.json, client_secret_123.json, *-adminsdk-*.json).
+const CRED_JSON = /^(service[-_]?account.*|client[-_]secret.*|.*-adminsdk-.*)\.json$/;
 
 /** True when `p` (any separator style, any case) names a credential-bearing location in `scope`. */
 export function isSensitivePath(p: string, scope: Scope = "outside"): boolean {
@@ -38,7 +40,7 @@ export function isSensitivePath(p: string, scope: Scope = "outside"): boolean {
   const base = parts[parts.length - 1]!;
   const dirs = parts.slice(0, -1);
   if (base.startsWith(".env") || base.endsWith(".env")) return true;
-  if (KEY_NAME.test(base)) return true;
+  if (KEY_NAME.test(base) || CRED_JSON.test(base)) return true;
   // .git/config can carry a token in a remote URL or an extraheader; the rest of .git stays ordinary in project scope.
   if (scope === "project" && (base === "config" || base === "config.worktree") && dirs.includes(".git")) return true;
   if ((scope === "project" ? PROJECT_NAMES : OUTSIDE_NAMES).has(base)) return true;
