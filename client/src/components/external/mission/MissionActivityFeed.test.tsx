@@ -155,6 +155,7 @@ describe("MissionActivityFeed", () => {
   // Local PR-review preflight (BLOCK, 2026-09-26): card.text can strip to ""
   // (it IS the duplicate sentence) while card.textFull has real narration
   // beyond it — that content must stay reachable via the expand toggle.
+  // @covers FR-01.66
   it("keeps textFull's non-duplicate narration visible in full (no toggle) when card.text strips to empty", () => {
     render(<MissionActivityFeed feed={{
       outcome: "Completed run",
@@ -269,6 +270,7 @@ describe("MissionActivityFeed", () => {
 });
 
 describe("MissionActivityFeed — speaker-change spacing marker (V1)", () => {
+  // @covers FR-01.66
   it("marks an entry data-switch only when the speaker flips between user and non-user", () => {
     const { container } = render(<MissionActivityFeed feed={{
       outcome: "In progress",
