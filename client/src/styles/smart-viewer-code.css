@@ -41,6 +41,7 @@
   /* Self-sufficient light tokens: .on-photo hosts flip --ink/--line/--accent to white. */
   --ink: #1c1917;
   --line: #e7e5e4;
+  --card: #ffffff;
   --accent: #0e7a6b;
   --accent-tint: #e6f3f0;
   --accent-line: #9fd3ca;

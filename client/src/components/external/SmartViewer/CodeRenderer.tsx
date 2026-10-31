@@ -20,7 +20,6 @@ import rehypeHighlight from "rehype-highlight";
 import { common } from "lowlight";
 import { WrapToggleBar, useWrapLines } from "./WrapToggle";
 
-export { WRAP_STORAGE_KEY } from "./WrapToggle";
 
 const EXT_TO_LANG: Record<string, string> = {
   ts: "typescript",

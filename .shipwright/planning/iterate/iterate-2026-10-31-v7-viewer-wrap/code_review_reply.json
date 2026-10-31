@@ -1,7 +1,6 @@
-{"section":"V7-viewer-wrap-code-size","review":[
-{"severity":"medium","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":28,"finding":"Sticky bar top-only; toggle can scroll out of view when unwrapped and scrolled sideways.","suggestion":"left:0 + E2E (fixed)"},
-{"severity":"medium","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":38,"finding":"Tokens flipped by .on-photo risk white-on-white.","suggestion":"self-sufficient token reset on .sv-code-bar (fixed)"},
-{"severity":"low","category":"readability","file":"client/src/styles/smart-viewer-code.css","line":2,"finding":"Specificity comment names wrong competitor.","suggestion":"reword (fixed)"},
-{"severity":"low","category":"correctness","file":"client/src/components/external/SmartViewer/CodeRenderer.tsx","line":64,"finding":"Side effect inside state updater.","suggestion":"move to handler (fixed)"},
-{"severity":"low","category":"correctness","file":"client/e2e/flows/smartviewer-code-wrap.spec.ts","line":45,"finding":"Spec says #1f2937 but real bg is github-dark #0d1117.","suggestion":"note in record"},
-{"severity":"low","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":12,"finding":"No hanging indent for indented code continuation.","suggestion":"record as deviation"}]}
+{"section":"V7-viewer-wrap","verdict":"PASS","review":[
+{"severity":"low","category":"readability","file":"client/src/components/external/SmartViewer/CodeRenderer.tsx","line":23,"finding":"Dead re-export of WRAP_STORAGE_KEY (no importers).","suggestion":"Delete it."},
+{"severity":"low","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":36,"finding":".sv-code-bar sets light tokens but reads --card from the page; a dark --card scope would give dark-on-dark (latent, no current consumer).","suggestion":"Also set --card: #fff in the bar's tokens."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/SmartViewer/WrapToggle.tsx","line":13,"finding":"Preference read once at mount; two open viewers can show stale state until remount.","suggestion":"Optional: storage event / shared store."},
+{"severity":"low","category":"correctness","file":"client/src/styles/smart-viewer-code.css","line":24,"finding":"Browsers without text-indent: each-line drop the declaration; wrapping still works, indent degrades to a plain 2ch shift; acceptable.","suggestion":"None required."}
+],"notes":"Specificity, other CodeRenderer consumers, DO-NOT #24 (not column-flex), accessibility and storage handling verified."}
