@@ -25,7 +25,9 @@ describe("chat file chips (MarkdownText + FileOpenContext)", () => {
     expect(chips).toHaveLength(3);
     expect(chips.every((c) => c.classList.contains("mc-file"))).toBe(true);
     expect(chips[0]).toHaveTextContent("a.ts:98");
-    expect(chips[0]).toHaveAttribute("title", "client/src/a.ts:98");
+    expect(chips[0]).toHaveAttribute("title", ROOT + "\\client\\src\\a.ts"); // full path, not the raw source text
+    expect(chips[1]).toHaveAttribute("title", ROOT + "\\b.md");
+    expect(chips[2]).toHaveAttribute("title", "D:\\other\\c.json");
     fireEvent.click(chips[0]);
     expect(open).toHaveBeenLastCalledWith({ path: "client/src/a.ts", outside: false, line: 98 });
     fireEvent.click(chips[1]);
@@ -68,6 +70,16 @@ describe("chat file chips (MarkdownText + FileOpenContext)", () => {
     expect(link.querySelector("button")).toBeNull();
     expect(screen.queryByTestId("mc-file")).toBeNull();
     expect(link).toHaveTextContent("src/a.ts");
+  });
+
+  it("renders no chips while the project root is still loading (ready=false)", () => {
+    const value: FileOpenValue = { projectRoot: null, ready: false, open: vi.fn() };
+    render(
+      <FileOpenContext.Provider value={value}>
+        <MarkdownText text="`D:\x\y.md` and `src/a.ts`" />
+      </FileOpenContext.Provider>,
+    );
+    expect(screen.queryByTestId("mc-file")).toBeNull();
   });
 
   it("never chips an unlabelled fenced block that only contains a path", () => {

@@ -36,6 +36,8 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
   let outsideFile: string;
   let secretFile: string;
   let imageFile: string;
+  let codeFile: string;
+  let textFile: string;
 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "V6", dirName: "sw-v6-chips" });
@@ -49,6 +51,16 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
       imageFile,
       Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==", "base64"),
     );
+    // Line-addressed targets: a code file whose line 59 is long enough to WRAP (a row-index guess
+    // would land on the wrong logical line) and a plain-text file.
+    codeFile = path.join(outsideDir, "long-module.ts");
+    textFile = path.join(outsideDir, "notes.txt");
+    const pad = (n: number) => String(n).padStart(3, "0");
+    await fs.writeFile(
+      codeFile,
+      Array.from({ length: 140 }, (_, i) => (i + 1 === 59 ? `const WIDE_059 = "${"w".repeat(900)}";` : `const LINE_${pad(i + 1)} = ${i + 1};`)).join("\n"),
+    );
+    await fs.writeFile(textFile, Array.from({ length: 90 }, (_, i) => `NOTE_${pad(i + 1)} text`).join("\n"));
     await fs.mkdir(path.join(project.path, "docs"), { recursive: true });
     await fs.writeFile(path.join(project.path, "docs", "inside.md"), `# ${INSIDE_BODY}\n`);
     const task = await seedTask(request, { title: "V6 chips", projectId: project.projectId, cwd: project.path });
@@ -72,7 +84,7 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
             content: [
               {
                 type: "text",
-                text: `The notes are in \`${outsideFile}\` and the spec is [inside](docs/inside.md). Also \`docs/inside.md:1\`.`,
+                text: `The notes are in \`${outsideFile}\` and the spec is [inside](docs/inside.md). Also \`docs/inside.md:1\`, \`${codeFile}:60\` and \`${textFile}:40\`.`,
               },
             ],
           },
@@ -135,7 +147,6 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
     expect(row!.height).toBeGreaterThanOrEqual(38);
     const out = await page.getByTestId("env-output").first().boundingBox();
     expect(out!.height).toBeGreaterThanOrEqual(40);
-    await page.screenshot({ path: path.join(process.env.V6_SHOTS ?? outsideDir, "v6-sidebar.png") });
   });
 
   // @covers FR-01.66
@@ -163,9 +174,14 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]).catch(() => undefined);
     await open(page);
     const chips = page.getByTestId("mission-activity-feed").getByTestId("mc-file");
-    await expect(chips).toHaveCount(3);
+    await expect(chips).toHaveCount(5);
     await expect(chips.first()).toHaveClass(/mc-file/);
     await expect(chips.first()).toHaveAttribute("title", outsideFile);
+    // an inside chip's tooltip is the FULL path (project root + relative), not the raw source text
+    const insideTitle = (await chips.nth(1).getAttribute("title")) ?? "";
+    expect(insideTitle).toContain(path.basename(project.path));
+    expect(insideTitle).toMatch(/inside\.md$/);
+    expect((await chips.nth(2).getAttribute("title")) ?? "").toBe(insideTitle);
 
     await chips.first().click();
     await expect(page.getByTestId("mission-side-body-viewer")).toContainText(OUTSIDE_BODY);
@@ -213,6 +229,63 @@ test.describe("V6 — info sidebar, Outputs and chat file chips", () => {
       url,
     );
     expect(width).toBe(1);
+  });
+
+  // The marked band must sit on the SAME box as the text of the requested logical line and be
+  // inside the scroll host's visible area (wrapped long line above it must not shift the target).
+  async function expectMarkOnLine(page: Page, hostSel: string, needle: string, line: number) {
+    const mark = page.getByTestId("sv-line-mark");
+    await expect(mark).toBeVisible();
+    await expect(mark).toHaveAttribute("data-line", String(line));
+    await expect
+      .poll(async () =>
+        page.evaluate(
+          ({ hostSel, needle }) => {
+            const host = document.querySelector(hostSel) as HTMLElement;
+            const m = document.querySelector("[data-testid='sv-line-mark']") as HTMLElement;
+            const w = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+            for (let n = w.nextNode(); n; n = w.nextNode()) {
+              const i = (n.nodeValue ?? "").indexOf(needle);
+              if (i < 0) continue;
+              const r = document.createRange();
+              r.setStart(n, i);
+              r.setEnd(n, i + needle.length);
+              const t = r.getBoundingClientRect();
+              const mr = m.getBoundingClientRect();
+              const hr = host.getBoundingClientRect();
+              const aligned = Math.abs(mr.top - t.top) <= 4 && mr.top <= t.bottom && mr.bottom >= t.top;
+              const visible = t.top >= hr.top && t.bottom <= hr.bottom;
+              return { aligned, visible, scrolled: host.scrollTop > 0 };
+            }
+            return null;
+          },
+          { hostSel, needle },
+        ),
+      )
+      .toEqual({ aligned: true, visible: true, scrolled: true });
+  }
+
+  // @covers FR-01.66
+  test("a chip with :line opens the viewer scrolled to and marking that logical line (code, wrap on and off, plain text)", async ({ page }) => {
+    await open(page);
+    const chips = page.getByTestId("mission-activity-feed").getByTestId("mc-file");
+    await expect(chips.nth(3)).toContainText("long-module.ts:60");
+    await chips.nth(3).click();
+    await expect(page.getByTestId("smart-viewer-outside-tag")).toBeVisible();
+    await expectMarkOnLine(page, "[data-testid='smart-viewer-code']", "LINE_060", 60);
+    // wrap OFF re-measures: the band follows the line (the 900-char line above is one row now)
+    await page.getByTestId("smart-viewer-wrap-toggle").click();
+    await expectMarkOnLine(page, "[data-testid='smart-viewer-code']", "LINE_060", 60);
+    await page.getByTestId("smart-viewer-wrap-toggle").click();
+
+    await page.getByTestId("mission-side-seg-info").click();
+    await chips.nth(4).click();
+    await expectMarkOnLine(page, ".smart-viewer-text-host", "NOTE_040", 40);
+
+    // opening a file without a :line from Outputs drops the mark
+    await page.getByTestId("mission-side-seg-info").click();
+    await page.getByTestId("env-output").filter({ hasText: "inside.md" }).click();
+    await expect(page.getByTestId("sv-line-mark")).toHaveCount(0);
   });
 
   // @covers FR-01.66

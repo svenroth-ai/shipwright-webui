@@ -106,7 +106,7 @@ function InlineCode({ children, ...rest }: { children?: ReactNode }) {
   const insideLink = useContext(InsideLinkContext);
   // An unlabelled fenced block also lands here; unlike inline code it ends in a newline.
   const target = useFileTarget(text.includes("\n") || insideLink ? "" : text);
-  if (target) return <FileChip target={target} title={text} />;
+  if (target) return <FileChip target={target} />;
   return (
     <code className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]" {...rest}>
       {children}

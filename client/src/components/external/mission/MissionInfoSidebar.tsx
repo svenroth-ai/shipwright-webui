@@ -47,6 +47,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
   const project = useProject(unassigned ? "" : task.projectId).data;
   const projectRoot = project?.path ?? null;
   const [target, setTarget] = useState<ViewerTarget | null>(null);
+  const [focusKey, setFocusKey] = useState(0);
   const drag = useRef<{ x: number; w: number } | null>(null);
   // In-progress drag width: committed (and persisted) once, on release.
   const dragW = useRef<number | null>(null);
@@ -63,6 +64,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
   useEffect(() => {
     if (!request) return;
     setTarget(request.target);
+    setFocusKey(request.nonce);
     layoutRef.current.setSegment("viewer");
     layoutRef.current.setCollapsed(false);
   }, [request]);
@@ -161,7 +163,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
           {seg === "folders" && visible && (
             <FolderTree flat projectId={task.projectId} selectedPath={target?.outside ? null : (target?.path ?? null)} onSelect={open} projectRoot={projectRoot} label={project?.name ?? null} />
           )}
-          {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} />}
+          {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} line={target?.line} focusKey={focusKey} />}
         </div>
       </aside>
     </>

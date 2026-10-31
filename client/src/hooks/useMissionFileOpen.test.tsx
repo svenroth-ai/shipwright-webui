@@ -32,5 +32,7 @@ describe("useMissionFileOpen", () => {
     expect(result.current.request).not.toBeNull();
     rerender({ id: "b" });
     expect(result.current.request).toBeNull();
+    rerender({ id: "a" });
+    expect(result.current.request).toBeNull(); // returning to the task never replays its last chip click
   });
 });

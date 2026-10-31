@@ -79,23 +79,26 @@ interface Props {
   /** Set for a file OUTSIDE the project (V6): `path` is then absolute and is
    *  served by the task-scoped session-file route; a header names the scope. */
   sessionTaskId?: string;
+  /** 1-based line to open at (text/code kinds); focusKey re-fires a repeat open of the same line. */
+  line?: number;
+  focusKey?: number;
 }
 
-export function SmartViewer({ projectId, path, popOut = true, sessionTaskId }: Props) {
+export function SmartViewer({ projectId, path, popOut = true, sessionTaskId, line, focusKey }: Props) {
   if (path && sessionTaskId) {
     return (
       <div className="flex h-full flex-col">
         <OutsideProjectHeader path={path} />
         <div className="min-h-0 flex-1">
-          <SmartViewerBody projectId={projectId} path={path} popOut={popOut} sessionTaskId={sessionTaskId} />
+          <SmartViewerBody projectId={projectId} path={path} popOut={popOut} sessionTaskId={sessionTaskId} line={line} focusKey={focusKey} />
         </div>
       </div>
     );
   }
-  return <SmartViewerBody projectId={projectId} path={path} popOut={popOut} />;
+  return <SmartViewerBody projectId={projectId} path={path} popOut={popOut} line={line} focusKey={focusKey} />;
 }
 
-function SmartViewerBody({ projectId, path, popOut = true, sessionTaskId }: Props) {
+function SmartViewerBody({ projectId, path, popOut = true, sessionTaskId, line, focusKey }: Props) {
   if (!path) {
     return (
       <div
@@ -149,7 +152,7 @@ function SmartViewerBody({ projectId, path, popOut = true, sessionTaskId }: Prop
     );
   }
 
-  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} popOut={popOut} sessionTaskId={sessionTaskId} />;
+  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} popOut={popOut} sessionTaskId={sessionTaskId} line={line} focusKey={focusKey} />;
 }
 
 interface TextProps {
@@ -159,9 +162,11 @@ interface TextProps {
   kind: Exclude<SmartViewerKind, "image" | "unknown">;
   ext: string;
   popOut: boolean;
+  line?: number;
+  focusKey?: number;
 }
 
-function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId }: TextProps) {
+function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId, line, focusKey }: TextProps) {
   const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
   // An outside file has no project root: no cross-file nav, edit or sibling-stylesheet inlining.
   const scopedProjectId = sessionTaskId ? undefined : projectId;
@@ -242,10 +247,10 @@ function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId }: T
       );
     }
     if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={sessionTaskId ? NO_DOC_NAV : nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
-    if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
+    if (kind === "code") return <CodeRenderer text={state.text} extension={ext} line={line} focusKey={focusKey} />;
     if (kind === "html") return <HtmlRenderer text={state.text} projectId={scopedProjectId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
-    return <TextRenderer text={state.text} />;
+    return <TextRenderer text={state.text} line={line} focusKey={focusKey} />;
   })();
 
   return (

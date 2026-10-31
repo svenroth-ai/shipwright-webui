@@ -105,3 +105,12 @@ export function targetFromText(raw: string, projectRoot: string | null, opts?: {
   const ref = parseFileRef(raw, opts);
   return ref ? resolveViewerTarget(ref, projectRoot) : null;
 }
+
+/** The full filesystem path a target stands for: outside targets are already absolute;
+ *  an inside (root-relative) one is joined onto the project root in the root's own style. */
+export function fullPathOf(target: ViewerTarget, projectRoot: string | null): string {
+  if (target.outside || !projectRoot) return target.path;
+  const back = projectRoot.includes("\\") && !projectRoot.includes("/");
+  const root = projectRoot.replace(/[\\/]+$/, "");
+  return back ? `${root}\\${target.path.replace(/\//g, "\\")}` : `${root}/${target.path}`;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseFileRef, resolveViewerTarget, targetFromText } from "./viewerTarget";
+import { fullPathOf, parseFileRef, resolveViewerTarget, targetFromText } from "./viewerTarget";
 
 const ROOT = "C:\\dev\\app";
 
@@ -60,5 +60,15 @@ describe("resolveViewerTarget", () => {
   it("targetFromText chains both", () => {
     expect(targetFromText("`x`", ROOT)).toBeNull();
     expect(targetFromText("src/a.ts:9", ROOT)).toEqual({ path: "src/a.ts", outside: false, line: 9 });
+  });
+});
+
+// @covers FR-01.66
+describe("fullPathOf", () => {
+  it("joins an inside path onto the root in the root's own separator style; outside stays absolute", () => {
+    expect(fullPathOf({ path: "client/src/a.ts", outside: false }, ROOT + "\\")).toBe(ROOT + "\\client\\src\\a.ts");
+    expect(fullPathOf({ path: "a/b.ts", outside: false }, "/home/u/app")).toBe("/home/u/app/a/b.ts");
+    expect(fullPathOf({ path: "D:\\o\\x.md", outside: true }, ROOT)).toBe("D:\\o\\x.md");
+    expect(fullPathOf({ path: "a.ts", outside: false }, null)).toBe("a.ts");
   });
 });

@@ -13,6 +13,8 @@ import { targetFromText, type ViewerTarget } from "../../lib/viewerTarget";
 export interface FileOpenValue {
   /** Registered project root (null = unassigned task). */
   projectRoot: string | null;
+  /** False while the task's project is still loading: inside paths cannot be resolved yet, so no chips. Default true. */
+  ready?: boolean;
   open: (target: ViewerTarget) => void;
 }
 
@@ -25,5 +27,5 @@ export function useFileOpen(): FileOpenValue | null {
 /** Text -> openable target under the current provider; null when none / not a file. */
 export function useFileTarget(raw: string, decode = false): ViewerTarget | null {
   const ctx = useFileOpen();
-  return ctx ? targetFromText(raw, ctx.projectRoot, { decode }) : null;
+  return ctx && ctx.ready !== false ? targetFromText(raw, ctx.projectRoot, { decode }) : null;
 }
