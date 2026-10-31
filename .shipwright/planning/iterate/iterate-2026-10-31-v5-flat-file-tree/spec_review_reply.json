@@ -1,0 +1,1 @@
+{"stage": "spec-compliance", "verdict": "PASS", "spec_citations": [], "summary": "Round-3 re-review at 6ae4ea33: all three menu items on files and folders, no shortcuts, flat tree, toast, path formats, touch sheet all conform. Rounds 1 and 2 REJECTed (icons/guides/footer 44px/header label; folder Open in Viewer), fixed before this PASS."}

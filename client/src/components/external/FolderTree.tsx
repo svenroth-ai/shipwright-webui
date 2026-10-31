@@ -1,44 +1,34 @@
 /*
- * FolderTree — left-pane of the TaskDetail 3-pane body (iterate 3
- * section 04, FR-03.32 + FR-03.33).
+ * FolderTree — the shared project file tree (iterate 3 section 04, FR-03.32 +
+ * FR-03.33; flat variant + row context menu: mission-desktop-style-v2 V5).
  *
  * Fetches ONE level at a time via GET /api/external/projects/:id/tree —
  * lazy expand; collapsing a dir DOES NOT refetch on the next expand
- * inside the same mount. Ignored entries render muted by default; the
- * "Hide ignored entries" toggle (unchecked by default) flips to hide
- * them entirely. Per-project persistence via `useHideIgnored`.
+ * inside the same mount. Ignored entries render italic + muted by default; the
+ * "Show ignored entries" toggle persists per project (`useHideIgnored`).
+ * `flat` = no card chrome; `projectRoot` enables the absolute "Copy Path".
  *
- * Keyboard: ArrowDown / ArrowUp focus next/prev row; ArrowRight on a
- * dir expands (or focuses first child if already expanded); ArrowLeft
- * collapses (or focuses parent); Enter selects.
+ * Keyboard: arrows move/expand/collapse, Enter selects, ContextMenu / Shift+F10 opens the row menu.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  AlertCircle,
-  ChevronRight,
-  File as FileIcon,
-  FileCode,
-  FileJson,
-  FileText,
-  Folder,
-  FolderOpen,
-  ImageIcon,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
 
-import {
-  ApiError,
-  fetchProjectTree,
-  type TreeEntry,
-} from "../../lib/externalApi";
+import { ApiError, fetchProjectTree, type TreeEntry } from "../../lib/externalApi";
 import { useHideIgnored } from "../../hooks/useHideIgnored";
+import { FolderTreeMenu, type TreeMenuTarget } from "./FolderTreeMenu";
+import { FolderTreeRow, focusRow, type TreeRow } from "./FolderTreeRow";
+import { useCopyToast } from "./useCopyToast";
+import { absoluteTreePath } from "./folderTreePaths";
 
 interface Props {
   projectId: string;
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  /** Absolute project folder (enables "Copy Path"). */
+  projectRoot?: string | null;
+  flat?: boolean;
+  label?: string | null;
 }
 
 interface DirState {
@@ -53,45 +43,21 @@ type DirCache = Record<string, DirState | undefined>;
 const ROOT = "";
 
 function joinPath(parent: string, name: string): string {
-  if (!parent) return name;
-  return `${parent}/${name}`;
+  return parent ? `${parent}/${name}` : name;
 }
 
-function iconForEntry(name: string, kind: "file" | "dir", expanded: boolean) {
-  if (kind === "dir") {
-    return expanded ? (
-      <FolderOpen size={14} className="shrink-0 text-[var(--color-accent,#857568)]" />
-    ) : (
-      <Folder size={14} className="shrink-0 text-[var(--color-accent,#857568)]" />
-    );
-  }
-  const dot = name.lastIndexOf(".");
-  const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
-  if (ext === "md" || ext === "markdown") {
-    return <FileText size={14} className="shrink-0 text-info" />;
-  }
-  if (ext === "ts" || ext === "tsx" || ext === "js" || ext === "jsx") {
-    return <FileCode size={14} className="shrink-0 text-info" />;
-  }
-  if (ext === "json" || ext === "yaml" || ext === "yml") {
-    return <FileJson size={14} className="shrink-0 text-warn" />;
-  }
-  if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) {
-    return <ImageIcon size={14} className="shrink-0 text-info" />;
-  }
-  return <FileIcon size={14} className="shrink-0 text-[var(--color-muted,#6b7280)]" />;
-}
-
-export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
+export function FolderTree({ projectId, selectedPath, onSelect, projectRoot = null, flat = false, label = null }: Props) {
   const [cache, setCache] = useState<DirCache>({});
   const [hideIgnored, setHideIgnored] = useHideIgnored(projectId);
   const treeRef = useRef<HTMLDivElement | null>(null);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
+  const [menu, setMenu] = useState<TreeMenuTarget | null>(null);
+  const { toast, copy } = useCopyToast();
 
-  // Reset cache when project changes — different filesystem root.
   useEffect(() => {
     setCache({});
     setFocusedPath(null);
+    setMenu(null);
   }, [projectId]);
 
   const loadDir = useCallback(
@@ -109,12 +75,7 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
         const res = await fetchProjectTree(projectId, relpath || undefined);
         setCache((prev) => ({
           ...prev,
-          [relpath]: {
-            loading: false,
-            error: null,
-            entries: res.entries,
-            expanded: true,
-          },
+          [relpath]: { loading: false, error: null, entries: res.entries, expanded: true },
         }));
       } catch (err) {
         const msg = err instanceof ApiError ? err.code : err instanceof Error ? err.message : String(err);
@@ -132,15 +93,11 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
     [projectId],
   );
 
-  // Load root on mount / projectId change.
   useEffect(() => {
-    if (!cache[ROOT]) {
-      void loadDir(ROOT);
-    }
+    if (!cache[ROOT]) void loadDir(ROOT);
   }, [cache, loadDir]);
 
   const refreshTree = useCallback(() => {
-    // Drop the whole cache so every level reloads fresh from the server.
     setCache({});
     void loadDir(ROOT);
   }, [loadDir]);
@@ -149,118 +106,106 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
     (path: string) => {
       setCache((prev) => {
         const cur = prev[path];
-        if (cur && cur.entries) {
-          return {
-            ...prev,
-            [path]: { ...cur, expanded: !cur.expanded },
-          };
-        }
+        if (cur && cur.entries) return { ...prev, [path]: { ...cur, expanded: !cur.expanded } };
         return prev;
       });
-      // If no entries yet: fetch.
       const cur = cache[path];
-      if (!cur || cur.entries === null) {
-        void loadDir(path);
-      }
+      if (!cur || cur.entries === null) void loadDir(path);
     },
     [cache, loadDir],
   );
 
   const rootState = cache[ROOT];
 
-  // Flatten for keyboard navigation. Rebuild whenever cache or toggle
-  // changes so ArrowDown/Up moves through what's visible.
   const visibleRows = useMemo(() => {
-    const rows: Array<{
-      path: string;
-      name: string;
-      kind: "file" | "dir";
-      ignored: boolean;
-      depth: number;
-      expanded: boolean;
-    }> = [];
+    const rows: TreeRow[] = [];
     const walk = (parentPath: string, depth: number) => {
       const state = cache[parentPath];
       if (!state || !state.entries) return;
       for (const e of state.entries) {
         if (hideIgnored && e.ignored) continue;
         const p = joinPath(parentPath, e.name);
-        const child = cache[p];
-        const expanded = Boolean(child?.expanded);
-        rows.push({
-          path: p,
-          name: e.name,
-          kind: e.kind,
-          ignored: e.ignored,
-          depth,
-          expanded,
-        });
-        if (e.kind === "dir" && expanded) {
-          walk(p, depth + 1);
-        }
+        const expanded = Boolean(cache[p]?.expanded);
+        rows.push({ path: p, name: e.name, kind: e.kind, ignored: e.ignored, depth, expanded });
+        if (e.kind === "dir" && expanded) walk(p, depth + 1);
       }
     };
     walk(ROOT, 0);
     return rows;
   }, [cache, hideIgnored]);
 
-  const onRowKeyDown = (
-    e: React.KeyboardEvent<HTMLButtonElement>,
-    row: (typeof visibleRows)[number],
-  ) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      const idx = visibleRows.findIndex((r) => r.path === row.path);
-      const next = visibleRows[idx + 1];
-      if (next) {
-        setFocusedPath(next.path);
-        focusRow(treeRef.current, next.path);
-      }
-      return;
+  const openMenu = useCallback((row: TreeRow, x: number, y: number, sheet: boolean) => {
+    setFocusedPath(row.path);
+    setMenu({ path: row.path, kind: row.kind, x, y, sheet });
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    const path = menu?.path;
+    setMenu(null);
+    // Return focus to the row only if nothing else took it (an outside click
+    // or a second menu must keep its own focus).
+    if (path) {
+      window.setTimeout(() => {
+        const a = document.activeElement;
+        if (!a || a === document.body) focusRow(treeRef.current, path);
+      }, 0);
     }
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      const idx = visibleRows.findIndex((r) => r.path === row.path);
-      const prev = visibleRows[idx - 1];
-      if (prev) {
-        setFocusedPath(prev.path);
-        focusRow(treeRef.current, prev.path);
-      }
-      return;
+  }, [menu]);
+
+  const move = (row: TreeRow, delta: number) => {
+    const idx = visibleRows.findIndex((r) => r.path === row.path);
+    const next = visibleRows[idx + delta];
+    if (next) {
+      setFocusedPath(next.path);
+      focusRow(treeRef.current, next.path);
     }
-    if (e.key === "ArrowRight" && row.kind === "dir") {
+  };
+
+  const onRowKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, row: TreeRow) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      move(row, e.key === "ArrowDown" ? 1 : -1);
+    } else if (e.key === "ArrowRight" && row.kind === "dir") {
       e.preventDefault();
       if (!row.expanded) toggleDir(row.path);
-      return;
-    }
-    if (e.key === "ArrowLeft" && row.kind === "dir" && row.expanded) {
+    } else if (e.key === "ArrowLeft" && row.kind === "dir" && row.expanded) {
       e.preventDefault();
       toggleDir(row.path);
-      return;
-    }
-    if (e.key === "Enter" || e.key === " ") {
+    } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (row.kind === "dir") toggleDir(row.path);
       else onSelect(row.path);
-      return;
+    } else if (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey)) {
+      e.preventDefault();
+      const r = e.currentTarget.getBoundingClientRect();
+      openMenu(row, r.left + 24, r.bottom, false);
     }
+  };
+
+  // "Open in Viewer": a file opens in the viewer; a folder (nothing to render) expands.
+  const openFromMenu = (path: string, kind: "file" | "dir") => {
+    if (kind === "file") onSelect(path);
+    else if (!cache[path]?.expanded) toggleDir(path);
+  };
+
+  const activate = (row: TreeRow) => {
+    setFocusedPath(row.path);
+    if (row.kind === "dir") toggleDir(row.path);
+    else onSelect(row.path);
   };
 
   return (
     <div
-      className="ft-card ft-files flex h-full flex-col"
+      className={`${flat ? "ft-flat" : "ft-card ft-files"} flex h-full min-h-0 flex-col`}
       data-testid="folder-tree"
     >
-      {/* Greyed .ft-head band — Files title + refresh (A18 three-card skin). */}
-      <div className="ft-head" data-testid="folder-tree-header">
-        <span className="ft-title flex-1">Files</span>
-        {rootState?.loading && (
-          <Loader2 size={12} className="animate-spin" aria-label="Loading" />
-        )}
+      <div className={flat ? "ft-flat-bar" : "ft-head"} data-testid="folder-tree-header">
+        <span className="ft-title flex-1 truncate">{label ? `Files · ${label}` : "Files"}</span>
+        {rootState?.loading && <Loader2 size={12} className="animate-spin" aria-label="Loading" />}
         <button
           type="button"
           onClick={refreshTree}
-          className="inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-[var(--color-muted,#6b7280)] transition hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)] pointer-coarse:h-11 pointer-coarse:w-11"
+          className="ft-refresh inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-[var(--color-muted,#6b7280)] transition hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)] pointer-coarse:h-11 pointer-coarse:w-11"
           title="Refresh tree"
           aria-label="Refresh tree"
           data-testid="folder-tree-refresh"
@@ -272,7 +217,7 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
         ref={treeRef}
         role="tree"
         aria-label="Project files"
-        className="flex-1 overflow-y-auto py-2"
+        className="ft-tree flex-1 overflow-y-auto py-1"
         data-testid="folder-tree-body"
       >
         {rootState?.error && (
@@ -285,63 +230,19 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
             {rootState.error}
           </div>
         )}
-        {visibleRows.map((row) => {
-          const childState = cache[row.path];
-          const isSelected = selectedPath === row.path;
-          return (
-            <div key={row.path} role="treeitem" aria-selected={isSelected}>
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusedPath(row.path);
-                  if (row.kind === "dir") toggleDir(row.path);
-                  else onSelect(row.path);
-                }}
-                onKeyDown={(e) => onRowKeyDown(e, row)}
-                data-testid={`folder-tree-row-${row.path}`}
-                data-path={row.path}
-                data-ignored={row.ignored || undefined}
-                data-kind={row.kind}
-                data-selected={isSelected || undefined}
-                tabIndex={row.path === (focusedPath ?? visibleRows[0]?.path) ? 0 : -1}
-                className={`ft-tree-row flex w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-left text-[12px] transition ${
-                  row.ignored ? "italic opacity-60" : ""
-                } ${
-                  isSelected
-                    ? "bg-[var(--color-primary,#6b5e56)]/15 font-medium"
-                    : "hover:bg-[var(--color-muted-bg,#ede8e1)]"
-                }`}
-                style={{ paddingLeft: `${8 + row.depth * 14}px` }}
-              >
-                <span className="ft-tree-chev flex w-3 shrink-0 items-center justify-center">
-                  {row.kind === "dir" ? (
-                    <ChevronRight
-                      size={12}
-                      className="transition-transform"
-                      style={{ transform: row.expanded ? "rotate(90deg)" : "none" }}
-                    />
-                  ) : (
-                    <span aria-hidden="true" className="inline-block h-3 w-3" />
-                  )}
-                </span>
-                {iconForEntry(row.name, row.kind, row.expanded)}
-                <span className="truncate">{row.name}</span>
-                {row.kind === "dir" && childState?.loading && (
-                  <Loader2 size={10} className="ml-auto animate-spin opacity-60" />
-                )}
-              </button>
-              {row.kind === "dir" && childState?.error && (
-                <div
-                  className="ml-8 mr-2 my-1 rounded-sm border border-[var(--color-error,#DC2626)]/30 bg-[var(--color-error,#DC2626)]/10 px-1.5 py-0.5 text-[10px]"
-                  style={{ color: "var(--color-error, #DC2626)" }}
-                  data-testid={`folder-tree-error-${row.path}`}
-                >
-                  {childState.error}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {visibleRows.map((row) => (
+          <FolderTreeRow
+            key={row.path}
+            row={row}
+            selected={selectedPath === row.path}
+            tabbable={row.path === (focusedPath ?? visibleRows[0]?.path)}
+            loading={Boolean(cache[row.path]?.loading)}
+            error={cache[row.path]?.error ?? null}
+            onActivate={activate}
+            onKeyDown={onRowKeyDown}
+            onMenu={openMenu}
+          />
+        ))}
         {rootState && !rootState.loading && visibleRows.length === 0 && !rootState.error && (
           <div
             className="px-4 py-3 text-[11px] italic"
@@ -352,43 +253,30 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
           </div>
         )}
       </div>
-      {/* Iterate v0.8.2 AC-6: rephrased as "Show ignored entries" so the
-          checkbox follows positive UX framing ("when enabled, renders
-          gitignored paths with italic + reduced opacity"). The underlying
-          per-project storage stays the same `hideIgnored` flag — we just
-          invert the binding at render time so existing user preferences
-          flow through without a migration. Default ("Show" checked) keeps
-          the iterate-3 behavior of rendering ignored entries muted. Both
-          old and new data-testids are emitted so tests + future tooling
-          have a stable handle through the rename. */}
-      <label
-        className="flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] px-4 py-2 text-[11px] select-none"
-        style={{ color: "var(--color-muted, #6b7280)" }}
-        data-testid="folder-tree-show-ignored-label"
-      >
+      <label className="ft-foot" data-testid="folder-tree-show-ignored-label">
         <input
           type="checkbox"
           checked={!hideIgnored}
           onChange={(e) => setHideIgnored(!e.target.checked)}
-          className="h-3 w-3 cursor-pointer"
+          className="cursor-pointer"
           data-testid="folder-tree-show-ignored-toggle"
         />
         <span className="cursor-pointer">Show ignored entries</span>
-        <span
-          className="ml-auto text-[10px] italic opacity-70"
-          data-testid="folder-tree-saved-hint"
-        >
+        <span className="ml-auto text-[11px] italic opacity-70" data-testid="folder-tree-saved-hint">
           saved per project
         </span>
       </label>
+      <div role="status" aria-live="polite" className={toast ? "ft-toast" : "sr-only"} data-testid="folder-tree-toast">
+        {toast}
+      </div>
+      <FolderTreeMenu
+        target={menu}
+        onClose={closeMenu}
+        onOpen={openFromMenu}
+        canCopyPath={Boolean(projectRoot)}
+        onCopyPath={(p) => projectRoot && copy(absoluteTreePath(projectRoot, p))}
+        onCopyRelative={(p) => copy(p)}
+      />
     </div>
   );
-}
-
-function focusRow(root: HTMLElement | null, path: string) {
-  if (!root) return;
-  const btn = root.querySelector<HTMLButtonElement>(
-    `[data-testid="folder-tree-row-${CSS.escape(path)}"]`,
-  );
-  btn?.focus();
 }

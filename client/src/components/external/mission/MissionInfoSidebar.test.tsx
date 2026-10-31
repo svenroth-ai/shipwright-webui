@@ -198,6 +198,8 @@ describe("MissionInfoSidebar", () => {
     expect(screen.queryByTestId("mission-side-seg-folders")).toBeNull();
     expect(screen.queryByTestId("mission-side-seg-viewer")).toBeNull();
     expect(screen.queryAllByTestId("env-output")).toHaveLength(0);
+    // The empty project id keeps useProject disabled: no /projects/ request at all.
+    expect(fetchMock.mock.calls.some((c) => /\/projects\/?(\?|$)/.test(String(c[0])))).toBe(false);
   });
 
   it("a hidden compact panel requests no scan", async () => {

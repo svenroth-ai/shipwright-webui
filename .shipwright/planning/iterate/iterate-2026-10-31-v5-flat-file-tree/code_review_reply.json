@@ -1,0 +1,11 @@
+{"section":"V5-flat-file-tree-context-menu","review":[
+{"severity":"high","category":"correctness","file":"FolderTree.tsx","finding":"Focus-return race after menu close steals focus from outside clicks; second right-click can dismiss new menu."},
+{"severity":"medium","category":"correctness","file":"folder-tree.css","finding":"Shared density rules also restyle Files & Terminal tree (intended by spec; visual baselines may shift)."},
+{"severity":"medium","category":"readability","file":"folder-tree.css","finding":"Hardcoded colors in new CSS."},
+{"severity":"medium","category":"correctness","file":"FolderTreeRow.tsx","finding":"Mouse click on ... opens the touch sheet."},
+{"severity":"low","category":"correctness","file":"folder-tree.css","finding":"Focus ring clipped by scroll container."},
+{"severity":"low","category":"correctness","file":"FolderTreeMenu.tsx","finding":"aria-labelledby on empty trigger may leave menu unnamed."},
+{"severity":"low","category":"correctness","file":"FolderTreeRow.tsx","finding":"Long-press guard when contextmenu is a MouseEvent."},
+{"severity":"low","category":"readability","file":"FolderTree.tsx","finding":"setTimeout inside setState updater."},
+{"severity":"low","category":"correctness","file":"FolderTreeRow.tsx","finding":"Double dimming of ignored rows."},
+{"severity":"low","category":"readability","file":"folderTreePaths.ts","finding":"relativeTreePath identity helper."}]}

@@ -142,7 +142,8 @@ describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
     await waitFor(() => screen.getByTestId("folder-tree-row-.git"));
     const ignoredRow = screen.getByTestId("folder-tree-row-.git");
     expect(ignoredRow.getAttribute("data-ignored")).toBe("true");
-    expect(ignoredRow.className).toContain("opacity-60");
+    expect(ignoredRow.className).toContain("ignored");
+    expect(ignoredRow.className).not.toContain("opacity-60");
     expect(ignoredRow.className).toContain("italic");
   });
 
@@ -228,5 +229,27 @@ describe("FolderTree — A18 left card (glass Files card + greyed head)", () => 
     expect(head.className).toContain("ft-head");
     // "Files" title carries the uppercase .ft-title style; refresh still present.
     expect(screen.getByTestId("folder-tree-refresh")).toBeTruthy();
+  });
+  // @covers FR-01.02
+  it("keyboard: arrows move focus, ArrowRight/Left expand/collapse, Enter opens a file, Shift+F10 opens the menu", async () => {
+    globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
+    const onSelect = vi.fn();
+    render(<FolderTree projectId="proj-a" selectedPath={null} onSelect={onSelect} projectRoot="C:/proj" />);
+    const src = await screen.findByTestId("folder-tree-row-src");
+    const btn = src as HTMLButtonElement;
+    btn.focus();
+    fireEvent.keyDown(btn, { key: "ArrowRight" });
+    await waitFor(() => screen.getByTestId("folder-tree-row-src/index.ts"));
+    fireEvent.keyDown(btn, { key: "ArrowDown" });
+    fireEvent.keyDown(btn, { key: "ArrowUp" });
+    fireEvent.keyDown(btn, { key: "ArrowLeft" });
+    await waitFor(() => expect(screen.queryByTestId("folder-tree-row-src/index.ts")).toBeNull());
+    fireEvent.keyDown(btn, { key: "Enter" });
+    await waitFor(() => screen.getByTestId("folder-tree-row-src/index.ts"));
+    const file = screen.getByTestId("folder-tree-row-src/index.ts") as HTMLButtonElement;
+    fireEvent.keyDown(file, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith("src/index.ts");
+    fireEvent.keyDown(file, { key: "F10", shiftKey: true });
+    await screen.findByRole("menu");
   });
 });

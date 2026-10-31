@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Scope bullets implemented; spec reviewer PASS in round 3."},
+{"name":"Error Handling","verdict":"pass","note":"Clipboard failure shows Copy failed; tree load errors unchanged."},
+{"name":"Security Basics","verdict":"pass","note":"Client-only; copies paths the user already sees; no new routes."},
+{"name":"Test Quality","verdict":"pass","note":"Unit tests for menu, paths, failure; real-browser E2E found and fixed a backdrop-filter anchoring bug."},
+{"name":"Performance Basics","verdict":"pass","note":"No new fetches; per-row work is constant."},
+{"name":"Naming & Structure","verdict":"pass","note":"Split into Row/Menu/hook/paths; FolderTree.tsx 394 to 285 lines."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Tree path format (forward slash) consumed verbatim; clipboard round-trip verified in E2E."}
+]}
