@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/styles/mission-chat.css:41\n- Finding: The requested teal link color is only defined in the dark scope. Light chat falls back to `--info`, so it does not receive the specified `#7fdcca` link color. The new test checks the dark token and underline declaration but does not validate light-theme behavior.\n- Suggestion: Define the link token for both chat themes and add a theme-aware check that verifies the computed link color and underline.\n\nShip-with-fixes: the full-message rendering changes look sound, but light-theme links remain incomplete. Review was limited to the supplied diff because local command execution was blocked; the mockup and runtime checks could not be verified.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "**Findings**\n\n- Category: regression | Severity: medium\n  File: `client/src/components/external/MarkdownText.tsx:89-97`\n  The table wrapper is applied unconditionally in the shared `MarkdownText` component, so **every** consumer of markdown rendering (BubbleTranscript and anything else) now gets tables wrapped in a `<div class=\"mc-table-wrap\">`. The comment claims \"without touching other consumers,\" but the wrapper DOM change is global \u2014 existing CSS in other consumers that targets `table` via sibling/child combinators, or `td > *` selectors, can break; a `<div>` inside a `<li>` containing a table also changes layout in lists.\n  Suggestion: gate the wrapper (e.g., a context/prop from the mission chat path) or verify and snapshot-test the other MarkdownText consumers.\n\n- Category: spec | Severity: medium\n  File: `client/src/styles/mission-chat.css:14-19` and `mission-operation.css:219-220`\n  Hardcoded hex values (`--thead-fallback: #f5f5f4`, `--link: #7fdcca`, `--link-hover: #a6ebde`, `--thead: #2d2a28`) sit outside the established token layer the repo's `no-hardcoded-colors` test guards. The operation CSS already had literals, but the new `--thead-fallback` in mission-chat.css is a fresh hardcoded color introduced by this diff.\n  Suggestion: hoist these into the shared token file (or wherever the existing dark tokens live) so the no-hardcoded-colors check passes.\n\n- Category: edge-case | Severity: medium\n  File: `client/src/styles/mission-chat.css:23-25, 32-36`\n  The new scale/spacing custom properties (`--fs-chat`, `--gap-block`, etc.) are defined only on `.mc-op`, but consumers like `.mc-feed-card`, `.mc-ask-question` are styled with `var(--fs-chat)` / `var(--gap-block)` **without fallbacks**. Anywhere these classes render outside a `.mc-op` subtree (tests, storybook, other surfaces that previously relied on the literal `14px`/`16px`), the declarations become invalid-at-computed-value-time and font-size/margins silently unset (font falls back to inherited size, paragraph margins collapse to 0 \u2014 losing the spec's 12px paragraph gap there).\n  Suggestion: add fallbacks (`var(--fs-chat, 15px)`) or define the tokens on a scope that provably contains every consumer.\n\n- Category: spec | Severity: low\n  File: `client/src/styles/mission-chat.css:41`\n  Spec says chat links are \"light teal #7fdcca, underlined\". In light theme `--link` is undefined, so links fall back to `var(--info)` \u2014 light-mode chat links are not teal. This may be deliberate (teal on white is ~1.9:1 contrast), but it's a spec deviation with no record.\n  Suggestion: either define a light-scope `--link` that meets contrast and note the deviation, or document the fallback choice.\n\n- Category: test | Severity: low\n  File: `client/src/styles/mission-chat-scale.test.ts:20-28`\n  The scale test greps the CSS source for token declarations and single-selector patterns; it would pass if the tokens were declared but never actually applied to the right elements (e.g., if `.mc-feed-card` were renamed). It validates the stylesheet text, not rendered behavior.\n  Suggestion: acceptable as a guard, but pair with at least one DOM-level assertion (e.g., computed style on a rendered feed) or visual baseline per repo rules; also note the spec requires visual baselines and none are included in this diff.\n\n- Category: bug | Severity: low\n  File: `client/src/styles/mission-chat.css:49`\n  `.mc-feed-card .mc-table-wrap tr:nth-child(2n) { background: transparent; }` is dead/contradictory next to the `td` zebra rule on the line above (td background wins visually, so zebra still works, but this rule reads as if it cancels zebra and will confuse future edits).\n  Suggestion: delete the rule or comment why `tr` background must stay transparent.\n\n**What's sound:** the toggle removal for text/explanation/answer is correctly implemented and the retained `detailFull` toggle matches \"Show more only for raw tool data\"; the `data-switch` logic and its test are correct; contrast math in the test checks out (faint #8f8981 on #1a1817 \u2248 5.1:1); test updates genuinely verify the new no-toggle behavior (a regression to the old toggle implementation would fail them).\n\nOverall: the core behavior change is correct and well-tested, but the global MarkdownText table wrapper, the unscoped custom properties, and the hardcoded colors should be fixed before merge \u2014 ship-with-fixes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-10-31-v1-chat-readability",
+    "at": "2026-10-31T14:29:43.295406+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

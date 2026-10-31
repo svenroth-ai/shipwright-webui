@@ -93,7 +93,7 @@ export function MissionActivityFeed({ feed, onArtifactClick, onSubrunnerClick, c
         // "remounts a card that changes kind" in `MissionActivityFeed.test.tsx`.
         const key = `${card.kind}-${card.timestamp ?? ""}-${card.commands[0] ?? ""}-${index}`;
         return (
-          <div className="mc-feed-entry" data-entry-kind={card.kind} key={key}>
+          <div className="mc-feed-entry" data-entry-kind={card.kind} data-switch={index > 0 && (card.kind === "user") !== (feed.cards[index - 1].kind === "user") ? "true" : undefined} key={key}>
             <FeedCard card={card} onArtifactClick={onArtifactClick} onSubrunnerClick={onSubrunnerClick} canOpenAgent={canOpenAgent} commitArtifact={commitArtifact} task={task} />
           </div>
         );
