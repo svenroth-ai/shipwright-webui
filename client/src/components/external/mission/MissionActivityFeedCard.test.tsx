@@ -75,7 +75,6 @@ describe("FeedCard — full messages, Show more only for raw tool data (V1)", ()
   });
 
   // @covers FR-01.66
-
   it("renders card.textFull in full straight away, with no toggle", () => {
     renderCard({ kind: "implement", text: "Truncated headline…", textFull: "Truncated headline, but the whole real sentence continues here.", commands: [] });
     expect(screen.getByText(/whole real sentence/)).toBeInTheDocument();
@@ -84,7 +83,6 @@ describe("FeedCard — full messages, Show more only for raw tool data (V1)", ()
   });
 
   // @covers FR-01.66
-
   it("renders a user message's full text with no toggle", () => {
     renderCard({ kind: "user", text: "Please fix…", textFull: "Please fix the whole thing, including the long tail of the request.", commands: [] });
     expect(screen.getByText(/long tail of the request/)).toBeInTheDocument();
@@ -92,7 +90,6 @@ describe("FeedCard — full messages, Show more only for raw tool data (V1)", ()
   });
 
   // @covers FR-01.66
-
   it("renders card.explanationFull in full with no toggle", () => {
     renderCard({ kind: "investigate", text: "Checking the auth guard.", commands: [], explanation: "It reads the cookie…", explanationFull: "It reads the cookie, then falls back to the legacy header, and finally denies the request." });
     expect(screen.getByText(/falls back to the legacy header/)).toBeInTheDocument();
@@ -100,7 +97,6 @@ describe("FeedCard — full messages, Show more only for raw tool data (V1)", ()
   });
 
   // @covers FR-01.66
-
   it("wraps a GFM table in the .mc-table-wrap scroller", () => {
     const { container } = renderCard({ kind: "implement", text: ["| a | b |", "|---|---|", "| 1 | 2 |"].join("\n"), commands: [] });
     expect(container.querySelector(".mc-table-wrap > table")).not.toBeNull();
@@ -114,7 +110,6 @@ describe("FeedCard — full messages, Show more only for raw tool data (V1)", ()
   });
 
   // @covers FR-01.66
-
   it("renders question.answerFull in full next to the Answer: label, no toggle", () => {
     renderCard({
       kind: "user-input",
