@@ -144,7 +144,7 @@ export interface ActivityCard {
   /** V2, `kind: "handback"` only: the sender agent id (`<agent-message from>`), its origin and the
    *  description of the matching subrunner dispatch, when known. `text` is the report body. */
   handbackSender?: string;
-  handbackOrigin?: "subagent" | "session";
+  handbackOrigin?: "subagent" | "session" | "coordinator";
   handbackTitle?: string;
 }
 

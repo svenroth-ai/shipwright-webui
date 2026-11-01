@@ -12,9 +12,10 @@ import { MarkdownChunk } from "./BubbleTranscript/MarkdownChunk";
 
 export const HANDBACK_NOTICE = "Reply from a subagent, not a message from you.";
 export const SESSION_NOTICE = "Message from another session, not from you.";
+export const COORDINATOR_NOTICE = "Message the session sent to this agent while it was working.";
 
 export function handbackTagLabel(origin: HandbackOrigin): string {
-  return origin === "subagent" ? "Subagent report" : "Other session";
+  return origin === "subagent" ? "Subagent report" : origin === "coordinator" ? "Coordinator message" : "Other session";
 }
 
 interface Props {
@@ -35,7 +36,7 @@ export function HandbackCard({ origin, sender, text, title, onSenderClick, class
   // The title can be peer-supplied (cross-session from-name): strip control/bidi characters and cap it.
   const safeTitle = title ? explanationExcerpt(title, 1, 120) : "";
   return (
-    <article className={`${className ? `${className} ` : ""}mc-handback`} data-testid="handback-card" data-origin={origin}>
+    <article className={`${className ? `${className} ` : ""}mc-handback`} data-testid="handback-card" data-origin={origin} data-sender={sender || undefined} tabIndex={-1}>
       <div className="mc-handback-h">
         <span className="mc-handback-tag">{handbackTagLabel(origin)}</span>
         {safeTitle && <b title={safeTitle}>{safeTitle}</b>}
@@ -46,7 +47,7 @@ export function HandbackCard({ origin, sender, text, title, onSenderClick, class
         ))}
       </div>
       {text && <div className="mc-handback-body"><MarkdownChunk tableWrap={tableWrap} content={text} /></div>}
-      <p className="mc-handback-notice">{origin === "subagent" ? HANDBACK_NOTICE : SESSION_NOTICE}</p>
+      <p className="mc-handback-notice">{origin === "subagent" ? HANDBACK_NOTICE : origin === "coordinator" ? COORDINATOR_NOTICE : SESSION_NOTICE}</p>
       {footer}
     </article>
   );

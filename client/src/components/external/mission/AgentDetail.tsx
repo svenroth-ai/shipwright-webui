@@ -1,21 +1,24 @@
 /*
  * AgentDetail - one agent in the Agents window (M4): a Details tab (who started
  * it, the prompt the parent sent, the answer returned to the parent) and a
- * read-only Transcript tab that reuses the main chat's BubbleTranscript. The
- * transcript is fetched only while that tab is open. Same view whether opened
- * from the tree or from a chat subrunner card.
+ * read-only Transcript tab that renders with the main chat's own feed components
+ * (V3, AgentTranscriptFeed). The transcript is fetched only while that tab is
+ * open. Same view whether opened from the tree or from a chat subrunner card.
  */
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import * as Tabs from "@radix-ui/react-tabs";
 import { RefreshCw } from "lucide-react";
 
 import type { SessionSubagent } from "../../../lib/sessionInfoApi";
+import type { ExternalTask } from "../../../lib/externalApi";
+import type { MissionAgents } from "../../../hooks/useMissionAgents";
 import { agentStatusLabel, agentTitle, agentTone } from "../../../lib/agentsTree";
+import { AGENT_FEED_PAGE, buildAgentFeed } from "../../../lib/agentTranscriptFeed";
 import { formatTokens, shortModel } from "../../../lib/sessionInfoFormat";
 import { useSubagentTranscript } from "../../../hooks/useSubagentTranscript";
-import { BubbleTranscript } from "../BubbleTranscript";
 import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
+import { AgentTranscriptFeed } from "./AgentTranscriptFeed";
 
 function duration(ms: number | null): string | null {
   if (ms === null) return null;
@@ -32,18 +35,33 @@ function Block({ label, text, testId, empty }: { label: string; text: string | n
   );
 }
 
-function TranscriptTab({ taskId, agent }: { taskId: string; agent: SessionSubagent }) {
-  const q = useSubagentTranscript(taskId, agent.agentId, true, agent.state === "running");
+function TranscriptTab({ task, agent, controller }: { task: ExternalTask; agent: SessionSubagent; controller: MissionAgents }) {
+  const q = useSubagentTranscript(task.taskId, agent.agentId, true, agent.state === "running");
+  const [limit, setLimit] = useState(AGENT_FEED_PAGE);
+  const ok = q.data?.status === "ok" ? q.data : null;
+  const feed = useMemo(
+    () => (ok && ok.content !== "" ? buildAgentFeed(ok.content, { limit, truncated: ok.truncated }) : null),
+    [ok, limit],
+  );
   let body: ReactNode;
   if (q.isLoading) body = <p className="ag-empty">Loading transcript...</p>;
   else if (q.isError) body = <p className="ag-empty" role="alert">Could not load the transcript.</p>;
-  else if (q.data?.status !== "ok") body = <p className="ag-empty">No transcript file exists for this agent.</p>;
-  else if (q.data.content === "") body = <p className="ag-empty">The latest entry is too large to show here.</p>;
-  else body = <BubbleTranscript content={q.data.content} />;
+  else if (!ok) body = <p className="ag-empty">No transcript file exists for this agent.</p>;
+  else if (!feed) body = <p className="ag-empty">The latest entry is too large to show here.</p>;
+  else body = <AgentTranscriptFeed feed={feed} task={task} onOpenAgent={controller.select} canOpenAgent={controller.canOpen} />;
+  const older = feed !== null && feed.total > feed.shown;
   return (
     <div className="ag-transcript" data-testid="agent-transcript">
-      <div className="ag-transcript-bar">
-        {q.data?.status === "ok" && q.data.truncated && <span className="ag-note">Showing the latest part of a long transcript.</span>}
+      <div className="tr-bar">
+        <span className="tr-bar-count" data-testid="agent-transcript-count">
+          {feed ? (older ? `Showing the latest ${feed.shown} of ${feed.total} events` : `${feed.total} events`) : ""}
+          {ok?.truncated ? " (start of a long transcript not shown)" : ""}
+        </span>
+        {older && (
+          <button type="button" className="tr-btn" onClick={() => setLimit((n) => n + AGENT_FEED_PAGE)} data-testid="agent-transcript-older">
+            Load older
+          </button>
+        )}
         <button type="button" className="ag-icon-btn" onClick={() => void q.refetch()} aria-label="Refresh transcript" data-testid="agent-transcript-refresh">
           <RefreshCw size={14} aria-hidden="true" />
         </button>
@@ -53,7 +71,13 @@ function TranscriptTab({ taskId, agent }: { taskId: string; agent: SessionSubage
   );
 }
 
-export function AgentDetail({ taskId, agent, parent, report = null }: { taskId: string; agent: SessionSubagent; parent: SessionSubagent | null; report?: string | null }) {
+export function AgentDetail({ task, agent, parent, controller, report = null }: {
+  task: ExternalTask;
+  agent: SessionSubagent;
+  parent: SessionSubagent | null;
+  controller: MissionAgents;
+  report?: string | null;
+}) {
   const [tab, setTab] = useState("details");
   const meta = [
     agent.model ? shortModel(agent.model) : null,
@@ -79,17 +103,17 @@ export function AgentDetail({ taskId, agent, parent, report = null }: { taskId: 
         <Tabs.Trigger className="ag-tab" value="transcript" data-testid="agent-tab-transcript">Transcript</Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="details" className="ag-pane">
-        <Block label="Prompt from the parent" text={agent.prompt} testId="agent-prompt" empty="The prompt was not recorded." />
-        {report && !running && <Block label="Report returned to the parent" text={report} testId="agent-report" empty="" />}
+        <Block label="Prompt from the session" text={agent.prompt} testId="agent-prompt" empty="The prompt was not recorded." />
+        {report && !running && <Block label="Report returned to the session" text={report} testId="agent-report" empty="" />}
         <Block
-          label={running || completed ? "Answer returned to the parent" : "Last message from the agent"}
+          label={running || completed ? "Answer returned to the session" : "Last message from the agent"}
           text={running ? null : agent.answer}
           testId="agent-answer"
           empty={running ? "Still running - no answer yet." : "No answer was recorded."}
         />
       </Tabs.Content>
       <Tabs.Content value="transcript" className="ag-pane ag-pane-fill">
-        <TranscriptTab taskId={taskId} agent={agent} />
+        <TranscriptTab task={task} agent={agent} controller={controller} />
       </Tabs.Content>
     </Tabs.Root>
   );

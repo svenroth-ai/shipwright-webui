@@ -93,7 +93,7 @@ describe("AgentsDock", () => {
     expect(await screen.findByTestId("agent-report")).toHaveTextContent("KILLED-REASON: out of budget");
     const answer = screen.getByTestId("agent-answer");
     expect(answer).toHaveTextContent("Last message from the agent");
-    expect(answer).not.toHaveTextContent("Answer returned to the parent");
+    expect(answer).not.toHaveTextContent("Answer returned to the session");
   });
 
   it("a completed agent keeps the answer heading and shows no separate report while its card is still running", async () => {
@@ -102,7 +102,7 @@ describe("AgentsDock", () => {
     mount("c1", cards);
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     await waitFor(() => { fireEvent.click(screen.getByTestId("card-open")); expect(screen.getByTestId("agent-detail")).toBeInTheDocument(); });
-    expect(await screen.findByTestId("agent-answer")).toHaveTextContent("Answer returned to the parent");
+    expect(await screen.findByTestId("agent-answer")).toHaveTextContent("Answer returned to the session");
     expect(screen.queryByTestId("agent-report")).toBeNull();
   });
 

@@ -40,7 +40,7 @@ describe("SubrunnerPanel", () => {
   it("shows an honest empty state when no report was ever recorded", () => {
     setup({ ...RESOLVED_CARD, subrunnerReport: undefined });
     expect(screen.queryByTestId("subrunner-report")).not.toBeInTheDocument();
-    expect(screen.getByText("No report was recorded for this subrunner.")).toBeInTheDocument();
+    expect(screen.getByText("No report was found for this subrunner.")).toBeInTheDocument();
   });
 
   it("the close button fires onClose", () => {

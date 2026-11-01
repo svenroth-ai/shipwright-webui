@@ -133,7 +133,15 @@ export function extractSubrunnerAgentId(ackContent: string): string | null {
   return match ? match[1] : null;
 }
 
+/** The CLI's stand-in when an agent's report went to the parent as a hand-back message ("... report was delivered
+ *  to you as a message from <id> ... Read it there; it is not repeated here."). A pointer, never the report (V3). */
+const DELIVERED_PLACEHOLDER_RE = /report was delivered to you as a message from/i;
+export function isDeliveredPlaceholder(text: string): boolean {
+  return text.length < 600 && DELIVERED_PLACEHOLDER_RE.test(text);
+}
+
 function attachSubrunnerReport(card: ActivityCard, raw: string): void {
+  if (isDeliveredPlaceholder(raw)) return;
   const bounded = explanationExcerpt(raw);
   const full = explanationExcerpt(raw, Infinity, Infinity);
   card.subrunnerReport = bounded;

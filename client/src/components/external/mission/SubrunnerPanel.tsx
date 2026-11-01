@@ -5,10 +5,10 @@
  * `ArtifactPanel`/`MissionArtifactPanel`) — reuses the same `.artifact`/
  * `.a-scrim`/`.a-close`/`.eyebrow` chrome, no new CSS recipe.
  *
- * v1 shows the dispatch description + the subagent's final report only —
- * there is no durable way to show live step-by-step subagent activity today
- * (confirmed empirically: a real just-completed dispatch's own scratch
- * output file was empty).
+ * Shows the dispatch description + the subagent's REAL answer (V3: the text is
+ * chosen by `SubrunnerPanelHost` - the agent's last message, never the CLI's
+ * "delivered to you as a message" pointer) plus two actions: open the agent in
+ * the Agents window, and jump to its hand-back message in the chat.
  *
  * a11y: same contract as the sibling panels — role=dialog, Esc closes, focus
  * returns to the node that opened it.
@@ -19,15 +19,30 @@ import { X } from "lucide-react";
 
 import type { ActivityCard } from "../../../lib/missionActivityFeed";
 import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
+import { ChevronRightIcon } from "./MissionFeedIcons";
 
 interface Props {
   card: ActivityCard;
   onClose: () => void;
+  /** The resolved answer; omitted = fall back to what the card itself recorded. */
+  answer?: string | null;
+  /** Agent type + duration line, when the agent is known. */
+  meta?: string | null;
+  onOpenAgent?: () => void;
+  onJumpToChat?: () => void;
 }
 
-export function SubrunnerPanel({ card, onClose }: Props) {
+function statePill(card: ActivityCard): { label: string; tone: "ok" | "bad" | "run" | "idle" } {
+  if (card.subrunnerStatus === "running") return { label: "running", tone: "run" };
+  if (card.subrunnerEndStatus) return { label: card.subrunnerEndStatus, tone: card.subrunnerEndStatus === "killed" ? "bad" : "idle" };
+  return card.subrunnerStatus === "failed" ? { label: "failed", tone: "bad" } : { label: "completed", tone: "ok" };
+}
+
+export function SubrunnerPanel({ card, onClose, answer, meta, onOpenAgent, onJumpToChat }: Props) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const returnToRef = useRef<HTMLElement | null>(null);
+  const text = answer !== undefined ? answer : (card.subrunnerReportFull ?? card.subrunnerReport ?? null);
+  const pill = statePill(card);
 
   // Captures the opener once, on mount — NOT keyed on `card.subrunnerId`
   // (external code review, low): the reducer overwrites a subrunner card's
@@ -83,12 +98,31 @@ export function SubrunnerPanel({ card, onClose }: Props) {
         </button>
         <span className="eyebrow">Subrunner</span>
         <h3>{card.text}</h3>
-        {card.subrunnerReport ? (
-          <div className="a-body" data-testid="subrunner-report">
-            <MarkdownChunk content={card.subrunnerReportFull ?? card.subrunnerReport} />
+        <div className="ag-handback">
+          <span className="ag-pill" data-tone={pill.tone} data-testid="subrunner-state">{pill.label}</span>
+          {meta && <span>{meta}</span>}
+        </div>
+        <section className="ag-block">
+          <h4 className="ag-block-h">Answer returned to the session</h4>
+          {text ? (
+            <div className="ag-text" data-testid="subrunner-report"><MarkdownChunk content={text} /></div>
+          ) : (
+            <p className="ag-empty" data-testid="subrunner-no-report">No report was found for this subrunner.</p>
+          )}
+        </section>
+        {(onOpenAgent || onJumpToChat) && (
+          <div className="sr-actions">
+            {onOpenAgent && (
+              <button type="button" className="mc-result-btn" onClick={onOpenAgent} data-testid="subrunner-open-agent">
+                Open in Agents window<ChevronRightIcon />
+              </button>
+            )}
+            {onJumpToChat && (
+              <button type="button" className="mc-result-btn" onClick={onJumpToChat} data-testid="subrunner-jump-chat">
+                Jump to message in chat<ChevronRightIcon />
+              </button>
+            )}
           </div>
-        ) : (
-          <p className="a-body">No report was recorded for this subrunner.</p>
         )}
       </aside>
     </>

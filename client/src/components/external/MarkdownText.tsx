@@ -21,6 +21,8 @@ import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { FileChip } from "./FileChip";
 import { useFileOpen, useFileTarget } from "./FileOpenContext";
 import { parseFileRef } from "../../lib/viewerTarget";
+import { AgentChip, useAgentLinks } from "./AgentLinkContext";
+import { AGENT_HREF_PREFIX, remarkAgentLinks } from "../../lib/remarkAgentLinks";
 
 const MAX_CODE_LINES = 200;
 const MAX_LINE_LENGTH = 2000;
@@ -116,6 +118,7 @@ function InlineCode({ children, ...rest }: { children?: ReactNode }) {
 }
 
 function MarkdownLink(props: { children?: ReactNode; href?: string }) {
+  if (props.href?.startsWith(AGENT_HREF_PREFIX)) return <AgentChip agentId={props.href.slice(AGENT_HREF_PREFIX.length)} />;
   const target = useFileTarget(props.href ?? "", true);
   if (target) {
     const label = childrenToString(props.children);
@@ -157,12 +160,24 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   const capped = useMemo(() => capLineLengths(text), [text]);
   const ctx = useFileOpen();
   const chips = ctx !== null && ctx.ready !== false; // keep file-looking hrefs only where they can become chips
+  const agentLinks = useAgentLinks();
+  const agentIds = agentLinks?.ids;
+  const remarkPlugins = useMemo(
+    () => (agentIds && agentIds.length > 0 ? [remarkGfm, [remarkAgentLinks, { ids: agentIds }]] : REMARK_PLUGINS),
+    [agentIds],
+  );
+  const urlTransform = useMemo(() => {
+    const hasAgents = agentIds !== undefined && agentIds.length > 0;
+    if (!hasAgents) return chips ? keepFileRefUrl : undefined;
+    return (url: string, key: string) =>
+      key === "href" && url.startsWith(AGENT_HREF_PREFIX) ? url : chips ? keepFileRefUrl(url, key) : defaultUrlTransform(url);
+  }, [chips, agentIds]);
 
   return (
     <div className="markdown-body text-sm leading-relaxed" data-testid="markdown-body">
       <ReactMarkdown
-        urlTransform={chips ? keepFileRefUrl : undefined}
-        remarkPlugins={REMARK_PLUGINS}
+        urlTransform={urlTransform}
+        remarkPlugins={remarkPlugins as never}
         // rehype-plugins' type in react-markdown v10 is mildly loose;
         // the tuple form is accepted at runtime. Cast to satisfy the
         // type-check without widening the module-level const.

@@ -23,10 +23,13 @@ import { normalizeUserTextContent } from "./skill-body";
  * is never a hand-back (it stays `user` so its tool result still resolves).
  */
 
-export type HandbackOrigin = "subagent" | "session";
+/** "coordinator": a message the parent session sent INTO a running subagent (only seen inside subagent transcripts). */
+export type HandbackOrigin = "subagent" | "session" | "coordinator";
 
 const HEADER = "Another Claude session sent a message";
 const MARKER = "[Subagent hand-back]";
+const COORDINATOR_HEADER = "The coordinator sent a message while you were working:";
+const COORDINATOR_TRAILER = "Address this before completing your current task.";
 const ENVELOPE_OPEN = /<agent-message\s+from="([^"]*)"\s*>/;
 const ENVELOPE_CLOSE = "</agent-message>";
 /** Quote-aware and linear: attribute values may contain `>` (from-name="Fix A -> B"). */
@@ -109,12 +112,20 @@ function fromCrossSession(text: string, open: RegExpExecArray): Handback {
   return { sender, origin: report != null ? "subagent" : "session", text: (report ?? body).trim(), ...(fromName ? { fromName } : {}) };
 }
 
+/** Inside a subagent transcript the parent's follow-up is a user-role record: header line, message, harness trailer. */
+function fromCoordinator(raw: string): Handback {
+  let body = raw.replace(/\r\n/g, "\n").trimStart().slice(COORDINATOR_HEADER.length).trim();
+  if (body.endsWith(COORDINATOR_TRAILER)) body = body.slice(0, body.length - COORDINATOR_TRAILER.length).trimEnd();
+  return { sender: "", origin: "coordinator", text: body };
+}
+
 export function detectHandback(content: unknown): Handback | null {
   if (Array.isArray(content) && content.some((b) => (b as { type?: unknown } | null)?.type === "tool_result")) return null;
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
   // Cheap early exit (before any replace/regex): a real hand-back LEADS with the header, the marker or the envelope.
   const lead = raw.trimStart();
+  if (lead.startsWith(COORDINATOR_HEADER)) return fromCoordinator(lead);
   if (!lead.startsWith(HEADER) && !lead.startsWith(MARKER) && !lead.startsWith("<agent-message") && !lead.startsWith("<cross-session-message")) return null;
   const text = raw.replace(/\r\n/g, "\n");
   // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that

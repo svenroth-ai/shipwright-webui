@@ -42,7 +42,7 @@ import { OperationCard } from "./OperationCard";
 import { MissionActivityFeed } from "./MissionActivityFeed";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { MissionArtifactPanel } from "./MissionArtifactPanel";
-import { SubrunnerPanel } from "./SubrunnerPanel";
+import { SubrunnerPanelHost } from "./SubrunnerPanelHost";
 import { AgentsDock } from "./AgentsDock";
 import { useMissionAgents } from "../../../hooks/useMissionAgents";
 import { MissionInfoSidebar } from "./MissionInfoSidebar";
@@ -280,7 +280,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
               onOpenDocument={handleOpenDocument}
             />
           ) : activeSubrunnerCard ? (
-            <SubrunnerPanel card={activeSubrunnerCard} onClose={handleClose} />
+            <SubrunnerPanelHost taskId={task.taskId} card={activeSubrunnerCard} cards={model.feed.cards} agents={agents} onClose={handleClose} />
           ) : null}
         </div>
         <div
