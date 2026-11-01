@@ -2,53 +2,72 @@
  * PaneTabBar — compact (tablet/phone ≤1023px) tab switcher for the task-detail
  * panes (iterate-2026-06-14-tablet-responsive-view AC-4).
  *
- * Three compact tabs flatten the desktop 3-pane: Files · Terminal · Viewer.
- * (Transcript retired iterate-2026-08-13-mission-mobile-visual — Mission's
- * activity feed covers that ground; the center sub-view is unambiguously
- * Terminal now, so there is no more centerTab input to thread.) The center
- * subtree stays mounted. This is purely presentational — it owns no pane
- * content. TaskDetailThreePane keeps the SAME persistent `<PanelGroup>`
+ * ONE bar flattens the desktop 3-pane: Files · Terminal · Info · Viewer plus the
+ * Expand control (mission-desktop-style-v2 V8). Info and Viewer are the two
+ * segments of the SAME right pane, so there is no second tab level and no
+ * "Preview" tab. (Transcript retired iterate-2026-08-13-mission-mobile-visual.)
+ * The center subtree stays mounted. This is purely presentational — it owns no
+ * pane content. TaskDetailThreePane keeps the SAME persistent `<PanelGroup>`
  * mounted and merely sizes the active pane to 100% / others to 0 on change,
  * so the embedded terminal subtree is never unmounted across a tab switch or
  * a breakpoint crossing (plan-review C1/C2; CLAUDE.md rule 21).
  */
 
+import type { ReactNode } from "react";
+
 export type PaneId = "left" | "center" | "right";
+
+export type RightSegment = "info" | "viewer";
 
 interface PaneTabBarProps {
   active: PaneId;
+  /** Which segment of the right pane is showing (Info or Viewer). */
+  segment?: RightSegment;
   onChange: (id: PaneId) => void;
+  onSegmentChange?: (segment: RightSegment) => void;
+  /** Trailing control (the Expand button). */
+  children?: ReactNode;
 }
 
-type CompactTab = "left" | "terminal" | "right";
+// "right" keeps the Viewer tab's historical DOM id / testid (`pane-tab-right`).
+type CompactTab = "left" | "terminal" | "info" | "right";
 
 const TABS: { id: CompactTab; label: string }[] = [
   { id: "left", label: "Files" },
   { id: "terminal", label: "Terminal" },
+  { id: "info", label: "Info" },
   { id: "right", label: "Viewer" },
 ];
 
 const PANEL_FOR_TAB: Record<CompactTab, string> = {
   left: "task-pane-left",
   terminal: "task-center-panel-terminal",
+  info: "task-pane-right",
   right: "task-pane-right",
 };
 
-export function PaneTabBar({ active, onChange }: PaneTabBarProps) {
+export function PaneTabBar({ active, segment = "viewer", onChange, onSegmentChange, children }: PaneTabBarProps) {
   // "terminal" keeps its own DOM id/testid (unchanged from when it shared the
   // slot with Transcript) so the terminal/replay E2E corpus stays byte-stable.
-  const selectedId: CompactTab = active === "center" ? "terminal" : active;
+  const selectedId: CompactTab =
+    active === "center" ? "terminal" : active === "right" && segment === "info" ? "info" : active;
   const select = (id: CompactTab) => {
-    onChange(id === "terminal" ? "center" : id);
+    if (id === "info" || id === "right") onSegmentChange?.(id === "info" ? "info" : "viewer");
+    onChange(id === "terminal" ? "center" : id === "info" ? "right" : id);
   };
 
   return (
     <div
-      role="tablist"
-      aria-label="Task detail panes"
       data-testid="pane-tab-bar"
-      className="pane-tab-bar compact-tab-surface grid shrink-0 grid-cols-3 gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
-      onKeyDown={(event) => {
+      className="pane-tab-bar compact-tab-surface grid shrink-0 items-center gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
+      style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))${children ? " auto" : ""}` }}
+    >
+      {/* The tablist holds ONLY the tabs; the trailing control is its sibling. */}
+      <div
+        role="tablist"
+        aria-label="Task detail panes"
+        className="contents"
+        onKeyDown={(event) => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
         const current = TABS.findIndex((tab) => tab.id === selectedId);
@@ -60,8 +79,8 @@ export function PaneTabBar({ active, onChange }: PaneTabBarProps) {
         const button = event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=tab]")[next];
         button?.focus();
         select(TABS[next].id);
-      }}
-    >
+        }}
+      >
       {TABS.map((t) => {
         const selected = selectedId === t.id;
         return (
@@ -86,6 +105,8 @@ export function PaneTabBar({ active, onChange }: PaneTabBarProps) {
           </button>
         );
       })}
+      </div>
+      {children}
     </div>
   );
 }

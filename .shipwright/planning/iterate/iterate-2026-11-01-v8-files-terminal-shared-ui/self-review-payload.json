@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"All nine derived ACs implemented: shared flat tree left, shared 46px head band with Info|Viewer where Preview stood, MissionInfoSidebar reused via an embed config, open files as tabs, phone bar Files|Terminal|Info|Viewer + Expand, terminal subtree untouched."},
+{"name":"Error Handling","verdict":"pass","note":"Unassigned tasks keep Info+Viewer only; outside-project targets still go through the session-file route; a collapsed right card is revealed when a file opens; useTerminalExpanded clears the flag on last unmount."},
+{"name":"Security Basics","verdict":"pass","note":"No server change, no new fetch path: viewer/tree requests are the existing routes; no raw HTML, no chat surfaces, no pty/JSONL writes."},
+{"name":"Test Quality","verdict":"pass","note":"Unit: PaneTabBar, MissionInfoSidebar.embed, TaskDetailThreePane.v8, useTerminalExpanded, FolderTree headBand; E2E V8 spec desktop+phone (head heights, tabs, context menu, collapse/reveal, socket-open stability, keystroke byte) plus re-run of three-card/mobile/tablet/V5/A13/35 specs."},
+{"name":"Performance Basics","verdict":"pass","note":"Embedded body renders only while the Files tab is visible (no duplicate info polling); no new timers or observers; expand state is a tiny module store."},
+{"name":"Naming & Structure","verdict":"pass","note":"TaskDetailPage shrank 560->528 (viewer state moved into the sidebar); new FilesTerminalSides.tsx and TerminalExpandButton.tsx are small single-purpose; MissionInfoSidebar stays under 300 lines."},
+{"name":"Affected Boundaries","verdict":"pass","note":"Producer/consumer of the persisted formats unchanged: Mission sidebar layout localStorage key untouched by the embedded instance (unit-tested); useThreePaneLayout keys unchanged; html data-term-expanded contract kept for keyboard-fit.css."}
+]}

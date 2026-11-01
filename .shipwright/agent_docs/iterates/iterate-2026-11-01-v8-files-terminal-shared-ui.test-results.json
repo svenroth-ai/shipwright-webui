@@ -1,0 +1,99 @@
+{
+  "last_updated": "2026-11-01",
+  "iterate_latest": {
+    "run_id": "iterate-2026-11-01-v8-files-terminal-shared-ui",
+    "date": "2026-11-01",
+    "unit": {
+      "status": "passed",
+      "passed": 4716,
+      "skipped": 0,
+      "total": 4716
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 31,
+      "skipped": 0,
+      "total": 31
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
+    "degraded": [],
+    "test_completeness": {
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Files card is the shared flat FolderTree in the 46px head band with the row context menu",
+          "disposition": "tested",
+          "evidence": "FolderTree.test.tsx headBand + e2e V8 desktop test PASSED"
+        },
+        {
+          "behavior": "right card is the shared MissionInfoSidebar with Info|Viewer only in the same head band, no Folders, no second tab row",
+          "disposition": "tested",
+          "evidence": "MissionInfoSidebar.embed.test.tsx + e2e V8 desktop test PASSED"
+        },
+        {
+          "behavior": "tree click or Output click opens the file as a tab above the viewer and switches to Viewer; re-open refreshes the target",
+          "disposition": "tested",
+          "evidence": "MissionInfoSidebar.embed.test.tsx + e2e V8 PASSED"
+        },
+        {
+          "behavior": "right card collapses, comes back from the middle head, and a file open reveals it",
+          "disposition": "tested",
+          "evidence": "TaskDetailThreePane.v8.test.tsx + e2e V8 desktop PASSED"
+        },
+        {
+          "behavior": "phone has ONE bar Files|Terminal|Info|Viewer + Expand sharing one state, no Preview tab",
+          "disposition": "tested",
+          "evidence": "PaneTabBar.test.tsx + useTerminalExpanded.test.tsx + e2e V8 phone + mobile-taskdetail-polish PASSED"
+        },
+        {
+          "behavior": "terminal pty stays attached (no socket re-open across tab switches/Expand/collapse) and a keystroke is its own byte",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "e2e V8 desktop + phone, files-terminal-three-card PASSED"
+        }
+      ],
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/e2e/isolated-stack.mjs --project=chromium e2e/flows/V8-files-terminal-shared-ui.spec.ts e2e/flows/files-terminal-three-card.spec.ts e2e/flows/70-d-task-detail-three-pane.spec.ts e2e/flows/V5-flat-file-tree-context-menu.spec.ts e2e/flows/A13-mission-shell.spec.ts e2e/flows/80-tablet-responsive.spec.ts",
+      "exit_code": 0,
+      "tests_run": 31,
+      "evidence_path": ".shipwright/runs/iterate-2026-11-01-v8-files-terminal-shared-ui/surface_verification.log",
+      "timestamp": "2026-11-01T01:40:00Z"
+    }
+  },
+  "source_state": {
+    "run_id": "iterate-2026-11-01-v8-files-terminal-shared-ui",
+    "commit": "92f95b3b9dfbb8162e10c6ffeba92e2f1b91fccc",
+    "dirty": true,
+    "base": null,
+    "release": null
+  }
+}

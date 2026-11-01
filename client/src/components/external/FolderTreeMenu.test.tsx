@@ -38,7 +38,7 @@ describe("FolderTree context menu", () => {
   // @covers FR-01.66
   it("right-click offers three items and copies absolute + relative paths", async () => {
     const onSelect = vi.fn();
-    render(<FolderTree flat projectId="p" selectedPath={null} onSelect={onSelect} projectRoot={ROOT} />);
+    render(<FolderTree projectId="p" selectedPath={null} onSelect={onSelect} projectRoot={ROOT} />);
     const row = await screen.findByTestId("folder-tree-row-package.json");
     fireEvent.contextMenu(row, { clientX: 10, clientY: 10 });
     const menu = await screen.findByTestId("folder-tree-menu");
@@ -65,7 +65,7 @@ describe("FolderTree context menu", () => {
   // @covers FR-01.66
   it("clicking a file selects it directly without a menu", async () => {
     const onSelect = vi.fn();
-    render(<FolderTree flat projectId="p" selectedPath={null} onSelect={onSelect} />);
+    render(<FolderTree projectId="p" selectedPath={null} onSelect={onSelect} />);
     fireEvent.click(await screen.findByTestId("folder-tree-row-package.json"));
     expect(onSelect).toHaveBeenCalledWith("package.json");
     expect(screen.queryByTestId("folder-tree-menu")).toBeNull();

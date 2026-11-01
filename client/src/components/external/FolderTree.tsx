@@ -6,7 +6,7 @@
  * lazy expand; collapsing a dir DOES NOT refetch on the next expand
  * inside the same mount. Ignored entries render italic + muted by default; the
  * "Show ignored entries" toggle persists per project (`useHideIgnored`).
- * `flat` = no card chrome; `projectRoot` enables the absolute "Copy Path".
+ * no card chrome (the host supplies it); `headBand` = shared head band; `projectRoot` enables the absolute "Copy Path".
  *
  * Keyboard: arrows move/expand/collapse, Enter selects, ContextMenu / Shift+F10 opens the row menu.
  */
@@ -27,7 +27,8 @@ interface Props {
   onSelect: (path: string) => void;
   /** Absolute project folder (enables "Copy Path"). */
   projectRoot?: string | null;
-  flat?: boolean;
+  /** Bar paints as the shared 46px `.ft-head` band (Files & Terminal card). */
+  headBand?: boolean;
   label?: string | null;
 }
 
@@ -46,7 +47,7 @@ function joinPath(parent: string, name: string): string {
   return parent ? `${parent}/${name}` : name;
 }
 
-export function FolderTree({ projectId, selectedPath, onSelect, projectRoot = null, flat = false, label = null }: Props) {
+export function FolderTree({ projectId, selectedPath, onSelect, projectRoot = null, headBand = false, label = null }: Props) {
   const [cache, setCache] = useState<DirCache>({});
   const [hideIgnored, setHideIgnored] = useHideIgnored(projectId);
   const treeRef = useRef<HTMLDivElement | null>(null);
@@ -196,10 +197,10 @@ export function FolderTree({ projectId, selectedPath, onSelect, projectRoot = nu
 
   return (
     <div
-      className={`${flat ? "ft-flat" : "ft-card ft-files"} flex h-full min-h-0 flex-col`}
+      className="ft-flat flex h-full min-h-0 flex-col"
       data-testid="folder-tree"
     >
-      <div className={flat ? "ft-flat-bar" : "ft-head"} data-testid="folder-tree-header">
+      <div className={headBand ? "ft-head" : "ft-flat-bar"} data-testid="folder-tree-header">
         <span className="ft-title flex-1 truncate">{label ? `Files · ${label}` : "Files"}</span>
         {rootState?.loading && <Loader2 size={12} className="animate-spin" aria-label="Loading" />}
         <button

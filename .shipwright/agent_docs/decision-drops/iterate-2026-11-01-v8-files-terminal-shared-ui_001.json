@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-01-v8-files-terminal-shared-ui",
+  "date": "2026-11-01",
+  "section": "Iterate - change: Files & Terminal shared tree and sidebar",
+  "title": "Host the existing MissionInfoSidebar in Files & Terminal via an embed config",
+  "context": "Files & Terminal still had an older boxed tree and a separate Preview panel; phones needed a second tab row under the main bar.",
+  "decision": "MissionInfoSidebar gains an embed config (segments Info|Viewer, page-owned segment, open-file tabs, head band); FolderTree is flat-only; the phone bar is Files|Terminal|Info|Viewer + Expand sharing one expand store.",
+  "consequences": "One tree and one sidebar for both tabs; the sidebar has two hosts so changes must consider both. Terminal subtree untouched; the header Expand is hidden on the Files tab so phones show one Expand.",
+  "rationale": "README row 16 prescribes MissionInfoSidebar with the segment list as a prop; reuse avoids a copied panel that drifts.",
+  "rejected": "A copied Files & Terminal panel (drift); doing nothing (two UIs and a second tab row); a headless content extraction (bigger refactor than the unit).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ""
+}

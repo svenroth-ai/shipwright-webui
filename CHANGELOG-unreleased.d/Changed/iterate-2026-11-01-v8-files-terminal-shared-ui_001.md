@@ -1,0 +1,1 @@
+feat(task-detail): Files & Terminal now uses the same file tree and the same Info | Viewer sidebar as the Mission tab, with the tabs in the shared header band, open files as tabs above the viewer, and on a phone one bar Files | Terminal | Info | Viewer plus Expand
