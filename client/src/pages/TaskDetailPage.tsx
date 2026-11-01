@@ -1,5 +1,6 @@
-/* Task-detail composition shell. selectedPaths owns viewer tabs; activePath
- * owns the rendered file. Regression guards: no chat composer (DO-NOT #3) and
+/* Task-detail composition shell. The right card (MissionInfoSidebar, Info | Viewer)
+ * owns the open-file tabs; this page only forwards tree picks as viewer requests
+ * and mirrors the front tab's path back for the tree highlight. Regression guards: no chat composer (DO-NOT #3) and
  * no webui-side `claude --resume` (DO-NOT #5). */
 import {
   Suspense,
@@ -18,9 +19,8 @@ import { TaskDetailHeader } from "../components/external/TaskDetailHeader";
 import { TaskDetailThreePane } from "../components/external/TaskDetailThreePane";
 import { FocusModeToggle } from "../components/external/FocusModeToggle";
 import { ViewerToggle } from "../components/external/ViewerToggle";
-import { FolderTree } from "../components/external/FolderTree";
-import { SmartViewer } from "../components/external/SmartViewer";
-import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
+import { FilesCard, ViewCard } from "../components/external/FilesTerminalSides";
+import type { ViewerTarget } from "../lib/viewerTarget";
 import {
   LaunchCoordinatorProvider,
   useLaunchCoordinator,
@@ -28,7 +28,7 @@ import {
 import { parseTerminalFocusIntent } from "../lib/taskDeepLink";
 import { useTerminalFocusHotkey } from "../hooks/useTerminalFocusHotkey";
 import { useIsCompactViewport } from "../hooks/useIsCompactViewport";
-import type { PaneId } from "../components/external/PaneTabBar";
+import type { PaneId, RightSegment } from "../components/external/PaneTabBar";
 
 // Lazy-load the xterm bundle so the ~120 KB gz only ships when a TaskDetail
 // actually opens (external review F6).
@@ -69,9 +69,9 @@ function TaskDetailPageBody() {
   const navigate = useNavigate();
   const { data: task, error } = useExternalTask(taskId);
   const transcript = useTaskTranscript(taskId ?? null);
-  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
-  const [viewerRequestKey, setViewerRequestKey] = useState(0);
+  const [viewerRequest, setViewerRequest] = useState<{ target: ViewerTarget; nonce: number } | null>(null);
+  const [rightSegment, setRightSegment] = useState<RightSegment>("info");
   const coord = useLaunchCoordinator();
   const compact = useIsCompactViewport();
   const [activeCompactPane, setActiveCompactPane] = useState<PaneId>("center");
@@ -339,26 +339,13 @@ function TaskDetailPageBody() {
   const terminalActive = missionTab === "files" &&
     (!compact || activeCompactPane === "center");
   const handleSelect = useCallback((path: string) => {
-    setSelectedPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
-    setActivePath(path); setViewerRequestKey((k) => k + 1);
+    setViewerRequest((prev) => ({ target: { path, outside: false }, nonce: (prev?.nonce ?? 0) + 1 }));
     setActiveCompactPane("right");
     if (compact) {
       requestAnimationFrame(() =>
         document.getElementById("workspace-tab-right")?.focus({ preventScroll: true }));
     }
   }, [compact]);
-  const handleCloseTab = useCallback((path: string) => {
-    setSelectedPaths((prev) => {
-      const next = prev.filter((p) => p !== path);
-      // If the closed tab was active, fall back to the last remaining tab
-      // (or null when the list empties).
-      setActivePath((prevActive) => {
-        if (prevActive !== path) return prevActive;
-        return next.length > 0 ? next[next.length - 1] : null;
-      });
-      return next;
-    });
-  }, []);
   if (error) {
     return (
       <div
@@ -384,6 +371,7 @@ function TaskDetailPageBody() {
     <div
       className="flex h-full min-h-0 flex-col"
       data-testid="task-detail-page"
+      data-ft-active={missionTab === "files" || undefined}
       style={{ background: "var(--color-bg, #f5f0eb)" }}
     >
       <TaskDetailHeader task={task} modelName={transcript.modelName} />
@@ -403,14 +391,10 @@ function TaskDetailPageBody() {
         <TaskDetailThreePane
           activePane={activeCompactPane}
           onActivePaneChange={setActiveCompactPane}
-          viewerRequestKey={viewerRequestKey}
-          left={
-            <FolderTree
-              projectId={task.projectId}
-              selectedPath={activePath}
-              onSelect={handleSelect}
-            />
-          }
+          viewerRequestKey={viewerRequest?.nonce ?? 0}
+          rightSegment={rightSegment}
+          onRightSegmentChange={setRightSegment}
+          left={<FilesCard task={task} selectedPath={activePath} onSelect={handleSelect} />}
           center={
             <section
               className="ft-card ft-term flex h-full min-h-0 flex-col"
@@ -427,6 +411,7 @@ function TaskDetailPageBody() {
               >
                 {/* Maximize terminal (A18): collapses both side cards via the
                     existing useThreePaneLayout collapse→resize path. */}
+                <span className="ft-title">Terminal</span>
                 <ViewerToggle /><FocusModeToggle />
               </div>}
               <div
@@ -527,31 +512,15 @@ function TaskDetailPageBody() {
             </section>
           }
           right={
-            <aside
-              className="ft-card ft-view flex h-full min-h-0 flex-col"
-              data-testid="task-detail-viewer"
-            >
-              {/* Smart-Preview head: file tabs in the greyed .ft-head band (A18);
-                  honest "Preview" placeholder until a file is opened — never the
-                  prototype's canned .ft-crumb / .ft-code demo strings (AC7). */}
-              <div className="ft-head" data-testid="task-detail-viewer-head">
-                {selectedPaths.length > 0 ? (
-                  <div className="min-w-0 flex-1">
-                    <ViewerTabBar
-                      paths={selectedPaths}
-                      activePath={activePath}
-                      onActivate={setActivePath}
-                      onClose={handleCloseTab}
-                    />
-                  </div>
-                ) : (
-                  <span className="ft-title">Preview</span>
-                )}
-              </div>
-              <div className="min-h-0 flex-1">
-                <SmartViewer projectId={task.projectId} path={activePath} />
-              </div>
-            </aside>
+            <ViewCard
+              task={task}
+              compact={compact}
+              visible={missionTab === "files"}
+              segment={rightSegment}
+              onSegmentChange={setRightSegment}
+              request={viewerRequest}
+              onActivePathChange={setActivePath}
+            />
           }
         />
       </div>

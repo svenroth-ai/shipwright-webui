@@ -126,7 +126,7 @@ test.describe("Mobile work mode", () => {
     expect(terminalOpens().length).toBe(opensBefore);
 
     const tabs = page.getByTestId("pane-tab-bar").getByRole("tab");
-    await expect(tabs).toHaveText(["Files", "Terminal", "Viewer"]);
+    await expect(tabs).toHaveText(["Files", "Terminal", "Info", "Viewer"]);
     await expect(page.getByTestId("pane-tab-center")).toHaveCount(0);
     await expect(page.getByTestId("task-detail-center-header")).toHaveCount(0);
     await expect(page.getByTestId("pane-tab-terminal")).toHaveAttribute(

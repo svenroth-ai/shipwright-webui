@@ -51,11 +51,15 @@ html[data-kbd-open] .kbd-dialog {
 
 /* Compact "expand terminal" (header toggle in MissionTopRow): fold away the
    chrome under the title bar. The title row + its toggle stay so it can be
-   undone. */
+   undone; so does the Files & Terminal tab bar (it carries its own Expand). */
 @media (max-width: 1023px) {
   html[data-term-expanded] .mc-tabrow,
-  html[data-term-expanded] .mc-top-extra,
-  html[data-term-expanded] .pane-tab-bar {
+  html[data-term-expanded] .mc-top-extra {
+    display: none;
+  }
+  /* On the Files & Terminal tab the tab bar owns Expand (one control, same state);
+     the header toggle remains on the Mission tab only. */
+  [data-ft-active] [data-testid="task-detail-expand-terminal"] {
     display: none;
   }
 }

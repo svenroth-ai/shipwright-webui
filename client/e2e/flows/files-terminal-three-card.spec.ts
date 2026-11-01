@@ -64,7 +64,7 @@ test.describe("@smoke A18 — three-card Files & Terminal (byte-identical pty)",
     // The three cards + their surface classes (glass · beige · glass).
     await expect(page.getByTestId("task-detail-center")).toHaveClass(/ft-term/);
     await expect(page.getByTestId("task-detail-viewer")).toHaveClass(/ft-view/);
-    await expect(page.getByTestId("folder-tree")).toHaveClass(/ft-files/);
+    await expect(page.getByTestId("task-detail-files")).toHaveClass(/ft-files/);
 
     // Wait for the first WS to be ready BEFORE any click — a fast click beats the
     // attach → prewarm → manual-send park (StrictMode also aborts the first WS).

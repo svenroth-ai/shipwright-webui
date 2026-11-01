@@ -51,20 +51,30 @@ test("description toggle sits on the SAME row as the status pill", async ({ page
 });
 
 // @covers FR-01.38
-test("expand toggle lives in the header (not over the terminal) and folds the page chrome", async ({ page }) => {
+test("expand: header toggle on Mission, the tab bar owns it on Files & Terminal; both fold the page chrome", async ({ page }) => {
   await page.goto(`/tasks/${task.taskId}`);
   const btn = page.getByTestId("task-detail-expand-terminal");
-  await expect(btn).toBeVisible({ timeout: 35_000 });
-  const header = await page.getByTestId("task-detail-header").boundingBox();
-  const b = await btn.boundingBox();
-  expect(b!.y + b!.height).toBeLessThanOrEqual(header!.y + header!.height + 1);
-  await page.getByTestId("mission-tab-files").click().catch(() => {});
+  const header = page.getByTestId("task-detail-header");
+  await expect(page.getByTestId("pane-tab-bar")).toBeVisible({ timeout: 35_000 });
+  // Files & Terminal (the mount default): ONE Expand, on the tab bar, same state as the header toggle.
+  await expect(btn).toBeHidden();
+  const expand = page.getByTestId("pane-tab-expand");
+  await expand.click();
   await expect(page.getByTestId("pane-tab-bar")).toBeVisible();
+  await expect(expand).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-term-expanded", "");
+  await expand.click();
+  await expect(page.locator("html")).not.toHaveAttribute("data-term-expanded", "");
+  // Mission tab keeps the header toggle (not over the terminal).
+  await page.getByTestId("mission-tab-mission").click();
+  await expect(btn).toBeVisible();
+  const h = await header.boundingBox();
+  const b = await btn.boundingBox();
+  expect(b!.y + b!.height).toBeLessThanOrEqual(h!.y + h!.height + 1);
   await btn.click();
-  await expect(page.getByTestId("pane-tab-bar")).toBeHidden();
   await expect(btn).toHaveAttribute("aria-pressed", "true");
   await btn.click();
-  await expect(page.getByTestId("pane-tab-bar")).toBeVisible();
+  await expect(btn).toHaveAttribute("aria-pressed", "false");
 });
 
 // @covers FR-01.38

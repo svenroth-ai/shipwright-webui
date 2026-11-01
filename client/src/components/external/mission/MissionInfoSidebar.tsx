@@ -4,6 +4,11 @@
  * desktop with the layout remembered per browser. Folders reuses the task
  * detail's FolderTree; Viewer reuses SmartViewer. In compact mode the whole
  * card is the "Info" tab panel (no splitter / collapse).
+ *
+ * `embed` (V8) hosts the SAME component inside the Files & Terminal three-pane:
+ * segments Info | Viewer only, the segment owned by the page (the phone tab bar
+ * drives it), the segmented control sits in the shared 46px `.ft-head` band, and
+ * opened files stay as tabs above the viewer. The three-pane owns width/collapse.
  */
 
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
@@ -22,8 +27,21 @@ import type { ViewerTarget } from "../../../lib/viewerTarget";
 import { useProject } from "../../../hooks/useProjects";
 import { FolderTree } from "../FolderTree";
 import { SmartViewer } from "../SmartViewer";
+import { ViewerTabBar } from "../SmartViewer/ViewerTabBar";
 import { MissionInfoPanel } from "./MissionInfoPanel";
 import { MissionSegmented } from "./MissionSegmented";
+
+/** Files & Terminal hosting: page-owned segment, head band, no own splitter. */
+export interface SidebarEmbed {
+  segment: "info" | "viewer";
+  onSegmentChange: (segment: "info" | "viewer") => void;
+  /** Phone: the page tab bar replaces the in-card segmented control. */
+  headless?: boolean;
+  /** Desktop/tablet: hides the card (the shell owns the collapsed state). */
+  onCollapse?: () => void;
+  /** Tree highlight: the project path of the viewer tab in front (null = none). */
+  onActivePathChange?: (path: string | null) => void;
+}
 
 interface Props {
   task: ExternalTask;
@@ -33,6 +51,7 @@ interface Props {
   /** Open a file in the Viewer from outside (chat chips): the nonce makes a repeat of the
    *  same target re-open the Viewer after the user switched away. */
   request?: { target: ViewerTarget; nonce: number } | null;
+  embed?: SidebarEmbed;
 }
 
 const OPTIONS = [
@@ -40,36 +59,62 @@ const OPTIONS = [
   { value: "folders" as const, label: "Folders", testId: "mission-side-seg-folders" },
   { value: "viewer" as const, label: "Viewer", testId: "mission-side-seg-viewer" },
 ];
+// Files & Terminal keeps its own test ids: both tabs stay mounted, so shared ids would collide.
+const EMBED_OPTIONS = OPTIONS.filter((o) => o.value !== "folders").map((o) => ({
+  ...o,
+  testId: o.testId.replace("mission-side", "ft-side"),
+}));
 
-export function MissionInfoSidebar({ task, compact, visible = true, request = null }: Props) {
+export function MissionInfoSidebar({ task, compact, visible = true, request = null, embed }: Props) {
   const layout = useMissionSidebar();
+  const embedRef = useRef(embed);
+  embedRef.current = embed;
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
   const project = useProject(unassigned ? "" : task.projectId).data;
   const projectRoot = project?.path ?? null;
   const [target, setTarget] = useState<ViewerTarget | null>(null);
+  const [tabs, setTabs] = useState<ViewerTarget[]>([]);
   const [focusKey, setFocusKey] = useState(0);
   const drag = useRef<{ x: number; w: number } | null>(null);
   // In-progress drag width: committed (and persisted) once, on release.
   const dragW = useRef<number | null>(null);
   const [liveW, setLiveW] = useState<number | null>(null);
 
+  const setSeg = (s: MissionSidebarSegment) => {
+    if (embed) embed.onSegmentChange(s === "viewer" ? "viewer" : "info");
+    else layout.setSegment(s);
+  };
+  const addTab = (t: ViewerTarget) =>
+    setTabs((prev) => (prev.some((x) => x.path === t.path) ? prev : [...prev, t]));
   const openTarget = (t: ViewerTarget) => {
     setTarget(t);
-    layout.setSegment("viewer");
+    addTab(t);
+    setSeg("viewer");
   };
-  const open = (p: string) => openTarget({ path: p, outside: false });
+  const closeTab = (path: string) => {
+    const rest = tabs.filter((x) => x.path !== path);
+    setTabs(rest);
+    if (target?.path === path) setTarget(rest[rest.length - 1] ?? null);
+  };
 
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
   useEffect(() => {
     if (!request) return;
     setTarget(request.target);
+    addTab(request.target);
     setFocusKey(request.nonce);
-    layoutRef.current.setSegment("viewer");
-    layoutRef.current.setCollapsed(false);
+    if (embedRef.current) embedRef.current.onSegmentChange("viewer");
+    else {
+      layoutRef.current.setSegment("viewer");
+      layoutRef.current.setCollapsed(false);
+    }
   }, [request]);
+  useEffect(() => {
+    embedRef.current?.onActivePathChange?.(target && !target.outside ? target.path : null);
+  }, [target]);
 
-  if (!compact && layout.collapsed) {
+  if (!embed && !compact && layout.collapsed) {
     return (
       <button
         type="button"
@@ -109,8 +154,54 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
   };
 
   // An unassigned task has no project root to browse (no Folders), but session files still open.
-  const options = unassigned ? OPTIONS.filter((o) => o.value !== "folders") : OPTIONS;
-  const seg: MissionSidebarSegment = unassigned && layout.segment === "folders" ? "info" : layout.segment;
+  const options = embed ? EMBED_OPTIONS : unassigned ? OPTIONS.filter((o) => o.value !== "folders") : OPTIONS;
+  const stored: MissionSidebarSegment = embed ? embed.segment : layout.segment;
+  const seg: MissionSidebarSegment = unassigned && stored === "folders" ? "info" : stored;
+  const viewer = (
+    <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} line={target?.line} focusKey={focusKey} />
+  );
+  const segmented = (
+    <MissionSegmented
+      options={options}
+      value={seg}
+      onChange={setSeg}
+      ariaLabel="Info sidebar sections"
+      variant={embed ? "ft-seg" : "default"}
+    />
+  );
+
+  if (embed) {
+    return (
+      <aside className="mc-side mc-side-embed" aria-label="Session info" data-testid="ft-side">
+        {!embed.headless && (
+          <div className="ft-head" data-testid="task-detail-viewer-head">
+            {segmented}
+            {embed.onCollapse && (
+              <button type="button" className="mc-side-collapse" data-testid="ft-side-collapse" aria-label="Hide info sidebar" onClick={embed.onCollapse}>
+                <PanelRightClose size={16} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        )}
+        {visible && seg === "info" && (
+          <div className="mc-side-body" data-testid="ft-side-body-info">
+            <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} />
+          </div>
+        )}
+        {visible && seg === "viewer" && (
+          <div className="mc-side-flush" data-testid="ft-side-body-viewer">
+            <ViewerTabBar
+              paths={tabs.map((t) => t.path)}
+              activePath={target?.path ?? null}
+              onActivate={(p) => setTarget(tabs.find((x) => x.path === p) ?? target)}
+              onClose={closeTab}
+            />
+            <div className="min-h-0 flex-1">{viewer}</div>
+          </div>
+        )}
+      </aside>
+    );
+  }
 
   return (
     <>
@@ -140,12 +231,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
         data-testid="mission-side"
       >
         <div className="mc-side-head">
-          <MissionSegmented
-            options={options}
-            value={seg}
-            onChange={layout.setSegment}
-            ariaLabel="Info sidebar sections"
-          />
+          {segmented}
           {!compact && (
             <button
               type="button"
@@ -161,9 +247,9 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
         <div className="mc-side-body" data-testid={`mission-side-body-${seg}`}>
           {seg === "info" && <MissionInfoPanel task={task} onOpenOutput={openTarget} active={visible} />}
           {seg === "folders" && visible && (
-            <FolderTree flat projectId={task.projectId} selectedPath={target?.outside ? null : (target?.path ?? null)} onSelect={open} projectRoot={projectRoot} label={project?.name ?? null} />
+            <FolderTree projectId={task.projectId} selectedPath={target?.outside ? null : (target?.path ?? null)} onSelect={(p) => openTarget({ path: p, outside: false })} projectRoot={projectRoot} label={project?.name ?? null} />
           )}
-          {seg === "viewer" && visible && <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} line={target?.line} focusKey={focusKey} />}
+          {seg === "viewer" && visible && viewer}
         </div>
       </aside>
     </>
