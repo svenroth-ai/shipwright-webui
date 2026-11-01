@@ -1,0 +1,1 @@
+{"stage":"spec-compliance","verdict":"PASS","spec_citations":[],"summary":"PASS. All 9 derived ACs in mini_plan.md and every line of the unit scope are met. Non-blocking: mini_plan known-limits note about the header Expand is outdated (header toggle now hidden on the Files tab); .ft-files touch-size rules at <=1023px apply to the shared tree."}
