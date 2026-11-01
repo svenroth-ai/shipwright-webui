@@ -16,6 +16,7 @@
   --ag-grey: #efeeec; --ag-title: #3d3833; --ag-sub: #5f5852;
 }
 .ag-window {
+  --muted: #5f5852; /* root --muted is 4.39:1 on --inset; the window's grey surfaces need 4.5 */
   position: fixed; z-index: 50; inset: 0; margin: auto; width: min(1040px, 94vw); height: min(720px, 90vh); display: flex; flex-direction: column; overflow: hidden; background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: var(--sh-xl);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -30,7 +31,6 @@
 @media (pointer: coarse) { .ag-icon-btn { width: 44px; height: 44px; } .ag-tab { min-height: 44px; } }
 
 .ag-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(260px, 330px) minmax(0, 1fr); }
-@media (max-width: 767px) { .ag-body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 40%) minmax(0, 1fr); } .ag-list { border-right: 0; border-bottom: 1px solid var(--line-strong); } }
 .ag-list { overflow-y: auto; min-height: 0; padding: 12px; background: var(--ag-grey); border-right: 1px solid var(--line-strong); }
 .ag-sec-h { display: flex; align-items: center; gap: 8px; margin: 12px 8px 8px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--ag-title); }
 .ag-sec-h:first-child { margin-top: 2px; }
@@ -43,7 +43,7 @@
 .ag-row-title { font-size: 14px; font-weight: 600; color: var(--ag-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ag-row-sub { font-size: 13px; color: var(--ag-sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* A dot exists ONLY for a running agent: finished / failed / stopped agents carry their state in the pill. */
-.ag-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--warn-solid); animation: motion-pulse var(--motion-pulse) ease-in-out infinite; }
+.ag-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: var(--warn); animation: motion-pulse var(--motion-pulse) ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .ag-dot { animation: none; } }
 .ag-pill { flex-shrink: 0; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--inset); color: var(--ag-sub); border: 1px solid var(--line); }
 .ag-pill[data-tone="ok"] { background: var(--ok-tint); color: var(--ok); border-color: var(--ok-line); }
@@ -91,3 +91,16 @@
 /* The prompt the session sent is a labelled card, never a right-hand human bubble. */
 .ag-feed .mc-handback[data-role="prompt"], .ag-feed .mc-handback[data-origin="coordinator"] { background: var(--warn-tint); }
 .ag-feed .mc-handback-time { margin-left: auto; }
+/* Phone (Board 12): the window is a full-screen sheet; the list and the detail are two steps (data-view), Back returns. */
+.ag-back { display: none; }
+@media (max-width: 767px) {
+  .ag-window { inset: 0; margin: 0; width: 100vw; height: 100dvh; max-height: none; border-radius: 0; border: 0; }
+  .ag-back { display: inline-flex; }
+  .ag-body { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); }
+  .ag-body[data-view="list"] .ag-detail, .ag-body[data-view="detail"] .ag-list { display: none; }
+  .ag-list { border-right: 0; }
+  .ag-row { min-height: 56px; }
+  .ag-icon-btn { width: 44px; height: 44px; }
+  .ag-tab { min-height: 44px; }
+  .ag-tabs, .ag-detail-head, .ag-pane { padding-left: 16px; padding-right: 16px; }
+}

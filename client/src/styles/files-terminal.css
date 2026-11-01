@@ -30,7 +30,7 @@
   background: var(--inset); border-bottom: 1px solid var(--line); flex-shrink: 0;
 }
 .ft-title {
-  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
   color: var(--muted); font-weight: 700;
 }
 

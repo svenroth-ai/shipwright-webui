@@ -13,7 +13,7 @@ import { RefreshCw } from "lucide-react";
 import type { SessionSubagent } from "../../../lib/sessionInfoApi";
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { MissionAgents } from "../../../hooks/useMissionAgents";
-import { agentStatusLabel, agentTitle, agentTone } from "../../../lib/agentsTree";
+import { agentOutcome, agentStatusLabel, agentTitle, agentTone } from "../../../lib/agentsTree";
 import { AGENT_FEED_PAGE, buildAgentFeed } from "../../../lib/agentTranscriptFeed";
 import { formatTokens, shortModel } from "../../../lib/sessionInfoFormat";
 import { useSubagentTranscript } from "../../../hooks/useSubagentTranscript";
@@ -88,9 +88,10 @@ export function AgentDetail({ task, agent, parent, controller, report = null, ha
     agent.tokens !== null ? `${formatTokens(agent.tokens)} tokens` : null,
     agent.toolUses !== null ? `${agent.toolUses} tool calls` : null,
   ].filter(Boolean);
-  const running = agent.state === "running";
+  const outcome = agentOutcome(agent);
+  const running = outcome === "running";
   // Only a completed agent's last message IS its answer; for killed/failed/stopped it is mid-work prose.
-  const completed = agent.status === "completed";
+  const completed = outcome === "completed";
   return (
     <Tabs.Root value={tab} onValueChange={setTab} className="ag-detail" data-testid="agent-detail" data-agent-id={agent.agentId}>
       <header className="ag-detail-head">

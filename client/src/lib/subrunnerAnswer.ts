@@ -30,14 +30,14 @@ export function pickSubrunnerAnswer(
   return real(sources.handbackText) ?? real(sources.agentAnswer) ?? real(sources.transcriptAnswer) ?? cardReport;
 }
 
-/** The LAST hand-back card from this agent (the final report; earlier ones are progress messages), or null. */
+/** The LAST formal report (origin "subagent") from this agent - plain session messages and coordinator notes are progress, never its answer - or null. */
 export function findAgentHandback(cards: readonly ActivityCard[], agentId: string | undefined, knownIds: readonly string[]): ActivityCard | null {
   if (!agentId) return null;
   const full = (s: string) => resolveAgentToken(s, knownIds) ?? s; // a short sender hash only matches its unique known agent
   const want = full(agentId);
   for (let i = cards.length - 1; i >= 0; i--) {
     const c = cards[i];
-    if (c.kind === "handback" && c.handbackSender && full(c.handbackSender) === want) return c;
+    if (c.kind === "handback" && c.handbackOrigin === "subagent" && c.handbackSender && full(c.handbackSender) === want) return c;
   }
   return null;
 }

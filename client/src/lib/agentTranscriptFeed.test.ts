@@ -112,10 +112,13 @@ describe("pickSubrunnerAnswer", () => {
   });
   // @covers FR-01.66
   it("findAgentHandback returns the LAST hand-back of that agent (full id or short hash)", () => {
-    const hb = (t: string, s: string): ActivityCard => ({ kind: "handback", text: t, commands: [], handbackSender: s, handbackText: t } as unknown as ActivityCard);
+    const hb = (t: string, s: string): ActivityCard => ({ kind: "handback", text: t, commands: [], handbackSender: s, handbackOrigin: "subagent", handbackText: t } as unknown as ActivityCard);
     const cards = [hb("progress", "afb588e7"), hb("other", "ffffffff"), hb("final", "afb588e7c229aa880")];
     expect(findAgentHandback(cards, "afb588e7c229aa880", ["afb588e7c229aa880"])?.text).toBe("final");
     expect(findAgentHandback(cards, undefined, [])).toBeNull();
+    // a plain session message or a coordinator note from the same id is progress, never the final report
+    const note = { ...hb("just a note", "afb588e7c229aa880"), handbackOrigin: "session" } as ActivityCard;
+    expect(findAgentHandback([hb("final", "afb588e7"), note], "afb588e7c229aa880", ["afb588e7c229aa880"])?.text).toBe("final");
   });
   // @covers FR-01.66
   it("keeps the notification text for a killed agent (its last message is mid-work prose)", () => {

@@ -56,6 +56,7 @@ button.mc-handback-chip:focus-visible { outline: none; box-shadow: var(--focus);
 .mc-sub[data-status="failed"] .mc-sub-m { color: var(--err); }
 .mc-sub-report { flex-basis: 100%; }
 
+@media (pointer: coarse) { .mc-result-btn { min-height: 44px; } }
 @media (max-width: 640px) {
   .mc-result-row { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "pill t" "btn btn"; gap: 8px 12px; padding: 12px 14px; }
   .mc-result-row .mc-pill { grid-area: pill; }

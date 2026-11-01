@@ -1,0 +1,10 @@
+/* ============================================================================
+   Mission accessibility tokens (campaign mission-desktop-style-v2, V9 - Board 10).
+   One visible 3px teal focus ring on every Mission surface. The dark chat card sets
+   its own in mission-operation.css; this file covers the LIGHT surfaces, whose
+   reset in on-photo.css carries a faint 4px / .18 alpha ring (about 1.2:1).
+   The ring is the surface's own --accent (#0E7A6B = 5.4:1 on white). Loaded after
+   on-photo.css and the mission sheets; equal specificity, later source wins.
+   ============================================================================ */
+.on-photo :is(.record, .artifact, .mc-op, .mc-side, .mc-tabs, .ft-card, .compact-tab-surface, .flightplan, .glass-card),
+.ag-window, .sr-panel { --focus: 0 0 0 3px var(--accent); }
