@@ -200,7 +200,7 @@
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-01T00:28:13.200521+00:00",
+      "completed_at": "2026-11-01T00:40:58.780473+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
@@ -241,7 +241,7 @@
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-01T00:28:13.706168+00:00",
+      "completed_at": "2026-11-01T00:40:58.968790+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
@@ -325,7 +325,7 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-01T00:28:12.785250+00:00",
+      "completed_at": "2026-11-01T00:40:58.580461+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
