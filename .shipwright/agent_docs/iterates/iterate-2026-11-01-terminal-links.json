@@ -1,0 +1,118 @@
+{
+  "run_id": "iterate-2026-11-01-terminal-links",
+  "date": "2026-11-01T12:35:58.753597Z",
+  "event_at": "2026-11-01T12:35:42.571483+00:00",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/terminal-links",
+  "spec": ".shipwright/planning/iterate/2026-11-01-terminal-links.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-11-01-terminal-links",
+  "test_completeness": {
+    "status": "complete",
+    "counts": {
+      "testable": 16,
+      "tested": 16,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 10,
+      "covered_acs": 10
+    },
+    "behaviors": [
+      {
+        "behavior": "Path detection (relative/absolute, Windows/POSIX, :line:col, tsc suffix, trailing punctuation, quotes)",
+        "disposition": "tested",
+        "evidence": "terminalLinkMatch.test.ts PASSED"
+      },
+      {
+        "behavior": "Rejections: code names, versions, URLs, file:, UNC, traversal, ~, spaced paths, quoted/relative spaced heads",
+        "disposition": "tested",
+        "evidence": "terminalLinkMatch.test.ts PASSED"
+      },
+      {
+        "behavior": "Soft-wrapped, wide-char and mid-row empty-cell rows join correctly; ranges are 1-based inclusive",
+        "disposition": "tested",
+        "evidence": "terminalFileLinkProvider.test.ts PASSED"
+      },
+      {
+        "behavior": "Click guard (button, multi-click, drag, outward-and-back, no mousedown) and selection guard",
+        "disposition": "tested",
+        "evidence": "terminalFileLinkProvider.test.ts PASSED"
+      },
+      {
+        "behavior": "Link provider never calls window.open",
+        "disposition": "tested",
+        "evidence": "terminalFileLinkProvider.test.ts PASSED"
+      },
+      {
+        "behavior": "Inside/outside resolution; refused -> notice; not refused -> open; stale result dropped; not-ready no-op",
+        "disposition": "tested",
+        "evidence": "useTerminalFileLinks.test.tsx PASSED"
+      },
+      {
+        "behavior": "Single provider registration per mount; disposed on unmount",
+        "disposition": "tested",
+        "evidence": "useTerminalFileLinks.test.tsx PASSED"
+      },
+      {
+        "behavior": "isRefusedBySession: 403, truncated evidence window, 200/404/500, network failure",
+        "disposition": "tested",
+        "evidence": "sessionFileApi.refused.test.ts PASSED"
+      },
+      {
+        "behavior": "Web link opens in a new tab with noopener on a plain click",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts (real Chromium, isolated stack) PASSED"
+      },
+      {
+        "behavior": "Project file opens in the Viewer on the Files & Terminal page",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts PASSED"
+      },
+      {
+        "behavior": "Evidenced outside-project file opens with the Outside-project tag",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts PASSED"
+      },
+      {
+        "behavior": "Unevidenced outside file: hint shown, nothing opens, hint dismisses",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts PASSED"
+      },
+      {
+        "behavior": "Right-click and drag do not open a file",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts PASSED"
+      },
+      {
+        "behavior": "File links still activate with terminal mouse tracking on (?1003h/?1006h)",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts PASSED"
+      },
+      {
+        "behavior": "Phone (Pixel 5): swipe scrolls and opens nothing; tap opens",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts (CDP touch events) PASSED"
+      },
+      {
+        "behavior": "New notice kind renders with theme tokens",
+        "disposition": "tested",
+        "evidence": "106-terminal-file-links.spec.ts (notice testid and data-notice-kind) PASSED"
+      },
+      {
+        "behavior": "A click inside a live Claude TUI session, and a tap in iOS Safari",
+        "disposition": "untestable",
+        "reason_code": "requires-interactive-tty",
+        "evidence": "Needs a live interactive Claude session / iOS device; listed as operator hand steps"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 7,
+    "exit_code": 0,
+    "justification": "Terminal links are a real-browser behavior (xterm link activation, new tab, Viewer pane switch, touch scroll vs tap); the jsdom unit tests use a fake buffer and cannot prove xterm's linkifier fires. Spec 106 drives the real client xterm, real pty and real session-file route through isolated-stack.mjs in Chromium, including a Pixel-5 touch emulation."
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "glm": {
+      "feedback": "## Review: terminal-links\n\n### Findings\n\n**Category: security | Severity: medium**\n**Finding:** Work-breakdown step 3 specifies \"non-403 error -> still opens viewer\" for the outside-path probe. This is a fail-open: a transient network error or a 500 on the session-file route lets a click on a completely unevidenced absolute path open the Viewer, defeating the AC-6 gate. The spec text (AC-6) only covers the 403 case, so the fail-open behavior is consistent with the spec but probably not intended as a security stance.\n**Suggestion:** Distinguish: 403 -> notice + no open; other errors -> a different notice (e.g. \"couldn't verify\") or retry, rather than opening. At minimum, record this as an explicit accepted decision rather than an incidental test case.\n\n**Category: edge-case | Severity: medium**\n**Finding:** Path normalization is unspecified for the outside/inside boundary decision. AC-2 rejects `..` traversal in *detection*, but an absolute path like `/home/u/proj/../secrets.txt` contains no leading `..` token and will pass detection; whether `parseFileRef`/`resolveViewerTarget` normalizes it before the project-root containment check determines whether it's treated as inside (no probe) or outside (probe). Same for mixed separators (`C:\\proj/..\\x`) and `~` expansion.\n**Suggestion:** Add an explicit test: absolute path containing a `..` segment after normalization must be routed through the probe (outside path), not the inside branch. State in the mini-plan that normalization happens in `resolveViewerTarget` and where.\n\n**Category: edge-case | Severity: low**\n**Finding:** `terminalFileLinkProvider.ts` joins soft-wrapped rows into a logical line on every link evaluation. xterm invokes link providers on pointer moves and re-renders; on a large scrollback with long compiler output, per-hover cost could cause visible cursor/link lag on the phone (AC-7's real browser will catch it, but only if the fixture is long enough).\n**Suggestion:** Cache joined lines per buffer revision (or limit candidate scan to the hovered row plus its wrap group). Cheap to add now; note that the provider test (AC-3) already needs the fake-buffer join logic, so caching is a small extension.\n\n**Category: risk | Severity: low**\n**Finding:** AC-6's auto-dismissing notice is asserted in E2E (\"reads 'Not part of this session' and auto-dismisses\"). Auto-dismiss + assert is a classic flake source \u2014 the notice may disappear before the assertion depending on dismissal timing.\n**Suggestion:** Either assert the notice appears and is gone *by* a deadline (expect visible, then expect hidden with generous timeout), or make the first assertion on a non-dismissing duplicate state. Pin the dismissal delay constant so the test can reference it.\n\n**Category: risk | Severity: low**\n**Finding:** `EmbeddedTerminal.tsx` sits at 309/311 with +2 lines planned \u2014 zero headroom left for any adjustment discovered during implementation (e.g., the guard flag if the operator later wants Ctrl/Cmd gating is explicitly called a one-line change in `terminalFileLinkProvider.ts`, which is fine, but any incidental tweak to the component hits the ceiling).\n**Suggestion:** Acceptable as planned; just note that if the ceiling binds, the prop wiring moves to a small wrapper rather than trimming anything.\n\n**Category: dependency | Severity: low**\n**Finding:** `useTerminalFileLinks` registers the provider once with \"options via ref\" \u2014 but the activation closure needs the current `FileOpenValue` (projectRoot/cwd/ready) at click time. If the task's project root isn't known when links are first rendered and the ref isn't threaded correctly, early clicks silently no-op or resolve against a stale root.\n**Suggestion:** Include a hook unit test where the options object is replaced (task loads after terminal mounts) and a click after the swap resolves with the new root \u2014 this is the most likely silent failure in the wiring.\n\n**Category: approach | Severity: low (confirmation)**\n**Finding:** The alternative-analysis rejection of extending `WebLinksAddon` is correct \u2014 reusing the same addon would couple the https-only safety invariant of `openTerminalLink` to path matching. Separate `registerLinkProvider` is the right call.\n**Suggestion:** None \u2014 noting agreement so it isn't relitigated.\n\n### Overall assessment\nSound, well-scoped plan with correct isolation of the web-link safety path and good test coverage including the wrapped-row and phone-tap cases. The two items worth fixing before implementation are the fail-open on non-403 probe errors and explicit path-normalization tests at the inside/outside boundary; the rest are refinements.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    },
+    "openai": {
+      "feedback": "1. **Category: edge-case | Severity: medium**  \n   **Finding:** The plan explicitly opens the Viewer after non-403 probe failures. A network failure or 5xx response therefore opens an unevidenced outside file\u2019s Viewer, contrary to AC-6\u2019s requirement that it remain closed.  \n   **Suggestion:** Open outside targets only after a successful probe. Keep the current pane on probe failure and show a brief error notice; reserve \u201cNot part of this session\u201d for 403 responses.\n\n2. **Category: risk | Severity: medium**  \n   **Finding:** Outside-file probing introduces an asynchronous race. A response can arrive after the user switches tasks, unmounts the terminal, or clicks another file, causing an obsolete activation to open a Viewer. An options ref alone does not prevent this.  \n   **Suggestion:** Capture the task/session identity at activation and discard stale completions. Use cancellation or a request sequence so the latest activation wins, and test delayed responses across task changes.\n\n3. **Category: dependency | Severity: medium**  \n   **Finding:** Registering \u201conce\u201d against `termRef.current` leaves terminal lifecycle handling unspecified. Updating a ref does not rerun an effect; registration can be missed if the terminal is created later, or lost when its instance is replaced.  \n   **Suggestion:** Tie registration and disposal to the actual terminal instance\u2019s creation/destruction lifecycle. Verify initial attachment, recreation, and cleanup without duplicate providers.\n\n4. **Category: edge-case | Severity: medium**  \n   **Finding:** The exclusions need token-level handling, beyond validating extracted substrings with `parseFileRef`. Otherwise matching can recover a valid-looking suffix from an excluded URL, UNC path, or traversal path\u2014for example, `src/a.ts` inside `https://host/src/a.ts` or `../src/a.ts`. This could also interfere with existing web-link activation.  \n   **Suggestion:** Reject excluded tokens before extracting candidates, preserving their full boundaries. Add tests for nested URL paths, traversal prefixes, UNC suffixes, and actual provider overlap with the existing web-links addon.\n\nThe separate xterm provider and reuse of the existing Viewer path are sound and appropriately scoped. Resolve the probe behavior, asynchronous lifecycle, and matching-boundary gaps before implementation proceeds.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-01-terminal-links",
+    "at": "2026-11-01T11:58:50.113600+00:00"
+  },
+  "verdicts": {
+    "glm": "approve",
+    "openai": "revise"
+  },
+  "statuses": {
+    "glm": "success",
+    "openai": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}

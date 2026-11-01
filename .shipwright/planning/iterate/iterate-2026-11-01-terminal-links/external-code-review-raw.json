@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/components/terminal/terminalLinkMatch.ts:58\n- Finding: The spaced-path suppression resets when an intermediate token has no slash. For `/Users/x/My Long Docs/a.ts`, `/Users/x/My` starts suppression, `Long` clears it, and `Docs/a.ts` becomes a clickable relative path. This violates AC-2 and can open an unrelated project file.\n- Suggestion: Preserve suppression across intermediate words of an unfinished spaced path. Add a regression test for `/Users/x/My Long Docs/a.ts` that expects no candidates.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/terminal/terminalFileLinkProvider.ts:45\n- Finding: The click guard compares only the mouse-down and activation coordinates. A drag that travels more than 4px and returns near its starting point passes the guard. In mouse-tracking mode, where xterm keeps no selection, this opens the Viewer despite the required drag protection.\n- Suggestion: Track movement during the gesture and permanently invalidate it once the pointer exceeds the threshold. Test an outward-and-back drag with no terminal selection.\n\n- Category: edge-case\n- Severity: medium\n- File: client/src/components/terminal/useTerminalFileLinks.ts:59\n- Finding: Task identity does not fully invalidate pending probes. If a probe starts for task A, the hook switches to B and then back to A before it resolves, both the task-ID comparison and sequence comparison pass, allowing the old result to open the Viewer or show a notice. AC-10 requires a task switch to invalidate that result.\n- Suggestion: Invalidate the sequence on every task transition, or capture a task-generation token that changes on each transition. Test a deferred probe across A \u2192 B \u2192 A.\n\nOverall assessment: **ship-with-fixes**. The implementation follows the intended client-only architecture and leaves the prohibited modules untouched, but path suppression and gesture/stale-result guards need these corrections. Tests could not be executed because command execution was blocked by the environment.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/terminal/terminalLinkMatch.ts:62-64 (`isFile` / `isHead` computation)\n  Finding: `isFile`/`isHead` are computed on `core` with **leading** punctuation stripped but **trailing** punctuation still attached. A wrapped absolute path such as `(C:\\p\\a.js)` or `\"C:\\p\\a.js\"` yields `core = \"C:\\p\\a.js)\"` \u2192 `isFile` is false while `isHead` is true, so the token is treated as the head of a space-containing path (`spacedHead = true`). The *next* token that contains a separator and is a file (e.g. `src/b.ts`) is then wrongly suppressed by the `afterSpacedHead` check and never linked. The existing test only covers `(C:\\p\\a.js:10:5)` as the *last* token, where the misclassification has no visible effect \u2014 a broken spaced-path suppression passes the current tests.\n  Suggestion: Compute `isFile`/`isHead` on the token with trailing TRAIL chars (and a tsc `(12,5)` suffix) already stripped. Add tests like `'(C:\\p\\a.js) src/b.ts'` and `'\"C:\\p\\a.js\" b/c.ts'` asserting both paths link.\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/terminal/useTerminalFileLinks.ts:40-48 (`useEffect` deps `[termRef]`)\n  Finding: The provider is registered only once per component mount, reading `termRef.current` at effect time. If `EmbeddedTerminal` ever *replaces* the xterm instance on the same component instance (the reopen/reconnect paths that the sibling test files exercise \u2014 heal, reopen-rearm, reopen-reconnect all exist precisely because the terminal is re-created/re-armed without a full unmount), the registration stays on the dead instance and file links silently stop working after a reconnect. The mocked `registerLinkProvider` in those reopen tests hides this: they assert nothing about file links surviving a reopen.\n  Suggestion: Either subscribe to whatever signal announces a new terminal instance (re-run the effect on it), or add an integration-level assertion that a provider is registered on the *new* terminal after the reopen path. If remount is guaranteed, document that invariant next to the effect.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/terminal/terminalFileLinkProvider.ts:31-45 (`createClickGuard`)\n  Finding: `isClick` returns false when no `mousedown` was observed on `term.element`. Real touch environments (and synthetic pointer events from some mobile browsers/assistive tech) may deliver a `click` without a compatible `mousedown` on that element, making taps inert. The Playwright tap works only because the browser synthesises mousedown\u2192mouseup\u2192click. The spec discloses iOS as unverified, so this is a known-but-real gap, not a blocker.\n  Suggestion: Accept clicks with `pointerType: \"touch\"` without the mousedown requirement (or track `pointerdown` with `pointerType`), keeping the movement guard via pointer coordinates.\n\n- Category: test\n  Severity: low\n  File: client/e2e/flows/106-terminal-file-links.spec.ts:38-56 (`printLine` / `pointOn`)\n  Finding: `printLine` clicks the terminal canvas at the element's default click point before typing. In the phone test and any future test that prints more than one link-bearing line, that initial click could land on a previously printed link and open the viewer, polluting later assertions (e.g. the swipe test's \"opens nothing\" check). Currently the tests are ordered so it doesn't fire, but the helper is fragile against reordering.\n  Suggestion: Click at a known-empty coordinate (e.g. top-left of the canvas) or focus the terminal via `term.focus()` through `__embeddedTerminal` instead of a positional click.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/terminal/terminalLinkMatch.ts:30 (`ASSIGN = /^[-\\w.]+=(?=.)/`)\n  Finding: The assignment strip applies to any `KEY=value` token, so shell output like `HOME=/home/u/a.ts` links `/home/u/a.ts` (arguably fine), but `PATH=C:\\tools\\x` \u2014 a *directory-ish* env value \u2014 will be handed to `parseFileRef`; behaviour depends entirely on that recogniser. Combined with finding 1's spaced-head state, an env-var head also sets `spacedHead` and can suppress the following token.\n  Suggestion: After fixing finding 1, add a test for `VAR=C:\\some dir\\a.ts b/c.ts` to pin the intended behaviour of env-var values containing spaces.\n\n## What looks solid\n\n- AC-1/AC-9/AC-10 are genuinely tested at unit level (web links untouched, click-guard truth table incl. no-mousedown, stale-probe suppression with both newer-click and task-switch conditions).\n- AC-2's negative cases (URLs, `file:`, UNC, traversal, `~`, versions) are covered with the exact inputs the spec lists.\n- Soft-wrap joining, wide-char cell mapping, and the empty-trailing-cell rule have real assertions on ranges, not just \"a link exists\".\n- `isRefusedBySession` correctly treats `evidence_window_truncated`, network failure, and non-403 as \"not refused\", matching the disclosed fail-open decision (the server route remains the authority).\n- No `server/` or pty/replay/renderer module is touched \u2014 AC-8 holds.\n\nOverall: the implementation matches the spec closely and the test suite is unusually substantive, but the spaced-head misclassification (finding 1) is a concrete false-negative that the current tests cannot catch, and the reopen re-registration question needs resolving or an explicit invariant.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-01-terminal-links",
+    "at": "2026-11-01T12:23:26.585719+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

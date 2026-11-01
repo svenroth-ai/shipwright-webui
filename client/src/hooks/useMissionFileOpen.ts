@@ -17,12 +17,17 @@ export interface ViewerRequest {
   nonce: number;
 }
 
-export function useMissionFileOpen(task: ExternalTask, onOpened: () => void) {
-  const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
+/** Project root + readiness of a task's project (shared by every file-open surface). */
+export function useTaskFileScope(task: ExternalTask | undefined) {
+  const unassigned = !task || task.projectId === UNASSIGNED_PROJECT_ID;
   const projectQ = useProject(unassigned ? "" : task.projectId);
   const projectRoot = projectQ.data?.path ?? null;
   // isSuccess only: a failed project query must not tag inside files as "outside project".
-  const ready = unassigned || projectQ.isSuccess;
+  return { projectRoot, ready: unassigned || projectQ.isSuccess };
+}
+
+export function useMissionFileOpen(task: ExternalTask, onOpened: () => void) {
+  const { projectRoot, ready } = useTaskFileScope(task);
   // Remembers which task asked, so a request never leaks into the next task's sidebar.
   const [asked, setAsked] = useState<(ViewerRequest & { taskId: string }) | null>(null);
   // Leaving a task forgets its request, so returning to it never replays the last chip click.

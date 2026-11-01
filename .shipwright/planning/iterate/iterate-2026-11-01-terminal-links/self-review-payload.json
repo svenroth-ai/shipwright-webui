@@ -1,0 +1,10 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"AC-1..AC-10 each map to a unit or E2E test (match, provider, click guard, hook, probe, 106 spec); web-link code untouched."},
+{"name":"Error Handling","verdict":"pass","note":"Probe failure/5xx/network/truncated window fail toward opening the Viewer (server remains the gate); stale probe results dropped; unresolvable target and not-ready project are no-ops."},
+{"name":"Security Basics","verdict":"pass","note":"Only the Viewer opens; provider never calls window.open (test); http(s)-only web handler unchanged; no server change; outside paths only via the existing session-file route; button/drag/multi-click guards."},
+{"name":"Test Quality","verdict":"pass","note":"Outcome-based tests incl. error paths; real-browser E2E over the real pty/routes for the four required cases plus guard and Pixel-5 touch scroll/tap."},
+{"name":"Performance Basics","verdict":"pass","note":"Provider scans only the hovered logical line (capped at 40 rows); one probe per outside click (double scan disclosed)."},
+{"name":"Naming & Structure","verdict":"pass","note":"New files 63-97 lines; EmbeddedTerminal.tsx at its 311 baseline (no ratchet), TaskDetailPage 537 < 560; no inline suppressions, no hard-coded colours (token classes)."},
+{"name":"Affected Boundaries","verdict":"n/a","note":"No serialized format changed; reads only terminal buffer text and an existing route's status/detail."},
+{"name":"Test Hygiene Probe","verdict":"pass","note":"scan_test_hygiene.py --diff: no findings."}
+]}

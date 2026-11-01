@@ -1,0 +1,1 @@
+feat(terminal): file paths printed in the embedded terminal are now clickable and open in the file viewer, including paths outside the project when the session used them; otherwise a short 'Not part of this session' hint appears. Web links behave as before.
