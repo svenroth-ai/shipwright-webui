@@ -24,6 +24,12 @@ describe("findFileLinkCandidates", () => {
     expect(one("C:/proj/a.ts").ref.path).toBe("C:/proj/a.ts");
   });
 
+  it("links a path wrapped in TUI box-drawing borders", () => {
+    for (const b of ["\u2502", "\u2503", "\u2551"]) {
+      expect(findFileLinkCandidates(`${b}a.ts${b}`).map((c) => c.ref.path), b).toEqual(["a.ts"]);
+    }
+  });
+
   it("strips surrounding punctuation, quotes, parens and box-drawing borders", () => {
     for (const t of ["see a.ts,", "see a.ts.", "see a.ts:", '"a.ts"', "'a.ts'", "`a.ts`", "(a.ts)", "@a.ts", "|a.ts|"]) {
       const c = one(t);

@@ -4,15 +4,15 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createClickGuard, createFileLinkProvider, type LinkTerm } from "./terminalFileLinkProvider";
 
-/** Fake buffer: each row is a string; `wrapped[i]` marks row i as a soft-wrap continuation; "中" is width-2. */
+/** Fake buffer: each row is a string; `wrapped[i]` marks row i as a soft-wrap continuation; "\u4E2D" is width-2. */
 function fakeTerm(rows: string[], cols: number, wrapped: boolean[] = [], selection = false): LinkTerm {
   const line = (i: number) => {
     const text = rows[i];
     if (text === undefined) return undefined;
     const cells: { chars: string; width: number }[] = [];
     for (const ch of Array.from(text)) {
-      const w = ch === "中" ? 2 : 1;
-      cells.push({ chars: ch === "␀" ? "" : ch, width: w }); // U+2400 = a never-written (empty) cell
+      const w = ch === "\u4E2D" ? 2 : 1;
+      cells.push({ chars: ch === "\u2400" ? "" : ch, width: w }); // U+2400 = a never-written (empty) cell
       if (w === 2) cells.push({ chars: "", width: 0 });
     }
     while (cells.length < cols) cells.push({ chars: "", width: 1 });
@@ -57,7 +57,7 @@ describe("createFileLinkProvider", () => {
   });
 
   it("maps cells correctly after a double-width character", () => {
-    const { links } = provide(fakeTerm(["中 a.ts"], 20), 1);
+    const { links } = provide(fakeTerm(["\u4E2D a.ts"], 20), 1);
     expect(links[0]!.range).toEqual({ start: { x: 4, y: 1 }, end: { x: 7, y: 1 } });
   });
 
@@ -88,7 +88,7 @@ describe("createFileLinkProvider", () => {
 
   it("keeps a mid-row empty cell on a wrapped row as a space (two links, not one glued token)", () => {
     // row 1 (soft-wrapped): "a.ts", two never-written cells, "b.md"; the last cell holds a char
-    const { links } = provide(fakeTerm(["a.ts␀␀b.md", "x"], 12, [false, true]), 1);
+    const { links } = provide(fakeTerm(["a.ts\u2400\u2400b.md", "x"], 12, [false, true]), 1);
     expect(links.map((l) => l.text)).toEqual(["a.ts", "b.md"]);
   });
 

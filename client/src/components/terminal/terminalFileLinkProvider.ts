@@ -1,5 +1,5 @@
 /*
- * terminalFileLinkProvider — an xterm ILinkProvider that makes file paths in the
+ * terminalFileLinkProvider - an xterm ILinkProvider that makes file paths in the
  * terminal buffer clickable (FR-01.28). READ-ONLY on the xterm instance: it only
  * reads buffer cells; it never writes to the terminal, the pty or the socket.
  *

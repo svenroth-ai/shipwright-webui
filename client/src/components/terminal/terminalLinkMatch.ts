@@ -1,12 +1,12 @@
 /*
- * terminalLinkMatch — pure text -> file-path link candidates for the embedded
+ * terminalLinkMatch - pure text -> file-path link candidates for the embedded
  * terminal (FR-01.28). A candidate is a whitespace-delimited token that, once
  * wrapping punctuation is stripped, `parseFileRef` (the SAME recogniser the
  * Mission chat chips use) accepts as a file path. A space always ends a path:
  * names containing spaces are deliberately not linked (they cannot be told
  * apart from prose in a terminal grid).
  *
- * http(s) links are NOT handled here — the web-links addon owns them; tokens
+ * http(s) links are NOT handled here - the web-links addon owns them; tokens
  * containing "://" are skipped so the two never overlap. No I/O, no xterm.
  */
 import { parseFileRef, type FileRef } from "../../lib/viewerTarget";
@@ -20,8 +20,8 @@ export interface FileLinkCandidate {
 }
 
 // Characters that wrap a path in prose / TUI chrome: quotes, brackets, `@` mentions, box borders.
-const LEAD = new Set(["(", "[", "{", "<", '"', "'", "`", "@", "|", "│", "┃", "║"]);
-const TRAIL = new Set([".", ",", ";", ":", "!", "?", ")", "]", "}", ">", '"', "'", "`", "|", "│", "┃", "║"]);
+const LEAD = new Set(["(", "[", "{", "<", '"', "'", "`", "@", "|", "\u2502", "\u2503", "\u2551"]);
+const TRAIL = new Set([".", ",", ";", ":", "!", "?", ")", "]", "}", ">", '"', "'", "`", "|", "\u2502", "\u2503", "\u2551"]);
 // tsc style `a.ts(12,5)` / `a.ts(12)`.
 const TSC_SUFFIX = /^(.+?)\((\d+)(?:,\d+)?\)$/;
 // `--flag=value` / `KEY=value`: the value is the candidate.
