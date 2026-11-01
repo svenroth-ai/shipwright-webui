@@ -1,4 +1,9 @@
-{"section":"V9-a11y-mobile-guards","review":[
-{"severity":"medium","category":"correctness","finding":"SubrunnerPanelHost finishedOk regressed for an agent whose status is null while the card says done; fixed: lag fallback keyed on outcome and cardDone, unit test added"},
-{"severity":"medium","category":"test","finding":"Run-result full-width e2e assertion was conditional; fixed: unconditional, re-run green"},
-{"severity":"low","category":"readability","finding":"contrast/guards test comments and background token parse cleaned up; fixed"}]}
+{"section":"V9-a11y-mobile-guards","verdict":"PASS","review":[
+{"severity":"medium","category":"correctness","file":"client/src/styles/mission-a11y.css","line":9,"finding":"3px focus ring does not reach .mc-hero/.mc-verdict/.instr, which on-photo.css re-declares with a faint 4px --focus; the guard scans only the Mission sheets. Pre-existing, rare state, non-blocking.","suggestion":"Add those classes to the override list and extend the guard to on-photo.css."},
+{"severity":"medium","category":"correctness","file":"client/src/components/external/mission/MissionTopRow.tsx","line":219,"finding":"12px floor is enforced in CSS only; Tailwind text-[10px]/[11px] remain in MissionTopRow, MissionMetaLine, FolderTree and viewer renderers. Coverage gap, not a regression.","suggestion":"Bump those classes and add a TSX scan, or narrow the FR wording."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/mission/AgentDetail.tsx","line":91,"finding":"AgentDetail uses agentOutcome alone while SubrunnerPanelHost adds a status-lag fallback.","suggestion":"Move the lag rule into agentsTree."},
+{"severity":"low","category":"readability","file":"client/src/styles/mission-a11y.css","line":22,"finding":"Coarse-pointer and max-width 767 media blocks are identical.","suggestion":"Merge into one block."},
+{"severity":"low","category":"correctness","file":"client/src/styles/mission-a11y.guards.test.ts","line":208,"finding":"Tablist display:contents guard regex is brittle.","suggestion":"Use a rendered component test."},
+{"severity":"low","category":"correctness","file":"client/src/styles/mission-a11y.contrast.test.ts","line":124,"finding":"Dark error-badge rung takes its background from --err instead of the badge literal.","suggestion":"Capture both from the same match."},
+{"severity":"low","category":"correctness","file":"client/e2e/flows/V9-mobile-a11y-guards.spec.ts","line":837,"finding":"smallTargets checks height only.","suggestion":"Also check width for icon-only controls."}
+]}

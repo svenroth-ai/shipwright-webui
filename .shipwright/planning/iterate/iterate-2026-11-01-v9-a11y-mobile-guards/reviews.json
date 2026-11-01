@@ -142,58 +142,147 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 3,
+      "findings_count": 7,
       "findings": [
         {
           "severity": "medium",
           "category": "correctness",
-          "file": null,
-          "line": null,
-          "finding": "SubrunnerPanelHost finishedOk regressed for an agent whose status is null while the card says done; fixed: lag fallback keyed on outcome and cardDone, unit test added",
-          "suggestion": null,
+          "file": "client/src/styles/mission-a11y.css",
+          "line": 9,
+          "finding": "3px focus ring does not reach .mc-hero/.mc-verdict/.instr, which on-photo.css re-declares with a faint 4px --focus; the guard scans only the Mission sheets. Pre-existing, rare state, non-blocking.",
+          "suggestion": "Add those classes to the override list and extend the guard to on-photo.css.",
           "source": "code-reviewer"
         },
         {
           "severity": "medium",
-          "category": "test",
-          "file": null,
-          "line": null,
-          "finding": "Run-result full-width e2e assertion was conditional; fixed: unconditional, re-run green",
-          "suggestion": null,
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionTopRow.tsx",
+          "line": 219,
+          "finding": "12px floor is enforced in CSS only; Tailwind text-[10px]/[11px] remain in MissionTopRow, MissionMetaLine, FolderTree and viewer renderers. Coverage gap, not a regression.",
+          "suggestion": "Bump those classes and add a TSX scan, or narrow the FR wording.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/AgentDetail.tsx",
+          "line": 91,
+          "finding": "AgentDetail uses agentOutcome alone while SubrunnerPanelHost adds a status-lag fallback.",
+          "suggestion": "Move the lag rule into agentsTree.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": null,
-          "line": null,
-          "finding": "contrast/guards test comments and background token parse cleaned up; fixed",
-          "suggestion": null,
+          "file": "client/src/styles/mission-a11y.css",
+          "line": 22,
+          "finding": "Coarse-pointer and max-width 767 media blocks are identical.",
+          "suggestion": "Merge into one block.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-a11y.guards.test.ts",
+          "line": 208,
+          "finding": "Tablist display:contents guard regex is brittle.",
+          "suggestion": "Use a rendered component test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/styles/mission-a11y.contrast.test.ts",
+          "line": 124,
+          "finding": "Dark error-badge rung takes its background from --err instead of the badge literal.",
+          "suggestion": "Capture both from the same match.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/V9-mobile-a11y-guards.spec.ts",
+          "line": 837,
+          "finding": "smallTargets checks height only.",
+          "suggestion": "Also check width for icon-only controls.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-01T01:43:52.573719+00:00",
+      "completed_at": "2026-11-01T02:11:51.620794+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "abb3f9f5ca0b7df606922e93806b9b26bc9d14e3"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": null,
+          "finding": "Claim under doubt: Requiring handbackOrigin === 'subagent' drops only progress notes, never a real final report — Marker-less agent-message envelopes (SendMessage-reporting agents, team-mode teammates, older CLI transcripts) get origin 'session' and no longer count as the agent's answer or enable Jump to message in chat.",
+          "suggestion": "RESOLVED BY REBUTTAL: the filter is the explicit campaign requirement (V3 carried-over follow-up). Claude Code subagent completions always carry the [Subagent hand-back] marker; marker-less envelopes are progress or teammate messages, which is exactly what the filter must exclude. A fallback to the last session-origin card from the same sender is recorded as a follow-up, not shipped.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/styles/mission-a11y.css",
+          "line": null,
+          "finding": "Claim under doubt: 3px ring is Mission-only — .glass-card and .flightplan are in the override list and are used on Ships Log and the Intent Wizard rail.",
+          "suggestion": "DEFERRED as follow-up: the stronger ring on those on-photo surfaces is an accessibility improvement; narrowing or accepting is a product call.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/components/external/mission/AgentsWindow.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Focus moves to Back on card-open — Portal content mounts a render later, so the effect finds no node; Back gets focus only via Radix FocusScope first-tabbable.",
+          "suggestion": "DEFERRED: current behaviour is correct; add onOpenAutoFocus plus an assertion as hardening.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "cascade",
+          "file": "client/src/styles/mission-a11y.css",
+          "line": null,
+          "finding": "Claim under doubt: .vtb-close touch rule keeps focus behaviour — Unlayered opacity .7 beats focus-visible:opacity-100 for keyboard users on coarse-pointer devices.",
+          "suggestion": "DEFERRED: add .vtb-close:focus-visible opacity 1 and fix the comment.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "guard tests",
+          "file": "client/src/styles/mission-a11y.guards.test.ts",
+          "line": null,
+          "finding": "Claim under doubt: 44px and motion guards cannot be fooled — touch44 regex unanchored; flat() skips @supports/@layer; MOTION ignores longhands.",
+          "suggestion": "DEFERRED: anchor the regex, recurse into @supports/@layer, widen MOTION.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "platform",
+          "file": "client/src/styles/mission-agents.css",
+          "line": null,
+          "finding": "Claim under doubt: Phone Agents sheet is always full screen — 100dvh has no 100vh fallback on Safari before 15.4.",
+          "suggestion": "DEFERRED: declare height 100vh then 100dvh.",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-01T01:43:52.778566+00:00",
-      "disposition": "closed by reason_code diff-below-threshold",
-      "recorded_by": "none",
+      "completed_at": "2026-11-01T02:11:51.794515+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -281,14 +370,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-01T01:44:00.979408+00:00",
+      "completed_at": "2026-11-01T02:11:51.450881+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "abb3f9f5ca0b7df606922e93806b9b26bc9d14e3"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
