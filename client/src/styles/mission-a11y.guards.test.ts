@@ -180,6 +180,10 @@ describe("4. 44px touch targets on a coarse pointer", () => {
     ".env-more",
     ".env-refresh",
     ".sv-outside-copy",
+    ".mc-side-head .mc-tab",
+    ".vtb-tab",
+    ".vtb-hit",
+    ".vtb-close",
   ])("%s", (sel) => {
     expect(touch44(sel), `${sel} needs a 44px rule under @media (pointer: coarse) or the phone breakpoint`).toBe(true);
   });

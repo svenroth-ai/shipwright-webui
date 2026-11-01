@@ -143,6 +143,11 @@ test.describe("V9 - mobile + accessibility (phone)", () => {
     await page.keyboard.press("Tab");
     await expect(chip).toBeFocused();
     expect(await chip.evaluate((el) => getComputedStyle(el).boxShadow)).toMatch(/0px 0px 0px 3px/);
+
+    // Info panel (Info tab): the Info | Folders | Viewer switch is 44px.
+    await page.getByTestId("mission-compact-tab-info").click();
+    await expect(page.getByTestId("mission-side")).toBeVisible();
+    expect(await smallTargets(page, "[data-testid=mission-side] .mc-side-head")).toEqual([]);
   });
 
   // @covers FR-01.66
@@ -194,6 +199,13 @@ test.describe("V9 - mobile + accessibility (phone)", () => {
     const row = page.getByTestId("folder-tree-row-README.md");
     await expect(row).toBeVisible();
     expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Viewer open-file tabs: 44px, and the close button is visible without hover.
+    await row.tap();
+    const tabBar = page.getByTestId("viewer-tab-bar");
+    await expect(tabBar).toBeVisible();
+    expect(await smallTargets(page, "[data-testid=viewer-tab-bar]")).toEqual([]);
+    expect(Number(await tabBar.locator(".vtb-close").first().evaluate((el) => getComputedStyle(el).opacity))).toBeGreaterThan(0.5);
+    await page.getByTestId("pane-tab-left").tap();
     await page.getByTestId("folder-tree-more-README.md").tap();
     const sheet = page.getByTestId("folder-tree-sheet");
     await expect(sheet).toBeVisible();

@@ -8,3 +8,20 @@
    ============================================================================ */
 .on-photo :is(.record, .artifact, .mc-op, .mc-side, .mc-tabs, .ft-card, .compact-tab-surface, .flightplan, .glass-card),
 .ag-window, .sr-panel { --focus: 0 0 0 3px var(--accent); }
+
+/* Touch targets (V9 review): Info | Folders | Viewer switch and the Viewer open-file tabs.
+   Desktop keeps the compact look and the hover-only close button. */
+@media (pointer: coarse) {
+  .mc-side-head .mc-tab { min-height: 44px; }
+  .vtb-row { min-height: 44px; }
+  .vtb-tab { min-height: 44px; }
+  .vtb-hit { min-height: 44px; }
+  .vtb-close { width: 44px; height: 44px; min-height: 44px; opacity: 0.7; }
+}
+@media (max-width: 767px) {
+  .mc-side-head .mc-tab { min-height: 44px; }
+  .vtb-row { min-height: 44px; }
+  .vtb-tab { min-height: 44px; }
+  .vtb-hit { min-height: 44px; }
+  .vtb-close { width: 44px; height: 44px; min-height: 44px; opacity: 0.7; }
+}

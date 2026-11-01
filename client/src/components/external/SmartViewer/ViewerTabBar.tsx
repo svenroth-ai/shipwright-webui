@@ -71,7 +71,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
   if (paths.length === 0) return null;
   return (
     <div
-      className="flex min-h-[40px] items-center overflow-x-auto border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] pr-2"
+      className="vtb-row flex min-h-[40px] items-center overflow-x-auto border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] pr-2"
       data-testid="viewer-tab-bar"
       role="tablist"
     >
@@ -81,7 +81,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
         return (
           <div
             key={p}
-            className={`group flex min-h-[40px] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 pl-3 pr-1.5 font-mono text-[12px] transition ${
+            className={`vtb-tab group flex min-h-[40px] shrink-0 items-center gap-1 whitespace-nowrap border-b-2 pl-3 pr-1.5 font-mono text-[12px] transition ${
               active
                 ? "border-[var(--color-primary,#6b5e56)] bg-[var(--color-surface,#ffffff)] text-[var(--color-primary,#6b5e56)]"
                 : "border-transparent text-[var(--color-muted,#6b7280)]"
@@ -94,7 +94,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
               onClick={() => onActivate(p)}
               data-testid={`viewer-tab-${p}`}
               data-active={active || undefined}
-              className={`flex items-center gap-2 ${!active ? "hover:text-[var(--color-text,#1a1a1a)]" : ""}`}
+              className={`vtb-hit flex items-center gap-2 ${!active ? "hover:text-[var(--color-text,#1a1a1a)]" : ""}`}
             >
               {iconFor(name)}
               <span className="truncate">{name}</span>
@@ -104,7 +104,7 @@ export function ViewerTabBar({ paths, activePath, onActivate, onClose }: Props) 
               aria-label={`Close ${name}`}
               onClick={() => onClose(p)}
               data-testid={`viewer-tab-close-${p}`}
-              className="flex h-[14px] w-[14px] items-center justify-center rounded-[3px] opacity-0 transition hover:bg-[var(--color-muted-bg,#ede8e1)] group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
+              className="vtb-close flex h-[14px] w-[14px] items-center justify-center rounded-[3px] opacity-0 transition hover:bg-[var(--color-muted-bg,#ede8e1)] group-hover:opacity-60 hover:!opacity-100 focus-visible:opacity-100"
             >
               <X size={8} className="text-[var(--color-muted,#6b7280)]" />
             </button>
