@@ -98,6 +98,14 @@ describe("MissionInfoSidebar embedded in Files and Terminal (V8)", () => {
     expect(screen.getByTestId("sv-stub")).toHaveTextContent("b.ts");
   });
 
+  it("re-opening a file at a new line keeps its tab position but refreshes the stored target", async () => {
+    const { rerender } = render(<Harness request={{ target: { path: "a.ts", outside: false, line: 10 }, nonce: 1 }} />);
+    rerender(<Harness request={req("b.ts", 2)} />);
+    rerender(<Harness request={{ target: { path: "a.ts", outside: false, line: 40 }, nonce: 3 }} />);
+    const tabs = (await screen.findAllByRole("tab")).map((t) => t.getAttribute("data-testid"));
+    expect(tabs).toEqual(["viewer-tab-a.ts", "viewer-tab-b.ts"]);
+  });
+
   it("does not touch the remembered Mission sidebar layout", () => {
     render(<Harness />);
     fireEvent.click(screen.getByTestId("ft-side-seg-viewer"));

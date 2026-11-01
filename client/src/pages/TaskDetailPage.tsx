@@ -515,7 +515,7 @@ function TaskDetailPageBody() {
             <ViewCard
               task={task}
               compact={compact}
-              visible={missionTab === "files"}
+              visible={missionTab === "files" && (!compact || activeCompactPane === "right")}
               segment={rightSegment}
               onSegmentChange={setRightSegment}
               request={viewerRequest}

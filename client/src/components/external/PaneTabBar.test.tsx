@@ -83,6 +83,7 @@ describe("PaneTabBar — compact direct workspace navigation", () => {
       </PaneTabBar>,
     );
     expect(screen.getByTestId("x-expand")).toBeInTheDocument();
+    expect(screen.getByRole("tablist")).not.toContainElement(screen.getByTestId("x-expand"));
     expect(screen.getAllByRole("tab")).toHaveLength(4);
   });
 });

@@ -82,6 +82,7 @@ test.describe("V8 — Files & Terminal shared tree + sidebar", () => {
     const boxes = await Promise.all(heads.map((h) => h.boundingBox()));
     for (const b of boxes) expect(Math.round(b!.height)).toBe(46);
     expect(Math.abs(boxes[0]!.y - boxes[2]!.y)).toBeLessThan(2);
+    expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThan(2);
     await expect(heads[0]).toContainText("Files");
     await expect(heads[1]).toContainText("Terminal");
     await expect(page.getByTestId("terminal-maximize")).toBeVisible();

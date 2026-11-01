@@ -74,6 +74,12 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
   const projectRoot = project?.path ?? null;
   const [target, setTarget] = useState<ViewerTarget | null>(null);
   const [tabs, setTabs] = useState<ViewerTarget[]>([]);
+  // Synchronous mirror so two updates in one tick (rapid close / open) never act on a stale list.
+  const tabsRef = useRef<ViewerTarget[]>([]);
+  const commitTabs = (next: ViewerTarget[]) => {
+    tabsRef.current = next;
+    setTabs(next);
+  };
   const [focusKey, setFocusKey] = useState(0);
   const drag = useRef<{ x: number; w: number } | null>(null);
   // In-progress drag width: committed (and persisted) once, on release.
@@ -84,17 +90,20 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
     if (embed) embed.onSegmentChange(s === "viewer" ? "viewer" : "info");
     else layout.setSegment(s);
   };
-  const addTab = (t: ViewerTarget) =>
-    setTabs((prev) => (prev.some((x) => x.path === t.path) ? prev : [...prev, t]));
+  // A re-open replaces the stored target (latest line) and keeps the tab position.
+  const addTab = (t: ViewerTarget) => {
+    const prev = tabsRef.current;
+    commitTabs(prev.some((x) => x.path === t.path) ? prev.map((x) => (x.path === t.path ? t : x)) : [...prev, t]);
+  };
   const openTarget = (t: ViewerTarget) => {
     setTarget(t);
     addTab(t);
     setSeg("viewer");
   };
   const closeTab = (path: string) => {
-    const rest = tabs.filter((x) => x.path !== path);
-    setTabs(rest);
-    if (target?.path === path) setTarget(rest[rest.length - 1] ?? null);
+    const rest = tabsRef.current.filter((x) => x.path !== path);
+    commitTabs(rest);
+    setTarget((cur) => (cur?.path === path ? (rest[rest.length - 1] ?? null) : cur));
   };
 
   const layoutRef = useRef(layout);

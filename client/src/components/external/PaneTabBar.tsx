@@ -58,12 +58,16 @@ export function PaneTabBar({ active, segment = "viewer", onChange, onSegmentChan
 
   return (
     <div
-      role="tablist"
-      aria-label="Task detail panes"
       data-testid="pane-tab-bar"
       className="pane-tab-bar compact-tab-surface grid shrink-0 items-center gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
       style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))${children ? " auto" : ""}` }}
-      onKeyDown={(event) => {
+    >
+      {/* The tablist holds ONLY the tabs; the trailing control is its sibling. */}
+      <div
+        role="tablist"
+        aria-label="Task detail panes"
+        className="contents"
+        onKeyDown={(event) => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
         const current = TABS.findIndex((tab) => tab.id === selectedId);
@@ -75,8 +79,8 @@ export function PaneTabBar({ active, segment = "viewer", onChange, onSegmentChan
         const button = event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=tab]")[next];
         button?.focus();
         select(TABS[next].id);
-      }}
-    >
+        }}
+      >
       {TABS.map((t) => {
         const selected = selectedId === t.id;
         return (
@@ -101,6 +105,7 @@ export function PaneTabBar({ active, segment = "viewer", onChange, onSegmentChan
           </button>
         );
       })}
+      </div>
       {children}
     </div>
   );

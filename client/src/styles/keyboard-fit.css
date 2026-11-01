@@ -59,7 +59,7 @@ html[data-kbd-open] .kbd-dialog {
   }
   /* On the Files & Terminal tab the tab bar owns Expand (one control, same state);
      the header toggle remains on the Mission tab only. */
-  [data-ft-active] [data-testid="task-detail-expand-terminal"] {
+  [data-ft-active] .mc-expand-term {
     display: none;
   }
 }

@@ -65,7 +65,7 @@ export function TaskDetailThreePane({
     if (tablet) setTabletViewerOpen(true);
     // Desktop: opening a file reveals a collapsed right card so the file is never invisible.
     else if (!compact && layout.rightCollapsed) layout.toggleRightCollapsed();
-  }, [viewerRequestKey, tablet, compact, layout]);
+  }, [viewerRequestKey, tablet, compact, layout.rightCollapsed, layout.toggleRightCollapsed]);
   const { resolvedPane, selectPane } =
     useCompactPaneSelection({ activePane, onActivePaneChange });
   const containerRef = useRef<HTMLDivElement | null>(null);
