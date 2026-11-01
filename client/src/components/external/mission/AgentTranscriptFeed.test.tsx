@@ -25,6 +25,7 @@ const row = (o: Partial<SessionSubagent>): SessionSubagent => ({
 const line = (o: Record<string, unknown>) => JSON.stringify({ isSidechain: true, timestamp: "2026-11-01T10:00:00.000Z", ...o });
 
 describe("AgentsList", () => {
+  // @covers FR-01.66
   it("shows a status dot only for running agents", () => {
     const sections = buildAgentSections([row({ agentId: "fin" }), row({ agentId: "bad", status: "failed" }), row({ agentId: "run", state: "running", status: null })]);
     const { container } = render(<AgentsList sections={sections} selectedId={null} onSelect={() => {}} />);
@@ -36,6 +37,7 @@ describe("AgentsList", () => {
 });
 
 describe("AgentTranscriptFeed", () => {
+  // @covers FR-01.66
   it("renders with the chat's feed classes: a prompt card, no human bubble, coordinator message labelled", () => {
     const content = [
       line({ type: "user", message: { role: "user", content: "Review the diff" } }),
@@ -58,6 +60,7 @@ describe("AgentTranscriptFeed", () => {
 });
 
 describe("agent hash chips", () => {
+  // @covers FR-01.66
   it("turn a known agent hash into a button that opens that agent", () => {
     const open = vi.fn();
     render(
@@ -70,6 +73,7 @@ describe("agent hash chips", () => {
     fireEvent.click(chip);
     expect(open).toHaveBeenCalledWith("afb588e7c229aa880");
   });
+  // @covers FR-01.66
   it("leave markdown untouched outside a provider", () => {
     render(<MarkdownChunk content="hand-back afb588e7" />);
     expect(screen.queryByTestId("agent-hash-chip")).toBeNull();
@@ -78,6 +82,7 @@ describe("agent hash chips", () => {
 
 describe("SubrunnerPanel (V3)", () => {
   const card: ActivityCard = { kind: "subrunner", text: "Audit", commands: [], subrunnerId: "a1", subrunnerStatus: "done" };
+  // @covers FR-01.66
   it("shows the resolved answer and both actions, and fires them", () => {
     const open = vi.fn();
     const jump = vi.fn();
@@ -88,6 +93,7 @@ describe("SubrunnerPanel (V3)", () => {
     expect(open).toHaveBeenCalledTimes(1);
     expect(jump).toHaveBeenCalledTimes(1);
   });
+  // @covers FR-01.66
   it("shows the honest empty state, never the delivered-to-you pointer", () => {
     render(<SubrunnerPanel card={card} onClose={() => {}} answer={null} />);
     expect(screen.getByTestId("subrunner-no-report")).toBeInTheDocument();

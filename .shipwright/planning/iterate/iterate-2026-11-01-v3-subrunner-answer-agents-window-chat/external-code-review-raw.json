@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:121\n- Finding: `MarkdownLink` returns before calling `useFileTarget` for agent links. If React reuses this component while its href changes between an agent link and another link, the hook order changes, violating React\u2019s Rules of Hooks.\n- Suggestion: Call `useFileTarget` unconditionally before either return, or render agent links through a separate component with a stable hook sequence.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/SubrunnerPanelHost.tsx:49\n- Finding: Transcript fetching is disabled whenever `agent.answer` is truthy, but `pickSubrunnerAnswer` rejects whitespace and delivered-report placeholders. With either value in session-info, the panel skips the transcript fallback and can show an empty state or lower-priority report despite a real answer existing in the agent\u2019s file. This breaks AC1\u2019s fallback order.\n- Suggestion: Use the same real-answer validation when deciding whether to fetch the transcript and when selecting the answer.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:121\n- Finding: Explicit Markdown links bypass known-agent validation. Inside a provider, prose such as `[agent](agent:deadbeef)` renders an agent chip even when `deadbeef` is unknown, because the URL transform preserves every `agent:` href and `MarkdownLink` trusts it. AC2 requires chips only for known IDs or unique qualifying prefixes.\n- Suggestion: Resolve every `agent:` target against the provider\u2019s known IDs before rendering a chip; leave unresolved targets as ordinary text.\n\nOverall assessment: ship-with-fixes. The implementation broadly follows the requested approach, but answer fallback, hook ordering, and chip validation need correction before shipping. Surrounding-code inspection and test execution were unavailable because the environment rejected the read command.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/external/MarkdownText.tsx:121 (MarkdownLink)\n  Finding: Conditional hook call. `if (props.href?.startsWith(AGENT_HREF_PREFIX)) return <AgentChip .../>` returns *before* `useFileTarget(props.href ?? \"\", true)` runs. React requires the same hook count per component instance; if a link's href changes between renders at the same tree position (e.g. streaming markdown where an `agent:` href replaces a normal one, or vice versa), React throws \"Rendered fewer hooks than expected\".\n  Suggestion: Don't early-return before the hook. Call `useFileTarget` unconditionally, then branch on the prefix in the returned JSX.\n\n- Category: regression\n  Severity: medium\n  File: client/src/components/external/MarkdownText.tsx:163-166\n  Finding: When agent ids are present, `remarkPlugins` becomes `[remarkGfm, [remarkAgentLinks, ...]]`, discarding whatever else `REMARK_PLUGINS` contains (its contents aren't visible in the diff, but the module-level const exists precisely so it can hold more than GFM). Inside any `AgentLinkProvider`, all other configured remark plugins silently stop applying \u2014 markdown that rendered correctly in the chat would render differently in the Agents window / subrunner panel.\n  Suggestion: Build the array as `[...REMARK_PLUGINS, [remarkAgentLinks, { ids }]]` (deduplicating remarkGfm if REMARK_PLUGINS already has it).\n\n- Category: edge-case\n  Severity: low\n  File: client/src/external/parsers/handback.ts:117-120 (fromCoordinator)\n  Finding: The trailer strip uses exact `endsWith(COORDINATOR_TRAILER)`; a record with a trailing newline or trailing whitespace after \"Address this before completing your current task.\" (the raw is only `trimStart()`ed, never `trim()`ed) keeps the harness trailer visible in the rendered card. Tests only feed the exact string.\n  Suggestion: Trim the raw string (or `trimEnd()` before the `endsWith` check) so trailing whitespace can't defeat trailer removal.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/mission/SubrunnerPanelHost.tsx:30-34 (handback match)\n  Finding: `s === id || id.startsWith(s!) || s!.startsWith(id)` is a bidirectional prefix match. With multiple agents sharing prefixes (the same reason `resolveAgentToken` demands uniqueness), a hand-back from agent `afb588e7...` can be attributed to a subrunner card whose id is an unrelated agent that merely shares a prefix, wiring \"Jump to message in chat\" to the wrong message.\n  Suggestion: Reuse `resolveAgentToken`-style unique-prefix resolution against the known agent ids instead of raw bidirectional `startsWith`.\n\n- Category: edge-case\n  Severity: low\n  File: client/src/components/external/mission/SubrunnerPanelHost.tsx:47-54 (jump)\n  Finding: \"Jump to message in chat\" closes the panel and scrolls `[data-sender]` inside `mission-activity-feed`, but if the Mission body is currently showing an artifact/document panel instead of the activity feed, the element exists off-screen (or the feed isn't the active view) and the jump silently does nothing visible.\n  Suggestion: Switch the mission body back to the feed view (the same path `handleClose` uses) before scrolling, or verify the feed is the active pane.\n\n- Category: security\n  Severity: low\n  File: client/src/components/external/MarkdownText.tsx:121 + AgentLinkContext.tsx:29-33\n  Finding: The `urlTransform` passes any `agent:`-prefixed href through, and `MarkdownLink` turns it into a chip calling `open(agentId)` with the arbitrary suffix \u2014 so hand-written markdown `[x](agent:anything)` inside a provider calls `select(\"anything\")` with unvalidated input. Likely a harmless no-op for unknown ids, but it's untrusted data reaching a navigation sink.\n  Suggestion: In `MarkdownLink` (or `AgentChip`), resolve the id against the provider's known ids and render plain text when unknown, mirroring `resolveAgentToken`.\n\n- Category: test\n  Severity: low\n  File: client/src/lib/agentTranscriptFeed.test.ts:19-22 / agentTranscriptFeed.ts:41-46\n  Finding: The prompt-card logic is only tested with the exact server-truncation and window-cut flags the implementation sets; there's no test that a coordinator message appearing as the *first* user record (before any assistant turn) is treated as a prompt card rather than a hand-back card \u2014 the loop marks the first `user` card as prompt regardless of whether `detectHandback` classified it, so a coordinator message that leads the file would be mislabelled \"Prompt from the session\" with the framing intact. Add a test for `[user(COORD), asst(...)]` with `truncated: false`.\n  Suggestion: Either exclude hand-back cards from the prompt role in `buildAgentFeed`, or add the test and confirm intended behavior.\n\nEverything else checks out against the ACs: the placeholder drop, answer priority chain, chip gating on known ids, running-only dot, CSS literals (#efeeec, 50px rows, 13/14px text), windowed feed with \"Load older\", and the E2E ghost-agent case all match the spec.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat",
+    "at": "2026-11-01T00:12:29.388054+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

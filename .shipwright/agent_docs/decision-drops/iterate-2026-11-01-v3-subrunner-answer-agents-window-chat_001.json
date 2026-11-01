@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat",
+  "date": "2026-11-01",
+  "section": "Iterate - feat: Agents window transcript in the chat renderer, subrunner answer, agent-hash chips (V3)",
+  "title": "Agents transcript reuses the chat renderer; panel answer from the agent own data",
+  "context": "The Agents window transcript used the old bubble view, the subrunner panel could show the CLI delivered-to-you pointer, agent hashes were not clickable, and coordinator messages looked like human bubbles.",
+  "decision": "Reuse parser + feed reducer + FeedCard on a light token set; resolve the panel answer from session-info / the agent file / the hand-back; hash chips via a context null outside the window and panel; coordinator message is a handback origin.",
+  "consequences": "One renderer for both surfaces; MarkdownText unchanged outside a provider; the delivered-to-you pointer is dropped at the reducer so no consumer shows it.",
+  "rationale": "A shared renderer deletes a divergence instead of adding a parallel one; the provider keeps chat markdown untouched.",
+  "rejected": "Restyling BubbleTranscript (cannot reproduce chat tool lines, tables, cards); threading an option instead of a context (two surfaces need the resolver).",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/adr/iterate-2026-11-01-v3-subrunner-answer-agents-window-chat-agents-window-transcript.md"
+}

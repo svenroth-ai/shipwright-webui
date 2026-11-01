@@ -1,0 +1,11 @@
+{
+  "items": [
+    {"name": "Spec Compliance", "verdict": "pass", "note": "AC1-AC6 each covered by a test; spec-reviewer PASS."},
+    {"name": "Error Handling", "verdict": "pass", "note": "Missing file, empty tail, unknown agent and placeholder-only reports all end in honest empty states; unknown agent: links render as text."},
+    {"name": "Security Basics", "verdict": "pass", "note": "Markdown only (no raw HTML); agent: hrefs validated against the session's known agents; read-only GET of the existing validated transcript route."},
+    {"name": "Test Quality", "verdict": "pass", "note": "Real on-disk record shapes (coordinator message, delivered pointer), negative cases (ambiguous prefix, code spans, no provider) and a real-browser E2E through JSONL to DOM."},
+    {"name": "Performance Basics", "verdict": "pass", "note": "Feed derived once per fetched tail, memoised, windowed to the latest 200 events; no timers added."},
+    {"name": "Naming & Structure", "verdict": "pass", "note": "New code in small cohesive files (all under 300 lines); MissionBody.tsx did not grow."},
+    {"name": "Affected Boundaries", "verdict": "pass", "note": "Producer: Claude CLI subagent JSONL (incl. coordinator records, probed on real on-disk files); consumer: session-parser, reducer, FeedCard; E2E covers the chain."}
+  ]
+}

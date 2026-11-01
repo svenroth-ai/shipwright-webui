@@ -1,0 +1,91 @@
+{
+  "run_id": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat",
+  "date": "2026-11-01T00:23:48.785351Z",
+  "event_at": "2026-10-31T21:59:46.972761+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/campaign-mission-desktop-style-v2--V3",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "AC1 the delivered-to-you pointer is never a subrunner report; the panel shows the agent's real answer in the specified order, failed/killed keep the notification",
+        "disposition": "tested",
+        "evidence": "src/lib/agentTranscriptFeed.test.ts pickSubrunnerAnswer + isDeliveredPlaceholder cases PASSED; M4 e2e Ghost audit panel PASSED"
+      },
+      {
+        "behavior": "AC1 empty state when no real report exists",
+        "disposition": "tested",
+        "evidence": "SubrunnerPanel (V3) + SubrunnerPanel.test.tsx empty-state PASSED"
+      },
+      {
+        "behavior": "AC2 known agent hashes become chips that open the agent; unknown / ambiguous / code / no-provider stay text",
+        "disposition": "tested",
+        "evidence": "AgentTranscriptFeed.test.tsx hash chip cases + agentTranscriptFeed.test.ts resolveAgentToken/remark cases PASSED"
+      },
+      {
+        "behavior": "AC2 panel offers Open in Agents window and Jump to message in chat",
+        "disposition": "tested",
+        "evidence": "AgentTranscriptFeed.test.tsx SubrunnerPanel (V3) PASSED"
+      },
+      {
+        "behavior": "AC3 status dot only for running agents; grey list column, 50px rows, >=13px text via tokens",
+        "disposition": "tested",
+        "evidence": "AgentTranscriptFeed.test.tsx AgentsList dot test + M4 e2e (dot count) PASSED; real-browser screenshot reviewed"
+      },
+      {
+        "behavior": "AC4 transcript tab uses the chat feed: prompt card (never a human bubble), windowing, system notes dropped",
+        "disposition": "tested",
+        "evidence": "agentTranscriptFeed.test.ts buildAgentFeed cases + AgentTranscriptFeed.test.tsx + M4 e2e transcript assertions PASSED"
+      },
+      {
+        "behavior": "AC5 coordinator message is a hand-back (subagent files only), framing and trailer removed, labelled card",
+        "disposition": "tested",
+        "evidence": "agentTranscriptFeed.test.ts coordinator cases (incl. main-session negative) + M4 e2e COORD-MARK PASSED"
+      },
+      {
+        "behavior": "AC6 read-only, no composer / chat-* testids",
+        "disposition": "tested",
+        "evidence": "M4 e2e asserts no textarea / chat-* in the window; 35-no-chat-panel e2e PASSED"
+      },
+      {
+        "behavior": "visual look against the mockup Boards 4-6",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "pixel-level look is judged against the mockup by a person; screenshots were inspected, no Linux visual baseline covers this surface"
+      }
+    ],
+    "counts": {
+      "testable": 8,
+      "tested": 8,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6
+    },
+    "run_id": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat"
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node e2e/isolated-stack.mjs --project=chromium e2e/flows/M4-mission-agents-window.spec.ts e2e/flows/mission-subrunner.spec.ts e2e/flows/V2-mission-handback-result-subrunner.spec.ts e2e/flows/35-no-chat-panel.spec.ts",
+    "exit_code": 0,
+    "tests_run": 4,
+    "evidence_path": "playwright run output (isolated stack), 4 passed; plus 13 mission flows passed",
+    "timestamp": "2026-11-01T00:40:00Z",
+    "run_id": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": [
+    "touches_auth"
+  ]
+}
