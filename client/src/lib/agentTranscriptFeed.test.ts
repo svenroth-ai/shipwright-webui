@@ -20,6 +20,7 @@ const COORD = "The coordinator sent a message while you were working:\nPlease re
 
 describe("coordinator message", () => {
   it("is a coordinator hand-back with the harness framing and trailer removed", () => {
+    expect(detectHandback(COORD + "\n")?.text).toBe("Please re-review the diff.");
     expect(detectHandback(COORD)).toEqual({ sender: "", origin: "coordinator", text: "Please re-review the diff." });
   });
   it("is not a hand-back when it is merely quoted mid-text", () => {
@@ -70,6 +71,8 @@ describe("lastAssistantMessage", () => {
   it("returns the last non-empty assistant text", () => {
     expect(lastAssistantMessage([asst("first"), asst("final answer")].join("\n"))).toBe("final answer");
     expect(lastAssistantMessage(user("only a prompt"))).toBeNull();
+    const toolOnly = line({ type: "assistant", message: { role: "assistant", content: [{ type: "tool_use", id: "x", name: "Bash", input: {} }] } });
+    expect(lastAssistantMessage([asst("real answer"), toolOnly].join("\n"))).toBe("real answer");
   });
 });
 
@@ -101,6 +104,7 @@ describe("agent hash linking", () => {
     expect(resolveAgentToken("afb588e7c229aa880", ids)).toBe("afb588e7c229aa880");
     expect(resolveAgentToken("afb588", ids)).toBeNull();
     expect(resolveAgentToken("deadbeef", ids)).toBeNull();
+    expect(resolveAgentToken("a8f31c2d", [...ids, "a8f31c2dffffffff1"])).toBeNull(); // ambiguous prefix stays text
   });
   it("rewrites text nodes into agent links but leaves code alone", () => {
     const tree = {

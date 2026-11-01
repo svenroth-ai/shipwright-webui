@@ -114,7 +114,7 @@ function fromCrossSession(text: string, open: RegExpExecArray): Handback {
 
 /** Inside a subagent transcript the parent's follow-up is a user-role record: header line, message, harness trailer. */
 function fromCoordinator(raw: string): Handback {
-  let body = raw.replace(/\r\n/g, "\n").trimStart().slice(COORDINATOR_HEADER.length).trim();
+  let body = raw.replace(/\r\n/g, "\n").trim().slice(COORDINATOR_HEADER.length).trim();
   if (body.endsWith(COORDINATOR_TRAILER)) body = body.slice(0, body.length - COORDINATOR_TRAILER.length).trimEnd();
   return { sender: "", origin: "coordinator", text: body };
 }

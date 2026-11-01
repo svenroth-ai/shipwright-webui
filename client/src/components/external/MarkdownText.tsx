@@ -118,8 +118,8 @@ function InlineCode({ children, ...rest }: { children?: ReactNode }) {
 }
 
 function MarkdownLink(props: { children?: ReactNode; href?: string }) {
-  if (props.href?.startsWith(AGENT_HREF_PREFIX)) return <AgentChip agentId={props.href.slice(AGENT_HREF_PREFIX.length)} />;
-  const target = useFileTarget(props.href ?? "", true);
+  const target = useFileTarget(props.href ?? "", true); // hooks stay unconditional: the branch below only picks the output
+  if (props.href?.startsWith(AGENT_HREF_PREFIX)) return <AgentChip agentId={props.href.slice(AGENT_HREF_PREFIX.length)} label={childrenToString(props.children)} />;
   if (target) {
     const label = childrenToString(props.children);
     return <FileChip target={target} label={label || undefined} />;
@@ -163,7 +163,7 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   const agentLinks = useAgentLinks();
   const agentIds = agentLinks?.ids;
   const remarkPlugins = useMemo(
-    () => (agentIds && agentIds.length > 0 ? [remarkGfm, [remarkAgentLinks, { ids: agentIds }]] : REMARK_PLUGINS),
+    () => (agentIds && agentIds.length > 0 ? [...REMARK_PLUGINS, [remarkAgentLinks, { ids: agentIds }]] : REMARK_PLUGINS),
     [agentIds],
   );
   const urlTransform = useMemo(() => {

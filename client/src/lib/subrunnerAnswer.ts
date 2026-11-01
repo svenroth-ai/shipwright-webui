@@ -9,11 +9,14 @@
 import { isDeliveredPlaceholder } from "./missionActivityFeedSubrunner";
 import type { ActivityCard } from "./missionActivityFeedTypes";
 
+/** Non-blank and not the CLI's "delivered to you" pointer. */
+export const isRealAnswer = (t: string | null | undefined): t is string => Boolean(t && t.trim() && !isDeliveredPlaceholder(t));
+
 export function pickSubrunnerAnswer(
   card: ActivityCard,
   sources: { agentAnswer?: string | null; transcriptAnswer?: string | null; handbackText?: string | null },
 ): string | null {
-  const real = (t: string | null | undefined) => (t && t.trim() && !isDeliveredPlaceholder(t) ? t : null);
+  const real = (t: string | null | undefined) => (isRealAnswer(t) ? t : null);
   const cardReport = real(card.subrunnerReportFull ?? card.subrunnerReport);
   if (card.subrunnerStatus === "failed" || card.subrunnerEndStatus) {
     return cardReport ?? real(sources.handbackText);

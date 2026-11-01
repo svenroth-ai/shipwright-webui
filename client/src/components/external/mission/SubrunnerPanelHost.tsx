@@ -12,7 +12,8 @@ import type { MissionAgents } from "../../../hooks/useMissionAgents";
 import { findAgentForCard } from "../../../lib/agentsTree";
 import { lastAssistantMessage } from "../../../lib/agentTranscriptFeed";
 import { formatTokens } from "../../../lib/sessionInfoFormat";
-import { pickSubrunnerAnswer } from "../../../lib/subrunnerAnswer";
+import { isRealAnswer, pickSubrunnerAnswer } from "../../../lib/subrunnerAnswer";
+import { resolveAgentToken } from "../../../lib/remarkAgentLinks";
 import { useSubagentTranscript } from "../../../hooks/useSubagentTranscript";
 import { AgentLinkProvider } from "../AgentLinkContext";
 import { SubrunnerPanel } from "./SubrunnerPanel";
@@ -41,12 +42,13 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
   const agent = useMemo(() => findAgentForCard(agents.agents, id), [agents.agents, id]);
   const handback = useMemo(() => {
     if (!id) return null;
-    const match = (s: string | undefined) => Boolean(s) && (s === id || id.startsWith(s!) || s!.startsWith(id));
-    return cards.find((c) => c.kind === "handback" && match(c.handbackSender)) ?? null;
-  }, [cards, id]);
+    const ids = agents.agents.map((a) => a.agentId);
+    const full = (s: string) => resolveAgentToken(s, ids) ?? s; // a short sender hash only matches its unique known agent
+    return cards.find((c) => c.kind === "handback" && c.handbackSender && full(c.handbackSender) === full(id)) ?? null;
+  }, [cards, id, agents.agents]);
   // The agent's own file is the source of truth; ask for it only when session-info has no answer for it.
   const finishedOk = card.subrunnerStatus === "done" && !card.subrunnerEndStatus;
-  const needFile = Boolean(id) && !agent?.answer && finishedOk;
+  const needFile = Boolean(id) && !isRealAnswer(agent?.answer) && finishedOk;
   const file = useSubagentTranscript(taskId, agent?.agentId ?? id, needFile, false);
   const fileAnswer = file.data?.status === "ok" ? lastAssistantMessage(file.data.content) : null;
   const answer = pickSubrunnerAnswer(card, { agentAnswer: agent?.answer, transcriptAnswer: fileAnswer, handbackText: handback?.text });
