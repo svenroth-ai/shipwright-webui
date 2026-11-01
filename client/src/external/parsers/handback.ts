@@ -119,13 +119,13 @@ function fromCoordinator(raw: string): Handback {
   return { sender: "", origin: "coordinator", text: body };
 }
 
-export function detectHandback(content: unknown): Handback | null {
+export function detectHandback(content: unknown, sidechain = false): Handback | null {
   if (Array.isArray(content) && content.some((b) => (b as { type?: unknown } | null)?.type === "tool_result")) return null;
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
   // Cheap early exit (before any replace/regex): a real hand-back LEADS with the header, the marker or the envelope.
   const lead = raw.trimStart();
-  if (lead.startsWith(COORDINATOR_HEADER)) return fromCoordinator(lead);
+  if (sidechain && lead.startsWith(COORDINATOR_HEADER)) return fromCoordinator(lead); // only inside a subagent file: in the main chat it is the human's own text
   if (!lead.startsWith(HEADER) && !lead.startsWith(MARKER) && !lead.startsWith("<agent-message") && !lead.startsWith("<cross-session-message")) return null;
   const text = raw.replace(/\r\n/g, "\n");
   // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that

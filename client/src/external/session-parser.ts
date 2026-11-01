@@ -370,7 +370,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
         return { ...base, kind: "stop-hook", ...stopHook };
       }
       // Last: the most permissive fingerprint (see parsers/handback.ts).
-      const handback = detectHandback(content);
+      const handback = detectHandback(content, raw.isSidechain === true);
       if (handback) return { ...base, kind: "handback", ...handback };
       return { ...base, kind: "user", content, ...(typeof (raw.toolUseResult as { answers?: unknown } | null)?.answers === "object" && { toolUseResult: { answers: (raw.toolUseResult as { answers: unknown }).answers, annotations: (raw.toolUseResult as { annotations?: unknown }).annotations } }) };
     }

@@ -21,7 +21,10 @@ const COORD = "The coordinator sent a message while you were working:\nPlease re
 describe("coordinator message", () => {
   it("is a coordinator hand-back with the harness framing and trailer removed", () => {
     expect(detectHandback(COORD + "\n")?.text).toBe("Please re-review the diff.");
-    expect(detectHandback(COORD)).toEqual({ sender: "", origin: "coordinator", text: "Please re-review the diff." });
+    expect(detectHandback(COORD, true)).toEqual({ sender: "", origin: "coordinator", text: "Please re-review the diff." });
+  });
+  it("is not a hand-back in the main session (a human may type that sentence)", () => {
+    expect(detectHandback(COORD)).toBeNull();
   });
   it("is not a hand-back when it is merely quoted mid-text", () => {
     expect(detectHandback("I read: The coordinator sent a message while you were working:")).toBeNull();

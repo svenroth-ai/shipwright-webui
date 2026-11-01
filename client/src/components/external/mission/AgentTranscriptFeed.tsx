@@ -6,7 +6,7 @@
  * coordinator sent mid-run is a labelled card too. Read-only: no composer, no write surface.
  */
 
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import type { AgentFeed } from "../../../lib/agentTranscriptFeed";
@@ -41,13 +41,12 @@ export function AgentTranscriptFeed({ feed, task, onOpenAgent, canOpenAgent }: {
   const ref = useRef<HTMLDivElement | null>(null);
   // Keyed on the total (not the window): "Load older" widens the top and must not yank the reader to the bottom.
   useAutoScroll(ref, `${feed.total}`);
-  const entries = useMemo(() => feed.items, [feed.items]);
   return (
     <div ref={ref} className="ag-feed" role="log" aria-label="Agent transcript" tabIndex={0} data-testid="agent-feed">
-      {entries.length === 0 ? (
+      {feed.items.length === 0 ? (
         <p className="ag-empty">Nothing to show yet.</p>
-      ) : entries.map(({ card, role }, i) => (
-        <div className="mc-feed-entry" data-entry-kind={role === "card" ? card.kind : "prompt"} key={`${card.kind}-${card.timestamp ?? ""}-${i}`}>
+      ) : feed.items.map(({ card, role }, i) => (
+        <div className="mc-feed-entry" data-entry-kind={role === "card" ? card.kind : "prompt"} key={`${card.kind}-${card.timestamp ?? ""}-${feed.items.length - i}`}>
           {role === "card" ? (
             <FeedCard card={card} task={task} commitArtifact={null} onSubrunnerClick={onOpenAgent} canOpenAgent={canOpenAgent} />
           ) : (

@@ -11,7 +11,7 @@
 @media (pointer: coarse) { .mc-agents-chip { min-height: 44px; } }
 
 .ag-overlay { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .4); }
-.ag-window {
+.ag-window, .artifact {
   /* mockup literals expressed as scope tokens: list ground #efeeec, titles #3d3833, sub-text on grey #5f5852 */
   --ag-grey: #efeeec; --ag-title: #3d3833; --ag-sub: #5f5852;
   position: fixed; z-index: 50; inset: 0; margin: auto; width: min(1040px, 94vw); height: min(720px, 90vh); display: flex; flex-direction: column; overflow: hidden; background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: var(--sh-xl);
@@ -69,7 +69,7 @@
 .hash-link { font-family: var(--mono); font-size: .92em; padding: 1px 6px; border-radius: 6px; background: var(--accent-tint); border: 1px solid var(--accent-line); color: var(--accent-hover, var(--accent)); font-weight: 600; cursor: pointer; }
 .hash-link:hover { border-color: var(--accent); }
 .hash-link:focus-visible { outline: none; box-shadow: var(--focus); }
-@media (pointer: coarse) { .hash-link { min-height: 44px; } }
+@media (pointer: coarse) { .hash-link { padding: 11px 8px; margin: -10px 0; } } /* tap area without inflating the prose line */
 
 /* Transcript tab: header bar + the chat feed on a light ground. */
 .ag-transcript { flex: 1; min-height: 0; display: flex; flex-direction: column; }
