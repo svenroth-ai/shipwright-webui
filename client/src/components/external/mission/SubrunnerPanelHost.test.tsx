@@ -41,4 +41,11 @@ describe("SubrunnerPanelHost", () => {
     render(<SubrunnerPanelHost taskId="t1" card={{ ...sub, subrunnerStatus: "running" }} cards={[hb("progress")]} agents={agents} onClose={() => {}} />);
     expect(screen.getByTestId("subrunner-no-report").textContent).toBe("Still running - no answer yet.");
   });
+
+  // @covers FR-01.66
+  it("an agent whose status has not landed yet still counts as finished when the card says done", () => {
+    const lagging = { ...agents, agents: [{ ...agent, status: null, answer: null }] } as unknown as MissionAgents;
+    render(<SubrunnerPanelHost taskId="t1" card={sub} cards={[]} agents={lagging} onClose={() => {}} />);
+    expect(screen.queryByTestId("subrunner-no-report")?.textContent ?? "").not.toBe("Still running - no answer yet.");
+  });
 });

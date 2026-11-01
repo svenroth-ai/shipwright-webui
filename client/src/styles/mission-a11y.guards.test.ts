@@ -136,13 +136,8 @@ describe("3. a visible 3px teal focus ring", () => {
 
   it("every --focus token the Mission family sets is a 3px ring", () => {
     const seen: string[] = [];
-    for (const f of [...FAMILY, "mission-a11y.css"]) {
-      let css: string;
-      try {
-        css = src(f);
-      } catch {
-        continue;
-      }
+    for (const f of FAMILY) {
+      const css = src(f);
       for (const m of css.matchAll(/--focus:\s*([^;]+);/g)) {
         seen.push(m[1]);
         expect(m[1].trim(), `${f}: --focus`).toMatch(/^0 0 0 3px /);

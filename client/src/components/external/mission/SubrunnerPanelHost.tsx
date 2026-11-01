@@ -42,7 +42,10 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
   const handback = useMemo(() => findAgentHandback(cards, id, agents.agents.map((a) => a.agentId)), [cards, id, agents.agents]);
   // The agent's own file is the source of truth; ask for it only when session-info has no answer for it.
   // An agent session-info knows decides "finished" (same source as the Agents window); the card is the fallback.
-  const finishedOk = agent ? agentOutcome(agent) === "completed" : card.subrunnerStatus === "done" && !card.subrunnerEndStatus;
+  // An agent without a recorded status yet (notification lag) falls back to the card.
+  const outcome = agent ? agentOutcome(agent) : null;
+  const cardDone = card.subrunnerStatus === "done" && !card.subrunnerEndStatus;
+  const finishedOk = outcome === "completed" || (outcome !== "running" && (agent?.status ?? null) === null && cardDone);
   const needFile = Boolean(id) && !isRealAnswer(handback?.text) && !isRealAnswer(agent?.answer) && finishedOk;
   const file = useSubagentTranscript(taskId, agent?.agentId ?? id, needFile, false);
   const fileContent = file.data?.status === "ok" ? file.data.content : null;

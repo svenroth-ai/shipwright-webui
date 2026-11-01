@@ -125,22 +125,20 @@ test.describe("V9 - mobile + accessibility (phone)", () => {
     const doc = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
     expect(doc.sw).toBeLessThanOrEqual(doc.iw); // ... and the page itself does not scroll sideways
 
-    // Run result card actions: full width, 44px (only when the fixture produced a result card).
+    // Run result card actions: full width, 44px .
     const resultBtn = feed.getByTestId("run-result-row").first().getByRole("button");
-    if (await resultBtn.count()) {
-      const row = await feed.getByTestId("run-result-row").first().boundingBox();
-      const b = await resultBtn.first().boundingBox();
-      expect(b!.height).toBeGreaterThanOrEqual(44);
-      expect(b!.width).toBeGreaterThan(row!.width * 0.8);
-    }
+    await expect(resultBtn.first()).toBeVisible();
+    const row = await feed.getByTestId("run-result-row").first().boundingBox();
+    const b = await resultBtn.first().boundingBox();
+    expect(b!.height).toBeGreaterThanOrEqual(44);
+    expect(b!.width).toBeGreaterThan(row!.width * 0.8);
 
     expect(await smallTargets(page, "[data-testid=mission-compact-tabs], [data-testid=mission-body] .mc-op")).toEqual([]);
 
     // 3px teal focus ring on a keyboard-focused control.
     const chip = page.getByTestId("agents-bar-button");
     await expect(chip).toBeVisible();
-    await page.keyboard.press("Tab");
-    await chip.focus();
+    await chip.focus(); // focus() then Shift+Tab / Tab puts the browser in keyboard (:focus-visible) mode
     await page.keyboard.press("Shift+Tab");
     await page.keyboard.press("Tab");
     await expect(chip).toBeFocused();

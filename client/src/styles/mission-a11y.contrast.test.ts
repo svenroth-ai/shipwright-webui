@@ -75,7 +75,7 @@ const UI = 3.0;
 
 // ── dark chat card ──────────────────────────────────────────────────────────
 const D = block(OPERATION, '.on-photo .mc-op:not([data-state="designgate"])');
-const D_BG = solid(tok(D, "card")) && solid(parseColour(D.match(/background:\s*(#[0-9a-fA-F]{6})/)![1]));
+const D_BG = solid(parseColour(D.match(/background:\s*(#[0-9a-fA-F]{6})/)![1]));
 const D_CARD = solid(tok(D, "card"));
 const D_THEAD = solid(tok(D, "thead"));
 const D_BUBBLE = over([...solid(tok(D, "ink")), 0.09] as RGBA, D_CARD); // mission-chat.css: color-mix(ink 9%, card)
