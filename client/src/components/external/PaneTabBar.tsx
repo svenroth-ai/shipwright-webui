@@ -59,14 +59,15 @@ export function PaneTabBar({ active, segment = "viewer", onChange, onSegmentChan
   return (
     <div
       data-testid="pane-tab-bar"
-      className="pane-tab-bar compact-tab-surface grid shrink-0 items-center gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
-      style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))${children ? " auto" : ""}` }}
+      className="pane-tab-bar compact-tab-surface flex shrink-0 items-center gap-1 border-b border-[var(--line)] bg-[var(--g100)] p-1"
     >
       {/* The tablist holds ONLY the tabs; the trailing control is its sibling. */}
       <div
         role="tablist"
         aria-label="Task detail panes"
-        className="contents"
+        // A real grid box: older Safari drops the tablist role from a box-less element.
+        className="grid min-w-0 flex-1 gap-1"
+        style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}
         onKeyDown={(event) => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault();

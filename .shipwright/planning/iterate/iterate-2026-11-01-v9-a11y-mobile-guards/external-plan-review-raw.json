@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "1. **Category: approach | Severity: medium**  \n   **Finding:** The motion criterion is contradictory: \u201cmotion only on the running dot\u201d forbids other animation, while \u201cgates all other motion to `no-preference`\u201d permits it. The proposed transition changes follow the latter interpretation.  \n   **Suggestion:** Define one rule consistent with the scope: only the running dot animates, and it stops under reduced motion. Make the guard enforce that rule explicitly.\n\n2. **Category: edge-case | Severity: medium**  \n   **Finding:** A `drilled` boolean does not define what happens when the selected agent disappears, the window closes and reopens, or the viewport switches between phone and desktop. These transitions can leave an empty detail view or stale navigation state.  \n   **Suggestion:** Tie drill-down to a valid selected agent, define reset behavior, and test those transitions. Move keyboard focus into detail on selection and restore it to the originating row on Back.\n\n3. **Category: approach | Severity: medium**  \n   **Finding:** Parsing token values alone does not establish contrast: contrast depends on foreground/background pairs, including muted text, status pills, interactive states, and focus rings. A passing test could miss an inaccessible rendered combination.  \n   **Suggestion:** Enumerate the actual dark/light surface pairs and resolve token aliases and transparency. Apply 4.5:1 to normal text and 3:1 to applicable UI indicators; verify the teal ring against both surfaces.\n\n4. **Category: dependency | Severity: medium**  \n   **Finding:** Several required outcomes have no explicit implementation or verification step: table-contained scrolling, the file-menu bottom sheet, viewer wrapping, and the campaign-wide mockup comparison. Naming an E2E test does not establish coverage, and baseline impact is deferred.  \n   **Suggestion:** Map each outcome to a concrete edit and assertion. Include a phone overflow check, preserve the 36px desktop target behavior, and explicitly inspect Boards 10 and 12 plus README row 17. Finish with the required deviation list and review any affected visual baselines.\n\nThe approach is broadly suitable, but the motion contract, mobile navigation lifecycle, and verification coverage need clarification before implementation. No specific security concern is apparent from the proposed changes.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n- **Category: approach** | **Severity: medium**\n  **Finding:** Acceptance criteria in the spec itself are \"TBD\" \u2014 the mini-plan derives them, but there's no confirmation they match the author's intent, and the numbering of follow-ups skips (b) while citing it in \"Known limits.\" This inconsistency suggests the mini-plan was written against a different revision of the scope than the one shown.\n  **Suggestion:** Confirm the AC list and the status of follow-up (b) before implementation; reconcile the (a)/(c) numbering.\n\n- **Category: risk** | **Severity: high**\n  **Finding:** Criterion 8 (\"fix every violation the guards find in V1-V8 code\") is unbounded. Nobody has run the guards yet, so the fix surface could be a handful of declarations or dozens of files across eight versions of work. Bumping sub-12px fonts and changing `--muted`/running-dot colors can shift layout enough to break existing visual baselines \u2014 the plan hand-waves this as \"affected only if a baselined screen renders one of the changed sizes,\" which is almost certainly true somewhere.\n  **Suggestion:** Run the guards as a first, separate commit before any fixes; capture the violation inventory and size the fix work against it, and plan a baseline re-snap pass explicitly rather than conditionally.\n\n- **Category: approach** | **Severity: medium**\n  **Finding:** Follow-up (a) \u2014 hand-back only counts as a final report when origin is \"subagent\" \u2014 is a behavioral/telemetry change, not accessibility. Bundling it into a \"mobile polish\" iterate couples unrelated risk and muddies rollback. Same for the `display: contents` tablist fix (c), which can change tab-bar layout on all viewports.\n  **Suggestion:** Either split (a) into its own small iterate, or at minimum give it its own component test \u2014 the listed test files don't cover the origin-check logic.\n\n- **Category: edge-case** | **Severity: medium**\n  **Finding:** The full-screen Agents sheet (drill-down with Back) has no stated keyboard/focus behavior: no focus trap, no Escape-to-close, no mention of whether browser Back navigates the drill-down. On mobile, Android users will press hardware/gesture Back expecting it to leave the sheet.\n  **Suggestion:** Specify: Escape closes sheet, Back button pops drill-down, and wire `popstate` or at least document the deviation.\n\n- **Category: edge-case** | **Severity: medium**\n  **Finding:** \"Tap targets 44px on a coarse pointer\" \u2014 the plan applies 44px via `pointer: coarse` media query in some places and viewport width (`<=767px`) in others. Hybrid devices (touch laptops, tablets with keyboards) and narrow desktop windows will get inconsistent behavior. Also, a 36px control with padding/border may already exceed 44px hit area \u2014 the guard should measure effective size, not declared size.\n  **Suggestion:** Pick one strategy (coarse-pointer media query for sizes, width for layout) and state how the 44px guard computes effective target size (including padding).\n\n- **Category: risk** | **Severity: low**\n  **Finding:** Tables scrolling \"in their own frame\" can clip sticky headers and break horizontal scroll on iOS Safari (momentum/overflow quirks), and bottom-sheet context menus often lose their previous keyboard dismissal path. Both are regression-prone for existing desktop behavior.\n  **Suggestion:** Test sticky-header rendering after the change and keep the context menu's Escape/outer-click dismissal working in sheet form.\n\n- **Category: dependency** | **Severity: low**\n  **Finding:** \"E2E Pixel 5 touch\" \u2014 Playwright viewport emulation alone doesn't enable touch; the spec should note `hasTouch: true` and `isMobile: true`, otherwise the coarse-pointer styles under test are never actually exercised.\n  **Suggestion:** Pin the E2E context flags explicitly.\n\n- **Category: approach** | **Severity: low**\n  **Finding:** The contrast test \"in the style of tokens.contrast.test.ts\" presumably parses hex values from CSS. If the new tokens are defined as raw hex in CSS, values could drift between CSS and any re-declared test fixture. Parsing directly from the source files (as the existing test reportedly does) is the right call \u2014 just confirm the light-surface tokens are in a parseable single source.\n  **Suggestion:** Parse from source CSS, never re-declare hexes in the test.\n\n**Overall assessment:** The core a11y-guard approach (tests-first, fix-what-they-find) is sound, but the plan bundles unrelated behavioral changes, has an unbounded fix criterion with real baseline-break risk, and leaves mobile sheet navigation/focus semantics unspecified. Address the scope split, guard sizing methodology, and sheet behavior before building.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "iterate",
+  "capture": {
+    "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards",
+    "at": "2026-11-01T01:20:17.507611+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

@@ -1,0 +1,105 @@
+{
+  "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards",
+  "date": "2026-11-01T01:46:51.695888Z",
+  "event_at": "2026-11-01T01:46:40.564202+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/campaign-mission-desktop-style-v2--V9",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-01-v9-a11y-mobile-guards",
+  "test_completeness": {
+    "status": "complete",
+    "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards",
+    "behaviors": [
+      {
+        "behavior": "Contrast: dark + light Mission tokens clear WCAG 2.2 AA (57 rungs, parsed from the stylesheets)",
+        "disposition": "tested",
+        "evidence": "src/styles/mission-a11y.contrast.test.ts PASSED"
+      },
+      {
+        "behavior": "No font-size below 12px in the Mission/Files&Terminal stylesheets, incl. --fs-* tokens",
+        "disposition": "tested",
+        "evidence": "src/styles/mission-a11y.guards.test.ts section 1 PASSED"
+      },
+      {
+        "behavior": "Only the running dot animates and it is still under prefers-reduced-motion; other motion gated to no-preference",
+        "disposition": "tested",
+        "evidence": "guards section 2 PASSED; V9 e2e reduced-motion dot PASSED"
+      },
+      {
+        "behavior": "Visible 3px teal focus ring (token + no outline removal without ring)",
+        "disposition": "tested",
+        "evidence": "guards section 3 PASSED; V9 e2e computed box-shadow 3px PASSED"
+      },
+      {
+        "behavior": "44px tap targets on coarse pointer, 56px agent rows on phone",
+        "disposition": "tested",
+        "evidence": "guards section 4 PASSED; V9 e2e Pixel 5 measures PASSED"
+      },
+      {
+        "behavior": "Agents window is a full-screen sheet on phone: list -> detail drill-down, Back, focus follows",
+        "disposition": "tested",
+        "evidence": "AgentsWindow.mobile.test.tsx 3 PASSED; V9 e2e agents PASSED"
+      },
+      {
+        "behavior": "Status is always a text pill (dot is aria-hidden decoration)",
+        "disposition": "tested",
+        "evidence": "AgentsWindow.mobile.test.tsx PASSED"
+      },
+      {
+        "behavior": "Tables scroll in their own frame, page never scrolls sideways; Run-result action full width 44px",
+        "disposition": "tested",
+        "evidence": "V9 e2e chat PASSED"
+      },
+      {
+        "behavior": "Files&Terminal phone: 44px tab bar and rows, row actions open a bottom sheet",
+        "disposition": "tested",
+        "evidence": "V9 e2e files PASSED"
+      },
+      {
+        "behavior": "Follow-up (a): findAgentHandback requires subagent origin; Agents panel and Details tab share one finished source",
+        "disposition": "tested",
+        "evidence": "agentTranscriptFeed.test.ts + SubrunnerPanelHost.test.tsx (incl. session-origin negative and status-lag case) PASSED"
+      },
+      {
+        "behavior": "Follow-up (c): tablist is a real box, not display:contents",
+        "disposition": "tested",
+        "evidence": "guards section 5 PASSED; PaneTabBar e2e specs PASSED"
+      },
+      {
+        "behavior": "Pixel-level look against mockup Boards 1-13",
+        "disposition": "untestable",
+        "evidence": "requires-manual-visual-judgment: screenshots inspected desktop+phone; deviations listed in result.json",
+        "reason_code": "requires-manual-visual-judgment",
+        "reason": "pixel-level look is judged against the mockup by a person; screenshots were inspected, no Linux baseline covers the new surfaces"
+      }
+    ],
+    "counts": {
+      "testable": 11,
+      "tested": 11,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 11,
+      "covered_acs": 11
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node e2e/isolated-stack.mjs --project=chromium e2e/flows/V9-mobile-a11y-guards.spec.ts",
+    "exit_code": 0,
+    "tests_run": 3,
+    "evidence_path": "playwright run output (isolated stack, Pixel 5), 3 passed; plus chromium regression 31 and mobile-chromium 6 passed",
+    "timestamp": "2026-11-01T02:40:00Z",
+    "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards"
+  },
+  "declared_removals": [],
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

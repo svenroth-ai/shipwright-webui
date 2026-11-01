@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: test\n- Severity: low\n- File: client/src/styles/mission-a11y.contrast.test.ts:173\n- Finding: The guard rounds the contrast ratio before comparing it with the WCAG threshold. A failing ratio such as 4.496:1 becomes 4.50:1 and passes, so the test can accept noncompliant tokens.\n- Suggestion: Compare the unrounded `ratio` with `rung.min`; round only the value displayed in the failure message.\n\nShip-as-is with this minor guard refinement. I found no other concrete defects in the supplied diff; browser behavior and the final comparison against the mockup boards remain unverified.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n**1. Category: bug \u2014 Severity: high**\n`client/src/styles/mission-a11y.contrast.test.ts` (~line for the \"dark error badge\" rung)\nThe rung parses the `.mcv-badge` rule with `OPERATION.match(/\\.mcv-badge\\s*\\{\\s*background:\\s*#[0-9a-fA-F]{6};\\s*color:\\s*(#[0-9a-fA-F]{6})/)`, but the actual rule in mission-operation.css is `background: var(--err); color: #fff;`. The regex requires a literal 6-digit hex after `background:` and will not match `var(--err)`, so `match(...)` returns `null` and `![1]` throws at module-load time \u2014 the entire contrast guard file fails (or worse, is dismissed as \"broken test\" and deleted) instead of enforcing anything.\nSuggestion: parse the `--err` token from the dark scope (as the other rungs do) instead of regex-matching the badge's background, e.g. `bg: solid(tok(D, \"err\"))` with the color parsed separately, or loosen the regex to accept `var(...)` and resolve it.\n\n**2. Category: bug \u2014 Severity: medium**\n`client/src/components/external/mission/AgentsWindow.tsx` (the `wasOpen`/`drilled` render-time reset)\n`setDrilled(selectedId !== null)` on open means \"open from the bar lands on the list\" only holds the very first time. `selectedId` lives in the controller and is never cleared on close: (a) the auto-select effect (`if (open && selectedId === null && first) select(...)`) selects an agent the first time the window opens, and (b) any prior card click selects an agent. Either way, the *second* open from the bar computes `selectedId !== null` \u2192 `drilled = true` \u2192 the phone shows the detail step, violating the spec's \"list \u2192 detail drill-down\" entry point. The new unit tests each mount fresh, and the e2e opens the window only once per test, so none of them catch this.\nSuggestion: track how the open was initiated (e.g. `controller.openFor()` with no id clears a \"came from bar\" flag, or reset `drilled` to `false` on close and let `openFor(id)` explicitly set it), rather than inferring from the persisted `selectedId`.\n\n**3. Category: regression \u2014 Severity: medium**\n`client/src/lib/subrunnerAnswer.ts` \u2014 `findAgentHandback` now requires `c.handbackOrigin === \"subagent\"`, but the diff contains no change to `missionActivityFeed` (or wherever `ActivityCard`s are built) showing that production cards actually set `handbackOrigin`. Both tests that exercise this were *edited in this same diff* to add `handbackOrigin: \"subagent\"` \u2014 which is exactly what you'd do to make tests pass without fixing the producer. If real cards have `handbackOrigin: undefined`, every handback lookup silently returns `null` and subrunner answers regress to fallbacks.\nSuggestion: verify (and include in the diff) the card-construction site setting `handbackOrigin`; add a test that a card with `handbackOrigin: undefined` is treated as progress only if that's genuinely the production shape.\n\n**4. Category: test \u2014 Severity: low**\n`client/e2e/flows/V9-mobile-a11y-guards.spec.ts` \u2014 `smallTargets` only checks `r.height < min - 0.5`. The spec says 44px tap *targets* (both dimensions); a 44px-tall, 20px-wide chevron or narrow icon button passes. The width assertions elsewhere are ad-hoc (Back height only, run-result width only).\nSuggestion: also assert `r.width >= min` (or a documented narrower minimum for width) in `smallTargets`.\n\n**5. Category: spec \u2014 Severity: low**\nThe spec's mobile scope includes \"viewer wrap on\". The diff only adds `.sv-wrap-toggle` to the 44px guard list; there is no change turning viewer wrap on by default (nor any listed remaining deviation, which the spec asks for in the final result). If wrap-on was already done in a prior iteration this is fine, but nothing in the diff demonstrates it.\nSuggestion: either include the wrap-on default change or explicitly note it as a remaining/deviation item.\n\n**6. Category: edge-case \u2014 Severity: low**\n`client/src/components/external/mission/AgentsWindow.tsx` \u2014 the focus effect runs on `[drilled]` change and queries `.ag-back` / the selected row at that instant. If `agents` data arrives after `drilled` flips (e.g. opening via `openFor(id)` before session-info resolves, or Back pressed while the list is still loading), `target` is `null` and focus is silently dropped \u2014 a keyboard user is left with focus on the dialog body. The unit test \"opened on a chosen agent\" works around this by waiting for `agents-bar` before clicking.\nSuggestion: re-run the focus targeting when `agents`/`sections` change while `drilled` is pending, or fall back to focusing the dialog content.\n\nEverything else (PaneTabBar grid fix, `agentOutcome` unification, SubrunnerPanelHost lag fallback, font-size bumps, reduced-motion gating, the guards test methodology, the CSS media queries) looks sound and well-tested.\n\n## Overall assessment\n\nThe approach is right and the guard-test methodology is genuinely strong, but the contrast guard crashes at load (finding 1) and the drill-down state machine has a concrete reopening bug (finding 2), plus an unverified handback regression risk (finding 3) \u2014 fix these before shipping.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards",
+    "at": "2026-11-01T01:44:14.813416+00:00"
+  },
+  "verdicts": {
+    "openai": "approve",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=approve"
+  }
+}

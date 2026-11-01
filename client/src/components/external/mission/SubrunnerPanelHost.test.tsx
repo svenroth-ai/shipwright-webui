@@ -12,7 +12,7 @@ const ID = "afb588e7c229aa880";
 const agent = { agentId: ID, agentType: "general-purpose", description: "Audit", toolUseId: null, spawnDepth: 1, parentAgentId: null, model: null, prompt: null, answer: "Let me write up the findings.", startedAt: null, endedAt: null, durationMs: null, state: "finished", status: "completed", tokens: null, toolUses: null } as SessionSubagent;
 const agents = { agents: [agent], openFor: vi.fn(), canOpen: () => true } as unknown as MissionAgents;
 const sub: ActivityCard = { kind: "subrunner", text: "Audit", commands: [], subrunnerId: ID, subrunnerStatus: "done" };
-const hb = (t: string): ActivityCard => ({ kind: "handback", text: t, commands: [], handbackSender: ID, handbackText: t } as unknown as ActivityCard);
+const hb = (t: string): ActivityCard => ({ kind: "handback", text: t, commands: [], handbackSender: ID, handbackOrigin: "subagent", handbackText: t } as unknown as ActivityCard);
 
 describe("SubrunnerPanelHost", () => {
   // @covers FR-01.66
@@ -40,5 +40,12 @@ describe("SubrunnerPanelHost", () => {
   it("says the agent is still running instead of claiming no report exists", () => {
     render(<SubrunnerPanelHost taskId="t1" card={{ ...sub, subrunnerStatus: "running" }} cards={[hb("progress")]} agents={agents} onClose={() => {}} />);
     expect(screen.getByTestId("subrunner-no-report").textContent).toBe("Still running - no answer yet.");
+  });
+
+  // @covers FR-01.66
+  it("an agent whose status has not landed yet still counts as finished when the card says done", () => {
+    const lagging = { ...agents, agents: [{ ...agent, status: null, answer: null }] } as unknown as MissionAgents;
+    render(<SubrunnerPanelHost taskId="t1" card={sub} cards={[]} agents={lagging} onClose={() => {}} />);
+    expect(screen.queryByTestId("subrunner-no-report")?.textContent ?? "").not.toBe("Still running - no answer yet.");
   });
 });

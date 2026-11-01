@@ -27,7 +27,7 @@
 .mc-verdict strong { font-weight: 700; }
 .mc-verdict.ok { background: var(--ok-tint); border: 1px solid var(--ok-line); color: var(--ok); }
 .mc-verdict.err { background: var(--err-tint); border: 1px solid var(--err-line); color: var(--err); }
-.mc-verdict .mcv-badge { background: var(--err); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .02em; flex-shrink: 0; }
+.mc-verdict .mcv-badge { background: var(--err); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 700; letter-spacing: .02em; flex-shrink: 0; }
 
 /* ── mission line ───────────────────────────────────────────────────────── */
 .mc-missionline { font-size: 16px; font-weight: 500; color: var(--body); line-height: 1.5; margin: 0; }
@@ -102,16 +102,16 @@
    so it is always a single child — right-aligned unconditionally, the same
    treatment the old system-only variant used. */
 .mc-feed-head { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 4px; }
-.mc-feed-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+.mc-feed-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
 .mc-feed-pill[data-status="ok"] { background: var(--ok-tint); border: 1px solid var(--ok-line); color: var(--ok); }
 .mc-feed-pill[data-status="err"] { background: var(--err-tint); border: 1px solid var(--err-line); color: var(--err); }
 .mc-feed-pill[data-status="warn"] { background: var(--warn-tint); border: 1px solid var(--warn-line); color: var(--warn); }
 .mc-feed-pill svg { width: 11px; height: 11px; }
 .mc-feed-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.mc-feed-chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 11px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .03); }
+.mc-feed-chip { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mono); font-size: 12.5px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .03); }
 .mc-feed-chip svg { width: 11px; height: 11px; flex-shrink: 0; }
 .mc-feed-code { margin-top: 9px; border: 1px solid var(--err-line); background: var(--err-tint); border-radius: 8px; overflow: hidden; }
-.mc-feed-code pre { margin: 0; padding: 9px 11px; font-family: var(--mono); font-size: 11.5px; line-height: 1.6; color: var(--err); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+.mc-feed-code pre { margin: 0; padding: 9px 11px; font-family: var(--mono); font-size: 12.5px; line-height: 1.6; color: var(--err); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 .mc-feed-qa-question { margin-top: 9px; font-size: 13px; font-weight: 600; color: var(--ink); }
 .mc-feed-qa-options { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
 .mc-feed-qa-opt { font-size: 12.5px; padding: 5px 11px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--muted); background: rgba(255, 255, 255, .02); }
@@ -143,7 +143,7 @@
    the merge-state span wraps onto a second line rather than ellipsizing
    mid-word, while the PR-number span keeps `flex-shrink: 0` so a short,
    important number is never itself the thing that compresses. */
-.mc-feed-pr-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+.mc-feed-pr-meta { font-family: var(--mono); font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
 /* Dedicated class, not `:first-child` (external code review, low: the
    PR-number span is conditionally rendered — when it's absent the merge-
    state span would become `:first-child` and wrongly inherit the no-shrink
@@ -155,14 +155,14 @@
 /* Muted, not the saturated `--accent` teal (Sven: a routine disclosure like
    "N commands" shouldn't read as urgent/important, matching the reference
    desktop app) — still visible + clickable via the hover underline below. */
-.mc-feed-expand-btn { display: block; margin-top: 4px; padding: 0; border: none; background: none; font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.mc-feed-expand-btn { display: block; margin-top: 4px; padding: 0; border: none; background: none; font-family: var(--mono); font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
 .mc-feed-expand-btn:hover { text-decoration: underline; }
 .mc-feed-qa-answer-label { font-weight: 600; color: var(--ink); }
 .mc-feed-chip-wrap { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; max-width: 100%; }
 .mc-feed-chip-clickable { cursor: pointer; }
 .mc-feed-chip-clickable:hover { border-color: var(--accent-line); color: var(--accent); }
 .mc-feed-chip-detail { width: 100%; border: 1px solid var(--line-strong); background: rgba(255, 255, 255, .03); border-radius: 6px; overflow: hidden; }
-.mc-feed-chip-detail pre { margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--body); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+.mc-feed-chip-detail pre { margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; color: var(--body); overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
 .mc-feed-pr-meta [data-merged="true"] { color: var(--ok); }
 /* The "Open commit" link is a bare, margin-less `.mc-story-link` reset (an
    inline word in the "told story" prose view — see that rule's own comment)
@@ -181,9 +181,10 @@
    node)"); the global reduced-motion floor settles it at its resting
    opacity:1 frame, never hiding the "Running…" text it sits beside. */
 .mc-feed-subrunner-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: motion-pulse var(--motion-pulse) ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .mc-feed-subrunner-dot { animation: none; } }
 
 /* ── One-time session-start divider (item 6) — replaces per-card time ──── */
-.mc-feed-session-start { text-align: center; font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; color: var(--faint); margin-bottom: 10px; }
+.mc-feed-session-start { text-align: center; font-family: var(--mono); font-size: 12.5px; letter-spacing: .04em; color: var(--faint); margin-bottom: 10px; }
 .mc-hero .t { color: #5fc9b4; }
 .mc-hero .p { color: #3fbf9a; }
 .mc-hero .r { color: #f08772; }
@@ -224,7 +225,7 @@
   --err: #f08772; --err-tint: rgba(240, 135, 114, .16); --err-line: rgba(240, 135, 114, .4);
   --warn: #e0ac5c; --warn-tint: rgba(224, 172, 92, .16); --warn-line: rgba(224, 172, 92, .4);
   --accent: #5fc9b4; --accent-tint: rgba(95, 201, 180, .16); --accent-line: rgba(95, 201, 180, .45);
-  --focus: 0 0 0 4px rgba(95, 201, 180, .32);
+  --focus: 0 0 0 3px var(--accent); /* V9: the 3px teal ring (accent #5fc9b4 = 9.4:1 on the card) */
 }
 .on-photo .mc-op:not([data-state="designgate"]) .mc-missionline,
 .on-photo .mc-op:not([data-state="designgate"]) .mc-missionline b { color: var(--ink); }
@@ -252,9 +253,9 @@
 .mc-gate-card:hover { border-color: var(--accent-line); }
 .mc-gate-thumb { position: relative; height: 110px; overflow: hidden; background: var(--g100); }
 .mc-gate-frame { position: absolute; top: 0; left: 0; width: 286%; height: 286%; border: 0; pointer-events: none; transform: scale(0.35); transform-origin: top left; background: #fff; }
-.mc-gate-thumb-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 11.5px; }
+.mc-gate-thumb-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 12px; }
 .mc-gate-cap { padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; }
-.mc-gate-fr { color: var(--accent); font-size: 11px; letter-spacing: .01em; }
+.mc-gate-fr { color: var(--accent); font-size: 12px; letter-spacing: .01em; }
 .mc-gate-name { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.3; }
 /* Full-tile click target — keeps the whole card "alive" + keyboard-reachable. */
 .mc-gate-open { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 12px; }
@@ -267,7 +268,8 @@
 .mc-gate-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
 .on-photo .mc-op .mc-gate-bar { border-top-color: var(--glass-light-line); }
 .mc-gate-grow { flex: 1 1 auto; }
-.mc-gate-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-btn, 8px); padding: 8px 15px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: background .12s, border-color .12s; }
+.mc-gate-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-btn, 8px); padding: 8px 15px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; }
+@media (prefers-reduced-motion: no-preference) { .mc-gate-btn { transition: background .12s, border-color .12s; } }
 .mc-gate-btn:disabled { opacity: .6; cursor: default; }
 .mc-gate-btn:focus-visible { outline: none; box-shadow: var(--focus); }
 .mc-gate-btn svg { flex-shrink: 0; }

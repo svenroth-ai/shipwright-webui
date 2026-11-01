@@ -24,6 +24,15 @@ export interface AgentSections {
 
 export const isActiveAgent = (a: SessionSubagent) => a.state === "running";
 
+/**
+ * The ONE place that decides whether an agent has FINISHED with an answer: the Agents window's Details
+ * tab and the chat's report panel both read it (a card's own notification status can lag behind the agent file).
+ * running | completed (its last message is its answer) | ended (failed / killed / stopped / no result: last message is mid-work prose).
+ */
+export type AgentOutcome = "running" | "completed" | "ended";
+export const agentOutcome = (a: SessionSubagent): AgentOutcome =>
+  a.state === "running" ? "running" : a.status === "completed" ? "completed" : "ended";
+
 export const agentTitle = (a: SessionSubagent): string => a.description || a.agentType || `Agent ${a.agentId.slice(0, 8)}`;
 
 /** completed | failed | killed | stopped | finished-stale | running — the one word shown on a status pill. */

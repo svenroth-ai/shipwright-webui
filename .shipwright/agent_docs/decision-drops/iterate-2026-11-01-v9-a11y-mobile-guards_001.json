@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards",
+  "date": "2026-11-01",
+  "section": "Iterate - change: Mission accessibility guards and phone Agents sheet",
+  "title": "Guard the Mission look with CSS-level a11y tests; phone Agents window is a list-then-detail sheet",
+  "context": "The v2 Mission restyle had no check that contrast, 12px text, 44px targets, the focus ring or motion stayed accessible, and the Agents window was a small box on phones.",
+  "decision": "Two vitest style guards (WCAG contrast over parsed dark/light tokens; 12px / motion / focus / 44px rules) fix what they found; Agents window gets a drilled list->detail state with a full-screen phone layout; --focus becomes a 3px teal ring.",
+  "consequences": "New Mission CSS must pass the guards; the dark card and the light surfaces share one 3px ring recipe (mission-a11y.css); Agents window phone state lives in the component, layout in CSS.",
+  "rationale": "Parsing the real stylesheets makes a token edit re-drive the math, so drift fails CI instead of surfacing in screenshots; list->detail needs state, everything else is CSS.",
+  "rejected": "Manual screenshot checks only; a global --focus change for the whole app; popstate-driven sheet navigation (no modal in the app is history-aware).",
+  "commit": "",
+  "architecture_impact": "convention",
+  "spec_ref": ""
+}

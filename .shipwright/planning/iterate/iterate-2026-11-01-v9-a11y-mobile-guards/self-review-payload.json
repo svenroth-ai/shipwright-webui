@@ -1,0 +1,9 @@
+{"items":[
+{"name":"Spec Compliance","verdict":"pass","note":"Guards for contrast, 12px floor, motion, 3px ring, status text and 44px targets exist and run; Agents window is a full-screen list->detail sheet with Back and 56px rows; phone table/result/sheet/viewer-wrap behaviours asserted in a Pixel 5 spec; follow-ups (a) and (c) done, (b) deliberately kept (pinned by FR-01.38 e2e)."},
+{"name":"Error Handling","verdict":"pass","note":"Back is hidden with no agents; the selected agent falling away still resolves to the first agent; focus moves only to a visible target; the contrast test throws when a token is renamed so it cannot pass silently."},
+{"name":"Security Basics","verdict":"pass","note":"Client-only CSS/state change: no new route, fetch, HTML injection, JSONL write or chat surface."},
+{"name":"Test Quality","verdict":"pass","note":"57 contrast rungs + 47 style guards over the parsed stylesheets (proved to bite: they found 9 sub-12px sizes, 3 ungated motions, 2 contrast pairs, 1 removed focus ring), component test for drill-down + status pills, real-browser phone spec."},
+{"name":"Performance Basics","verdict":"pass","note":"One boolean of state and CSS only; no timers, observers or polling added; the findAgentHandback filter is a constant-time check inside the existing loop."},
+{"name":"Naming & Structure","verdict":"pass","note":"AgentsWindow 101 lines, agentsTree 89, new mission-a11y.css 10 lines; no file crosses 300; MissionBody and narrator-transcript untouched."},
+{"name":"Affected Boundaries","verdict":"pass","note":"No serialized format changed; the only producer/consumer seam touched is handback origin (parser sets it, findAgentHandback now requires subagent) - probed by the real-JSONL V2/M4 e2e specs and a new negative unit case."}
+]}
