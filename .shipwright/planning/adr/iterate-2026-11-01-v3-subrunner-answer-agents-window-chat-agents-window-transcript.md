@@ -39,3 +39,10 @@ Both approve option A (reuse the chat renderer): it removes a parallel transcrip
 ## Self-Review
 
 1 Spec Compliance pass; 2 Error Handling pass (missing file / empty tail / unknown agent give honest empty states); 3 Security Basics pass (markdown only, agent: hrefs validated against known ids, read-only GET); 4 Test Quality pass; 5 Performance Basics pass (feed derived once per fetch, memoised, windowed to 200 events); 6 Naming & Structure pass (files under 300 lines); 7 Affected Boundaries pass (producer: CLI subagent JSONL incl. coordinator records, probed on real on-disk files; consumer: parser, reducer, DOM, E2E).
+
+## Follow-up review round (orchestrator + doubt)
+
+- Answer order restored to the spec (agent answer, transcript tail, hand-back, card). A running agent shows no answer (a hand-back it sent meanwhile is progress).
+- Path-embedded agent ids (after `/`, a backslash or `agent-`, or before a file extension) are never split into chips.
+- Accepted: the transcript bar says "events" (the spec's literal wording) and counts parsed messages before filtering.
+- Rebutted: skipping the transcript read when a hand-back exists. With the spec order the file's last assistant message outranks the hand-back, so the read is still needed whenever session-info has no answer.

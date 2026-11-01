@@ -21,12 +21,20 @@ export function resolveAgentToken(token: string, ids: readonly string[]): string
   return hits.length === 1 ? hits[0] : null;
 }
 
+/** A hash that is part of a path (`subagents/agent-<id>.jsonl`, `C:\x\<id>`) must stay whole, never split into a chip. */
+function insidePathOrFile(value: string, at: number, len: number): boolean {
+  const before = value.slice(Math.max(0, at - 6), at);
+  if (before.endsWith("/") || before.endsWith(String.fromCharCode(92)) || before.endsWith("agent-")) return true;
+  return /^\.[A-Za-z0-9]/.test(value.slice(at + len, at + len + 2));
+}
+
 function split(value: string, ids: readonly string[]): MdNode[] | null {
   const out: MdNode[] = [];
   let last = 0;
   for (const m of value.matchAll(TOKEN)) {
     const id = resolveAgentToken(m[0], ids);
     if (!id) continue;
+    if (insidePathOrFile(value, m.index!, m[0].length)) continue; // keep the full text of paths / file names
     if (m.index! > last) out.push({ type: "text", value: value.slice(last, m.index) });
     out.push({ type: "link", url: AGENT_HREF_PREFIX + id, children: [{ type: "text", value: m[0].slice(0, 8) }] });
     last = m.index! + m[0].length;

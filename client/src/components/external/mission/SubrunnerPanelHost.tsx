@@ -52,7 +52,8 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
   const file = useSubagentTranscript(taskId, agent?.agentId ?? id, needFile, false);
   const fileContent = file.data?.status === "ok" ? file.data.content : null;
   const fileAnswer = useMemo(() => (fileContent ? lastAssistantMessage(fileContent) : null), [fileContent]);
-  const answer = pickSubrunnerAnswer(card, { agentAnswer: agent?.answer, transcriptAnswer: fileAnswer, handbackText: handback?.text });
+  // A still-running agent has no final answer yet: a hand-back it sent meanwhile is progress, not "the answer".
+  const answer = card.subrunnerStatus === "running" ? null : pickSubrunnerAnswer(card, { agentAnswer: agent?.answer, transcriptAnswer: fileAnswer, handbackText: handback?.text });
 
   const openAgent = useCallback((agentId: string) => { agents.openFor(agentId); }, [agents]);
   const canOpen = Boolean(id) && agents.canOpen(id);

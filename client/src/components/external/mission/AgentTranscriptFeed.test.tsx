@@ -84,6 +84,16 @@ describe("agent hash chips", () => {
     expect(screen.getByTestId("agent-hash-unknown")).toHaveAttribute("title", "Agent not found");
   });
   // @covers FR-01.66
+  it("keep a path-embedded agent id whole", () => {
+    render(
+      <AgentLinkProvider agents={[row({ agentId: "afb588e7c229aa880" })]} open={vi.fn()}>
+        <MarkdownChunk content="File subagents/agent-afb588e7c229aa880.jsonl and C:\x\afb588e7c229aa880 stay." />
+      </AgentLinkProvider>,
+    );
+    expect(screen.queryByTestId("agent-hash-chip")).toBeNull();
+    expect(screen.getByTestId("markdown-body").textContent).toContain("subagents/agent-afb588e7c229aa880.jsonl");
+  });
+  // @covers FR-01.66
   it("leave markdown untouched outside a provider", () => {
     render(<MarkdownChunk content="hand-back afb588e7" />);
     expect(screen.queryByTestId("agent-hash-chip")).toBeNull();
