@@ -151,112 +151,102 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 9,
+      "findings_count": 5,
       "findings": [
         {
-          "severity": "medium",
-          "category": "correctness",
-          "file": "client/src/components/external/PaneTabBar.tsx",
-          "line": 104,
-          "finding": "Expand button rendered inside role=tablist; arrow keys from it change the pane.",
-          "suggestion": "Make the button a sibling of the tablist.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
+          "severity": "low",
           "category": "performance",
           "file": "client/src/pages/TaskDetailPage.tsx",
-          "line": 1119,
-          "finding": "ViewCard visible only checks the top tab, so session-info keeps polling while the right pane is hidden on phone.",
-          "suggestion": "AND with the compact active pane.",
+          "line": 518,
+          "finding": "ViewCard visible ignores a collapsed desktop right card or closed tablet viewer, so the embedded sidebar keeps polling session-info while hidden.",
+          "suggestion": "Pass the collapsed/open state into visible.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/PaneTabBar.tsx",
+          "line": 73,
+          "finding": "role=tablist on a display:contents element can be dropped from the a11y tree in older engines.",
+          "suggestion": "Use a real grid item.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
-          "file": "client/src/components/external/TaskDetailThreePane.tsx",
-          "line": 68,
-          "finding": "Effect depends on the whole layout object.",
-          "suggestion": "Use the two stable members.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/TaskDetailThreePane.tsx",
-          "line": 67,
-          "finding": "Reveal does not un-maximize.",
-          "suggestion": "Narrow the comment.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
-          "line": 88,
-          "finding": "Stale stored target on re-open.",
-          "suggestion": "Replace on same path.",
+          "file": "client/src/components/external/ViewerToggle.tsx",
+          "line": 21,
+          "finding": "Desktop toggle restores the Info|Viewer card but label says Show smart viewer.",
+          "suggestion": "Use a neutral label.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "readability",
           "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
-          "line": 91,
-          "finding": "Tab list grows in Mission mode too.",
-          "suggestion": "Guard with embed.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "architecture",
-          "file": "client/src/styles/keyboard-fit.css",
-          "line": 62,
-          "finding": "Selector keyed on a test id.",
-          "suggestion": "Semantic class.",
+          "line": 180,
+          "finding": "onActivate reads render-closure tabs while open/close use tabsRef.",
+          "suggestion": "Use tabsRef.current.",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
           "category": "architecture",
           "file": "client/src/components/external/FilesTerminalSides.tsx",
-          "line": 33,
-          "finding": "useProject unassigned logic duplicated.",
-          "suggestion": "Optional helper.",
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "correctness",
-          "file": "client/src/hooks/useTerminalExpanded.ts",
-          "line": 68,
-          "finding": "StrictMode consumer counting theoretical.",
-          "suggestion": "No change.",
+          "line": 22,
+          "finding": "Duplicated project-root resolution logic with MissionInfoSidebar.",
+          "suggestion": "Optional shared hook.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-01T00:19:34.949481+00:00",
+      "completed_at": "2026-11-01T00:28:13.200521+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "e32b6ec89436d7b9ce3cc165c003ad4c18c83761"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
-      "status": "not_applicable",
-      "findings_count": 0,
-      "findings": [],
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "state-leak",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Open-file tabs in MissionInfoSidebar are per-task. — The task route element is not keyed by taskId, so task-to-task navigation without unmount could carry tabs over (an outside file tab would then send the wrong task id). Not confirmed that any in-app link does this.",
+          "suggestion": "Key the sidebar by task.taskId or clear tabs on change, or rebut.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "behaviour change",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Viewer state survives pane switches. — Embedded viewer body renders only while visible so tab switches remount SmartViewer, refetch and lose scroll position.",
+          "suggestion": "State intent or hide via CSS.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "a11y",
+          "file": "client/src/components/external/PaneTabBar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: The tablist is exposed to assistive tech. — role=tablist on a display:contents element is dropped in older WebKit.",
+          "suggestion": "Use a real grid element.",
+          "source": "doubt-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-11-01T00:19:35.417937+00:00",
-      "disposition": "closed by reason_code diff-below-threshold",
-      "recorded_by": "none",
+      "completed_at": "2026-11-01T00:28:13.706168+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "reason_code": "diff-below-threshold"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -335,14 +325,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-01T00:15:05.951955+00:00",
+      "completed_at": "2026-11-01T00:28:12.785250+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "e32b6ec89436d7b9ce3cc165c003ad4c18c83761"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",
