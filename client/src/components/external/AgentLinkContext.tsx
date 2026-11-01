@@ -28,7 +28,8 @@ export function AgentChip({ agentId, label }: { agentId: string; label?: string 
   const ctx = useAgentLinks();
   const hash = agentId.slice(0, 8);
   // A hand-written agent: link must name a KNOWN agent of this session; anything else stays plain text.
-  if (!ctx || !ctx.ids.includes(agentId)) return <>{label || hash}</>;
+  if (!ctx) return <>{label || hash}</>;
+  if (!ctx.ids.includes(agentId)) return <span title="Agent not found" data-testid="agent-hash-unknown">{label || hash}</span>;
   return (
     <button type="button" className="hash-link" aria-label={`Open agent ${hash}`} onClick={() => ctx.open(agentId)} data-testid="agent-hash-chip">
       {hash}

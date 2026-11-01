@@ -74,6 +74,16 @@ describe("agent hash chips", () => {
     expect(open).toHaveBeenCalledWith("afb588e7c229aa880");
   });
   // @covers FR-01.66
+  it("keep an explicit link to an unknown agent as plain text with an Agent not found tooltip", () => {
+    render(
+      <AgentLinkProvider agents={[row({ agentId: "afb588e7c229aa880" })]} open={vi.fn()}>
+        <MarkdownChunk content="See [ghost](agent:0123456789abcdef0)." />
+      </AgentLinkProvider>,
+    );
+    expect(screen.queryByTestId("agent-hash-chip")).toBeNull();
+    expect(screen.getByTestId("agent-hash-unknown")).toHaveAttribute("title", "Agent not found");
+  });
+  // @covers FR-01.66
   it("leave markdown untouched outside a provider", () => {
     render(<MarkdownChunk content="hand-back afb588e7" />);
     expect(screen.queryByTestId("agent-hash-chip")).toBeNull();

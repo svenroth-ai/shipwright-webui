@@ -13,7 +13,7 @@
  */
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform, type Options as MarkdownOptions } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
@@ -162,7 +162,7 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
   const chips = ctx !== null && ctx.ready !== false; // keep file-looking hrefs only where they can become chips
   const agentLinks = useAgentLinks();
   const agentIds = agentLinks?.ids;
-  const remarkPlugins = useMemo(
+  const remarkPlugins = useMemo<NonNullable<MarkdownOptions["remarkPlugins"]>>(
     () => (agentIds && agentIds.length > 0 ? [...REMARK_PLUGINS, [remarkAgentLinks, { ids: agentIds }]] : REMARK_PLUGINS),
     [agentIds],
   );
@@ -177,7 +177,7 @@ export function MarkdownText({ text, tableWrap = false }: Props) {
     <div className="markdown-body text-sm leading-relaxed" data-testid="markdown-body">
       <ReactMarkdown
         urlTransform={urlTransform}
-        remarkPlugins={remarkPlugins as never}
+        remarkPlugins={remarkPlugins}
         // rehype-plugins' type in react-markdown v10 is mildly loose;
         // the tuple form is accepted at runtime. Cast to satisfy the
         // type-check without widening the module-level const.

@@ -98,11 +98,11 @@ describe("pickSubrunnerAnswer", () => {
     expect(pickSubrunnerAnswer({ ...done, subrunnerReport: PLACEHOLDER }, { handbackText: "real report" })).toBe("real report");
   });
   // @covers FR-01.66
-  it("prefers the hand-back the session received, then the agent's last message, then the transcript, then the card", () => {
+  it("prefers the agent's own last message, then the transcript, then the hand-back, then the card", () => {
     const c = { ...done, subrunnerReport: "card" };
-    expect(pickSubrunnerAnswer(c, { agentAnswer: "agent", transcriptAnswer: "file", handbackText: "hb" })).toBe("hb");
-    expect(pickSubrunnerAnswer(c, { agentAnswer: "agent", transcriptAnswer: "file" })).toBe("agent");
-    expect(pickSubrunnerAnswer(c, { transcriptAnswer: "file" })).toBe("file");
+    expect(pickSubrunnerAnswer(c, { agentAnswer: "agent", transcriptAnswer: "file", handbackText: "hb" })).toBe("agent");
+    expect(pickSubrunnerAnswer(c, { transcriptAnswer: "file", handbackText: "hb" })).toBe("file");
+    expect(pickSubrunnerAnswer(c, { handbackText: "hb" })).toBe("hb");
     expect(pickSubrunnerAnswer(c, {})).toBe("card");
   });
   // @covers FR-01.66

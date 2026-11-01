@@ -50,7 +50,8 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
   const finishedOk = card.subrunnerStatus === "done" && !card.subrunnerEndStatus;
   const needFile = Boolean(id) && !isRealAnswer(agent?.answer) && finishedOk;
   const file = useSubagentTranscript(taskId, agent?.agentId ?? id, needFile, false);
-  const fileAnswer = file.data?.status === "ok" ? lastAssistantMessage(file.data.content) : null;
+  const fileContent = file.data?.status === "ok" ? file.data.content : null;
+  const fileAnswer = useMemo(() => (fileContent ? lastAssistantMessage(fileContent) : null), [fileContent]);
   const answer = pickSubrunnerAnswer(card, { agentAnswer: agent?.answer, transcriptAnswer: fileAnswer, handbackText: handback?.text });
 
   const openAgent = useCallback((agentId: string) => { agents.openFor(agentId); }, [agents]);
