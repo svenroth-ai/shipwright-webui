@@ -1,8 +1,5 @@
-{"section":"doubt","doubts":[
-{"id":"O1","severity":"high","disposition":"fixed","claim_under_doubt":"token rule split from .ag-window layout; CSS fence test added"},
-{"id":"O2","severity":"high","disposition":"fixed","claim_under_doubt":"queued_command attachment with origin.kind coordinator maps to a coordinator hand-back; real-shape test added"},
-{"id":"O3","severity":"medium","disposition":"fixed","claim_under_doubt":"hand-back text ranks first; the last matching hand-back is used"},
-{"id":"O4","severity":"medium","disposition":"fixed","claim_under_doubt":"stable keys (kind, timestamp, first command, nth duplicate)"},
-{"id":"O5","severity":"medium","disposition":"accepted","claim_under_doubt":"existing shared reducer behaviour of the Mission chat; changing it affects the main feed; follow-up"},
-{"id":"O6","severity":"low","disposition":"accepted","claim_under_doubt":"follow-up: path-adjacent hashes and hand-written link labels"},
-{"id":"O7","severity":"low","disposition":"accepted","claim_under_doubt":"dot is paired with the text pill"}]}
+{"stage":"doubt","doubts":[
+{"severity":"medium","lens":"boundary & contract","claim_under_doubt":"findAgentHandback returns the agent's SubagentHandback report.","disproof_attempt":"It matches kind handback and sender only, ignoring handbackOrigin, so a plain origin-session message from the same agent could outrank the real final answer. No trace shows a local agent producing such a message; plausible gap, not reproduced.","file":"client/src/lib/subrunnerAnswer.ts","what_would_resolve_it":"Filter on handbackOrigin === 'subagent' (accepted as follow-up)."},
+{"severity":"low","lens":"concurrency & ordering","claim_under_doubt":"The last hand-back is the answer of the agent's most recent run.","disproof_attempt":"An agent resumed after a hand-back that finishes with plain text still shows the run-1 hand-back; needs an unusual mix.","file":"client/src/lib/subrunnerAnswer.ts","what_would_resolve_it":"Accepted and documented as a known limit."},
+{"severity":"low","lens":"hidden coupling","claim_under_doubt":"Panel and Details show the same answer.","disproof_attempt":"They derive finished status from different sources; a killed agent without notification text can differ. Cosmetic.","file":"client/src/components/external/mission/AgentDetail.tsx","what_would_resolve_it":"Accepted as follow-up."}
+]}

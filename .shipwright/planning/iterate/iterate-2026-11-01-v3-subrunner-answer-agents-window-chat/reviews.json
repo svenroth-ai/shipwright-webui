@@ -151,151 +151,93 @@
     "code": {
       "review_type": "code",
       "status": "completed",
-      "findings_count": 6,
+      "findings_count": 4,
       "findings": [
         {
           "severity": "medium",
-          "category": "bug",
-          "file": "client/src/external/parsers/handback.ts",
-          "line": null,
-          "finding": "Coordinator detection applied to the main session too. FIXED: only for records flagged isSidechain (subagent files); main-session negative test added.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": "readability",
-          "file": "client/src/styles/mission-agents.css",
-          "line": null,
-          "finding": "--ag-* tokens scoped to .ag-window only, undefined in the subrunner panel. FIXED: also declared on .artifact.",
-          "suggestion": null,
+          "category": "correctness",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": 36,
+          "finding": "A finished agent's last hand-back outranks a real task-notification report on the card; a stale mid-run progress hand-back could win. Primary SubagentHandback path is correct.",
+          "suggestion": "Let the hand-back win only when the card report was the delivered placeholder or is missing (accepted as follow-up).",
           "source": "code-reviewer"
         },
         {
           "severity": "low",
-          "category": "readability",
-          "file": "client/src/components/external/mission/AgentTranscriptFeed.tsx",
-          "line": null,
-          "finding": "No-op useMemo. FIXED.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "performance",
-          "file": "client/src/components/external/mission/AgentTranscriptFeed.tsx",
-          "line": null,
-          "finding": "Index keys remount cards on Load older. FIXED: keys count from the end.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "readability",
-          "file": "client/src/styles/mission-agents.css",
-          "line": null,
-          "finding": "hash-link min-height inflated prose lines on touch. FIXED: padding/negative margin.",
-          "suggestion": null,
-          "source": "code-reviewer"
-        },
-        {
-          "severity": "low",
-          "category": "bug",
+          "category": "correctness",
           "file": "client/src/components/external/mission/SubrunnerPanelHost.tsx",
-          "line": null,
-          "finding": "Jump to message is a silent no-op if the card is not rendered. ACCEPTED: the button is offered only when a hand-back card from that agent exists in the feed.",
-          "suggestion": null,
+          "line": 75,
+          "finding": "Jump to message offered whenever any hand-back exists even if the panel shows another text.",
+          "suggestion": "Offer jump only when answer equals hand-back text.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": 82,
+          "finding": "findAgentHandback does not filter handbackOrigin.",
+          "suggestion": "Add handbackOrigin === 'subagent'.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/AgentLinkContext.tsx",
+          "line": 143,
+          "finding": "Known-agent chip drops a hand-written label.",
+          "suggestion": "Render label || hash.",
           "source": "code-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-01T00:20:40.033092+00:00",
+      "completed_at": "2026-11-01T00:53:49.574072+00:00",
       "disposition": null,
       "recorded_by": "code-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "e696c766855944c47b3cf60fd4d428fc2686b14b"
+      "model_tier": "opus"
     },
     "doubt": {
       "review_type": "doubt",
       "status": "completed",
-      "findings_count": 7,
+      "findings_count": 3,
       "findings": [
         {
-          "severity": "high",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "token rule split from .ag-window layout; CSS fence test added",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "high",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "queued_command attachment with origin.kind coordinator maps to a coordinator hand-back; real-shape test added",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
           "severity": "medium",
-          "category": null,
-          "file": null,
+          "category": "boundary & contract",
+          "file": "client/src/lib/subrunnerAnswer.ts",
           "line": null,
-          "finding": "hand-back text ranks first; the last matching hand-back is used",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "stable keys (kind, timestamp, first command, nth duplicate)",
-          "suggestion": null,
-          "source": "doubt-reviewer"
-        },
-        {
-          "severity": "medium",
-          "category": null,
-          "file": null,
-          "line": null,
-          "finding": "existing shared reducer behaviour of the Mission chat; changing it affects the main feed; follow-up",
-          "suggestion": null,
+          "finding": "Claim under doubt: findAgentHandback returns the agent's SubagentHandback report. — It matches kind handback and sender only, ignoring handbackOrigin, so a plain origin-session message from the same agent could outrank the real final answer. No trace shows a local agent producing such a message; plausible gap, not reproduced.",
+          "suggestion": "Filter on handbackOrigin === 'subagent' (accepted as follow-up).",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": null,
-          "file": null,
+          "category": "concurrency & ordering",
+          "file": "client/src/lib/subrunnerAnswer.ts",
           "line": null,
-          "finding": "follow-up: path-adjacent hashes and hand-written link labels",
-          "suggestion": null,
+          "finding": "Claim under doubt: The last hand-back is the answer of the agent's most recent run. — An agent resumed after a hand-back that finishes with plain text still shows the run-1 hand-back; needs an unusual mix.",
+          "suggestion": "Accepted and documented as a known limit.",
           "source": "doubt-reviewer"
         },
         {
           "severity": "low",
-          "category": null,
-          "file": null,
+          "category": "hidden coupling",
+          "file": "client/src/components/external/mission/AgentDetail.tsx",
           "line": null,
-          "finding": "dot is paired with the text pill",
-          "suggestion": null,
+          "finding": "Claim under doubt: Panel and Details show the same answer. — They derive finished status from different sources; a killed agent without notification text can differ. Cosmetic.",
+          "suggestion": "Accepted as follow-up.",
           "source": "doubt-reviewer"
         }
       ],
       "provider": null,
-      "completed_at": "2026-11-01T00:31:38.926549+00:00",
+      "completed_at": "2026-11-01T00:53:49.795801+00:00",
       "disposition": null,
       "recorded_by": "doubt-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "a313b8c0a6dd03cb18b403b34ad7b36a3a8e93c8"
+      "model_tier": "opus"
     },
     "external_code": {
       "review_type": "external_code",
@@ -410,14 +352,12 @@
       "findings_count": 0,
       "findings": [],
       "provider": null,
-      "completed_at": "2026-11-01T00:16:31.814132+00:00",
+      "completed_at": "2026-11-01T00:53:49.399173+00:00",
       "disposition": null,
       "recorded_by": "spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null,
-      "model_tier": "opus",
-      "verdict": "pass",
-      "reviewed_commit": "fdc6a000fa77cdcd39ad678b4da16b21cb1f035f"
+      "model_tier": "opus"
     },
     "plan_internal": {
       "review_type": "plan_internal",

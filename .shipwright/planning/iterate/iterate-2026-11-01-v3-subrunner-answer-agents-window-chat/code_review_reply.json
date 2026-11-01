@@ -1,11 +1,6 @@
-{
-  "section": "code-review",
-  "review": [
-    {"severity": "medium", "file": "client/src/external/parsers/handback.ts", "category": "bug", "finding": "Coordinator detection applied to the main session too. FIXED: only for records flagged isSidechain (subagent files); main-session negative test added."},
-    {"severity": "medium", "file": "client/src/styles/mission-agents.css", "category": "readability", "finding": "--ag-* tokens scoped to .ag-window only, undefined in the subrunner panel. FIXED: also declared on .artifact."},
-    {"severity": "low", "file": "client/src/components/external/mission/AgentTranscriptFeed.tsx", "category": "readability", "finding": "No-op useMemo. FIXED."},
-    {"severity": "low", "file": "client/src/components/external/mission/AgentTranscriptFeed.tsx", "category": "performance", "finding": "Index keys remount cards on Load older. FIXED: keys count from the end."},
-    {"severity": "low", "file": "client/src/styles/mission-agents.css", "category": "readability", "finding": "hash-link min-height inflated prose lines on touch. FIXED: padding/negative margin."},
-    {"severity": "low", "file": "client/src/components/external/mission/SubrunnerPanelHost.tsx", "category": "bug", "finding": "Jump to message is a silent no-op if the card is not rendered. ACCEPTED: the button is offered only when a hand-back card from that agent exists in the feed."}
-  ]
-}
+{"section":"V3-subrunner-panel-agents-window","verdict":"PASS","review":[
+{"severity":"medium","category":"correctness","file":"client/src/lib/subrunnerAnswer.ts","line":36,"finding":"A finished agent's last hand-back outranks a real task-notification report on the card; a stale mid-run progress hand-back could win. Primary SubagentHandback path is correct.","suggestion":"Let the hand-back win only when the card report was the delivered placeholder or is missing (accepted as follow-up)."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/mission/SubrunnerPanelHost.tsx","line":75,"finding":"Jump to message offered whenever any hand-back exists even if the panel shows another text.","suggestion":"Offer jump only when answer equals hand-back text."},
+{"severity":"low","category":"correctness","file":"client/src/lib/subrunnerAnswer.ts","line":82,"finding":"findAgentHandback does not filter handbackOrigin.","suggestion":"Add handbackOrigin === 'subagent'."},
+{"severity":"low","category":"readability","file":"client/src/components/external/AgentLinkContext.tsx","line":143,"finding":"Known-agent chip drops a hand-written label.","suggestion":"Render label || hash."}
+]}
