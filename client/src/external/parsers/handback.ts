@@ -163,6 +163,11 @@ export function detectHandback(content: unknown, sidechain = false): Handback | 
  */
 export function handbackFromAttachment(attachment: unknown): Handback | null {
   if (!attachment || typeof attachment !== "object") return null;
-  const a = attachment as { type?: unknown; prompt?: unknown };
-  return a.type === "queued_command" ? detectHandback(a.prompt) : null; // prompt: string or text-block array
+  const a = attachment as { type?: unknown; prompt?: unknown; origin?: { kind?: unknown } | null };
+  if (a.type !== "queued_command") return null;
+  const hb = detectHandback(a.prompt); // prompt: string or text-block array
+  if (hb || a.origin?.kind !== "coordinator" || typeof a.prompt !== "string") return hb;
+  // CLI 2.1.273+: the coordinator's mid-run message arrives header-less, tagged only by origin.kind (V3 doubt O2).
+  const text = a.prompt.replace(/\r\n/g, "\n").trim();
+  return text ? { sender: "", origin: "coordinator", text } : null;
 }

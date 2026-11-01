@@ -2,8 +2,8 @@
  * pickSubrunnerAnswer - which text the subrunner panel shows as the agent's report (V3).
  * Never the CLI's "delivered to you as a message" pointer (the reducer already drops it from the
  * card). A failed / killed / stopped agent keeps its notification text (its last message is
- * mid-work prose); otherwise the agent's own last assistant message wins, then the hand-back text
- * the parent received, then whatever the card recorded.
+ * mid-work prose); otherwise the hand-back text the parent received wins, then the agent's own last
+ * assistant message, then the transcript tail, then whatever the card recorded.
  */
 
 import { isDeliveredPlaceholder } from "./missionActivityFeedSubrunner";
@@ -21,5 +21,7 @@ export function pickSubrunnerAnswer(
   if (card.subrunnerStatus === "failed" || card.subrunnerEndStatus) {
     return cardReport ?? real(sources.handbackText);
   }
-  return real(sources.agentAnswer) ?? real(sources.transcriptAnswer) ?? real(sources.handbackText) ?? cardReport;
+  // The hand-back is the report the session actually received; the agent's last message may be mid-work narration
+  // when it reported through a SubagentHandback call (V3 doubt O3).
+  return real(sources.handbackText) ?? real(sources.agentAnswer) ?? real(sources.transcriptAnswer) ?? cardReport;
 }

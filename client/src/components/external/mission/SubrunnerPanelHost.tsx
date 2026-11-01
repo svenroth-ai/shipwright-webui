@@ -44,7 +44,7 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
     if (!id) return null;
     const ids = agents.agents.map((a) => a.agentId);
     const full = (s: string) => resolveAgentToken(s, ids) ?? s; // a short sender hash only matches its unique known agent
-    return cards.find((c) => c.kind === "handback" && c.handbackSender && full(c.handbackSender) === full(id)) ?? null;
+    return [...cards].reverse().find((c) => c.kind === "handback" && c.handbackSender && full(c.handbackSender) === full(id)) ?? null; // the LAST one is the final report
   }, [cards, id, agents.agents]);
   // The agent's own file is the source of truth; ask for it only when session-info has no answer for it.
   const finishedOk = card.subrunnerStatus === "done" && !card.subrunnerEndStatus;

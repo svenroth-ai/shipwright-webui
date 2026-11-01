@@ -12,8 +12,10 @@
 
 .ag-overlay { position: fixed; inset: 0; z-index: 40; background: rgba(0, 0, 0, .4); }
 .ag-window, .artifact {
-  /* mockup literals expressed as scope tokens: list ground #efeeec, titles #3d3833, sub-text on grey #5f5852 */
+  /* mockup literals expressed as scope tokens: list ground #efeeec, titles #3d3833, sub-text on grey #5f5852 (tokens ONLY: .artifact keeps its own layout) */
   --ag-grey: #efeeec; --ag-title: #3d3833; --ag-sub: #5f5852;
+}
+.ag-window {
   position: fixed; z-index: 50; inset: 0; margin: auto; width: min(1040px, 94vw); height: min(720px, 90vh); display: flex; flex-direction: column; overflow: hidden; background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 14px; box-shadow: var(--sh-xl);
 }
 @media (prefers-reduced-motion: no-preference) {
