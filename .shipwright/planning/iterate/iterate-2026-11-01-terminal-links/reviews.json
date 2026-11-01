@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-01-terminal-links",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T12:12:52.832050+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security |",
+          "file": null,
+          "line": null,
+          "finding": "Work-breakdown step 3 specifies \"non-403 error -> still opens viewer\" for the outside-path probe. This is a fail-open: a transient network error or a 500 on the session-file route lets a click on a completely unevidenced absolute path open the Viewer, defeating the AC-6 gate. The spec text (AC-6) only covers the 403 case, so the fail-open behavior is consistent with the spec but probably not intended as a security stance.",
+          "suggestion": "Distinguish: 403 -> notice + no open; other errors -> a different notice (e.g. \"couldn't verify\") or retry, rather than opening. At minimum, record this as an explicit accepted decision rather than an incidental test case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "Path normalization is unspecified for the outside/inside boundary decision. AC-2 rejects `..` traversal in detection, but an absolute path like `/home/u/proj/../secrets.txt` contains no leading `..` token and will pass detection; whether `parseFileRef`/`resolveViewerTarget` normalizes it before the project-root containment check determines whether it's treated as inside (no probe) or outside (probe). Same for mixed separators (`C:\\proj/..\\x`) and `~` expansion.",
+          "suggestion": "Add an explicit test: absolute path containing a `..` segment after normalization must be routed through the probe (outside path), not the inside branch. State in the mini-plan that normalization happens in `resolveViewerTarget` and where.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "terminalFileLinkProvider.ts` joins soft-wrapped rows into a logical line on every link evaluation. xterm invokes link providers on pointer moves and re-renders; on a large scrollback with long compiler output, per-hover cost could cause visible cursor/link lag on the phone (AC-7's real browser will catch it, but only if the fixture is long enough).",
+          "suggestion": "Cache joined lines per buffer revision (or limit candidate scan to the hovered row plus its wrap group). Cheap to add now; note that the provider test (AC-3) already needs the fake-buffer join logic, so caching is a small extension.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "AC-6's auto-dismissing notice is asserted in E2E (\"reads 'Not part of this session' and auto-dismisses\"). Auto-dismiss + assert is a classic flake source — the notice may disappear before the assertion depending on dismissal timing.",
+          "suggestion": "Either assert the notice appears and is gone by a deadline (expect visible, then expect hidden with generous timeout), or make the first assertion on a non-dismissing duplicate state. Pin the dismissal delay constant so the test can reference it.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "EmbeddedTerminal.tsx` sits at 309/311 with +2 lines planned — zero headroom left for any adjustment discovered during implementation (e.g., the guard flag if the operator later wants Ctrl/Cmd gating is explicitly called a one-line change in `terminalFileLinkProvider.ts`, which is fine, but any incidental tweak to the component hits the ceiling).",
+          "suggestion": "Acceptable as planned; just note that if the ceiling binds, the prop wiring moves to a small wrapper rather than trimming anything.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "useTerminalFileLinks` registers the provider once with \"options via ref\" — but the activation closure needs the current `FileOpenValue` (projectRoot/cwd/ready) at click time. If the task's project root isn't known when links are first rendered and the ref isn't threaded correctly, early clicks silently no-op or resolve against a stale root.",
+          "suggestion": "Include a hook unit test where the options object is replaced (task loads after terminal mounts) and a click after the swap resolves with the new root — this is the most likely silent failure in the wiring.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "The alternative-analysis rejection of extending `WebLinksAddon` is correct — reusing the same addon would couple the https-only safety invariant of `openTerminalLink` to path matching. Separate `registerLinkProvider` is the right call.",
+          "suggestion": "None — noting agreement so it isn't relitigated.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The plan explicitly opens the Viewer after non-403 probe failures. A network failure or 5xx response therefore opens an unevidenced outside file’s Viewer, contrary to AC-6’s requirement that it remain closed.",
+          "suggestion": "Open outside targets only after a successful probe. Keep the current pane on probe failure and show a brief error notice; reserve “Not part of this session” for 403 responses.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "Outside-file probing introduces an asynchronous race. A response can arrive after the user switches tasks, unmounts the terminal, or clicks another file, causing an obsolete activation to open a Viewer. An options ref alone does not prevent this.",
+          "suggestion": "Capture the task/session identity at activation and discard stale completions. Use cancellation or a request sequence so the latest activation wins, and test delayed responses across task changes.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "Registering “once” against `termRef.current` leaves terminal lifecycle handling unspecified. Updating a ref does not rerun an effect; registration can be missed if the terminal is created later, or lost when its instance is replaced.",
+          "suggestion": "Tie registration and disposal to the actual terminal instance’s creation/destruction lifecycle. Verify initial attachment, recreation, and cleanup without duplicate providers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The exclusions need token-level handling, beyond validating extracted substrings with `parseFileRef`. Otherwise matching can recover a valid-looking suffix from an excluded URL, UNC path, or traversal path—for example, `src/a.ts` inside `https://host/src/a.ts` or `../src/a.ts`. This could also interfere with existing web-link activation.",
+          "suggestion": "Reject excluded tokens before extracting candidates, preserving their full boundaries. Add tests for nested URL paths, traversal prefixes, UNC suffixes, and actual provider overlap with the existing web-links addon.  The separate xterm provider and reuse of the existing Viewer path are sound and appropriately scoped. Resolve the probe behavior, asynchronous lifecycle, and matching-boundary gaps before implementation proceeds.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T12:04:54.227358+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Review: terminal-links\n\n### Findings\n\n**Category: security | Severity: medium**\n**Finding:** Work-breakdown step 3 specifies \"non-403 error -> still opens viewer\" for the outside-path probe. This is a fail-open: a transient network error or a 500 on the session-file route lets a click on a completely unevidenced absolute path open the Viewer, defeating the AC-6 gate. The spec text (AC-6) only covers the 403 case, so the fail-open behavior is consistent with the spec but probably not intended as a security stance.\n**Suggestion:** Distinguish: 403 -> notice + no open; other errors -> a different notice (e.g. \"couldn't verify\") or retry, rather than opening. At minimum, record this as an explicit accepted decision rather than an incidental test case.\n\n**Category: edge-case | Severity: medium**\n**Finding:** Path normalization is unspecified for the outside/inside boundary decision. AC-2 rejects `..` traversal in *detection*, but an absolute path like `/home/u/proj/../secrets.txt` contains no leading `..` token and will pass detection; whether `parseFileRef`/`resolveViewerTarget` normalizes it before the project-root containment check determines whether it's treated as inside (no probe) or outside (probe). Same for mixed separators (`C:\\proj/..\\x`) and `~` expansion.\n**Suggestion:** Add an explicit test: absolute path containing a `..` segment after normalization must be routed through the probe (outside path), not the inside branch. State in the mini-plan that normalization happens in `resolveViewerTarget` and where.\n\n**Category: edge-case | Severity: low**\n**Finding:** `terminalFileLinkProvider.ts` joins soft-wrapped rows into a logical line on every link evaluation. xterm invokes link providers on pointer moves and re-renders; on a large scrollback with long compiler output, per-hover cost could cause visible cursor/link lag on the phone (AC-7's real browser will catch it, but only if the fixture is long enough).\n**Suggestion:** Cache joined lines per  […truncated]\n\n[openai] 1. **Category: edge-case | Severity: medium**  \n   **Finding:** The plan explicitly opens the Viewer after non-403 probe failures. A network failure or 5xx response therefore opens an unevidenced outside file’s Viewer, contrary to AC-6’s requirement that it remain closed.  \n   **Suggestion:** Open outside targets only after a successful probe. Keep the current pane on probe failure and show a brief error notice; reserve “Not part of this session” for 403 responses.\n\n2. **Category: risk | Severity: medium**  \n   **Finding:** Outside-file probing introduces an asynchronous race. A response can arrive after the user switches tasks, unmounts the terminal, or clicks another file, causing an obsolete activation to open a Viewer. An options ref alone does not prevent this.  \n   **Suggestion:** Capture the task/session identity at activation and discard stale completions. Use cancellation or a request sequence so the latest activation wins, and test delayed responses across task changes.\n\n3. **Category: dependency | Severity: medium**  \n   **Finding:** Registering “once” against `termRef.current` leaves terminal lifecycle handling unspecified. Updating a ref does not rerun an effect; registration can be missed if the terminal is created later, or lost when its instance is replaced.  \n   **Suggestion:** Tie registration and disposal to the actual terminal instance’s creation/destruction lifecycle. Verify initial attachment, recreation, and cleanup without duplicate providers.\n\n4. **Category: edge-case | Severity: medium**  \n   **Finding:** The exclusions need token-level handling, beyond validating extracted substrings with `parseFileRef`. Otherwise matching can recover a valid-looking suffix from an excluded URL, UNC path, or traversal path—for example, `src/a.ts` inside `https://host/src/a.ts` or `../src/a.ts`. This could also interfere with existing web-link activation.  \n   **Suggestion:** Reject excluded tokens before extracting candidates, preserving their […truncated]",
+      "verdicts": {
+        "glm": "approve",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts",
+          "line": 79,
+          "finding": "Wide-char fix applied to every empty cell on non-last rows, gluing mid-row blanks (CUF-moved TUI output) into one token.",
+          "suggestion": "Only drop the empty cell at the wrap point (x === cols-1); add a mid-row empty-cell test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/terminal/terminalLinkMatch.ts",
+          "line": 769,
+          "finding": "spacedHead looks back one token only; paths with two or more spaces still link their tail (C:\\Program Files\\My App\\a.ts -> App\\a.ts).",
+          "suggestion": "Carry the suppressed state forward while following tokens contain a separator and do not start a new absolute path; add tests.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts",
+          "line": 588,
+          "finding": "MAX_ROWS checked after both isWrapped loops walked the whole block.",
+          "suggestion": "Bound both loops by MAX_ROWS.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/terminal/terminalLinkMatch.ts",
+          "line": 777,
+          "finding": "TSC_SUFFIX re-run after every stripped char: O(n^2) on very long tokens.",
+          "suggestion": "Skip tokens longer than 1024 up front; run TSC_SUFFIX only when the token ends with ')'.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts",
+          "line": 575,
+          "finding": "createClickGuard.isClick packs four conditions in one expression; the !el fallback is undocumented.",
+          "suggestion": "Named early returns plus a comment.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": 942,
+          "finding": "Cleanup order: terminal disposed before the provider subscription; tolerated by xterm but untested.",
+          "suggestion": "try/catch or a comment.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T12:15:57.615149+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: A plain click on a file link only opens the Viewer — openFromTerminal bumps viewerRequest.nonce; TaskDetailThreePane reacts by toggling the saved right-card collapse, leaving focus mode; on phone a focus tap landing on a path switches away from the terminal.",
+          "suggestion": "Make it temporary, skip focus clicks, or record it as an accepted leftover risk for the live try.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: A path with a space is never linked as a whole, nor its tail — Head test runs on the raw token before LEAD/ASSIGN stripping: quoted, parenthesised and --flag= heads bypass it; relative heads (./My Docs/a.ts) leak the tail.",
+          "suggestion": "Run the head test on the stripped token; add tests; list relative-head limitation.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: A probe result can never act after its terminal is gone — Cleanup does not bump seq.",
+          "suggestion": "seq.current++ in cleanup.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: File links behave correctly inside Claude's TUI (mouse tracking on) — E2E only prints from a plain shell.",
+          "suggestion": "Spike/E2E with mouse tracking enabled; record the result.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract (adversarial input)",
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The tokenizer is bounded on adversarial long lines — Trailing-strip loop is quadratic on a 1024-char run of ')'.",
+          "suggestion": "Run TSC_SUFFIX only if the token contains '('.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T12:21:04.361266+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/terminal/terminalLinkMatch.ts:62-64 (`isFile` / `isHead` computation)",
+          "line": null,
+          "finding": "isFile`/`isHead` are computed on `core` with leading punctuation stripped but trailing punctuation still attached. A wrapped absolute path such as `(C:\\p\\a.js)` or `\"C:\\p\\a.js\"` yields `core = \"C:\\p\\a.js)\"` → `isFile` is false while `isHead` is true, so the token is treated as the head of a space-containing path (`spacedHead = true`). The next token that contains a separator and is a file (e.g. `src/b.ts`) is then wrongly suppressed by the `afterSpacedHead` check and never linked. The existing test only covers `(C:\\p\\a.js:10:5)` as the last token, where the misclassification has no visible effect — a broken spaced-path suppression passes the current tests.",
+          "suggestion": "Compute `isFile`/`isHead` on the token with trailing TRAIL chars (and a tsc `(12,5)` suffix) already stripped. Add tests like `'(C:\\p\\a.js) src/b.ts'` and `'\"C:\\p\\a.js\" b/c.ts'` asserting both paths link.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts:40-48 (`useEffect` deps `[termRef]`)",
+          "line": null,
+          "finding": "The provider is registered only once per component mount, reading `termRef.current` at effect time. If `EmbeddedTerminal` ever replaces the xterm instance on the same component instance (the reopen/reconnect paths that the sibling test files exercise — heal, reopen-rearm, reopen-reconnect all exist precisely because the terminal is re-created/re-armed without a full unmount), the registration stays on the dead instance and file links silently stop working after a reconnect. The mocked `registerLinkProvider` in those reopen tests hides this: they assert nothing about file links surviving a reopen.",
+          "suggestion": "Either subscribe to whatever signal announces a new terminal instance (re-run the effect on it), or add an integration-level assertion that a provider is registered on the new terminal after the reopen path. If remount is guaranteed, document that invariant next to the effect.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts:31-45 (`createClickGuard`)",
+          "line": null,
+          "finding": "isClick` returns false when no `mousedown` was observed on `term.element`. Real touch environments (and synthetic pointer events from some mobile browsers/assistive tech) may deliver a `click` without a compatible `mousedown` on that element, making taps inert. The Playwright tap works only because the browser synthesises mousedown→mouseup→click. The spec discloses iOS as unverified, so this is a known-but-real gap, not a blocker.",
+          "suggestion": "Accept clicks with `pointerType: \"touch\"` without the mousedown requirement (or track `pointerdown` with `pointerType`), keeping the movement guard via pointer coordinates.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/106-terminal-file-links.spec.ts:38-56 (`printLine` / `pointOn`)",
+          "line": null,
+          "finding": "printLine` clicks the terminal canvas at the element's default click point before typing. In the phone test and any future test that prints more than one link-bearing line, that initial click could land on a previously printed link and open the viewer, polluting later assertions (e.g. the swipe test's \"opens nothing\" check). Currently the tests are ordered so it doesn't fire, but the helper is fragile against reordering.",
+          "suggestion": "Click at a known-empty coordinate (e.g. top-left of the canvas) or focus the terminal via `term.focus()` through `__embeddedTerminal` instead of a positional click.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/terminal/terminalLinkMatch.ts:30 (`ASSIGN = /^[-\\w.]+=(?=.)/`)",
+          "line": null,
+          "finding": "The assignment strip applies to any `KEY=value` token, so shell output like `HOME=/home/u/a.ts` links `/home/u/a.ts` (arguably fine), but `PATH=C:\\tools\\x` — a directory-ish env value — will be handed to `parseFileRef`; behaviour depends entirely on that recogniser. Combined with finding 1's spaced-head state, an env-var head also sets `spacedHead` and can suppress the following token.",
+          "suggestion": "After fixing finding 1, add a test for `VAR=C:\\some dir\\a.ts b/c.ts` to pin the intended behaviour of env-var values containing spaces.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/terminal/terminalLinkMatch.ts",
+          "line": 58,
+          "finding": "The spaced-path suppression resets when an intermediate token has no slash. For `/Users/x/My Long Docs/a.ts`, `/Users/x/My` starts suppression, `Long` clears it, and `Docs/a.ts` becomes a clickable relative path. This violates AC-2 and can open an unrelated project file.",
+          "suggestion": "Preserve suppression across intermediate words of an unfinished spaced path. Add a regression test for `/Users/x/My Long Docs/a.ts` that expects no candidates.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/terminal/terminalFileLinkProvider.ts",
+          "line": 45,
+          "finding": "The click guard compares only the mouse-down and activation coordinates. A drag that travels more than 4px and returns near its starting point passes the guard. In mouse-tracking mode, where xterm keeps no selection, this opens the Viewer despite the required drag protection.",
+          "suggestion": "Track movement during the gesture and permanently invalidate it once the pointer exceeds the threshold. Test an outward-and-back drag with no terminal selection.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": "client/src/components/terminal/useTerminalFileLinks.ts",
+          "line": 59,
+          "finding": "Task identity does not fully invalidate pending probes. If a probe starts for task A, the hook switches to B and then back to A before it resolves, both the task-ID comparison and sequence comparison pass, allowing the old result to open the Viewer or show a notice. AC-10 requires a task switch to invalidate that result.",
+          "suggestion": "Invalidate the sequence on every task transition, or capture a task-generation token that changes on each transition. Test a deferred probe across A → B → A.  Overall assessment: ship-with-fixes. The implementation follows the intended client-only architecture and leaves the prohibited modules untouched, but path suppression and gesture/stale-result guards need these corrections. Tests could not be executed because command execution was blocked by the environment.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T12:24:58.900410+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/terminal/terminalLinkMatch.ts:62-64 (`isFile` / `isHead` computation)\n  Finding: `isFile`/`isHead` are computed on `core` with **leading** punctuation stripped but **trailing** punctuation still attached. A wrapped absolute path such as `(C:\\p\\a.js)` or `\"C:\\p\\a.js\"` yields `core = \"C:\\p\\a.js)\"` → `isFile` is false while `isHead` is true, so the token is treated as the head of a space-containing path (`spacedHead = true`). The *next* token that contains a separator and is a file (e.g. `src/b.ts`) is then wrongly suppressed by the `afterSpacedHead` check and never linked. The existing test only covers `(C:\\p\\a.js:10:5)` as the *last* token, where the misclassification has no visible effect — a broken spaced-path suppression passes the current tests.\n  Suggestion: Compute `isFile`/`isHead` on the token with trailing TRAIL chars (and a tsc `(12,5)` suffix) already stripped. Add tests like `'(C:\\p\\a.js) src/b.ts'` and `'\"C:\\p\\a.js\" b/c.ts'` asserting both paths link.\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/terminal/useTerminalFileLinks.ts:40-48 (`useEffect` deps `[termRef]`)\n  Finding: The provider is registered only once per component mount, reading `termRef.current` at effect time. If `EmbeddedTerminal` ever *replaces* the xterm instance on the same component instance (the reopen/reconnect paths that the sibling test files exercise — heal, reopen-rearm, reopen-reconnect all exist precisely because the terminal is re-created/re-armed without a full unmount), the registration stays on the dead instance and file links silently stop working after a reconnect. The mocked `registerLinkProvider` in those reopen tests hides this: they assert nothing about file links surviving a reopen.\n  Suggestion: Either subscribe to whatever signal announces a new terminal instance (re-run the effect on it), or add an integration-level assertion that a provider is registered […truncated]\n\n[openai] - Category: spec\n- Severity: medium\n- File: client/src/components/terminal/terminalLinkMatch.ts:58\n- Finding: The spaced-path suppression resets when an intermediate token has no slash. For `/Users/x/My Long Docs/a.ts`, `/Users/x/My` starts suppression, `Long` clears it, and `Docs/a.ts` becomes a clickable relative path. This violates AC-2 and can open an unrelated project file.\n- Suggestion: Preserve suppression across intermediate words of an unfinished spaced path. Add a regression test for `/Users/x/My Long Docs/a.ts` that expects no candidates.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/terminal/terminalFileLinkProvider.ts:45\n- Finding: The click guard compares only the mouse-down and activation coordinates. A drag that travels more than 4px and returns near its starting point passes the guard. In mouse-tracking mode, where xterm keeps no selection, this opens the Viewer despite the required drag protection.\n- Suggestion: Track movement during the gesture and permanently invalidate it once the pointer exceeds the threshold. Test an outward-and-back drag with no terminal selection.\n\n- Category: edge-case\n- Severity: medium\n- File: client/src/components/terminal/useTerminalFileLinks.ts:59\n- Finding: Task identity does not fully invalidate pending probes. If a probe starts for task A, the hook switches to B and then back to A before it resolves, both the task-ID comparison and sequence comparison pass, allowing the old result to open the Viewer or show a notice. AC-10 requires a task switch to invalidate that result.\n- Suggestion: Invalidate the sequence on every task transition, or capture a task-generation token that changes on each transition. Test a deferred probe across A → B → A.\n\nOverall assessment: **ship-with-fixes**. The implementation follows the intended client-only architecture and leaves the prohibited modules untouched, but path suppression and gesture/stale-result guards need these corrections. Tests could not be […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T12:14:26.814632+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T12:04:53.935351+00:00",
+      "disposition": null,
+      "recorded_by": "opus-plan-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T12:04:54.084051+00:00",
+      "disposition": null,
+      "recorded_by": "architecture-internal-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    }
+  }
+}

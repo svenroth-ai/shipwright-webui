@@ -157,7 +157,7 @@ export async function readClipboardForPaste(): Promise<PasteRead> {
 }
 
 /** Kind of transient notice the clipboard surfaces (corner pill). */
-export type ClipboardNoticeKind = "copy-failed" | "paste-hint" | "paste-failed";
+export type ClipboardNoticeKind = "copy-failed" | "paste-hint" | "paste-failed" | "link-not-in-session";
 
 /** xterm surface the paste handler needs — kept minimal for test fakes. */
 export type ClipboardTerminal = Pick<Terminal, "paste" | "input">;

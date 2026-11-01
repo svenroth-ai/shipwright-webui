@@ -1,3 +1,4 @@
+import type { FileOpenValue } from "../external/FileOpenContext";
 import type {
   BackpressureInfo,
   TerminalRole,
@@ -36,6 +37,8 @@ export interface EmbeddedTerminalProps {
   onBackpressure?: (info: BackpressureInfo) => void;
   onReadyChange?: (ready: boolean, role: TerminalRole | null) => void;
   onPasteImageError?: (detail: string) => void;
+  /** File-path links in terminal output (FR-01.28). Omitted = paths are not clickable. */
+  fileLinks?: FileOpenValue;
   onTerminalMeta?: (meta: {
     replayOnly: boolean | null;
     scrollbackBytes: number | null;

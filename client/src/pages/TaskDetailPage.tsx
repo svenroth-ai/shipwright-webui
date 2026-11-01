@@ -20,6 +20,7 @@ import { TaskDetailThreePane } from "../components/external/TaskDetailThreePane"
 import { FocusModeToggle } from "../components/external/FocusModeToggle";
 import { ViewerToggle } from "../components/external/ViewerToggle";
 import { FilesCard, ViewCard } from "../components/external/FilesTerminalSides";
+import { useTerminalFileOpen } from "../hooks/useTerminalFileOpen";
 import type { ViewerTarget } from "../lib/viewerTarget";
 import {
   LaunchCoordinatorProvider,
@@ -346,6 +347,12 @@ function TaskDetailPageBody() {
         document.getElementById("workspace-tab-right")?.focus({ preventScroll: true }));
     }
   }, [compact]);
+  // FR-01.28: a file path clicked in the terminal opens in the shared Viewer (request effect switches the segment).
+  const openFromTerminal = useCallback((target: ViewerTarget) => {
+    setViewerRequest((prev) => ({ target, nonce: (prev?.nonce ?? 0) + 1 }));
+    setActiveCompactPane("right");
+  }, []);
+  const terminalFileLinks = useTerminalFileOpen(task, openFromTerminal);
   if (error) {
     return (
       <div
@@ -437,6 +444,7 @@ function TaskDetailPageBody() {
                       onGitignoreSuggestion={handleGitignoreSuggestion}
                       onPasteImageError={handlePasteImageError}
                       onTerminalMeta={setTerminalMeta}
+                      fileLinks={terminalFileLinks}
                     />
                   ) : null}
                 </Suspense>

@@ -44,6 +44,7 @@ import { useBackpressureResync } from "./useBackpressureResync";
 import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
 import { useTerminalClipboard } from "./useTerminalClipboard";
+import { useTerminalFileLinks } from "./useTerminalFileLinks";
 import { useTerminalShellEffects } from "./useTerminalShellEffects";
 import { useTerminalBannerState } from "./useTerminalBannerState";
 import { TerminalBanners } from "./TerminalBanners";
@@ -57,8 +58,7 @@ export type {
   EmbeddedTerminalProps,
 } from "./EmbeddedTerminal.types";
 
-// Re-export gate constants so the existing EmbeddedTerminal.test.tsx imports
-// keep working without churn.
+// Re-export gate constants (existing test imports).
 export {
   REPLAY_DRAIN_TIMEOUT_MS,
   REPLAY_DRAIN_MAX_BYTES,
@@ -80,6 +80,7 @@ export const EmbeddedTerminal = forwardRef<
     onReadyChange,
     onPasteImageError,
     onTerminalMeta,
+    fileLinks,
   },
   ref,
 ) {
@@ -259,6 +260,7 @@ export const EmbeddedTerminal = forwardRef<
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useTerminalFileLinks(termRef, taskId, fileLinks, clip.notify); // FR-01.28, after the mount effect
   const showResetBanner =
     socket.terminalReset === true &&
     !coord.pendingLaunch &&

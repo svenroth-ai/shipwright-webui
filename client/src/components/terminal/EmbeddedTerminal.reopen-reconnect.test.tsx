@@ -49,7 +49,7 @@ vi.mock("@xterm/xterm", () => ({
       reset: vi.fn(),
       refresh: vi.fn(),
       scrollToBottom: vi.fn(),
-      loadAddon: vi.fn(),
+      loadAddon: vi.fn(), registerLinkProvider: vi.fn(() => ({ dispose: vi.fn() })),
       open: vi.fn(),
       onScroll: vi.fn(() => ({ dispose: vi.fn() })),
       onWriteParsed: vi.fn(() => ({ dispose: vi.fn() })),

@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-11-01-terminal-links",
+  "date": "2026-11-01",
+  "section": "Iterate - feature: clickable file paths in the embedded terminal",
+  "title": "Terminal file paths open in the Smart Viewer through an xterm link provider",
+  "context": "Paths printed in terminal output could not be opened; users copied them by hand. Web links already open on a plain click via the web-links addon. The Mission chat chips already had a safe open path including the session-evidence rule for files outside the project.",
+  "decision": "Register a read-only xterm link provider on the client terminal. A pure tokenizer finds path candidates and delegates every token to parseFileRef. A plain click or tap opens the file through the existing Mission FileOpenContext path. Outside-project files are probed first via the V4 session-file route; a refusal shows the hint 'Not part of this session'. Web links stay unchanged.",
+  "consequences": "No pty, replay, resize, renderer or server change. EmbeddedTerminal.tsx stays at its 311-line baseline. Known limits: relative paths resolve against the task cwd, hard-wrapped TUI fragments and relative heads containing spaces are not linked, one extra evidence scan per outside click, live Claude click and iOS Safari are hand-verified.",
+  "rationale": "Reusing parseFileRef and the chip open path keeps the server as the only authority over what may be read. Plain click matches the existing web-link behavior and works on phones, which have no Ctrl key; a click guard rejects non-primary buttons, multi-clicks, drags and active selections.",
+  "rejected": "Ctrl/Cmd-gated clicks (unusable on phones; kept as a one-line fallback in createClickGuard), widening the server path rule, a new server route, and opening files from the provider via window.open.",
+  "commit": "",
+  "architecture_impact": "component",
+  "spec_ref": ".shipwright/planning/iterate/2026-11-01-terminal-links.md"
+}

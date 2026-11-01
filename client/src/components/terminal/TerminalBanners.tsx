@@ -32,16 +32,19 @@ export const CLIPBOARD_NOTICE_TEXT: Record<ClipboardNoticeKind, string> = {
   "paste-hint":
     "Keyboard paste needs HTTPS or localhost — use right-click → Paste",
   "paste-failed": "Paste failed — clipboard permission denied",
+  "link-not-in-session": "Not part of this session",
 };
 export const CLIPBOARD_NOTICE_MS: Record<ClipboardNoticeKind, number> = {
   "copy-failed": 8000,
   "paste-hint": 8000,
   "paste-failed": 8000,
+  "link-not-in-session": 4000,
 };
 const CLIPBOARD_NOTICE_CLASS: Record<ClipboardNoticeKind, string> = {
   "copy-failed": "border-red-800 bg-[#2a1416] text-red-300",
   "paste-hint": "border-sky-800 bg-[#0f1d2e] text-sky-300",
   "paste-failed": "border-red-800 bg-[#2a1416] text-red-300",
+  "link-not-in-session": "border-[var(--color-line-strong)] bg-[var(--color-card)] text-[var(--color-text)]",
 };
 
 export interface TerminalBannersProps {

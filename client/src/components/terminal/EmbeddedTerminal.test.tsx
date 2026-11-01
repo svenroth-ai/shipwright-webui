@@ -119,7 +119,7 @@ vi.mock("@xterm/xterm", () => ({
     reset: resetSpy,
     refresh: refreshSpy,
     scrollToBottom: scrollToBottomSpy,
-    loadAddon: vi.fn(), onScroll: vi.fn(() => ({ dispose: vi.fn() })), onWriteParsed: vi.fn(() => ({ dispose: vi.fn() })), onResize: vi.fn(() => ({ dispose: vi.fn() })), // scroll-repaint + repaint-on-settle attach mocks
+    loadAddon: vi.fn(), registerLinkProvider: vi.fn(() => ({ dispose: vi.fn() })), onScroll: vi.fn(() => ({ dispose: vi.fn() })), onWriteParsed: vi.fn(() => ({ dispose: vi.fn() })), onResize: vi.fn(() => ({ dispose: vi.fn() })), // scroll-repaint + repaint-on-settle attach mocks
     open: vi.fn(),
     onData(cb: (d: string) => void) {
       onDataHandlers.push(cb);
