@@ -1,4 +1,3 @@
-// @covers FR-01.28
 import { describe, expect, it } from "vitest";
 
 import { findFileLinkCandidates } from "./terminalLinkMatch";
@@ -10,12 +9,14 @@ function one(text: string) {
 }
 
 describe("findFileLinkCandidates", () => {
+  // @covers FR-01.28
   it("finds a relative path with line and column", () => {
     const c = one("error in src/a.ts:12:5 here");
     expect(c.ref).toEqual({ path: "src/a.ts", line: 12 });
     expect("error in src/a.ts:12:5 here".slice(c.start, c.end)).toBe("src/a.ts:12:5");
   });
 
+  // @covers FR-01.28
   it("finds ./relative, bare recognized names, POSIX absolute and Windows drive paths", () => {
     expect(one("./a.ts").ref.path).toBe("a.ts");
     expect(one("README.md").ref.path).toBe("README.md");
@@ -24,12 +25,14 @@ describe("findFileLinkCandidates", () => {
     expect(one("C:/proj/a.ts").ref.path).toBe("C:/proj/a.ts");
   });
 
+  // @covers FR-01.28
   it("links a path wrapped in TUI box-drawing borders", () => {
     for (const b of ["\u2502", "\u2503", "\u2551"]) {
       expect(findFileLinkCandidates(`${b}a.ts${b}`).map((c) => c.ref.path), b).toEqual(["a.ts"]);
     }
   });
 
+  // @covers FR-01.28
   it("strips surrounding punctuation, quotes, parens and box-drawing borders", () => {
     for (const t of ["see a.ts,", "see a.ts.", "see a.ts:", '"a.ts"', "'a.ts'", "`a.ts`", "(a.ts)", "@a.ts", "|a.ts|"]) {
       const c = one(t);
@@ -39,6 +42,7 @@ describe("findFileLinkCandidates", () => {
     expect(one("at fn (C:\\p\\a.js:10:5)").ref).toEqual({ path: "C:\\p\\a.js", line: 10 });
   });
 
+  // @covers FR-01.28
   it("understands the tsc style a.ts(12,5)", () => {
     const t = "src/a.ts(12,5): error TS2322";
     const c = one(t);
@@ -46,6 +50,7 @@ describe("findFileLinkCandidates", () => {
     expect(t.slice(c.start, c.end)).toBe("src/a.ts(12,5)");
   });
 
+  // @covers FR-01.28
   it("takes the value of --flag=path", () => {
     const t = "--file=src/a.ts";
     const c = one(t);
@@ -53,6 +58,7 @@ describe("findFileLinkCandidates", () => {
     expect(t.slice(c.start, c.end)).toBe("src/a.ts");
   });
 
+  // @covers FR-01.28
   it("a space always ends the path (paths with spaces are not linked as a whole)", () => {
     expect(findFileLinkCandidates(String.raw`C:\Program Files\app\a`)).toEqual([]);
     const t = "/tmp/my file.ts";
@@ -85,6 +91,7 @@ describe("findFileLinkCandidates", () => {
     expect(findFileLinkCandidates("/x/a.ts b.md").map((x) => x.ref.path)).toEqual(["/x/a.ts", "b.md"]);
   });
 
+  // @covers FR-01.28
   it("does not link code, versions, URLs, file:, UNC, traversal or ~", () => {
     for (const t of [
       "console.log",
@@ -106,6 +113,7 @@ describe("findFileLinkCandidates", () => {
     }
   });
 
+  // @covers FR-01.28
   it("finds several candidates in one line with correct offsets", () => {
     const t = "a.ts b/c.md";
     const found = findFileLinkCandidates(t);

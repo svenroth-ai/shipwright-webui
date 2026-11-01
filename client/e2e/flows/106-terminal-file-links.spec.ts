@@ -144,6 +144,7 @@ test.describe("106 - terminal file and web links", () => {
       await openTaskTerminal(page, taskId);
     });
 
+    // @covers FR-01.28
     test("a web link opens in a new tab on a plain click (no modifier), noopener", async ({ page }) => {
       await clickPath(page, "https://example.test/docs/page");
       await expect.poll(() => page.evaluate(() => (window as unknown as { __opened: unknown[][] }).__opened)).toEqual([
@@ -151,6 +152,7 @@ test.describe("106 - terminal file and web links", () => {
       ]);
     });
 
+    // @covers FR-01.28
     test("a project file path opens in the Viewer (right card switches) and shows the file", async ({ page }) => {
       await clickPath(page, "src/hello.ts:2:1");
       await expect(page.getByTestId("ft-side-body-viewer")).toContainText(INSIDE_BODY, { timeout: 20_000 });
@@ -158,12 +160,14 @@ test.describe("106 - terminal file and web links", () => {
       expect(await page.evaluate(() => (window as unknown as { __opened: unknown[] }).__opened.length)).toBe(0);
     });
 
+    // @covers FR-01.28
     test("an outside file the session evidences opens in the Viewer with the Outside-project tag", async ({ page }) => {
       await clickPath(page, outsideFile);
       await expect(page.getByTestId("ft-side-body-viewer")).toContainText(OUTSIDE_BODY, { timeout: 20_000 });
       await expect(page.getByTestId("smart-viewer-outside-tag")).toHaveText("Outside project");
     });
 
+    // @covers FR-01.28
     test("an outside file the session does NOT evidence shows the hint and opens nothing", async ({ page }) => {
       await clickPath(page, secretFile);
       const notice = page.getByTestId("embedded-terminal-clipboard-notice");
@@ -174,6 +178,7 @@ test.describe("106 - terminal file and web links", () => {
       await expect(notice).toBeHidden({ timeout: 15_000 }); // auto-dismisses
     });
 
+    // @covers FR-01.28
     test("a project file link still opens while the app has mouse tracking on (Claude's TUI mode)", async ({ page }) => {
       // Claude's fullscreen TUI turns on any-motion + SGR mouse reporting; set the same xterm modes
       // locally (a client-side write; the pty and its shell are not involved).
@@ -187,6 +192,7 @@ test.describe("106 - terminal file and web links", () => {
       await expect(page.getByTestId("ft-side-body-viewer")).toContainText(INSIDE_BODY, { timeout: 20_000 });
     });
 
+    // @covers FR-01.28
     test("a right-click and a drag across a path do not open it", async ({ page }) => {
       await printLine(page, "src/hello.ts");
       const p = await pointOn(page, "src/hello.ts");
@@ -204,6 +210,7 @@ test.describe("106 - terminal file and web links", () => {
   test.describe("phone (Pixel-5 size, touch)", () => {
     test.use({ viewport: { width: 393, height: 851 }, hasTouch: true, isMobile: true });
 
+    // @covers FR-01.28
     test("a swipe over linked text scrolls the terminal and opens nothing; a tap opens the file", async ({ page }) => {
       await openTaskTerminal(page, taskId);
       await page.getByTestId("embedded-terminal-canvas").click();

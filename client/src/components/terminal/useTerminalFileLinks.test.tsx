@@ -1,4 +1,3 @@
-// @covers FR-01.28
 import { renderHook } from "@testing-library/react";
 import type { Terminal } from "@xterm/xterm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +12,7 @@ const ctx = (over: Record<string, unknown> = {}) => ({ projectRoot: "/proj", cwd
 describe("openTerminalFileLink", () => {
   beforeEach(() => refused.mockReset());
 
+  // @covers FR-01.28
   it("opens an inside-project file without asking the session route", async () => {
     const c = ctx();
     await openTerminalFileLink({ path: "src/a.ts", line: 3 }, "t1", c, vi.fn());
@@ -20,6 +20,7 @@ describe("openTerminalFileLink", () => {
     expect(refused).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.28
   it("opens an outside file the session route does not refuse", async () => {
     refused.mockResolvedValue(false);
     const c = ctx();
@@ -28,6 +29,7 @@ describe("openTerminalFileLink", () => {
     expect(c.open).toHaveBeenCalledWith({ path: "/other/b.md", outside: true });
   });
 
+  // @covers FR-01.28
   it("shows the 'not part of this session' notice and opens nothing when refused", async () => {
     refused.mockResolvedValue(true);
     const c = ctx();
@@ -37,6 +39,7 @@ describe("openTerminalFileLink", () => {
     expect(c.open).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.28
   it("drops the result of a probe that a newer click (or task switch) has superseded", async () => {
     refused.mockResolvedValue(false);
     const c = ctx();
@@ -48,6 +51,7 @@ describe("openTerminalFileLink", () => {
     expect(notify).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.28
   it("does nothing without a context or while the project is still loading", async () => {
     const notify = vi.fn();
     await openTerminalFileLink({ path: "src/a.ts" }, "t1", undefined, notify);
@@ -59,6 +63,7 @@ describe("openTerminalFileLink", () => {
 });
 
 describe("useTerminalFileLinks", () => {
+  // @covers FR-01.28
   it("registers exactly one provider on the term and disposes it on unmount; no re-register on prop change", () => {
     const dispose = vi.fn();
     const registerLinkProvider = vi.fn(() => ({ dispose }));
@@ -71,6 +76,7 @@ describe("useTerminalFileLinks", () => {
     expect(dispose).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.28
   it("is inert when the terminal is not created yet", () => {
     expect(() => renderHook(() => useTerminalFileLinks({ current: null }, "a", undefined, vi.fn()))).not.toThrow();
   });
