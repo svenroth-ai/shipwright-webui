@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { parseSessionJsonl } from "./session-parser";
 import { deriveActivityFeed } from "../lib/missionActivityFeed";
 
-const line = (extra: object) => JSON.stringify({ type: "attachment", timestamp: "2026-10-31T10:00:00Z", attachment: { type: "queued_command", prompt: "STOP the round-relaunch loop.\nReport now.", isMeta: true, ...extra } });
+const line = (extra: object, sidechain = true) => JSON.stringify({ type: "attachment", isSidechain: sidechain, timestamp: "2026-10-31T10:00:00Z", attachment: { type: "queued_command", prompt: "STOP the round-relaunch loop.\nReport now.", isMeta: true, ...extra } });
 
 describe("coordinator queued_command attachment", () => {
   // @covers FR-01.66
@@ -14,6 +14,11 @@ describe("coordinator queued_command attachment", () => {
     const { events } = parseSessionJsonl(line({ origin: { kind: "coordinator" } }));
     expect(events[0]).toMatchObject({ kind: "handback", origin: "coordinator", text: "STOP the round-relaunch loop.\nReport now." });
     expect(deriveActivityFeed(events, null).cards.filter((c) => c.kind === "handback")).toHaveLength(1);
+  });
+
+  // @covers FR-01.66
+  it("is not a coordinator hand-back in the main session", () => {
+    expect(parseSessionJsonl(line({ origin: { kind: "coordinator" } }, false)).events[0].kind).toBe("attachment");
   });
 
   // @covers FR-01.66

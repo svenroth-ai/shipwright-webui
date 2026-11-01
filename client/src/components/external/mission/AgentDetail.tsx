@@ -17,6 +17,7 @@ import { agentStatusLabel, agentTitle, agentTone } from "../../../lib/agentsTree
 import { AGENT_FEED_PAGE, buildAgentFeed } from "../../../lib/agentTranscriptFeed";
 import { formatTokens, shortModel } from "../../../lib/sessionInfoFormat";
 import { useSubagentTranscript } from "../../../hooks/useSubagentTranscript";
+import { isRealAnswer } from "../../../lib/subrunnerAnswer";
 import { MarkdownChunk } from "../BubbleTranscript/MarkdownChunk";
 import { AgentTranscriptFeed } from "./AgentTranscriptFeed";
 
@@ -71,12 +72,14 @@ function TranscriptTab({ task, agent, controller }: { task: ExternalTask; agent:
   );
 }
 
-export function AgentDetail({ task, agent, parent, controller, report = null }: {
+export function AgentDetail({ task, agent, parent, controller, report = null, handback = null }: {
   task: ExternalTask;
   agent: SessionSubagent;
   parent: SessionSubagent | null;
   controller: MissionAgents;
   report?: string | null;
+  /** Last hand-back the session received from this agent: for a SubagentHandback reporter it IS the final answer. */
+  handback?: string | null;
 }) {
   const [tab, setTab] = useState("details");
   const meta = [
@@ -107,7 +110,7 @@ export function AgentDetail({ task, agent, parent, controller, report = null }: 
         {report && !running && <Block label="Report returned to the session" text={report} testId="agent-report" empty="" />}
         <Block
           label={running || completed ? "Answer returned to the session" : "Last message from the agent"}
-          text={running ? null : agent.answer}
+          text={running ? null : completed && isRealAnswer(handback) ? handback : agent.answer}
           testId="agent-answer"
           empty={running ? "Still running - no answer yet." : "No answer was recorded."}
         />

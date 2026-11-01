@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildAgentFeed, lastAssistantMessage } from "./agentTranscriptFeed";
-import { pickSubrunnerAnswer } from "./subrunnerAnswer";
+import { findAgentHandback, pickSubrunnerAnswer } from "./subrunnerAnswer";
 import { resolveAgentToken, remarkAgentLinks } from "./remarkAgentLinks";
 import { isDeliveredPlaceholder } from "./missionActivityFeedSubrunner";
 import { detectHandback } from "../external/parsers/handback";
@@ -98,12 +98,24 @@ describe("pickSubrunnerAnswer", () => {
     expect(pickSubrunnerAnswer({ ...done, subrunnerReport: PLACEHOLDER }, { handbackText: "real report" })).toBe("real report");
   });
   // @covers FR-01.66
-  it("prefers the agent's own last message, then the transcript, then the hand-back, then the card", () => {
+  it("prefers the hand-back (the agent's final content), then session-info answer, then the transcript tail, then the card", () => {
     const c = { ...done, subrunnerReport: "card" };
-    expect(pickSubrunnerAnswer(c, { agentAnswer: "agent", transcriptAnswer: "file", handbackText: "hb" })).toBe("agent");
-    expect(pickSubrunnerAnswer(c, { transcriptAnswer: "file", handbackText: "hb" })).toBe("file");
-    expect(pickSubrunnerAnswer(c, { handbackText: "hb" })).toBe("hb");
+    // an agent reporting via SubagentHandback: session-info answer is only the preamble prose before the call
+    expect(pickSubrunnerAnswer(c, { agentAnswer: "Let me write up the findings.", transcriptAnswer: "file", handbackText: "THE REPORT" })).toBe("THE REPORT");
+    expect(pickSubrunnerAnswer(c, { agentAnswer: "agent", transcriptAnswer: "file" })).toBe("agent");
+    expect(pickSubrunnerAnswer(c, { transcriptAnswer: "file" })).toBe("file");
     expect(pickSubrunnerAnswer(c, {})).toBe("card");
+  });
+  // @covers FR-01.66
+  it("shows no answer for a still-running agent, even with a progress hand-back", () => {
+    expect(pickSubrunnerAnswer({ ...done, subrunnerStatus: "running" }, { agentAnswer: "x", handbackText: "progress" })).toBeNull();
+  });
+  // @covers FR-01.66
+  it("findAgentHandback returns the LAST hand-back of that agent (full id or short hash)", () => {
+    const hb = (t: string, s: string): ActivityCard => ({ kind: "handback", text: t, commands: [], handbackSender: s, handbackText: t } as unknown as ActivityCard);
+    const cards = [hb("progress", "afb588e7"), hb("other", "ffffffff"), hb("final", "afb588e7c229aa880")];
+    expect(findAgentHandback(cards, "afb588e7c229aa880", ["afb588e7c229aa880"])?.text).toBe("final");
+    expect(findAgentHandback(cards, undefined, [])).toBeNull();
   });
   // @covers FR-01.66
   it("keeps the notification text for a killed agent (its last message is mid-work prose)", () => {

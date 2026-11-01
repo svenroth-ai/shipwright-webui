@@ -161,12 +161,12 @@ export function detectHandback(content: unknown, sidechain = false): Handback | 
  * Measured on real transcripts: no hand-back ever arrives in BOTH forms, so there is deliberately NO cross-record dedupe
  * (parsing stays per-line, incremental == whole parse, and genuinely repeated identical reports are kept).
  */
-export function handbackFromAttachment(attachment: unknown): Handback | null {
+export function handbackFromAttachment(attachment: unknown, sidechain = false): Handback | null {
   if (!attachment || typeof attachment !== "object") return null;
   const a = attachment as { type?: unknown; prompt?: unknown; origin?: { kind?: unknown } | null };
   if (a.type !== "queued_command") return null;
-  const hb = detectHandback(a.prompt); // prompt: string or text-block array
-  if (hb || a.origin?.kind !== "coordinator" || typeof a.prompt !== "string") return hb;
+  const hb = detectHandback(a.prompt, sidechain); // prompt: string or text-block array
+  if (hb || !sidechain || a.origin?.kind !== "coordinator" || typeof a.prompt !== "string") return hb;
   // CLI 2.1.273+: the coordinator's mid-run message arrives header-less, tagged only by origin.kind (V3 doubt O2).
   const text = a.prompt.replace(/\r\n/g, "\n").trim();
   return text ? { sender: "", origin: "coordinator", text } : null;

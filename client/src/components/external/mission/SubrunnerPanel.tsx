@@ -107,7 +107,7 @@ export function SubrunnerPanel({ card, onClose, answer, meta, onOpenAgent, onJum
           {text ? (
             <div className="ag-text" data-testid="subrunner-report"><MarkdownChunk content={text} /></div>
           ) : (
-            <p className="ag-empty" data-testid="subrunner-no-report">No report was found for this subrunner.</p>
+            <p className="ag-empty" data-testid="subrunner-no-report">{card.subrunnerStatus === "running" ? "Still running - no answer yet." : "No report was found for this subrunner."}</p>
           )}
         </section>
         {(onOpenAgent || onJumpToChat) && (

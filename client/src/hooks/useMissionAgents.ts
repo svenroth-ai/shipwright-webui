@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActivityCard } from "../lib/missionActivityFeed";
 import type { SessionSubagent } from "../lib/sessionInfoApi";
 import { findAgentForCard, isActiveAgent } from "../lib/agentsTree";
+import { findAgentHandback } from "../lib/subrunnerAnswer";
 import { useSessionInfo } from "./useSessionInfo";
 
 const NONE: readonly SessionSubagent[] = [];
@@ -33,6 +34,8 @@ export interface MissionAgents {
   canOpen: (subrunnerId?: string) => boolean;
   /** The report the parent received for this agent (its resolved chat card's task-notification), or null. */
   reportFor: (agentId: string) => string | null;
+  /** The last hand-back the session received from this agent (its final report when it reports via SubagentHandback), or null. */
+  handbackFor: (agentId: string) => string | null;
   refresh: () => void;
   /** The element focused when the window opened (chip or chat card button); focus returns there on close. */
   returnFocusRef: { current: HTMLElement | null };
@@ -103,6 +106,10 @@ export function useMissionAgents(
     },
     [agents, cards],
   );
+  const handbackFor = useCallback(
+    (agentId: string) => findAgentHandback(cards ?? [], agentId, agents.map((a) => a.agentId))?.text ?? null,
+    [agents, cards],
+  );
   const openFor = useCallback(
     (id?: string) => {
       if (id === undefined) {
@@ -134,6 +141,7 @@ export function useMissionAgents(
     openFor,
     canOpen,
     reportFor,
+    handbackFor,
     refresh,
     returnFocusRef,
   };

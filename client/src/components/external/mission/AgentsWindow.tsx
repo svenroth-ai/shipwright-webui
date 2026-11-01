@@ -63,7 +63,7 @@ export function AgentsWindow({ task, controller }: { task: ExternalTask; control
           ) : (
             <div className="ag-body">
               <AgentsList sections={sections} selectedId={selected?.agentId ?? null} onSelect={select} />
-              {selected && <AgentDetail key={selected.agentId} task={task} agent={selected} parent={parent} controller={controller} report={controller.reportFor(selected.agentId)} />}
+              {selected && <AgentDetail key={selected.agentId} task={task} agent={selected} parent={parent} controller={controller} report={controller.reportFor(selected.agentId)} handback={controller.handbackFor(selected.agentId)} />}
             </div>
           )}
         </Dialog.Content>

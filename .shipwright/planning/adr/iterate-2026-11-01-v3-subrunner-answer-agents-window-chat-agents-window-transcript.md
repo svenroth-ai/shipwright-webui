@@ -46,3 +46,8 @@ Both approve option A (reuse the chat renderer): it removes a parallel transcrip
 - Path-embedded agent ids (after `/`, a backslash or `agent-`, or before a file extension) are never split into chips.
 - Accepted: the transcript bar says "events" (the spec's literal wording) and counts parsed messages before filtering.
 - Rebutted: skipping the transcript read when a hand-back exists. With the spec order the file's last assistant message outranks the hand-back, so the read is still needed whenever session-info has no answer.
+
+## Round 2 (final answer source)
+- Superseding the earlier order: for a finished agent the LAST hand-back it sent is its answer. An agent that reports through a SubagentHandback call ends with that tool_use, whose input is its final assistant content and equals the hand-back the session received; session-info `answer` (text blocks only) is just the prose before the call. So the hand-back IS the spec's "last assistant message". Order: failed/killed -> card notification; hand-back; session-info answer; file tail; card; running -> none. The panel and the Agents window Details tab share this rule (`findAgentHandback`, `useMissionAgents.handbackFor`). The transcript read is skipped when a real hand-back exists (this also settles the earlier item 3).
+- Jump-to-chat targets the last matching hand-back element; a running subrunner says "Still running - no answer yet."; the coordinator attachment branch and header stripping are subagent-file-only (`handbackFromAttachment(attachment, sidechain)`).
+- The earlier doubt disposition "hand-back text ranks first; last hand-back used" (O3) stands and is now the final behaviour; the interim round that put the agent answer first is superseded.

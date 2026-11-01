@@ -12,8 +12,7 @@ import type { MissionAgents } from "../../../hooks/useMissionAgents";
 import { findAgentForCard } from "../../../lib/agentsTree";
 import { lastAssistantMessage } from "../../../lib/agentTranscriptFeed";
 import { formatTokens } from "../../../lib/sessionInfoFormat";
-import { isRealAnswer, pickSubrunnerAnswer } from "../../../lib/subrunnerAnswer";
-import { resolveAgentToken } from "../../../lib/remarkAgentLinks";
+import { findAgentHandback, isRealAnswer, pickSubrunnerAnswer } from "../../../lib/subrunnerAnswer";
 import { useSubagentTranscript } from "../../../hooks/useSubagentTranscript";
 import { AgentLinkProvider } from "../AgentLinkContext";
 import { SubrunnerPanel } from "./SubrunnerPanel";
@@ -40,20 +39,14 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
 }) {
   const id = card.subrunnerId;
   const agent = useMemo(() => findAgentForCard(agents.agents, id), [agents.agents, id]);
-  const handback = useMemo(() => {
-    if (!id) return null;
-    const ids = agents.agents.map((a) => a.agentId);
-    const full = (s: string) => resolveAgentToken(s, ids) ?? s; // a short sender hash only matches its unique known agent
-    return [...cards].reverse().find((c) => c.kind === "handback" && c.handbackSender && full(c.handbackSender) === full(id)) ?? null; // the LAST one is the final report
-  }, [cards, id, agents.agents]);
+  const handback = useMemo(() => findAgentHandback(cards, id, agents.agents.map((a) => a.agentId)), [cards, id, agents.agents]);
   // The agent's own file is the source of truth; ask for it only when session-info has no answer for it.
   const finishedOk = card.subrunnerStatus === "done" && !card.subrunnerEndStatus;
-  const needFile = Boolean(id) && !isRealAnswer(agent?.answer) && finishedOk;
+  const needFile = Boolean(id) && !isRealAnswer(handback?.text) && !isRealAnswer(agent?.answer) && finishedOk;
   const file = useSubagentTranscript(taskId, agent?.agentId ?? id, needFile, false);
   const fileContent = file.data?.status === "ok" ? file.data.content : null;
   const fileAnswer = useMemo(() => (fileContent ? lastAssistantMessage(fileContent) : null), [fileContent]);
-  // A still-running agent has no final answer yet: a hand-back it sent meanwhile is progress, not "the answer".
-  const answer = card.subrunnerStatus === "running" ? null : pickSubrunnerAnswer(card, { agentAnswer: agent?.answer, transcriptAnswer: fileAnswer, handbackText: handback?.text });
+  const answer = pickSubrunnerAnswer(card, { agentAnswer: agent?.answer, transcriptAnswer: fileAnswer, handbackText: handback?.text });
 
   const openAgent = useCallback((agentId: string) => { agents.openFor(agentId); }, [agents]);
   const canOpen = Boolean(id) && agents.canOpen(id);
@@ -62,7 +55,8 @@ export function SubrunnerPanelHost({ taskId, card, cards, agents, onClose }: {
     onClose();
     if (!sender) return;
     requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLElement>(`[data-testid="mission-activity-feed"] [data-sender="${cssEscape(sender)}"]`);
+      const all = document.querySelectorAll<HTMLElement>(`[data-testid="mission-activity-feed"] [data-sender="${cssEscape(sender)}"]`);
+      const el = all.length ? all[all.length - 1] : null; // the LAST one is the final report shown in the panel
       el?.scrollIntoView({ block: "center" });
       el?.focus({ preventScroll: true });
     });

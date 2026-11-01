@@ -380,7 +380,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
         kind: "assistant",
         content: (raw.message as { content?: unknown } | undefined)?.content ?? raw.message,
       };
-    case "attachment": { const hb = handbackFromAttachment(raw.attachment); return hb ? { ...base, kind: "handback", ...hb } : { ...base, kind: "attachment", attachment: raw.attachment }; }
+    case "attachment": { const hb = handbackFromAttachment(raw.attachment, raw.isSidechain === true); return hb ? { ...base, kind: "handback", ...hb } : { ...base, kind: "attachment", attachment: raw.attachment }; }
     case "queue-operation":
       return {
         ...base,
