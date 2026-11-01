@@ -27,7 +27,7 @@ function Row({ node, selected, onSelect }: { node: AgentNode; selected: boolean;
         data-testid={`agent-row-${a.agentId}`}
         onClick={() => onSelect(a.agentId)}
       >
-        <span className="ag-dot" data-tone={agentTone(a)} aria-hidden="true" />
+        {a.state === "running" && <span className="ag-dot" data-tone="run" aria-hidden="true" />}
         <span className="ag-row-main">
           <span className="ag-row-title"><span className="sr-only">Level {node.depth + 1}: </span>{agentTitle(a)}</span>
           <span className="ag-row-sub">

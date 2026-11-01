@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-01-v3-subrunner-answer-agents-window-chat",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:18:13.597503+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC1's answer-resolution chain (session-info answer → last assistant message of agent transcript → hand-back text → card report) silently hides failure semantics. A killed agent whose transcript contains assistant messages will show those messages as the \"answer,\" which may be mid-task garbage the user mistakes for a delivered report. AC1 only says \"a failed/killed/stopped agent keeps its notification text\" — clarify precedence: for failed/killed agents, the failure notification should win over transcript-derived answers, not just coexist.",
+          "suggestion": "State precedence explicitly: failure notification always shown; transcript-derived answer only appended/surfaced for succeeded agents.  2. Category: edge-case — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "\"Last assistant message\" is ambiguous when the agent's final messages are tool calls, thinking blocks, or a partial message cut off mid-generation. Deriving \"the answer\" from file tail heuristics can produce empty or truncated output.",
+          "suggestion": "Define \"last assistant message\" as the last assistant record with non-empty text content (excluding tool_use/thinking), and add a test for transcripts ending mid-message or with trailing tool_use records.  3. Category: risk — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Work item 3 (\"chips only inside a provider\") touches the shared `MarkdownText` component used by the main Mission chat. A conditional-context rendering path in shared markdown is a regression risk for the primary chat surface, and regex-based hash-linkification (remarkAgentLinks) can mangle hashes inside code blocks, URLs, or inline code.",
+          "suggestion": "Exclude fenced blocks and inline code from linkification; verify the Mission chat rendering is unchanged when no provider is present (explicit test). Note that 8-char-prefix matching requires an agent-id index lookup — specify case sensitivity and how near-miss prefixes are disambiguated.  4. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC5's coordinator-message framing removal (\"framing + harness trailer removed\") depends on matching exact CLI text that can change between CLI versions. If the pattern misses, the message renders as a human bubble — exactly what AC5 forbids.",
+          "suggestion": "Add a fallback: unmatched user-role records inside subagent transcripts that don't match the session-prompt pattern should render as a neutral/system card, never a human bubble.  5. Category: dependency — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC4 reuses `parseSessionJsonl` + `deriveActivityFeed` on agent transcripts, but agent files live in a different location than session files (~/.claude/projects subagent files) and may have different event shapes. The plan doesn't mention verifying parser compatibility or how the \"first user record\" prompt detection works when the agent file's history is paginated (\"Load older\" — the prompt card should appear only at true file start, and the plan says \"when the file's start is in view,\" which implies virtualization/pagination state the existing chat renderer may not expose).",
+          "suggestion": "Confirm the feed renderer supports prepend-pagination for \"Load older\" or the prompt-card condition can't be evaluated; simplest fix is to always render the prompt card from the parsed first record regardless of scroll position.  6. Category: approach — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Six new files/lib wrappers (`subrunnerAnswer.ts`, `AgentLinkContext`, `remarkAgentLinks.ts`, `agentTranscriptFeed.ts`, `HandbackCard`, `SubrunnerPanelHost`) for what is mostly presentation reuse. Some are justified (remark plugin, parser function), but `SubrunnerPanelHost` as a separate data wrapper for one panel and a dedicated `agentTranscriptFeed.ts` adapter may be single-use indirection.",
+          "suggestion": "Consider inlining the answer-resolution into the existing reducer/panel logic unless it's shared by tests or multiple components. Only flag if it stays single-use — tests calling `subrunnerAnswer.ts` directly justify keeping that one.  7. Category: security — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Agent hashes becoming clickable links that open agent detail means agent ids rendered from transcript content must be matched only against the known-agents list (which AC2 does say). No injection risk beyond existing markdown path — the remark plugin must escape/linkify safely rather than string-splice HTML.",
+          "suggestion": "Ensure linkification happens via remark AST nodes, not string replacement on rendered HTML.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "AC1 prioritizes the session-info answer over the agent’s last assistant message, although the scope names the agent file as the source of the real answer. It also permits a final `card report` fallback without guaranteeing that every fallback excludes the delivery placeholder. Filtering only in the reducer leaves other sources able to reintroduce it.",
+          "suggestion": "Define which source is authoritative and apply the placeholder check to every candidate before selection. Test conflicting sources, a placeholder-only transcript, and preservation of failed/killed/stopped notifications.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Answer resolution and transcript loading lack an explicit stale-response policy. Switching agents while a read is pending could display the previous agent’s answer; an agent finishing during a read could leave the placeholder replacement permanently empty.",
+          "suggestion": "Key results by session and agent, cancel or ignore superseded requests, and refresh on completion or explicit refresh. Test rapid selection changes and completion during loading.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "Reusing `FeedCard` and Mission classes is appropriate, but the plan does not establish whether they depend on Mission-specific providers, navigation callbacks, or interactive controls. A light token set alone may not produce a working read-only transcript.",
+          "suggestion": "Inspect these dependencies first and provide the smallest read-only adapter needed. Verify representative tool events, tables, handbacks, and expanded cards in the Agents window, including controls that normally navigate or mutate Mission state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "Pagination and filtering semantics are underspecified. After removing system notes and unsupported events, “latest 200 of N events” may describe raw records while showing substantially fewer events. A paginated slice may also misidentify its first user record as the original session prompt.",
+          "suggestion": "Define whether counts refer to raw records or visible events, preserve the pagination cursor independently of filtering, and use explicit start-of-file information to identify the prompt. Test filtered-only pages and loading older records without duplicating or relabelling cards.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security ·",
+          "file": null,
+          "line": null,
+          "finding": "Agent-link resolution needs session scoping. “Known agents” could otherwise resolve an identical prefix from another session, and new answer-file reads must not derive filesystem paths directly from transcript text or chip values.",
+          "suggestion": "Resolve chips against the current session’s agent registry, leave ambiguous prefixes as text, and use the existing validated transcript-read endpoint. Transform Markdown text nodes while excluding code and existing links, preserving the renderer’s escaping behavior.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "AC5 extends the shared handback parser, but does not constrain recognition of coordinator framing. Broad substring matching or trailer removal could alter ordinary user content and existing Mission transcripts.",
+          "suggestion": "Match the exact supported envelope, strip only recognized framing, and preserve unmatched content. Add regression cases for quoted coordinator text, multiline messages, missing trailers, and existing agent handbacks.  The renderer reuse and visual changes are sound. Revise the answer-selection contract and the loading, pagination, and shared-parser behavior before implementation; these are focused corrections within the proposed approach.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T00:11:59.910037+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: edge-case — Severity: medium**\n**Finding:** AC1's answer-resolution chain (session-info answer → last assistant message of agent transcript → hand-back text → card report) silently hides failure semantics. A killed agent whose transcript contains assistant messages will show those messages as the \"answer,\" which may be mid-task garbage the user mistakes for a delivered report. AC1 only says \"a failed/killed/stopped agent keeps its notification text\" — clarify precedence: for failed/killed agents, the failure notification should win over transcript-derived answers, not just coexist.\n**Suggestion:** State precedence explicitly: failure notification always shown; transcript-derived answer only appended/surfaced for succeeded agents.\n\n**2. Category: edge-case — Severity: medium**\n**Finding:** \"Last assistant message\" is ambiguous when the agent's final messages are tool calls, thinking blocks, or a partial message cut off mid-generation. Deriving \"the answer\" from file tail heuristics can produce empty or truncated output.\n**Suggestion:** Define \"last assistant message\" as the last assistant record with non-empty text content (excluding tool_use/thinking), and add a test for transcripts ending mid-message or with trailing tool_use records.\n\n**3. Category: risk — Severity: medium**\n**Finding:** Work item 3 (\"chips only inside a provider\") touches the shared `MarkdownText` component used by the main Mission chat. A conditional-context rendering path in shared markdown is a regression risk for the primary chat surface, and regex-based hash-linkification (remarkAgentLinks) can mangle hashes inside code blocks, URLs, or inline code.\n**Suggestion:** Exclude fenced blocks and inline code from linkification; verify the Mission chat rendering is unchanged when no provider is present (explicit test). Note that 8-char-prefix matching requires an agent-id index lookup — specify case sensitivity and how near-miss prefixes are disambiguated.\n\n […truncated]\n\n[openai] 1. **Category: approach · Severity: high**  \n   **Finding:** AC1 prioritizes the session-info answer over the agent’s last assistant message, although the scope names the agent file as the source of the real answer. It also permits a final `card report` fallback without guaranteeing that every fallback excludes the delivery placeholder. Filtering only in the reducer leaves other sources able to reintroduce it.  \n   **Suggestion:** Define which source is authoritative and apply the placeholder check to every candidate before selection. Test conflicting sources, a placeholder-only transcript, and preservation of failed/killed/stopped notifications.\n\n2. **Category: risk · Severity: medium**  \n   **Finding:** Answer resolution and transcript loading lack an explicit stale-response policy. Switching agents while a read is pending could display the previous agent’s answer; an agent finishing during a read could leave the placeholder replacement permanently empty.  \n   **Suggestion:** Key results by session and agent, cancel or ignore superseded requests, and refresh on completion or explicit refresh. Test rapid selection changes and completion during loading.\n\n3. **Category: dependency · Severity: medium**  \n   **Finding:** Reusing `FeedCard` and Mission classes is appropriate, but the plan does not establish whether they depend on Mission-specific providers, navigation callbacks, or interactive controls. A light token set alone may not produce a working read-only transcript.  \n   **Suggestion:** Inspect these dependencies first and provide the smallest read-only adapter needed. Verify representative tool events, tables, handbacks, and expanded cards in the Agents window, including controls that normally navigate or mutate Mission state.\n\n4. **Category: edge-case · Severity: medium**  \n   **Finding:** Pagination and filtering semantics are underspecified. After removing system notes and unsupported events, “latest 200 of N events” may describe raw records whi […truncated]",
+      "verdicts": {
+        "glm": "revise",
+        "openai": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": 36,
+          "finding": "A finished agent's last hand-back outranks a real task-notification report on the card; a stale mid-run progress hand-back could win. Primary SubagentHandback path is correct.",
+          "suggestion": "Let the hand-back win only when the card report was the delivered placeholder or is missing (accepted as follow-up).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/SubrunnerPanelHost.tsx",
+          "line": 75,
+          "finding": "Jump to message offered whenever any hand-back exists even if the panel shows another text.",
+          "suggestion": "Offer jump only when answer equals hand-back text.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": 82,
+          "finding": "findAgentHandback does not filter handbackOrigin.",
+          "suggestion": "Add handbackOrigin === 'subagent'.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/AgentLinkContext.tsx",
+          "line": 143,
+          "finding": "Known-agent chip drops a hand-written label.",
+          "suggestion": "Render label || hash.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T00:53:49.574072+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": null,
+          "finding": "Claim under doubt: findAgentHandback returns the agent's SubagentHandback report. — It matches kind handback and sender only, ignoring handbackOrigin, so a plain origin-session message from the same agent could outrank the real final answer. No trace shows a local agent producing such a message; plausible gap, not reproduced.",
+          "suggestion": "Filter on handbackOrigin === 'subagent' (accepted as follow-up).",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "concurrency & ordering",
+          "file": "client/src/lib/subrunnerAnswer.ts",
+          "line": null,
+          "finding": "Claim under doubt: The last hand-back is the answer of the agent's most recent run. — An agent resumed after a hand-back that finishes with plain text still shows the run-1 hand-back; needs an unusual mix.",
+          "suggestion": "Accepted and documented as a known limit.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling",
+          "file": "client/src/components/external/mission/AgentDetail.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Panel and Details show the same answer. — They derive finished status from different sources; a killed agent without notification text can differ. Cosmetic.",
+          "suggestion": "Accepted as follow-up.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T00:53:49.795801+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/MarkdownText.tsx:121 (MarkdownLink)",
+          "line": null,
+          "finding": "Conditional hook call. `if (props.href?.startsWith(AGENT_HREF_PREFIX)) return <AgentChip .../>` returns before `useFileTarget(props.href ?? \"\", true)` runs. React requires the same hook count per component instance; if a link's href changes between renders at the same tree position (e.g. streaming markdown where an `agent:` href replaces a normal one, or vice versa), React throws \"Rendered fewer hooks than expected\".",
+          "suggestion": "Don't early-return before the hook. Call `useFileTarget` unconditionally, then branch on the prefix in the returned JSX.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/external/MarkdownText.tsx:163-166",
+          "line": null,
+          "finding": "When agent ids are present, `remarkPlugins` becomes `[remarkGfm, [remarkAgentLinks, ...]]`, discarding whatever else `REMARK_PLUGINS` contains (its contents aren't visible in the diff, but the module-level const exists precisely so it can hold more than GFM). Inside any `AgentLinkProvider`, all other configured remark plugins silently stop applying — markdown that rendered correctly in the chat would render differently in the Agents window / subrunner panel.",
+          "suggestion": "Build the array as `[...REMARK_PLUGINS, [remarkAgentLinks, { ids }]]` (deduplicating remarkGfm if REMARK_PLUGINS already has it).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/external/parsers/handback.ts:117-120 (fromCoordinator)",
+          "line": null,
+          "finding": "The trailer strip uses exact `endsWith(COORDINATOR_TRAILER)`; a record with a trailing newline or trailing whitespace after \"Address this before completing your current task.\" (the raw is only `trimStart()`ed, never `trim()`ed) keeps the harness trailer visible in the rendered card. Tests only feed the exact string.",
+          "suggestion": "Trim the raw string (or `trimEnd()` before the `endsWith` check) so trailing whitespace can't defeat trailer removal.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/mission/SubrunnerPanelHost.tsx:30-34 (handback match)",
+          "line": null,
+          "finding": "s === id || id.startsWith(s!) || s!.startsWith(id)` is a bidirectional prefix match. With multiple agents sharing prefixes (the same reason `resolveAgentToken` demands uniqueness), a hand-back from agent `afb588e7...` can be attributed to a subrunner card whose id is an unrelated agent that merely shares a prefix, wiring \"Jump to message in chat\" to the wrong message.",
+          "suggestion": "Reuse `resolveAgentToken`-style unique-prefix resolution against the known agent ids instead of raw bidirectional `startsWith`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": "client/src/components/external/mission/SubrunnerPanelHost.tsx:47-54 (jump)",
+          "line": null,
+          "finding": "\"Jump to message in chat\" closes the panel and scrolls `[data-sender]` inside `mission-activity-feed`, but if the Mission body is currently showing an artifact/document panel instead of the activity feed, the element exists off-screen (or the feed isn't the active view) and the jump silently does nothing visible.",
+          "suggestion": "Switch the mission body back to the feed view (the same path `handleClose` uses) before scrolling, or verify the feed is the active pane.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "client/src/components/external/MarkdownText.tsx:121 + AgentLinkContext.tsx:29-33",
+          "line": null,
+          "finding": "The `urlTransform` passes any `agent:`-prefixed href through, and `MarkdownLink` turns it into a chip calling `open(agentId)` with the arbitrary suffix — so hand-written markdown `[x](agent:anything)` inside a provider calls `select(\"anything\")` with unvalidated input. Likely a harmless no-op for unknown ids, but it's untrusted data reaching a navigation sink.",
+          "suggestion": "In `MarkdownLink` (or `AgentChip`), resolve the id against the provider's known ids and render plain text when unknown, mirroring `resolveAgentToken`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/lib/agentTranscriptFeed.test.ts:19-22 / agentTranscriptFeed.ts:41-46",
+          "line": null,
+          "finding": "The prompt-card logic is only tested with the exact server-truncation and window-cut flags the implementation sets; there's no test that a coordinator message appearing as the first user record (before any assistant turn) is treated as a prompt card rather than a hand-back card — the loop marks the first `user` card as prompt regardless of whether `detectHandback` classified it, so a coordinator message that leads the file would be mislabelled \"Prompt from the session\" with the framing intact. Add a test for `[user(COORD), asst(...)]` with `truncated: false`.",
+          "suggestion": "Either exclude hand-back cards from the prompt role in `buildAgentFeed`, or add the test and confirm intended behavior.  Everything else checks out against the ACs: the placeholder drop, answer priority chain, chip gating on known ids, running-only dot, CSS literals (#efeeec, 50px rows, 13/14px text), windowed feed with \"Load older\", and the E2E ghost-agent case all match the spec.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/MarkdownText.tsx",
+          "line": 121,
+          "finding": "MarkdownLink` returns before calling `useFileTarget` for agent links. If React reuses this component while its href changes between an agent link and another link, the hook order changes, violating React’s Rules of Hooks.",
+          "suggestion": "Call `useFileTarget` unconditionally before either return, or render agent links through a separate component with a stable hook sequence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/mission/SubrunnerPanelHost.tsx",
+          "line": 49,
+          "finding": "Transcript fetching is disabled whenever `agent.answer` is truthy, but `pickSubrunnerAnswer` rejects whitespace and delivered-report placeholders. With either value in session-info, the panel skips the transcript fallback and can show an empty state or lower-priority report despite a real answer existing in the agent’s file. This breaks AC1’s fallback order.",
+          "suggestion": "Use the same real-answer validation when deciding whether to fetch the transcript and when selecting the answer.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "client/src/components/external/MarkdownText.tsx",
+          "line": 121,
+          "finding": "Explicit Markdown links bypass known-agent validation. Inside a provider, prose such as `[agent](agent:deadbeef)` renders an agent chip even when `deadbeef` is unknown, because the URL transform preserves every `agent:` href and `MarkdownLink` trusts it. AC2 requires chips only for known IDs or unique qualifying prefixes.",
+          "suggestion": "Resolve every `agent:` target against the provider’s known IDs before rendering a chip; leave unresolved targets as ordinary text.  Overall assessment: ship-with-fixes. The implementation broadly follows the requested approach, but answer fallback, hook ordering, and chip validation need correction before shipping. Surrounding-code inspection and test execution were unavailable because the environment rejected the read command.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T00:16:32.034116+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- Category: bug\n  Severity: medium\n  File: client/src/components/external/MarkdownText.tsx:121 (MarkdownLink)\n  Finding: Conditional hook call. `if (props.href?.startsWith(AGENT_HREF_PREFIX)) return <AgentChip .../>` returns *before* `useFileTarget(props.href ?? \"\", true)` runs. React requires the same hook count per component instance; if a link's href changes between renders at the same tree position (e.g. streaming markdown where an `agent:` href replaces a normal one, or vice versa), React throws \"Rendered fewer hooks than expected\".\n  Suggestion: Don't early-return before the hook. Call `useFileTarget` unconditionally, then branch on the prefix in the returned JSX.\n\n- Category: regression\n  Severity: medium\n  File: client/src/components/external/MarkdownText.tsx:163-166\n  Finding: When agent ids are present, `remarkPlugins` becomes `[remarkGfm, [remarkAgentLinks, ...]]`, discarding whatever else `REMARK_PLUGINS` contains (its contents aren't visible in the diff, but the module-level const exists precisely so it can hold more than GFM). Inside any `AgentLinkProvider`, all other configured remark plugins silently stop applying — markdown that rendered correctly in the chat would render differently in the Agents window / subrunner panel.\n  Suggestion: Build the array as `[...REMARK_PLUGINS, [remarkAgentLinks, { ids }]]` (deduplicating remarkGfm if REMARK_PLUGINS already has it).\n\n- Category: edge-case\n  Severity: low\n  File: client/src/external/parsers/handback.ts:117-120 (fromCoordinator)\n  Finding: The trailer strip uses exact `endsWith(COORDINATOR_TRAILER)`; a record with a trailing newline or trailing whitespace after \"Address this before completing your current task.\" (the raw is only `trimStart()`ed, never `trim()`ed) keeps the harness trailer visible in the rendered card. Tests only feed the exact string.\n  Suggestion: Trim the raw string (or `trimEnd()` before the `endsWith` check) so trailing whitespace can't defeat trailer remov […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:121\n- Finding: `MarkdownLink` returns before calling `useFileTarget` for agent links. If React reuses this component while its href changes between an agent link and another link, the hook order changes, violating React’s Rules of Hooks.\n- Suggestion: Call `useFileTarget` unconditionally before either return, or render agent links through a separate component with a stable hook sequence.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/mission/SubrunnerPanelHost.tsx:49\n- Finding: Transcript fetching is disabled whenever `agent.answer` is truthy, but `pickSubrunnerAnswer` rejects whitespace and delivered-report placeholders. With either value in session-info, the panel skips the transcript fallback and can show an empty state or lower-priority report despite a real answer existing in the agent’s file. This breaks AC1’s fallback order.\n- Suggestion: Use the same real-answer validation when deciding whether to fetch the transcript and when selecting the answer.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/MarkdownText.tsx:121\n- Finding: Explicit Markdown links bypass known-agent validation. Inside a provider, prose such as `[agent](agent:deadbeef)` renders an agent chip even when `deadbeef` is unknown, because the URL transform preserves every `agent:` href and `MarkdownLink` trusts it. AC2 requires chips only for known IDs or unique qualifying prefixes.\n- Suggestion: Resolve every `agent:` target against the provider’s known IDs before rendering a chip; leave unresolved targets as ordinary text.\n\nOverall assessment: ship-with-fixes. The implementation broadly follows the requested approach, but answer fallback, hook ordering, and chip validation need correction before shipping. Surrounding-code inspection and test execution were unavailable because the environment rejected the read command.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:53:49.399173+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:12:00.126219+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:12:00.333479+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

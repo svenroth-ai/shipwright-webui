@@ -14,6 +14,7 @@ import type { MissionAgents } from "../../../hooks/useMissionAgents";
 import { buildAgentSections } from "../../../lib/agentsTree";
 import { AgentDetail } from "./AgentDetail";
 import { AgentsList } from "./AgentsList";
+import { AgentLinkProvider } from "../AgentLinkContext";
 
 export function AgentsWindow({ task, controller }: { task: ExternalTask; controller: MissionAgents }) {
   const { agents, open, selectedId, select } = controller;
@@ -27,6 +28,7 @@ export function AgentsWindow({ task, controller }: { task: ExternalTask; control
   }, [open, selectedId, first, select]);
 
   return (
+    <AgentLinkProvider agents={agents} open={select}>
     <Dialog.Root open={open} onOpenChange={controller.setOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className="ag-overlay" />
@@ -61,11 +63,12 @@ export function AgentsWindow({ task, controller }: { task: ExternalTask; control
           ) : (
             <div className="ag-body">
               <AgentsList sections={sections} selectedId={selected?.agentId ?? null} onSelect={select} />
-              {selected && <AgentDetail key={selected.agentId} taskId={task.taskId} agent={selected} parent={parent} report={controller.reportFor(selected.agentId)} />}
+              {selected && <AgentDetail key={selected.agentId} task={task} agent={selected} parent={parent} controller={controller} report={controller.reportFor(selected.agentId)} handback={controller.handbackFor(selected.agentId)} />}
             </div>
           )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    </AgentLinkProvider>
   );
 }

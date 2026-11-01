@@ -25,6 +25,7 @@ function setup(card: ActivityCard = RESOLVED_CARD) {
 }
 
 describe("SubrunnerPanel", () => {
+  // @covers FR-01.66
   it("renders the dispatch description and the subagent's report", () => {
     setup();
     expect(screen.getByTestId("subrunner-panel")).toBeInTheDocument();
@@ -32,35 +33,41 @@ describe("SubrunnerPanel", () => {
     expect(screen.getByTestId("subrunner-report")).toHaveTextContent("Migration complete.");
   });
 
+  // @covers FR-01.66
   it("prefers the full report over the bounded excerpt when both are set", () => {
     setup({ ...RESOLVED_CARD, subrunnerReport: "Short excerpt…", subrunnerReportFull: "The complete, unabridged report." });
     expect(screen.getByTestId("subrunner-report")).toHaveTextContent("The complete, unabridged report.");
   });
 
+  // @covers FR-01.66
   it("shows an honest empty state when no report was ever recorded", () => {
     setup({ ...RESOLVED_CARD, subrunnerReport: undefined });
     expect(screen.queryByTestId("subrunner-report")).not.toBeInTheDocument();
-    expect(screen.getByText("No report was recorded for this subrunner.")).toBeInTheDocument();
+    expect(screen.getByText("No report was found for this subrunner.")).toBeInTheDocument();
   });
 
+  // @covers FR-01.66
   it("the close button fires onClose", () => {
     const { onClose } = setup();
     fireEvent.click(screen.getByTestId("artifact-close"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.66
   it("Escape closes the panel", () => {
     const { onClose } = setup();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.66
   it("the scrim closes the panel", () => {
     const { onClose } = setup();
     fireEvent.click(screen.getByTestId("artifact-scrim"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.66
   it("focuses the close control on open and restores focus to the trigger on unmount", () => {
     const trigger = document.createElement("button");
     document.body.appendChild(trigger);

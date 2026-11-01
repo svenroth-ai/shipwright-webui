@@ -23,10 +23,13 @@ import { normalizeUserTextContent } from "./skill-body";
  * is never a hand-back (it stays `user` so its tool result still resolves).
  */
 
-export type HandbackOrigin = "subagent" | "session";
+/** "coordinator": a message the parent session sent INTO a running subagent (only seen inside subagent transcripts). */
+export type HandbackOrigin = "subagent" | "session" | "coordinator";
 
 const HEADER = "Another Claude session sent a message";
 const MARKER = "[Subagent hand-back]";
+const COORDINATOR_HEADER = "The coordinator sent a message while you were working:";
+const COORDINATOR_TRAILER = "Address this before completing your current task.";
 const ENVELOPE_OPEN = /<agent-message\s+from="([^"]*)"\s*>/;
 const ENVELOPE_CLOSE = "</agent-message>";
 /** Quote-aware and linear: attribute values may contain `>` (from-name="Fix A -> B"). */
@@ -109,12 +112,20 @@ function fromCrossSession(text: string, open: RegExpExecArray): Handback {
   return { sender, origin: report != null ? "subagent" : "session", text: (report ?? body).trim(), ...(fromName ? { fromName } : {}) };
 }
 
-export function detectHandback(content: unknown): Handback | null {
+/** Inside a subagent transcript the parent's follow-up is a user-role record: header line, message, harness trailer. */
+function fromCoordinator(raw: string): Handback {
+  let body = raw.replace(/\r\n/g, "\n").trim().slice(COORDINATOR_HEADER.length).trim();
+  if (body.endsWith(COORDINATOR_TRAILER)) body = body.slice(0, body.length - COORDINATOR_TRAILER.length).trimEnd();
+  return { sender: "", origin: "coordinator", text: body };
+}
+
+export function detectHandback(content: unknown, sidechain = false): Handback | null {
   if (Array.isArray(content) && content.some((b) => (b as { type?: unknown } | null)?.type === "tool_result")) return null;
   const raw = normalizeUserTextContent(content);
   if (raw == null || raw.length > OVERSIZE_REJECT) return null;
   // Cheap early exit (before any replace/regex): a real hand-back LEADS with the header, the marker or the envelope.
   const lead = raw.trimStart();
+  if (sidechain && lead.startsWith(COORDINATOR_HEADER)) return fromCoordinator(lead); // only inside a subagent file: in the main chat it is the human's own text
   if (!lead.startsWith(HEADER) && !lead.startsWith(MARKER) && !lead.startsWith("<agent-message") && !lead.startsWith("<cross-session-message")) return null;
   const text = raw.replace(/\r\n/g, "\n");
   // Every fingerprint is ANCHORED to the start of the record (code-review finding): a human message that
@@ -150,8 +161,13 @@ export function detectHandback(content: unknown): Handback | null {
  * Measured on real transcripts: no hand-back ever arrives in BOTH forms, so there is deliberately NO cross-record dedupe
  * (parsing stays per-line, incremental == whole parse, and genuinely repeated identical reports are kept).
  */
-export function handbackFromAttachment(attachment: unknown): Handback | null {
+export function handbackFromAttachment(attachment: unknown, sidechain = false): Handback | null {
   if (!attachment || typeof attachment !== "object") return null;
-  const a = attachment as { type?: unknown; prompt?: unknown };
-  return a.type === "queued_command" ? detectHandback(a.prompt) : null; // prompt: string or text-block array
+  const a = attachment as { type?: unknown; prompt?: unknown; origin?: { kind?: unknown } | null };
+  if (a.type !== "queued_command") return null;
+  const hb = detectHandback(a.prompt, sidechain); // prompt: string or text-block array
+  if (hb || !sidechain || a.origin?.kind !== "coordinator" || typeof a.prompt !== "string") return hb;
+  // CLI 2.1.273+: the coordinator's mid-run message arrives header-less, tagged only by origin.kind (V3 doubt O2).
+  const text = a.prompt.replace(/\r\n/g, "\n").trim();
+  return text ? { sender: "", origin: "coordinator", text } : null;
 }

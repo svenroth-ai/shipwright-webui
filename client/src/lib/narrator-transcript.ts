@@ -166,7 +166,7 @@ function activityFor(ev: ParsedEvent): string | null {
     case "pr-link":
       return `Opened PR #${ev.prNumber}`;
     case "handback":
-      return ev.origin === "subagent" ? "A subagent reported back" : "Another session sent a message";
+      return ev.origin === "subagent" ? "A subagent reported back" : ev.origin === "coordinator" ? "The coordinator sent a message" : "Another session sent a message";
     case "stop-hook":
       return `Gate: ${sanitizeProofText(ev.gateName, 40)}`;
     default:

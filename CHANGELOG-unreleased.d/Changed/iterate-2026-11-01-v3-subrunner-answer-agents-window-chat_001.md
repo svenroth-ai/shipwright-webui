@@ -1,0 +1,1 @@
+feat(mission): the subrunner panel shows the agent real answer, agent hashes open that agent, the Agents window drops the dot on finished agents and gets a grey list column, and its Transcript tab uses the Mission chat look with the session prompt as a card

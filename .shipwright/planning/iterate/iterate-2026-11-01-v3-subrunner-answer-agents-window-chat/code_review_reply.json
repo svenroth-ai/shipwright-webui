@@ -1,0 +1,6 @@
+{"section":"V3-subrunner-panel-agents-window","verdict":"PASS","review":[
+{"severity":"medium","category":"correctness","file":"client/src/lib/subrunnerAnswer.ts","line":36,"finding":"A finished agent's last hand-back outranks a real task-notification report on the card; a stale mid-run progress hand-back could win. Primary SubagentHandback path is correct.","suggestion":"Let the hand-back win only when the card report was the delivered placeholder or is missing (accepted as follow-up)."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/mission/SubrunnerPanelHost.tsx","line":75,"finding":"Jump to message offered whenever any hand-back exists even if the panel shows another text.","suggestion":"Offer jump only when answer equals hand-back text."},
+{"severity":"low","category":"correctness","file":"client/src/lib/subrunnerAnswer.ts","line":82,"finding":"findAgentHandback does not filter handbackOrigin.","suggestion":"Add handbackOrigin === 'subagent'."},
+{"severity":"low","category":"readability","file":"client/src/components/external/AgentLinkContext.tsx","line":143,"finding":"Known-agent chip drops a hand-written label.","suggestion":"Render label || hash."}
+]}

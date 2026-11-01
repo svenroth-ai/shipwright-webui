@@ -370,7 +370,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
         return { ...base, kind: "stop-hook", ...stopHook };
       }
       // Last: the most permissive fingerprint (see parsers/handback.ts).
-      const handback = detectHandback(content);
+      const handback = detectHandback(content, raw.isSidechain === true);
       if (handback) return { ...base, kind: "handback", ...handback };
       return { ...base, kind: "user", content, ...(typeof (raw.toolUseResult as { answers?: unknown } | null)?.answers === "object" && { toolUseResult: { answers: (raw.toolUseResult as { answers: unknown }).answers, annotations: (raw.toolUseResult as { annotations?: unknown }).annotations } }) };
     }
@@ -380,7 +380,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
         kind: "assistant",
         content: (raw.message as { content?: unknown } | undefined)?.content ?? raw.message,
       };
-    case "attachment": { const hb = handbackFromAttachment(raw.attachment); return hb ? { ...base, kind: "handback", ...hb } : { ...base, kind: "attachment", attachment: raw.attachment }; }
+    case "attachment": { const hb = handbackFromAttachment(raw.attachment, raw.isSidechain === true); return hb ? { ...base, kind: "handback", ...hb } : { ...base, kind: "attachment", attachment: raw.attachment }; }
     case "queue-operation":
       return {
         ...base,
