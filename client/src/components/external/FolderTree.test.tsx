@@ -217,18 +217,16 @@ describe("FolderTree — error surfacing", () => {
 
 describe("FolderTree — A18 left card (glass Files card + greyed head)", () => {
   // @covers FR-01.02
-  it("outer is the .ft-card.ft-files glass surface; header is the .ft-head band", () => {
+  it("headBand paints the header as the shared .ft-head band; the default is the slim flat bar", () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
-    render(
-      <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />,
+    const { rerender } = render(
+      <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} headBand />,
     );
-    const card = screen.getByTestId("folder-tree");
-    expect(card.className).toContain("ft-card");
-    expect(card.className).toContain("ft-files");
-    const head = screen.getByTestId("folder-tree-header");
-    expect(head.className).toContain("ft-head");
-    // "Files" title carries the uppercase .ft-title style; refresh still present.
+    expect(screen.getByTestId("folder-tree").className).not.toContain("ft-card");
+    expect(screen.getByTestId("folder-tree-header").className).toContain("ft-head");
     expect(screen.getByTestId("folder-tree-refresh")).toBeTruthy();
+    rerender(<FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />);
+    expect(screen.getByTestId("folder-tree-header").className).toContain("ft-flat-bar");
   });
   // @covers FR-01.02
   it("keyboard: arrows move focus, ArrowRight/Left expand/collapse, Enter opens a file, Shift+F10 opens the menu", async () => {

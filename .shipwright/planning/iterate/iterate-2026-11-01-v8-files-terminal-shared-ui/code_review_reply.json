@@ -1,0 +1,7 @@
+{"section":"V8-files-terminal-shared-ui","verdict":"PASS","review":[
+{"severity":"low","category":"performance","file":"client/src/pages/TaskDetailPage.tsx","line":518,"finding":"ViewCard visible ignores a collapsed desktop right card or closed tablet viewer, so the embedded sidebar keeps polling session-info while hidden.","suggestion":"Pass the collapsed/open state into visible."},
+{"severity":"low","category":"correctness","file":"client/src/components/external/PaneTabBar.tsx","line":73,"finding":"role=tablist on a display:contents element can be dropped from the a11y tree in older engines.","suggestion":"Use a real grid item."},
+{"severity":"low","category":"readability","file":"client/src/components/external/ViewerToggle.tsx","line":21,"finding":"Desktop toggle restores the Info|Viewer card but label says Show smart viewer.","suggestion":"Use a neutral label."},
+{"severity":"low","category":"readability","file":"client/src/components/external/mission/MissionInfoSidebar.tsx","line":180,"finding":"onActivate reads render-closure tabs while open/close use tabsRef.","suggestion":"Use tabsRef.current."},
+{"severity":"low","category":"architecture","file":"client/src/components/external/FilesTerminalSides.tsx","line":22,"finding":"Duplicated project-root resolution logic with MissionInfoSidebar.","suggestion":"Optional shared hook."}
+]}

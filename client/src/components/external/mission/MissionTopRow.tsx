@@ -185,7 +185,7 @@ export function MissionTopRow({ task, modelName }: Props) {
                 aria-label={expanded ? "Restore page layout" : "Expand terminal"}
                 title={expanded ? "Restore page layout" : "Expand terminal"}
                 data-testid="task-detail-expand-terminal"
-                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]"
+                className="mc-expand-term inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] text-[var(--color-muted,#6b7280)] transition hover:text-[var(--color-text,#1a1a1a)]"
               >
                 {expanded ? <Minimize2 size={16} aria-hidden="true" /> : <Maximize2 size={16} aria-hidden="true" />}
               </button>

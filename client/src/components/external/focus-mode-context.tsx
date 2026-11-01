@@ -26,16 +26,25 @@ export interface ViewerToggleApi {
   toggle: () => void;
 }
 
+/** Desktop collapse of the right card (V8): `available` only on the 3-pane desktop. */
+export interface SidebarToggleApi {
+  available: boolean;
+  collapsed: boolean;
+  toggle: () => void;
+}
+
 export interface FocusModeApi {
   maximized: boolean;
   toggle: () => void;
   viewer: ViewerToggleApi;
+  sidebar: SidebarToggleApi;
 }
 
 const NOOP: FocusModeApi = {
   maximized: false,
   toggle: () => {},
   viewer: { available: false, open: false, toggle: () => {} },
+  sidebar: { available: false, collapsed: false, toggle: () => {} },
 };
 
 export const FocusModeContext = createContext<FocusModeApi>(NOOP);

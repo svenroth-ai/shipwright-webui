@@ -9,8 +9,15 @@ import { PanelRight, PanelRightClose } from "lucide-react";
 import { useFocusMode } from "./focus-mode-context";
 
 export function ViewerToggle() {
-  const { viewer } = useFocusMode();
-  if (!viewer.available) return null;
+  const { viewer: tabletViewer, sidebar } = useFocusMode();
+  // Tablet: always shown. Desktop: only the way BACK once the right card was collapsed
+  // (the card's own head button hides it).
+  const viewer = tabletViewer.available
+    ? tabletViewer
+    : sidebar.available && sidebar.collapsed
+      ? { available: true, open: false, toggle: sidebar.toggle }
+      : null;
+  if (!viewer) return null;
   const label = viewer.open ? "Hide smart viewer" : "Show smart viewer";
   return (
     <button

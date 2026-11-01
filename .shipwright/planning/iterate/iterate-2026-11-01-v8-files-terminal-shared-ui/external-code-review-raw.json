@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: bug\n- Severity: medium\n- File: client/src/components/external/mission/MissionInfoSidebar.tsx:89 \u2014 `addTab`\n- Finding: Reopening an existing file updates `target` but leaves its stored tab target unchanged. For example, open `a.ts` at line 10, reopen it at line 40, switch to another file, then activate `a.ts`: activation restores the stale line-10 target.\n- Suggestion: Replace the existing tab\u2019s target when its path matches, preserving tab order. Add a test that reopens a file with a different line, switches away, and activates it again.\n\nShip-with-fixes: the diff broadly implements the requested layout, but tab activation should preserve the latest requested target. Review was limited to the supplied diff because local command execution was blocked; tests were not run.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "## Findings\n\n**1. Category: bug \u2014 Severity: high**\nFile: `client/src/hooks/useTerminalExpanded.ts` (the `useCallback(() => set(!expanded), [])` line)\nFinding: `toggle` is memoized with an empty dependency array, so it closes over the module-level `expanded` value captured at first render (`false`). Every call to `toggle` therefore calls `set(true)` \u2014 the control can expand but never collapse. The rewrite to a module store dropped the `setState(v => !v)` updater pattern without replacing it.\nSuggestion: Drop the `useCallback` (or depend on `value`), or make `set` accept an updater: `set((v) => !v)`. Note that both the new unit test (\"two consumers share one state\u2026 toggles back to false\") and the V8 e2e (`expand.click(); expect \u2026 not.toHaveAttribute(\"data-term-expanded\")`) will fail with this code as written \u2014 the change cannot be green as shipped, so this is not just latent.\n\n**2. Category: bug \u2014 Severity: medium**\nFile: `client/src/components/external/mission/MissionInfoSidebar.tsx` \u2014 `closeTab`\nFinding: `closeTab` reads `tabs`/`target` from the render closure. It is invoked from `ViewerTabBar.onClose`, which is fine for single clicks, but the embed card and the Mission card can both be mounted simultaneously; more importantly, if two closes are dispatched in the same tick (e.g. \"close others\"/rapid clicks) the second close operates on stale `tabs` and can resurrect or keep a closed tab. Lower risk than #1 but the previous page-level `handleCloseTab` used functional updates.\nSuggestion: Use functional updates: `setTabs(prev => \u2026)` and derive the fallback target inside the updater (or via an effect on `tabs`/`target` mismatch).\n\n**3. Category: regression \u2014 Severity: medium**\nFile: `client/src/components/external/FolderTree.tsx` \u2014 removal of the `flat` prop\nFinding: The `flat` prop was deleted outright rather than deprecated. All in-repo callers shown are updated, but any external/undisplayed consumer passing `flat` now gets `undefined` and silently loses the card chrome distinction \u2014 no error, just a visual regression. Same for the default class changing from `ft-card ft-files` to `ft-flat` for every caller that did not opt into `headBand`.\nSuggestion: Verify by grep that no other call sites pass `flat` (including storybook/examples); if any exist, keep a temporary alias or fail loudly.\n\n**4. Category: edge-case \u2014 Severity: low**\nFile: `client/src/components/external/mission/MissionInfoSidebar.tsx` \u2014 embed + `unassigned` task\nFinding: For an unassigned task on the Files & Terminal card, `EMBED_OPTIONS` is used regardless \u2014 that's correct (no Folders anyway) \u2014 but `openTarget` from `MissionInfoPanel.onOpenOutput` produces `{outside: true}` targets that get added as tabs whose `path` may collide with a project-relative tab of the same path string; `addTab` dedupes by `path` only, so opening the session output for a path already open as a project tab silently switches meaning of the tab (session vs project view) depending on which `target` object survives in `tabs`.\nSuggestion: Key tabs on `path + outside` (or disambiguate in the tab label), not `path` alone.\n\n**5. Category: test \u2014 Severity: low**\nFile: `client/e2e/flows/V8-files-terminal-shared-ui.spec.ts` \u2014 head-band geometry check\nFinding: The 46px assertion only checks each head's height and the left-vs-right y-alignment (`boxes[0]` vs `boxes[2]`); the middle head (`boxes[1]`) is never checked to be in the same band, so a vertically offset terminal head would still pass.\nSuggestion: Assert all three `y` values are within 2px of each other.\n\n## Overall assessment\n\nThe architecture matches the spec well (shared tree, shared Info|Viewer sidebar in the single 46px head band, phone single tab bar, pty untouched), and test coverage is unusually thorough. However, finding #1 is a hard functional bug \u2014 the Expand control cannot be un-toggled \u2014 and the included tests prove it, so this cannot be green as-is.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-01-v8-files-terminal-shared-ui",
+    "at": "2026-11-01T00:14:05.879556+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "revise"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=revise, openai=revise"
+  }
+}

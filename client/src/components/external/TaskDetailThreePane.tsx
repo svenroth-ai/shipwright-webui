@@ -15,7 +15,8 @@ import {
   useIsCompactViewport,
   useIsTabletViewport,
 } from "../../hooks/useIsCompactViewport";
-import { PaneTabBar, type PaneId } from "./PaneTabBar";
+import { PaneTabBar, type PaneId, type RightSegment } from "./PaneTabBar";
+import { TerminalExpandButton } from "./TerminalExpandButton";
 import { PaneSplitter } from "./PaneSplitter";
 import { useSplitterKeydown } from "./useSplitterKeydown";
 import { FocusModeContext } from "./focus-mode-context";
@@ -32,9 +33,12 @@ interface Props {
   containerWidth?: number;
   activePane?: PaneId;
   onActivePaneChange?: (pane: PaneId) => void;
-  /** Bumped by the page whenever the user opens a file; on the tablet band that
-   *  summons the (otherwise hidden) Smart Viewer. Ignored elsewhere. */
+  /** Bumped by the page whenever the user opens a file; summons the (otherwise
+   *  hidden) right card on the tablet band and on a collapsed desktop. */
   viewerRequestKey?: number;
+  /** Compact: which segment (Info / Viewer) the right pane shows; drives the tab bar. */
+  rightSegment?: RightSegment;
+  onRightSegmentChange?: (segment: RightSegment) => void;
 }
 
 export function TaskDetailThreePane({
@@ -45,6 +49,8 @@ export function TaskDetailThreePane({
   activePane,
   onActivePaneChange,
   viewerRequestKey = 0,
+  rightSegment = "viewer",
+  onRightSegmentChange,
 }: Props) {
   const layout = useThreePaneLayout();
   const compact = useIsCompactViewport();
@@ -57,7 +63,9 @@ export function TaskDetailThreePane({
     if (viewerRequestKey === lastViewerRequest.current) return;
     lastViewerRequest.current = viewerRequestKey;
     if (tablet) setTabletViewerOpen(true);
-  }, [viewerRequestKey, tablet]);
+    // Desktop: opening a file reveals a collapsed right card so the file is never invisible.
+    else if (!compact && layout.rightCollapsed) layout.toggleRightCollapsed();
+  }, [viewerRequestKey, tablet, compact, layout.rightCollapsed, layout.toggleRightCollapsed]);
   const { resolvedPane, selectPane } =
     useCompactPaneSelection({ activePane, onActivePaneChange });
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -177,8 +185,14 @@ export function TaskDetailThreePane({
         open: tabletViewerOpen,
         toggle: () => setTabletViewerOpen((v) => !v),
       },
+      // Desktop right-card collapse (the sidebar's own hide button + the head toggle to bring it back).
+      sidebar: {
+        available: !tablet && !compact && !maxed,
+        collapsed: layout.rightCollapsed,
+        toggle: layout.toggleRightCollapsed,
+      },
     }),
-    [maxed, layout.toggleMaximized, tablet, tabletViewerOpen],
+    [maxed, layout.toggleMaximized, layout.rightCollapsed, layout.toggleRightCollapsed, tablet, compact, tabletViewerOpen],
   );
 
   return (
@@ -194,7 +208,16 @@ export function TaskDetailThreePane({
       data-compact={compact || undefined}
       data-maximized={maxed || undefined}
     >
-      {compact && <PaneTabBar active={resolvedPane} onChange={selectPane} />}
+      {compact && (
+        <PaneTabBar
+          active={resolvedPane}
+          segment={rightSegment}
+          onChange={selectPane}
+          onSegmentChange={onRightSegmentChange}
+        >
+          <TerminalExpandButton />
+        </PaneTabBar>
+      )}
       <PanelGroup
         direction="horizontal"
         className={compact ? "min-h-0 w-full flex-1" : "h-full w-full"}
@@ -241,7 +264,7 @@ export function TaskDetailThreePane({
           onKeyDown={rightSplitterKeydown}
         />
         <Panel
-          {...compactPaneA11y(compact, resolvedPane, "right", "workspace-tab-right")}
+          {...compactPaneA11y(compact, resolvedPane, "right", rightSegment === "info" ? "workspace-tab-info" : "workspace-tab-right")}
           ref={rightRef}
           defaultSize={sizes.right}
           minSize={0}

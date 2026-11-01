@@ -1,0 +1,362 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-01-v8-files-terminal-shared-ui",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:13:33.886614+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "MissionInfoSidebar.embed` with five new props (segment, onSegmentChange, headless, onCollapse, onActivePathChange) plus a separate embed config is a lot of surface area grafted onto a component that was built for the Mission tab. The plan explicitly says \"layout state of the Mission tab sidebar is untouched,\" which means the component now carries two behavioral modes and every future change must reason about both. This is the classic path to a component nobody dares touch.",
+          "suggestion": "Instead of an `embed` prop-bag, extract the inner content (Info outputs list, Viewer + ViewerTabBar, open-file state) into a headless `MissionSidebarContent` and let both `MissionInfoSidebar` (full chrome) and the new `.ft-card.ft-view` wrapper render it. The page-level segment state then lives naturally in `TaskDetailThreePane`/page, not inside the sidebar component. This is likely less total code and removes the dual-mode risk entirely.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "\"TaskDetailPage shrinks (viewer state moves into the sidebar)\" + \"flat becomes the only FolderTree variant\" are two refactors bundled into a UI change. Moving viewer/open-file state out of the page while the Mission tab still uses the same sidebar in non-embed mode risks regressions on the Mission tab (open files, Info outputs, back-navigation) — the plan asserts the Mission tab is untouched but the state ownership change contradicts that. If open-file tab state now lives inside a component that is also embedded in Files&Terminal, the two instances could share or clobber state depending on where it's hoisted.",
+          "suggestion": "Make state ownership explicit: open files + active viewer tab stay owned by the page (or a small `useViewerTabs` hook) and are passed down to both sidebar instances. Then \"Mission untouched\" is structurally true, not aspirational. Also confirm FolderTree `flat`-only doesn't delete a variant still used by the Files card before V8 lands (V5 tree is presumably already flat — verify, don't assume).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Segment switch on file click (\"clicking a tree file switches right pane to Viewer\") changes behavior for users who deliberately keep Info open while browsing files. Combined with Info Outputs \"opening as tabs,\" there are two competing drivers of the segment state (user click vs. tree click vs. output click); no conflict resolution is specified.",
+          "suggestion": "Define precedence: explicit user tab click wins until the next file/output click, or (better) file clicks only switch to Viewer if the Viewer isn't already the segment... actually simplest: tree clicks always switch to Viewer; if that's annoying in practice it's a one-line policy change. Just write the policy down in the AC so it's tested.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Phone: the plan keeps both the MissionTopRow header Expand toggle and the new tab-bar Expand \"same state\" as a known deviation. Two visible controls controlling the same state, in the same header region, is a UX bug users will notice immediately and file as such.",
+          "suggestion": "If the tab-bar is visible while expanded (AC 6), hide the header toggle when the Files&Terminal tab is active. That's a conditional class, not a follow-up refactor — do it in this change.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "useTerminalExpanded` \"becomes one shared store\" — but the expanded state currently belongs to the terminal pane on the Detail tab. If that state becomes global/shared, switching Mission→Detail→Files&Terminal must be checked: does the Files&Terminal tab inherit an expanded flag set on Detail? Conversely, does expanding in Files&Terminal affect Detail on back-nav? Also: while expanded, the head band with the Info|Viewer tabs disappears on desktop (nothing in the plan says the right pane survives expansion) — where do open files and the Viewer go during Expand?",
+          "suggestion": "Specify expansion semantics: probably expanded mode is full-bleed terminal with only the tab bar + collapse/Expand exit (per AC 6 phone behavior); state either per-tab or explicitly global. Add an E2E case: expand → navigate to Overview → back → assert state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Acceptance criteria in the spec are \"TBD\" — the mini-plan derives its own, but the two sets must be reconciled before implementation, or the E2E spec will be written against the mini-plan's reading while review happens against the spec.",
+          "suggestion": "Copy the nine derived ACs into the spec and mark them canonical.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "No mention of the refresh affordance behavior when the Files card is a thin FolderTree wrapper — refresh presumably still fetches the file list, but the plan doesn't say where that state/fetch lives after `ft-card ft-files` is removed. If the old card owned the fetch, moving it to a wrapper risks a dropped or duplicated request path.",
+          "suggestion": "Note where the files fetch/refresh handler moves; assert one fetch on mount in a unit test.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "No new security surface — this is layout/state composition. Copy Path already exists in V5. The only mild note: ensure the embed path doesn't change how viewer content is fetched/auth'd (same endpoints, same MissionInfoSidebar internals).",
+          "suggestion": "No action beyond keeping viewer fetching code identical between embed and non-embed modes — another argument for the shared inner-content extraction above.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency ·",
+          "file": null,
+          "line": null,
+          "finding": "The plan does not establish how `MissionInfoSidebar`’s existing Folders selection is handled when embedded with only Info and Viewer. A controlled segment alone may leave a hidden Folders control, an invalid initial selection, or conflicting internal state.",
+          "suggestion": "Explicitly configure the allowed segments, default the embedded instance to Info or Viewer, and ensure its selection and persistence remain independent of the Mission sidebar.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk ·",
+          "file": null,
+          "line": null,
+          "finding": "Replacing `useTerminalExpanded` with a shared store and changing compact pane switching touches terminal lifecycle behavior despite the requirement to preserve mounting. Keeping the same `EmbeddedTerminal` component does not guarantee that layout branches, keys, or conditional rendering preserve its instance.",
+          "suggestion": "Identify the existing terminal mounting boundary and keep it stable across tab switches, expansion, collapse, and breakpoint changes. Extend the proposed pty test to verify that the same session survives these transitions without reconnecting or losing output.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case ·",
+          "file": null,
+          "line": null,
+          "finding": "File opening is underspecified when the right pane is collapsed or the phone currently shows Files or Terminal. Switching the sidebar segment to Viewer may still leave the opened file invisible. Moving viewer state into the sidebar also risks losing open tabs if hiding the pane unmounts it.",
+          "suggestion": "Define one file-opening action that selects the file, activates Viewer, and reveals the appropriate pane or compact tab. Preserve open-file state across hiding, segment changes, and breakpoint transitions; test tree selections and Info Outputs through this action.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "Making `flat` the only `FolderTree` variant and adding sidebar state to `FocusModeContext` expand the change beyond the Files & Terminal composition. The plan does not identify existing consumers or explain why these global changes are necessary.",
+          "suggestion": "Audit consumers first. Reuse the existing flat variant and keep collapse state local unless other consumers require the new behavior. Remove other variants only after confirming they are unused or explicitly migrating their consumers.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach ·",
+          "file": null,
+          "line": null,
+          "finding": "The shared head band depends on `headless` rendering, but ownership of the right-side controls is unclear. Moving all sidebar chrome outside it could inadvertently remove the required open-file tab row; leaving controls inside could create the prohibited second segment row.",
+          "suggestion": "Specify that `.ft-head` owns Info | Viewer and collapse, while `ViewerTabBar` remains immediately above viewer content. Verify this structure on desktop and phone, including the two retained phone Expand controls sharing one state.  The reuse direction is sound, but state ownership, file-opening behavior, and terminal instance preservation need explicit decisions before implementation. This review is based on the supplied plan; repository inspection was blocked by the environment.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T00:13:34.004551+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] # Review: V8 — Files & Terminal shared tree + shared Info/Viewer sidebar\n\n## Findings\n\n**Category: approach — Severity: medium**\n**Finding:** `MissionInfoSidebar.embed` with five new props (segment, onSegmentChange, headless, onCollapse, onActivePathChange) plus a separate embed config is a lot of surface area grafted onto a component that was built for the Mission tab. The plan explicitly says \"layout state of the Mission tab sidebar is untouched,\" which means the component now carries two behavioral modes and every future change must reason about both. This is the classic path to a component nobody dares touch.\n**Suggestion:** Instead of an `embed` prop-bag, extract the inner content (Info outputs list, Viewer + ViewerTabBar, open-file state) into a headless `MissionSidebarContent` and let both `MissionInfoSidebar` (full chrome) and the new `.ft-card.ft-view` wrapper render it. The page-level segment state then lives naturally in `TaskDetailThreePane`/page, not inside the sidebar component. This is likely *less* total code and removes the dual-mode risk entirely.\n\n**Category: risk — Severity: high**\n**Finding:** \"TaskDetailPage shrinks (viewer state moves into the sidebar)\" + \"flat becomes the only FolderTree variant\" are two refactors bundled into a UI change. Moving viewer/open-file state out of the page while the *Mission* tab still uses the same sidebar in non-embed mode risks regressions on the Mission tab (open files, Info outputs, back-navigation) — the plan asserts the Mission tab is untouched but the state ownership change contradicts that. If open-file tab state now lives inside a component that is also embedded in Files&Terminal, the two instances could share or clobber state depending on where it's hoisted.\n**Suggestion:** Make state ownership explicit: open files + active viewer tab stay owned by the page (or a small `useViewerTabs` hook) and are passed down to both sidebar instances. Then \"Mission untouched\" is structurally true, not asp […truncated]\n\n[openai] 1. **Category: dependency · Severity: medium**  \n   **Finding:** The plan does not establish how `MissionInfoSidebar`’s existing Folders selection is handled when embedded with only Info and Viewer. A controlled segment alone may leave a hidden Folders control, an invalid initial selection, or conflicting internal state.  \n   **Suggestion:** Explicitly configure the allowed segments, default the embedded instance to Info or Viewer, and ensure its selection and persistence remain independent of the Mission sidebar.\n\n2. **Category: risk · Severity: high**  \n   **Finding:** Replacing `useTerminalExpanded` with a shared store and changing compact pane switching touches terminal lifecycle behavior despite the requirement to preserve mounting. Keeping the same `EmbeddedTerminal` component does not guarantee that layout branches, keys, or conditional rendering preserve its instance.  \n   **Suggestion:** Identify the existing terminal mounting boundary and keep it stable across tab switches, expansion, collapse, and breakpoint changes. Extend the proposed pty test to verify that the same session survives these transitions without reconnecting or losing output.\n\n3. **Category: edge-case · Severity: medium**  \n   **Finding:** File opening is underspecified when the right pane is collapsed or the phone currently shows Files or Terminal. Switching the sidebar segment to Viewer may still leave the opened file invisible. Moving viewer state into the sidebar also risks losing open tabs if hiding the pane unmounts it.  \n   **Suggestion:** Define one file-opening action that selects the file, activates Viewer, and reveals the appropriate pane or compact tab. Preserve open-file state across hiding, segment changes, and breakpoint transitions; test tree selections and Info Outputs through this action.\n\n4. **Category: approach · Severity: medium**  \n   **Finding:** Making `flat` the only `FolderTree` variant and adding sidebar state to `FocusModeContext` expand the change  […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/pages/TaskDetailPage.tsx",
+          "line": 518,
+          "finding": "ViewCard visible ignores a collapsed desktop right card or closed tablet viewer, so the embedded sidebar keeps polling session-info while hidden.",
+          "suggestion": "Pass the collapsed/open state into visible.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/components/external/PaneTabBar.tsx",
+          "line": 73,
+          "finding": "role=tablist on a display:contents element can be dropped from the a11y tree in older engines.",
+          "suggestion": "Use a real grid item.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/ViewerToggle.tsx",
+          "line": 21,
+          "finding": "Desktop toggle restores the Info|Viewer card but label says Show smart viewer.",
+          "suggestion": "Use a neutral label.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": 180,
+          "finding": "onActivate reads render-closure tabs while open/close use tabsRef.",
+          "suggestion": "Use tabsRef.current.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/src/components/external/FilesTerminalSides.tsx",
+          "line": 22,
+          "finding": "Duplicated project-root resolution logic with MissionInfoSidebar.",
+          "suggestion": "Optional shared hook.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T00:40:58.780473+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "state-leak",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Open-file tabs in MissionInfoSidebar are per-task. — The task route element is not keyed by taskId, so task-to-task navigation without unmount could carry tabs over (an outside file tab would then send the wrong task id). Not confirmed that any in-app link does this.",
+          "suggestion": "Key the sidebar by task.taskId or clear tabs on change, or rebut.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "behaviour change",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: Viewer state survives pane switches. — Embedded viewer body renders only while visible so tab switches remount SmartViewer, refetch and lose scroll position.",
+          "suggestion": "State intent or hide via CSS.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "a11y",
+          "file": "client/src/components/external/PaneTabBar.tsx",
+          "line": null,
+          "finding": "Claim under doubt: The tablist is exposed to assistive tech. — role=tablist on a display:contents element is dropped in older WebKit.",
+          "suggestion": "Use a real grid element.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T00:40:58.968790+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/hooks/useTerminalExpanded.ts` (the `useCallback(() => set(!expanded), [])` line)",
+          "line": null,
+          "finding": "toggle` is memoized with an empty dependency array, so it closes over the module-level `expanded` value captured at first render (`false`). Every call to `toggle` therefore calls `set(true)` — the control can expand but never collapse. The rewrite to a module store dropped the `setState(v => !v)` updater pattern without replacing it.",
+          "suggestion": "Drop the `useCallback` (or depend on `value`), or make `set` accept an updater: `set((v) => !v)`. Note that both the new unit test (\"two consumers share one state… toggles back to false\") and the V8 e2e (`expand.click(); expect … not.toHaveAttribute(\"data-term-expanded\")`) will fail with this code as written — the change cannot be green as shipped, so this is not just latent.  2. Category: bug — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx` — `closeTab",
+          "line": null,
+          "finding": "closeTab` reads `tabs`/`target` from the render closure. It is invoked from `ViewerTabBar.onClose`, which is fine for single clicks, but the embed card and the Mission card can both be mounted simultaneously; more importantly, if two closes are dispatched in the same tick (e.g. \"close others\"/rapid clicks) the second close operates on stale `tabs` and can resurrect or keep a closed tab. Lower risk than #1 but the previous page-level `handleCloseTab` used functional updates.",
+          "suggestion": "Use functional updates: `setTabs(prev => …)` and derive the fallback target inside the updater (or via an effect on `tabs`/`target` mismatch).  3. Category: regression — Severity: medium",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/external/FolderTree.tsx` — removal of the `flat` prop",
+          "line": null,
+          "finding": "The `flat` prop was deleted outright rather than deprecated. All in-repo callers shown are updated, but any external/undisplayed consumer passing `flat` now gets `undefined` and silently loses the card chrome distinction — no error, just a visual regression. Same for the default class changing from `ft-card ft-files` to `ft-flat` for every caller that did not opt into `headBand`.",
+          "suggestion": "Verify by grep that no other call sites pass `flat` (including storybook/examples); if any exist, keep a temporary alias or fail loudly.  4. Category: edge-case — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx` — embed + `unassigned` task",
+          "line": null,
+          "finding": "For an unassigned task on the Files & Terminal card, `EMBED_OPTIONS` is used regardless — that's correct (no Folders anyway) — but `openTarget` from `MissionInfoPanel.onOpenOutput` produces `{outside: true}` targets that get added as tabs whose `path` may collide with a project-relative tab of the same path string; `addTab` dedupes by `path` only, so opening the session output for a path already open as a project tab silently switches meaning of the tab (session vs project view) depending on which `target` object survives in `tabs`.",
+          "suggestion": "Key tabs on `path + outside` (or disambiguate in the tab label), not `path` alone.  5. Category: test — Severity: low",
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": "client/e2e/flows/V8-files-terminal-shared-ui.spec.ts` — head-band geometry check",
+          "line": null,
+          "finding": "The 46px assertion only checks each head's height and the left-vs-right y-alignment (`boxes[0]` vs `boxes[2]`); the middle head (`boxes[1]`) is never checked to be in the same band, so a vertically offset terminal head would still pass.",
+          "suggestion": "Assert all three `y` values are within 2px of each other.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "client/src/components/external/mission/MissionInfoSidebar.tsx:89 — `addTab",
+          "line": null,
+          "finding": "Reopening an existing file updates `target` but leaves its stored tab target unchanged. For example, open `a.ts` at line 10, reopen it at line 40, switch to another file, then activate `a.ts`: activation restores the stale line-10 target.",
+          "suggestion": "Replace the existing tab’s target when its path matches, preserving tab order. Add a test that reopens a file with a different line, switches away, and activates it again.  Ship-with-fixes: the diff broadly implements the requested layout, but tab activation should preserve the latest requested target. Review was limited to the supplied diff because local command execution was blocked; tests were not run.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T00:15:37.889613+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: bug — Severity: high**\nFile: `client/src/hooks/useTerminalExpanded.ts` (the `useCallback(() => set(!expanded), [])` line)\nFinding: `toggle` is memoized with an empty dependency array, so it closes over the module-level `expanded` value captured at first render (`false`). Every call to `toggle` therefore calls `set(true)` — the control can expand but never collapse. The rewrite to a module store dropped the `setState(v => !v)` updater pattern without replacing it.\nSuggestion: Drop the `useCallback` (or depend on `value`), or make `set` accept an updater: `set((v) => !v)`. Note that both the new unit test (\"two consumers share one state… toggles back to false\") and the V8 e2e (`expand.click(); expect … not.toHaveAttribute(\"data-term-expanded\")`) will fail with this code as written — the change cannot be green as shipped, so this is not just latent.\n\n**2. Category: bug — Severity: medium**\nFile: `client/src/components/external/mission/MissionInfoSidebar.tsx` — `closeTab`\nFinding: `closeTab` reads `tabs`/`target` from the render closure. It is invoked from `ViewerTabBar.onClose`, which is fine for single clicks, but the embed card and the Mission card can both be mounted simultaneously; more importantly, if two closes are dispatched in the same tick (e.g. \"close others\"/rapid clicks) the second close operates on stale `tabs` and can resurrect or keep a closed tab. Lower risk than #1 but the previous page-level `handleCloseTab` used functional updates.\nSuggestion: Use functional updates: `setTabs(prev => …)` and derive the fallback target inside the updater (or via an effect on `tabs`/`target` mismatch).\n\n**3. Category: regression — Severity: medium**\nFile: `client/src/components/external/FolderTree.tsx` — removal of the `flat` prop\nFinding: The `flat` prop was deleted outright rather than deprecated. All in-repo callers shown are updated, but any external/undisplayed consumer passing `flat` now gets `undefined` and silently loses […truncated]\n\n[openai] - Category: bug\n- Severity: medium\n- File: client/src/components/external/mission/MissionInfoSidebar.tsx:89 — `addTab`\n- Finding: Reopening an existing file updates `target` but leaves its stored tab target unchanged. For example, open `a.ts` at line 10, reopen it at line 40, switch to another file, then activate `a.ts`: activation restores the stale line-10 target.\n- Suggestion: Replace the existing tab’s target when its path matches, preserving tab order. Add a test that reopens a file with a different line, switches away, and activates it again.\n\nShip-with-fixes: the diff broadly implements the requested layout, but tab activation should preserve the latest requested target. Review was limited to the supplied diff because local command execution was blocked; tests were not run.\n\nSHIPWRIGHT_VERDICT: revise",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:40:58.580461+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:13:34.143554+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T00:13:34.276084+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}
