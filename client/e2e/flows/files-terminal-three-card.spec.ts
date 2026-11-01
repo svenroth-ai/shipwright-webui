@@ -53,6 +53,7 @@ test.describe("@smoke A18 — three-card Files & Terminal (byte-identical pty)",
     await cleanupProject(request, project);
   });
 
+  // @covers FR-01.66
   test("three cards mount, terminal survives tab switch + maximize, keystroke path unchanged", async ({
     page,
   }) => {

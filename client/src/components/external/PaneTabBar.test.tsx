@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PaneTabBar } from "./PaneTabBar";
 
 describe("PaneTabBar — compact direct workspace navigation", () => {
+  // @covers FR-01.66
   it("renders exactly four direct destinations (Files, Terminal, Info, Viewer) and no Preview/Transcript/Session tab", () => {
     render(<PaneTabBar active="center" onChange={vi.fn()} />);
     expect(screen.getAllByRole("tab")).toHaveLength(4);
@@ -55,6 +56,7 @@ describe("PaneTabBar — compact direct workspace navigation", () => {
     expect(onChange).toHaveBeenCalledWith("center");
   });
 
+  // @covers FR-01.66
   it("Info and Viewer are two tabs of the right pane: they set the segment and select the pane", () => {
     const onChange = vi.fn();
     const onSegmentChange = vi.fn();
@@ -68,6 +70,7 @@ describe("PaneTabBar — compact direct workspace navigation", () => {
     expect(onSegmentChange).toHaveBeenLastCalledWith("viewer");
   });
 
+  // @covers FR-01.66
   it("marks exactly one of Info / Viewer selected from the segment", () => {
     const { rerender } = render(<PaneTabBar active="right" segment="info" onChange={vi.fn()} />);
     expect(screen.getByTestId("pane-tab-info")).toHaveAttribute("aria-selected", "true");
@@ -76,6 +79,7 @@ describe("PaneTabBar — compact direct workspace navigation", () => {
     expect(screen.getByTestId("pane-tab-right")).toHaveAttribute("aria-selected", "true");
   });
 
+  // @covers FR-01.66
   it("renders its children (the Expand control) after the tabs, outside the tab roles", () => {
     render(
       <PaneTabBar active="center" onChange={vi.fn()}>

@@ -19,6 +19,7 @@ function Collapse() {
 beforeEach(() => localStorage.clear());
 
 describe("TaskDetailThreePane — desktop sidebar collapse (V8)", () => {
+  // @covers FR-01.66
   it("collapse hides the right pane; the middle head toggle brings it back", () => {
     render(
       <TaskDetailThreePane
@@ -38,6 +39,7 @@ describe("TaskDetailThreePane — desktop sidebar collapse (V8)", () => {
     expect(screen.queryByTestId("viewer-toggle")).toBeNull();
   });
 
+  // @covers FR-01.66
   it("opening a file (viewerRequestKey bump) reveals a collapsed right pane", () => {
     const ui = (key: number) => (
       <TaskDetailThreePane

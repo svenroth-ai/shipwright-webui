@@ -35,6 +35,7 @@ test.describe("Mobile work mode", () => {
     project = undefined;
   });
 
+  // @covers FR-01.66
   test("the terminal owns the viewport with one light four-way control row", async ({
     page,
     request,

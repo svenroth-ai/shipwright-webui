@@ -66,6 +66,7 @@ test.describe("V8 — Files & Terminal shared tree + sidebar", () => {
       .toBe("x");
   }
 
+  // @covers FR-01.66
   test("desktop: shared head band, tree + context menu, Info|Viewer, collapse, pty intact", async ({ page }) => {
     test.setTimeout(120_000);
     const cap = attachWsCapture(page);
@@ -129,6 +130,7 @@ test.describe("V8 — Files & Terminal shared tree + sidebar", () => {
     await keystrokeIsItsOwnByte(page, cap);
   });
 
+  // @covers FR-01.66
   test("phone: ONE tab bar Files | Terminal | Info | Viewer + Expand, no Preview, terminal intact", async ({ page }) => {
     test.setTimeout(120_000);
     const cap = attachWsCapture(page);
