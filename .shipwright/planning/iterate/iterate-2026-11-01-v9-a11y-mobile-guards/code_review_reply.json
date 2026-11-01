@@ -1,0 +1,4 @@
+{"section":"V9-a11y-mobile-guards","review":[
+{"severity":"medium","category":"correctness","finding":"SubrunnerPanelHost finishedOk regressed for an agent whose status is null while the card says done; fixed: lag fallback keyed on outcome and cardDone, unit test added"},
+{"severity":"medium","category":"test","finding":"Run-result full-width e2e assertion was conditional; fixed: unconditional, re-run green"},
+{"severity":"low","category":"readability","finding":"contrast/guards test comments and background token parse cleaned up; fixed"}]}

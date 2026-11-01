@@ -64,6 +64,7 @@ function flat(css: string): Array<{ media: string; selector: string; body: strin
 }
 
 describe("1. nothing below 12px", () => {
+  // @covers FR-01.66
   it.each(FAMILY)("%s declares no font-size under 12px", (f) => {
     const bad: string[] = [];
     for (const m of src(f).matchAll(/font-size:\s*([\d.]+)(px|rem)/g)) {
@@ -78,6 +79,7 @@ describe("1. nothing below 12px", () => {
     expect(bad, `${f}: sub-12px text`).toEqual([]);
   });
 
+  // @covers FR-01.66
   it("every shared --fs-* scale token is at least 12px", () => {
     const seen: string[] = [];
     for (const f of MISSION) {
@@ -95,6 +97,7 @@ const MOTION = /\b(?:animation|transition)(?:-name)?\s*:(?!\s*(?:none|0s?|0ms)\s
 const RUNNING_DOTS = [".ag-dot", ".mc-feed-subrunner-dot"];
 
 describe("2. only the running dot animates, never under reduced motion", () => {
+  // @covers FR-01.66
   it.each(MISSION)("%s: motion is gated or is a running dot", (f) => {
     const css = src(f);
     expect(css, `${f} must not define keyframes`).not.toMatch(/@keyframes/);
@@ -109,6 +112,7 @@ describe("2. only the running dot animates, never under reduced motion", () => {
     expect(offenders, `${f}: ungated motion`).toEqual([]);
   });
 
+  // @covers FR-01.66
   it.each(RUNNING_DOTS)("%s is still under prefers-reduced-motion: reduce", (sel) => {
     const reduced = MISSION.flatMap((f) => flat(src(f))).filter(
       (r) => /prefers-reduced-motion:\s*reduce/.test(r.media) && r.selector.split(",").map((s) => s.trim()).includes(sel),
@@ -116,6 +120,7 @@ describe("2. only the running dot animates, never under reduced motion", () => {
     expect(reduced.map((r) => r.body).join(" ")).toMatch(/animation:\s*none/);
   });
 
+  // @covers FR-01.66
   it("the running dot has a base rule with no other animated sibling in the family", () => {
     const animated = MISSION.flatMap((f) => flat(src(f)))
       .filter((r) => r.media === "" && /animation\s*:(?!\s*none)/.test(r.body))
@@ -126,6 +131,7 @@ describe("2. only the running dot animates, never under reduced motion", () => {
 });
 
 describe("3. a visible 3px teal focus ring", () => {
+  // @covers FR-01.66
   it.each(FAMILY)("%s: :focus-visible never drops the outline without a ring", (f) => {
     const bad = flat(src(f))
       .filter((r) => r.selector.includes(":focus-visible") && /outline(?:-style)?\s*:\s*(?:none|0)\b/.test(r.body))
@@ -134,6 +140,7 @@ describe("3. a visible 3px teal focus ring", () => {
     expect(bad, `${f}: focus ring removed`).toEqual([]);
   });
 
+  // @covers FR-01.66
   it("every --focus token the Mission family sets is a 3px ring", () => {
     const seen: string[] = [];
     for (const f of FAMILY) {
@@ -158,6 +165,7 @@ function touch44(selector: string): boolean {
 }
 
 describe("4. 44px touch targets on a coarse pointer", () => {
+  // @covers FR-01.66
   it.each([
     ".mc-agents-chip",
     ".ag-icon-btn",
@@ -176,6 +184,7 @@ describe("4. 44px touch targets on a coarse pointer", () => {
     expect(touch44(sel), `${sel} needs a 44px rule under @media (pointer: coarse) or the phone breakpoint`).toBe(true);
   });
 
+  // @covers FR-01.66
   it("agent rows are 56px on the phone", () => {
     const row = flat(src("mission-agents.css")).find((r) => /max-width:\s*767px/.test(r.media) && r.selector === ".ag-row");
     expect(row?.body).toMatch(/min-height:\s*56px/);
@@ -183,6 +192,7 @@ describe("4. 44px touch targets on a coarse pointer", () => {
 });
 
 describe("5. a tablist is a real box", () => {
+  // @covers FR-01.66
   it("no role=tablist element is styled display: contents (older Safari drops the role)", () => {
     const root = path.resolve(dir, "../components");
     const offenders: string[] = [];

@@ -163,13 +163,15 @@ const LADDER: Rung[] = [
 ];
 
 describe("Mission dark + light token pairs clear WCAG 2.2 AA", () => {
+  // @covers FR-01.66
   it("parses the scopes it claims to guard", () => {
     expect(r2(contrast(D_BG, D_CARD))).toBeGreaterThan(1); // the two grounds are distinct and resolved
     expect(LADDER.length).toBeGreaterThan(40);
   });
 
+  // @covers FR-01.66
   it.each(LADDER.map((r) => [r.name, r] as const))("%s", (_name, rung) => {
     const ratio = contrast(rung.fg, rung.bg);
-    expect(r2(ratio), `${rung.name} = ${r2(ratio)}:1, needs ${rung.min}:1`).toBeGreaterThanOrEqual(rung.min);
+    expect(ratio, `${rung.name} = ${r2(ratio)}:1, needs ${rung.min}:1`).toBeGreaterThanOrEqual(rung.min);
   });
 });

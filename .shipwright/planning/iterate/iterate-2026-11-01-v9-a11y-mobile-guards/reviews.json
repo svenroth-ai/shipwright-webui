@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-11-01-v9-a11y-mobile-guards",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T01:43:52.156607+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 12,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "Acceptance criteria in the spec itself are \"TBD\" — the mini-plan derives them, but there's no confirmation they match the author's intent, and the numbering of follow-ups skips (b) while citing it in \"Known limits.\" This inconsistency suggests the mini-plan was written against a different revision of the scope than the one shown.",
+          "suggestion": "Confirm the AC list and the status of follow-up (b) before implementation; reconcile the (a)/(c) numbering.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "Criterion 8 (\"fix every violation the guards find in V1-V8 code\") is unbounded. Nobody has run the guards yet, so the fix surface could be a handful of declarations or dozens of files across eight versions of work. Bumping sub-12px fonts and changing `--muted`/running-dot colors can shift layout enough to break existing visual baselines — the plan hand-waves this as \"affected only if a baselined screen renders one of the changed sizes,\" which is almost certainly true somewhere.",
+          "suggestion": "Run the guards as a first, separate commit before any fixes; capture the violation inventory and size the fix work against it, and plan a baseline re-snap pass explicitly rather than conditionally.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "Follow-up (a) — hand-back only counts as a final report when origin is \"subagent\" — is a behavioral/telemetry change, not accessibility. Bundling it into a \"mobile polish\" iterate couples unrelated risk and muddies rollback. Same for the `display: contents` tablist fix (c), which can change tab-bar layout on all viewports.",
+          "suggestion": "Either split (a) into its own small iterate, or at minimum give it its own component test — the listed test files don't cover the origin-check logic.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "The full-screen Agents sheet (drill-down with Back) has no stated keyboard/focus behavior: no focus trap, no Escape-to-close, no mention of whether browser Back navigates the drill-down. On mobile, Android users will press hardware/gesture Back expecting it to leave the sheet.",
+          "suggestion": "Specify: Escape closes sheet, Back button pops drill-down, and wire `popstate` or at least document the deviation.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "\"Tap targets 44px on a coarse pointer\" — the plan applies 44px via `pointer: coarse` media query in some places and viewport width (`<=767px`) in others. Hybrid devices (touch laptops, tablets with keyboards) and narrow desktop windows will get inconsistent behavior. Also, a 36px control with padding/border may already exceed 44px hit area — the guard should measure effective size, not declared size.",
+          "suggestion": "Pick one strategy (coarse-pointer media query for sizes, width for layout) and state how the 44px guard computes effective target size (including padding).",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk |",
+          "file": null,
+          "line": null,
+          "finding": "Tables scrolling \"in their own frame\" can clip sticky headers and break horizontal scroll on iOS Safari (momentum/overflow quirks), and bottom-sheet context menus often lose their previous keyboard dismissal path. Both are regression-prone for existing desktop behavior.",
+          "suggestion": "Test sticky-header rendering after the change and keep the context menu's Escape/outer-click dismissal working in sheet form.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "\"E2E Pixel 5 touch\" — Playwright viewport emulation alone doesn't enable touch; the spec should note `hasTouch: true` and `isMobile: true`, otherwise the coarse-pointer styles under test are never actually exercised.",
+          "suggestion": "Pin the E2E context flags explicitly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "The contrast test \"in the style of tokens.contrast.test.ts\" presumably parses hex values from CSS. If the new tokens are defined as raw hex in CSS, values could drift between CSS and any re-declared test fixture. Parsing directly from the source files (as the existing test reportedly does) is the right call — just confirm the light-surface tokens are in a parseable single source.",
+          "suggestion": "Parse from source CSS, never re-declare hexes in the test.  Overall assessment: The core a11y-guard approach (tests-first, fix-what-they-find) is sound, but the plan bundles unrelated behavioral changes, has an unbounded fix criterion with real baseline-break risk, and leaves mobile sheet navigation/focus semantics unspecified. Address the scope split, guard sizing methodology, and sheet behavior before building.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "The motion criterion is contradictory: “motion only on the running dot” forbids other animation, while “gates all other motion to `no-preference`” permits it. The proposed transition changes follow the latter interpretation.",
+          "suggestion": "Define one rule consistent with the scope: only the running dot animates, and it stops under reduced motion. Make the guard enforce that rule explicitly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case |",
+          "file": null,
+          "line": null,
+          "finding": "A `drilled` boolean does not define what happens when the selected agent disappears, the window closes and reopens, or the viewport switches between phone and desktop. These transitions can leave an empty detail view or stale navigation state.",
+          "suggestion": "Tie drill-down to a valid selected agent, define reset behavior, and test those transitions. Move keyboard focus into detail on selection and restore it to the originating row on Back.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach |",
+          "file": null,
+          "line": null,
+          "finding": "Parsing token values alone does not establish contrast: contrast depends on foreground/background pairs, including muted text, status pills, interactive states, and focus rings. A passing test could miss an inaccessible rendered combination.",
+          "suggestion": "Enumerate the actual dark/light surface pairs and resolve token aliases and transparency. Apply 4.5:1 to normal text and 3:1 to applicable UI indicators; verify the teal ring against both surfaces.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency |",
+          "file": null,
+          "line": null,
+          "finding": "Several required outcomes have no explicit implementation or verification step: table-contained scrolling, the file-menu bottom sheet, viewer wrapping, and the campaign-wide mockup comparison. Naming an E2E test does not establish coverage, and baseline impact is deferred.",
+          "suggestion": "Map each outcome to a concrete edit and assertion. Include a phone overflow check, preserve the 36px desktop target behavior, and explicitly inspect Boards 10 and 12 plus README row 17. Finish with the required deviation list and review any affected visual baselines.  The approach is broadly suitable, but the motion contract, mobile navigation lifecycle, and verification coverage need clarification before implementation. No specific security concern is apparent from the proposed changes.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T01:21:37.999883+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n- **Category: approach** | **Severity: medium**\n  **Finding:** Acceptance criteria in the spec itself are \"TBD\" — the mini-plan derives them, but there's no confirmation they match the author's intent, and the numbering of follow-ups skips (b) while citing it in \"Known limits.\" This inconsistency suggests the mini-plan was written against a different revision of the scope than the one shown.\n  **Suggestion:** Confirm the AC list and the status of follow-up (b) before implementation; reconcile the (a)/(c) numbering.\n\n- **Category: risk** | **Severity: high**\n  **Finding:** Criterion 8 (\"fix every violation the guards find in V1-V8 code\") is unbounded. Nobody has run the guards yet, so the fix surface could be a handful of declarations or dozens of files across eight versions of work. Bumping sub-12px fonts and changing `--muted`/running-dot colors can shift layout enough to break existing visual baselines — the plan hand-waves this as \"affected only if a baselined screen renders one of the changed sizes,\" which is almost certainly true somewhere.\n  **Suggestion:** Run the guards as a first, separate commit before any fixes; capture the violation inventory and size the fix work against it, and plan a baseline re-snap pass explicitly rather than conditionally.\n\n- **Category: approach** | **Severity: medium**\n  **Finding:** Follow-up (a) — hand-back only counts as a final report when origin is \"subagent\" — is a behavioral/telemetry change, not accessibility. Bundling it into a \"mobile polish\" iterate couples unrelated risk and muddies rollback. Same for the `display: contents` tablist fix (c), which can change tab-bar layout on all viewports.\n  **Suggestion:** Either split (a) into its own small iterate, or at minimum give it its own component test — the listed test files don't cover the origin-check logic.\n\n- **Category: edge-case** | **Severity: medium**\n  **Finding:** The full-screen Agents sheet (drill-down with Back) has no stated keyboard […truncated]\n\n[openai] 1. **Category: approach | Severity: medium**  \n   **Finding:** The motion criterion is contradictory: “motion only on the running dot” forbids other animation, while “gates all other motion to `no-preference`” permits it. The proposed transition changes follow the latter interpretation.  \n   **Suggestion:** Define one rule consistent with the scope: only the running dot animates, and it stops under reduced motion. Make the guard enforce that rule explicitly.\n\n2. **Category: edge-case | Severity: medium**  \n   **Finding:** A `drilled` boolean does not define what happens when the selected agent disappears, the window closes and reopens, or the viewport switches between phone and desktop. These transitions can leave an empty detail view or stale navigation state.  \n   **Suggestion:** Tie drill-down to a valid selected agent, define reset behavior, and test those transitions. Move keyboard focus into detail on selection and restore it to the originating row on Back.\n\n3. **Category: approach | Severity: medium**  \n   **Finding:** Parsing token values alone does not establish contrast: contrast depends on foreground/background pairs, including muted text, status pills, interactive states, and focus rings. A passing test could miss an inaccessible rendered combination.  \n   **Suggestion:** Enumerate the actual dark/light surface pairs and resolve token aliases and transparency. Apply 4.5:1 to normal text and 3:1 to applicable UI indicators; verify the teal ring against both surfaces.\n\n4. **Category: dependency | Severity: medium**  \n   **Finding:** Several required outcomes have no explicit implementation or verification step: table-contained scrolling, the file-menu bottom sheet, viewer wrapping, and the campaign-wide mockup comparison. Naming an E2E test does not establish coverage, and baseline impact is deferred.  \n   **Suggestion:** Map each outcome to a concrete edit and assertion. Include a phone overflow check, preserve the 36px desktop target behavio […truncated]",
+      "verdicts": {
+        "openai": "revise",
+        "glm": "revise"
+      }
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": null,
+          "line": null,
+          "finding": "SubrunnerPanelHost finishedOk regressed for an agent whose status is null while the card says done; fixed: lag fallback keyed on outcome and cardDone, unit test added",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": null,
+          "line": null,
+          "finding": "Run-result full-width e2e assertion was conditional; fixed: unconditional, re-run green",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": null,
+          "line": null,
+          "finding": "contrast/guards test comments and background token parse cleaned up; fixed",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-11-01T01:43:52.573719+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "abb3f9f5ca0b7df606922e93806b9b26bc9d14e3"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T01:43:52.778566+00:00",
+      "disposition": "closed by reason_code diff-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "diff-below-threshold"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "parse the `--err` token from the dark scope (as the other rungs do) instead of regex-matching the badge's background, e.g. `bg: solid(tok(D, \"err\"))` with the color parsed separately, or loosen the regex to accept `var(...)` and resolve it.  2. Category: bug — Severity: medium `client/src/components/external/mission/AgentsWindow.tsx` (the `wasOpen`/`drilled` render-time reset) `setDrilled(selectedId !== null)` on open means \"open from the bar lands on the list\" only holds the very first time. `selectedId` lives in the controller and is never cleared on close: (a) the auto-select effect (`if (open && selectedId === null && first) select(...)`) selects an agent the first time the window opens, and (b) any prior card click selects an agent. Either way, the second open from the bar computes `selectedId !== null` → `drilled = true` → the phone shows the detail step, violating the spec's \"list → detail drill-down\" entry point. The new unit tests each mount fresh, and the e2e opens the window only once per test, so none of them catch this.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "track how the open was initiated (e.g. `controller.openFor()` with no id clears a \"came from bar\" flag, or reset `drilled` to `false` on close and let `openFor(id)` explicitly set it), rather than inferring from the persisted `selectedId`.  3. Category: regression — Severity: medium `client/src/lib/subrunnerAnswer.ts` — `findAgentHandback` now requires `c.handbackOrigin === \"subagent\"`, but the diff contains no change to `missionActivityFeed` (or wherever `ActivityCard`s are built) showing that production cards actually set `handbackOrigin`. Both tests that exercise this were edited in this same diff to add `handbackOrigin: \"subagent\"` — which is exactly what you'd do to make tests pass without fixing the producer. If real cards have `handbackOrigin: undefined`, every handback lookup silently returns `null` and subrunner answers regress to fallbacks.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "verify (and include in the diff) the card-construction site setting `handbackOrigin`; add a test that a card with `handbackOrigin: undefined` is treated as progress only if that's genuinely the production shape.  4. Category: test — Severity: low `client/e2e/flows/V9-mobile-a11y-guards.spec.ts` — `smallTargets` only checks `r.height < min - 0.5`. The spec says 44px tap targets (both dimensions); a 44px-tall, 20px-wide chevron or narrow icon button passes. The width assertions elsewhere are ad-hoc (Back height only, run-result width only).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "also assert `r.width >= min` (or a documented narrower minimum for width) in `smallTargets`.  5. Category: spec — Severity: low The spec's mobile scope includes \"viewer wrap on\". The diff only adds `.sv-wrap-toggle` to the 44px guard list; there is no change turning viewer wrap on by default (nor any listed remaining deviation, which the spec asks for in the final result). If wrap-on was already done in a prior iteration this is fine, but nothing in the diff demonstrates it.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "either include the wrap-on default change or explicitly note it as a remaining/deviation item.  6. Category: edge-case — Severity: low `client/src/components/external/mission/AgentsWindow.tsx` — the focus effect runs on `[drilled]` change and queries `.ag-back` / the selected row at that instant. If `agents` data arrives after `drilled` flips (e.g. opening via `openFor(id)` before session-info resolves, or Back pressed while the list is still loading), `target` is `null` and focus is silently dropped — a keyboard user is left with focus on the dialog body. The unit test \"opened on a chosen agent\" works around this by waiting for `agents-bar` before clicking.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "re-run the focus targeting when `agents`/`sections` change while `drilled` is pending, or fall back to focusing the dialog content.  Everything else (PaneTabBar grid fix, `agentOutcome` unification, SubrunnerPanelHost lag fallback, font-size bumps, reduced-motion gating, the guards test methodology, the CSS media queries) looks sound and well-tested.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/styles/mission-a11y.contrast.test.ts",
+          "line": 173,
+          "finding": "The guard rounds the contrast ratio before comparing it with the WCAG threshold. A failing ratio such as 4.496:1 becomes 4.50:1 and passes, so the test can accept noncompliant tokens.",
+          "suggestion": "Compare the unrounded `ratio` with `rung.min`; round only the value displayed in the failure message.  Ship-as-is with this minor guard refinement. I found no other concrete defects in the supplied diff; browser behavior and the final comparison against the mockup boards remain unverified.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-11-01T01:45:30.002593+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[glm] ## Findings\n\n**1. Category: bug — Severity: high**\n`client/src/styles/mission-a11y.contrast.test.ts` (~line for the \"dark error badge\" rung)\nThe rung parses the `.mcv-badge` rule with `OPERATION.match(/\\.mcv-badge\\s*\\{\\s*background:\\s*#[0-9a-fA-F]{6};\\s*color:\\s*(#[0-9a-fA-F]{6})/)`, but the actual rule in mission-operation.css is `background: var(--err); color: #fff;`. The regex requires a literal 6-digit hex after `background:` and will not match `var(--err)`, so `match(...)` returns `null` and `![1]` throws at module-load time — the entire contrast guard file fails (or worse, is dismissed as \"broken test\" and deleted) instead of enforcing anything.\nSuggestion: parse the `--err` token from the dark scope (as the other rungs do) instead of regex-matching the badge's background, e.g. `bg: solid(tok(D, \"err\"))` with the color parsed separately, or loosen the regex to accept `var(...)` and resolve it.\n\n**2. Category: bug — Severity: medium**\n`client/src/components/external/mission/AgentsWindow.tsx` (the `wasOpen`/`drilled` render-time reset)\n`setDrilled(selectedId !== null)` on open means \"open from the bar lands on the list\" only holds the very first time. `selectedId` lives in the controller and is never cleared on close: (a) the auto-select effect (`if (open && selectedId === null && first) select(...)`) selects an agent the first time the window opens, and (b) any prior card click selects an agent. Either way, the *second* open from the bar computes `selectedId !== null` → `drilled = true` → the phone shows the detail step, violating the spec's \"list → detail drill-down\" entry point. The new unit tests each mount fresh, and the e2e opens the window only once per test, so none of them catch this.\nSuggestion: track how the open was initiated (e.g. `controller.openFor()` with no id clears a \"came from bar\" flag, or reset `drilled` to `false` on close and let `openFor(id)` explicitly set it), rather than inferring from the persisted `selectedId`.\n\n**3. Ca […truncated]\n\n[openai] - Category: test\n- Severity: low\n- File: client/src/styles/mission-a11y.contrast.test.ts:173\n- Finding: The guard rounds the contrast ratio before comparing it with the WCAG threshold. A failing ratio such as 4.496:1 becomes 4.50:1 and passes, so the test can accept noncompliant tokens.\n- Suggestion: Compare the unrounded `ratio` with `rung.min`; round only the value displayed in the failure message.\n\nShip-as-is with this minor guard refinement. I found no other concrete defects in the supplied diff; browser behavior and the final comparison against the mockup boards remain unverified.\n\nSHIPWRIGHT_VERDICT: approve",
+      "verdicts": {
+        "openai": "approve",
+        "glm": "revise"
+      }
+    },
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T01:44:00.979408+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "model_tier": "opus",
+      "verdict": "pass",
+      "reviewed_commit": "abb3f9f5ca0b7df606922e93806b9b26bc9d14e3"
+    },
+    "plan_internal": {
+      "review_type": "plan_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T01:21:44.934354+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    },
+    "architecture_internal": {
+      "review_type": "architecture_internal",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-11-01T01:21:45.126718+00:00",
+      "disposition": "closed by reason_code complexity-below-threshold",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null,
+      "reason_code": "complexity-below-threshold"
+    }
+  }
+}

@@ -1,0 +1,1 @@
+feat(mission): phone polish and accessibility guards - the Agents window is a full-screen list-then-detail sheet with Back and 56px rows, controls are 44px on touch, the focus ring is a visible 3px teal ring, sub-12px text and ungated motion are removed, and tests now check Mission contrast, text size, motion and tap targets
