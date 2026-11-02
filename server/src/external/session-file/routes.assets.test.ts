@@ -249,6 +249,20 @@ describe("session-file assetOf", () => {
   });
 
   // @covers FR-01.66
+  it("a remembered owner proof of one task never satisfies another task", async () => {
+    resetOwnerMemo();
+    const { page, png } = layout();
+    let evidencedFor = "t-a";
+    const findEvidenceFor = (task: string) => async (candidates: string[]) => ({
+      found: new Set(task === evidencedFor ? candidates.map(evidenceKey) : []),
+      incomplete: false,
+    });
+    const ask = (task: string) => decideAssetAccess({ roots: [], requested: png, owner: page, findEvidence: findEvidenceFor(task), memoKey: task });
+    expect((await ask("t-a")).ok).toBe(true);
+    expect((await ask("t-b")).ok).toBe(false);
+  });
+
+  // @covers FR-01.66
   it("an NTFS alternate data stream behind an image extension is refused on Windows", async () => {
     const { page } = layout();
     evidenceFor(page);
