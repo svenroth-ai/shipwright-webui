@@ -20,6 +20,8 @@ export interface ViewerTarget {
   outside: boolean;
   /** 1-based line from a `file.ts:98` / `#L98` suffix (informational). */
   line?: number;
+  /** Set on a DOCUMENT tab (a Mission artifact opened in the Viewer): its tab title. `path` is `doc:<key>`. */
+  docLabel?: string;
 }
 
 export interface FileRef {
@@ -38,6 +40,15 @@ const SEP = /[\\/]/;
 // A bare `console.log` / `process.env` is code, not a file: separator-less names
 // must carry a code/doc extension from the recognized list.
 const BARE_OK = new Set(RECOGNIZED_EXTENSIONS);
+
+const DOC_PREFIX = "doc:";
+/** A Mission artifact (Spec, Tests, Run result ...) as a Viewer tab. `:` can never occur in a real target path (parseFileRef refuses it). */
+export function docTarget(key: string, label: string): ViewerTarget {
+  return { path: `${DOC_PREFIX}${key}`, outside: false, docLabel: label };
+}
+export function docKeyOf(t: ViewerTarget | null): string | null {
+  return t?.docLabel !== undefined && t.path.startsWith(DOC_PREFIX) ? t.path.slice(DOC_PREFIX.length) : null;
+}
 
 export function isAbsolutePath(p: string): boolean {
   return WIN_ABS.test(p) || p.startsWith("/");

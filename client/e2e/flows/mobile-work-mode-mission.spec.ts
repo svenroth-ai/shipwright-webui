@@ -11,7 +11,8 @@ test.describe("Mobile work mode — Mission tabs", () => {
     task = undefined;
   });
 
-  test("Mission uses Overview, Activity and contextual Detail", async ({
+  // @covers FR-01.66
+  test("Mission uses Overview, Activity and Info (documents open in the Viewer)", async ({
     page,
     request,
   }, testInfo) => {
@@ -20,13 +21,13 @@ test.describe("Mobile work mode — Mission tabs", () => {
     await page.getByTestId("mission-tab-mission").click();
 
     const tabs = page.getByTestId("mission-compact-tabs").getByRole("tab");
-    await expect(tabs).toHaveText(["Overview", "Activity", "Detail"]);
-    await expect(page.getByTestId("mission-compact-tab-detail")).toBeDisabled();
+    await expect(tabs).toHaveText(["Overview", "Activity", "Info"]);
+    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveCount(0);
     await expect(page.getByTestId("mission-panel-overview")).toBeVisible();
     await expect(page.getByTestId("mission-panel-activity")).toBeHidden();
 
     await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
+    await expect(page.getByTestId("mission-compact-tab-info")).toHaveAttribute(
       "aria-selected",
       "true",
     );
@@ -43,8 +44,8 @@ test.describe("Mobile work mode — Mission tabs", () => {
     });
 
     await page.getByTestId("artifact-close").click();
-    await expect(page.getByTestId("mission-compact-tab-overview")).toBeFocused();
-    await expect(page.getByTestId("mission-compact-tab-detail")).toBeDisabled();
+    await expect(page.getByTestId("artifact-panel")).toHaveCount(0);
+    await expect(page.getByTestId("mission-compact-tab-info")).toHaveAttribute("aria-selected", "true");
 
     await page.setViewportSize({ width: 820, height: 900 });
     const shiplog = page.getByTestId("mission-open-ships-log");

@@ -40,6 +40,7 @@ export function useMissionFileOpen(task: ExternalTask, onOpened: () => void) {
     () => ({
       projectRoot,
       cwd: task.cwd,
+      taskId: task.taskId,
       ready,
       open: (target) => {
         setAsked((prev) => ({ taskId: task.taskId, target, nonce: (prev?.nonce ?? 0) + 1 }));

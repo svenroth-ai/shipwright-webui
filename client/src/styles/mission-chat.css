@@ -82,4 +82,6 @@
 .mc-file:hover { border-color: var(--link, var(--accent)); color: var(--link-hover, var(--link, var(--accent))); }
 .mc-file:focus-visible { outline: none; box-shadow: var(--focus); }
 .mc-file svg { flex-shrink: 0; }
+/* A path that cannot be opened (or is still being checked) reads as plain code text, not as a link. */
+.mc-file-plain { font-family: var(--font-mono, ui-monospace, monospace); font-size: .9em; color: var(--muted); overflow-wrap: anywhere; }
 .mc-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

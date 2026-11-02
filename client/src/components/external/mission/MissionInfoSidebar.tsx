@@ -11,7 +11,7 @@
  * opened files stay as tabs above the viewer. The three-pane owns width/collapse.
  */
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
@@ -23,7 +23,8 @@ import {
   type MissionSidebarSegment,
 } from "../../../hooks/useMissionSidebar";
 import { UNASSIGNED_PROJECT_ID } from "../../../lib/projectIds";
-import type { ViewerTarget } from "../../../lib/viewerTarget";
+import { docKeyOf, docTarget, type ViewerTarget } from "../../../lib/viewerTarget";
+import { useSidebarViewerTabs } from "../../../hooks/useSidebarViewerTabs";
 import { useProject } from "../../../hooks/useProjects";
 import { FolderTree } from "../FolderTree";
 import { SmartViewer } from "../SmartViewer";
@@ -44,6 +45,16 @@ export interface SidebarEmbed {
   onActivePathChange?: (path: string | null) => void;
 }
 
+/** Mission documents (Spec, Tests, Run result ...) hosted as Viewer tabs: ONE viewer surface, no second panel. */
+export interface SidebarDocs {
+  /** A click on an artifact link / Run-result button; the nonce re-opens the same document. */
+  request: { key: string; label: string; nonce: number } | null;
+  /** Renders the document for a tab (null = it no longer exists). `close` closes that tab. */
+  render: (key: string, close: () => void) => ReactNode;
+  /** The document tab in front (null = a file or nothing): drives the left rail highlight. */
+  onActiveChange: (key: string | null) => void;
+}
+
 interface Props {
   task: ExternalTask;
   compact: boolean;
@@ -55,6 +66,7 @@ interface Props {
   embed?: SidebarEmbed;
   /** The Agents controller behind the Environment card's "Agents" pill (Mission: MissionBody's; Files & Terminal: its own). */
   agents?: MissionAgents;
+  docs?: SidebarDocs;
 }
 
 const OPTIONS = [
@@ -68,21 +80,14 @@ const EMBED_OPTIONS = OPTIONS.filter((o) => o.value !== "folders").map((o) => ({
   testId: o.testId.replace("mission-side", "ft-side"),
 }));
 
-export function MissionInfoSidebar({ task, compact, visible = true, request = null, embed, agents }: Props) {
+export function MissionInfoSidebar({ task, compact, visible = true, request = null, embed, agents, docs }: Props) {
   const layout = useMissionSidebar();
   const embedRef = useRef(embed);
   embedRef.current = embed;
   const unassigned = task.projectId === UNASSIGNED_PROJECT_ID;
   const project = useProject(unassigned ? "" : task.projectId).data;
   const projectRoot = project?.path ?? null;
-  const [target, setTarget] = useState<ViewerTarget | null>(null);
-  const [tabs, setTabs] = useState<ViewerTarget[]>([]);
-  // Synchronous mirror so two updates in one tick (rapid close / open) never act on a stale list.
-  const tabsRef = useRef<ViewerTarget[]>([]);
-  const commitTabs = (next: ViewerTarget[]) => {
-    tabsRef.current = next;
-    setTabs(next);
-  };
+  const { target, setTarget, tabs, addTab, closeTab, open } = useSidebarViewerTabs();
   const [focusKey, setFocusKey] = useState(0);
   const drag = useRef<{ x: number; w: number } | null>(null);
   // In-progress drag width: committed (and persisted) once, on release.
@@ -93,20 +98,9 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
     if (embed) embed.onSegmentChange(s === "viewer" ? "viewer" : "info");
     else layout.setSegment(s);
   };
-  // A re-open replaces the stored target (latest line) and keeps the tab position.
-  const addTab = (t: ViewerTarget) => {
-    const prev = tabsRef.current;
-    commitTabs(prev.some((x) => x.path === t.path) ? prev.map((x) => (x.path === t.path ? t : x)) : [...prev, t]);
-  };
   const openTarget = (t: ViewerTarget) => {
-    setTarget(t);
-    addTab(t);
+    open(t);
     setSeg("viewer");
-  };
-  const closeTab = (path: string) => {
-    const rest = tabsRef.current.filter((x) => x.path !== path);
-    commitTabs(rest);
-    setTarget((cur) => (cur?.path === path ? (rest[rest.length - 1] ?? null) : cur));
   };
 
   const layoutRef = useRef(layout);
@@ -122,8 +116,27 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
       layoutRef.current.setCollapsed(false);
     }
   }, [request]);
+  // A Mission document opens as a tab of the SAME viewer (never in a second panel).
+  const docsRef = useRef(docs);
+  docsRef.current = docs;
+  const docRequest = docs?.request ?? null;
   useEffect(() => {
-    embedRef.current?.onActivePathChange?.(target && !target.outside ? target.path : null);
+    if (!docRequest) return;
+    const t = docTarget(docRequest.key, docRequest.label);
+    setTarget(t);
+    addTab(t);
+    if (embedRef.current) embedRef.current.onSegmentChange("viewer");
+    else {
+      layoutRef.current.setSegment("viewer");
+      layoutRef.current.setCollapsed(false);
+    }
+  }, [docRequest]);
+  const activeDoc = docKeyOf(target);
+  useEffect(() => {
+    docsRef.current?.onActiveChange(activeDoc);
+  }, [activeDoc]);
+  useEffect(() => {
+    embedRef.current?.onActivePathChange?.(target && !target.outside && !target.docLabel ? target.path : null);
   }, [target]);
 
   if (!embed && !compact && layout.collapsed) {
@@ -169,7 +182,13 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
   const options = embed ? EMBED_OPTIONS : unassigned ? OPTIONS.filter((o) => o.value !== "folders") : OPTIONS;
   const stored: MissionSidebarSegment = embed ? embed.segment : layout.segment;
   const seg: MissionSidebarSegment = unassigned && stored === "folders" ? "info" : stored;
-  const viewer = (
+  const docLabels = Object.fromEntries(tabs.filter((t) => t.docLabel).map((t) => [t.path, t.docLabel as string]));
+  const docNode = activeDoc !== null && target ? docs?.render(activeDoc, () => closeTab(target.path)) : null;
+  const viewer = activeDoc !== null ? (
+    <div className="mc-side-doc" data-testid="mission-side-doc">
+      {docNode ?? <p className="env-empty" data-testid="mission-side-doc-gone">This document is no longer available.</p>}
+    </div>
+  ) : (
     <SmartViewer projectId={task.projectId} path={target?.path ?? null} sessionTaskId={target?.outside ? task.taskId : undefined} line={target?.line} focusKey={focusKey} />
   );
   // Opened files stay as tabs above the viewer, in BOTH hostings (Mission tab + Files & Terminal).
@@ -180,6 +199,7 @@ export function MissionInfoSidebar({ task, compact, visible = true, request = nu
         activePath={target?.path ?? null}
         onActivate={(p) => setTarget(tabs.find((x) => x.path === p) ?? target)}
         onClose={closeTab}
+        labels={docLabels}
       />
       <div className="min-h-0 flex-1">{viewer}</div>
     </>

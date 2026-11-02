@@ -63,6 +63,8 @@ export function createFileLinkProvider(
   term: LinkTerm,
   onActivate: (ref: FileRef) => void,
   isClick: (e: MouseEvent) => boolean = () => true,
+  /** Optional openable-check, one verdict per ref: a link whose path cannot be opened is never offered. Fail-open on a throw. */
+  filter?: (refs: FileRef[]) => Promise<boolean[]>,
 ): ILinkProvider {
   return {
     provideLinks(bufferLineNumber, callback) {
@@ -92,10 +94,12 @@ export function createFileLinkProvider(
       }
 
       const links: ILink[] = [];
+      const candidates: Array<{ ref: FileRef }> = [];
       for (const c of findFileLinkCandidates(text)) {
         const s = pos[c.start];
         const e = pos[c.end - 1];
         if (!s || !e || bufferLineNumber < s.y || bufferLineNumber > e.y) continue;
+        candidates.push({ ref: c.ref });
         links.push({
           range: { start: { x: s.x + 1, y: s.y }, end: { x: e.x + e.w, y: e.y } },
           text: text.slice(c.start, c.end),
@@ -105,7 +109,13 @@ export function createFileLinkProvider(
           },
         });
       }
-      callback(links.length ? links : undefined);
+      if (!filter || links.length === 0) return callback(links.length ? links : undefined);
+      // Lazy and non-blocking: xterm asks only for the row under the pointer; repeats are answered from the client cache.
+      const refs = candidates.map((c) => c.ref);
+      void filter(refs).then(
+        (ok) => { const kept = links.filter((_, i) => ok[i] !== false); callback(kept.length ? kept : undefined); },
+        () => callback(links),
+      );
     },
   };
 }

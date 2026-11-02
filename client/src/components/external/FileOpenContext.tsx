@@ -17,6 +17,8 @@ export interface FileOpenValue {
   cwd?: string | null;
   /** False while the task's project is still loading: inside paths cannot be resolved yet, so no chips. Default true. */
   ready?: boolean;
+  /** The task whose session the chips belong to: enables the openable-probe (a dead path renders as plain text). */
+  taskId?: string;
   open: (target: ViewerTarget) => void;
 }
 

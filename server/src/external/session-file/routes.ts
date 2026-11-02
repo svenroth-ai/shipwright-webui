@@ -23,6 +23,7 @@ import { readRegularFileCapped } from "../../core/session-file/safe-read.js";
 import type { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 import type { SessionWatcher } from "../../core/session-watcher.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
+import { registerProbeRoute } from "./probe-route.js";
 import { FILE_MAX_BYTES, MIME_BY_EXTENSION, fileFingerprint, sanitizeContentDispositionFilename } from "../file/_helpers.js";
 
 export interface SessionFileRouterDeps extends EvidenceDeps {
@@ -92,5 +93,6 @@ export function createSessionFileRouter(deps: SessionFileRouterDeps): Hono {
     return c.body(new Uint8Array(read.bytes));
   });
 
+  registerProbeRoute(app, deps);
   return app;
 }

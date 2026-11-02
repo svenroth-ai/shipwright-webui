@@ -1,49 +1,44 @@
 import { useRef, type KeyboardEvent, type RefObject } from "react";
 
-export type MissionCompactPanel = "overview" | "activity" | "detail" | "info";
+/** Phone tabs. The old "Detail" tab is gone: documents open in the Viewer, which lives under "Info". */
+export type MissionCompactPanel = "overview" | "activity" | "info";
 
 interface Props {
   active: MissionCompactPanel;
-  detailAvailable: boolean;
   onChange: (panel: MissionCompactPanel) => void;
   overviewRef: RefObject<HTMLButtonElement | null>;
   activityRef: RefObject<HTMLButtonElement | null>;
-  detailRef: RefObject<HTMLButtonElement | null>;
   infoRef?: RefObject<HTMLButtonElement | null>;
 }
 
 const TABS: { id: MissionCompactPanel; label: string }[] = [
   { id: "overview", label: "Overview" },
   { id: "activity", label: "Activity" },
-  { id: "detail", label: "Detail" },
   { id: "info", label: "Info" },
 ];
 
 export function MissionCompactTabs({
   active,
-  detailAvailable,
   onChange,
   overviewRef,
   activityRef,
-  detailRef,
   infoRef,
 }: Props) {
   const internalRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const refs = { overview: overviewRef, activity: activityRef, detail: detailRef, info: infoRef };
-  const enabled = TABS.filter((tab) => tab.id !== "detail" || detailAvailable);
+  const refs = { overview: overviewRef, activity: activityRef, info: infoRef };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const current = Math.max(0, enabled.findIndex((tab) => tab.id === active));
+    const current = Math.max(0, TABS.findIndex((tab) => tab.id === active));
     const nextIndex = event.key === "Home"
       ? 0
       : event.key === "End"
-        ? enabled.length - 1
-        : (current + (event.key === "ArrowRight" ? 1 : -1) + enabled.length) % enabled.length;
-    const next = enabled[nextIndex];
+        ? TABS.length - 1
+        : (current + (event.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
+    const next = TABS[nextIndex];
     onChange(next.id);
-    internalRefs.current[TABS.findIndex((tab) => tab.id === next.id)]?.focus();
+    internalRefs.current[nextIndex]?.focus();
   };
 
   return (
@@ -65,7 +60,6 @@ export function MissionCompactTabs({
     >
       {TABS.map((tab, index) => {
         const selected = active === tab.id;
-        const disabled = tab.id === "detail" && !detailAvailable;
         return (
           <button
             key={tab.id}
@@ -79,7 +73,6 @@ export function MissionCompactTabs({
             aria-selected={selected}
             aria-controls={`mission-panel-${tab.id}`}
             tabIndex={selected ? 0 : -1}
-            disabled={disabled}
             data-testid={`mission-compact-tab-${tab.id}`}
             onClick={() => onChange(tab.id)}
             className={`mc-tab min-h-11 px-2 text-[13px]${selected ? " active" : ""}`}

@@ -27,6 +27,37 @@ export type SafeReadResult =
   | { kind: "too_large"; size: number }
   | { kind: "error"; detail: string };
 
+export type RegularFileProbe = { kind: "file" } | { kind: "not_found" } | { kind: "not_a_file" } | { kind: "too_large" } | { kind: "error" };
+
+/**
+ * Existence probe for ONE already-authorised, realpath'd path: a single open, the verdict taken from the
+ * handle (js/file-system-race), nothing read. Same swap guards as readRegularFileCapped.
+ */
+export async function probeRegularFile(p: string, maxBytes?: number): Promise<RegularFileProbe> {
+  let fh;
+  try {
+    fh = await open(p, FLAGS);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code === "ENOENT" || code === "ENOTDIR") return { kind: "not_found" };
+    if (code === "ELOOP" || code === "EISDIR") return { kind: "not_a_file" };
+    return { kind: "error" };
+  }
+  try {
+    const st = await fh.stat({ bigint: true });
+    if (!st.isFile()) return { kind: "not_a_file" };
+    if ((await realpath(p)) !== p) return { kind: "not_a_file" };
+    const link = await lstat(p, { bigint: true });
+    if (link.isSymbolicLink() || link.dev !== st.dev || link.ino !== st.ino) return { kind: "not_a_file" };
+    if (maxBytes !== undefined && st.size > BigInt(maxBytes)) return { kind: "too_large" };
+    return { kind: "file" };
+  } catch {
+    return { kind: "error" };
+  } finally {
+    await fh.close().catch(() => {});
+  }
+}
+
 /** `p` MUST be the output of realpath(): anything else is treated as an ancestor swap and refused. */
 export async function readRegularFileCapped(p: string, maxBytes: number): Promise<SafeReadResult> {
   let fh;

@@ -53,25 +53,17 @@
   .env-more, .env-refresh { min-height: 44px; }
 }
 @media (pointer: coarse) { .env-output, .env-pill-btn { min-height: 44px; } }
-/* Desktop: the middle card keeps a usable width (A13 AC2); the sidebar, not the
-   feed, gives way when an artifact card is also open. Below 1700px with an
-   artifact open the sidebar has yielded and the floor is dropped too (pre-M3
-   behaviour), or record + 360 + artifact overflows the row at ~1024-1103px and
-   clips the artifact's close button. */
-@media (min-width: 1700px) {
+/* Desktop: the middle card keeps a usable width (A13 AC2). Documents no longer open a fourth card: they are
+   tabs of the sidebar's Viewer, so the sidebar never has to yield; below 1200px the feed may shrink instead of overflowing the row. */
+@media (min-width: 1200px) {
   .on-photo .mc-body > .mission-panel > .mc-op { min-width: 360px; }
 }
-@media (min-width: 1024px) and (max-width: 1699px) {
-  .on-photo .mc-body:not(:has(.artifact)) > .mission-panel > .mc-op { min-width: 360px; }
-}
-/* Below 1700px there is no room for FOUR cards (left + feed + artifact + sidebar):
-   an open artifact card takes the row, and the sidebar returns when it closes.
-   Its layout state is untouched (only display), so nothing is forgotten. */
-@media (min-width: 1024px) and (max-width: 1699px) {
-  .mc-body:has(.artifact) > .mission-panel > .mc-side,
-  .mc-body:has(.artifact) > .mission-panel > .mc-side-split,
-  .mc-body:has(.artifact) > .mission-panel > .mc-side-rail { display: none; }
-}
+/* A Mission document hosted in the Viewer (MissionInfoSidebar `docs`): the artifact card fills the viewer pane
+   instead of floating as a slide-over (no scrim, no fixed width, no second glass frame). */
+.mc-side-doc { display: flex; flex-direction: column; height: 100%; min-height: 0; min-width: 0; }
+.mc-side-doc > .env-empty { padding: 16px; }
+.mc-side-doc .a-scrim { display: none; }
+.on-photo .mc-side-doc .artifact, .mc-side-doc .artifact { position: relative; inset: auto; width: 100%; flex: 1; min-height: 0; border: 0; border-radius: 0; box-shadow: none; background: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; animation: none; z-index: auto; }
 
 /* Smart Viewer header for a file OUTSIDE the project: name, tag, Copy path, full path. */
 .sv-outside-head { padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--g100); flex-shrink: 0; }
