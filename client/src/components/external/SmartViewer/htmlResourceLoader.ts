@@ -59,13 +59,12 @@ export interface ResourceLoader {
   dispose(): void;
 }
 
-function readAsDataUri(blob: Blob): Promise<string | null> {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(blob);
-  });
+/** `data:` URI of raw bytes. Plain base64 (no FileReader / Blob: both are unreliable across realms, e.g. jsdom). */
+function toDataUri(buffer: ArrayBuffer, type: string): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return `data:${type};base64,${btoa(binary)}`;
 }
 
 export interface LoaderLimits {
@@ -134,11 +133,11 @@ export function createResourceLoader(urlFor: (path: string) => string, limits: L
       if (!r.ok) return null;
       const declared = Number(r.headers.get("content-length"));
       if (Number.isFinite(declared) && declared > maxBytes - bytes) return null;
-      const blob = await r.blob();
-      if (bytes + blob.size > maxBytes) return null;
-      bytes += blob.size;
-      const typed = blob.type ? blob : new Blob([blob], { type: MIME_BY_EXTENSION[refExtension(path)] });
-      return await readAsDataUri(typed);
+      const buffer = await r.arrayBuffer();
+      if (bytes + buffer.byteLength > maxBytes) return null;
+      bytes += buffer.byteLength;
+      const type = (r.headers.get("content-type") ?? "").split(";")[0].trim() || MIME_BY_EXTENSION[refExtension(path)];
+      return toDataUri(buffer, type);
     }
   }
 
