@@ -7,24 +7,31 @@
  * webui's cookies, storage or /api. Scripts may run (boards are interactive),
  * but an injected CSP forbids fetch/XHR/WebSocket connections and form
  * submission, so a rendered page cannot save anything back to the app. It can
- * still make outbound requests (https images/fonts, navigation, popups): the
- * origin is opaque, so only the file's own content is at stake. Links open in
+ * still make outbound requests (https images/fonts, navigation, popups), and the
+ * resources the viewer embeds for it (below) are readable by its scripts: what
+ * is at stake is the page's own content PLUS the images / stylesheets / fonts it
+ * names in its own folder tree (accepted residual risk, ADR of
+ * iterate-2026-11-02-smartviewer-html-images). Links open in
  * a new tab (`allow-popups` + `allow-popups-to-escape-sandbox`,
  * `<base target=_blank>`).
  *
- * Styles: the srcdoc has no base URL, so a relative `<link rel=stylesheet>`
- * can never load. With `projectId` + `path` the file's relative stylesheets
- * are read through the project file API and inlined (see htmlInlineStyles);
- * the iframe is held until that finishes so it loads once, already styled.
- * `onPopOut` adds the Pop out control (the modal-nested instance omits it).
+ * Resources: the srcdoc has no base URL, so a relative stylesheet or image can
+ * never load. With `path` and a `projectId` (project file) or `sessionTaskId`
+ * (file outside the project) the page's relative stylesheets, images and the
+ * `url()` / `@import` inside its CSS are read through the file API and inlined
+ * (inlineHtmlResources); the iframe is held until that finishes so it loads
+ * once, already complete. `onPopOut` adds the Pop out control (the
+ * modal-nested instance omits it).
  */
 
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink } from "lucide-react";
 
-import { fetchFileText } from "../../../lib/externalApi";
+import { fileUrl } from "../../../lib/externalApi";
+import { sessionFileUrl } from "../../../lib/sessionFileApi";
 import { CodeRenderer } from "./CodeRenderer";
-import { inlineLinkedStyles } from "./htmlInlineStyles";
+import { createResourceLoader } from "./htmlResourceLoader";
+import { inlineHtmlResources } from "./inlineHtmlResources";
 
 const CSP =
   "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; " +
@@ -45,42 +52,47 @@ export function buildHtmlSrcDoc(text: string): string {
 
 interface Props {
   text: string;
-  /** With `path`: relative stylesheets are loaded from the project and inlined. */
+  /** With `path`: relative stylesheets / images are loaded from the project and inlined. */
   projectId?: string;
+  /** Alternative to `projectId` for a file OUTSIDE the project: `path` is then absolute. */
+  sessionTaskId?: string;
   path?: string;
   /** Open the centered in-app pop-out modal (omitted inside the modal). */
   onPopOut?: () => void;
 }
 
-export function HtmlRenderer({ text, projectId, path, onPopOut }: Props) {
+export function HtmlRenderer({ text, projectId, sessionTaskId, path, onPopOut }: Props) {
   const [mode, setMode] = useState<"preview" | "source">("preview");
   const [inlined, setInlined] = useState<{
-    source: string;
-    projectId: string;
+    scope: string;
     path: string;
     html: string;
   } | null>(null);
-  const wantsInline = Boolean(projectId && path);
+  // Which file API the page's resources come from; a different scope or file is never shown from a stale result.
+  const scope = projectId ? `p:${projectId}` : sessionTaskId ? `t:${sessionTaskId}` : "";
+  const wantsInline = Boolean(scope && path);
 
   useEffect(() => {
-    if (!projectId || !path) return;
+    if (!scope || !path) return;
     let cancelled = false;
     const done = (html: string) => {
-      if (!cancelled) setInlined({ source: text, projectId, path, html });
+      if (!cancelled) setInlined({ scope, path, html });
     };
-    inlineLinkedStyles(text, path, async (p) => (await fetchFileText(projectId, p)).text)
+    const loader = createResourceLoader((p) => (projectId ? fileUrl(projectId, p) : sessionFileUrl(sessionTaskId ?? "", p, path)));
+    inlineHtmlResources(text, path, loader)
       .then(done)
       .catch(() => done(text));
     return () => {
       cancelled = true;
+      loader.dispose(); // the page was replaced: stop fetching for it
     };
-  }, [text, projectId, path]);
+  }, [text, scope, projectId, sessionTaskId, path]);
 
   // Hold the iframe until the stylesheets are inlined: one load, no unstyled
   // flash, and the page's scripts run once. A result for ANOTHER project/file
   // is never shown; when only `text` changed (same project + file) the previous
   // frame stays up until the fresh result arrives, so it does not flash.
-  const sameTarget = inlined?.projectId === projectId && inlined?.path === path;
+  const sameTarget = inlined?.scope === scope && inlined?.path === path;
   const showFrame = !wantsInline || sameTarget;
   const srcDoc = useMemo(
     () => buildHtmlSrcDoc(wantsInline && sameTarget && inlined ? inlined.html : text),

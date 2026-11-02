@@ -1,0 +1,1 @@
+Session files outside the project can now serve sibling images, fonts and .css of an already-mentioned HTML page (new assetOf rule: same folder tree, no hidden folders, no sensitive or broad folders, allowlisted types). A scripted page could read and forward the files it names in its own folder; this is a documented accepted risk.

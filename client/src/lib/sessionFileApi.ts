@@ -7,8 +7,10 @@
 import { EXTERNAL_API } from "./externalApi";
 import { fetchTextFile } from "./fetchTextFile";
 
-export function sessionFileUrl(taskId: string, path: string): string {
+export function sessionFileUrl(taskId: string, path: string, assetOf?: string): string {
   const q = new URLSearchParams({ path });
+  // `assetOf` = the evidenced outside HTML page that references this image / stylesheet / font.
+  if (assetOf) q.set("assetOf", assetOf);
   return `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/session-file?${q.toString()}`;
 }
 

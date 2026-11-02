@@ -168,7 +168,7 @@ interface TextProps {
 
 function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId, line, focusKey }: TextProps) {
   const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
-  // An outside file has no project root: no cross-file nav, edit or sibling-stylesheet inlining.
+  // An outside file has no project root: no cross-file nav or edit; its sibling resources come via the session-file route.
   const scopedProjectId = sessionTaskId ? undefined : projectId;
   const [popoutOpen, setPopoutOpen] = useState(false);
   // Bumped after a successful in-app markdown edit so the preview re-fetches.
@@ -249,7 +249,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut, sessionTaskId, lin
     }
     if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={sessionTaskId ? NO_DOC_NAV : nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={scopedProjectId} path={nav.effectivePath} onSaved={() => setReloadNonce((n) => n + 1)} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} line={line} focusKey={focusKey} />;
-    if (kind === "html") return <HtmlRenderer text={state.text} projectId={scopedProjectId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
+    if (kind === "html") return <HtmlRenderer text={state.text} projectId={scopedProjectId} sessionTaskId={sessionTaskId} path={nav.effectivePath} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} line={line} focusKey={focusKey} />;
   })();

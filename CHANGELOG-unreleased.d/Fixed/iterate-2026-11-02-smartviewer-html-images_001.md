@@ -1,0 +1,1 @@
+An HTML page opened in the file viewer now shows its images, fonts and imported stylesheets (including CSS background images), also for pages outside the project folder that the session has mentioned, and in the pop-out view.

@@ -1,0 +1,42 @@
+{
+  "review_schema": 2,
+  "success": true,
+  "provider": "codex",
+  "degraded": false,
+  "reviews_succeeded": 2,
+  "reviewed": true,
+  "reviews": {
+    "openai": {
+      "feedback": "- Category: spec\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlResourceLoader.ts:129\n- Finding: Stylesheet requests bypass the shared loader limits. `text()` calls `fetchTextFile` directly, so linked stylesheets and imports do not count toward the 40-file or 20 MB limits, do not use the six-request semaphore, and are not aborted by `dispose()`. Twenty linked stylesheets can start concurrently; the wrapper timeout stops waiting without cancelling those requests.\n- Suggestion: Route stylesheet reads through the same counted, cancellable request queue as images and fonts, with shared file and byte budgets.\n\n- Category: spec\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineAssets.ts:75\n- Finding: The 30 MB output limit counts only substituted data URIs. Imported stylesheet bodies are inserted without calling `spend()`, and linked stylesheet bodies are likewise uncounted. Twenty linked stylesheets plus twenty imports can exceed the output limit before any images are embedded.\n- Suggestion: Budget stylesheet text and replacement overhead as well as data URIs, and enforce a final document-size ceiling before constructing `srcdoc`.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineAssets.ts:69\n- Finding: Page-wide import deduplication changes CSS cascade behavior. For example, `@import \"red.css\"; @import \"blue.css\"; @import \"red.css\";` should end with red taking precedence, but the final import remains relative and cannot load in the iframe, leaving blue in effect. The diamond test explicitly expects this semantic change.\n- Suggestion: Cache fetched stylesheet text while preserving each import occurrence. Detect cycles using the current recursion stack and bound repeated expansion with the shared output budget.\n\n- Category: bug\n- Severity: medium\n- File: client/src/components/external/SmartViewer/htmlInlineAssets.ts:84\n- Finding: Rewriting drops URL fragments. A valid CSS reference such as `url(\"icons.svg#check\")` becomes a data URI without `#check`, so the browser no longer selects the referenced SVG symbol or fragment. Image attributes take the same path and lose fragments too.\n- Suggestion: Separate the fragment from the file path, fetch and cache the file without it, then append the fragment to the generated data URI.\n\nOverall assessment: ship-with-fixes. The main rendering and access-control paths are implemented, but stylesheet handling bypasses required resource bounds and changes valid CSS behavior.\n\nSHIPWRIGHT_VERDICT: revise",
+      "via": "codex",
+      "status": "success"
+    },
+    "glm": {
+      "feedback": "The diff is the implementation *plus* the planning/review artifacts from its own review cycle; the substantive code already incorporates the previously-flagged high findings (output budget `spend`, `dispose()` abort, `[^'\"<>]` tag regex, lexical-vs-realpath fallback, memoized owner decision, ADS colon check). Reviewing the code itself:\n\n- Category: bug \u00b7 Severity: medium \u00b7 File: client/src/components/external/SmartViewer/htmlResourceLoader.ts (~line 117, `text: async (path) => (await fetchTextFile(urlFor(path))).text`) \u2014 `text()` is the one loader method that bypasses every bound: no `acquire()` in-flight slot, no `dispose()` check, no abort, and it isn't counted against `maxBytes`. After `dispose()` the orphaned inlining promise chain (inlineLinkedStyles \u2192 processCss) still fetches stylesheets to completion, and `inlineLinkedStyles` fires up to 20 concurrent text fetches. The header comment claims text is bounded by the loader's limits; it isn't.\n  Suggestion: route `text()` through the same acquire/dispose/timeout machinery as `dataUri` (or at minimum check `disposed` first and register an AbortController).\n\n- Category: edge-case \u00b7 Severity: medium \u00b7 File: server/src/core/session-file/asset-access.ts (~line 60, `isBroadFolder`) \u2014 on Windows, `path.relative(dir, home)` (and `os.tmpdir()`) returns an *absolute* path when `dir` is on a different drive; `within()` then returns `false` (it rejects absolute rels), so the home-ancestor and tmp checks silently no-op for pages on a non-system drive. The root check still catches bare roots, but e.g. `D:\\Users\\shared\\report.html` gets the full-subtree asset read with no broad-folder check.\n  Suggestion: also treat \"different drive than home/tmp\" folders via an explicit drive-root/depth heuristic, or compare drive letters before relying on `path.relative`.\n\n- Category: bug \u00b7 Severity: low \u00b7 File: client/src/components/external/SmartViewer/htmlMarkupScan.ts (~line 48, `maskNonMarkup` style-block recording) \u2014 the block `start` is `html.indexOf(\">\", lt)`, the first `>` after `<style`. A `<style media=\"(min-width: 100px)\">` or `title=\"a>b\"` makes the recorded CSS range start inside the tag's attribute list, so the wrong substring is processed as CSS (and `</style` escaping applied to it). Content-wrongness only, no security impact.\n  Suggestion: scan for the tag's real end respecting quotes (reuse the LINK_TAG-style pattern) before recording `start`.\n\n- Category: edge-case \u00b7 Severity: low \u00b7 File: client/src/components/external/SmartViewer/htmlInlineStyles.ts + htmlInlineAssets.ts \u2014 `claimImport` is page-wide first-come-first-served: the same stylesheet `@import`ed from two *different* linked stylesheets (or `<link>`ed twice, which `inlineLinkedStyles` fetches independently with no dedupe) is inlined only at its first occurrence; the second `@import` survives verbatim and is dead under the CSP (`connect-src 'none'`), so the page silently loses that style. `releaseImport` only helps on fetch failure, not on the duplicate case.\n  Suggestion: leave the duplicate as a no-op or emit the cached inlined body again within the output budget; at minimum document it.\n\n- Category: edge-case \u00b7 Severity: low \u00b7 File: client/src/components/external/SmartViewer/htmlResourceLoader.ts (~line 100, `fetchAsset`) \u2014 when `Content-Length` is absent (chunked responses), the whole blob is buffered before the `maxBytes` check; up to 6\u00d7large files transiently held. Low, but a hostile \"asset\" server isn't the threat model here (the server is ours), so this is memory-hygiene only.\n  Suggestion: stream-count bytes while reading and abort past the cap.\n\nTests: the new unit tests are genuinely behavioral (byte-exactness of untouched srcset candidates, quote-respecting attribute tokenizer, budget cut-off mid-document, dispose semantics with queued waiters, diamond @import fan-out, perf bound on hostile markup) and would fail against a naive implementation. Server tests cover traversal, symlink escape, ADS/spelling, broad folders, and memo semantics including negative-decision non-caching. Spec requirements 1\u20135 and all stated limits map to named constants that the tests exercise. No regressions visible: `maskNonMarkup` moved but re-exported; `withTimeout`, `ABSOLUTE_HREF`, `attr` remain available; `inlineLinkedStyles` keeps its original signature with an optional 5th parameter; `sessionFileUrl` and `WIN_DEVICE` changes are backward-compatible.\n\nOverall: ship-with-fixes is close, but every remaining defect is low-to-medium hygiene/edge content, the security-critical server rule matches the spec (including the memoization and accepted residual risk), and the earlier high findings are demonstrably fixed in this diff. Approve with the loader `text()` bound and the cross-drive `isBroadFolder` gap as follow-ups.\n\nSHIPWRIGHT_VERDICT: approve",
+      "via": "openrouter",
+      "status": "success"
+    }
+  },
+  "driver": "claude",
+  "driver_requested": "claude",
+  "codextender_active": false,
+  "mode": "code",
+  "capture": {
+    "run_id": "iterate-2026-11-02-smartviewer-html-images",
+    "at": "2026-11-02T21:06:57.552217+00:00"
+  },
+  "verdicts": {
+    "openai": "revise",
+    "glm": "approve"
+  },
+  "statuses": {
+    "openai": "success",
+    "glm": "success"
+  },
+  "contradiction": {
+    "detected": false,
+    "comparable": true,
+    "requires_resolution": false,
+    "reason": "verdicts agree within one step: glm=approve, openai=revise"
+  }
+}
