@@ -146,13 +146,12 @@ test.describe("V11 - Mission links open in the Viewer, dead paths are not links"
   });
 
   // @covers FR-01.66
-  test("an Outputs row for a file that no longer exists is not clickable and says 'missing'", async ({ page }) => {
+  test("an Outputs row for a file that no longer exists is hidden and not counted", async ({ page }) => {
     await page.getByTestId("mission-side-seg-info").click();
     const rows = page.getByTestId("env-output");
-    await expect(rows).toHaveCount(2);
-    const gone = rows.filter({ hasText: "gone.ts" });
-    await expect(gone.getByTestId("env-output-missing")).toHaveText("missing");
-    await expect(gone).toBeDisabled();
+    await expect(rows).toHaveCount(1);
+    await expect(page.getByTestId("env-outputs-count")).toHaveText("1 file");
+    await expect(page.getByTestId("env-outputs")).not.toContainText("gone.ts");
     const live = rows.filter({ hasText: "real.md" });
     await expect(live).toBeEnabled();
     await live.click();

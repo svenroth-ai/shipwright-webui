@@ -43,6 +43,16 @@ describe("mission info sidebar (V6)", () => {
     expect(tree).toMatch(/\.ft-node \{[^}]*font-size: var\(--fs-row\)/);
   });
   // @covers FR-01.66
+  it("overflow fence: one minmax(0,1fr) track, shrinkable cards, truncating values, ellipsis names", () => {
+    // an implicit `auto` track grows to the widest nowrap row and pushes the whole pane past its edge
+    expect(rule(css, ".env-panel")).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(rule(css, ".env-sec")).toMatch(/min-width:\s*0/);
+    expect(rule(css, ".mc-side-body")).toMatch(/overflow-x:\s*hidden/);
+    expect(rule(css, ".env-v")).toMatch(/min-width:\s*0[^}]*text-overflow:\s*ellipsis[^}]*white-space:\s*nowrap/);
+    expect(rule(css, ".env-output")).toMatch(/min-width:\s*0/);
+    expect(rule(css, ".env-output-name")).toMatch(/min-width:\s*0[^}]*overflow:\s*hidden[^}]*text-overflow:\s*ellipsis/);
+  });
+  // @covers FR-01.66
   it("no font-size below 12px and no hardcoded hex colour in the sidebar sheet", () => {
     for (const m of css.matchAll(/font-size:\s*([\d.]+)px/g)) expect(Number(m[1])).toBeGreaterThanOrEqual(12);
     expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);

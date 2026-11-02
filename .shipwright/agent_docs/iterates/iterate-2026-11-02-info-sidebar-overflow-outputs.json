@@ -1,0 +1,77 @@
+{
+  "run_id": "iterate-2026-11-02-info-sidebar-overflow-outputs",
+  "date": "2026-11-02T22:38:51.845120Z",
+  "event_at": "2026-11-02T21:20:59.066551+00:00",
+  "type": "change",
+  "complexity": "small",
+  "prior_source": "history",
+  "branch": "iterate/info-sidebar-overflow-outputs",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-11-02-info-sidebar-overflow-outputs",
+  "test_completeness": {
+    "status": "complete",
+    "run_id": "iterate-2026-11-02-info-sidebar-overflow-outputs",
+    "counts": {
+      "testable": 7,
+      "tested": 7,
+      "untestable": 0,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 3,
+      "covered_acs": 3
+    },
+    "behaviors": [
+      {
+        "behavior": "Outputs row with a very long name truncates on one line with an ellipsis, full path in title, outside tag kept",
+        "disposition": "tested",
+        "evidence": "MissionInfoOutputs.missing.test.tsx + mission-sidebar.test.ts overflow fence + V12 e2e PASSED"
+      },
+      {
+        "behavior": "Info pane never overflows horizontally (no child past card edge, no horizontal scroll) in Files & Terminal and Mission at 1440/1920 and at min width; Remote pill and Agents pill fully visible",
+        "disposition": "tested",
+        "evidence": "V12-info-sidebar-no-overflow.spec.ts 4 tests PASSED (red on the old CSS)"
+      },
+      {
+        "behavior": "Environment values (computer, folder, model, tokens) truncate with ellipsis and carry the full value as tooltip",
+        "disposition": "tested",
+        "evidence": "V12 e2e offenders scan + mission-sidebar.test.ts PASSED"
+      },
+      {
+        "behavior": "Outputs file the server reports not_found is hidden; counts and Show all N count visible rows only",
+        "disposition": "tested",
+        "evidence": "MissionInfoOutputs.missing.test.tsx, V11 e2e, M3 e2e, V12 e2e PASSED"
+      },
+      {
+        "behavior": "Pending or unknown/failed probe, and present-but-unviewable files, keep the row visible and clickable",
+        "disposition": "tested",
+        "evidence": "MissionInfoOutputs.missing.test.tsx (429 and not_previewable cases) PASSED"
+      },
+      {
+        "behavior": "All outputs missing shows the normal empty state",
+        "disposition": "tested",
+        "evidence": "MissionInfoOutputs.missing.test.tsx PASSED"
+      },
+      {
+        "behavior": "Existing Mission/Files&Terminal info sidebar flows unchanged (Outputs rows open in Viewer, outside tag, agents pill, shared head band)",
+        "disposition": "tested",
+        "evidence": "V6, V8, V10, V11, M3, A13 e2e PASSED (35 tests)"
+      }
+    ]
+  },
+  "surface_verification": {
+    "surface": "web",
+    "runner": "node client/e2e/isolated-stack.mjs --project=chromium client/e2e/flows/V12-info-sidebar-no-overflow.spec.ts client/e2e/flows/M3-mission-info-sidebar.spec.ts client/e2e/flows/V6-info-sidebar-file-chips.spec.ts client/e2e/flows/V10-mission-visual-polish.spec.ts client/e2e/flows/V10-mission-viewer-routing-compaction-cap.spec.ts client/e2e/flows/V11-mission-links-viewer-probe.spec.ts client/e2e/flows/V8-files-terminal-shared-ui.spec.ts client/e2e/flows/A13-mission-shell.spec.ts",
+    "exit_code": 0,
+    "tests_run": 35,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\info-sidebar-overflow-outputs\\.shipwright\\runs\\iterate-2026-11-02-info-sidebar-overflow-outputs\\surface_verification.log",
+    "timestamp": "2026-11-02T22:34:46.981Z",
+    "attempts": 1
+  },
+  "exemptions": {
+    "count": 0,
+    "items": []
+  },
+  "risk_flags": []
+}

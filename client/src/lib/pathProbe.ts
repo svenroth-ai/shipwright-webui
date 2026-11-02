@@ -23,6 +23,8 @@ const MAX_CACHED_PER_TASK = 2000;
 interface Entry {
   answer: "yes" | "no";
   until: number;
+  /** A "no" whose server reason is `not_found` (the file is not on disk), as opposed to unviewable-but-present. */
+  gone?: boolean;
 }
 const cache = new Map<string, Map<string, Entry>>();
 /** Paths whose last probe failed: not re-asked for a few seconds (keeps a 429 from being hammered). */
@@ -47,11 +49,22 @@ export function peekProbe(taskId: string, path: string): "yes" | "no" | undefine
   return e.answer;
 }
 
+/** True only for a fresh "no" the server explained as `not_found`: the file is not on disk any more. */
+export function peekGone(taskId: string, path: string): boolean {
+  return peekProbe(taskId, path) === "no" && cache.get(taskId)?.get(path)?.gone === true;
+}
+
 export function probeUrl(taskId: string): string {
   return `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/session-file/probe`;
 }
 
-async function sendBatch(taskId: string, paths: string[]): Promise<Array<"yes" | "no" | "unknown">> {
+interface Verdict {
+  answer: ProbeAnswer;
+  gone: boolean;
+}
+
+async function sendBatch(taskId: string, paths: string[]): Promise<Verdict[]> {
+  const unknown = (): Verdict[] => paths.map(() => ({ answer: "unknown", gone: false }));
   try {
     const r = await fetch(probeUrl(taskId), {
       method: "POST",
@@ -59,13 +72,16 @@ async function sendBatch(taskId: string, paths: string[]): Promise<Array<"yes" |
       body: JSON.stringify({ paths }),
       signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(FETCH_TIMEOUT_MS) : undefined,
     });
-    if (!r.ok) return paths.map(() => "unknown");
-    const body = (await r.json()) as { results?: Array<{ openable?: unknown }> };
+    if (!r.ok) return unknown();
+    const body = (await r.json()) as { results?: Array<{ openable?: unknown; reason?: unknown }> };
     const results = body.results;
-    if (!Array.isArray(results) || results.length !== paths.length) return paths.map(() => "unknown");
-    return results.map((x) => (x?.openable === true ? "yes" : x?.openable === false ? "no" : "unknown"));
+    if (!Array.isArray(results) || results.length !== paths.length) return unknown();
+    return results.map((x): Verdict => ({
+      answer: x?.openable === true ? "yes" : x?.openable === false ? "no" : "unknown",
+      gone: x?.openable === false && x?.reason === "not_found",
+    }));
   } catch {
-    return paths.map(() => "unknown");
+    return unknown();
   }
 }
 
@@ -79,17 +95,17 @@ async function flush(): Promise<void> {
     for (let i = 0; i < paths.length; i += MAX_BATCH) {
       const chunk = paths.slice(i, i + MAX_BATCH);
       work.push(
-        sendBatch(taskId, chunk).then((answers) => {
+        sendBatch(taskId, chunk).then((verdicts) => {
           const store = taskCache(taskId);
           if (store.size > MAX_CACHED_PER_TASK) store.clear();
           chunk.forEach((p, k) => {
-            const a = answers[k] ?? "unknown";
+            const a = verdicts[k]?.answer ?? "unknown";
             if (a === "unknown") {
               let b = backoff.get(taskId);
               if (!b) backoff.set(taskId, (b = new Map()));
               b.set(p, Date.now() + UNKNOWN_BACKOFF_MS);
             } else {
-              store.set(p, { answer: a, until: Date.now() + (a === "yes" ? YES_TTL_MS : NO_TTL_MS) });
+              store.set(p, { answer: a, until: Date.now() + (a === "yes" ? YES_TTL_MS : NO_TTL_MS), gone: verdicts[k]?.gone === true });
             }
             for (const done of byPath.get(p) ?? []) done(a);
           });

@@ -56,7 +56,7 @@ test.describe("V10 — Mission visual polish", () => {
   let taskId: string;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "Polish", dirName: "sw-v10-polish", files: { "README.md": "# hi\n" } });
+    project = await seedProject(request, { name: "Polish", dirName: "sw-v10-polish", files: { "README.md": "# hi\n", "out/file1.md": "x", "out/file2.md": "x", "out/file3.md": "x" } });
     taskId = (await seedTask(request, { title: "V10", projectId: project.projectId })).taskId;
     await setActiveProject(page, project.projectId);
     await page.route("**/api/external/tasks/*/session-info", (route) => route.fulfill({ json: payload(project.path) }));

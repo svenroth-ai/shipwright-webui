@@ -11,6 +11,8 @@
  * @covers FR-01.66
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import {
   cleanupProject,
@@ -57,6 +59,9 @@ test.describe("M3 — Mission right info sidebar", () => {
     const task = await seedTask(request, { title: "Sidebar", projectId: project.projectId });
     taskId = task.taskId;
     cwd = project.path;
+    // Outputs whose file is gone are hidden, so the mocked outputs must exist on disk.
+    fs.mkdirSync(path.join(cwd, "out"), { recursive: true });
+    for (let i = 0; i < 7; i++) fs.writeFileSync(path.join(cwd, "out", `file${i}.md`), "x");
     await setActiveProject(page, project.projectId);
   });
 

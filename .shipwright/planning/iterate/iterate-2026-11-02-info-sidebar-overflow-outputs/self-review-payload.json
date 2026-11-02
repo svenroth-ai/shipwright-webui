@@ -1,0 +1,10 @@
+{"items":[
+{"name":"spec_compliance","verdict":"pass","note":"Outputs names ellipsize; Info pane never overflows horizontally; missing files hidden, counts visible-only"},
+{"name":"error_handling","verdict":"pass","note":"probe pending/unknown keeps rows visible (fail open); definitive no hides; all-missing shows normal empty state"},
+{"name":"security_basics","verdict":"pass","note":"no new routes or writes; reuses the read-only probe"},
+{"name":"test_quality","verdict":"pass","note":"unit tests for hiding/counts/empty/fail-open, CSS class fence, real-browser V12 bounding-box E2E at 1440/1920 in both tabs and at min width; verified red on the old CSS"},
+{"name":"performance_basics","verdict":"pass","note":"one batched probe for the list, 30s re-check tick served from cache"},
+{"name":"naming_structure","verdict":"pass","note":"files under 300 lines; list-level hook useOpenableMap extracted; dead missing-tag code removed"},
+{"name":"affected_boundaries","verdict":"pass","note":"probe boundary unchanged; only presentation of results changed"},
+{"name":"test_hygiene_probe","verdict":"pass","note":"no skipped or weakened tests"}
+]}
